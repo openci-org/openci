@@ -7,6 +7,7 @@ export default defineWorkersConfig({
 			reporter: ["text", "json-summary", "json"],
 			reportOnFailure: true,
 		},
+		exclude: ["node_modules/**"],
 		poolOptions: {
 			workers: {
 				wrangler: { configPath: "./wrangler.toml" },

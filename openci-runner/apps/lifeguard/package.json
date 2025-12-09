@@ -1,0 +1,35 @@
+{
+	"bin": "dist/cli.js",
+	"dependencies": {
+		"ink": "^4.4.1",
+		"meow": "^11.0.0",
+		"react": "^18.3.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.8",
+		"@sindresorhus/tsconfig": "^3.0.1",
+		"@types/react": "^18.0.32",
+		"chalk": "^5.2.0",
+		"ink-testing-library": "^3.0.0",
+		"typescript": "^5.0.3",
+		"vitest": "^4.0.15"
+	},
+	"engines": {
+		"node": ">=16"
+	},
+	"files": [
+		"dist"
+	],
+	"license": "MIT",
+	"name": "lifeguard",
+	"scripts": {
+		"build": "tsc",
+		"check": "biome check .",
+		"dev": "tsc --watch",
+		"format": "biome format --write .",
+		"lint": "biome lint .",
+		"test": "vitest"
+	},
+	"type": "module",
+	"version": "0.0.0"
+}
