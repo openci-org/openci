@@ -7,6 +7,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.8",
 		"@types/react": "^19.2.1",
+		"@vitest/coverage-v8": "^4.0.15",
 		"chalk": "^5.2.0",
 		"ink-testing-library": "^4.0.0",
 		"typescript": "^5.0.3",
@@ -26,7 +27,8 @@
 		"dev": "tsc --watch",
 		"format": "biome format --write .",
 		"lint": "biome lint .",
-		"test": "vitest"
+		"test": "vitest",
+		"test-with-codecov": "vitest run --coverage --reporter=junit --outputFile=test-report.junit.xml"
 	},
 	"type": "module",
 	"version": "0.1.0"
