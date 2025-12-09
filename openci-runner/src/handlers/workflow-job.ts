@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { App } from "@octokit/app";
 import { Octokit } from "@octokit/rest";
 import type { Context } from "hono";
@@ -89,11 +90,13 @@ export async function handleWorkflowJobQueued(
 ) {
 	const installationId = payload.installation?.id;
 	if (!installationId) {
+		Sentry.captureMessage("Installation ID not found", "warning");
 		return c.text("Installation ID not found", 400);
 	}
 
 	const runId = payload.workflow_job?.run_id;
 	if (!runId) {
+		Sentry.captureMessage("Run ID not found in queued event", "warning");
 		return c.text("Run ID not found", 400);
 	}
 
@@ -145,6 +148,7 @@ export async function handleWorkflowJobQueued(
 						await notifyJobStarted(c.env.SLACK_WEBHOOK_URL, payload);
 					}
 				} catch (e) {
+					Sentry.captureException(e);
 					console.error("Background task failed:", e);
 				}
 			})(),
@@ -152,6 +156,7 @@ export async function handleWorkflowJobQueued(
 
 		return c.text("Workflow job accepted, runner provisioning started", 202);
 	} catch (e) {
+		Sentry.captureException(e);
 		console.error(e);
 		return c.text("Internal Server Error", 500);
 	}
@@ -163,6 +168,7 @@ export async function handleWorkflowJobCompleted(
 ) {
 	const runId = payload.workflow_job?.run_id;
 	if (!runId) {
+		Sentry.captureMessage("Run ID not found in completed event", "warning");
 		return c.text("Run ID not found", 400);
 	}
 
@@ -173,12 +179,9 @@ export async function handleWorkflowJobCompleted(
 			await notifyJobCompleted(c.env.SLACK_WEBHOOK_URL, payload);
 		}
 
-		if (c.env.SLACK_WEBHOOK_URL) {
-			await notifyJobCompleted(c.env.SLACK_WEBHOOK_URL, payload);
-		}
-
 		return c.text("Successfully deleted OpenCI runner", 200);
 	} catch (e) {
+		Sentry.captureException(e);
 		console.error(e);
 		return c.text("Internal Server Error", 500);
 	}
@@ -190,6 +193,7 @@ export async function handleWorkflowJobCancelled(
 ) {
 	const runId = payload.workflow_job?.run_id;
 	if (!runId) {
+		Sentry.captureMessage("Run ID not found in cancelled event", "warning");
 		return c.text("Run ID not found", 400);
 	}
 
@@ -202,6 +206,7 @@ export async function handleWorkflowJobCancelled(
 
 		return c.text("Successfully deleted cancelled OpenCI runner", 200);
 	} catch (e) {
+		Sentry.captureException(e);
 		console.error(e);
 		return c.text("Internal Server Error", 500);
 	}
