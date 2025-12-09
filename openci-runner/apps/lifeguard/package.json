@@ -26,7 +26,8 @@
 		"dev": "tsc --watch",
 		"format": "biome format --write .",
 		"lint": "biome lint .",
-		"test": "vitest"
+		"test": "vitest",
+		"test-with-codecov": "vitest run --coverage --reporter=junit --outputFile=test-report.junit.xml"
 	},
 	"type": "module",
 	"version": "0.1.0"
