@@ -7,6 +7,14 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 head_sampling_rate = 1
 
+[observability.traces]
+enabled = true
+destinations = ["sentry-traces"]
+
+[observability.logs]
+enabled = true
+destinations = ["sentry-logs"]
+
 [[routes]]
 pattern = "dev.openci.run"
 custom_domain = true
