@@ -13,7 +13,8 @@
 			"!**/node_modules",
 			"!openci-runner/worker-configuration.d.ts",
 			"!**/.wrangler",
-			"!**/coverage"
+			"!**/coverage",
+			"!openci-runner/apps/lifeguard/dist"
 		]
 	},
 	"linter": {

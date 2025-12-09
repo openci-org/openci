@@ -1,4 +1,4 @@
-name: Test
+name: Test LifeGuard
 on:
   pull_request:
     branches:
@@ -17,22 +17,10 @@ jobs:
           - openci-runner-beta
     defaults:
       run:
-        working-directory: ./openci-runner
+        working-directory: ./openci-runner/apps/lifeguard
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Prepare Cloudflare secrets
-        run: |
-          cat <<'EOF' > .env
-          GH_APP_WEBHOOK_SECRET=${{ secrets.GH_APP_WEBHOOK_SECRET }}
-          GH_APP_ID=${{ secrets.GH_APP_ID }}
-          GH_APP_PRIVATE_KEY=${{ secrets.GH_APP_PRIVATE_KEY }}
-          CF_ACCESS_CLIENT_ID=${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET=${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-          INCUS_SERVER_URL=${{ secrets.INCUS_SERVER_URL }}
-          SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
-          EOF
+      - uses: actions/checkout@v6
 
       - name: Setup Biome
         uses: biomejs/setup-biome@v2

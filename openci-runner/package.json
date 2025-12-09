@@ -4,7 +4,7 @@
 		"@octokit/rest": "^22.0.1",
 		"@octokit/webhooks-methods": "^6.0.0",
 		"@octokit/webhooks-types": "^7.6.1",
-		"@sentry/cloudflare": "^10.27.0",
+		"@sentry/cloudflare": "^10.29.0",
 		"hono": "^4.10.7",
 		"zod": "^4.1.13"
 	},

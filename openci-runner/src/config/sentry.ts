@@ -1,7 +1,10 @@
-import type * as Sentry from "@sentry/cloudflare";
+import * as Sentry from "@sentry/cloudflare";
 
 export const sentryConfig = (env: Env): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
 	enableLogs: true,
+	integrations: [
+		Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+	],
 	tracesSampleRate: 1.0,
 });
