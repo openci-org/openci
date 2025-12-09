@@ -1,6 +1,6 @@
-import * as Sentry from "@sentry/cloudflare";
 import { App } from "@octokit/app";
 import { Octokit } from "@octokit/rest";
+import * as Sentry from "@sentry/cloudflare";
 import type { Context } from "hono";
 import {
 	createInstance,
