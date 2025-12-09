@@ -9,7 +9,7 @@ export default defineWorkersConfig({
 			reportOnFailure: true,
 		},
 		exclude: ["**/node_modules/**", "**/apps/**"],
-		include: ["src/**/*.test.ts"],
+		include: ["test/**/*.spec.ts"],
 		poolOptions: {
 			workers: {
 				wrangler: { configPath: "./wrangler.toml" },
