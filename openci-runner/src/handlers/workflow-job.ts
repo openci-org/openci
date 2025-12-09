@@ -211,3 +211,26 @@ export async function handleWorkflowJobCancelled(
 		return c.text("Internal Server Error", 500);
 	}
 }
+
+export async function handleWorkflowJobCancelled(
+	c: Context<{ Bindings: Env }>,
+	payload: WorkflowJobPayload,
+) {
+	const runId = payload.workflow_job?.run_id;
+	if (!runId) {
+		return c.text("Run ID not found", 400);
+	}
+
+	try {
+		await deleteRunnerInstance(c, runId);
+
+		if (c.env.SLACK_WEBHOOK_URL) {
+			await notifyJobCancelled(c.env.SLACK_WEBHOOK_URL, payload);
+		}
+
+		return c.text("Successfully deleted cancelled OpenCI runner", 200);
+	} catch (e) {
+		console.error(e);
+		return c.text("Internal Server Error", 500);
+	}
+}
