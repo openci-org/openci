@@ -3,6 +3,5 @@
 		"jsx": "react-jsx",
 		"outDir": "dist"
 	},
-	"extends": "@sindresorhus/tsconfig",
 	"include": ["source"]
 }
