@@ -1,9 +1,5 @@
+import type { WebhookEvent } from "@octokit/webhooks-types";
 import { Hono } from "hono";
-import {
-	handleWorkflowJobCancelled,
-	handleWorkflowJobCompleted,
-	handleWorkflowJobQueued,
-} from "../handlers/workflow-job";
 import { verifySignature } from "../middleware/github";
 
 const webhook = new Hono<{ Bindings: Env }>();
@@ -11,7 +7,7 @@ const webhook = new Hono<{ Bindings: Env }>();
 webhook.use("*", verifySignature());
 
 webhook.post("/", async (c) => {
-	const payload = await c.req.json();
+	const payload = (await c.req.json()) as WebhookEvent;
 
 	if (!("workflow_job" in payload)) {
 		return c.text("Event ignored", 200);
@@ -23,16 +19,18 @@ webhook.post("/", async (c) => {
 	}
 
 	if (payload.action === "queued") {
-		return handleWorkflowJobQueued(c, payload);
+		await c.env.REGISTER_RUNNER.create({
+			params: {
+				c: c,
+				githubPayload: payload,
+			},
+		});
+		return c.text("Workflow Job registration initiated", 202);
 	}
 
-	if (payload.action === "completed") {
-		return handleWorkflowJobCompleted(c, payload);
-	}
-
-	if (payload.action === "cancelled") {
-		return handleWorkflowJobCancelled(c, payload);
-	}
+	// if (payload.action === "completed") {
+	// 	return handleWorkflowJobCompleted(c, payload);
+	// }
 
 	return c.text("Workflow Job action not supported", 200);
 });

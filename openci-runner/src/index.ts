@@ -9,4 +9,6 @@ const app = new Hono<{ Bindings: Env }>();
 app.use("*", validateEnv());
 app.route("/webhook", webhook);
 
+export { RegisterRunner } from "./workflows/register-runner";
+
 export default Sentry.withSentry(sentryConfig, app);
