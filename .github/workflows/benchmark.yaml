@@ -9,7 +9,7 @@ jobs:
   benchmark:
     strategy:
       matrix:
-        runner: [ubuntu-latest, openci-runner-beta]
+        runner: [ubuntu-latest, openci-runner-beta-dev]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
