@@ -14,7 +14,7 @@
 		"@vitest/coverage-istanbul": "^3.2.4",
 		"typescript": "^5.5.2",
 		"vitest": "3.2.4",
-		"wrangler": "^4.51.0"
+		"wrangler": "^4.54.0"
 	},
 	"name": "openci-runner",
 	"private": true,

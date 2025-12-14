@@ -7,13 +7,14 @@ import { notifyJobCompleted } from "../services/slack";
 import type { WorkflowJobPayload } from "../types/github.types";
 
 export async function createOctokit(
-	c: Context<{ Bindings: Env }>,
+	github_app_id: string,
+	github_app_private_key: string,
 	installationId: number,
 ) {
 	const app = new App({
-		appId: c.env.GH_APP_ID,
+		appId: github_app_id,
 		Octokit: Octokit,
-		privateKey: c.env.GH_APP_PRIVATE_KEY,
+		privateKey: github_app_private_key,
 	});
 
 	return await app.getInstallationOctokit(installationId);

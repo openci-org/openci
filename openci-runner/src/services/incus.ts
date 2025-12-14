@@ -50,6 +50,7 @@ export async function requestCreateInstance(
 ): Promise<string | undefined> {
 	const baseUrl = envData.server_url;
 	const instanceUrl = `${baseUrl}/1.0/instances`;
+	console.log(instanceUrl);
 	const cloudflareAccessHeaders = {
 		"CF-Access-Client-Id": envData.cloudflare_access_client_id,
 		"CF-Access-Client-Secret": envData.cloudflare_access_client_secret,
@@ -85,6 +86,8 @@ export async function requestCreateInstance(
 	});
 
 	if (!response.ok) {
+		const errorBody = await response.text();
+		console.log("Error response body:", errorBody);
 		throw new Error(
 			`Failed to create Incus instance: ${response.status} ${response.statusText}`,
 		);
@@ -230,6 +233,8 @@ export async function fetchStatusOfOperation(
 			`Failed to check operation status: ${response.status} ${response.statusText}`,
 		);
 	}
+	const json = await response.json();
+	console.log("Operation status response:", json);
 
 	return IncusAsyncResponseSchema.parse(await response.json());
 }
