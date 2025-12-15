@@ -90,3 +90,13 @@ export const IncusInstanceStateResponseSchema = z.object({
 export type IncusInstanceStateResponse = z.infer<
 	typeof IncusInstanceStateResponseSchema
 >;
+
+export const IncusOperationWaitSchema = z.object({
+	metadata: z.object({
+		status: z.enum(["Failure", "Pending", "Running", "Success"]),
+	}),
+});
+
+export type IncusOperationWaitResponse = z.infer<
+	typeof IncusOperationWaitSchema
+>;

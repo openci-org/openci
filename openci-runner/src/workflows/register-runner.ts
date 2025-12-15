@@ -16,6 +16,7 @@ import {
 	IncusAsyncResponseSchema,
 	type IncusEnv,
 	IncusInstanceStateResponseSchema,
+	IncusOperationWaitSchema,
 } from "../types/incus.types";
 
 type Params = {
@@ -58,6 +59,13 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 
 		const operationIdOfCreatingIncusInstance = await step.do(
 			"create an incus instance",
+			{
+				retries: {
+					backoff: "constant",
+					delay: "1 seconds",
+					limit: 30,
+				},
+			},
 
 			async () => {
 				console.log("Incus instance creation initiated");
@@ -91,7 +99,7 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 				);
 
 				const baseUrl = _env.incus_server_url;
-				const operationUrl = `${baseUrl}/1.0/operations/${operationIdOfCreatingIncusInstance}`;
+				const operationUrl = `${baseUrl}/1.0/operations/${operationIdOfCreatingIncusInstance}/wait`;
 				const cloudflareAccessHeaders = {
 					"CF-Access-Client-Id": _env.cloudflare_access_client_id,
 					"CF-Access-Client-Secret": _env.cloudflare_access_client_secret,
@@ -107,27 +115,15 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 					);
 				}
 				const json = await response.json();
-				const result = IncusAsyncResponseSchema.parse(json);
-				console.log("Operation status response:", json);
+				console.log("wait for instance creation to complete", json);
+				const result = IncusOperationWaitSchema.parse(json);
 
 				const status = result.metadata?.status;
-				if (status === "Failure") {
+				if (status !== "Success") {
 					throw new NonRetryableError(
 						`Incus instance creation failed with status: ${result.metadata}`,
 					);
 				}
-				if (status === "Success") {
-					console.log(`Incus instance ${instanceName} created successfully`);
-					return;
-				}
-				if (status === "Running" || status === "Pending") {
-					throw new Error(
-						`Incus instance creation still in progress with status: ${status}`,
-					);
-				}
-				throw new NonRetryableError(
-					`Incus instance creation failed with status: ${status}`,
-				);
 			},
 		);
 
@@ -171,7 +167,7 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 
 			const json = await response.json();
 
-			console.log("IncusVMStatusResult:", json);
+			console.log("Wait for VM and agent to be ready:", json);
 
 			const result = IncusInstanceStateResponseSchema.parse(json);
 
@@ -192,7 +188,45 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 						console.log(
 							`VM is running but agent not ready yet (processes: ${processes}). Waiting...`,
 						);
-						throw new Error("VM agent is not ready yet");
+						let retryCount = 0;
+						const maxRetries = 10;
+						while (true) {
+							if (retryCount > maxRetries) {
+								throw new Error("Agent not ready in time, giving up.");
+							}
+							retryCount++;
+							console.log(`Checking VM state... Attempt #${retryCount}`);
+							const res = await fetch(execUrl, {
+								headers: {
+									"CF-Access-Client-Id": incusEnv.cloudflare_access_client_id,
+									"CF-Access-Client-Secret":
+										incusEnv.cloudflare_access_client_secret,
+								},
+								method: "GET",
+							});
+
+							if (!res.ok) {
+								throw new NonRetryableError(
+									`Failed to get VM state: ${res.status} ${res.statusText}`,
+								);
+							}
+
+							const json = await res.json();
+
+							console.log(
+								"Wait for VM and agent to be ready inside while loop:",
+								json,
+							);
+
+							const _result = IncusInstanceStateResponseSchema.parse(json);
+							const processes = _result.metadata.processes;
+							if (processes >= 0) {
+								console.log("VM has started!!!");
+								break;
+							}
+							await new Promise((resolve) => setTimeout(resolve, 1000));
+							console.log("Retrying...");
+						}
 					}
 					console.log(
 						`VM has started and agent is ready! (processes: ${processes})`,
@@ -203,7 +237,7 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 			}
 		});
 
-		const execCommandOperationResult = await step.do(
+		const operationIdOfCommandExec = await step.do(
 			"finalize runner setup",
 			async () => {
 				const command = [
@@ -246,18 +280,13 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 				const incusAsyncResponse = IncusAsyncResponseSchema.parse(json);
 				console.log("Exec command response:", incusAsyncResponse);
 
-				return incusAsyncResponse;
+				return incusAsyncResponse.metadata?.id;
 			},
 		);
 
-		if (execCommandOperationResult.metadata?.status === "Success") {
-			console.log("Runner setup command completed successfully");
-			return;
-		}
-
 		await step.do("wait for runner setup command to complete", async () => {
 			const baseUrl = _env.incus_server_url;
-			const operationUrl = `${baseUrl}/1.0/operations/${execCommandOperationResult.metadata?.id}`;
+			const operationUrl = `${baseUrl}/1.0/operations/${operationIdOfCommandExec}/wait`;
 			const cloudflareAccessHeaders = {
 				"CF-Access-Client-Id": _env.cloudflare_access_client_id,
 				"CF-Access-Client-Secret": _env.cloudflare_access_client_secret,
@@ -273,24 +302,16 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 				);
 			}
 
-			const result = IncusAsyncResponseSchema.parse(await response.json());
+			const json = await response.json();
+			console.log("wait for runner setup command to complete", json);
+			const result = IncusAsyncResponseSchema.parse(json);
 
-			if (result.metadata?.status === "Success") {
-				console.log("Runner setup command completed successfully");
-				return;
-			} else if (
-				result.metadata?.status === "Running" ||
-				result.metadata?.status === "Pending"
-			) {
-				throw new Error(
-					`Runner setup command still in progress with status: ${result.metadata?.status}`,
-				);
-			} else {
-				console.error("Runner setup command failed:", result);
+			if (result.metadata?.status !== "Success") {
 				throw new NonRetryableError(
 					`Runner setup command failed with status: ${result.metadata?.status}`,
 				);
 			}
+			console.log("Successfully register the OpenCI runner");
 		});
 	}
 }
