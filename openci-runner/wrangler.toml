@@ -35,3 +35,8 @@ custom_domain = true
 OPENCI_RUNNER_LABEL = "openci-runner-beta"
 OPENCI_RUNNER_BASE_IMAGE = "openci-runner-0.0.4"
 ENVIRONMENT = "production"
+
+[[workflows]]
+name = "register-runner"
+binding = "REGISTER_RUNNER"
+class_name = "RegisterRunner"
