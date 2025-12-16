@@ -26,12 +26,12 @@ export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 
 		const installationId = _githubPayload.installation?.id;
 		if (!installationId) {
-			throw new NonRetryableError("Installation ID not found");
+			throw new NonRetryableError("GitHub installation_id not found");
 		}
 
 		const runId = _githubPayload.workflow_job?.run_id;
 		if (!runId) {
-			throw new NonRetryableError("Run ID not found");
+			throw new NonRetryableError("GitHub run_id not found");
 		}
 
 		const _incusServerUrl = _env.incus_server_url;
