@@ -107,6 +107,7 @@
 			"plpgsql",
 			"predeploy",
 			"pubspec",
+			"Retryable",
 			"riverpod",
 			"rngs",
 			"RUNASROOT",
