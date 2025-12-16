@@ -6,7 +6,6 @@ import {
 import { NonRetryableError } from "cloudflare:workflows";
 import type { WorkflowJobQueuedEvent } from "@octokit/webhooks-types";
 import { generateInstanceName } from "../handlers/workflow-job";
-import type { IncusEnv } from "../types/incus.types";
 
 type Params = {
 	github_workflow_job_queued_event: WorkflowJobQueuedEvent;
@@ -19,29 +18,32 @@ type Params = {
 	openci_runner_label: string;
 };
 
-function requireValue<T>(value: T | undefined | null, name: string): T {
-	if (value == null) {
-		throw new NonRetryableError(`${name} not found`);
-	}
-	return value;
-}
-
 export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
 	async run(event: WorkflowEvent<Params>, _step: WorkflowStep) {
 		console.log("RegisterRunner workflow started");
 		const _env = event.payload;
 		const _githubPayload = _env.github_workflow_job_queued_event;
 
-		const _installationId = requireValue(
-			_githubPayload.installation?.id,
-			"Installation ID",
-		);
-		const runId = requireValue(_githubPayload.workflow_job?.run_id, "Run ID");
+		const installationId = _githubPayload.installation?.id;
+		if (!installationId) {
+			throw new NonRetryableError("Installation ID not found");
+		}
 
-		const _incusEnv: IncusEnv = {
-			cloudflare_access_client_id: _env.cloudflare_access_client_id,
-			cloudflare_access_client_secret: _env.cloudflare_access_client_secret,
-			server_url: _env.incus_server_url,
+		const runId = _githubPayload.workflow_job?.run_id;
+		if (!runId) {
+			throw new NonRetryableError("Run ID not found");
+		}
+
+		const _incusServerUrl = _env.incus_server_url;
+		const _baseUrl = `${_incusServerUrl}/1.0`;
+
+		const header = {
+			"CF-Access-Client-Id": _env.cloudflare_access_client_id,
+			"CF-Access-Client-Secret": _env.cloudflare_access_client_secret,
+		};
+		const _headerWithContentType = {
+			...header,
+			"Content-Type": "application/json",
 		};
 
 		const _instanceName = generateInstanceName(runId);
