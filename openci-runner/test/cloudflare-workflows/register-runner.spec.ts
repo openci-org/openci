@@ -1,7 +1,7 @@
 import { env, introspectWorkflowInstance } from "cloudflare:test";
 import { expect, it } from "vitest";
 
-it("should disable all sleeps, mock an event and complete", async () => {
+it("demo test for workflow", async () => {
 	const instanceId = "123456";
 	const instance = await introspectWorkflowInstance(
 		env.REGISTER_RUNNER,
