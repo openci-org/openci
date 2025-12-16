@@ -22,6 +22,7 @@ custom_domain = true
 [vars]
 OPENCI_RUNNER_LABEL = "openci-runner-beta-dev"
 OPENCI_RUNNER_BASE_IMAGE = "openci-runner-0.0.4"
+ENVIRONMENT = "development"
 
 [env.production]
 name = "openci-runner"
@@ -33,3 +34,4 @@ custom_domain = true
 [env.production.vars]
 OPENCI_RUNNER_LABEL = "openci-runner-beta"
 OPENCI_RUNNER_BASE_IMAGE = "openci-runner-0.0.4"
+ENVIRONMENT = "production"
