@@ -17,6 +17,7 @@ export type IncusProperty = z.infer<typeof IncusPropertySchema>;
 export const IncusInstancesResponseSchema = z.object({
 	metadata: z.array(IncusPropertySchema),
 });
+
 export type IncusInstancesResponse = z.infer<
 	typeof IncusInstancesResponseSchema
 >;
@@ -73,17 +74,10 @@ export const IncusAsyncResponseSchema = z.discriminatedUnion("type", [
 ]);
 export type IncusAsyncResponse = z.infer<typeof IncusAsyncResponseSchema>;
 
-export const IncusInstanceStatusSchema = z.enum([
-	"Running",
-	"Stopped",
-	"Frozen",
-	"Error",
-]);
-
 export const IncusInstanceStateResponseSchema = z.object({
 	metadata: z.object({
 		processes: z.number(),
-		status: IncusInstanceStatusSchema,
+		status: IncusStatusSchema,
 	}),
 });
 
