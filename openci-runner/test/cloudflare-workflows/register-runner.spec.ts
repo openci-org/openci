@@ -13,8 +13,8 @@ const mockWorkflowParams = {
 	openci_runner_label: "test-runner-label",
 };
 
-it("demo test for workflow", async () => {
-	const instanceId = "123456";
+it("initial state", async () => {
+	const instanceId = "test-initial-state";
 	const instance = await introspectWorkflowInstance(
 		env.REGISTER_RUNNER,
 		instanceId,
@@ -29,6 +29,34 @@ it("demo test for workflow", async () => {
 		params: mockWorkflowParams,
 	});
 	await expect(instance.waitForStatus("complete")).resolves.not.toThrow();
+
+	await instance.dispose();
+});
+
+it("GitHub installation_id is missing", async () => {
+	const instanceId = "test-missing-installation-id";
+	const instance = await introspectWorkflowInstance(
+		env.REGISTER_RUNNER,
+		instanceId,
+	);
+
+	await instance.modify(async (m) => {
+		await m.disableSleeps();
+	});
+
+	const paramsWithoutInstallationId = {
+		...mockWorkflowParams,
+		github_workflow_job_queued_event: {
+			...mockGithubPayload,
+			installation: undefined,
+		},
+	};
+
+	await env.REGISTER_RUNNER.create({
+		id: instanceId,
+		params: paramsWithoutInstallationId,
+	});
+	await expect(instance.waitForStatus("errored")).resolves.not.toThrow();
 
 	await instance.dispose();
 });

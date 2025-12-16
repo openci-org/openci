@@ -19,20 +19,27 @@ type Params = {
 };
 
 export class RegisterRunner extends WorkflowEntrypoint<Env, Params> {
-	async run(event: WorkflowEvent<Params>, _step: WorkflowStep) {
+	async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
 		console.log("RegisterRunner workflow started");
 		const _env = event.payload;
 		const _githubPayload = _env.github_workflow_job_queued_event;
 
-		const installationId = _githubPayload.installation?.id;
-		if (!installationId) {
-			throw new NonRetryableError("GitHub installation_id not found");
-		}
+		const { installationId: _installationId, runId } = await step.do(
+			"validate github payload",
+			async () => {
+				const installationId = _githubPayload.installation?.id;
+				if (!installationId) {
+					throw new NonRetryableError("GitHub installation_id not found");
+				}
 
-		const runId = _githubPayload.workflow_job?.run_id;
-		if (!runId) {
-			throw new NonRetryableError("GitHub run_id not found");
-		}
+				const runId = _githubPayload.workflow_job?.run_id;
+				if (!runId) {
+					throw new NonRetryableError("GitHub run_id not found");
+				}
+
+				return { installationId, runId };
+			},
+		);
 
 		const _incusServerUrl = _env.incus_server_url;
 		const _baseUrl = `${_incusServerUrl}/1.0`;
