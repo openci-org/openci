@@ -6,7 +6,7 @@ import {
 import type { WorkflowJobQueuedEvent } from "@octokit/webhooks-types";
 
 type Params = {
-	githubPayload: WorkflowJobQueuedEvent;
+	github_payload: WorkflowJobQueuedEvent;
 	github_app_id: string;
 	github_app_private_key: string;
 	cloudflare_access_client_id: string;
