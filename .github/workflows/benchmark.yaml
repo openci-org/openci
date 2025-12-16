@@ -1,17 +1,21 @@
 name: Benchmark
 on:
-  workflow_dispatch:
   pull_request:
     branches:
       - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
 
 jobs:
   benchmark:
     strategy:
       matrix:
-        runner: [ubuntu-latest, openci-runner-beta]
+        runner: [ubuntu-latest, openci-runner-beta, openci-runner-beta-dev]
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - name: System Info
         run: |
@@ -23,9 +27,9 @@ jobs:
           free -h
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: latest
 
       - name: Build TypeScript Compiler (tsc)
         run: |
