@@ -133,9 +133,6 @@
 			"source.organizeImports.biome": "explicit"
 		},
 		"editor.formatOnSave": true,
-		"files.associations": {
-			"**/wrangler.json*": "jsonc"
-		},
 		"files.exclude": {
 			"target": true
 		},
