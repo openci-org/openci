@@ -1,0 +1,50 @@
+name: Benchmark
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  benchmark:
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, openci-runner-beta, openci-runner-beta-dev]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - name: System Info
+        run: |
+          echo "=== CPU Info ==="
+          nproc
+          cat /proc/cpuinfo | grep "model name" | head -1 || true
+          echo ""
+          echo "=== Memory Info ==="
+          free -h
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+
+      - name: Build TypeScript Compiler (tsc)
+        run: |
+          echo "=== Building TypeScript from source ==="
+          git clone --depth 1 https://github.com/microsoft/TypeScript.git
+          cd TypeScript
+          time npm ci
+          time npm run build
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build ripgrep
+        run: |
+          echo "=== Building ripgrep from source ==="
+          git clone --depth 1 https://github.com/BurntSushi/ripgrep.git
+          cd ripgrep
+          time cargo build --release
