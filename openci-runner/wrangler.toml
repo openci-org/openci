@@ -1,4 +1,3 @@
-name = "openci-runner-dev"
 main = "src/index.ts"
 compatibility_date = "2025-12-03"
 compatibility_flags = ["nodejs_compat"]
@@ -15,20 +14,18 @@ destinations = ["sentry-traces"]
 enabled = true
 destinations = ["sentry-logs"]
 
-[[routes]]
-pattern = "dev.openci.run"
-custom_domain = true
-
-[vars]
-OPENCI_RUNNER_LABEL = "openci-runner-beta-dev"
-OPENCI_RUNNER_BASE_IMAGE = "openci-runner-0.0.4"
-ENVIRONMENT = "development"
-
 [env.production]
 name = "openci-runner"
 
+[env.dev]
+name = "openci-runner-dev"
+
 [[env.production.routes]]
 pattern = "prod.openci.run"
+custom_domain = true
+
+[[env.dev.routes]]
+pattern = "dev.openci.run"
 custom_domain = true
 
 [env.production.vars]
@@ -36,7 +33,17 @@ OPENCI_RUNNER_LABEL = "openci-runner-beta"
 OPENCI_RUNNER_BASE_IMAGE = "openci-runner-0.0.4"
 ENVIRONMENT = "production"
 
-[[workflows]]
+[env.dev.vars]
+OPENCI_RUNNER_LABEL = "openci-runner-beta-dev"
+OPENCI_RUNNER_BASE_IMAGE = "openci-runner-0.0.4"
+ENVIRONMENT = "development"
+
+[[env.production.workflows]]
+name = "register-runner"
+binding = "REGISTER_RUNNER"
+class_name = "RegisterRunner"
+
+[[env.dev.workflows]]
 name = "register-runner"
 binding = "REGISTER_RUNNER"
 class_name = "RegisterRunner"
