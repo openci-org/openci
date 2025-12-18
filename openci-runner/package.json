@@ -10,7 +10,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.8",
-		"@cloudflare/vitest-pool-workers": "^0.10.11",
+		"@cloudflare/vitest-pool-workers": "^0.10.15",
 		"@vitest/coverage-istanbul": "^3.2.4",
 		"typescript": "^5.5.2",
 		"vitest": "3.2.4",
