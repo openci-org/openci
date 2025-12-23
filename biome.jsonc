@@ -10,9 +10,6 @@
 	"files": {
 		"includes": [
 			"**",
-			"!**/node_modules",
-			"!openci-runner/worker-configuration.d.ts",
-			"!**/.wrangler",
 			"!**/coverage"
 		]
 	},
