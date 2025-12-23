@@ -11,6 +11,9 @@ jobs:
   build_and_test:
     name: Rust project - latest
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./openci_runner
     strategy:
       matrix:
         toolchain:
