@@ -24,12 +24,5 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
-          files: lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          files: lcov.info
+          files: ./openci_runner/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
