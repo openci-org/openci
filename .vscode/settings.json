@@ -14,9 +14,9 @@
     "source.fixAll.eslint": "always"
   },
   "editor.formatOnSave": true,
-  //   "[jsonc]": {
-  //     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  //   },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
