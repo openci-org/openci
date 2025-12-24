@@ -1,5 +1,5 @@
 {
-  "name": "radiant",
+  "name": "openci-runner-lp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,11 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typegen": "sanity schema extract --path=src/sanity/extract.json && sanity typegen generate && rm ./src/sanity/extract.json"
+    "typegen": "sanity schema extract --path=src/sanity/extract.json && sanity typegen generate && rm ./src/sanity/extract.json",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
     "@heroicons/react": "^2.2.0",
+    "@opennextjs/cloudflare": "^1.14.7",
     "@sanity/image-url": "^1.1.0",
     "@sanity/vision": "^4.2.0",
     "clsx": "^2.1.1",
@@ -38,6 +42,7 @@
     "prettier-plugin-organize-imports": "^4.2.0",
     "prettier-plugin-tailwindcss": "^0.7.1",
     "tailwindcss": "^4.1.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.56.0"
   }
 }
