@@ -1,0 +1,19 @@
+{
+    "cSpell.words": [
+        "bento",
+        "grayscale",
+        "oklch",
+        "openci",
+        "Stylesheet",
+        "subheadline",
+        "tailwindplus",
+        "turbopack"
+    ],
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "always",
+        "source.organizeImports": "always"
+    },
+    "files.associations": {
+        "*.css": "tailwindcss"
+    },
+}
