@@ -9,5 +9,13 @@
     "assets": {
         "directory": ".open-next/assets",
         "binding": "ASSETS"
-    }
+    },
+    "routes": [
+        {
+            "pattern": "openci.org",
+            "custom_domain": true
+        }
+    ],
+    "workers_dev": false,
+    "preview_urls": true
 }
