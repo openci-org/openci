@@ -194,7 +194,6 @@ function DarkBentoSection() {
 }
 
 export default function Home() {
-  const unusedVariable = 'this will fail eslint'
   return (
     <div className="overflow-hidden">
       <Hero />
