@@ -2,7 +2,11 @@ name: Cargo Build & Test
 
 on:
   push:
+    branches:
+      - develop
   pull_request:
+    branches:
+      - develop
 
 env:
   CARGO_TERM_COLOR: always
