@@ -1,0 +1,24 @@
+name: CI for LP
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci_lp:
+    name: CI for LP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./openci_runner/lp
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare Dependencies
+        run: npm ci
+
+      - name: Prettier Check
+        run: npx prettier --check .
+
+      - name: ESLint Check
+        run: npx eslint .
