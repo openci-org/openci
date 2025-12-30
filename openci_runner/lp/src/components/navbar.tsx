@@ -12,10 +12,12 @@ import { Logo } from './logo'
 import { PlusGrid, PlusGridItem, PlusGridRow } from './plus-grid'
 
 const links = [
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/company', label: 'Company' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/login', label: 'Login' },
+  { href: '/', label: 'Home' },
+  { href: 'https://github.com/open-ci-io/openci', label: 'GitHub' },
+  {
+    href: 'https://join.slack.com/t/open-ci-io/shared_invite/zt-3ectydtjn-GbcRVXkX~DKVFZNAqB~XtQ',
+    label: 'Join Slack',
+  },
 ]
 
 function DesktopNav() {
