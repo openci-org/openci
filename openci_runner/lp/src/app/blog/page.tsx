@@ -294,11 +294,11 @@ export default async function Blog({
         <Navbar />
         <Subheading className="mt-16">Blog</Subheading>
         <Heading as="h1" className="mt-2">
-          What’s happening at Radiant.
+          What’s happening at OpenCI.
         </Heading>
         <Lead className="mt-6 max-w-3xl">
           Stay informed with product updates, company news, and insights on how
-          to sell smarter at your company.
+          to build better software at your projects.
         </Lead>
       </Container>
       {page === 1 && !category && <FeaturedPosts />}
