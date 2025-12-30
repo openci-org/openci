@@ -63,8 +63,10 @@ async function FeaturedPosts() {
                 </div>
                 <div className="mt-2 text-base/7 font-medium">
                   <Link href={`/blog/${post.slug}`}>
-                    <span className="absolute inset-0" />
-                    {post.title}
+                    <>
+                      <span className="absolute inset-0" />
+                      {post.title}
+                    </>
                   </Link>
                 </div>
                 <div className="mt-2 flex-1 text-sm/6 text-gray-500">
@@ -193,9 +195,11 @@ async function Posts({ page, category }: { page: number; category?: string }) {
                 href={`/blog/${post.slug}`}
                 className="flex items-center gap-1 text-sm/5 font-medium"
               >
-                <span className="absolute inset-0" />
-                Read more
-                <ChevronRightIcon className="size-4 fill-gray-400" />
+                <>
+                  <span className="absolute inset-0" />
+                  Read more
+                  <ChevronRightIcon className="size-4 fill-gray-400" />
+                </>
               </Link>
             </div>
           </div>
