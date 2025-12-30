@@ -1,4 +1,5 @@
 import { PlusGrid, PlusGridItem, PlusGridRow } from '@/components/plus-grid'
+import { slackInviteLink } from '@/constants'
 import { Button } from './button'
 import { Container } from './container'
 import { Gradient } from './gradient'
@@ -18,11 +19,12 @@ function CallToAction() {
         </p>
       </hgroup>
       <p className="mx-auto mt-6 max-w-xs text-sm/6 text-gray-500">
-        Get the cheat codes for selling and unlock your team&apos;s revenue
-        potential.
+        Try OpenCI Runner for free for 14 days.
+        <br />
+        No credit card required.
       </p>
       <div className="mt-6">
-        <Button className="w-full sm:w-auto" href="#">
+        <Button className="w-full sm:w-auto" href={slackInviteLink}>
           Get started
         </Button>
       </div>
@@ -53,33 +55,35 @@ function Sitemap() {
   return (
     <>
       <div>
-        <SitemapHeading>Product</SitemapHeading>
+        {/* <SitemapHeading>Product</SitemapHeading>
         <SitemapLinks>
           <SitemapLink href="/pricing">Pricing</SitemapLink>
           <SitemapLink href="#">Analysis</SitemapLink>
           <SitemapLink href="#">API</SitemapLink>
-        </SitemapLinks>
+        </SitemapLinks> */}
       </div>
       <div>
-        <SitemapHeading>Company</SitemapHeading>
+        {/* <SitemapHeading>Company</SitemapHeading>
         <SitemapLinks>
           <SitemapLink href="#">Careers</SitemapLink>
           <SitemapLink href="/blog">Blog</SitemapLink>
           <SitemapLink href="/company">Company</SitemapLink>
-        </SitemapLinks>
+        </SitemapLinks> */}
       </div>
       <div>
         <SitemapHeading>Support</SitemapHeading>
         <SitemapLinks>
-          <SitemapLink href="#">Help center</SitemapLink>
-          <SitemapLink href="#">Community</SitemapLink>
+          <SitemapLink href="https://join.slack.com/t/open-ci-io/shared_invite/zt-3ectydtjn-GbcRVXkX~DKVFZNAqB~XtQ">
+            Help center - Slack
+          </SitemapLink>
+          {/* <SitemapLink href="#">Community</SitemapLink> */}
         </SitemapLinks>
       </div>
       <div>
         <SitemapHeading>Company</SitemapHeading>
         <SitemapLinks>
-          <SitemapLink href="#">Terms of service</SitemapLink>
-          <SitemapLink href="#">Privacy policy</SitemapLink>
+          <SitemapLink href="/terms-of-service">Terms of service</SitemapLink>
+          <SitemapLink href="/privacy-policy">Privacy policy</SitemapLink>
         </SitemapLinks>
       </div>
     </>
@@ -94,18 +98,6 @@ function SocialIconX(props: React.ComponentPropsWithoutRef<'svg'>) {
   )
 }
 
-function SocialIconFacebook(props: React.ComponentPropsWithoutRef<'svg'>) {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" {...props}>
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M16 8.05C16 3.603 12.418 0 8 0S0 3.604 0 8.05c0 4.016 2.926 7.346 6.75 7.95v-5.624H4.718V8.05H6.75V6.276c0-2.017 1.194-3.131 3.022-3.131.875 0 1.79.157 1.79.157v1.98h-1.008c-.994 0-1.304.62-1.304 1.257v1.51h2.219l-.355 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.95z"
-      />
-    </svg>
-  )
-}
-
 function SocialIconLinkedIn(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" {...props}>
@@ -114,19 +106,27 @@ function SocialIconLinkedIn(props: React.ComponentPropsWithoutRef<'svg'>) {
   )
 }
 
+function SocialIconGitHub(props: React.ComponentPropsWithoutRef<'svg'>) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" {...props}>
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  )
+}
+
 function SocialLinks() {
   return (
     <>
       <Link
-        href="https://facebook.com"
+        href="https://github.com/open-ci-io/openci"
         target="_blank"
-        aria-label="Visit us on Facebook"
+        aria-label="Visit us on GitHub"
         className="text-gray-950 data-hover:text-gray-950/75"
       >
-        <SocialIconFacebook className="size-4" />
+        <SocialIconGitHub className="size-4" />
       </Link>
       <Link
-        href="https://x.com"
+        href="https://x.com/open_ci_io"
         target="_blank"
         aria-label="Visit us on X"
         className="text-gray-950 data-hover:text-gray-950/75"
@@ -134,7 +134,7 @@ function SocialLinks() {
         <SocialIconX className="size-4" />
       </Link>
       <Link
-        href="https://linkedin.com"
+        href="https://www.linkedin.com/in/masahiro-aoki-b68905163/"
         target="_blank"
         aria-label="Visit us on LinkedIn"
         className="text-gray-950 data-hover:text-gray-950/75"

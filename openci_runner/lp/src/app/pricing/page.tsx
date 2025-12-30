@@ -6,6 +6,7 @@ import { Link } from '@/components/link'
 import { LogoCloud } from '@/components/logo-cloud'
 import { Navbar } from '@/components/navbar'
 import { Heading, Lead, Subheading } from '@/components/text'
+import { slackInviteLink } from '@/constants'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
   CheckIcon,
@@ -22,17 +23,16 @@ export const metadata: Metadata = {
 
 const tiers = [
   {
-    name: 'Starter' as const,
-    slug: 'starter',
-    description: 'Everything you need to start selling.',
-    priceMonthly: 99,
-    href: '#',
+    name: 'Nano' as const,
+    slug: 'nano',
+    description: 'Best for small projects.',
+    priceMonthly: 1,
+    href: slackInviteLink,
     highlights: [
-      { description: 'Up to 3 team members' },
-      { description: 'Up to 5 deal progress boards' },
-      { description: 'Source leads from select platforms' },
-      { description: 'RadiantAI integrations', disabled: true },
-      { description: 'Competitor analysis', disabled: true },
+      { description: '1/4 vCPU, 512MB RAM, 10GB SSD Storage' },
+      { description: 'Unlimited usage' },
+      { description: 'Unlimited concurrency' },
+      { description: 'Unlimited seats' },
     ],
     features: [
       { section: 'Features', name: 'Accounts', value: 3 },
@@ -50,45 +50,16 @@ const tiers = [
     ],
   },
   {
-    name: 'Growth' as const,
-    slug: 'growth',
-    description: 'All the extras for your growing team.',
-    priceMonthly: 149,
-    href: '#',
+    name: 'Standard' as const,
+    slug: 'standard',
+    description: 'Perfect for standard teams.',
+    priceMonthly: 5,
+    href: slackInviteLink,
     highlights: [
-      { description: 'Up to 10 team members' },
-      { description: 'Unlimited deal progress boards' },
-      { description: 'Source leads from over 50 verified platforms' },
-      { description: 'RadiantAI integrations' },
-      { description: '5 competitor analyses per month' },
-    ],
-    features: [
-      { section: 'Features', name: 'Accounts', value: 10 },
-      { section: 'Features', name: 'Deal progress boards', value: 'Unlimited' },
-      { section: 'Features', name: 'Sourcing platforms', value: '100+' },
-      { section: 'Features', name: 'Contacts', value: 1000 },
-      { section: 'Features', name: 'AI assisted outreach', value: true },
-      { section: 'Analysis', name: 'Competitor analysis', value: '5 / month' },
-      { section: 'Analysis', name: 'Dashboard reporting', value: true },
-      { section: 'Analysis', name: 'Community insights', value: true },
-      { section: 'Analysis', name: 'Performance analysis', value: true },
-      { section: 'Support', name: 'Email support', value: true },
-      { section: 'Support', name: '24 / 7 call center support', value: true },
-      { section: 'Support', name: 'Dedicated account manager', value: false },
-    ],
-  },
-  {
-    name: 'Enterprise' as const,
-    slug: 'enterprise',
-    description: 'Added flexibility to close deals at scale.',
-    priceMonthly: 299,
-    href: '#',
-    highlights: [
-      { description: 'Unlimited active team members' },
-      { description: 'Unlimited deal progress boards' },
-      { description: 'Source leads from over 100 verified platforms' },
-      { description: 'RadiantAI integrations' },
-      { description: 'Unlimited competitor analyses' },
+      { description: '2 vCPU, 4GB RAM, 10GB SSD Storage' },
+      { description: 'Unlimited usage' },
+      { description: 'Unlimited concurrency' },
+      { description: 'Unlimited seats' },
     ],
     features: [
       { section: 'Features', name: 'Accounts', value: 'Unlimited' },
@@ -105,6 +76,33 @@ const tiers = [
       { section: 'Support', name: 'Dedicated account manager', value: true },
     ],
   },
+  {
+    name: 'Pro' as const,
+    slug: 'pro',
+    description: 'Best for growing teams.',
+    priceMonthly: 30,
+    href: slackInviteLink,
+    highlights: [
+      { description: '8 vCPU, 16GB RAM, 40GB SSD Storage' },
+      { description: 'Unlimited usage' },
+      { description: 'Unlimited concurrency' },
+      { description: 'Unlimited seats' },
+    ],
+    features: [
+      { section: 'Features', name: 'Accounts', value: 10 },
+      { section: 'Features', name: 'Deal progress boards', value: 'Unlimited' },
+      { section: 'Features', name: 'Sourcing platforms', value: '100+' },
+      { section: 'Features', name: 'Contacts', value: 1000 },
+      { section: 'Features', name: 'AI assisted outreach', value: true },
+      { section: 'Analysis', name: 'Competitor analysis', value: '5 / month' },
+      { section: 'Analysis', name: 'Dashboard reporting', value: true },
+      { section: 'Analysis', name: 'Community insights', value: true },
+      { section: 'Analysis', name: 'Performance analysis', value: true },
+      { section: 'Support', name: 'Email support', value: true },
+      { section: 'Support', name: '24 / 7 call center support', value: true },
+      { section: 'Support', name: 'Dedicated account manager', value: false },
+    ],
+  },
 ]
 
 function Header() {
@@ -116,6 +114,27 @@ function Header() {
         Sign up today and start selling smarter.
       </Lead>
     </Container>
+  )
+}
+
+function PricingCardsWithTitle() {
+  return (
+    <div className="relative py-20">
+      <Subheading className="text-center">
+        Pricing - 14 days free trial
+      </Subheading>
+      <Heading as="div" className="mt-2 mb-32 text-center">
+        Flat rate & unlimited usage.
+      </Heading>
+      <Gradient className="absolute inset-x-2 top-60 bottom-0 rounded-4xl ring-1 ring-black/5 ring-inset" />
+      <Container className="relative">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {tiers.map((tier, tierIndex) => (
+            <PricingCard key={tierIndex} tier={tier} />
+          ))}
+        </div>
+      </Container>
+    </div>
   )
 }
 
@@ -149,6 +168,7 @@ function PricingCard({ tier }: { tier: (typeof tiers)[number] }) {
             <div className="text-sm/5 text-gray-950/75">
               <p>USD</p>
               <p>per month</p>
+              <p>per repository</p>
             </div>
           </div>
           <div className="mt-8">
@@ -514,6 +534,17 @@ export default async function Pricing({
       <Testimonial />
       <FrequentlyAskedQuestions />
       <Footer />
+    </main>
+  )
+}
+
+export async function PricingSectionForTop() {
+  return (
+    <main className="overflow-hidden">
+      <GradientBackground />
+      <PricingCardsWithTitle />
+      <div className="m-32"></div>
+      {/* <FrequentlyAskedQuestions /> */}
     </main>
   )
 }

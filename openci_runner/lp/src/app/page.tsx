@@ -3,19 +3,11 @@ import { Button } from '@/components/button'
 import { Container } from '@/components/container'
 import { Footer } from '@/components/footer'
 import { Gradient } from '@/components/gradient'
-import { Keyboard } from '@/components/keyboard'
-import { Link } from '@/components/link'
-import { LinkedAvatars } from '@/components/linked-avatars'
-import { LogoCloud } from '@/components/logo-cloud'
-import { LogoCluster } from '@/components/logo-cluster'
-import { LogoTimeline } from '@/components/logo-timeline'
-import { Map } from '@/components/map'
 import { Navbar } from '@/components/navbar'
-import { Screenshot } from '@/components/screenshot'
-import { Testimonials } from '@/components/testimonials'
-import { Heading, Subheading } from '@/components/text'
-import { ChevronRightIcon } from '@heroicons/react/16/solid'
+import { Heading, Lead, Subheading } from '@/components/text'
+import { slackInviteLink } from '@/constants'
 import type { Metadata } from 'next'
+import { PricingSectionForTop } from './pricing/page'
 
 export const metadata: Metadata = {
   description:
@@ -28,32 +20,33 @@ function Hero() {
       <Gradient className="absolute inset-2 bottom-0 rounded-4xl ring-1 ring-black/5 ring-inset" />
       <Container className="relative">
         <Navbar
-          banner={
-            <Link
-              href="/blog/radiant-raises-100m-series-a-from-tailwind-ventures"
-              className="flex items-center gap-1 rounded-full bg-fuchsia-950/35 px-3 py-0.5 text-sm/6 font-medium text-white data-hover:bg-fuchsia-950/30"
-            >
-              OpenCI Runner v1.0 released!
-              <ChevronRightIcon className="size-4" />
-            </Link>
-          }
+        // banner={
+        //   <Link
+        //     href="/blog/radiant-raises-100m-series-a-from-tailwind-ventures"
+        //     className="flex items-center gap-1 rounded-full bg-fuchsia-950/35 px-3 py-0.5 text-sm/6 font-medium text-white data-hover:bg-fuchsia-950/30"
+        //   >
+        //     OpenCI Runner v1.0 released!
+        //     <ChevronRightIcon className="size-4" />
+        //   </Link>
+        // }
         />
         <div className="pt-16 pb-24 sm:pt-24 sm:pb-32 md:pt-32 md:pb-48">
           <h1 className="font-display text-6xl/[0.9] font-medium tracking-tight text-balance text-gray-950 sm:text-8xl/[0.8] md:text-9xl/[0.8]">
-            Fast Runners. Flat Rate.
+            CI/CD for everyone.
           </h1>
           <p className="mt-8 max-w-lg text-xl/7 font-medium text-gray-950/75 sm:text-2xl/8">
-            OpenCI Runner is an open source GitHub Actions runner built with
-            Rust.
-            <br />
-            Faster than GitHub-hosted runners, with predictable fixed monthly
-            pricing.
+            OpenCI Runner is an open-source GitHub Actions runner that anyone
+            can use.
+          </p>
+          <p className="mt-8 max-w-lg text-xl/7 font-medium text-gray-950/75 sm:text-2xl/8">
+            To make it accessible to everyone, we offer a fixed monthly fee at a
+            very affordable price.
           </p>
           <div className="mt-12 flex flex-col gap-x-6 gap-y-4 sm:flex-row">
-            <Button href="#">Get started</Button>
-            <Button variant="secondary" href="/pricing">
+            <Button href={slackInviteLink}>Get started</Button>
+            {/* <Button variant="secondary" href="/pricing">
               See pricing
-            </Button>
+            </Button> */}
           </div>
         </div>
       </Container>
@@ -61,135 +54,110 @@ function Hero() {
   )
 }
 
-function FeatureSection() {
-  return (
-    <div className="overflow-hidden">
-      <Container className="pb-24">
-        <Heading as="h2" className="max-w-3xl">
-          A snapshot of your entire sales pipeline.
-        </Heading>
-        <Screenshot
-          width={1216}
-          height={768}
-          src="/screenshots/app.png"
-          className="mt-16 h-144 sm:h-auto sm:w-304"
-        />
-      </Container>
-    </div>
-  )
-}
-
-function BentoSection() {
+function Introduction() {
   return (
     <Container>
-      <Subheading>Sales</Subheading>
-      <Heading as="h3" className="mt-2 max-w-3xl">
-        Know more about your customers than they do.
+      <Subheading>Why We Are Building OpenCI</Subheading>
+      <Heading as="h3" className="mt-2">
+        Democratize CI/CD with affordable pricing.
       </Heading>
-
-      <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-16 lg:grid-cols-6 lg:grid-rows-2">
-        <BentoCard
-          eyebrow="Insight"
-          title="Get perfect clarity"
-          description="Radiant uses social engineering to build a detailed financial picture of your leads. Know their budget, compensation package, social security number, and more."
-          graphic={
-            <div className="h-80 bg-[url(/screenshots/profile.png)] bg-size-[1000px_560px] bg-position-[left_-109px_top_-112px] bg-no-repeat" />
-          }
-          fade={['bottom']}
-          className="max-lg:rounded-t-4xl lg:col-span-3 lg:rounded-tl-4xl"
-        />
-        <BentoCard
-          eyebrow="Analysis"
-          title="Undercut your competitors"
-          description="With our advanced data mining, you’ll know which companies your leads are talking to and exactly how much they’re being charged."
-          graphic={
-            <div className="absolute inset-0 bg-[url(/screenshots/competitors.png)] bg-size-[1100px_650px] bg-position-[left_-38px_top_-73px] bg-no-repeat" />
-          }
-          fade={['bottom']}
-          className="lg:col-span-3 lg:rounded-tr-4xl"
-        />
-        <BentoCard
-          eyebrow="Speed"
-          title="Built for power users"
-          description="It’s never been faster to cold email your entire contact list using our streamlined keyboard shortcuts."
-          graphic={
-            <div className="flex size-full pt-10 pl-10">
-              <Keyboard highlighted={['LeftCommand', 'LeftShift', 'D']} />
-            </div>
-          }
-          className="lg:col-span-2 lg:rounded-bl-4xl"
-        />
-        <BentoCard
-          eyebrow="Source"
-          title="Get the furthest reach"
-          description="Bypass those inconvenient privacy laws to source leads from the most unexpected places."
-          graphic={<LogoCluster />}
-          className="lg:col-span-2"
-        />
-        <BentoCard
-          eyebrow="Limitless"
-          title="Sell globally"
-          description="Radiant helps you sell in locations currently under international embargo."
-          graphic={<Map />}
-          className="max-lg:rounded-b-4xl lg:col-span-2 lg:rounded-br-4xl"
-        />
+      <Lead className="mt-6 max-w-3xl">
+        Today&apos;s CI/CD pricing is too expensive.
+      </Lead>
+      <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2">
+        <div className="max-w-lg">
+          <p className="text-sm/6 text-gray-600">
+            CI/CD is an essential tool for software development. However, the
+            pricing for GitHub Actions&apos; standard runners is prohibitively
+            expensive for many software projects. While there is a free tier,
+            and OSS projects get unlimited usage, in most cases normal usage
+            exceeds the free tier, and not everyone develops open source
+            software.
+          </p>
+          <p className="mt-8 text-sm/6 text-gray-600">
+            Third-party runner services for GitHub Actions are trying to solve
+            this problem. Some offer machines at 1/10th the price of
+            GitHub&apos;s standard runners, while others provide faster
+            machines—each company has its own approach. However, almost all of
+            these services use pay-as-you-go pricing. This means you won&apos;t
+            know the actual cost until the end of each month. Rather than making
+            CI/CD accessible to everyone, these services seem more tailored to
+            enterprise companies.
+          </p>
+          <p className="mt-8 text-sm/6 text-gray-600">
+            That&apos;s why we offer affordable, flat-rate monthly pricing so
+            that anyone can use CI/CD. Our pricing starts at just $1 per month.
+            Of course, we also offer higher-spec machines. If you find a more
+            affordable service than ours, please let us know—we&apos;re always
+            striving to provide a better service.
+          </p>
+        </div>
+        <div className="max-lg:order-first max-lg:max-w-lg">
+          <div className="aspect-3/2 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
+            <img
+              alt=""
+              src="/company/masahiro.JPG"
+              className="block size-full object-cover"
+            />
+          </div>
+          <div className="mt-4">
+            <p className="text-sm font-medium text-gray-900">Masahiro Aoki</p>
+            <p className="text-sm text-gray-600">Founder of OpenCI, ex-IBMer</p>
+          </div>
+        </div>
       </div>
     </Container>
   )
 }
 
-function DarkBentoSection() {
+function BentoSection() {
   return (
-    <div className="mx-2 mt-2 rounded-4xl bg-gray-900 py-32">
-      <Container>
-        <Subheading dark>Outreach</Subheading>
-        <Heading as="h3" dark className="mt-2 max-w-3xl">
-          Customer outreach has never been easier.
-        </Heading>
+    <Container className="pb-32">
+      <Subheading>How to</Subheading>
+      <Heading as="h3" className="mt-2 max-w-3xl">
+        Reduce your GitHub Actions costs by up to 90%—3 easy steps, 5 minutes or
+        less.
+      </Heading>
 
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-16 lg:grid-cols-6 lg:grid-rows-2">
-          <BentoCard
-            dark
-            eyebrow="Networking"
-            title="Sell at the speed of light"
-            description="Our RadiantAI chat assistants analyze the sentiment of your conversations in real time, ensuring you're always one step ahead."
-            graphic={
-              <div className="h-80 bg-[url(/screenshots/networking.png)] bg-size-[851px_344px] bg-no-repeat" />
-            }
-            fade={['top']}
-            className="max-lg:rounded-t-4xl lg:col-span-4 lg:rounded-tl-4xl"
-          />
-          <BentoCard
-            dark
-            eyebrow="Integrations"
-            title="Meet leads where they are"
-            description="With thousands of integrations, no one will be able to escape your cold outreach."
-            graphic={<LogoTimeline />}
-            // `overflow-visible!` is needed to work around a Chrome bug that disables the mask on the graphic.
-            className="z-10 overflow-visible! lg:col-span-2 lg:rounded-tr-4xl"
-          />
-          <BentoCard
-            dark
-            eyebrow="Meetings"
-            title="Smart call scheduling"
-            description="Automatically insert intro calls into your leads' calendars without their consent."
-            graphic={<LinkedAvatars />}
-            className="lg:col-span-2 lg:rounded-bl-4xl"
-          />
-          <BentoCard
-            dark
-            eyebrow="Engagement"
-            title="Become a thought leader"
-            description="RadiantAI automatically writes LinkedIn posts that relate current events to B2B sales, helping you build a reputation as a thought leader."
-            graphic={
-              <div className="h-80 bg-[url(/screenshots/engagement.png)] bg-size-[851px_344px] bg-no-repeat" />
-            }
-            fade={['top']}
-            className="max-lg:rounded-b-4xl lg:col-span-4 lg:rounded-br-4xl"
-          />
-        </div>
-      </Container>
-    </div>
+      <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-16 lg:grid-cols-6">
+        <BentoCard
+          eyebrow="Register"
+          title="Create your account"
+          description="Sign up for an OpenCI account to get started with affordable CI/CD."
+          graphic={
+            <div className="flex size-full items-center justify-center p-16">
+              <img src="sign-up-form.png" alt="Sign up form" />
+            </div>
+          }
+          className="lg:col-span-2 lg:rounded-bl-4xl"
+        />
+        <BentoCard
+          eyebrow="Install"
+          title="Install GitHub App"
+          description="Install the GitHub App to the repositories where you want to use OpenCI runners."
+          graphic={
+            <div className="flex size-full items-center justify-center p-18">
+              <img src="install-github-app.png" alt="Install GitHub App" />
+            </div>
+          }
+          className="lg:col-span-2"
+        />
+        <BentoCard
+          eyebrow="Modify"
+          title="Update your workflow file"
+          description="Modify your GitHub Actions workflow file to specify the use of OpenCI Runner."
+          graphic={
+            <div className="flex size-full items-center justify-center">
+              <img
+                src="/code-snippets/modify_yaml.png"
+                alt="Workflow file example"
+              />
+            </div>
+          }
+          className="max-lg:rounded-b-4xl lg:col-span-2 lg:rounded-br-4xl"
+        />
+      </div>
+    </Container>
   )
 }
 
@@ -198,16 +166,14 @@ export default function Home() {
     <div className="overflow-hidden">
       <Hero />
       <main>
-        <Container className="mt-10">
-          <LogoCloud />
-        </Container>
-        <div className="bg-linear-to-b from-white from-50% to-gray-100 py-32">
-          <FeatureSection />
+        <div className="bg-linear-to-b from-white from-50% to-gray-100 pt-32">
+          {/* <FeatureSection /> */}
+          <Introduction />
+          <div className="my-32" />
           <BentoSection />
         </div>
-        <DarkBentoSection />
       </main>
-      <Testimonials />
+      <PricingSectionForTop />
       <Footer />
     </div>
   )
