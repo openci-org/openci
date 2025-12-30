@@ -98,7 +98,7 @@ function TestimonialCard({
     }
   }, [ref, bounds.width, bounds.left, bounds.right])
 
-  let opacity = useSpring(computeOpacity(), {
+  let opacity = useSpring(1, {
     stiffness: 154,
     damping: 23,
   })
