@@ -1,25 +1,13 @@
-import { FlatCompat } from '@eslint/eslintrc'
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
-
-const eslintConfig = [
-  {
-    ignores: ['.next/**', 'node_modules/**', 'out/**', '.vercel/**'],
+const eslintConfig = [{
+  ignores: ['.next/**', 'node_modules/**', 'out/**', '.vercel/**'],
+}, ...nextCoreWebVitals, ...nextTypescript, {
+  rules: {
+    '@next/next/no-img-element': 'off',
+    'prefer-const': 'off',
   },
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
-  {
-    rules: {
-      '@next/next/no-img-element': 'off',
-      'prefer-const': 'off',
-    },
-  },
-]
+}]
 
 export default eslintConfig
