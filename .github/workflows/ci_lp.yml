@@ -17,9 +17,10 @@ jobs:
         working-directory: ./openci_runner/lp
     steps:
       - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
 
       - name: Prepare Dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Prettier Check
         run: npx prettier --check .
