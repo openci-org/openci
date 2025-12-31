@@ -18,12 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Prepare Dependencies
         run: pnpm install
 
       - name: Prettier Check
-        run: npx prettier --check .
+        run: pnpm prettier --check .
 
       - name: ESLint Check
-        run: npm run lint -- --max-warnings 0
+        run: pnpm run lint -- --max-warnings 0
