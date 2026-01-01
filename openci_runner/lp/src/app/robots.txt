@@ -1,0 +1,2 @@
+Allow: /api/og/*
+Disallow: /studio/
