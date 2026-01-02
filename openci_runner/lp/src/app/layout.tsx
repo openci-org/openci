@@ -8,7 +8,8 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: {
     template: '%s - OpenCI',
-    default: 'OpenCI - The best Open Source GitHub Actions Runner',
+    default:
+      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust',
   },
 }
 
@@ -20,7 +21,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta property="og:image" content="https://www.openci.org/api/og" />
         <link
           rel="stylesheet"
           href="https://api.fontshare.com/css?f%5B%5D=switzer@400,500,600,700&amp;display=swap"
