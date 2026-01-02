@@ -8,7 +8,8 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: {
     template: '%s - OpenCI',
-    default: 'OpenCI - The best Open Source GitHub Actions Runner',
+    default:
+      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust',
   },
 }
 

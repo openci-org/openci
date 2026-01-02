@@ -11,7 +11,7 @@ import { PricingSectionForTop } from './pricing/page'
 
 export const metadata: Metadata = {
   description:
-    'Radiant helps you sell more by revealing sensitive information about your customers.',
+    'OpenCI Runner is an open-source GitHub Actions runner that anyone can use. We offer affordable, flat-rate monthly pricing so that anyone can use CI/CD.',
 }
 
 function Hero() {
