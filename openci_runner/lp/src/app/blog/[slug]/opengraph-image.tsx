@@ -2,7 +2,6 @@ import { image } from '@/sanity/image'
 import { getPost } from '@/sanity/queries'
 import { ImageResponse } from 'next/og'
 
-// Image metadata
 export const size = {
   width: 1200,
   height: 630,
@@ -37,22 +36,21 @@ export default async function Image({
   }
 
   const imageUrl = post.mainImage
-    ? image(post.mainImage).size(1200, 630).url()
+    ? image(post.mainImage).size(1200, 630).fit('fill').url()
     : null
 
-  console.log('imageUrl', imageUrl)
   return new ImageResponse(
-    <div
+    <img
       style={{
-        fontSize: 128,
-        background: 'white',
         width: '100%',
         height: '100%',
+        objectFit: 'cover',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundImage: `url(${imageUrl})`,
       }}
-    ></div>,
+      src={`${imageUrl}`}
+      alt="blog header image"
+    />,
   )
 }
