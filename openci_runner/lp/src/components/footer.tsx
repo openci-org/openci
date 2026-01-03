@@ -71,7 +71,7 @@ function Sitemap() {
       <div>
         <SitemapHeading>Support</SitemapHeading>
         <SitemapLinks>
-          <SitemapLink href="https://join.slack.com/t/open-ci-io/shared_invite/zt-3ectydtjn-GbcRVXkX~DKVFZNAqB~XtQ">
+          <SitemapLink href={slackInviteLink} target="_blank">
             Help center - Slack
           </SitemapLink>
           {/* <SitemapLink href="#">Community</SitemapLink> */}
