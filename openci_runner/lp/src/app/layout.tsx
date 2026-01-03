@@ -9,7 +9,15 @@ export const metadata: Metadata = {
   title: {
     template: '%s - OpenCI',
     default:
-      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust',
+      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust.',
+  },
+  openGraph: {
+    title:
+      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust.',
+    description: 'Welcome to the OpenCI official website.',
+    url: 'https://openci.org',
+    siteName: 'OpenCI',
+    images: [{ url: '/screenshots/lp.png' }],
   },
 }
 
