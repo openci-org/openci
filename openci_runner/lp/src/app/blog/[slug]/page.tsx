@@ -20,7 +20,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   let { data: post } = await getPost((await params).slug)
 
-  return post ? { title: post.title, description: post.excerpt } : {}
+  const excerpt = post?.excerpt
+
+  return post ? { title: post.title, description: excerpt ?? post.title } : {}
 }
 
 export default async function BlogPost({
