@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     description: 'Welcome to the OpenCI official website.',
     url: 'https://openci.org',
     siteName: 'OpenCI',
-    images: [{ url: '/screenshots/lp.png' }],
+    images: [{ url: 'https://openci.org/screenshots/lp.png' }],
   },
 }
 
