@@ -12,8 +12,6 @@ export const metadata: Metadata = {
       'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust.',
   },
   openGraph: {
-    title:
-      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust.',
     description: 'Welcome to the OpenCI official website.',
     url: 'https://openci.org',
     siteName: 'OpenCI',
