@@ -1,5 +1,6 @@
 'use client'
 
+import { githubRepositoryLink, slackInviteLink } from '@/constants'
 import {
   Disclosure,
   DisclosureButton,
@@ -14,9 +15,9 @@ import { PlusGrid, PlusGridItem, PlusGridRow } from './plus-grid'
 const links = [
   { href: '/', label: 'Home' },
   { href: '/blog', label: 'Blog' },
-  { href: 'https://github.com/open-ci-io/openci', label: 'GitHub' },
+  { href: githubRepositoryLink, label: 'GitHub' },
   {
-    href: 'https://join.slack.com/t/open-ci-io/shared_invite/zt-3ectydtjn-GbcRVXkX~DKVFZNAqB~XtQ',
+    href: slackInviteLink,
     label: 'Join Slack',
   },
 ]
