@@ -17,8 +17,8 @@ export default function StudioLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ja" className="h-full bg-neutral-950 text-base antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
-    </html>
+    <div className="flex min-h-full flex-col bg-neutral-950 text-base antialiased">
+      {children}
+    </div>
   )
 }

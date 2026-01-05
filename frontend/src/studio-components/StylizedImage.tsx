@@ -1,3 +1,5 @@
+'use client'
+
 import clsx from 'clsx'
 import Image, { type ImageProps } from 'next/image'
 import { useId } from 'react'
