@@ -1,4 +1,5 @@
 User-agent: *
 
 Allow: /api/og/*
-Disallow: /studio/
+Allow: /studio/
+Disallow: /admin/
