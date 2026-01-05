@@ -9,7 +9,8 @@
     "Stylesheet",
     "subheadline",
     "tailwindplus",
-    "turbopack"
+    "turbopack",
+    "xyflow"
   ],
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always"
