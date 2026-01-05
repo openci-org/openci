@@ -1,4 +1,4 @@
-import rehypeShiki from '@leafac/rehype-shiki'
+import rehypeShiki from '@shikijs/rehype'
 import nextMDX from '@next/mdx'
 import { Parser } from 'acorn'
 import jsx from 'acorn-jsx'
@@ -8,7 +8,6 @@ import { recmaImportImages } from 'recma-import-images'
 import remarkGfm from 'remark-gfm'
 import { remarkRehypeWrap } from 'remark-rehype-wrap'
 import remarkUnwrapImages from 'remark-unwrap-images'
-import shiki from 'shiki'
 import { unifiedConditional } from 'unified-conditional'
 
 /** @type {import('next').NextConfig} */
@@ -41,43 +40,47 @@ function remarkMDXLayout(source, metaName) {
   }
 }
 
-export default async function config() {
-  let highlighter = await shiki.getHighlighter({
-    theme: 'css-variables',
-  })
-
-  let withMDX = nextMDX({
-    extension: /\.mdx$/,
-    options: {
-      recmaPlugins: [recmaImportImages],
-      rehypePlugins: [
-        [rehypeShiki, { highlighter }],
-        [
-          remarkRehypeWrap,
-          {
-            node: { type: 'mdxJsxFlowElement', name: 'Typography' },
-            start: ':root > :not(mdxJsxFlowElement)',
-            end: ':root > mdxJsxFlowElement',
+const withMDX = nextMDX({
+  extension: /\.mdx$/,
+  options: {
+    recmaPlugins: [recmaImportImages],
+    rehypePlugins: [
+      [
+        rehypeShiki,
+        {
+          defaultColor: false,
+          themes: {
+            light: 'min-light',
+            dark: 'min-dark',
           },
-        ],
+          cssVariablePrefix: '--shiki-',
+        },
       ],
-      remarkPlugins: [
-        remarkGfm,
-        remarkUnwrapImages,
+      [
+        remarkRehypeWrap,
+        {
+          node: { type: 'mdxJsxFlowElement', name: 'Typography' },
+          start: ':root > :not(mdxJsxFlowElement)',
+          end: ':root > mdxJsxFlowElement',
+        },
+      ],
+    ],
+    remarkPlugins: [
+      remarkGfm,
+      remarkUnwrapImages,
+      [
+        unifiedConditional,
         [
-          unifiedConditional,
-          [
-            new RegExp(`^${escapeStringRegexp(path.resolve('src/app/blog'))}`),
-            [[remarkMDXLayout, '@/app/blog/wrapper', 'article']],
-          ],
-          [
-            new RegExp(`^${escapeStringRegexp(path.resolve('src/app/work'))}`),
-            [[remarkMDXLayout, '@/app/work/wrapper', 'caseStudy']],
-          ],
+          new RegExp(`^${escapeStringRegexp(path.resolve('src/app/blog'))}`),
+          [[remarkMDXLayout, '@/app/blog/wrapper', 'article']],
+        ],
+        [
+          new RegExp(`^${escapeStringRegexp(path.resolve('src/app/work'))}`),
+          [[remarkMDXLayout, '@/app/work/wrapper', 'caseStudy']],
         ],
       ],
-    },
-  })
+    ],
+  },
+})
 
-  return withMDX(nextConfig)
-}
+export default withMDX(nextConfig)
