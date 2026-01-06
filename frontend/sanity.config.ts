@@ -8,7 +8,7 @@ import { schema } from './src/sanity/schema'
 
 export default defineConfig({
   name: 'OpenCI',
-  basePath: '/studio',
+  basePath: '/sanity-studio',
   projectId,
   dataset,
   schema,
