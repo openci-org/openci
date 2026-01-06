@@ -111,10 +111,13 @@ function TestimonialCard({
     opacity.set(computeOpacity())
   })
 
+  // MotionValue is valid in motion component style props but types are incomplete
+  const style = { opacity } as React.CSSProperties
+
   return (
     <motion.div
       ref={ref}
-      style={{ opacity } as React.CSSProperties}
+      style={style}
       {...props}
       className="relative flex aspect-9/16 w-72 shrink-0 snap-start scroll-ml-(--scroll-padding) flex-col justify-end overflow-hidden rounded-3xl sm:aspect-3/4 sm:w-96"
     >
