@@ -62,15 +62,17 @@ export default async function BlogPost({
             )}
             {Array.isArray(post.categories) && (
               <div className="flex flex-wrap gap-2">
-                {post.categories.map((category: { slug: string; title: string }) => (
-                  <Link
-                    key={category.slug}
-                    href={`/blog?category=${category.slug}`}
-                    className="rounded-full border border-dotted border-gray-300 bg-gray-50 px-2 text-sm/6 font-medium text-gray-500"
-                  >
-                    {category.title}
-                  </Link>
-                ))}
+                {post.categories.map(
+                  (category: { slug: string | null; title: string | null }) => (
+                    <Link
+                      key={category.slug}
+                      href={`/blog?category=${category.slug}`}
+                      className="rounded-full border border-dotted border-gray-300 bg-gray-50 px-2 text-sm/6 font-medium text-gray-500"
+                    >
+                      {category.title}
+                    </Link>
+                  ),
+                )}
               </div>
             )}
           </div>
