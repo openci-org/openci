@@ -12,6 +12,7 @@ import {
   getPosts,
   getPostsCount,
 } from '@/sanity/queries'
+import type { FEATURED_POSTS_QUERYResult, POSTS_QUERYResult, CATEGORIES_QUERYResult } from '@/sanity/types'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
   CheckIcon,
@@ -45,7 +46,7 @@ async function FeaturedPosts() {
       <Container>
         <h2 className="text-2xl font-medium tracking-tight">Featured</h2>
         <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {featuredPosts.map((post) => (
+          {featuredPosts.map((post: FEATURED_POSTS_QUERYResult[number]) => (
             <div
               key={post.slug}
               className="relative flex flex-col rounded-3xl bg-white p-2 shadow-md ring-1 shadow-black/5 ring-black/5"
@@ -106,7 +107,7 @@ async function Categories({ selected }: { selected?: string }) {
     <div className="flex flex-wrap items-center justify-between gap-2">
       <Menu>
         <MenuButton className="flex items-center justify-between gap-2 font-medium">
-          {categories.find(({ slug }) => slug === selected)?.title ||
+          {categories.find(({ slug }: { slug: string | null }) => slug === selected)?.title ||
             'All categories'}
           <ChevronUpDownIcon className="size-4 fill-gray-900" />
         </MenuButton>
@@ -124,7 +125,7 @@ async function Categories({ selected }: { selected?: string }) {
               <p className="col-start-2 text-sm/6">All categories</p>
             </Link>
           </MenuItem>
-          {categories.map((category) => (
+          {categories.map((category: CATEGORIES_QUERYResult[number]) => (
             <MenuItem key={category.slug}>
               <Link
                 href={`/blog?category=${category.slug}`}
@@ -163,7 +164,7 @@ async function Posts({ page, category }: { page: number; category?: string }) {
 
   return (
     <div className="mt-6">
-      {posts.map((post) => (
+      {posts.map((post: POSTS_QUERYResult[number]) => (
         <div
           key={post.slug}
           className="relative grid grid-cols-1 border-b border-b-gray-100 py-10 first:border-t first:border-t-gray-200 max-sm:gap-3 sm:grid-cols-3"

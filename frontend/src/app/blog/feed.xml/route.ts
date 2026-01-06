@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 
   let { data: posts } = await getPostsForFeed()
 
-  posts.forEach((post) => {
+  posts.forEach((post: { title?: string; slug?: string; excerpt?: string; publishedAt?: string; mainImage?: unknown; author?: { name?: string } }) => {
     try {
       assert(typeof post.title === 'string')
       assert(typeof post.slug === 'string')

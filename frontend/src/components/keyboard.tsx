@@ -2,7 +2,7 @@
 
 import { clsx } from 'clsx'
 import { motion } from 'framer-motion'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, type CSSProperties } from 'react'
 
 const KeyboardContext = createContext<{ highlighted: string[] }>({
   highlighted: [],
@@ -53,7 +53,7 @@ function Key({
             }
           : undefined
       }
-      style={{ width: `${width / 16}rem` }}
+      style={{ width: `${width / 16}rem` } as CSSProperties}
       className={clsx(
         className,
         'flex flex-col items-center justify-center gap-0.5 px-1 py-px',
