@@ -1,5 +1,6 @@
 import { image } from '@/sanity/image'
 import { getPostsForFeed } from '@/sanity/queries'
+import type { FEED_POSTS_QUERYResult } from '@/sanity/types'
 import { Feed } from 'feed'
 import assert from 'node:assert'
 
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
 
   let { data: posts } = await getPostsForFeed()
 
-  posts.forEach((post) => {
+  posts.forEach((post: FEED_POSTS_QUERYResult[number]) => {
     try {
       assert(typeof post.title === 'string')
       assert(typeof post.slug === 'string')

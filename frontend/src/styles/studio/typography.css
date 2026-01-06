@@ -1,0 +1,184 @@
+.typography {
+  color: var(--color-neutral-950);
+  font-size: var(--text-xl);
+  line-height: var(--text-xl--line-height);
+
+  --shiki-color-text: var(--color-white);
+  --shiki-color-background: var(--color-neutral-950);
+  --shiki-token-constant: var(--color-neutral-300);
+  --shiki-token-string: var(--color-neutral-400);
+  --shiki-token-comment: var(--color-neutral-500);
+  --shiki-token-keyword: var(--color-neutral-400);
+  --shiki-token-parameter: var(--color-neutral-400);
+  --shiki-token-function: var(--color-neutral-300);
+  --shiki-token-string-expression: var(--color-neutral-300);
+  --shiki-token-punctuation: var(--color-neutral-400);
+
+  :where(.typography > *) {
+    margin-top: --spacing(6);
+    margin-bottom: --spacing(6);
+  }
+
+  /* Headings */
+  :where(h2) {
+    font-weight: var(--font-weight-semibold);
+    font-family: var(--font-display);
+    font-variation-settings: var(--font-display--font-variation-settings);
+    font-size: var(--text-2xl);
+    line-height: var(--text-2xl--line-height);
+    margin-top: --spacing(16);
+  }
+
+  :where(h3) {
+    font-weight: var(--font-weight-semibold);
+    font-family: var(--font-display);
+    font-variation-settings: var(--font-display--font-variation-settings);
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    margin-top: --spacing(10);
+  }
+
+  :where(h2 + h3) {
+    margin-top: 0;
+  }
+
+  /* Lists */
+  :where(ul, ol) {
+    padding-left: 1.5rem;
+  }
+
+  :where(ul) {
+    list-style-type: disc;
+  }
+
+  :where(ol) {
+    list-style-type: decimal;
+  }
+
+  :where(li) {
+    padding-left: --spacing(3);
+    margin-top: --spacing(6);
+  }
+
+  :where(li)::marker {
+    color: var(--color-neutral-500);
+  }
+
+  :where(li > *),
+  :where(li li) {
+    margin-top: --spacing(4);
+  }
+
+  :where(ol > li)::marker {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* Tables */
+  :where(table) {
+    width: 100%;
+    text-align: left;
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  :where(th) {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  :where(thead th) {
+    padding-bottom: --spacing(6);
+    border-bottom: 1px solid var(--color-neutral-950);
+  }
+
+  :where(td) {
+    vertical-align: top;
+    padding-top: --spacing(6);
+    padding-bottom: --spacing(6);
+    border-bottom: 1px solid --theme(--color-neutral-950 / 0.1);
+  }
+
+  :where(:is(th, td):not(:last-child)) {
+    padding-right: --spacing(6);
+  }
+
+  /* Code blocks */
+  :where(pre) {
+    display: flex;
+    background-color: var(--color-neutral-950);
+    border-radius: var(--radius-4xl);
+    overflow-x: auto;
+    margin-top: --spacing(10);
+    margin-bottom: --spacing(10);
+    margin-left: calc(-1 * (--spacing(6)));
+    margin-right: calc(-1 * (--spacing(6)));
+
+    @media (width >= theme(--breakpoint-sm)) {
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  :where(pre code) {
+    flex: none;
+    padding: theme(padding.8) theme(padding.6);
+    font-size: var(--text-base);
+    line-height: theme(lineHeight.8);
+    color: var(--color-white);
+
+    @media (width >= theme(--breakpoint-sm)) {
+      padding: --spacing(10);
+    }
+  }
+
+  /* <hr> */
+  :where(hr) {
+    border-color: --theme(--color-neutral-950 / 0.1);
+    margin-top: --spacing(24);
+    margin-bottom: --spacing(24);
+  }
+
+  /* Inline text */
+  :where(a) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+    text-decoration-skip-ink: none;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  :where(strong) {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  :where(code:not(pre code)) {
+    font-size: calc(18 / 20 * 1em);
+    font-weight: var(--font-weight-semibold);
+
+    &::before,
+    &::after {
+      content: '`';
+    }
+  }
+
+  :where(h2 code, h3 code) {
+    font-weight: var(--font-weight-bold);
+  }
+
+  /* Figures */
+  :where(figure) {
+    margin-top: --spacing(32);
+    margin-bottom: --spacing(32);
+  }
+
+  /* Spacing overrides */
+  :where(.typography:first-child > :first-child),
+  :where(li > :first-child) {
+    margin-top: 0 !important;
+  }
+
+  :where(.typography:last-child > :last-child),
+  :where(li > :last-child) {
+    margin-bottom: 0 !important;
+  }
+}

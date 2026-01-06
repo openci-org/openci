@@ -1,2 +1,4 @@
 .idea/
 
+.vercel
+.env*.local
