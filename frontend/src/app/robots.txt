@@ -1,4 +1,3 @@
 User-agent: *
 
-Allow: /api/og/*
-Disallow: /studio/
+Disallow: /sanity-studio/
