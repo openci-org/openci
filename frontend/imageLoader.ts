@@ -1,9 +1,5 @@
 import type { ImageLoaderProps } from 'next/image'
 
-const normalizeSrc = (src: string) => {
-  return src.startsWith('/') ? src.slice(1) : src
-}
-
 export default function cloudflareLoader({
   src,
   width,
@@ -13,8 +9,5 @@ export default function cloudflareLoader({
   if (quality) {
     params.push(`quality=${quality}`)
   }
-  if (process.env.NODE_ENV === 'development') {
-    return `${src}?${params.join('&')}`
-  }
-  return `/cdn-cgi/image/${params.join(',')}/${normalizeSrc(src)}`
+  return `${src}?${params.join('&')}`
 }
