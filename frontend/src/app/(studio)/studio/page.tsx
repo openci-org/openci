@@ -1,15 +1,14 @@
-import type { Metadata } from 'next'
-
 import { ContactSection } from '@/components/studio/ContactSection'
 import { Container } from '@/components/studio/Container'
 import { FadeIn } from '@/components/studio/FadeIn'
 import { List, ListItem } from '@/components/studio/List'
 import { SectionIntro } from '@/components/studio/SectionIntro'
+import { StudioRootLayout } from '@/components/studio/StudioRootLayout'
 import { StylizedImage } from '@/components/studio/StylizedImage'
 import { Testimonial } from '@/components/studio/Testimonial'
 import imageLaptop from '@/images/studio/laptop.jpg'
-import { StudioRootLayout } from '@/components/studio/StudioRootLayout'
 import { CheckIcon } from '@heroicons/react/20/solid'
+import type { Metadata } from 'next'
 
 export default function Home() {
   return (
