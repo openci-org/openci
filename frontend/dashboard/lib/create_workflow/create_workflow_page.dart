@@ -1,10 +1,13 @@
+import 'package:dashboard/create_workflow/create_workflow_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CreateWorkflowPage extends StatelessWidget {
+class CreateWorkflowPage extends ConsumerWidget {
   const CreateWorkflowPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(createWorkflowProvider);
     return Scaffold(
       body: Center(
         child: ElevatedButton(
@@ -13,31 +16,24 @@ class CreateWorkflowPage extends StatelessWidget {
             isScrollControlled: true,
             builder: (_) => CreateWorkflowBottomSheet(),
           ),
-          child: Text('Let\'s Create New Workflow'),
+          child: state.isCreated
+              ? Text('Workflow Created!')
+              : Text('Create Workflow'),
         ),
       ),
     );
   }
 }
 
-class CreateWorkflowBottomSheet extends StatefulWidget {
+class CreateWorkflowBottomSheet extends ConsumerWidget {
   const CreateWorkflowBottomSheet({super.key});
 
   static const _width = 260.0;
 
   @override
-  State<CreateWorkflowBottomSheet> createState() =>
-      _CreateWorkflowBottomSheetState();
-}
-
-class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
-  String selectedRepository = '';
-  String selectedWorkingDirectory = '/';
-  String selectedTriggerType = 'pull_request';
-  String selectedTriggerBranch = 'develop';
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(createWorkflowProvider);
+    final controller = ref.read(createWorkflowProvider.notifier);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -63,19 +59,15 @@ class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
                 ),
               ],
             ),
-            if (selectedRepository.isNotEmpty &&
-                selectedWorkingDirectory.isNotEmpty &&
-                selectedTriggerType.isNotEmpty &&
-                selectedTriggerBranch.isNotEmpty)
+            if (state.selectedRepository.isNotEmpty &&
+                state.selectedWorkingDirectory.isNotEmpty &&
+                state.selectedTriggerBranch.isNotEmpty)
               InitialSetupSummary(
-                repository: selectedRepository,
-                workingDirectory: selectedWorkingDirectory,
-                triggerType: selectedTriggerType,
-                triggerBranch: selectedTriggerBranch,
+                state: state,
               ),
             DropdownMenu(
-              width: CreateWorkflowBottomSheet._width,
-              controller: TextEditingController(text: selectedRepository),
+              width: _width,
+              controller: TextEditingController(text: state.selectedRepository),
               label: const Text('Repository'),
               dropdownMenuEntries: [
                 DropdownMenuEntry(
@@ -86,14 +78,14 @@ class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
               ],
               onSelected: (value) {
                 if (value == null) return;
-                setState(() {
-                  selectedRepository = value;
-                });
+                controller.updateSelectedRepository(value);
               },
             ),
             DropdownMenu(
-              width: CreateWorkflowBottomSheet._width,
-              controller: TextEditingController(text: selectedWorkingDirectory),
+              width: _width,
+              controller: TextEditingController(
+                text: state.selectedWorkingDirectory,
+              ),
               label: const Text('Current Working Directory'),
               helperText: 'Use default if you don\'t use monorepo',
               dropdownMenuEntries: [
@@ -106,14 +98,14 @@ class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
               ],
               onSelected: (value) {
                 if (value == null) return;
-                setState(() {
-                  selectedWorkingDirectory = value;
-                });
+                controller.updateSelectedWorkingDirectory(value);
               },
             ),
             DropdownMenu(
-              width: CreateWorkflowBottomSheet._width,
-              controller: TextEditingController(text: selectedTriggerType),
+              width: _width,
+              controller: TextEditingController(
+                text: state.selectedTriggerType.toString(),
+              ),
               label: const Text('Trigger Type'),
               dropdownMenuEntries: [
                 DropdownMenuEntry(value: 'push', label: 'push'),
@@ -121,14 +113,16 @@ class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
               ],
               onSelected: (value) {
                 if (value == null) return;
-                setState(() {
-                  selectedTriggerType = value;
-                });
+                controller.updateSelectedTriggerType(
+                  TriggerType.fromValue(value),
+                );
               },
             ),
             DropdownMenu(
-              width: CreateWorkflowBottomSheet._width,
-              controller: TextEditingController(text: selectedTriggerBranch),
+              width: _width,
+              controller: TextEditingController(
+                text: state.selectedTriggerBranch,
+              ),
               label: const Text('Trigger Branch'),
               dropdownMenuEntries: [
                 DropdownMenuEntry(value: 'main', label: 'main'),
@@ -136,17 +130,18 @@ class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
               ],
               onSelected: (value) {
                 if (value == null) return;
-                setState(() {
-                  selectedTriggerBranch = value;
-                });
+                controller.updateSelectedTriggerBranch(value);
               },
             ),
 
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                minimumSize: Size(CreateWorkflowBottomSheet._width, 48),
+                minimumSize: Size(_width, 48),
               ),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                controller.updateIsCreated(true);
+                Navigator.of(context).pop();
+              },
               icon: Icon(Icons.check),
               label: Text('OK, let\'s go!'),
             ),
@@ -158,17 +153,8 @@ class _CreateWorkflowBottomSheetState extends State<CreateWorkflowBottomSheet> {
 }
 
 class InitialSetupSummary extends StatelessWidget {
-  const InitialSetupSummary({
-    super.key,
-    required this.repository,
-    required this.workingDirectory,
-    required this.triggerType,
-    required this.triggerBranch,
-  });
-  final String repository;
-  final String workingDirectory;
-  final String triggerType;
-  final String triggerBranch;
+  const InitialSetupSummary({super.key, required this.state});
+  final CreateWorkflowState state;
 
   @override
   Widget build(BuildContext context) {
@@ -187,24 +173,24 @@ class InitialSetupSummary extends StatelessWidget {
               children: [
                 TextSpan(text: 'In the '),
                 TextSpan(
-                  text: repository,
+                  text: state.selectedRepository,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 TextSpan(text: ' repository, when a '),
                 TextSpan(
-                  text: triggerType,
+                  text: state.selectedTriggerType.toString(),
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 TextSpan(text: ' is created to the '),
                 TextSpan(
-                  text: triggerBranch,
+                  text: state.selectedTriggerBranch,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 TextSpan(
                   text: ' branch, the workflow will run using the ',
                 ),
                 TextSpan(
-                  text: workingDirectory,
+                  text: state.selectedWorkingDirectory,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 TextSpan(text: ' directory.'),
