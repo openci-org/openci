@@ -1,5 +1,5 @@
+import 'package:dashboard/create_workflow/choose_workflow_template.dart';
 import 'package:dashboard/create_workflow/create_workflow_provider.dart';
-import 'package:dashboard/create_workflow/workflow_template.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,11 +28,39 @@ class CreateWorkflowPage extends ConsumerWidget {
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => state.isCreated
+            ? _showChooseWorkflowTemplate(context)
+            : _showCreateWorkflowBottomSheet(context),
         child: Icon(Icons.add),
       ),
     );
   }
+}
+
+Future<void> _showChooseWorkflowTemplate(
+  BuildContext context,
+) {
+  return showModalBottomSheet(
+    isScrollControlled: true,
+    context: context,
+    builder: (_) => SizedBox(
+      height: MediaQuery.of(context).size.height * 0.8,
+      child: ChooseWorkflowTemplate(),
+    ),
+  );
+}
+
+Future<void> _showCreateWorkflowBottomSheet(
+  BuildContext context,
+) {
+  return showModalBottomSheet(
+    isScrollControlled: true,
+    context: context,
+    builder: (_) => SizedBox(
+      height: MediaQuery.of(context).size.height * 0.8,
+      child: CreateWorkflowBottomSheet(),
+    ),
+  );
 }
 
 class WorkflowList extends StatelessWidget {
@@ -48,68 +76,7 @@ class WorkflowList extends StatelessWidget {
           SizedBox(height: 20.0),
           Center(
             child: IconButton.filled(
-              onPressed: () {
-                showModalBottomSheet(
-                  isScrollControlled: true,
-                  context: context,
-                  builder: (_) => SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20.0),
-                          child: Text(
-                            "Choose a Workflow Template",
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-
-                        Expanded(
-                          child: GridView.builder(
-                            itemCount: workflowTemplateList.length,
-                            shrinkWrap: true,
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 1,
-                                ),
-                            itemBuilder: (_, index) {
-                              return Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: InkWell(
-                                  onTap: () {},
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        width: 2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8.0),
-                                    ),
-                                    width: 100,
-                                    height: 100,
-                                    child: Center(
-                                      child: Text(
-                                        workflowTemplateList[index].title,
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => _showChooseWorkflowTemplate(context),
               icon: const Icon(Icons.add),
             ),
           ),
