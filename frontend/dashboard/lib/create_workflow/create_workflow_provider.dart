@@ -13,6 +13,7 @@ class CreateWorkflow extends _$CreateWorkflow {
     selectedWorkingDirectory: '/',
     selectedTriggerType: TriggerType.pullRequest,
     selectedTriggerBranch: 'develop',
+    selectedWorkflowSteps: [],
   );
 
   void updateIsCreated(bool value) {
@@ -33,6 +34,11 @@ class CreateWorkflow extends _$CreateWorkflow {
 
   void updateSelectedTriggerBranch(String branch) {
     state = state.copyWith(selectedTriggerBranch: branch);
+  }
+
+  void addStep(WorkflowStep steps) {
+    final updatedSteps = [...state.selectedWorkflowSteps, steps];
+    state = state.copyWith(selectedWorkflowSteps: updatedSteps);
   }
 }
 
@@ -63,7 +69,7 @@ enum TriggerType {
   }
 }
 
-@freezed
+@Freezed(makeCollectionsUnmodifiable: false)
 abstract class CreateWorkflowState with _$CreateWorkflowState {
   const factory CreateWorkflowState({
     required bool isCreated,
@@ -71,8 +77,20 @@ abstract class CreateWorkflowState with _$CreateWorkflowState {
     required String selectedWorkingDirectory,
     required TriggerType selectedTriggerType,
     required String selectedTriggerBranch,
+    required List<WorkflowStep> selectedWorkflowSteps,
   }) = _CreateWorkflowState;
 
   factory CreateWorkflowState.fromJson(Map<String, Object?> json) =>
       _$CreateWorkflowStateFromJson(json);
+}
+
+@freezed
+abstract class WorkflowStep with _$WorkflowStep {
+  const factory WorkflowStep({
+    required String name,
+    required bool isCompleted,
+  }) = _WorkflowStep;
+
+  factory WorkflowStep.fromJson(Map<String, Object?> json) =>
+      _$WorkflowStepFromJson(json);
 }

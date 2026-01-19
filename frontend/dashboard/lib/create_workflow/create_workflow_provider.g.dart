@@ -16,6 +16,9 @@ _CreateWorkflowState _$CreateWorkflowStateFromJson(Map<String, dynamic> json) =>
         json['selectedTriggerType'],
       ),
       selectedTriggerBranch: json['selectedTriggerBranch'] as String,
+      selectedWorkflowSteps: (json['selectedWorkflowSteps'] as List<dynamic>)
+          .map((e) => WorkflowStep.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$CreateWorkflowStateToJson(
@@ -26,12 +29,25 @@ Map<String, dynamic> _$CreateWorkflowStateToJson(
   'selectedWorkingDirectory': instance.selectedWorkingDirectory,
   'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
   'selectedTriggerBranch': instance.selectedTriggerBranch,
+  'selectedWorkflowSteps': instance.selectedWorkflowSteps,
 };
 
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
 };
+
+_WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>
+    _WorkflowStep(
+      name: json['name'] as String,
+      isCompleted: json['isCompleted'] as bool,
+    );
+
+Map<String, dynamic> _$WorkflowStepToJson(_WorkflowStep instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'isCompleted': instance.isCompleted,
+    };
 
 // **************************************************************************
 // RiverpodGenerator
@@ -72,7 +88,7 @@ final class CreateWorkflowProvider
   }
 }
 
-String _$createWorkflowHash() => r'1f4a4e31b1e65c0908ddb4bc6f7c28aab78dc9bc';
+String _$createWorkflowHash() => r'b4b7ab4db373d07086ea10866ffe5d13482e00ea';
 
 abstract class _$CreateWorkflow extends $Notifier<CreateWorkflowState> {
   CreateWorkflowState build();
