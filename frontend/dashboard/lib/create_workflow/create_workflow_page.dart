@@ -117,11 +117,11 @@ class BasicInformationWorkflowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: isCompleted ? Colors.teal.shade100 : Colors.amber.shade100,
+      color: isCompleted ? Colors.green.shade100 : Colors.amber.shade100,
       child: ListTile(
         leading: Icon(
-          isCompleted ? Icons.check_circle : Icons.edit,
-          color: isCompleted ? Colors.teal : Colors.amber,
+          isCompleted ? Icons.check_circle : Icons.timelapse,
+          color: isCompleted ? Colors.green : Colors.amber,
         ),
         title: Text(title),
         trailing: Icon(Icons.more_vert),
