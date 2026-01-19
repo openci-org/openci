@@ -117,7 +117,6 @@ class BasicInformationWorkflowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: isCompleted ? Colors.green.shade100 : Colors.amber.shade100,
       child: ListTile(
         leading: Icon(
           isCompleted ? Icons.check_circle : Icons.timelapse,
