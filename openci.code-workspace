@@ -2,21 +2,24 @@
   "folders": [
     {
       "name": "root",
-      "path": "."
+      "path": ".",
     },
     {
       "name": "frontend (Next.js)",
-      "path": "frontend"
+      "path": "frontend",
     },
     {
       "name": "dashboard (Flutter)",
-      "path": "frontend/dashboard"
-    }
+      "path": "frontend/dashboard",
+    },
   ],
   "settings": {
     "cSpell.words": [
       "bento",
+      "bradlc",
       "cupertino",
+      "dbaeumer",
+      "esbenp",
       "grayscale",
       "masahiro",
       "oklch",
@@ -27,33 +30,31 @@
       "subheadline",
       "tailwindplus",
       "turbopack",
-      "xyflow"
     ],
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "always",
       "source.fixAll": "always",
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
     },
     "editor.formatOnSave": true,
     "[jsonc]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[typescriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "files.associations": {
-      "*.css": "tailwindcss"
+      "*.css": "tailwindcss",
     },
-    "dart.flutterSdkPath": "frontend/dashboard/.fvm/versions/3.38.7"
   },
   "launch": {
     "version": "0.2.0",
@@ -62,9 +63,9 @@
         "name": "dashboard",
         "cwd": "frontend/dashboard",
         "request": "launch",
-        "type": "dart"
-      }
-    ]
+        "type": "dart",
+      },
+    ],
   },
   "extensions": {
     "recommendations": [
@@ -73,7 +74,7 @@
       "dbaeumer.vscode-eslint",
       "esbenp.prettier-vscode",
       "bradlc.vscode-tailwindcss",
-      "streetsidesoftware.code-spell-checker"
-    ]
-  }
+      "streetsidesoftware.code-spell-checker",
+    ],
+  },
 }
