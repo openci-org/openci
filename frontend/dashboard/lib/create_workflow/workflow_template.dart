@@ -5,8 +5,8 @@ part 'workflow_template.g.dart';
 
 const workflowTemplateList = [
   WorkflowTemplate(
-    name: 'create_your_own_workflow',
-    title: 'Create your own workflow',
+    name: 'write_your_code',
+    title: 'Write your code',
   ),
   WorkflowTemplate(
     name: 'flutter_ci_cd',
@@ -27,6 +27,10 @@ const workflowTemplateList = [
   WorkflowTemplate(
     name: 'docker_ci_cd',
     title: 'Docker CI/CD',
+  ),
+  WorkflowTemplate(
+    name: 'nodejs_ci_cd',
+    title: 'Node.js CI/CD',
   ),
 ];
 
