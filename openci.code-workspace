@@ -63,20 +63,6 @@
         "cwd": "frontend/dashboard",
         "request": "launch",
         "type": "dart"
-      },
-      {
-        "name": "dashboard (profile mode)",
-        "cwd": "frontend/dashboard",
-        "request": "launch",
-        "type": "dart",
-        "flutterMode": "profile"
-      },
-      {
-        "name": "dashboard (release mode)",
-        "cwd": "frontend/dashboard",
-        "request": "launch",
-        "type": "dart",
-        "flutterMode": "release"
       }
     ]
   },
