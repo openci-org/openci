@@ -13,7 +13,6 @@ class AuthPage extends HookWidget {
     final passwordController = useTextEditingController();
     final isAgreed = useState(true);
     final formKey = useMemoized(() => GlobalKey<FormState>());
-
     final isLoading = useState(false);
 
     return Scaffold(
