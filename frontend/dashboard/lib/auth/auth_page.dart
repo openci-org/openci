@@ -107,6 +107,14 @@ class AuthPage extends HookWidget {
                                     email: emailController.text,
                                     password: passwordController.text,
                                   );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
                             } finally {
                               isLoading.value = false;
                             }
@@ -133,6 +141,14 @@ class AuthPage extends HookWidget {
                                     email: emailController.text,
                                     password: passwordController.text,
                                   );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
                             } finally {
                               isLoading.value = false;
                             }
