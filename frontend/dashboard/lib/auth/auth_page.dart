@@ -13,6 +13,7 @@ class AuthPage extends HookWidget {
     final passwordController = useTextEditingController();
     final isAgreed = useState(true);
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    final tapGestureRecognizer = useMemoized(() => TapGestureRecognizer());
     final isLoading = useState(false);
 
     return Scaffold(
@@ -80,7 +81,7 @@ class AuthPage extends HookWidget {
                               color: Theme.of(context).primaryColor,
                               decoration: TextDecoration.underline,
                             ),
-                            recognizer: TapGestureRecognizer()
+                            recognizer: tapGestureRecognizer
                               ..onTap = () {
                                 launchUrl(
                                   Uri.parse(
