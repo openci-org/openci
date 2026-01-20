@@ -30,6 +30,11 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
             icon: Icon(Icons.folder_outlined),
             label: 'List',
           ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.settings),
+            icon: Icon(Icons.settings_outlined),
+            label: 'Settings',
+          ),
         ],
       ),
       body: widget.pages[currentPageIndex],
