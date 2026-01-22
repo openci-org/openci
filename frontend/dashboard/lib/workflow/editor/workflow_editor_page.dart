@@ -35,7 +35,10 @@ class WorkflowEditorPage extends ConsumerWidget {
               ),
             );
           }
-          return WorkflowList(steps: workflow.workflowSteps);
+          return WorkflowList(
+            steps: workflow.workflowSteps,
+            workflowConfig: workflow.workflowConfig,
+          );
         },
         error: (error, stackTrace) {
           return Center(
@@ -66,28 +69,51 @@ Future<void> _showChooseWorkflowTemplate(
 }
 
 class WorkflowList extends StatelessWidget {
-  const WorkflowList({super.key, required this.steps});
+  const WorkflowList({
+    super.key,
+    required this.steps,
+    required this.workflowConfig,
+  });
   final List<WorkflowStep> steps;
+  final WorkflowConfig workflowConfig;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(14.0),
-      child: ListView.separated(
-        itemCount: steps.length,
-        separatorBuilder: (_, _) => SizedBox(height: 12.0),
-        itemBuilder: (_, index) {
-          final step = steps[index];
-          return Column(
-            children: [
-              BasicInformationWorkflowCard(
-                title: step.name,
-                isCompleted: step.isCompleted,
+      child: Column(
+        children: [
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.check_circle,
+                color: Colors.green,
               ),
-              if (index == steps.length - 1) ..._addButton(context),
-            ],
-          );
-        },
+              title: Text('Basic Information'),
+              trailing: Icon(Icons.more_vert),
+            ),
+          ),
+          if (steps.isEmpty) ..._addButton(context),
+          if (steps.isNotEmpty)
+            ListView.separated(
+              itemCount: steps.length,
+              separatorBuilder: (_, _) => SizedBox(height: 12.0),
+              itemBuilder: (_, index) {
+                final step = steps[index];
+
+                return Column(
+                  children: [
+                    if (index == 0)
+                      BasicInformationWorkflowCard(
+                        title: step.name,
+                        isCompleted: step.isCompleted,
+                      ),
+                    if (index == steps.length - 1) ..._addButton(context),
+                  ],
+                );
+              },
+            ),
+        ],
       ),
     );
   }
