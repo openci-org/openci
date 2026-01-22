@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'create_workflow_provider.dart';
+part of 'workflow_editor_provider.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
@@ -29,25 +29,15 @@ Map<String, dynamic> _$CreateWorkflowStateToJson(
   'selectedWorkingDirectory': instance.selectedWorkingDirectory,
   'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
   'selectedTriggerBranch': instance.selectedTriggerBranch,
-  'selectedWorkflowSteps': instance.selectedWorkflowSteps,
+  'selectedWorkflowSteps': instance.selectedWorkflowSteps
+      .map((e) => e.toJson())
+      .toList(),
 };
 
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
 };
-
-_WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>
-    _WorkflowStep(
-      name: json['name'] as String,
-      isCompleted: json['isCompleted'] as bool,
-    );
-
-Map<String, dynamic> _$WorkflowStepToJson(_WorkflowStep instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'isCompleted': instance.isCompleted,
-    };
 
 // **************************************************************************
 // RiverpodGenerator
@@ -56,52 +46,44 @@ Map<String, dynamic> _$WorkflowStepToJson(_WorkflowStep instance) =>
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(CreateWorkflow)
-const createWorkflowProvider = CreateWorkflowProvider._();
+@ProviderFor(WorkflowEditor)
+const workflowEditorProvider = WorkflowEditorProvider._();
 
-final class CreateWorkflowProvider
-    extends $NotifierProvider<CreateWorkflow, CreateWorkflowState> {
-  const CreateWorkflowProvider._()
+final class WorkflowEditorProvider
+    extends $StreamNotifierProvider<WorkflowEditor, Workflow?> {
+  const WorkflowEditorProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'createWorkflowProvider',
+        name: r'workflowEditorProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$createWorkflowHash();
+  String debugGetCreateSourceHash() => _$workflowEditorHash();
 
   @$internal
   @override
-  CreateWorkflow create() => CreateWorkflow();
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(CreateWorkflowState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<CreateWorkflowState>(value),
-    );
-  }
+  WorkflowEditor create() => WorkflowEditor();
 }
 
-String _$createWorkflowHash() => r'b4b7ab4db373d07086ea10866ffe5d13482e00ea';
+String _$workflowEditorHash() => r'abb0095501718aec23e612226da72a82ad93bc9c';
 
-abstract class _$CreateWorkflow extends $Notifier<CreateWorkflowState> {
-  CreateWorkflowState build();
+abstract class _$WorkflowEditor extends $StreamNotifier<Workflow?> {
+  Stream<Workflow?> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<CreateWorkflowState, CreateWorkflowState>;
+    final ref = this.ref as $Ref<AsyncValue<Workflow?>, Workflow?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<CreateWorkflowState, CreateWorkflowState>,
-              CreateWorkflowState,
+              AnyNotifier<AsyncValue<Workflow?>, Workflow?>,
+              AsyncValue<Workflow?>,
               Object?,
               Object?
             >;

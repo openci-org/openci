@@ -1,5 +1,5 @@
-import 'package:dashboard/create_workflow/create_workflow_provider.dart';
 import 'package:dashboard/create_workflow/workflow_template.dart';
+import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +10,7 @@ class ChooseWorkflowTemplate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(createWorkflowProvider.notifier);
+    final controller = ref.read(workflowEditorProvider.notifier);
     return Column(
       children: [
         Padding(
@@ -50,36 +50,36 @@ class ChooseWorkflowTemplate extends ConsumerWidget {
                     padding: const EdgeInsets.all(20.0),
                     child: InkWell(
                       onTap: () {
-                        controller.addStep(
-                          WorkflowStep(
-                            name: 'Flutter Analyze',
-                            isCompleted: true,
-                          ),
-                        );
-                        controller.addStep(
-                          WorkflowStep(
-                            name: 'Flutter Test',
-                            isCompleted: true,
-                          ),
-                        );
-                        controller.addStep(
-                          WorkflowStep(
-                            name: 'Flutter Build iOS',
-                            isCompleted: true,
-                          ),
-                        );
-                        controller.addStep(
-                          WorkflowStep(
-                            name: 'Flutter Build Android',
-                            isCompleted: true,
-                          ),
-                        );
-                        controller.addStep(
-                          WorkflowStep(
-                            name: 'Ship to Firebase App Distribution',
-                            isCompleted: false,
-                          ),
-                        );
+                        // controller.addStep(
+                        //   WorkflowStep(
+                        //     name: 'Flutter Analyze',
+                        //     isCompleted: true,
+                        //   ),
+                        // );
+                        // controller.addStep(
+                        //   WorkflowStep(
+                        //     name: 'Flutter Test',
+                        //     isCompleted: true,
+                        //   ),
+                        // );
+                        // controller.addStep(
+                        //   WorkflowStep(
+                        //     name: 'Flutter Build iOS',
+                        //     isCompleted: true,
+                        //   ),
+                        // );
+                        // controller.addStep(
+                        //   WorkflowStep(
+                        //     name: 'Flutter Build Android',
+                        //     isCompleted: true,
+                        //   ),
+                        // );
+                        // controller.addStep(
+                        //   WorkflowStep(
+                        //     name: 'Ship to Firebase App Distribution',
+                        //     isCompleted: false,
+                        //   ),
+                        // );
 
                         Navigator.pop(context);
                       },
