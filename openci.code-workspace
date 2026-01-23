@@ -94,6 +94,16 @@
         "group": "build",
         "isBackground": true,
       },
+      {
+        "label": "flutter clean",
+        "type": "shell",
+        "command": "flutter clean && flutter pub get",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
+      },
     ],
   },
 }

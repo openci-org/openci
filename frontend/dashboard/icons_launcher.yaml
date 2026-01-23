@@ -1,5 +1,0 @@
-icons_launcher:
-  image_path: 'assets/company_logo.png'
-  platforms:
-    ios:
-      enable: true
