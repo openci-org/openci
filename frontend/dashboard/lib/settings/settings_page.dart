@@ -19,6 +19,15 @@ class SettingsPage extends StatelessWidget {
               ElevatedButton(
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "Logged out successfully",
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 },
                 child: Text("Logout"),
               ),
