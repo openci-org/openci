@@ -16,7 +16,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     selectedRepository: '',
     selectedWorkingDirectory: '',
     selectedTriggerType: TriggerType.push,
-    selectedTriggerBranch: 'main',
+    selectedTriggerBranch: '',
   );
 
   void updateIsCreated(bool value) {
@@ -39,7 +39,11 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     state = state.copyWith(selectedTriggerBranch: branch);
   }
 
-  Future<void> save() async {
+  Future<void> save({
+    required String selectedRepository,
+    required String selectedWorkingDirectory,
+    required String selectedTriggerBranch,
+  }) async {
     final documentId = Uuid().v4();
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
@@ -56,10 +60,10 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
             documentId: documentId,
             userId: userId,
             workflowConfig: WorkflowConfig(
-              selectedRepository: state.selectedRepository,
-              selectedWorkingDirectory: state.selectedWorkingDirectory,
+              selectedRepository: selectedRepository,
+              selectedWorkingDirectory: selectedWorkingDirectory,
               selectedTriggerType: state.selectedTriggerType,
-              selectedTriggerBranch: state.selectedTriggerBranch,
+              selectedTriggerBranch: selectedTriggerBranch,
             ),
             workflowSteps: [],
             isEditing: true,
