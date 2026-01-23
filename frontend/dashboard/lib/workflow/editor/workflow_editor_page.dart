@@ -1,4 +1,5 @@
 import 'package:dashboard/create_workflow/choose_workflow_template.dart';
+import 'package:dashboard/workflow/editor/github_integration_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
@@ -10,34 +11,63 @@ class WorkflowEditorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final githubStatus = ref.watch(gitHubIntegrationProvider);
     final state = ref.watch(workflowEditorProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text('Workflow Editor'),
       ),
-      body: state.when(
-        data: (workflow) {
-          if (workflow == null) {
-            return Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Theme.of(context).secondaryHeaderColor,
-                ),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => InitialWorkflowSetupBottomSheet(),
+      body: githubStatus.when(
+        data: (data) {
+          if (data) {
+            return state.when(
+              data: (workflow) {
+                if (workflow == null) {
+                  return Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Theme.of(context).secondaryHeaderColor,
+                      ),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => InitialWorkflowSetupBottomSheet(),
+                        );
+                      },
+                      child: Text('Start Initial Setup'),
+                    ),
                   );
-                },
-                child: Text('Start Initial Setup'),
-              ),
+                }
+                return WorkflowList(
+                  steps: workflow.workflowSteps,
+                  workflowConfig: workflow.workflowConfig,
+                );
+              },
+              error: (error, stackTrace) {
+                return Center(
+                  child: Text('Error: $error'),
+                );
+              },
+              loading: () {
+                return Center(
+                  child: CircularProgressIndicator.adaptive(),
+                );
+              },
             );
           }
-          return WorkflowList(
-            steps: workflow.workflowSteps,
-            workflowConfig: workflow.workflowConfig,
+          return Center(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Theme.of(context).secondaryHeaderColor,
+              ),
+              onPressed: () {
+                //
+              },
+              child: Text('GitHub Integration'),
+            ),
           );
         },
         error: (error, stackTrace) {
