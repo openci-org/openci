@@ -14,15 +14,11 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(initialWorkflowSetupProvider);
     final controller = ref.read(initialWorkflowSetupProvider.notifier);
-    final repositoryController = useTextEditingController(
-      text: state.selectedRepository,
-    );
-    final workingDirectoryController = useTextEditingController(
-      text: state.selectedWorkingDirectory,
-    );
-    final triggerBranchController = useTextEditingController(
-      text: state.selectedTriggerBranch,
-    );
+
+    final repositoryController = useTextEditingController();
+    final workingDirectoryController = useTextEditingController();
+    final triggerBranchController = useTextEditingController();
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
