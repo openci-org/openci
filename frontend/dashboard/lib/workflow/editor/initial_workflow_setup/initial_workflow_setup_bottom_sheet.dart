@@ -1,9 +1,11 @@
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
-class InitialWorkflowSetupBottomSheet extends ConsumerWidget {
+class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
   const InitialWorkflowSetupBottomSheet({super.key});
 
   static const _width = 260.0;
@@ -12,12 +14,20 @@ class InitialWorkflowSetupBottomSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(initialWorkflowSetupProvider);
     final controller = ref.read(initialWorkflowSetupProvider.notifier);
+    final repositoryController = useTextEditingController(
+      text: state.selectedRepository,
+    );
+    final workingDirectoryController = useTextEditingController(
+      text: state.selectedWorkingDirectory,
+    );
+    final triggerBranchController = useTextEditingController(
+      text: state.selectedTriggerBranch,
+    );
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          spacing: 30.0,
           children: [
             Stack(
               alignment: Alignment.center,
@@ -44,42 +54,37 @@ class InitialWorkflowSetupBottomSheet extends ConsumerWidget {
               InitialSetupSummary(
                 state: state,
               ),
-            DropdownMenu(
-              width: _width,
-              controller: TextEditingController(text: state.selectedRepository),
-              label: const Text('Repository'),
-              dropdownMenuEntries: [
-                DropdownMenuEntry(
-                  value: 'open-ci-io/openci',
-                  label: 'open-ci-io/openci',
-                ),
-                DropdownMenuEntry(value: 'mafreud/test', label: 'mafreud/test'),
-              ],
-              onSelected: (value) {
-                if (value == null) return;
-                controller.updateSelectedRepository(value);
+            TextButton(
+              onPressed: () {
+                // open https://github.com/apps/openci-org with UrlLauncher
+                url_launcher.launchUrl(
+                  Uri.parse('https://github.com/apps/openci-org'),
+                );
               },
+              child: Text('Install GitHub App'),
             ),
-            DropdownMenu(
+            SizedBox(
               width: _width,
-              controller: TextEditingController(
-                text: state.selectedWorkingDirectory,
+              child: TextFormField(
+                controller: repositoryController,
+                decoration: InputDecoration(
+                  labelText: 'Repository',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              label: const Text('Current Working Directory'),
-              helperText: 'Use default if you don\'t use monorepo',
-              dropdownMenuEntries: [
-                DropdownMenuEntry(value: '/', label: '/'),
-                DropdownMenuEntry(value: '/frontend', label: '/frontend'),
-                DropdownMenuEntry(
-                  value: '/frontend/dashboard',
-                  label: '/frontend/dashboard',
-                ),
-              ],
-              onSelected: (value) {
-                if (value == null) return;
-                controller.updateSelectedWorkingDirectory(value);
-              },
             ),
+            SizedBox(height: 20.0),
+            SizedBox(
+              width: _width,
+              child: TextFormField(
+                controller: workingDirectoryController,
+                decoration: InputDecoration(
+                  labelText: 'Current Working Directory',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            SizedBox(height: 20.0),
             DropdownMenu(
               width: _width,
               controller: TextEditingController(
@@ -97,27 +102,28 @@ class InitialWorkflowSetupBottomSheet extends ConsumerWidget {
                 );
               },
             ),
-            DropdownMenu(
+            SizedBox(height: 20.0),
+            SizedBox(
               width: _width,
-              controller: TextEditingController(
-                text: state.selectedTriggerBranch,
+              child: TextFormField(
+                controller: triggerBranchController,
+                decoration: InputDecoration(
+                  labelText: 'Trigger Branch',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              label: const Text('Trigger Branch'),
-              dropdownMenuEntries: [
-                DropdownMenuEntry(value: 'main', label: 'main'),
-                DropdownMenuEntry(value: 'develop', label: 'develop'),
-              ],
-              onSelected: (value) {
-                if (value == null) return;
-                controller.updateSelectedTriggerBranch(value);
-              },
             ),
+            SizedBox(height: 24.0),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(_width, 48),
               ),
               onPressed: () async {
-                await controller.save();
+                await controller.save(
+                  selectedRepository: repositoryController.text,
+                  selectedWorkingDirectory: workingDirectoryController.text,
+                  selectedTriggerBranch: triggerBranchController.text,
+                );
 
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
