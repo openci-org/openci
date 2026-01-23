@@ -1,16 +1,16 @@
 {
   "folders": [
     {
+      "name": "dashboard (Flutter)",
+      "path": "frontend/dashboard",
+    },
+    {
       "name": "root",
       "path": ".",
     },
     {
       "name": "frontend (Next.js)",
       "path": "frontend",
-    },
-    {
-      "name": "dashboard (Flutter)",
-      "path": "frontend/dashboard",
     },
   ],
   "settings": {
