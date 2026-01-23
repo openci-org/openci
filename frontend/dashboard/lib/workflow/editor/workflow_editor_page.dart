@@ -94,7 +94,6 @@ class WorkflowList extends StatelessWidget {
                 color: Colors.green,
               ),
               title: Text('Basic Information'),
-              trailing: Icon(Icons.more_vert),
             ),
           ),
           if (steps.isNotEmpty)
@@ -163,7 +162,6 @@ class StepCard extends StatelessWidget {
           color: isCompleted ? Colors.green : Colors.amber,
         ),
         title: Text(title),
-        trailing: Icon(Icons.more_vert),
       ),
     );
   }
