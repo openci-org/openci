@@ -56,7 +56,6 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               ),
             TextButton(
               onPressed: () {
-                // open https://github.com/apps/openci-org with UrlLauncher
                 url_launcher.launchUrl(
                   Uri.parse('https://github.com/apps/openci-org'),
                 );
