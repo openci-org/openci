@@ -8,30 +8,6 @@ const workflowTemplateList = [
     name: 'write_your_code',
     title: 'Write your code',
   ),
-  WorkflowTemplate(
-    name: 'flutter_ci_cd',
-    title: 'Flutter CI/CD',
-  ),
-  WorkflowTemplate(
-    name: 'slack_notification',
-    title: 'Slack Notification',
-  ),
-  WorkflowTemplate(
-    name: 'email_notification',
-    title: 'Email Notification',
-  ),
-  WorkflowTemplate(
-    name: 'firebase_ci_cd',
-    title: 'Firebase CI/CD',
-  ),
-  WorkflowTemplate(
-    name: 'docker_ci_cd',
-    title: 'Docker CI/CD',
-  ),
-  WorkflowTemplate(
-    name: 'nodejs_ci_cd',
-    title: 'Node.js CI/CD',
-  ),
 ];
 
 @freezed

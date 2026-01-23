@@ -20,6 +20,7 @@
       "cupertino",
       "dbaeumer",
       "esbenp",
+      "firestore",
       "grayscale",
       "masahiro",
       "oklch",
@@ -30,6 +31,7 @@
       "subheadline",
       "tailwindplus",
       "turbopack",
+      "unawaited",
     ],
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "always",
@@ -61,9 +63,10 @@
     "configurations": [
       {
         "name": "dashboard",
-        "cwd": "frontend/dashboard",
+        "cwd": "${workspaceFolder:dashboard (Flutter)}",
         "request": "launch",
         "type": "dart",
+        "program": "lib/main.dart",
       },
     ],
   },
@@ -75,6 +78,22 @@
       "esbenp.prettier-vscode",
       "bradlc.vscode-tailwindcss",
       "streetsidesoftware.code-spell-checker",
+    ],
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build_runner watch",
+        "type": "shell",
+        "command": "dart run build_runner watch -d",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+        "group": "build",
+        "isBackground": true,
+      },
     ],
   },
 }

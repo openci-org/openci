@@ -1,143 +1,17 @@
-import 'package:dashboard/create_workflow/choose_workflow_template.dart';
-import 'package:dashboard/create_workflow/create_workflow_provider.dart';
+import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
+import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CreateWorkflowPage extends ConsumerWidget {
-  const CreateWorkflowPage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(createWorkflowProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Create Workflow'),
-      ),
-      body: state.isCreated
-          ? WorkflowList(
-              steps: state.selectedWorkflowSteps,
-            )
-          : Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => CreateWorkflowBottomSheet(),
-                  );
-                },
-                child: Text('Start Initial Setup'),
-              ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => state.isCreated
-            ? _showChooseWorkflowTemplate(context)
-            : _showCreateWorkflowBottomSheet(context),
-        child: Icon(Icons.add),
-      ),
-    );
-  }
-}
-
-Future<void> _showChooseWorkflowTemplate(
-  BuildContext context,
-) {
-  return showModalBottomSheet(
-    isScrollControlled: true,
-    context: context,
-    builder: (_) => SizedBox(
-      height: MediaQuery.of(context).size.height * 0.8,
-      child: ChooseWorkflowTemplate(),
-    ),
-  );
-}
-
-Future<void> _showCreateWorkflowBottomSheet(
-  BuildContext context,
-) {
-  return showModalBottomSheet(
-    isScrollControlled: true,
-    context: context,
-    builder: (_) => SizedBox(
-      height: MediaQuery.of(context).size.height * 0.8,
-      child: CreateWorkflowBottomSheet(),
-    ),
-  );
-}
-
-class WorkflowList extends StatelessWidget {
-  const WorkflowList({super.key, required this.steps});
-  final List<WorkflowStep> steps;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14.0),
-      child: ListView.separated(
-        itemCount: steps.length,
-        separatorBuilder: (_, _) => SizedBox(height: 12.0),
-        itemBuilder: (_, index) {
-          final step = steps[index];
-          return Column(
-            children: [
-              BasicInformationWorkflowCard(
-                title: step.name,
-                isCompleted: step.isCompleted,
-              ),
-              if (index == steps.length - 1) ..._addButton(context),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  List<Widget> _addButton(BuildContext context) {
-    return [
-      SizedBox(height: 20.0),
-      Center(
-        child: IconButton.filled(
-          onPressed: () => _showChooseWorkflowTemplate(context),
-          icon: const Icon(Icons.add),
-        ),
-      ),
-    ];
-  }
-}
-
-class BasicInformationWorkflowCard extends StatelessWidget {
-  const BasicInformationWorkflowCard({
-    required this.title,
-    required this.isCompleted,
-    super.key,
-  });
-  final bool isCompleted;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(
-          isCompleted ? Icons.check_circle : Icons.timelapse,
-          color: isCompleted ? Colors.green : Colors.amber,
-        ),
-        title: Text(title),
-        trailing: Icon(Icons.more_vert),
-      ),
-    );
-  }
-}
-
-class CreateWorkflowBottomSheet extends ConsumerWidget {
-  const CreateWorkflowBottomSheet({super.key});
+class InitialWorkflowSetupBottomSheet extends ConsumerWidget {
+  const InitialWorkflowSetupBottomSheet({super.key});
 
   static const _width = 260.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(createWorkflowProvider);
-    final controller = ref.read(createWorkflowProvider.notifier);
+    final state = ref.watch(initialWorkflowSetupProvider);
+    final controller = ref.read(initialWorkflowSetupProvider.notifier);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -163,6 +37,7 @@ class CreateWorkflowBottomSheet extends ConsumerWidget {
                 ),
               ],
             ),
+
             if (state.selectedRepository.isNotEmpty &&
                 state.selectedWorkingDirectory.isNotEmpty &&
                 state.selectedTriggerBranch.isNotEmpty)
@@ -237,19 +112,21 @@ class CreateWorkflowBottomSheet extends ConsumerWidget {
                 controller.updateSelectedTriggerBranch(value);
               },
             ),
-
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(_width, 48),
               ),
-              onPressed: () {
-                controller.updateIsCreated(true);
-                controller.addStep(
-                  WorkflowStep(
-                    name: 'Basic Information',
-                    isCompleted: true,
+              onPressed: () async {
+                await controller.save();
+
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Workflow created successfully'),
+                    behavior: SnackBarBehavior.floating,
                   ),
                 );
+
                 Navigator.of(context).pop();
               },
               icon: Icon(Icons.check),
@@ -264,12 +141,12 @@ class CreateWorkflowBottomSheet extends ConsumerWidget {
 
 class InitialSetupSummary extends StatelessWidget {
   const InitialSetupSummary({super.key, required this.state});
-  final CreateWorkflowState state;
+  final InitialWorkflowSetupState state;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: CreateWorkflowBottomSheet._width,
+      width: InitialWorkflowSetupBottomSheet._width,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 8.0,
