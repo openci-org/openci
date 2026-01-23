@@ -134,7 +134,7 @@ class WorkflowList extends StatelessWidget {
                 return Column(
                   children: [
                     if (index == 0)
-                      BasicInformationWorkflowCard(
+                      StepCard(
                         title: step.name,
                         isCompleted: step.isCompleted,
                       ),
@@ -161,8 +161,8 @@ class WorkflowList extends StatelessWidget {
   }
 }
 
-class BasicInformationWorkflowCard extends StatelessWidget {
-  const BasicInformationWorkflowCard({
+class StepCard extends StatelessWidget {
+  const StepCard({
     required this.title,
     required this.isCompleted,
     super.key,
