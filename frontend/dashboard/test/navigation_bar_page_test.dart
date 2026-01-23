@@ -12,10 +12,10 @@ void main() {
         const MaterialApp(home: NavigationBarPage(pages)),
       );
       expect(find.text('Create'), findsOneWidget);
-      expect(find.text('List'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
 
       expect(find.byIcon(Icons.add), findsOneWidget);
-      expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
 
       final navigationBar = tester.widget<NavigationBar>(
         find.byType(NavigationBar),
@@ -24,18 +24,18 @@ void main() {
       expect(find.byWidget(pageA), findsOneWidget);
     });
 
-    testWidgets('tap_create_icon', (WidgetTester tester) async {
+    testWidgets('tap_settings_icon', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(home: NavigationBarPage(pages)),
       );
       expect(find.text('Create'), findsOneWidget);
-      expect(find.text('List'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.folder_outlined));
+      await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.add), findsOneWidget);
-      expect(find.byIcon(Icons.folder), findsOneWidget);
+      expect(find.byIcon(Icons.settings), findsOneWidget);
 
       final navigationBar = tester.widget<NavigationBar>(
         find.byType(NavigationBar),

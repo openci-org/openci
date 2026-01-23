@@ -26,11 +26,6 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
         destinations: [
           NavigationDestination(icon: Icon(Icons.add), label: 'Create'),
           NavigationDestination(
-            selectedIcon: Icon(Icons.folder),
-            icon: Icon(Icons.folder_outlined),
-            label: 'List',
-          ),
-          NavigationDestination(
             selectedIcon: Icon(Icons.settings),
             icon: Icon(Icons.settings_outlined),
             label: 'Settings',

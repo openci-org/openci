@@ -1,5 +1,4 @@
 import 'package:dashboard/auth/auth_page.dart';
-import 'package:dashboard/list/list_page.dart';
 import 'package:dashboard/navigation_bar_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
@@ -22,7 +21,6 @@ class Root extends StatelessWidget {
 
 const _tabPageList = [
   WorkflowEditorPage(),
-  ListPage(),
   SettingsPage(),
 ];
 
