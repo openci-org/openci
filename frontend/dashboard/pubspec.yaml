@@ -33,6 +33,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   freezed: ^3.2.3
+  icons_launcher: ^3.0.3
   json_serializable: ^6.11.2
   riverpod_generator: ^3.0.3
 
