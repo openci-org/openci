@@ -1,6 +1,6 @@
-import 'package:dashboard/create_workflow/choose_workflow_template.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
+import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +38,7 @@ class WorkflowEditorPage extends ConsumerWidget {
           return WorkflowList(
             steps: workflow.workflowSteps,
             workflowConfig: workflow.workflowConfig,
+            documentId: workflow.documentId,
           );
         },
         error: (error, stackTrace) {
@@ -57,13 +58,14 @@ class WorkflowEditorPage extends ConsumerWidget {
 
 Future<void> _showChooseWorkflowTemplate(
   BuildContext context,
+  String documentId,
 ) {
   return showModalBottomSheet(
     isScrollControlled: true,
     context: context,
     builder: (_) => SizedBox(
       height: MediaQuery.of(context).size.height * 0.8,
-      child: ChooseWorkflowTemplate(),
+      child: ChooseWorkflowTemplate(documentId: documentId),
     ),
   );
 }
@@ -73,9 +75,11 @@ class WorkflowList extends StatelessWidget {
     super.key,
     required this.steps,
     required this.workflowConfig,
+    required this.documentId,
   });
   final List<WorkflowStep> steps;
   final WorkflowConfig workflowConfig;
+  final String documentId;
 
   @override
   Widget build(BuildContext context) {
@@ -93,37 +97,47 @@ class WorkflowList extends StatelessWidget {
               trailing: Icon(Icons.more_vert),
             ),
           ),
-          if (steps.isEmpty) ..._addButton(context),
           if (steps.isNotEmpty)
-            ListView.separated(
-              itemCount: steps.length,
-              separatorBuilder: (_, _) => SizedBox(height: 12.0),
-              itemBuilder: (_, index) {
-                final step = steps[index];
+            SizedBox(
+              height: 24,
+              child: Icon(Icons.arrow_downward),
+            ),
+          if (steps.isEmpty) ..._addButton(context, documentId),
+          if (steps.isNotEmpty)
+            Expanded(
+              child: ListView.separated(
+                itemCount: steps.length,
+                separatorBuilder: (_, _) => SizedBox(
+                  height: 24.0,
+                  child: Icon(Icons.arrow_downward),
+                ),
+                itemBuilder: (_, index) {
+                  final step = steps[index];
 
-                return Column(
-                  children: [
-                    if (index == 0)
+                  return Column(
+                    children: [
                       StepCard(
                         title: step.name,
                         isCompleted: step.isCompleted,
                       ),
-                    if (index == steps.length - 1) ..._addButton(context),
-                  ],
-                );
-              },
+                      if (index == steps.length - 1)
+                        ..._addButton(context, documentId),
+                    ],
+                  );
+                },
+              ),
             ),
         ],
       ),
     );
   }
 
-  List<Widget> _addButton(BuildContext context) {
+  List<Widget> _addButton(BuildContext context, String documentId) {
     return [
       SizedBox(height: 20.0),
       Center(
         child: IconButton.filled(
-          onPressed: () => _showChooseWorkflowTemplate(context),
+          onPressed: () => _showChooseWorkflowTemplate(context, documentId),
           icon: const Icon(Icons.add),
         ),
       ),
