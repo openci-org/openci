@@ -1,1 +1,0 @@
-Always reply in Japanese
