@@ -70,7 +70,7 @@ final class WorkflowEditorProvider
   WorkflowEditor create() => WorkflowEditor();
 }
 
-String _$workflowEditorHash() => r'abb0095501718aec23e612226da72a82ad93bc9c';
+String _$workflowEditorHash() => r'38c18e6b9a1daa0b882aa34e9dedbe8cd1fe0da3';
 
 abstract class _$WorkflowEditor extends $StreamNotifier<Workflow?> {
   Stream<Workflow?> build();

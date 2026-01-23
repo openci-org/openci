@@ -13,6 +13,10 @@ class WorkflowEditor extends _$WorkflowEditor {
   Stream<Workflow?> build() => workflowStream();
 
   Stream<Workflow?> workflowStream() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      throw Exception('Firebase Auth User Id is null');
+    }
     return FirebaseFirestore.instance
         .collection('workflows_v1')
         .withConverter(
