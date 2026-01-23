@@ -31,6 +31,7 @@
       "subheadline",
       "tailwindplus",
       "turbopack",
+      "unawaited",
     ],
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "always",
@@ -87,7 +88,7 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}"
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
         },
         "problemMatcher": [],
         "group": "build",

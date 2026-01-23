@@ -45,7 +45,8 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     if (userId == null) {
       throw Exception('Firebase Auth User Id is null');
     }
-    FirebaseFirestore.instance
+
+    await FirebaseFirestore.instance
         .collection('workflows_v1')
         .doc(documentId)
         .set(
