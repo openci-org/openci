@@ -57,7 +57,7 @@ export const githubApp = onRequest(
       if (event === "pull_request") {
         if (body.action === "opened" || body.action === "synchronize" || body.action === "closed") {
           logger.info(`PR ${body.action}`, { structuredData: true });
-          await saveBuildJob(eventData);
+          await saveBuildJob(app, eventData);
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
@@ -75,19 +75,39 @@ export const githubApp = onRequest(
 
 const buildJobCollectionPath = "build_jobs_v0";
 
-async function saveBuildJob(params: {
-  event: string;
-  action: string;
-  repository: string;
-  sender: string;
-  payload: any;
-}) {
+async function saveBuildJob(
+  app: App,
+  params: {
+    event: string;
+    action: string;
+    repository: string;
+    sender: string;
+    payload: any;
+  },
+) {
   const { payload } = params;
   const documentId = uuidv4();
 
   const installationId = payload.installation?.id;
   const commitSha = payload.pull_request?.head?.sha || null;
   const pullRequestNumber = payload.pull_request?.number || payload.issue?.number;
+
+  let installationToken: string | null = null;
+  let tokenExpiresAt: string | null = null;
+
+  if (installationId) {
+    try {
+      const {
+        data: { token, expires_at },
+      } = await app.octokit.request("POST /app/installations/{installation_id}/access_tokens", {
+        installation_id: installationId,
+      });
+      installationToken = token;
+      tokenExpiresAt = expires_at;
+    } catch (error) {
+      logger.error("Failed to get installation token", error);
+    }
+  }
 
   await db
     .collection(buildJobCollectionPath)
@@ -103,5 +123,7 @@ async function saveBuildJob(params: {
       pullRequestNumber,
       owner: params.repository.split("/")[0],
       repo: params.repository.split("/")[1],
+      installationToken,
+      tokenExpiresAt,
     });
 }
