@@ -73,9 +73,22 @@ Future<void> main(List<String> arguments) async {
     final doc = await firestore
         .collection('build_jobs_v0')
         .where('status', WhereFilter.equal, 'queued')
+        .orderBy('createdAt', descending: true)
         .limit(1)
         .get();
     print("docLength: ${doc.docs.length}");
+
+    if (doc.docs.isEmpty) {
+      print('No queued build jobs found.');
+      return;
+    }
+
+    final buildJob = doc.docs.first;
+
+    final buildJobData = buildJob.data();
+    final token = buildJobData['installationToken'] as String;
+    final owner = buildJobData['owner'] as String;
+    final repo = buildJobData['repo'] as String;
 
     unawaited(runTart());
 
@@ -83,7 +96,15 @@ Future<void> main(List<String> arguments) async {
     await waitForVmReady(vmName);
     print('VM is ready!');
 
-    await Future.delayed(const Duration(seconds: 15));
+    final cloneUrl =
+        'https://x-access-token:$token@github.com/$owner/$repo.git';
+    print('cloneUrl: $cloneUrl');
+
+    await execCommand('rm -rf openci');
+    await execCommand('git clone --progress $cloneUrl');
+    print('finish cloning');
+
+    await Future.delayed(const Duration(minutes: 15));
 
     await stopTart();
 
@@ -97,6 +118,11 @@ Future<void> main(List<String> arguments) async {
 }
 
 const vmName = 'sequoia-base';
+
+Future<void> execCommand(String command) async {
+  var shell = Shell(verbose: true);
+  await shell.run("tart exec $vmName $command");
+}
 
 Future<void> runTart() async {
   var shell = Shell();
