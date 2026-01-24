@@ -1,7 +1,12 @@
+import { initializeApp } from "firebase-admin/app";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
+
+initializeApp();
+const db = getFirestore();
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -35,8 +40,17 @@ export const githubApp = onRequest(
         return;
       }
 
-      const event = request.headers["x-github-event"];
+      const event = request.headers["x-github-event"] as string;
       const body = JSON.parse(payload);
+
+      const eventData = {
+        event,
+        action: body.action,
+        repository: body.repository?.full_name,
+        sender: body.sender?.login,
+        createdAt: FieldValue.serverTimestamp(),
+        payload: body,
+      };
 
       if (event === "pull_request") {
         if (body.action === "opened" || body.action === "synchronize") {
@@ -45,6 +59,10 @@ export const githubApp = onRequest(
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
           logger.info("Rerun requested via comment", { structuredData: true });
+          await db.collection("github_events_sample").add({
+            ...eventData,
+            type: "rerun_request",
+          });
         }
       }
 
