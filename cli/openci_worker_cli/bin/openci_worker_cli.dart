@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:dart_firebase_admin/dart_firebase_admin.dart';
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:process_run/process_run.dart';
 
 const String version = '0.4.1';
 
@@ -68,11 +70,22 @@ Future<void> main(List<String> arguments) async {
     );
 
     final firestore = Firestore(admin);
-    final doc = await firestore.collection('build_jobs_v0').get();
-    print(doc.docs);
-    if (verbose) {
-      print('Fetched ${doc.docs.length} documents from build_jobs_v0');
-    }
+    final doc = await firestore
+        .collection('build_jobs_v0')
+        .where('status', WhereFilter.equal, 'queued')
+        .limit(1)
+        .get();
+    print("docLength: ${doc.docs.length}");
+
+    unawaited(runTart());
+
+    print('Waiting for VM to be ready...');
+    await waitForVmReady(vmName);
+    print('VM is ready!');
+
+    await Future.delayed(const Duration(seconds: 15));
+
+    await stopTart();
 
     await admin.close();
   } on FormatException catch (e) {
@@ -81,4 +94,33 @@ Future<void> main(List<String> arguments) async {
     print('');
     printUsage(argParser);
   }
+}
+
+const vmName = 'sequoia-base';
+
+Future<void> runTart() async {
+  var shell = Shell();
+  await shell.run('tart run $vmName');
+}
+
+Future<void> stopTart() async {
+  var shell = Shell();
+  await shell.run('tart stop $vmName');
+}
+
+Future<void> waitForVmReady(String name) async {
+  var shell = Shell(throwOnError: false);
+  print('Waiting for Guest Agent to respond...');
+  for (int i = 0; i < 60; i++) {
+    var result = await shell.run('tart exec $name echo "ready"');
+    print('exit code: ${result.first.exitCode}');
+
+    if (result.first.exitCode == 0) {
+      return;
+    }
+
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  throw Exception('VM boot timeout: Guest Agent did not respond.');
 }
