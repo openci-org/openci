@@ -19,7 +19,8 @@
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0",
     "graphql": "^16.10.0",
-    "octokit": "^5.0.5"
+    "octokit": "^5.0.5",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.4.1",
