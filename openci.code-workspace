@@ -5,6 +5,10 @@
       "path": "frontend/dashboard",
     },
     {
+      "name": "firebase-functions",
+      "path": "firebase/functions",
+    },
+    {
       "name": "root",
       "path": ".",
     },
@@ -26,6 +30,8 @@
       "oklch",
       "openci",
       "opennextjs",
+      "oxfmt",
+      "oxlint",
       "riverpod",
       "Stylesheet",
       "subheadline",
@@ -40,19 +46,19 @@
     },
     "editor.formatOnSave": true,
     "[jsonc]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[typescriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "files.associations": {
       "*.css": "tailwindcss",
@@ -75,7 +81,7 @@
       "dart-code.dart-code",
       "dart-code.flutter",
       "dbaeumer.vscode-eslint",
-      "esbenp.prettier-vscode",
+      "oxc.oxc-vscode",
       "bradlc.vscode-tailwindcss",
       "streetsidesoftware.code-spell-checker",
     ],
@@ -101,8 +107,14 @@
         "options": {
           "cwd": "${workspaceFolder:dashboard (Flutter)}",
         },
-        "problemMatcher": [],
-        "isBackground": true,
+      },
+      {
+        "label": "Deploy Firebase Functions",
+        "type": "shell",
+        "command": "firebase deploy --only functions",
+        "options": {
+          "cwd": "${workspaceFolder:firebase-functions}",
+        },
       },
     ],
   },
