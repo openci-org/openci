@@ -5,6 +5,10 @@
       "path": "frontend/dashboard",
     },
     {
+      "name": "openci_worker_cli",
+      "path": "cli/openci_worker_cli",
+    },
+    {
       "name": "firebase-functions",
       "path": "firebase/functions",
     },
@@ -27,6 +31,7 @@
       "firestore",
       "grayscale",
       "masahiro",
+      "mocktail",
       "oklch",
       "openci",
       "opennextjs",
