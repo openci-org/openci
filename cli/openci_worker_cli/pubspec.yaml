@@ -1,6 +1,6 @@
 name: openci_worker_cli
 description: OpenCI Worker CLI
-version: 0.4.0
+version: 0.4.1
 repository: https://github.com/open-ci-io/openci
 
 environment:
@@ -8,7 +8,8 @@ environment:
 
 dependencies:
   args: ^2.7.0
-
+  dart_firebase_admin: ^0.4.1
+    
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6

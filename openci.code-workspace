@@ -123,6 +123,14 @@
         },
         "problemMatcher": [],
       },
+      {
+        "label": "Publish OpenCI Worker CLI",
+        "type": "shell",
+        "command": "dart pub publish",
+        "options": {
+          "cwd": "${workspaceFolder:openci_worker_cli}",
+        },
+      },
     ],
   },
 }
