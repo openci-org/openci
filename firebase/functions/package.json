@@ -1,0 +1,32 @@
+{
+  "name": "functions",
+  "private": true,
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "oxlint .",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^5.0.0",
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.0",
+    "graphql": "^16.10.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.4.1",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.41.0",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": "22"
+  }
+}
