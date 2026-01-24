@@ -90,6 +90,23 @@ Future<void> main(List<String> arguments) async {
     final owner = buildJobData['owner'] as String;
     final repo = buildJobData['repo'] as String;
 
+    // get steps
+    final workflowQs = await firestore
+        .collection('workflows_v1')
+        .where(
+          'workflowConfig.selectedRepository',
+          WhereFilter.equal,
+          '$owner/$repo',
+        )
+        .get();
+    final workflowDoc = workflowQs.docs.first;
+    if (workflowQs.docs.isEmpty) {
+      print('No workflow found for repository $owner/$repo.');
+      return;
+    }
+    final workflowData = workflowDoc.data();
+    final steps = workflowData['workflowSteps'] as List;
+
     unawaited(runTart());
 
     print('Waiting for VM to be ready...');
@@ -102,7 +119,13 @@ Future<void> main(List<String> arguments) async {
 
     await execCommand('rm -rf openci');
     await execCommand('git clone --progress $cloneUrl');
+
     print('finish cloning');
+
+    for (final step in steps) {
+      final script = step['script'];
+      await execCommand('/bin/zsh -c "cd $repo && $script"');
+    }
 
     await Future.delayed(const Duration(minutes: 15));
 
