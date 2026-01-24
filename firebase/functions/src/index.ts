@@ -55,14 +55,12 @@ export const githubApp = onRequest(
       if (event === "pull_request") {
         if (body.action === "opened" || body.action === "synchronize") {
           logger.info("PR opened or synchronized", { structuredData: true });
+          await saveBuildJob(eventData);
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
           logger.info("Rerun requested via comment", { structuredData: true });
-          await db.collection("github_events_sample").add({
-            ...eventData,
-            type: "rerun_request",
-          });
+          await saveBuildJob(eventData);
         }
       }
 
@@ -73,3 +71,16 @@ export const githubApp = onRequest(
     }
   },
 );
+
+async function saveBuildJob(params: {
+  event: string;
+  action: string;
+  repository: string;
+  sender: string;
+  payload: any;
+}) {
+  await db.collection("github_events_sample").add({
+    ...params,
+    type: "rerun_request",
+  });
+}
