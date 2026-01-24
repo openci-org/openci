@@ -107,7 +107,15 @@
         "options": {
           "cwd": "${workspaceFolder:dashboard (Flutter)}",
         },
-        "problemMatcher": [],
+        "isBackground": true,
+      },
+      {
+        "label": "Deploy Firebase Functions",
+        "type": "shell",
+        "command": "firebase deploy --only functions",
+        "options": {
+          "cwd": "${workspaceFolder:firebase-functions}",
+        },
         "isBackground": true,
       },
     ],
