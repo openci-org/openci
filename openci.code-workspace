@@ -38,6 +38,7 @@
       "tailwindplus",
       "turbopack",
       "unawaited",
+      "uuidv",
     ],
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "always",

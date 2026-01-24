@@ -5,6 +5,8 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
 
+import { v4 as uuidv4 } from "uuid";
+
 initializeApp();
 const db = getFirestore();
 
@@ -53,14 +55,13 @@ export const githubApp = onRequest(
       };
 
       if (event === "pull_request") {
-        if (body.action === "opened" || body.action === "synchronize") {
-          logger.info("PR opened or synchronized", { structuredData: true });
+        if (body.action === "opened" || body.action === "synchronize" || body.action === "closed") {
+          logger.info(`PR ${body.action}`, { structuredData: true });
           await saveBuildJob(eventData);
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
           logger.info("Rerun requested via comment", { structuredData: true });
-          await saveBuildJob(eventData);
         }
       }
 
@@ -72,6 +73,8 @@ export const githubApp = onRequest(
   },
 );
 
+const buildJobCollectionPath = "build_jobs_v0";
+
 async function saveBuildJob(params: {
   event: string;
   action: string;
@@ -79,8 +82,26 @@ async function saveBuildJob(params: {
   sender: string;
   payload: any;
 }) {
-  await db.collection("github_events_sample").add({
-    ...params,
-    type: "rerun_request",
-  });
+  const { payload } = params;
+  const documentId = uuidv4();
+
+  const installationId = payload.installation?.id;
+  const commitSha = payload.pull_request?.head?.sha || null;
+  const pullRequestNumber = payload.pull_request?.number || payload.issue?.number;
+
+  await db
+    .collection(buildJobCollectionPath)
+    .doc(documentId)
+    .set({
+      ...params,
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      status: "queued",
+      id: documentId,
+      installationId,
+      commitSha,
+      pullRequestNumber,
+      owner: params.repository.split("/")[0],
+      repo: params.repository.split("/")[1],
+    });
 }
