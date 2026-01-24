@@ -36,8 +36,16 @@ export const githubApp = onRequest(
       }
 
       const event = request.headers["x-github-event"];
+      const body = JSON.parse(payload);
+
       if (event === "pull_request") {
-        logger.info("hello", { structuredData: true });
+        if (body.action === "opened" || body.action === "synchronize") {
+          logger.info("PR opened or synchronized", { structuredData: true });
+        }
+      } else if (event === "issue_comment") {
+        if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
+          logger.info("Rerun requested via comment", { structuredData: true });
+        }
       }
 
       response.send("ok");
