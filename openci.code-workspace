@@ -107,7 +107,6 @@
         "options": {
           "cwd": "${workspaceFolder:dashboard (Flutter)}",
         },
-        "isBackground": true,
       },
       {
         "label": "Deploy Firebase Functions",
@@ -116,7 +115,6 @@
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },
-        "isBackground": true,
       },
     ],
   },
