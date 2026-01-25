@@ -9,6 +9,7 @@ environment:
 dependencies:
   args: ^2.7.0
   dart_firebase_admin: ^0.4.1
+  http: ^1.6.0
   process_run: ^1.2.4
     
 dev_dependencies:

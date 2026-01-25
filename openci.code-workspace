@@ -124,6 +124,15 @@
         "problemMatcher": [],
       },
       {
+        "label": "Firebase Login Reauth",
+        "type": "shell",
+        "command": "firebase login --reauth",
+        "options": {
+          "cwd": "${workspaceFolder:firebase-functions}",
+        },
+        "problemMatcher": [],
+      },
+      {
         "label": "Publish OpenCI Worker CLI",
         "type": "shell",
         "command": "dart pub publish",
