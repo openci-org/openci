@@ -13,6 +13,10 @@
       "path": "firebase/functions",
     },
     {
+      "name": "firebase",
+      "path": "firebase",
+    },
+    {
       "name": "root",
       "path": ".",
     },
@@ -120,6 +124,15 @@
         "command": "firebase deploy --only functions",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "Deploy Firestore Security Rules",
+        "type": "shell",
+        "command": "firebase deploy --only firestore:rules",
+        "options": {
+          "cwd": "${workspaceFolder:firebase}",
         },
         "problemMatcher": [],
       },
