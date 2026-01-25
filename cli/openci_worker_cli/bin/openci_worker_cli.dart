@@ -62,106 +62,20 @@ Future<void> main(List<String> arguments) async {
     );
 
     final firestore = Firestore(admin);
-    final doc = await firestore
-        .collection('build_jobs_v0')
-        .where('status', WhereFilter.equal, 'queued')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .get();
-    print("docLength: ${doc.docs.length}");
 
-    if (doc.docs.isEmpty) {
-      print('No queued build jobs found.');
-      return;
-    }
+    print('Worker started. Polling for jobs...');
 
-    final buildJob = doc.docs.first;
-
-    final buildJobData = buildJob.data();
-    final token = buildJobData['installationToken'] as String;
-    final owner = buildJobData['owner'] as String;
-    final repo = buildJobData['repo'] as String;
-    final checkRunId = buildJobData['checkRunId'] as int?;
-
-    if (checkRunId != null) {
-      print('Updating check run to in_progress...');
-      await updateCheckRun(
-        owner,
-        repo,
-        checkRunId,
-        token,
-        status: 'in_progress',
-      );
-    }
-
-    try {
-      // get steps
-      final workflowQs = await firestore
-          .collection('workflows_v1')
-          .where(
-            'workflowConfig.selectedRepository',
-            WhereFilter.equal,
-            '$owner/$repo',
-          )
-          .get();
-
-      if (workflowQs.docs.isEmpty) {
-        print('No workflow found for repository $owner/$repo.');
-        throw Exception('No workflow found');
+    while (true) {
+      bool jobFound = false;
+      try {
+        jobFound = await processJob(firestore);
+      } catch (e) {
+        print('Error processing job: $e');
       }
 
-      final workflowDoc = workflowQs.docs.first;
-      final workflowData = workflowDoc.data();
-      final steps = workflowData['workflowSteps'] as List;
-
-      unawaited(runTart());
-
-      print('Waiting for VM to be ready...');
-      await waitForVmReady(vmName);
-      print('VM is ready!');
-
-      final cloneUrl =
-          'https://x-access-token:$token@github.com/$owner/$repo.git';
-      print('cloneUrl: $cloneUrl');
-
-      await execCommand('rm -rf openci');
-      await execCommand('git clone --progress $cloneUrl');
-
-      print('finish cloning');
-
-      for (final step in steps) {
-        final script = step['script'];
-        await execCommand('/bin/zsh -c "cd $repo && $script"');
+      if (!jobFound) {
+        await Future.delayed(const Duration(seconds: 5));
       }
-
-      await Future.delayed(const Duration(seconds: 5));
-
-      if (checkRunId != null) {
-        await updateCheckRun(
-          owner,
-          repo,
-          checkRunId,
-          token,
-          status: 'completed',
-          conclusion: 'success',
-        );
-      }
-    } catch (e) {
-      print('Job failed: $e');
-      if (checkRunId != null) {
-        await updateCheckRun(
-          owner,
-          repo,
-          checkRunId,
-          token,
-          status: 'completed',
-          conclusion: 'failure',
-        );
-      }
-      rethrow;
-    } finally {
-      await stopTart();
-      await admin.close();
     }
   } on FormatException catch (e) {
     // Print usage information if an invalid argument was provided.
@@ -172,6 +86,133 @@ Future<void> main(List<String> arguments) async {
     print('Unexpected error: $e');
     exit(1);
   }
+}
+
+Future<bool> processJob(Firestore firestore) async {
+  final doc = await firestore
+      .collection('build_jobs_v0')
+      .where('status', WhereFilter.equal, 'queued')
+      .orderBy('createdAt', descending: true)
+      .limit(1)
+      .get();
+  print("docLength: ${doc.docs.length}");
+
+  if (doc.docs.isEmpty) {
+    return false;
+  }
+
+  final candidateRef = doc.docs.first.ref;
+
+  final claimedJob = await firestore.runTransaction((transaction) async {
+    final snapshot = await transaction.get(candidateRef);
+    if (!snapshot.exists) return null;
+
+    final data = snapshot.data();
+    if (data == null || data['status'] != 'queued') {
+      return null;
+    }
+
+    transaction.update(candidateRef, {'status': 'in_progress'});
+    return snapshot;
+  });
+
+  if (claimedJob == null) {
+    return false;
+  }
+
+  final buildJobId = claimedJob.id;
+  final buildJobData = claimedJob.data()!;
+  final token = buildJobData['installationToken'] as String;
+  final owner = buildJobData['owner'] as String;
+  final repo = buildJobData['repo'] as String;
+  final checkRunId = buildJobData['checkRunId'] as int?;
+
+  print('Processing job: $buildJobId for $owner/$repo');
+
+  if (checkRunId != null) {
+    print('Updating check run to in_progress...');
+    await updateCheckRun(owner, repo, checkRunId, token, status: 'in_progress');
+  }
+
+  try {
+    // get steps
+    final workflowQs = await firestore
+        .collection('workflows_v1')
+        .where(
+          'workflowConfig.selectedRepository',
+          WhereFilter.equal,
+          '$owner/$repo',
+        )
+        .get();
+
+    if (workflowQs.docs.isEmpty) {
+      print('No workflow found for repository $owner/$repo.');
+      throw Exception('No workflow found');
+    }
+
+    final workflowDoc = workflowQs.docs.first;
+    final workflowData = workflowDoc.data();
+    final steps = workflowData['workflowSteps'] as List;
+
+    unawaited(runTart());
+
+    print('Waiting for VM to be ready...');
+    await waitForVmReady(vmName);
+    print('VM is ready!');
+
+    final cloneUrl =
+        'https://x-access-token:$token@github.com/$owner/$repo.git';
+    print('cloneUrl: $cloneUrl');
+
+    await execCommand('rm -rf openci');
+    await execCommand('git clone --progress $cloneUrl');
+
+    print('finish cloning');
+
+    for (final step in steps) {
+      final script = step['script'];
+      await execCommand('/bin/zsh -c "cd $repo && $script"');
+    }
+
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (checkRunId != null) {
+      await updateCheckRun(
+        owner,
+        repo,
+        checkRunId,
+        token,
+        status: 'completed',
+        conclusion: 'success',
+      );
+    }
+
+    // Mark as completed in Firestore
+    await firestore.collection('build_jobs_v0').doc(buildJobId).update({
+      'status': 'success',
+    });
+  } catch (e) {
+    print('Job failed: $e');
+    if (checkRunId != null) {
+      await updateCheckRun(
+        owner,
+        repo,
+        checkRunId,
+        token,
+        status: 'completed',
+        conclusion: 'failure',
+      );
+    }
+    // Mark as failed in Firestore
+    await firestore.collection('build_jobs_v0').doc(buildJobId).update({
+      'status': 'failure',
+    });
+    rethrow;
+  } finally {
+    await stopTart();
+  }
+
+  return true;
 }
 
 const vmName = 'sequoia-base';
