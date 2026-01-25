@@ -55,7 +55,7 @@ export const githubApp = onRequest(
       };
 
       if (event === "pull_request") {
-        if (body.action === "opened" || body.action === "synchronize" || body.action === "closed") {
+        if (body.action === "opened" || body.action === "synchronize") {
           logger.info(`PR ${body.action}`, { structuredData: true });
           await saveBuildJob(app, eventData);
         }
@@ -94,18 +94,35 @@ async function saveBuildJob(
 
   let installationToken: string | null = null;
   let tokenExpiresAt: string | null = null;
+  let checkRunId: number | null = null;
 
   if (installationId) {
     try {
+      const octokit = await app.getInstallationOctokit(installationId);
+
+      // Get installation token
       const {
         data: { token, expires_at },
-      } = await app.octokit.request("POST /app/installations/{installation_id}/access_tokens", {
+      } = await octokit.request("POST /app/installations/{installation_id}/access_tokens", {
         installation_id: installationId,
       });
       installationToken = token;
       tokenExpiresAt = expires_at;
+
+      // Create Check Run if we have a commit SHA
+      if (commitSha) {
+        const { data: checkRun } = await octokit.request("POST /repos/{owner}/{repo}/check-runs", {
+          owner: params.repository.split("/")[0],
+          repo: params.repository.split("/")[1],
+          name: "OpenCI",
+          head_sha: commitSha,
+          status: "queued",
+          started_at: new Date().toISOString(),
+        });
+        checkRunId = checkRun.id;
+      }
     } catch (error) {
-      logger.error("Failed to get installation token", error);
+      logger.error("Failed to authenticate or create check run", error);
     }
   }
 
@@ -125,5 +142,6 @@ async function saveBuildJob(
       repo: params.repository.split("/")[1],
       installationToken,
       tokenExpiresAt,
+      checkRunId,
     });
 }
