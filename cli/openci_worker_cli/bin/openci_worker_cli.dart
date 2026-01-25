@@ -36,7 +36,6 @@ Future<void> main(List<String> arguments) async {
 
   try {
     final ArgResults results = argParser.parse(arguments);
-    bool verbose = false;
 
     // Process the parsed arguments.
     if (results.flag('help')) {
@@ -47,9 +46,7 @@ Future<void> main(List<String> arguments) async {
       print('openci_worker_cli version: $version');
       return;
     }
-    if (results.flag('verbose')) {
-      verbose = true;
-    }
+    if (results.flag('verbose')) {}
 
     final String? projectId = results['project-id'];
     final String? serviceAccountPath = results['service-account'];
