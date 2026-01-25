@@ -8,7 +8,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.1';
+const String version = '0.4.3';
 
 ArgParser buildParser() {
   return ArgParser()
