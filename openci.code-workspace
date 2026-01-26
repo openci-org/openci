@@ -24,6 +24,10 @@
       "name": "frontend (Next.js)",
       "path": "frontend",
     },
+    {
+      "name": "react-native-sample",
+      "path": "frontend/react-native-sample",
+    },
   ],
   "settings": {
     "cSpell.words": [
