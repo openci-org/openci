@@ -1,5 +1,6 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/navigation_bar_page.dart';
+import 'package:dashboard/secret_manager/secret_manager_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +25,7 @@ class Root extends StatelessWidget {
 
 const _tabPageList = [
   WorkflowEditorPage(),
+  SecretManagerPage(),
   SettingsPage(),
 ];
 

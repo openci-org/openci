@@ -1,6 +1,7 @@
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { onRequest } from "firebase-functions/https";
+import { onCall, onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
@@ -9,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 
 initializeApp();
 const db = getFirestore();
+const secretManagerClient = new SecretManagerServiceClient();
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -74,6 +76,7 @@ export const githubApp = onRequest(
 );
 
 const buildJobCollectionPath = "build_jobs_v0";
+const secretsCollectionPath = "secrets_v0";
 
 async function saveBuildJob(
   app: App,
@@ -145,3 +148,80 @@ async function saveBuildJob(
       checkRunId,
     });
 }
+
+export const createSecretV1 = onCall(
+  {
+    region: "asia-northeast1",
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new Error("Unauthenticated");
+    }
+
+    const userId = request.auth.uid;
+    const { name, value } = request.data as { name: string; value: string };
+
+    if (!name || !value) {
+      throw new Error("Missing name or value");
+    }
+
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+    if (!projectId) {
+      throw new Error("Project ID not found");
+    }
+
+    const secretId = `user-${userId}-${name}`;
+    const parent = `projects/${projectId}`;
+
+    try {
+      await secretManagerClient.createSecret({
+        parent,
+        secretId,
+        secret: {
+          replication: {
+            automatic: {},
+          },
+        },
+      });
+
+      await secretManagerClient.addSecretVersion({
+        parent: `${parent}/secrets/${secretId}`,
+        payload: {
+          data: Buffer.from(value, "utf8"),
+        },
+      });
+
+      const documentId = uuidv4();
+      await db
+        .collection(secretsCollectionPath)
+        .doc(documentId)
+        .set({
+          id: documentId,
+          name,
+          userId,
+          pathToSecret: `${parent}/secrets/${secretId}`,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+      logger.info(`Secret created: ${secretId}`, { userId, name });
+
+      return { success: true, secretId: documentId };
+    } catch (error: any) {
+      if (error.code === 6) {
+        await secretManagerClient.addSecretVersion({
+          parent: `${parent}/secrets/${secretId}`,
+          payload: {
+            data: Buffer.from(value, "utf8"),
+          },
+        });
+
+        logger.info(`Secret updated: ${secretId}`, { userId, name });
+        return { success: true, message: "Secret updated" };
+      }
+
+      logger.error("Failed to create secret", error);
+      throw new Error(`Failed to create secret: ${error.message}`);
+    }
+  },
+);
