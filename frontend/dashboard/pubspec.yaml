@@ -11,6 +11,7 @@ environment:
 
 dependencies:
   cloud_firestore: ^6.1.2
+  cloud_functions: ^6.0.6
   cupertino_icons: ^1.0.8
   firebase_auth: ^6.1.4
   firebase_core: ^4.4.0
@@ -23,6 +24,7 @@ dependencies:
   highlight: ^0.7.0
   hooks_riverpod: ^3.0.3
   json_annotation: ^4.9.0
+  material_symbols_icons: ^4.2892.0
   riverpod_annotation: ^3.0.3
   url_launcher: ^6.3.2
   uuid: ^4.5.2

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 class NavigationBarPage extends StatefulWidget {
   const NavigationBarPage(this.pages, {super.key});
@@ -24,7 +25,16 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
           });
         },
         destinations: [
-          NavigationDestination(icon: Icon(Icons.add), label: 'Create'),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.add),
+            icon: Icon(Symbols.add_2_rounded),
+            label: 'Create',
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.key),
+            icon: Icon(Symbols.key_rounded),
+            label: 'Secret Manager',
+          ),
           NavigationDestination(
             selectedIcon: Icon(Icons.settings),
             icon: Icon(Icons.settings_outlined),
