@@ -31,15 +31,27 @@ abstract class WorkflowConfig with _$WorkflowConfig {
       _$WorkflowConfigFromJson(json);
 }
 
-@freezed
+@Freezed(makeCollectionsUnmodifiable: false)
 abstract class WorkflowStep with _$WorkflowStep {
   const factory WorkflowStep({
     required String name,
-    required String script,
+    required List<String> commands,
     required bool isCompleted,
+    @Default([]) List<WorkflowStepRequiredSecret> requiredSecrets,
   }) = _WorkflowStep;
   factory WorkflowStep.fromJson(Map<String, Object?> json) =>
       _$WorkflowStepFromJson(json);
+}
+
+@freezed
+abstract class WorkflowStepRequiredSecret with _$WorkflowStepRequiredSecret {
+  const factory WorkflowStepRequiredSecret({
+    required String key,
+    required String secretDocumentId,
+  }) = _WorkflowStepRequiredSecret;
+
+  factory WorkflowStepRequiredSecret.fromJson(Map<String, Object?> json) =>
+      _$WorkflowStepRequiredSecretFromJson(json);
 }
 
 enum TriggerType {

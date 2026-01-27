@@ -8,6 +8,10 @@ const workflowTemplateList = [
     name: 'write_your_code',
     title: 'Write your code',
   ),
+  WorkflowTemplate(
+    name: 'react_native_cd_ios',
+    title: 'React Native CD (iOS)',
+  ),
 ];
 
 @freezed
