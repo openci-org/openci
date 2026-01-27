@@ -1,3 +1,7 @@
+## 0.4.4
+
+- Support multiple commands in a step.
+
 ## 0.4.3
 
 - Update README.

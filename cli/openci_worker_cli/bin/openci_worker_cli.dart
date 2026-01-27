@@ -8,7 +8,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.3';
+const String version = '0.4.4';
 
 ArgParser buildParser() {
   return ArgParser()
@@ -170,8 +170,10 @@ Future<bool> processJob(Firestore firestore) async {
     print('finish cloning');
 
     for (final step in steps) {
-      final script = step['script'];
-      await execCommand('/bin/zsh -c "cd $repo && $script"');
+      final commands = step['commands'] as List;
+      for (final command in commands) {
+        await execCommand('/bin/zsh -c "cd $repo && $command"');
+      }
     }
 
     await Future.delayed(const Duration(seconds: 5));
