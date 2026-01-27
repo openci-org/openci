@@ -586,7 +586,7 @@ as String,
 /// @nodoc
 mixin _$WorkflowStep {
 
- String get name; String get script; bool get isCompleted;
+ String get name; List<String> get commands; bool get isCompleted; List<WorkflowStepRequiredSecret> get requiredSecrets;
 /// Create a copy of WorkflowStep
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -599,16 +599,16 @@ $WorkflowStepCopyWith<WorkflowStep> get copyWith => _$WorkflowStepCopyWithImpl<W
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStep&&(identical(other.name, name) || other.name == name)&&(identical(other.script, script) || other.script == script)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStep&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.commands, commands)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&const DeepCollectionEquality().equals(other.requiredSecrets, requiredSecrets));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,script,isCompleted);
+int get hashCode => Object.hash(runtimeType,name,const DeepCollectionEquality().hash(commands),isCompleted,const DeepCollectionEquality().hash(requiredSecrets));
 
 @override
 String toString() {
-  return 'WorkflowStep(name: $name, script: $script, isCompleted: $isCompleted)';
+  return 'WorkflowStep(name: $name, commands: $commands, isCompleted: $isCompleted, requiredSecrets: $requiredSecrets)';
 }
 
 
@@ -619,7 +619,7 @@ abstract mixin class $WorkflowStepCopyWith<$Res>  {
   factory $WorkflowStepCopyWith(WorkflowStep value, $Res Function(WorkflowStep) _then) = _$WorkflowStepCopyWithImpl;
 @useResult
 $Res call({
- String name, String script, bool isCompleted
+ String name, List<String> commands, bool isCompleted, List<WorkflowStepRequiredSecret> requiredSecrets
 });
 
 
@@ -636,12 +636,13 @@ class _$WorkflowStepCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowStep
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? script = null,Object? isCompleted = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? commands = null,Object? isCompleted = null,Object? requiredSecrets = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,script: null == script ? _self.script : script // ignore: cast_nullable_to_non_nullable
-as String,isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,commands: null == commands ? _self.commands : commands // ignore: cast_nullable_to_non_nullable
+as List<String>,isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
+as bool,requiredSecrets: null == requiredSecrets ? _self.requiredSecrets : requiredSecrets // ignore: cast_nullable_to_non_nullable
+as List<WorkflowStepRequiredSecret>,
   ));
 }
 
@@ -726,10 +727,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String script,  bool isCompleted)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  List<String> commands,  bool isCompleted,  List<WorkflowStepRequiredSecret> requiredSecrets)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowStep() when $default != null:
-return $default(_that.name,_that.script,_that.isCompleted);case _:
+return $default(_that.name,_that.commands,_that.isCompleted,_that.requiredSecrets);case _:
   return orElse();
 
 }
@@ -747,10 +748,10 @@ return $default(_that.name,_that.script,_that.isCompleted);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String script,  bool isCompleted)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  List<String> commands,  bool isCompleted,  List<WorkflowStepRequiredSecret> requiredSecrets)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowStep():
-return $default(_that.name,_that.script,_that.isCompleted);case _:
+return $default(_that.name,_that.commands,_that.isCompleted,_that.requiredSecrets);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -767,10 +768,10 @@ return $default(_that.name,_that.script,_that.isCompleted);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String script,  bool isCompleted)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  List<String> commands,  bool isCompleted,  List<WorkflowStepRequiredSecret> requiredSecrets)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowStep() when $default != null:
-return $default(_that.name,_that.script,_that.isCompleted);case _:
+return $default(_that.name,_that.commands,_that.isCompleted,_that.requiredSecrets);case _:
   return null;
 
 }
@@ -782,12 +783,13 @@ return $default(_that.name,_that.script,_that.isCompleted);case _:
 @JsonSerializable()
 
 class _WorkflowStep implements WorkflowStep {
-  const _WorkflowStep({required this.name, required this.script, required this.isCompleted});
+  const _WorkflowStep({required this.name, required this.commands, required this.isCompleted, this.requiredSecrets = const []});
   factory _WorkflowStep.fromJson(Map<String, dynamic> json) => _$WorkflowStepFromJson(json);
 
 @override final  String name;
-@override final  String script;
+@override final  List<String> commands;
 @override final  bool isCompleted;
+@override@JsonKey() final  List<WorkflowStepRequiredSecret> requiredSecrets;
 
 /// Create a copy of WorkflowStep
 /// with the given fields replaced by the non-null parameter values.
@@ -802,16 +804,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStep&&(identical(other.name, name) || other.name == name)&&(identical(other.script, script) || other.script == script)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStep&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.commands, commands)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&const DeepCollectionEquality().equals(other.requiredSecrets, requiredSecrets));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,script,isCompleted);
+int get hashCode => Object.hash(runtimeType,name,const DeepCollectionEquality().hash(commands),isCompleted,const DeepCollectionEquality().hash(requiredSecrets));
 
 @override
 String toString() {
-  return 'WorkflowStep(name: $name, script: $script, isCompleted: $isCompleted)';
+  return 'WorkflowStep(name: $name, commands: $commands, isCompleted: $isCompleted, requiredSecrets: $requiredSecrets)';
 }
 
 
@@ -822,7 +824,7 @@ abstract mixin class _$WorkflowStepCopyWith<$Res> implements $WorkflowStepCopyWi
   factory _$WorkflowStepCopyWith(_WorkflowStep value, $Res Function(_WorkflowStep) _then) = __$WorkflowStepCopyWithImpl;
 @override @useResult
 $Res call({
- String name, String script, bool isCompleted
+ String name, List<String> commands, bool isCompleted, List<WorkflowStepRequiredSecret> requiredSecrets
 });
 
 
@@ -839,12 +841,279 @@ class __$WorkflowStepCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowStep
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? script = null,Object? isCompleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? commands = null,Object? isCompleted = null,Object? requiredSecrets = null,}) {
   return _then(_WorkflowStep(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,script: null == script ? _self.script : script // ignore: cast_nullable_to_non_nullable
-as String,isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,commands: null == commands ? _self.commands : commands // ignore: cast_nullable_to_non_nullable
+as List<String>,isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
+as bool,requiredSecrets: null == requiredSecrets ? _self.requiredSecrets : requiredSecrets // ignore: cast_nullable_to_non_nullable
+as List<WorkflowStepRequiredSecret>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$WorkflowStepRequiredSecret {
+
+ String get key; String get secretDocumentId;
+/// Create a copy of WorkflowStepRequiredSecret
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WorkflowStepRequiredSecretCopyWith<WorkflowStepRequiredSecret> get copyWith => _$WorkflowStepRequiredSecretCopyWithImpl<WorkflowStepRequiredSecret>(this as WorkflowStepRequiredSecret, _$identity);
+
+  /// Serializes this WorkflowStepRequiredSecret to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStepRequiredSecret&&(identical(other.key, key) || other.key == key)&&(identical(other.secretDocumentId, secretDocumentId) || other.secretDocumentId == secretDocumentId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,key,secretDocumentId);
+
+@override
+String toString() {
+  return 'WorkflowStepRequiredSecret(key: $key, secretDocumentId: $secretDocumentId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $WorkflowStepRequiredSecretCopyWith<$Res>  {
+  factory $WorkflowStepRequiredSecretCopyWith(WorkflowStepRequiredSecret value, $Res Function(WorkflowStepRequiredSecret) _then) = _$WorkflowStepRequiredSecretCopyWithImpl;
+@useResult
+$Res call({
+ String key, String secretDocumentId
+});
+
+
+
+
+}
+/// @nodoc
+class _$WorkflowStepRequiredSecretCopyWithImpl<$Res>
+    implements $WorkflowStepRequiredSecretCopyWith<$Res> {
+  _$WorkflowStepRequiredSecretCopyWithImpl(this._self, this._then);
+
+  final WorkflowStepRequiredSecret _self;
+  final $Res Function(WorkflowStepRequiredSecret) _then;
+
+/// Create a copy of WorkflowStepRequiredSecret
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? key = null,Object? secretDocumentId = null,}) {
+  return _then(_self.copyWith(
+key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
+as String,secretDocumentId: null == secretDocumentId ? _self.secretDocumentId : secretDocumentId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [WorkflowStepRequiredSecret].
+extension WorkflowStepRequiredSecretPatterns on WorkflowStepRequiredSecret {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WorkflowStepRequiredSecret value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _WorkflowStepRequiredSecret() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WorkflowStepRequiredSecret value)  $default,){
+final _that = this;
+switch (_that) {
+case _WorkflowStepRequiredSecret():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WorkflowStepRequiredSecret value)?  $default,){
+final _that = this;
+switch (_that) {
+case _WorkflowStepRequiredSecret() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String key,  String secretDocumentId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _WorkflowStepRequiredSecret() when $default != null:
+return $default(_that.key,_that.secretDocumentId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String key,  String secretDocumentId)  $default,) {final _that = this;
+switch (_that) {
+case _WorkflowStepRequiredSecret():
+return $default(_that.key,_that.secretDocumentId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String key,  String secretDocumentId)?  $default,) {final _that = this;
+switch (_that) {
+case _WorkflowStepRequiredSecret() when $default != null:
+return $default(_that.key,_that.secretDocumentId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _WorkflowStepRequiredSecret implements WorkflowStepRequiredSecret {
+  const _WorkflowStepRequiredSecret({required this.key, required this.secretDocumentId});
+  factory _WorkflowStepRequiredSecret.fromJson(Map<String, dynamic> json) => _$WorkflowStepRequiredSecretFromJson(json);
+
+@override final  String key;
+@override final  String secretDocumentId;
+
+/// Create a copy of WorkflowStepRequiredSecret
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$WorkflowStepRequiredSecretCopyWith<_WorkflowStepRequiredSecret> get copyWith => __$WorkflowStepRequiredSecretCopyWithImpl<_WorkflowStepRequiredSecret>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$WorkflowStepRequiredSecretToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStepRequiredSecret&&(identical(other.key, key) || other.key == key)&&(identical(other.secretDocumentId, secretDocumentId) || other.secretDocumentId == secretDocumentId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,key,secretDocumentId);
+
+@override
+String toString() {
+  return 'WorkflowStepRequiredSecret(key: $key, secretDocumentId: $secretDocumentId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$WorkflowStepRequiredSecretCopyWith<$Res> implements $WorkflowStepRequiredSecretCopyWith<$Res> {
+  factory _$WorkflowStepRequiredSecretCopyWith(_WorkflowStepRequiredSecret value, $Res Function(_WorkflowStepRequiredSecret) _then) = __$WorkflowStepRequiredSecretCopyWithImpl;
+@override @useResult
+$Res call({
+ String key, String secretDocumentId
+});
+
+
+
+
+}
+/// @nodoc
+class __$WorkflowStepRequiredSecretCopyWithImpl<$Res>
+    implements _$WorkflowStepRequiredSecretCopyWith<$Res> {
+  __$WorkflowStepRequiredSecretCopyWithImpl(this._self, this._then);
+
+  final _WorkflowStepRequiredSecret _self;
+  final $Res Function(_WorkflowStepRequiredSecret) _then;
+
+/// Create a copy of WorkflowStepRequiredSecret
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? key = null,Object? secretDocumentId = null,}) {
+  return _then(_WorkflowStepRequiredSecret(
+key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
+as String,secretDocumentId: null == secretDocumentId ? _self.secretDocumentId : secretDocumentId // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
