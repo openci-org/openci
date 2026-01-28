@@ -198,11 +198,8 @@ Future<bool> processJob(
     for (final step in steps) {
       final command = step['command'] as String;
       final secrets = step['requiredSecrets'] as List;
-      if (secrets.isEmpty) {
-        await execCommand('/bin/zsh -c "cd $workingDirectory && $command"');
-        continue;
-      }
       final exportCommands = <String>[];
+
       for (final secret in secrets) {
         final secretDocumentId = secret['secretDocumentId'] as String;
         final key = secret['key'] as String;
@@ -223,10 +220,14 @@ Future<bool> processJob(
         exportCommands.add("export $key='$escapedValue'");
       }
 
-      final envVars = exportCommands.join(' && ');
-      await execCommand(
-        '/bin/zsh -c "cd $workingDirectory && $envVars && $command"',
-      );
+      final commandParts = [
+        'export LANG=en_US.UTF-8',
+        'cd $workingDirectory',
+        ...exportCommands,
+        command,
+      ];
+
+      await execCommand('/bin/zsh -c "${commandParts.join(' && ')}"');
     }
 
     await Future.delayed(const Duration(seconds: 5));
