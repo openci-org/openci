@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
@@ -155,49 +156,134 @@ class ReactNativeIosCdForm extends HookWidget {
                     Center(
                       child: ElevatedButton(
                         onPressed: () async {
-                          // final functions = FirebaseFunctions.instanceFor(
-                          //   region: 'asia-northeast1',
-                          // );
-                          // final createSecret = functions.httpsCallable(
-                          //   'createSecretV1',
-                          // );
+                          try {
+                            final functions = FirebaseFunctions.instanceFor(
+                              region: 'asia-northeast1',
+                            );
+                            final createSecret = functions.httpsCallable(
+                              'createSecretV1',
+                            );
 
-                          // await Future.wait([
-                          //   createSecret.call({
-                          //     'name': 'APP_STORE_CONNECT_ISSUER_ID',
-                          //     'value': issuerIdController.text,
-                          //   }),
-                          //   createSecret.call({
-                          //     'name': 'APP_STORE_CONNECT_KEY_ID',
-                          //     'value': keyIdController.text,
-                          //   }),
-                          //   createSecret.call({
-                          //     'name': 'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
-                          //     'value': privateKeyController.text,
-                          //   }),
-                          // ]);
+                            final issuerIdSecretDocumentId =
+                                (await createSecret.call({
+                                  'name': 'APP_STORE_CONNECT_ISSUER_ID',
+                                  'value': issuerIdController.text,
+                                })).data['documentId'];
 
-                          await FirebaseFirestore.instance
-                              .collection(workflowsCollection)
-                              .doc(documentId)
-                              .update({
-                                'workflowSteps': FieldValue.arrayUnion([
-                                  WorkflowStep(
-                                    name: 'Start React Native iOS CD',
-                                    commands: [
-                                      "echo 'Start React Native iOS CD'",
-                                    ],
-                                    isCompleted: true,
-                                  ).toJson(),
-                                  WorkflowStep(
-                                    name: 'Start React Native iOS CD',
-                                    commands: [
-                                      "echo 'Start React Native iOS CD'",
-                                    ],
-                                    isCompleted: true,
-                                  ).toJson(),
-                                ]),
-                              });
+                            final keyIdSecretDocumentId =
+                                (await createSecret.call({
+                                  'name': 'APP_STORE_CONNECT_KEY_ID',
+                                  'value': keyIdController.text,
+                                })).data['documentId'];
+
+                            final privateKeySecretDocumentId =
+                                (await createSecret.call({
+                                  'name':
+                                      'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
+                                  'value': privateKeyController.text,
+                                })).data['documentId'];
+
+                            final teamIdSecretDocumentId =
+                                (await createSecret.call({
+                                  'name': 'TEAM_ID',
+                                  'value': teamIdController.text,
+                                })).data['documentId'];
+
+                            final bundleIdSecretDocumentId =
+                                (await createSecret.call({
+                                  'name': 'BUNDLE_ID',
+                                  'value': bundleIdController.text,
+                                })).data['documentId'];
+
+                            await FirebaseFirestore.instance.collection(workflowsCollection).doc(documentId).update({
+                              'workflowSteps': FieldValue.arrayUnion([
+                                WorkflowStep(
+                                  name: 'Install Dependencies (npm)',
+                                  command: "npm install",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Install Dependencies (Cocoapods)',
+                                  command: "cd ios && pod install",
+                                  isCompleted: true,
+                                ).toJson(),
+                                // WorkflowStep(
+                                //   name: 'Create API Key File',
+                                //   command:
+                                //       "echo \"\$APP_STORE_CONNECT_PRIVATE_KEY_BASE64\" | base64 --decode > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
+                                //   isCompleted: true,
+                                //   requiredSecrets: [
+                                //     WorkflowStepRequiredSecret(
+                                //       key: 'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
+                                //       secretDocumentId:
+                                //           privateKeySecretDocumentId,
+                                //     ),
+                                //     WorkflowStepRequiredSecret(
+                                //       key: 'APP_STORE_CONNECT_KEY_ID',
+                                //       secretDocumentId: keyIdSecretDocumentId,
+                                //     ),
+                                //   ],
+                                // ).toJson(),
+                                //                                   WorkflowStep(
+                                //                                     name: 'Create ExportOptions.plist',
+                                //                                     command:
+                                //                                         '''cat <<EOF > ios/ExportOptions.plist
+                                // <?xml version="1.0" encoding="UTF-8"?>
+                                // <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                                // <plist version="1.0">
+                                // <dict>
+                                //     <key>method</key>
+                                //     <string>app-store</string>
+                                //     <key>teamID</key>
+                                //     <string>\$TEAM_ID</string>
+                                // </dict>
+                                // </plist>
+                                // EOF''',
+                                //                                     isCompleted: true,
+                                //                                     requiredSecrets: [
+                                //                                       WorkflowStepRequiredSecret(
+                                //                                         key: 'TEAM_ID',
+                                //                                         secretDocumentId:
+                                //                                             teamIdSecretDocumentId,
+                                //                                       ),
+                                //                                     ],
+                                //                                   ).toJson(),
+                                // WorkflowStep(
+                                //   name: 'Archive Build',
+                                //   command:
+                                //       "xcodebuild -workspace ios/*.xcworkspace -scheme \$IOS_SCHEME_NAME -configuration Release -archivePath \$PWD/ios/build/App.xcarchive archive -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                                //   isCompleted: true,
+                                // ).toJson(),
+                                // WorkflowStep(
+                                //   name: 'Export IPA',
+                                //   command:
+                                //       "xcodebuild -exportArchive -archivePath \$PWD/ios/build/App.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath \$PWD/ios/build -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                                //   isCompleted: true,
+                                // ).toJson(),
+                                // WorkflowStep(
+                                //   name: 'Upload to App Store Connect',
+                                //   command:
+                                //       "xcrun altool --upload-app --type ios --file \$PWD/ios/build/*.ipa --apiKey \$APP_STORE_CONNECT_KEY_ID --apiIssuer \$APP_STORE_CONNECT_ISSUER_ID",
+                                //   isCompleted: true,
+                                // ).toJson(),
+                              ]),
+                            });
+                          } catch (e) {
+                            print(e);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to add workflow: $e'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              Navigator.pop(context);
+                            }
+                          }
                         },
                         child: const Text("Add Workflow"),
                       ),

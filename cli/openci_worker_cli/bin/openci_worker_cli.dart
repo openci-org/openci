@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:dart_firebase_admin/dart_firebase_admin.dart';
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:googleapis/secretmanager/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
@@ -68,7 +70,7 @@ Future<void> main(List<String> arguments) async {
     while (true) {
       bool jobFound = false;
       try {
-        jobFound = await processJob(firestore);
+        jobFound = await processJob(firestore, projectId, serviceAccountPath);
       } catch (e) {
         print('Error processing job: $e');
       }
@@ -88,7 +90,11 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-Future<bool> processJob(Firestore firestore) async {
+Future<bool> processJob(
+  Firestore firestore,
+  String projectId,
+  String serviceAccountPath,
+) async {
   final doc = await firestore
       .collection('build_jobs_v0')
       .where('status', WhereFilter.equal, 'queued')
@@ -135,7 +141,6 @@ Future<bool> processJob(Firestore firestore) async {
   }
 
   try {
-    // get steps
     final workflowQs = await firestore
         .collection('workflows_v1')
         .where(
@@ -153,6 +158,7 @@ Future<bool> processJob(Firestore firestore) async {
     final workflowDoc = workflowQs.docs.first;
     final workflowData = workflowDoc.data();
     final steps = workflowData['workflowSteps'] as List;
+    print('steps: $steps');
 
     unawaited(runTart());
 
@@ -170,10 +176,35 @@ Future<bool> processJob(Firestore firestore) async {
     print('finish cloning');
 
     for (final step in steps) {
-      final commands = step['commands'] as List;
-      for (final command in commands) {
+      final command = step['command'] as String;
+      final secrets = step['requiredSecrets'] as List;
+      if (secrets.isEmpty) {
         await execCommand('/bin/zsh -c "cd $repo && $command"');
+        continue;
       }
+      final exportCommands = <String>[];
+      for (final secret in secrets) {
+        final secretDocumentId = secret['secretDocumentId'] as String;
+        final key = secret['key'] as String;
+        final secretDoc = await firestore
+            .collection('secrets_v0')
+            .doc(secretDocumentId)
+            .get();
+
+        final secretData = secretDoc.data()!;
+        final pathToSecret = secretData['pathToSecret'] as String;
+        final secretValue = await fetchSecretValue(
+          projectId,
+          pathToSecret,
+          serviceAccountPath,
+        );
+
+        final escapedValue = secretValue.replaceAll("'", "'\\''");
+        exportCommands.add("export $key='$escapedValue'");
+      }
+
+      final envVars = exportCommands.join(' && ');
+      await execCommand('/bin/zsh -c "cd $repo && $envVars && $command"');
     }
 
     await Future.delayed(const Duration(seconds: 5));
@@ -193,8 +224,9 @@ Future<bool> processJob(Firestore firestore) async {
     await firestore.collection('build_jobs_v0').doc(buildJobId).update({
       'status': 'success',
     });
-  } catch (e) {
+  } catch (e, s) {
     print('Job failed: $e');
+    print('Stack trace: $s');
     if (checkRunId != null) {
       await updateCheckRun(
         owner,
@@ -283,4 +315,35 @@ Future<void> waitForVmReady(String name) async {
   }
 
   throw Exception('VM boot timeout: Guest Agent did not respond.');
+}
+
+Future<String> fetchSecretValue(
+  String projectId,
+  String pathToSecret,
+  String serviceAccountPath,
+) async {
+  final credentials = ServiceAccountCredentials.fromJson(
+    File(serviceAccountPath).readAsStringSync(),
+  );
+
+  final client = await clientViaServiceAccount(credentials, [
+    SecretManagerApi.cloudPlatformScope,
+  ]);
+
+  try {
+    final api = SecretManagerApi(client);
+    final response = await api.projects.secrets.versions.access(
+      '$pathToSecret/versions/latest',
+    );
+    final payload = response.payload?.data;
+
+    if (payload == null) {
+      throw Exception('Secret payload is empty');
+    }
+
+    // Secret payload is base64 encoded
+    return utf8.decode(base64.decode(payload));
+  } finally {
+    client.close();
+  }
 }

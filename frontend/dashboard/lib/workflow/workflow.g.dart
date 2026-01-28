@@ -58,9 +58,7 @@ const _$TriggerTypeEnumMap = {
 _WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>
     _WorkflowStep(
       name: json['name'] as String,
-      commands: (json['commands'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
+      command: json['command'] as String,
       isCompleted: json['isCompleted'] as bool,
       requiredSecrets:
           (json['requiredSecrets'] as List<dynamic>?)
@@ -77,7 +75,7 @@ Map<String, dynamic> _$WorkflowStepToJson(
   _WorkflowStep instance,
 ) => <String, dynamic>{
   'name': instance.name,
-  'commands': instance.commands,
+  'command': instance.command,
   'isCompleted': instance.isCompleted,
   'requiredSecrets': instance.requiredSecrets.map((e) => e.toJson()).toList(),
 };
