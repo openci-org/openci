@@ -158,6 +158,7 @@
         "options": {
           "cwd": "${workspaceFolder:openci_worker_cli}",
         },
+        "problemMatcher": [],
       },
       {
         "label": "(debug) Run OpenCI Worker CLI",
