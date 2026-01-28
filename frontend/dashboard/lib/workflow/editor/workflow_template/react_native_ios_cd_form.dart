@@ -214,11 +214,6 @@ class ReactNativeIosCdForm extends HookWidget {
                                   isCompleted: true,
                                 ).toJson(),
                                 WorkflowStep(
-                                  name: 'Install Dependencies (Cocoapods)',
-                                  command: "cd ios && pod install",
-                                  isCompleted: true,
-                                ).toJson(),
-                                WorkflowStep(
                                   name: 'Create API Key File',
                                   command:
                                       "echo \"\$APP_STORE_CONNECT_PRIVATE_KEY_BASE64\" | base64 -D > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
