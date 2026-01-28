@@ -140,6 +140,16 @@ Future<bool> processJob(
     await updateCheckRun(owner, repo, checkRunId, token, status: 'in_progress');
   }
 
+  final currentVmName = '$baseVmName-$buildJobId';
+  print('Cloning VM $baseVmName to $currentVmName...');
+  await Shell().run('tart clone $baseVmName $currentVmName');
+
+  // Local helper to execute commands on the specific VM
+  Future<void> execCommand(String command) async {
+    var shell = Shell(verbose: true);
+    await shell.run("tart exec $currentVmName $command");
+  }
+
   try {
     final workflowQs = await firestore
         .collection('workflows_v1')
@@ -158,12 +168,17 @@ Future<bool> processJob(
     final workflowDoc = workflowQs.docs.first;
     final workflowData = workflowDoc.data();
     final steps = workflowData['workflowSteps'] as List;
-    print('steps: $steps');
+    final workflowConfig =
+        workflowData['workflowConfig'] as Map<String, dynamic>?;
+    final cwd = workflowConfig?['selectedWorkingDirectory'] as String?;
 
-    unawaited(runTart());
+    print('steps: $steps');
+    print('cwd: $cwd');
+
+    unawaited(runTart(currentVmName));
 
     print('Waiting for VM to be ready...');
-    await waitForVmReady(vmName);
+    await waitForVmReady(currentVmName);
     print('VM is ready!');
 
     final cloneUrl =
@@ -175,11 +190,16 @@ Future<bool> processJob(
 
     print('finish cloning');
 
+    String workingDirectory = repo;
+    if (cwd != null && cwd.isNotEmpty) {
+      workingDirectory = '$repo/$cwd';
+    }
+
     for (final step in steps) {
       final command = step['command'] as String;
       final secrets = step['requiredSecrets'] as List;
       if (secrets.isEmpty) {
-        await execCommand('/bin/zsh -c "cd $repo && $command"');
+        await execCommand('/bin/zsh -c "cd $workingDirectory && $command"');
         continue;
       }
       final exportCommands = <String>[];
@@ -204,7 +224,9 @@ Future<bool> processJob(
       }
 
       final envVars = exportCommands.join(' && ');
-      await execCommand('/bin/zsh -c "cd $repo && $envVars && $command"');
+      await execCommand(
+        '/bin/zsh -c "cd $workingDirectory && $envVars && $command"',
+      );
     }
 
     await Future.delayed(const Duration(seconds: 5));
@@ -243,13 +265,22 @@ Future<bool> processJob(
     });
     rethrow;
   } finally {
-    await stopTart();
+    try {
+      await stopTart(currentVmName);
+    } catch (e) {
+      print('Error stopping VM: $e');
+    }
+    try {
+      await deleteTart(currentVmName);
+    } catch (e) {
+      print('Error deleting VM: $e');
+    }
   }
 
   return true;
 }
 
-const vmName = 'sequoia-base';
+const baseVmName = 'sequoia-base';
 
 Future<void> updateCheckRun(
   String owner,
@@ -285,19 +316,19 @@ Future<void> updateCheckRun(
   }
 }
 
-Future<void> execCommand(String command) async {
-  var shell = Shell(verbose: true);
-  await shell.run("tart exec $vmName $command");
-}
-
-Future<void> runTart() async {
+Future<void> runTart(String vmName) async {
   var shell = Shell();
   await shell.run('tart run $vmName');
 }
 
-Future<void> stopTart() async {
+Future<void> stopTart(String vmName) async {
   var shell = Shell();
   await shell.run('tart stop $vmName');
+}
+
+Future<void> deleteTart(String vmName) async {
+  var shell = Shell(throwOnError: false);
+  await shell.run('tart delete $vmName');
 }
 
 Future<void> waitForVmReady(String name) async {

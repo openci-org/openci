@@ -152,6 +152,7 @@ class ReactNativeIosCdForm extends HookWidget {
                         labelText: "Bundle id",
                       ),
                     ),
+
                     const SizedBox(height: 32),
                     Center(
                       child: ElevatedButton(
@@ -198,8 +199,18 @@ class ReactNativeIosCdForm extends HookWidget {
                             await FirebaseFirestore.instance.collection(workflowsCollection).doc(documentId).update({
                               'workflowSteps': FieldValue.arrayUnion([
                                 WorkflowStep(
+                                  name: 'Install Node.js',
+                                  command: "brew install node",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
                                   name: 'Install Dependencies (npm)',
                                   command: "npm install",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Prebuild (Expo)',
+                                  command: "npx expo prebuild --platform ios",
                                   isCompleted: true,
                                 ).toJson(),
                                 WorkflowStep(
@@ -207,66 +218,157 @@ class ReactNativeIosCdForm extends HookWidget {
                                   command: "cd ios && pod install",
                                   isCompleted: true,
                                 ).toJson(),
-                                // WorkflowStep(
-                                //   name: 'Create API Key File',
-                                //   command:
-                                //       "echo \"\$APP_STORE_CONNECT_PRIVATE_KEY_BASE64\" | base64 --decode > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
-                                //   isCompleted: true,
-                                //   requiredSecrets: [
-                                //     WorkflowStepRequiredSecret(
-                                //       key: 'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
-                                //       secretDocumentId:
-                                //           privateKeySecretDocumentId,
-                                //     ),
-                                //     WorkflowStepRequiredSecret(
-                                //       key: 'APP_STORE_CONNECT_KEY_ID',
-                                //       secretDocumentId: keyIdSecretDocumentId,
-                                //     ),
-                                //   ],
-                                // ).toJson(),
-                                //                                   WorkflowStep(
-                                //                                     name: 'Create ExportOptions.plist',
-                                //                                     command:
-                                //                                         '''cat <<EOF > ios/ExportOptions.plist
-                                // <?xml version="1.0" encoding="UTF-8"?>
-                                // <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                                // <plist version="1.0">
-                                // <dict>
-                                //     <key>method</key>
-                                //     <string>app-store</string>
-                                //     <key>teamID</key>
-                                //     <string>\$TEAM_ID</string>
-                                // </dict>
-                                // </plist>
-                                // EOF''',
-                                //                                     isCompleted: true,
-                                //                                     requiredSecrets: [
-                                //                                       WorkflowStepRequiredSecret(
-                                //                                         key: 'TEAM_ID',
-                                //                                         secretDocumentId:
-                                //                                             teamIdSecretDocumentId,
-                                //                                       ),
-                                //                                     ],
-                                //                                   ).toJson(),
-                                // WorkflowStep(
-                                //   name: 'Archive Build',
-                                //   command:
-                                //       "xcodebuild -workspace ios/*.xcworkspace -scheme \$IOS_SCHEME_NAME -configuration Release -archivePath \$PWD/ios/build/App.xcarchive archive -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
-                                //   isCompleted: true,
-                                // ).toJson(),
-                                // WorkflowStep(
-                                //   name: 'Export IPA',
-                                //   command:
-                                //       "xcodebuild -exportArchive -archivePath \$PWD/ios/build/App.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath \$PWD/ios/build -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
-                                //   isCompleted: true,
-                                // ).toJson(),
-                                // WorkflowStep(
-                                //   name: 'Upload to App Store Connect',
-                                //   command:
-                                //       "xcrun altool --upload-app --type ios --file \$PWD/ios/build/*.ipa --apiKey \$APP_STORE_CONNECT_KEY_ID --apiIssuer \$APP_STORE_CONNECT_ISSUER_ID",
-                                //   isCompleted: true,
-                                // ).toJson(),
+                                WorkflowStep(
+                                  name: 'Create API Key File',
+                                  command:
+                                      "echo \"\$APP_STORE_CONNECT_PRIVATE_KEY_BASE64\" | base64 -D > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key:
+                                          'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
+                                      secretDocumentId:
+                                          privateKeySecretDocumentId,
+                                    ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_KEY_ID',
+                                      secretDocumentId: keyIdSecretDocumentId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Create ExportOptions.plist',
+                                  command:
+                                      '''cat <<EOF > ios/ExportOptions.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>teamID</key>
+    <string>\$TEAM_ID</string>
+</dict>
+</plist>
+EOF''',
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'TEAM_ID',
+                                      secretDocumentId: teamIdSecretDocumentId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Archive Build',
+                                  command:
+                                      "xcodebuild -workspace ios/*.xcworkspace -configuration Release -archivePath \$PWD/ios/build/App.xcarchive archive -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_KEY_ID',
+                                      secretDocumentId: keyIdSecretDocumentId,
+                                    ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_ISSUER_ID',
+                                      secretDocumentId:
+                                          issuerIdSecretDocumentId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Export IPA',
+                                  command:
+                                      "xcodebuild -exportArchive -archivePath \$PWD/ios/build/App.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath \$PWD/ios/build -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_KEY_ID',
+                                      secretDocumentId: keyIdSecretDocumentId,
+                                    ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_ISSUER_ID',
+                                      secretDocumentId:
+                                          issuerIdSecretDocumentId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Upload to App Store Connect',
+                                  command:
+                                      "xcrun altool --upload-app --type ios --file \$PWD/ios/build/*.ipa --apiKey \$APP_STORE_CONNECT_KEY_ID --apiIssuer \$APP_STORE_CONNECT_ISSUER_ID",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_KEY_ID',
+                                      secretDocumentId: keyIdSecretDocumentId,
+                                    ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'APP_STORE_CONNECT_ISSUER_ID',
+                                      secretDocumentId:
+                                          issuerIdSecretDocumentId,
+                                    ),
+                                  ],
+                                ).toJson(),
                               ]),
+
+                              //   command:
+                              //       "echo \"\$APP_STORE_CONNECT_PRIVATE_KEY_BASE64\" | base64 --decode > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
+                              //   isCompleted: true,
+                              //   requiredSecrets: [
+                              //     WorkflowStepRequiredSecret(
+                              //       key: 'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
+                              //       secretDocumentId:
+                              //           privateKeySecretDocumentId,
+                              //     ),
+                              //     WorkflowStepRequiredSecret(
+                              //       key: 'APP_STORE_CONNECT_KEY_ID',
+                              //       secretDocumentId: keyIdSecretDocumentId,
+                              //     ),
+                              //   ],
+                              // ).toJson(),
+                              //                                   WorkflowStep(
+                              //                                     name: 'Create ExportOptions.plist',
+                              //                                     command:
+                              //                                         '''cat <<EOF > ios/ExportOptions.plist
+                              // <?xml version="1.0" encoding="UTF-8"?>
+                              // <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                              // <plist version="1.0">
+                              // <dict>
+                              //     <key>method</key>
+                              //     <string>app-store</string>
+                              //     <key>teamID</key>
+                              //     <string>\$TEAM_ID</string>
+                              // </dict>
+                              // </plist>
+                              // EOF''',
+                              //                                     isCompleted: true,
+                              //                                     requiredSecrets: [
+                              //                                       WorkflowStepRequiredSecret(
+                              //                                         key: 'TEAM_ID',
+                              //                                         secretDocumentId:
+                              //                                             teamIdSecretDocumentId,
+                              //                                       ),
+                              //                                     ],
+                              //                                   ).toJson(),
+                              // WorkflowStep(
+                              //   name: 'Archive Build',
+                              //   command:
+                              //       "xcodebuild -workspace ios/*.xcworkspace -scheme \$IOS_SCHEME_NAME -configuration Release -archivePath \$PWD/ios/build/App.xcarchive archive -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                              //   isCompleted: true,
+                              // ).toJson(),
+                              // WorkflowStep(
+                              //   name: 'Export IPA',
+                              //   command:
+                              //       "xcodebuild -exportArchive -archivePath \$PWD/ios/build/App.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath \$PWD/ios/build -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                              //   isCompleted: true,
+                              // ).toJson(),
+                              // WorkflowStep(
+                              //   name: 'Upload to App Store Connect',
+                              //   command:
+                              //       "xcrun altool --upload-app --type ios --file \$PWD/ios/build/*.ipa --apiKey \$APP_STORE_CONNECT_KEY_ID --apiIssuer \$APP_STORE_CONNECT_ISSUER_ID",
+                              //   isCompleted: true,
+                              // ).toJson(),
                             });
                           } catch (e) {
                             print(e);
