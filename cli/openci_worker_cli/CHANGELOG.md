@@ -1,3 +1,8 @@
+## 0.4.5
+
+- Support dynamic VM cloning and cleanup per job.
+- Support custom working directories.
+
 ## 0.4.4
 
 - Support multiple commands in a step.

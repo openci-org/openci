@@ -174,7 +174,7 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
                         'workflowSteps': FieldValue.arrayUnion([
                           WorkflowStep(
                             name: template.title,
-                            commands: [codeController.value.text],
+                            command: codeController.value.text,
                             isCompleted: true,
                           ).toJson(),
                         ]),

@@ -158,6 +158,24 @@
         "options": {
           "cwd": "${workspaceFolder:openci_worker_cli}",
         },
+        "problemMatcher": [],
+      },
+      {
+        "label": "(debug) Run OpenCI Worker CLI",
+        "type": "shell",
+        "command": "dart",
+        "args": [
+          "run",
+          "bin/openci_worker_cli.dart",
+          "--project-id",
+          "openci-b1b91",
+          "--service-account",
+          "firebase_service_account.json",
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:openci_worker_cli}",
+        },
+        "problemMatcher": [],
       },
     ],
   },

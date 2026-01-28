@@ -35,7 +35,7 @@ abstract class WorkflowConfig with _$WorkflowConfig {
 abstract class WorkflowStep with _$WorkflowStep {
   const factory WorkflowStep({
     required String name,
-    required List<String> commands,
+    required String command,
     required bool isCompleted,
     @Default([]) List<WorkflowStepRequiredSecret> requiredSecrets,
   }) = _WorkflowStep;

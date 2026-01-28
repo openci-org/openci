@@ -206,7 +206,7 @@ export const createSecretV1 = onCall(
 
       logger.info(`Secret created: ${secretId}`, { userId, name });
 
-      return { success: true, secretId: documentId };
+      return { success: true, documentId };
     } catch (error: any) {
       if (error.code === 6) {
         await secretManagerClient.addSecretVersion({
@@ -216,8 +216,21 @@ export const createSecretV1 = onCall(
           },
         });
 
+        const existingDocs = await db
+          .collection(secretsCollectionPath)
+          .where("userId", "==", userId)
+          .where("name", "==", name)
+          .limit(1)
+          .get();
+
+        if (existingDocs.empty) {
+          throw new Error("Secret not found");
+        }
+
+        const documentId = existingDocs.docs[0].id;
+
         logger.info(`Secret updated: ${secretId}`, { userId, name });
-        return { success: true, message: "Secret updated" };
+        return { success: true, documentId };
       }
 
       logger.error("Failed to create secret", error);

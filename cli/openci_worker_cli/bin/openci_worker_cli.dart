@@ -5,10 +5,12 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:dart_firebase_admin/dart_firebase_admin.dart';
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:googleapis/secretmanager/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.4';
+const String version = '0.4.5';
 
 ArgParser buildParser() {
   return ArgParser()
@@ -68,7 +70,7 @@ Future<void> main(List<String> arguments) async {
     while (true) {
       bool jobFound = false;
       try {
-        jobFound = await processJob(firestore);
+        jobFound = await processJob(firestore, projectId, serviceAccountPath);
       } catch (e) {
         print('Error processing job: $e');
       }
@@ -88,7 +90,11 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-Future<bool> processJob(Firestore firestore) async {
+Future<bool> processJob(
+  Firestore firestore,
+  String projectId,
+  String serviceAccountPath,
+) async {
   final doc = await firestore
       .collection('build_jobs_v0')
       .where('status', WhereFilter.equal, 'queued')
@@ -134,8 +140,17 @@ Future<bool> processJob(Firestore firestore) async {
     await updateCheckRun(owner, repo, checkRunId, token, status: 'in_progress');
   }
 
+  final currentVmName = '$baseVmName-$buildJobId';
+  print('Cloning VM $baseVmName to $currentVmName...');
+  await Shell().run('tart clone $baseVmName $currentVmName');
+
+  // Local helper to execute commands on the specific VM
+  Future<void> execCommand(String command) async {
+    var shell = Shell(verbose: true);
+    await shell.run("tart exec $currentVmName $command");
+  }
+
   try {
-    // get steps
     final workflowQs = await firestore
         .collection('workflows_v1')
         .where(
@@ -153,11 +168,17 @@ Future<bool> processJob(Firestore firestore) async {
     final workflowDoc = workflowQs.docs.first;
     final workflowData = workflowDoc.data();
     final steps = workflowData['workflowSteps'] as List;
+    final workflowConfig =
+        workflowData['workflowConfig'] as Map<String, dynamic>?;
+    final cwd = workflowConfig?['selectedWorkingDirectory'] as String?;
 
-    unawaited(runTart());
+    print('steps: $steps');
+    print('cwd: $cwd');
+
+    unawaited(runTart(currentVmName));
 
     print('Waiting for VM to be ready...');
-    await waitForVmReady(vmName);
+    await waitForVmReady(currentVmName);
     print('VM is ready!');
 
     final cloneUrl =
@@ -169,11 +190,43 @@ Future<bool> processJob(Firestore firestore) async {
 
     print('finish cloning');
 
+    String workingDirectory = repo;
+    if (cwd != null && cwd.isNotEmpty) {
+      workingDirectory = '$repo/$cwd';
+    }
+
     for (final step in steps) {
-      final commands = step['commands'] as List;
-      for (final command in commands) {
-        await execCommand('/bin/zsh -c "cd $repo && $command"');
+      final command = step['command'] as String;
+      final secrets = step['requiredSecrets'] as List;
+      if (secrets.isEmpty) {
+        await execCommand('/bin/zsh -c "cd $workingDirectory && $command"');
+        continue;
       }
+      final exportCommands = <String>[];
+      for (final secret in secrets) {
+        final secretDocumentId = secret['secretDocumentId'] as String;
+        final key = secret['key'] as String;
+        final secretDoc = await firestore
+            .collection('secrets_v0')
+            .doc(secretDocumentId)
+            .get();
+
+        final secretData = secretDoc.data()!;
+        final pathToSecret = secretData['pathToSecret'] as String;
+        final secretValue = await fetchSecretValue(
+          projectId,
+          pathToSecret,
+          serviceAccountPath,
+        );
+
+        final escapedValue = secretValue.replaceAll("'", "'\\''");
+        exportCommands.add("export $key='$escapedValue'");
+      }
+
+      final envVars = exportCommands.join(' && ');
+      await execCommand(
+        '/bin/zsh -c "cd $workingDirectory && $envVars && $command"',
+      );
     }
 
     await Future.delayed(const Duration(seconds: 5));
@@ -193,8 +246,9 @@ Future<bool> processJob(Firestore firestore) async {
     await firestore.collection('build_jobs_v0').doc(buildJobId).update({
       'status': 'success',
     });
-  } catch (e) {
+  } catch (e, s) {
     print('Job failed: $e');
+    print('Stack trace: $s');
     if (checkRunId != null) {
       await updateCheckRun(
         owner,
@@ -211,13 +265,22 @@ Future<bool> processJob(Firestore firestore) async {
     });
     rethrow;
   } finally {
-    await stopTart();
+    try {
+      await stopTart(currentVmName);
+    } catch (e) {
+      print('Error stopping VM: $e');
+    }
+    try {
+      await deleteTart(currentVmName);
+    } catch (e) {
+      print('Error deleting VM: $e');
+    }
   }
 
   return true;
 }
 
-const vmName = 'sequoia-base';
+const baseVmName = 'sequoia-base';
 
 Future<void> updateCheckRun(
   String owner,
@@ -253,19 +316,19 @@ Future<void> updateCheckRun(
   }
 }
 
-Future<void> execCommand(String command) async {
-  var shell = Shell(verbose: true);
-  await shell.run("tart exec $vmName $command");
-}
-
-Future<void> runTart() async {
+Future<void> runTart(String vmName) async {
   var shell = Shell();
   await shell.run('tart run $vmName');
 }
 
-Future<void> stopTart() async {
+Future<void> stopTart(String vmName) async {
   var shell = Shell();
   await shell.run('tart stop $vmName');
+}
+
+Future<void> deleteTart(String vmName) async {
+  var shell = Shell(throwOnError: false);
+  await shell.run('tart delete $vmName');
 }
 
 Future<void> waitForVmReady(String name) async {
@@ -283,4 +346,35 @@ Future<void> waitForVmReady(String name) async {
   }
 
   throw Exception('VM boot timeout: Guest Agent did not respond.');
+}
+
+Future<String> fetchSecretValue(
+  String projectId,
+  String pathToSecret,
+  String serviceAccountPath,
+) async {
+  final credentials = ServiceAccountCredentials.fromJson(
+    File(serviceAccountPath).readAsStringSync(),
+  );
+
+  final client = await clientViaServiceAccount(credentials, [
+    SecretManagerApi.cloudPlatformScope,
+  ]);
+
+  try {
+    final api = SecretManagerApi(client);
+    final response = await api.projects.secrets.versions.access(
+      '$pathToSecret/versions/latest',
+    );
+    final payload = response.payload?.data;
+
+    if (payload == null) {
+      throw Exception('Secret payload is empty');
+    }
+
+    // Secret payload is base64 encoded
+    return utf8.decode(base64.decode(payload));
+  } finally {
+    client.close();
+  }
 }
