@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.4';
+const String version = '0.4.5';
 
 ArgParser buildParser() {
   return ArgParser()
