@@ -379,21 +379,6 @@ class ReactNativeAndroidCdForm extends HookWidget {
                                       command:
                                           "export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && export ANDROID_HOME=\$HOME/android-sdk && export PATH=\$JAVA_HOME/bin:\$ANDROID_HOME/platform-tools:\$PATH && echo 'sdk.dir='\$ANDROID_HOME > android/local.properties && cd android && ./gradlew bundleRelease > /tmp/gradle.log 2>&1 || (tail -n 200 /tmp/gradle.log && exit 1)",
                                       isCompleted: true,
-                                      requiredSecrets: [
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEYSTORE_PASSWORD',
-                                          secretDocumentId:
-                                              keystorePasswordSecretId,
-                                        ),
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEY_ALIAS',
-                                          secretDocumentId: keyAliasSecretId,
-                                        ),
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEY_PASSWORD',
-                                          secretDocumentId: keyPasswordSecretId,
-                                        ),
-                                      ],
                                     ).toJson(),
                                     WorkflowStep(
                                       name:
