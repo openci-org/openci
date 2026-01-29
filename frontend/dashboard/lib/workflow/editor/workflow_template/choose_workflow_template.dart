@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/workflow/editor/workflow_template/react_native_android_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_ios_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
@@ -68,6 +69,8 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
                         // テンプレートの種類によって表示するフォームを切り替え
                         if (template.name == 'react_native_cd_ios') {
                           _showReactNativeIosCdForm(context);
+                        } else if (template.name == 'react_native_cd_android') {
+                          _showReactNativeAndroidCdForm(context);
                         } else {
                           _showCodeEditorForm(
                             context,
@@ -107,7 +110,6 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
     );
   }
 
-  /// React Native iOS CD 用のフォームを表示
   void _showReactNativeIosCdForm(BuildContext context) {
     showModalBottomSheet(
       isScrollControlled: true,
@@ -118,7 +120,16 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
     );
   }
 
-  /// コードエディタ用のフォームを表示（従来のテンプレート用）
+  void _showReactNativeAndroidCdForm(BuildContext context) {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context,
+      builder: (context) {
+        return ReactNativeAndroidCdForm(documentId: documentId);
+      },
+    );
+  }
+
   void _showCodeEditorForm(
     BuildContext context, {
     required ValueNotifier<CodeController> codeController,

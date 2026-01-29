@@ -12,6 +12,10 @@ const workflowTemplateList = [
     name: 'react_native_cd_ios',
     title: 'React Native CD (iOS)',
   ),
+  WorkflowTemplate(
+    name: 'react_native_cd_android',
+    title: 'React Native CD (Android)',
+  ),
 ];
 
 @freezed
