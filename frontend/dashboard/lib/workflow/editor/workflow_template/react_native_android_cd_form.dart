@@ -28,8 +28,7 @@ class ReactNativeAndroidCdForm extends HookWidget {
     // Keystore settings
     final keystoreController = useTextEditingController();
     final keystorePasswordController = useTextEditingController();
-    final keyAliasController = useTextEditingController();
-    final keyPasswordController = useTextEditingController();
+    final keyAliasController = useTextEditingController(text: 'upload-key');
 
     // App settings
     final packageNameController = useTextEditingController();
@@ -208,14 +207,6 @@ class ReactNativeAndroidCdForm extends HookWidget {
                         labelText: "Key Alias",
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: keyPasswordController,
-                      decoration: const InputDecoration(
-                        labelText: "Key Password",
-                      ),
-                      obscureText: true,
-                    ),
 
                     const SizedBox(height: 24),
 
@@ -278,11 +269,9 @@ class ReactNativeAndroidCdForm extends HookWidget {
                               'value': keyAliasController.text,
                             })).data['documentId'];
 
+                            // Use same password for both keystore and key
                             final keyPasswordSecretId =
-                                (await createSecret.call({
-                                  'name': 'ANDROID_KEY_PASSWORD',
-                                  'value': keyPasswordController.text,
-                                })).data['documentId'];
+                                keystorePasswordSecretId;
 
                             final packageNameSecretId =
                                 (await createSecret.call({
@@ -309,6 +298,12 @@ class ReactNativeAndroidCdForm extends HookWidget {
                                       name: 'Prebuild (Expo)',
                                       command:
                                           "npx expo prebuild --platform android",
+                                      isCompleted: true,
+                                    ).toJson(),
+                                    WorkflowStep(
+                                      name: 'Setup Android SDK',
+                                      command:
+                                          "echo 'sdk.dir='\$HOME'/android-sdk' > android/local.properties",
                                       isCompleted: true,
                                     ).toJson(),
                                     WorkflowStep(
@@ -341,7 +336,7 @@ class ReactNativeAndroidCdForm extends HookWidget {
                                     WorkflowStep(
                                       name: 'Configure Signing',
                                       command:
-                                          "cat >> android/gradle.properties << EOF\nMYAPP_UPLOAD_STORE_FILE=release.keystore\nMYAPP_UPLOAD_KEY_ALIAS=\$ANDROID_KEY_ALIAS\nMYAPP_UPLOAD_STORE_PASSWORD=\$ANDROID_KEYSTORE_PASSWORD\nMYAPP_UPLOAD_KEY_PASSWORD=\$ANDROID_KEY_PASSWORD\nEOF",
+                                          "cat >> android/gradle.properties << 'EOF'\nMYAPP_UPLOAD_STORE_FILE=release.keystore\nMYAPP_UPLOAD_STORE_PASSWORD=\$ANDROID_KEYSTORE_PASSWORD\nMYAPP_UPLOAD_KEY_ALIAS=\$ANDROID_KEY_ALIAS\nMYAPP_UPLOAD_KEY_PASSWORD=\$ANDROID_KEY_PASSWORD\nEOF",
                                       isCompleted: true,
                                       requiredSecrets: [
                                         WorkflowStepRequiredSecret(
@@ -360,44 +355,125 @@ class ReactNativeAndroidCdForm extends HookWidget {
                                       ],
                                     ).toJson(),
                                     WorkflowStep(
-                                      name:
-                                          'Configure build.gradle for signing',
-                                      command:
-                                          '''sed -i '' 's/signingConfigs {/signingConfigs { release { storeFile file("release.keystore"); storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: project.findProperty("MYAPP_UPLOAD_STORE_PASSWORD"); keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: project.findProperty("MYAPP_UPLOAD_KEY_ALIAS"); keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: project.findProperty("MYAPP_UPLOAD_KEY_PASSWORD") }/' android/app/build.gradle && sed -i '' 's/signingConfig signingConfigs.debug/signingConfig signingConfigs.release/' android/app/build.gradle''',
+                                      name: 'Patch build.gradle for signing',
+                                      command: '''awk '{
+  if (/signingConfigs \\{/) {
+    print \$0
+    print "        release {"
+    print "            storeFile file(project.findProperty(\\\"MYAPP_UPLOAD_STORE_FILE\\\") ?: \\\"release.keystore\\\")"
+    print "            storePassword project.findProperty(\\\"MYAPP_UPLOAD_STORE_PASSWORD\\\") ?: \\\"\\\""
+    print "            keyAlias project.findProperty(\\\"MYAPP_UPLOAD_KEY_ALIAS\\\") ?: \\\"\\\""
+    print "            keyPassword project.findProperty(\\\"MYAPP_UPLOAD_KEY_PASSWORD\\\") ?: \\\"\\\""
+    print "        }"
+    next
+  }
+  if (/signingConfig signingConfigs\\.debug/ && /release/) {
+    gsub(/signingConfigs\\.debug/, "signingConfigs.release")
+  }
+  print
+}' android/app/build.gradle > android/app/build.gradle.tmp && mv android/app/build.gradle.tmp android/app/build.gradle''',
                                       isCompleted: true,
                                     ).toJson(),
                                     WorkflowStep(
                                       name: 'Build Release AAB',
                                       command:
-                                          "cd android && ./gradlew bundleRelease > /tmp/gradle.log 2>&1 || (tail -n 200 /tmp/gradle.log && exit 1)",
-                                      isCompleted: true,
-                                      requiredSecrets: [
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEYSTORE_PASSWORD',
-                                          secretDocumentId:
-                                              keystorePasswordSecretId,
-                                        ),
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEY_ALIAS',
-                                          secretDocumentId: keyAliasSecretId,
-                                        ),
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEY_PASSWORD',
-                                          secretDocumentId: keyPasswordSecretId,
-                                        ),
-                                      ],
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Install fastlane',
-                                      command:
-                                          "gem install fastlane --no-document",
+                                          "export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && export ANDROID_HOME=\$HOME/android-sdk && export PATH=\$JAVA_HOME/bin:\$ANDROID_HOME/platform-tools:\$PATH && echo 'sdk.dir='\$ANDROID_HOME > android/local.properties && cd android && ./gradlew bundleRelease > /tmp/gradle.log 2>&1 || (tail -n 200 /tmp/gradle.log && exit 1)",
                                       isCompleted: true,
                                     ).toJson(),
                                     WorkflowStep(
                                       name:
                                           'Upload to Google Play (${trackController.text})',
                                       command:
-                                          "fastlane supply --aab android/app/build/outputs/bundle/release/app-release.aab --json_key android/play-store-credentials.json --package_name \$ANDROID_PACKAGE_NAME --track ${trackController.text} --skip_upload_metadata --skip_upload_images --skip_upload_screenshots 2>&1 || exit 1",
+                                          '''
+# Parse service account JSON
+SA_FILE="android/play-store-credentials.json"
+CLIENT_EMAIL=\$(grep -o '"client_email"[^,]*' \$SA_FILE | cut -d'"' -f4)
+PRIVATE_KEY=\$(sed -n 's/.*"private_key": "\\(.*\\)".*/\\1/p' \$SA_FILE | sed 's/\\\\n/\\n/g')
+
+# Create JWT header and payload
+NOW=\$(date +%s)
+EXP=\$((NOW + 3600))
+HEADER=\$(printf '{"alg":"RS256","typ":"JWT"}' | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\\n')
+PAYLOAD=\$(printf '{"iss":"%s","scope":"https://www.googleapis.com/auth/androidpublisher","aud":"https://oauth2.googleapis.com/token","iat":%s,"exp":%s}' "\$CLIENT_EMAIL" "\$NOW" "\$EXP" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\\n')
+
+# Sign with RSA
+printf '%s' "\$PRIVATE_KEY" > /tmp/sa_key.pem
+SIGNATURE=\$(printf '%s.%s' "\$HEADER" "\$PAYLOAD" | openssl dgst -sha256 -sign /tmp/sa_key.pem | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\\n')
+rm /tmp/sa_key.pem
+JWT="\$HEADER.\$PAYLOAD.\$SIGNATURE"
+
+# Get access token
+TOKEN_RESPONSE=\$(curl -s -X POST https://oauth2.googleapis.com/token \\
+  -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=\$JWT")
+ACCESS_TOKEN=\$(echo "\$TOKEN_RESPONSE" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+
+if [ -z "\$ACCESS_TOKEN" ]; then
+  echo "Failed to get access token:"
+  echo "\$TOKEN_RESPONSE"
+  exit 1
+fi
+echo "Access token obtained"
+
+PACKAGE_NAME=\$ANDROID_PACKAGE_NAME
+AAB_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+
+# Create edit
+echo "Creating edit for \$PACKAGE_NAME..."
+EDIT_RESPONSE=\$(curl -s -X POST \\
+  "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/\$PACKAGE_NAME/edits" \\
+  -H "Authorization: Bearer \$ACCESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{}')
+echo "Edit response: \$EDIT_RESPONSE"
+EDIT_ID=\$(echo "\$EDIT_RESPONSE" | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+
+if [ -z "\$EDIT_ID" ]; then
+  echo "Failed to create edit. Check if:"
+  echo "1. App is registered in Google Play Console"
+  echo "2. Service account has 'Release manager' permission"
+  exit 1
+fi
+echo "Edit ID: \$EDIT_ID"
+
+# Upload AAB
+echo "Uploading AAB..."
+UPLOAD_RESPONSE=\$(curl -s -X POST \\
+  "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/\$PACKAGE_NAME/edits/\$EDIT_ID/bundles?uploadType=media" \\
+  -H "Authorization: Bearer \$ACCESS_TOKEN" \\
+  -H "Content-Type: application/octet-stream" \\
+  --data-binary @"\$AAB_PATH")
+echo "Upload response: \$UPLOAD_RESPONSE"
+VERSION_CODE=\$(echo "\$UPLOAD_RESPONSE" | grep -o '"versionCode":[0-9]*' | cut -d':' -f2)
+
+if [ -z "\$VERSION_CODE" ]; then
+  echo "Failed to upload AAB"
+  exit 1
+fi
+echo "Version code: \$VERSION_CODE"
+
+# Update track
+echo "Updating track..."
+TRACK_RESPONSE=\$(curl -s -X PUT \\
+  "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/\$PACKAGE_NAME/edits/\$EDIT_ID/tracks/${trackController.text}" \\
+  -H "Authorization: Bearer \$ACCESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"track":"${trackController.text}","releases":[{"versionCodes":['\$VERSION_CODE'],"status":"completed"}]}')
+echo "Track response: \$TRACK_RESPONSE"
+
+# Commit edit
+echo "Committing..."
+COMMIT_RESPONSE=\$(curl -s -X POST \\
+  "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/\$PACKAGE_NAME/edits/\$EDIT_ID:commit" \\
+  -H "Authorization: Bearer \$ACCESS_TOKEN")
+echo "Commit response: \$COMMIT_RESPONSE"
+
+if echo "\$COMMIT_RESPONSE" | grep -q '"error"'; then
+  echo "Failed to commit"
+  exit 1
+fi
+
+echo "Upload complete!"
+''',
                                       isCompleted: true,
                                       requiredSecrets: [
                                         WorkflowStepRequiredSecret(
