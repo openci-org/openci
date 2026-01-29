@@ -140,7 +140,8 @@ Future<bool> processJob(
     await updateCheckRun(owner, repo, checkRunId, token, status: 'in_progress');
   }
 
-  final currentVmName = '$baseVmName-$buildJobId';
+  // Clone destination must be a local name (not OCI URL)
+  final currentVmName = 'openci-vm-$buildJobId';
   print('Cloning VM $baseVmName to $currentVmName...');
   await Shell().run('tart clone $baseVmName $currentVmName');
 
@@ -227,7 +228,12 @@ Future<bool> processJob(
         command,
       ];
 
-      await execCommand('/bin/zsh -c "${commandParts.join(' && ')}"');
+      // Encode the command to avoid shell parsing issues with quotes
+      final fullCommand = commandParts.join(' && ');
+      final encodedCommand = base64Encode(utf8.encode(fullCommand));
+      await execCommand(
+        "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
+      );
     }
 
     await Future.delayed(const Duration(seconds: 5));
@@ -281,7 +287,7 @@ Future<bool> processJob(
   return true;
 }
 
-const baseVmName = 'sequoia-base';
+const baseVmName = 'ghcr.io/cirruslabs/macos-sequoia-xcode:latest';
 
 Future<void> updateCheckRun(
   String owner,

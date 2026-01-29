@@ -29,6 +29,7 @@ class ReactNativeIosCdForm extends HookWidget {
     final privateKeyController = useTextEditingController();
     final teamIdController = useTextEditingController();
     final bundleIdController = useTextEditingController();
+    final schemeNameController = useTextEditingController();
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -152,6 +153,14 @@ class ReactNativeIosCdForm extends HookWidget {
                         labelText: "Bundle id",
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: schemeNameController,
+                      decoration: InputDecoration(
+                        labelText: "Scheme Name",
+                        helperText: "e.g. YourAppName",
+                      ),
+                    ),
 
                     const SizedBox(height: 32),
                     Center(
@@ -216,7 +225,7 @@ class ReactNativeIosCdForm extends HookWidget {
                                 WorkflowStep(
                                   name: 'Create API Key File',
                                   command:
-                                      "echo \"\$APP_STORE_CONNECT_PRIVATE_KEY_BASE64\" | base64 -D > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
+                                      "echo \$APP_STORE_CONNECT_PRIVATE_KEY_BASE64 | base64 -D > ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8",
                                   isCompleted: true,
                                   requiredSecrets: [
                                     WorkflowStepRequiredSecret(
@@ -234,18 +243,7 @@ class ReactNativeIosCdForm extends HookWidget {
                                 WorkflowStep(
                                   name: 'Create ExportOptions.plist',
                                   command:
-                                      '''cat <<EOF > ios/ExportOptions.plist
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>app-store</string>
-    <key>teamID</key>
-    <string>\$TEAM_ID</string>
-</dict>
-</plist>
-EOF''',
+                                      "printf '%s\\n' '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' '<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">' '<plist version=\"1.0\">' '<dict>' '<key>method</key>' '<string>app-store-connect</string>' '<key>teamID</key>' '<string>'\"\$TEAM_ID\"'</string>' '</dict>' '</plist>' > ios/ExportOptions.plist",
                                   isCompleted: true,
                                   requiredSecrets: [
                                     WorkflowStepRequiredSecret(
@@ -257,7 +255,7 @@ EOF''',
                                 WorkflowStep(
                                   name: 'Archive Build',
                                   command:
-                                      "xcodebuild -workspace ios/*.xcworkspace -configuration Release -archivePath \$PWD/ios/build/App.xcarchive archive -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                                      "xcodebuild -quiet -workspace ios/*.xcworkspace -scheme ${schemeNameController.text} -configuration Release -archivePath \$PWD/ios/build/App.xcarchive archive -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID DEVELOPMENT_TEAM=\$TEAM_ID > /tmp/xcodebuild.log 2>&1 || (tail -n 200 /tmp/xcodebuild.log && exit 1)",
                                   isCompleted: true,
                                   requiredSecrets: [
                                     WorkflowStepRequiredSecret(
@@ -269,12 +267,16 @@ EOF''',
                                       secretDocumentId:
                                           issuerIdSecretDocumentId,
                                     ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'TEAM_ID',
+                                      secretDocumentId: teamIdSecretDocumentId,
+                                    ),
                                   ],
                                 ).toJson(),
                                 WorkflowStep(
                                   name: 'Export IPA',
                                   command:
-                                      "xcodebuild -exportArchive -archivePath \$PWD/ios/build/App.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath \$PWD/ios/build -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID",
+                                      "xcodebuild -exportArchive -archivePath \$PWD/ios/build/App.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath \$PWD/ios/build -allowProvisioningUpdates -authenticationKeyPath \$PWD/ios/AuthKey_\$APP_STORE_CONNECT_KEY_ID.p8 -authenticationKeyID \$APP_STORE_CONNECT_KEY_ID -authenticationKeyIssuerID \$APP_STORE_CONNECT_ISSUER_ID > /tmp/export.log 2>&1 || (tail -n 200 /tmp/export.log && exit 1)",
                                   isCompleted: true,
                                   requiredSecrets: [
                                     WorkflowStepRequiredSecret(
@@ -291,7 +293,7 @@ EOF''',
                                 WorkflowStep(
                                   name: 'Upload to App Store Connect',
                                   command:
-                                      "xcrun altool --upload-app --type ios --file \$PWD/ios/build/*.ipa --apiKey \$APP_STORE_CONNECT_KEY_ID --apiIssuer \$APP_STORE_CONNECT_ISSUER_ID",
+                                      "xcrun altool --upload-app --type ios --file \$PWD/ios/build/*.ipa --apiKey \$APP_STORE_CONNECT_KEY_ID --apiIssuer \$APP_STORE_CONNECT_ISSUER_ID 2>&1 || exit 1",
                                   isCompleted: true,
                                   requiredSecrets: [
                                     WorkflowStepRequiredSecret(
