@@ -223,11 +223,24 @@ export const createSecretV1 = onCall(
           .limit(1)
           .get();
 
+        let documentId: string;
         if (existingDocs.empty) {
-          throw new Error("Secret not found");
+          documentId = uuidv4();
+          await db
+            .collection(secretsCollectionPath)
+            .doc(documentId)
+            .set({
+              id: documentId,
+              name,
+              userId,
+              pathToSecret: `${parent}/secrets/${secretId}`,
+              createdAt: FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          logger.info(`Secret document created for existing secret: ${secretId}`, { userId, name });
+        } else {
+          documentId = existingDocs.docs[0].id;
         }
-
-        const documentId = existingDocs.docs[0].id;
 
         logger.info(`Secret updated: ${secretId}`, { userId, name });
         return { success: true, documentId };
