@@ -90,6 +90,14 @@
         "type": "dart",
         "program": "lib/main.dart",
       },
+      {
+        "name": "(release) dashboard",
+        "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        "request": "launch",
+        "type": "dart",
+        "program": "lib/main.dart",
+        "args": ["--release"],
+      },
     ],
   },
   "extensions": {
