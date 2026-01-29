@@ -10,8 +10,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-const reactNativeIosCdTemplateId = 'loremIpsum';
-
 class ReactNativeIosCdForm extends HookWidget {
   const ReactNativeIosCdForm({
     super.key,
