@@ -28,6 +28,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to upload files and images.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
