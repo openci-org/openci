@@ -1,3 +1,7 @@
+## 0.4.8 - 2026-01-31
+
+- Fix missing executable in pubspec.yaml
+
 ## 0.4.7
 
 - Reduce polling interval.
