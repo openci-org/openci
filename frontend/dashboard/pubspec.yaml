@@ -6,8 +6,8 @@ publish_to: 'none'
 version: 1.0.0+3
 
 environment:
-  flutter: 3.38.7
-  sdk: 3.10.7
+  flutter: ">=3.38.7"
+  sdk: ">=3.10.7 <4.0.0"
 
 dependencies:
   cloud_firestore: ^6.1.2
@@ -20,13 +20,13 @@ dependencies:
     sdk: flutter
   flutter_code_editor: ^0.3.5
   flutter_hooks: ^0.21.3+1
-  flutter_riverpod: ^3.0.3
+  flutter_riverpod: ^3.1.0
   freezed_annotation: ^3.1.0
   highlight: ^0.7.0
-  hooks_riverpod: ^3.0.3
+  hooks_riverpod: ^3.1.0
   json_annotation: ^4.9.0
   material_symbols_icons: ^4.2892.0
-  riverpod_annotation: ^3.0.3
+  riverpod_annotation: 4.0.0
   url_launcher: ^6.3.2
   uuid: ^4.5.2
 
@@ -39,7 +39,7 @@ dev_dependencies:
   freezed: ^3.2.3
   icons_launcher: ^3.0.3
   json_serializable: ^6.11.2
-  riverpod_generator: ^3.0.3
+  riverpod_generator: 4.0.0+1
 
 flutter:
   uses-material-design: true

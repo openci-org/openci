@@ -47,11 +47,11 @@ const _$TriggerTypeEnumMap = {
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(WorkflowEditor)
-const workflowEditorProvider = WorkflowEditorProvider._();
+final workflowEditorProvider = WorkflowEditorProvider._();
 
 final class WorkflowEditorProvider
     extends $StreamNotifierProvider<WorkflowEditor, Workflow?> {
-  const WorkflowEditorProvider._()
+  WorkflowEditorProvider._()
     : super(
         from: null,
         argument: null,
@@ -77,7 +77,6 @@ abstract class _$WorkflowEditor extends $StreamNotifier<Workflow?> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AsyncValue<Workflow?>, Workflow?>;
     final element =
         ref.element
@@ -87,6 +86,6 @@ abstract class _$WorkflowEditor extends $StreamNotifier<Workflow?> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

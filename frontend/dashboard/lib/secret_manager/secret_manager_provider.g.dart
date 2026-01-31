@@ -32,11 +32,11 @@ Map<String, dynamic> _$SecretToJson(_Secret instance) => <String, dynamic>{
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(SecretManager)
-const secretManagerProvider = SecretManagerProvider._();
+final secretManagerProvider = SecretManagerProvider._();
 
 final class SecretManagerProvider
     extends $StreamNotifierProvider<SecretManager, dynamic> {
-  const SecretManagerProvider._()
+  SecretManagerProvider._()
     : super(
         from: null,
         argument: null,
@@ -62,7 +62,6 @@ abstract class _$SecretManager extends $StreamNotifier<dynamic> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AsyncValue<dynamic>, dynamic>;
     final element =
         ref.element
@@ -72,6 +71,6 @@ abstract class _$SecretManager extends $StreamNotifier<dynamic> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

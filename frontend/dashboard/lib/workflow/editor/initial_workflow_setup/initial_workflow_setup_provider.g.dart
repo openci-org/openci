@@ -42,11 +42,11 @@ const _$TriggerTypeEnumMap = {
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(InitialWorkflowSetup)
-const initialWorkflowSetupProvider = InitialWorkflowSetupProvider._();
+final initialWorkflowSetupProvider = InitialWorkflowSetupProvider._();
 
 final class InitialWorkflowSetupProvider
     extends $NotifierProvider<InitialWorkflowSetup, InitialWorkflowSetupState> {
-  const InitialWorkflowSetupProvider._()
+  InitialWorkflowSetupProvider._()
     : super(
         from: null,
         argument: null,
@@ -82,7 +82,6 @@ abstract class _$InitialWorkflowSetup
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref =
         this.ref as $Ref<InitialWorkflowSetupState, InitialWorkflowSetupState>;
     final element =
@@ -93,6 +92,6 @@ abstract class _$InitialWorkflowSetup
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }
