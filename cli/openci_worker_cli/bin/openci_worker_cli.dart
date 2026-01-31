@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.6';
+const String version = '0.4.7';
 
 enum LogLevel { info, warning, error }
 
@@ -127,7 +127,6 @@ Future<void> main(List<String> arguments) async {
   try {
     final ArgResults results = argParser.parse(arguments);
 
-    // Process the parsed arguments.
     if (results.flag('help')) {
       printUsage(argParser);
       return;
@@ -155,20 +154,41 @@ Future<void> main(List<String> arguments) async {
 
     print('Worker started. Polling for jobs...');
 
+    final spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    int spinnerIndex = 0;
+    var waitingStartTime = DateTime.now();
+    int pollCounter = 0;
+    const pollInterval = 10;
+
     while (true) {
       bool jobFound = false;
-      try {
-        jobFound = await processJob(firestore, projectId, serviceAccountPath);
-      } catch (e) {
-        print('Error processing job: $e');
+
+      if (pollCounter == 0) {
+        try {
+          jobFound = await processJob(firestore, projectId, serviceAccountPath);
+        } catch (e) {
+          print('\nError processing job: $e');
+        }
       }
 
       if (!jobFound) {
-        await Future.delayed(const Duration(seconds: 5));
+        final elapsed = DateTime.now().difference(waitingStartTime);
+        final minutes = elapsed.inMinutes;
+        final seconds = elapsed.inSeconds % 60;
+        final timeStr = '${minutes}m ${seconds}s';
+        stdout.write(
+          '\r${spinnerChars[spinnerIndex]} Waiting for jobs... ($timeStr)  ',
+        );
+        spinnerIndex = (spinnerIndex + 1) % spinnerChars.length;
+        pollCounter = (pollCounter + 1) % pollInterval;
+        await Future.delayed(const Duration(milliseconds: 100));
+      } else {
+        print('');
+        waitingStartTime = DateTime.now();
+        pollCounter = 0;
       }
     }
   } on FormatException catch (e) {
-    // Print usage information if an invalid argument was provided.
     print(e.message);
     print('');
     printUsage(argParser);
@@ -189,7 +209,6 @@ Future<bool> processJob(
       .orderBy('createdAt', descending: true)
       .limit(1)
       .get();
-  print("docLength: ${doc.docs.length}");
 
   if (doc.docs.isEmpty) {
     return false;

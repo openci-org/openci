@@ -1,3 +1,8 @@
+## 0.4.7
+
+- Reduce polling interval.
+- Improve logging.
+
 ## 0.4.6
 
 - Add support for multiple commands in a step.
