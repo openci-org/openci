@@ -186,7 +186,6 @@ Future<bool> processJob(
         'https://x-access-token:$token@github.com/$owner/$repo.git';
     print('cloneUrl: $cloneUrl');
 
-    await execCommand('rm -rf openci');
     await execCommand('git clone --progress $cloneUrl');
 
     print('finish cloning');

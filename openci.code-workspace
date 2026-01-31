@@ -47,6 +47,7 @@
       "oxfmt",
       "oxlint",
       "riverpod",
+      "secretmanager",
       "shellenv",
       "Stylesheet",
       "subheadline",
