@@ -10,7 +10,95 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.5';
+const String version = '0.4.8';
+
+enum LogLevel { info, warning, error }
+
+class BuildLogger {
+  final Firestore _firestore;
+  final String _buildJobId;
+  final String _runId;
+
+  BuildLogger(this._firestore, this._buildJobId, this._runId);
+
+  String get runId => _runId;
+
+  Future<void> _writeToFirestore(
+    String message,
+    LogLevel level, {
+    String? stackTrace,
+  }) async {
+    try {
+      final logRef = _firestore
+          .collection('build_jobs_v0')
+          .doc(_buildJobId)
+          .collection('runs')
+          .doc(_runId)
+          .collection('logs')
+          .doc();
+
+      await logRef.set({
+        'message': message,
+        'level': level.name,
+        'timestamp': FieldValue.serverTimestamp,
+        if (stackTrace != null) 'stackTrace': stackTrace,
+      });
+    } catch (e) {
+      print('[BuildLogger] Failed to write log to Firestore: $e');
+    }
+  }
+
+  Future<void> info(String message) async {
+    print('[INFO] $message');
+    await _writeToFirestore(message, LogLevel.info);
+  }
+
+  Future<void> warning(String message) async {
+    print('[WARNING] $message');
+    await _writeToFirestore(message, LogLevel.warning);
+  }
+
+  Future<void> error(String message, {String? stackTrace}) async {
+    print('[ERROR] $message');
+    if (stackTrace != null) {
+      print('[ERROR] Stack trace: $stackTrace');
+    }
+    await _writeToFirestore(message, LogLevel.error, stackTrace: stackTrace);
+  }
+
+  Future<void> updateRunStatus(String status, {String? conclusion}) async {
+    try {
+      await _firestore
+          .collection('build_jobs_v0')
+          .doc(_buildJobId)
+          .collection('runs')
+          .doc(_runId)
+          .update({
+            'status': status,
+            'updatedAt': FieldValue.serverTimestamp,
+            if (conclusion != null) 'conclusion': conclusion,
+          });
+    } catch (e) {
+      print('[BuildLogger] Failed to update run status: $e');
+    }
+  }
+
+  Future<void> initializeRun() async {
+    try {
+      await _firestore
+          .collection('build_jobs_v0')
+          .doc(_buildJobId)
+          .collection('runs')
+          .doc(_runId)
+          .set({
+            'createdAt': FieldValue.serverTimestamp,
+            'status': 'in_progress',
+          });
+    } catch (e) {
+      print('[BuildLogger] Failed to initialize run: $e');
+    }
+  }
+}
 
 ArgParser buildParser() {
   return ArgParser()
@@ -39,7 +127,6 @@ Future<void> main(List<String> arguments) async {
   try {
     final ArgResults results = argParser.parse(arguments);
 
-    // Process the parsed arguments.
     if (results.flag('help')) {
       printUsage(argParser);
       return;
@@ -67,20 +154,41 @@ Future<void> main(List<String> arguments) async {
 
     print('Worker started. Polling for jobs...');
 
+    final spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    int spinnerIndex = 0;
+    var waitingStartTime = DateTime.now();
+    int pollCounter = 0;
+    const pollInterval = 10;
+
     while (true) {
       bool jobFound = false;
-      try {
-        jobFound = await processJob(firestore, projectId, serviceAccountPath);
-      } catch (e) {
-        print('Error processing job: $e');
+
+      if (pollCounter == 0) {
+        try {
+          jobFound = await processJob(firestore, projectId, serviceAccountPath);
+        } catch (e) {
+          print('\nError processing job: $e');
+        }
       }
 
       if (!jobFound) {
-        await Future.delayed(const Duration(seconds: 5));
+        final elapsed = DateTime.now().difference(waitingStartTime);
+        final minutes = elapsed.inMinutes;
+        final seconds = elapsed.inSeconds % 60;
+        final timeStr = '${minutes}m ${seconds}s';
+        stdout.write(
+          '\r${spinnerChars[spinnerIndex]} Waiting for jobs... ($timeStr)  ',
+        );
+        spinnerIndex = (spinnerIndex + 1) % spinnerChars.length;
+        pollCounter = (pollCounter + 1) % pollInterval;
+        await Future.delayed(const Duration(milliseconds: 100));
+      } else {
+        print('');
+        waitingStartTime = DateTime.now();
+        pollCounter = 0;
       }
     }
   } on FormatException catch (e) {
-    // Print usage information if an invalid argument was provided.
     print(e.message);
     print('');
     printUsage(argParser);
@@ -101,7 +209,6 @@ Future<bool> processJob(
       .orderBy('createdAt', descending: true)
       .limit(1)
       .get();
-  print("docLength: ${doc.docs.length}");
 
   if (doc.docs.isEmpty) {
     return false;
@@ -133,22 +240,38 @@ Future<bool> processJob(
   final repo = buildJobData['repo'] as String;
   final checkRunId = buildJobData['checkRunId'] as int?;
 
-  print('Processing job: $buildJobId for $owner/$repo');
+  final runId = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
+  final logger = BuildLogger(firestore, buildJobId, runId);
+  await logger.initializeRun();
+
+  await logger.info('Processing job: $buildJobId for $owner/$repo');
 
   if (checkRunId != null) {
-    print('Updating check run to in_progress...');
+    await logger.info('Updating check run to in_progress...');
     await updateCheckRun(owner, repo, checkRunId, token, status: 'in_progress');
   }
 
-  // Clone destination must be a local name (not OCI URL)
   final currentVmName = 'openci-vm-$buildJobId';
-  print('Cloning VM $baseVmName to $currentVmName...');
+  await logger.info('Cloning VM $baseVmName to $currentVmName...');
   await Shell().run('tart clone $baseVmName $currentVmName');
 
-  // Local helper to execute commands on the specific VM
-  Future<void> execCommand(String command) async {
+  Future<void> execCommand(String command, {String? displayCommand}) async {
     var shell = Shell(verbose: true);
-    await shell.run("tart exec $currentVmName $command");
+    final results = await shell.run("tart exec $currentVmName $command");
+
+    for (final result in results) {
+      final stdout = result.stdout?.toString().trim();
+      final stderr = result.stderr?.toString().trim();
+
+      if (stdout != null && stdout.isNotEmpty) {
+        final maskedOutput = stdout.replaceAll(token, '***');
+        await logger.info(maskedOutput);
+      }
+      if (stderr != null && stderr.isNotEmpty) {
+        final maskedOutput = stderr.replaceAll(token, '***');
+        await logger.info(maskedOutput);
+      }
+    }
   }
 
   try {
@@ -162,7 +285,7 @@ Future<bool> processJob(
         .get();
 
     if (workflowQs.docs.isEmpty) {
-      print('No workflow found for repository $owner/$repo.');
+      await logger.error('No workflow found for repository $owner/$repo.');
       throw Exception('No workflow found');
     }
 
@@ -173,32 +296,37 @@ Future<bool> processJob(
         workflowData['workflowConfig'] as Map<String, dynamic>?;
     final cwd = workflowConfig?['selectedWorkingDirectory'] as String?;
 
-    print('steps: $steps');
-    print('cwd: $cwd');
+    await logger.info('Loaded workflow with ${steps.length} steps');
+    await logger.info('Working directory: ${cwd ?? "(root)"}');
 
     unawaited(runTart(currentVmName));
 
-    print('Waiting for VM to be ready...');
+    await logger.info('Waiting for VM to be ready...');
     await waitForVmReady(currentVmName);
-    print('VM is ready!');
+    await logger.info('VM is ready!');
 
+    await logger.info('Cloning repository $owner/$repo...');
     final cloneUrl =
         'https://x-access-token:$token@github.com/$owner/$repo.git';
-    print('cloneUrl: $cloneUrl');
 
     await execCommand('git clone --progress $cloneUrl');
 
-    print('finish cloning');
+    await logger.info('Repository cloned successfully');
 
     String workingDirectory = repo;
     if (cwd != null && cwd.isNotEmpty) {
       workingDirectory = '$repo/$cwd';
     }
 
-    for (final step in steps) {
+    for (int i = 0; i < steps.length; i++) {
+      final step = steps[i];
       final command = step['command'] as String;
+      final stepName = step['name'] as String? ?? 'Step ${i + 1}';
       final secrets = step['requiredSecrets'] as List;
       final exportCommands = <String>[];
+
+      await logger.info('Running step ${i + 1}/${steps.length}: $stepName');
+      await logger.info('Command: $command');
 
       for (final secret in secrets) {
         final secretDocumentId = secret['secretDocumentId'] as String;
@@ -227,12 +355,13 @@ Future<bool> processJob(
         command,
       ];
 
-      // Encode the command to avoid shell parsing issues with quotes
       final fullCommand = commandParts.join(' && ');
       final encodedCommand = base64Encode(utf8.encode(fullCommand));
       await execCommand(
         "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
       );
+
+      await logger.info('Step ${i + 1}/${steps.length} completed: $stepName');
     }
 
     await Future.delayed(const Duration(seconds: 5));
@@ -248,13 +377,14 @@ Future<bool> processJob(
       );
     }
 
-    // Mark as completed in Firestore
+    await logger.info('Build completed successfully');
+    await logger.updateRunStatus('completed', conclusion: 'success');
+
     await firestore.collection('build_jobs_v0').doc(buildJobId).update({
       'status': 'success',
     });
   } catch (e, s) {
-    print('Job failed: $e');
-    print('Stack trace: $s');
+    await logger.error('Job failed: $e', stackTrace: s.toString());
     if (checkRunId != null) {
       await updateCheckRun(
         owner,
@@ -265,7 +395,8 @@ Future<bool> processJob(
         conclusion: 'failure',
       );
     }
-    // Mark as failed in Firestore
+    await logger.updateRunStatus('completed', conclusion: 'failure');
+
     await firestore.collection('build_jobs_v0').doc(buildJobId).update({
       'status': 'failure',
     });
@@ -274,12 +405,12 @@ Future<bool> processJob(
     try {
       await stopTart(currentVmName);
     } catch (e) {
-      print('Error stopping VM: $e');
+      await logger.warning('Error stopping VM: $e');
     }
     try {
       await deleteTart(currentVmName);
     } catch (e) {
-      print('Error deleting VM: $e');
+      await logger.warning('Error deleting VM: $e');
     }
   }
 
@@ -378,7 +509,6 @@ Future<String> fetchSecretValue(
       throw Exception('Secret payload is empty');
     }
 
-    // Secret payload is base64 encoded
     return utf8.decode(base64.decode(payload));
   } finally {
     client.close();

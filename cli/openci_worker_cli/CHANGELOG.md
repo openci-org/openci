@@ -1,3 +1,16 @@
+## 0.4.8 - 2026-01-31
+
+- Fix missing executable in pubspec.yaml
+
+## 0.4.7
+
+- Reduce polling interval.
+- Improve logging.
+
+## 0.4.6
+
+- Add support for multiple commands in a step.
+
 ## 0.4.5
 
 - Support dynamic VM cloning and cleanup per job.
