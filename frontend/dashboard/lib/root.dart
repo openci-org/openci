@@ -1,8 +1,5 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/navigation_bar_page.dart';
-import 'package:dashboard/secret_manager/secret_manager_page.dart';
-import 'package:dashboard/settings/settings_page.dart';
-import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,12 +20,6 @@ class Root extends StatelessWidget {
   }
 }
 
-const _tabPageList = [
-  WorkflowEditorPage(),
-  SecretManagerPage(),
-  SettingsPage(),
-];
-
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
@@ -40,7 +31,7 @@ class HomePage extends ConsumerWidget {
         if (user == null) {
           return AuthPage();
         }
-        return NavigationBarPage(_tabPageList);
+        return NavigationBarPage();
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
