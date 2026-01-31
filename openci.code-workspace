@@ -82,6 +82,7 @@
     "files.associations": {
       "*.css": "tailwindcss",
     },
+    "java.compile.nullAnalysis.mode": "disabled",
   },
   "launch": {
     "version": "0.2.0",

@@ -1,29 +1,29 @@
+import 'package:dashboard/logs/logs_page.dart';
+import 'package:dashboard/secret_manager/secret_manager_page.dart';
+import 'package:dashboard/settings/settings_page.dart';
+import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-class NavigationBarPage extends StatefulWidget {
-  const NavigationBarPage(this.pages, {super.key});
+const tabPageList = [
+  WorkflowEditorPage(),
+  SecretManagerPage(),
+  LogsPage(),
+  SettingsPage(),
+];
 
-  final List<Widget> pages;
-
-  @override
-  State<NavigationBarPage> createState() => _NavigationBarPageState();
-}
-
-class _NavigationBarPageState extends State<NavigationBarPage> {
-  int currentPageIndex = 0;
+class NavigationBarPage extends HookWidget {
+  const NavigationBarPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final currentPageIndex = useState(0);
     return Scaffold(
       bottomNavigationBar: NavigationBar(
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        selectedIndex: currentPageIndex,
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
+        selectedIndex: currentPageIndex.value,
+        onDestinationSelected: (int index) => currentPageIndex.value = index,
         destinations: [
           NavigationDestination(
             selectedIcon: Icon(Icons.add),
@@ -36,13 +36,18 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
             label: 'Secret Manager',
           ),
           NavigationDestination(
+            selectedIcon: Icon(Icons.article),
+            icon: Icon(Symbols.article_rounded),
+            label: 'Logs',
+          ),
+          NavigationDestination(
             selectedIcon: Icon(Icons.settings),
             icon: Icon(Icons.settings_outlined),
             label: 'Settings',
           ),
         ],
       ),
-      body: widget.pages[currentPageIndex],
+      body: tabPageList[currentPageIndex.value],
     );
   }
 }
