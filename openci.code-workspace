@@ -46,10 +46,12 @@
       "opennextjs",
       "oxfmt",
       "oxlint",
+      "pubspec",
       "riverpod",
       "secretmanager",
       "shellenv",
       "Stylesheet",
+      "subcollections",
       "subheadline",
       "tailwindplus",
       "turbopack",
@@ -152,7 +154,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "Firebase Login Reauth",
+        "label": "Reauth Firebase Login",
         "type": "shell",
         "command": "firebase login --reauth",
         "options": {

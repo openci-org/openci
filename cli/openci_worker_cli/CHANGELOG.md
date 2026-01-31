@@ -1,3 +1,7 @@
+## 0.4.9 - 2026-01-31
+
+- Update build job and run logging to use Firestore subcollections.
+
 ## 0.4.8 - 2026-01-31
 
 - Fix missing executable in pubspec.yaml

@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.8';
+const String version = '0.4.9';
 
 enum LogLevel { info, warning, error }
 
@@ -91,9 +91,15 @@ class BuildLogger {
           .collection('runs')
           .doc(_runId)
           .set({
+            'id': _runId,
             'createdAt': FieldValue.serverTimestamp,
             'status': 'in_progress',
           });
+
+      await _firestore.collection('build_jobs_v0').doc(_buildJobId).update({
+        'latestRunId': _runId,
+        'runCount': FieldValue.increment(1),
+      });
     } catch (e) {
       print('[BuildLogger] Failed to initialize run: $e');
     }
@@ -240,7 +246,12 @@ Future<bool> processJob(
   final repo = buildJobData['repo'] as String;
   final checkRunId = buildJobData['checkRunId'] as int?;
 
-  final runId = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
+  final runDocRef = firestore
+      .collection('build_jobs_v0')
+      .doc(buildJobId)
+      .collection('runs')
+      .doc();
+  final runId = runDocRef.id;
   final logger = BuildLogger(firestore, buildJobId, runId);
   await logger.initializeRun();
 

@@ -17,6 +17,23 @@ service cloud.firestore {
             allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
         }
 
+        match /build_jobs_v0/{buildJobId} {
+            allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+            allow write: if false;
+
+            match /runs/{runId} {
+                allow read: if request.auth != null 
+                    && get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.userId == request.auth.uid;
+                allow write: if false;
+
+                match /logs/{logId} {
+                    allow read: if request.auth != null 
+                        && get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.userId == request.auth.uid;
+                    allow write: if false;
+                }
+            }
+        }
+
         match /{document=**} {
             allow read, write: if false;
         }
