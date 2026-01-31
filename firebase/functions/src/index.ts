@@ -47,19 +47,18 @@ export const githubApp = onRequest(
       const event = request.headers["x-github-event"] as string;
       const body = JSON.parse(payload);
 
-      const eventData = {
-        event,
-        action: body.action,
-        repository: body.repository?.full_name,
-        sender: body.sender?.login,
-        createdAt: FieldValue.serverTimestamp(),
-        payload: body,
-      };
-
       if (event === "pull_request") {
         if (body.action === "opened" || body.action === "synchronize") {
           logger.info(`PR ${body.action}`, { structuredData: true });
-          await saveBuildJob(app, eventData);
+          await saveBuildJob(app, {
+            event,
+            action: body.action,
+            repository: body.repository?.full_name,
+            sender: body.sender?.login,
+            installationId: body.installation?.id ?? null,
+            commitSha: body.pull_request?.head?.sha ?? null,
+            pullRequestNumber: body.pull_request?.number ?? null,
+          });
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
@@ -85,15 +84,13 @@ async function saveBuildJob(
     action: string;
     repository: string;
     sender: string;
-    payload: any;
+    installationId: number | null;
+    commitSha: string | null;
+    pullRequestNumber: number | null;
   },
 ) {
-  const { payload } = params;
+  const { installationId, commitSha, pullRequestNumber } = params;
   const documentId = uuidv4();
-
-  const installationId = payload.installation?.id;
-  const commitSha = payload.pull_request?.head?.sha || null;
-  const pullRequestNumber = payload.pull_request?.number || payload.issue?.number;
 
   let installationToken: string | null = null;
   let tokenExpiresAt: string | null = null;
@@ -133,19 +130,22 @@ async function saveBuildJob(
     .collection(buildJobCollectionPath)
     .doc(documentId)
     .set({
-      ...params,
-      updatedAt: FieldValue.serverTimestamp(),
-      createdAt: FieldValue.serverTimestamp(),
-      status: "queued",
       id: documentId,
+      event: params.event,
+      action: params.action,
+      repository: params.repository,
+      sender: params.sender,
+      owner: params.repository.split("/")[0],
+      repo: params.repository.split("/")[1],
       installationId,
       commitSha,
       pullRequestNumber,
-      owner: params.repository.split("/")[0],
-      repo: params.repository.split("/")[1],
       installationToken,
       tokenExpiresAt,
       checkRunId,
+      status: "queued",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 }
 
@@ -249,5 +249,62 @@ export const createSecretV1 = onCall(
       logger.error("Failed to create secret", error);
       throw new Error(`Failed to create secret: ${error.message}`);
     }
+  },
+);
+
+/**
+ * Migration function to delete the payload field from all existing build_jobs_v0 documents.
+ * This function processes documents in batches to avoid timeout issues.
+ * Can be called multiple times safely - it will only update documents that have the payload field.
+ */
+export const deleteBuildJobsPayload = onCall(
+  {
+    region: "asia-northeast1",
+    timeoutSeconds: 540,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new Error("Unauthenticated");
+    }
+
+    const batchSize = 500;
+    let totalDeleted = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const snapshot = await db.collection(buildJobCollectionPath).limit(batchSize).get();
+
+      if (snapshot.empty) {
+        hasMore = false;
+        break;
+      }
+
+      const batch = db.batch();
+      let batchCount = 0;
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if ("payload" in data) {
+          batch.update(doc.ref, {
+            payload: FieldValue.delete(),
+          });
+          batchCount++;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+        totalDeleted += batchCount;
+        logger.info(`Deleted payload from ${batchCount} documents`);
+      }
+
+      // If we processed fewer documents than batch size, or none had payload, we're done
+      if (snapshot.size < batchSize || batchCount === 0) {
+        hasMore = false;
+      }
+    }
+
+    logger.info(`Migration complete. Total documents updated: ${totalDeleted}`);
+    return { success: true, totalDeleted };
   },
 );

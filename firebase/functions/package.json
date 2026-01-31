@@ -12,7 +12,9 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^5.0.0",
@@ -24,10 +26,12 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.1.0",
     "firebase-functions-test": "^3.4.1",
     "oxfmt": "^0.26.0",
     "oxlint": "^1.41.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": "22"
