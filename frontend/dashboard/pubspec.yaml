@@ -7,7 +7,7 @@ version: 1.0.0+3
 
 environment:
   flutter: ">=3.38.7"
-  sdk: ">=3.10.7 <4.0.0"
+  sdk: ^3.10.7
 
 dependencies:
   cloud_firestore: ^6.1.2
