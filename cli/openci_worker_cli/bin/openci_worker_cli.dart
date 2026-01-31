@@ -402,16 +402,7 @@ Future<bool> processJob(
     });
     rethrow;
   } finally {
-    try {
-      await stopTart(currentVmName);
-    } catch (e) {
-      await logger.warning('Error stopping VM: $e');
-    }
-    try {
-      await deleteTart(currentVmName);
-    } catch (e) {
-      await logger.warning('Error deleting VM: $e');
-    }
+    await cleanupVm(currentVmName, logger);
   }
 
   return true;
@@ -458,14 +449,47 @@ Future<void> runTart(String vmName) async {
   await shell.run('tart run $vmName');
 }
 
-Future<void> stopTart(String vmName) async {
-  var shell = Shell();
-  await shell.run('tart stop $vmName');
+/// Stops a VM using tart command.
+/// Returns true if the VM was stopped successfully, false otherwise.
+Future<bool> stopTart(String vmName) async {
+  var shell = Shell(throwOnError: false);
+  final results = await shell.run('tart stop $vmName');
+  final exitCode = results.isNotEmpty ? results.first.exitCode : -1;
+  return exitCode == 0;
 }
 
-Future<void> deleteTart(String vmName) async {
+/// Deletes a VM using tart command.
+/// Returns true if the VM was deleted successfully, false otherwise.
+Future<bool> deleteTart(String vmName) async {
   var shell = Shell(throwOnError: false);
-  await shell.run('tart delete $vmName');
+  final results = await shell.run('tart delete $vmName');
+  final exitCode = results.isNotEmpty ? results.first.exitCode : -1;
+  return exitCode == 0;
+}
+
+/// Cleans up a VM by stopping and deleting it.
+/// Logs the result of each operation.
+Future<void> cleanupVm(String vmName, BuildLogger logger) async {
+  await logger.info('Starting VM cleanup for $vmName...');
+
+  // Stop the VM
+  final stopResult = await stopTart(vmName);
+  if (stopResult) {
+    await logger.info('VM $vmName stopped successfully.');
+  } else {
+    await logger.warning('Failed to stop VM $vmName. It may already be stopped.');
+  }
+
+  // Wait a moment for the VM to fully stop before deletion
+  await Future.delayed(const Duration(seconds: 2));
+
+  // Delete the VM
+  final deleteResult = await deleteTart(vmName);
+  if (deleteResult) {
+    await logger.info('VM $vmName deleted successfully.');
+  } else {
+    await logger.error('Failed to delete VM $vmName. Manual cleanup may be required.');
+  }
 }
 
 Future<void> waitForVmReady(String name) async {
