@@ -95,6 +95,21 @@ async function saveBuildJob(
   const commitSha = payload.pull_request?.head?.sha || null;
   const pullRequestNumber = payload.pull_request?.number || payload.issue?.number;
 
+  let userId: string | null = null;
+  try {
+    const workflowSnapshot = await db
+      .collection("workflows_v1")
+      .where("workflowConfig.selectedRepository", "==", params.repository)
+      .limit(1)
+      .get();
+
+    if (!workflowSnapshot.empty) {
+      userId = workflowSnapshot.docs[0].data().userId ?? null;
+    }
+  } catch (error) {
+    logger.error("Failed to get userId from workflow", error);
+  }
+
   let installationToken: string | null = null;
   let tokenExpiresAt: string | null = null;
   let checkRunId: number | null = null;
@@ -138,6 +153,7 @@ async function saveBuildJob(
       createdAt: FieldValue.serverTimestamp(),
       status: "queued",
       id: documentId,
+      userId,
       installationId,
       commitSha,
       pullRequestNumber,
@@ -146,6 +162,8 @@ async function saveBuildJob(
       installationToken,
       tokenExpiresAt,
       checkRunId,
+      runCount: 0,
+      latestRunId: null,
     });
 }
 
