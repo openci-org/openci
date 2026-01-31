@@ -1,3 +1,7 @@
+## 0.4.6
+
+- Add support for multiple commands in a step.
+
 ## 0.4.5
 
 - Support dynamic VM cloning and cleanup per job.
