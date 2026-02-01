@@ -16,6 +16,14 @@ const workflowTemplateList = [
     name: 'react_native_cd_android',
     title: 'React Native CD (Android)',
   ),
+  WorkflowTemplate(
+    name: 'set_version_ios_with_tag',
+    title: 'Set Version (iOS) with Tag',
+  ),
+  WorkflowTemplate(
+    name: 'set_version_android_with_tag',
+    title: 'Set Version (Android) with Tag',
+  ),
 ];
 
 @freezed

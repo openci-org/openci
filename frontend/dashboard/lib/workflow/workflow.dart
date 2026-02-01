@@ -26,7 +26,7 @@ abstract class WorkflowConfig with _$WorkflowConfig {
     required String selectedRepository,
     required String selectedWorkingDirectory,
     required TriggerType selectedTriggerType,
-    required String selectedTriggerBranch,
+    String? selectedTriggerBranch,
   }) = _WorkflowConfig;
   factory WorkflowConfig.fromJson(Map<String, Object?> json) =>
       _$WorkflowConfigFromJson(json);
@@ -58,6 +58,7 @@ abstract class WorkflowStepRequiredSecret with _$WorkflowStepRequiredSecret {
 enum TriggerType {
   pullRequest,
   push,
+  tag,
   ;
 
   @override
@@ -67,6 +68,8 @@ enum TriggerType {
         return 'pullRequest';
       case TriggerType.push:
         return 'push';
+      case TriggerType.tag:
+        return 'tag';
     }
   }
 
@@ -76,6 +79,8 @@ enum TriggerType {
         return TriggerType.pullRequest;
       case 'push':
         return TriggerType.push;
+      case 'tag':
+        return TriggerType.tag;
       default:
         throw ArgumentError('Invalid TriggerType value: $value');
     }

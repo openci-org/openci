@@ -101,6 +101,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               dropdownMenuEntries: [
                 DropdownMenuEntry(value: 'push', label: 'push'),
                 DropdownMenuEntry(value: 'pullRequest', label: 'pullRequest'),
+                DropdownMenuEntry(value: 'tag', label: 'tag'),
               ],
               onSelected: (value) {
                 if (value == null) return;
@@ -109,28 +110,35 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                 );
               },
             ),
-            SizedBox(height: 20.0),
-            SizedBox(
-              width: _width,
-              child: TextFormField(
-                controller: triggerBranchController,
-                decoration: InputDecoration(
-                  labelText: 'Trigger Branch',
-                  border: OutlineInputBorder(),
+            if (state.selectedTriggerType != TriggerType.tag) ...[
+              SizedBox(height: 20.0),
+              SizedBox(
+                width: _width,
+                child: TextFormField(
+                  controller: triggerBranchController,
+                  decoration: InputDecoration(
+                    labelText: 'Trigger Branch',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
-            ),
+            ],
             SizedBox(height: 24.0),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(_width, 48),
               ),
               onPressed: () async {
+                final triggerBranch =
+                    state.selectedTriggerType == TriggerType.tag
+                    ? null
+                    : triggerBranchController.text;
+
                 await controller.save(
                   name: nameController.text,
                   selectedRepository: repositoryController.text,
                   selectedWorkingDirectory: workingDirectoryController.text,
-                  selectedTriggerBranch: triggerBranchController.text,
+                  selectedTriggerBranch: triggerBranch,
                 );
 
                 if (!context.mounted) return;
