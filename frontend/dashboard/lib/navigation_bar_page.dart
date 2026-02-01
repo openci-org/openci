@@ -1,13 +1,13 @@
 import 'package:dashboard/logs/logs_page.dart';
 import 'package:dashboard/secret_manager/secret_manager_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
-import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
+import 'package:dashboard/workflow/workflow_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 const tabPageList = [
-  WorkflowEditorPage(),
+  WorkflowListPage(),
   SecretManagerPage(),
   LogsPage(),
   SettingsPage(),
@@ -26,9 +26,9 @@ class NavigationBarPage extends HookWidget {
         onDestinationSelected: (int index) => currentPageIndex.value = index,
         destinations: [
           NavigationDestination(
-            selectedIcon: Icon(Icons.add),
-            icon: Icon(Symbols.add_2_rounded),
-            label: 'Create',
+            selectedIcon: Icon(Icons.account_tree),
+            icon: Icon(Symbols.account_tree_rounded),
+            label: 'Workflows',
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.key),

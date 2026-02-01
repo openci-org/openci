@@ -47,43 +47,88 @@ const _$TriggerTypeEnumMap = {
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(WorkflowEditor)
-const workflowEditorProvider = WorkflowEditorProvider._();
+const workflowEditorProvider = WorkflowEditorFamily._();
 
 final class WorkflowEditorProvider
-    extends $StreamNotifierProvider<WorkflowEditor, Workflow?> {
-  const WorkflowEditorProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'workflowEditorProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+    extends $StreamNotifierProvider<WorkflowEditor, Workflow> {
+  const WorkflowEditorProvider._({
+    required WorkflowEditorFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'workflowEditorProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
   String debugGetCreateSourceHash() => _$workflowEditorHash();
 
+  @override
+  String toString() {
+    return r'workflowEditorProvider'
+        ''
+        '($argument)';
+  }
+
   @$internal
   @override
   WorkflowEditor create() => WorkflowEditor();
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkflowEditorProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
 }
 
-String _$workflowEditorHash() => r'38c18e6b9a1daa0b882aa34e9dedbe8cd1fe0da3';
+String _$workflowEditorHash() => r'2d6f0abdf60f73bc87cc116dd336cd2878490c8e';
 
-abstract class _$WorkflowEditor extends $StreamNotifier<Workflow?> {
-  Stream<Workflow?> build();
+final class WorkflowEditorFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          WorkflowEditor,
+          AsyncValue<Workflow>,
+          Workflow,
+          Stream<Workflow>,
+          String
+        > {
+  const WorkflowEditorFamily._()
+    : super(
+        retry: null,
+        name: r'workflowEditorProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WorkflowEditorProvider call(String workflowId) =>
+      WorkflowEditorProvider._(argument: workflowId, from: this);
+
+  @override
+  String toString() => r'workflowEditorProvider';
+}
+
+abstract class _$WorkflowEditor extends $StreamNotifier<Workflow> {
+  late final _$args = ref.$arg as String;
+  String get workflowId => _$args;
+
+  Stream<Workflow> build(String workflowId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
-    final ref = this.ref as $Ref<AsyncValue<Workflow?>, Workflow?>;
+    final created = build(_$args);
+    final ref = this.ref as $Ref<AsyncValue<Workflow>, Workflow>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Workflow?>, Workflow?>,
-              AsyncValue<Workflow?>,
+              AnyNotifier<AsyncValue<Workflow>, Workflow>,
+              AsyncValue<Workflow>,
               Object?,
               Object?
             >;
