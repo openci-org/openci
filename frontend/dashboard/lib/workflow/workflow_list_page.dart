@@ -1,5 +1,6 @@
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
+import 'package:dashboard/workflow/workflow.dart';
 import 'package:dashboard/workflow/workflow_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -94,15 +95,26 @@ class WorkflowListPage extends ConsumerWidget {
                               Row(
                                 children: [
                                   Icon(
-                                    Icons.merge,
+                                    workflow
+                                                .workflowConfig
+                                                .selectedTriggerType ==
+                                            TriggerType.tag
+                                        ? Icons.label_outline
+                                        : Icons.merge,
                                     size: 16,
                                     color: Theme.of(context).hintColor,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     workflow
-                                        .workflowConfig
-                                        .selectedTriggerBranch,
+                                                .workflowConfig
+                                                .selectedTriggerType ==
+                                            TriggerType.tag
+                                        ? 'Tag'
+                                        : (workflow
+                                                  .workflowConfig
+                                                  .selectedTriggerBranch ??
+                                              'Tag'),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyMedium,
