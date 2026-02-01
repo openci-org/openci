@@ -1,3 +1,7 @@
+## 0.4.10 - 2026-02-01
+
+- fix: Worker CLI now processes jobs in ascending order (oldest first).
+
 ## 0.4.9 - 2026-01-31
 
 - Update build job and run logging to use Firestore subcollections.

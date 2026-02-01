@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.9';
+const String version = '0.4.10';
 
 enum LogLevel { info, warning, error }
 
@@ -212,7 +212,7 @@ Future<bool> processJob(
   final doc = await firestore
       .collection('build_jobs_v0')
       .where('status', WhereFilter.equal, 'queued')
-      .orderBy('createdAt', descending: true)
+      .orderBy('createdAt', descending: false)
       .limit(1)
       .get();
 
