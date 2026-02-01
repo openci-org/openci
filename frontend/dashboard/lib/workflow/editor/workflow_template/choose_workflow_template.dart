@@ -66,12 +66,30 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
                     padding: const EdgeInsets.all(20.0),
                     child: InkWell(
                       onTap: () {
-                        // テンプレートの種類によって表示するフォームを切り替え
                         if (template.name == 'react_native_cd_ios') {
                           _showReactNativeIosCdForm(context);
                         } else if (template.name == 'react_native_cd_android') {
                           _showReactNativeAndroidCdForm(context);
                         } else {
+                          var script = 'echo "Hello World"';
+                          if (template.name == 'set_version_ios_with_tag') {
+                            script = '''
+echo "Set version to \$OPENCI_TAG"
+cd ios
+xcrun agvtool new-marketing-version \$OPENCI_TAG
+''';
+                          } else if (template.name ==
+                              'set_version_android_with_tag') {
+                            script = '''
+echo "Set version to \$OPENCI_TAG"
+npm version \$OPENCI_TAG --no-git-tag-version --allow-same-version --force
+npx -y react-native-version --never-amend
+''';
+                          }
+                          codeController.value = CodeController(
+                            text: script,
+                            language: shell,
+                          );
                           _showCodeEditorForm(
                             context,
                             codeController: codeController,
