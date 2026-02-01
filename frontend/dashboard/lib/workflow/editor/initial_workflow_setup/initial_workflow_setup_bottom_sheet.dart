@@ -88,7 +88,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               label: const Text('Trigger Type'),
               dropdownMenuEntries: [
                 DropdownMenuEntry(value: 'push', label: 'push'),
-                DropdownMenuEntry(value: 'pull_request', label: 'pull_request'),
+                DropdownMenuEntry(value: 'pullRequest', label: 'pullRequest'),
               ],
               onSelected: (value) {
                 if (value == null) return;

@@ -1,4 +1,3 @@
-import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
@@ -6,35 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class WorkflowEditorPage extends ConsumerWidget {
-  const WorkflowEditorPage({super.key});
+  const WorkflowEditorPage({
+    super.key,
+    required this.workflowId,
+  });
+
+  final String workflowId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(workflowEditorProvider);
+    final state = ref.watch(workflowEditorProvider(workflowId));
     return Scaffold(
       appBar: AppBar(
         title: Text('Workflow Editor'),
       ),
       body: state.when(
         data: (workflow) {
-          if (workflow == null) {
-            return Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Theme.of(context).secondaryHeaderColor,
-                ),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => InitialWorkflowSetupBottomSheet(),
-                  );
-                },
-                child: Text('Start Initial Setup'),
-              ),
-            );
-          }
           return WorkflowList(
             steps: workflow.workflowSteps,
             workflowConfig: workflow.workflowConfig,
