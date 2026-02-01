@@ -64,6 +64,11 @@ export const githubApp = onRequest(
       } else if (event === "push") {
         logger.info(`Push to ${body.ref}`, { structuredData: true });
         await createBuildJobs(app, eventData);
+      } else if (event === "create") {
+        if (body.ref_type === "tag") {
+          logger.info(`Tag created: ${body.ref}`, { structuredData: true });
+          await createBuildJobs(app, eventData);
+        }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
           logger.info("Rerun requested via comment", { structuredData: true });
@@ -95,6 +100,7 @@ async function createBuildJobs(
 
   let branch: string | null = null;
   let triggerType: string | null = null;
+  let tagName: string | null = null;
 
   if (event === "pull_request") {
     branch = payload.pull_request.base.ref;
@@ -102,19 +108,26 @@ async function createBuildJobs(
   } else if (event === "push") {
     branch = payload.ref.replace("refs/heads/", "");
     triggerType = "push";
+  } else if (event === "create" && payload.ref_type === "tag") {
+    tagName = payload.ref;
+    triggerType = "tag";
   }
 
-  if (!branch || !triggerType) {
-    logger.info(`Skipping event ${event}: unable to determine branch or trigger type`);
+  if (!triggerType || (triggerType !== "tag" && !branch)) {
+    logger.info(`Skipping event ${event}: unable to determine trigger type`);
     return;
   }
 
-  const workflowSnapshot = await db
+  let workflowQuery = db
     .collection("workflows_v1")
     .where("workflowConfig.selectedRepository", "==", params.repository)
-    .where("workflowConfig.selectedTriggerType", "==", triggerType)
-    .where("workflowConfig.selectedTriggerBranch", "==", branch)
-    .get();
+    .where("workflowConfig.selectedTriggerType", "==", triggerType);
+
+  if (triggerType !== "tag" && branch) {
+    workflowQuery = workflowQuery.where("workflowConfig.selectedTriggerBranch", "==", branch);
+  }
+
+  const workflowSnapshot = await workflowQuery.get();
 
   if (workflowSnapshot.empty) {
     logger.info(`No workflows found for ${params.repository} on ${branch} (${triggerType})`);
@@ -145,10 +158,23 @@ async function createBuildJobs(
     }
   }
 
-  const commitSha =
+  let commitSha =
     event === "pull_request"
       ? payload.pull_request?.head?.sha
       : payload.head_commit?.id || payload.after;
+
+  if (triggerType === "tag" && tagName && octokit) {
+    try {
+      const { data: commit } = await octokit.request("GET /repos/{owner}/{repo}/commits/{ref}", {
+        owner: params.repository.split("/")[0],
+        repo: params.repository.split("/")[1],
+        ref: tagName,
+      });
+      commitSha = commit.sha;
+    } catch (error) {
+      logger.error("Failed to fetch commit SHA for tag", error);
+    }
+  }
   const pullRequestNumber = payload.pull_request?.number || null;
 
   for (const doc of workflowSnapshot.docs) {
@@ -200,6 +226,7 @@ async function createBuildJobs(
         checkRunId,
         runCount: 0,
         latestRunId: null,
+        tagName,
       });
   }
 }
