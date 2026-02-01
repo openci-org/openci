@@ -176,11 +176,14 @@ async function createBuildJobs(
     }
 
     const documentId = uuidv4();
+    const jobData = { ...params };
+    delete jobData.payload;
+
     await db
       .collection(buildJobCollectionPath)
       .doc(documentId)
       .set({
-        ...params,
+        ...jobData,
         updatedAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),
         status: "queued",
