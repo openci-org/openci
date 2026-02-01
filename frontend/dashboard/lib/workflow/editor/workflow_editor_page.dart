@@ -25,6 +25,12 @@ class WorkflowEditorPage extends ConsumerWidget {
             steps: workflow.workflowSteps,
             workflowConfig: workflow.workflowConfig,
             documentId: workflow.documentId,
+            workflowName: workflow.name,
+            onNameChanged: (name) {
+              ref
+                  .read(workflowEditorProvider(workflowId).notifier)
+                  .updateName(name);
+            },
           );
         },
         error: (error, stackTrace) {
@@ -62,10 +68,14 @@ class WorkflowList extends StatelessWidget {
     required this.steps,
     required this.workflowConfig,
     required this.documentId,
+    required this.workflowName,
+    required this.onNameChanged,
   });
   final List<WorkflowStep> steps;
   final WorkflowConfig workflowConfig;
   final String documentId;
+  final String workflowName;
+  final ValueChanged<String> onNameChanged;
 
   @override
   Widget build(BuildContext context) {

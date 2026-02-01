@@ -80,7 +80,7 @@ class WorkflowListPage extends ConsumerWidget {
                           );
                         },
                         title: Text(
-                          'Workflow Name',
+                          workflow.name,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,

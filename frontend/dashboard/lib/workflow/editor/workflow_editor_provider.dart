@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,7 +12,7 @@ class WorkflowEditor extends _$WorkflowEditor {
   @override
   Stream<Workflow> build(String workflowId) {
     return FirebaseFirestore.instance
-        .collection('workflows_v1')
+        .collection(workflowsCollection)
         .doc(workflowId)
         .withConverter(
           fromFirestore: (snapshot, _) => Workflow.fromJson(snapshot.data()!),
@@ -25,6 +26,13 @@ class WorkflowEditor extends _$WorkflowEditor {
           }
           return workflow;
         });
+  }
+
+  Future<void> updateName(String name) async {
+    await FirebaseFirestore.instance
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .update({'name': name});
   }
 }
 

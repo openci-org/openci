@@ -10,6 +10,7 @@ abstract class Workflow with _$Workflow {
     required DateTime updatedAt,
     required String documentId,
     required String userId,
+    required String name,
     required WorkflowConfig workflowConfig,
     required List<WorkflowStep> workflowSteps,
     required bool isEditing,
