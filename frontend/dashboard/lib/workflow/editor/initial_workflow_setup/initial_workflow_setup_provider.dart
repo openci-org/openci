@@ -13,11 +13,16 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
   @override
   InitialWorkflowSetupState build() => InitialWorkflowSetupState(
     isCreated: false,
+    name: '',
     selectedRepository: '',
     selectedWorkingDirectory: '',
     selectedTriggerType: TriggerType.push,
     selectedTriggerBranch: '',
   );
+
+  void updateName(String name) {
+    state = state.copyWith(name: name);
+  }
 
   void updateIsCreated(bool value) {
     state = state.copyWith(isCreated: value);
@@ -40,6 +45,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
   }
 
   Future<void> save({
+    required String name,
     required String selectedRepository,
     required String selectedWorkingDirectory,
     required String selectedTriggerBranch,
@@ -59,6 +65,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
             updatedAt: DateTime.now(),
             documentId: documentId,
             userId: userId,
+            name: name,
             workflowConfig: WorkflowConfig(
               selectedRepository: selectedRepository,
               selectedWorkingDirectory: selectedWorkingDirectory,
@@ -76,6 +83,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
 abstract class InitialWorkflowSetupState with _$InitialWorkflowSetupState {
   const factory InitialWorkflowSetupState({
     required bool isCreated,
+    required String name,
     required String selectedRepository,
     required String selectedWorkingDirectory,
     required TriggerType selectedTriggerType,

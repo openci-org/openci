@@ -11,6 +11,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => _Workflow(
   updatedAt: DateTime.parse(json['updatedAt'] as String),
   documentId: json['documentId'] as String,
   userId: json['userId'] as String,
+  name: json['name'] as String,
   workflowConfig: WorkflowConfig.fromJson(
     json['workflowConfig'] as Map<String, dynamic>,
   ),
@@ -25,6 +26,7 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'updatedAt': instance.updatedAt.toIso8601String(),
   'documentId': instance.documentId,
   'userId': instance.userId,
+  'name': instance.name,
   'workflowConfig': instance.workflowConfig.toJson(),
   'workflowSteps': instance.workflowSteps.map((e) => e.toJson()).toList(),
   'isEditing': instance.isEditing,

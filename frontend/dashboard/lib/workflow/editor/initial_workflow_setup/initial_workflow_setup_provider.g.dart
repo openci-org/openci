@@ -10,6 +10,7 @@ _InitialWorkflowSetupState _$InitialWorkflowSetupStateFromJson(
   Map<String, dynamic> json,
 ) => _InitialWorkflowSetupState(
   isCreated: json['isCreated'] as bool,
+  name: json['name'] as String,
   selectedRepository: json['selectedRepository'] as String,
   selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
   selectedTriggerType: $enumDecode(
@@ -23,6 +24,7 @@ Map<String, dynamic> _$InitialWorkflowSetupStateToJson(
   _InitialWorkflowSetupState instance,
 ) => <String, dynamic>{
   'isCreated': instance.isCreated,
+  'name': instance.name,
   'selectedRepository': instance.selectedRepository,
   'selectedWorkingDirectory': instance.selectedWorkingDirectory,
   'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
@@ -74,7 +76,7 @@ final class InitialWorkflowSetupProvider
 }
 
 String _$initialWorkflowSetupHash() =>
-    r'f2adb902c83dd95a7812a2264b466fca087c829c';
+    r'd88acaa676a0d453a0a212f01f315f72cd249466';
 
 abstract class _$InitialWorkflowSetup
     extends $Notifier<InitialWorkflowSetupState> {

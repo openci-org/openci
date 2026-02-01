@@ -15,6 +15,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
     final state = ref.watch(initialWorkflowSetupProvider);
     final controller = ref.read(initialWorkflowSetupProvider.notifier);
 
+    final nameController = useTextEditingController();
     final repositoryController = useTextEditingController();
     final workingDirectoryController = useTextEditingController();
     final triggerBranchController = useTextEditingController();
@@ -58,6 +59,17 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               },
               child: Text('Install GitHub App'),
             ),
+            SizedBox(
+              width: _width,
+              child: TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Workflow Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            SizedBox(height: 20.0),
             SizedBox(
               width: _width,
               child: TextFormField(
@@ -115,6 +127,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               ),
               onPressed: () async {
                 await controller.save(
+                  name: nameController.text,
                   selectedRepository: repositoryController.text,
                   selectedWorkingDirectory: workingDirectoryController.text,
                   selectedTriggerBranch: triggerBranchController.text,
