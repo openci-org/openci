@@ -48,7 +48,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     required String name,
     required String selectedRepository,
     required String selectedWorkingDirectory,
-    required String selectedTriggerBranch,
+    String? selectedTriggerBranch,
   }) async {
     final documentId = Uuid().v4();
     final userId = FirebaseAuth.instance.currentUser?.uid;

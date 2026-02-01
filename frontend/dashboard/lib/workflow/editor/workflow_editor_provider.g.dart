@@ -37,6 +37,7 @@ Map<String, dynamic> _$CreateWorkflowStateToJson(
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
+  TriggerType.tag: 'tag',
 };
 
 // **************************************************************************
@@ -87,7 +88,7 @@ final class WorkflowEditorProvider
   }
 }
 
-String _$workflowEditorHash() => r'afc58c7e2f1931954d124a022cd6c1a202825dc7';
+String _$workflowEditorHash() => r'52856227f51d3360b8127cd93b25fad11a7ae760';
 
 final class WorkflowEditorFamily extends $Family
     with

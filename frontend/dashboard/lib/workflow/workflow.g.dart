@@ -40,7 +40,7 @@ _WorkflowConfig _$WorkflowConfigFromJson(Map<String, dynamic> json) =>
         _$TriggerTypeEnumMap,
         json['selectedTriggerType'],
       ),
-      selectedTriggerBranch: json['selectedTriggerBranch'] as String,
+      selectedTriggerBranch: json['selectedTriggerBranch'] as String?,
     );
 
 Map<String, dynamic> _$WorkflowConfigToJson(
@@ -55,6 +55,7 @@ Map<String, dynamic> _$WorkflowConfigToJson(
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
+  TriggerType.tag: 'tag',
 };
 
 _WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>

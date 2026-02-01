@@ -34,6 +34,7 @@ Map<String, dynamic> _$InitialWorkflowSetupStateToJson(
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
+  TriggerType.tag: 'tag',
 };
 
 // **************************************************************************
@@ -76,7 +77,7 @@ final class InitialWorkflowSetupProvider
 }
 
 String _$initialWorkflowSetupHash() =>
-    r'd88acaa676a0d453a0a212f01f315f72cd249466';
+    r'012c1fe56395c98404367e7905476bb0c0bed49b';
 
 abstract class _$InitialWorkflowSetup
     extends $Notifier<InitialWorkflowSetupState> {
