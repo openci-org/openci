@@ -189,6 +189,15 @@
         },
         "problemMatcher": [],
       },
+      {
+        "label": "Flutter Build .ipa",
+        "type": "shell",
+        "command": "flutter clean && flutter pub get && flutter build ipa",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+      },
     ],
   },
 }
