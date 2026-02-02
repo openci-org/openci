@@ -154,6 +154,15 @@
         "problemMatcher": [],
       },
       {
+        "label": "(Dev) Deploy Firestore Indexes",
+        "type": "shell",
+        "command": "firebase use default && firebase deploy --only firestore:indexes",
+        "options": {
+          "cwd": "${workspaceFolder:firebase}",
+        },
+        "problemMatcher": [],
+      },
+      {
         "label": "(Prod) Deploy Firebase Functions",
         "type": "shell",
         "command": "firebase use prod && firebase deploy --only functions && firebase use default",
@@ -166,6 +175,15 @@
         "label": "(Prod) Deploy Firestore Security Rules",
         "type": "shell",
         "command": "firebase use prod && firebase deploy --only firestore:rules && firebase use default",
+        "options": {
+          "cwd": "${workspaceFolder:firebase}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "(Prod) Deploy Firestore Indexes",
+        "type": "shell",
+        "command": "firebase use prod && firebase deploy --only firestore:indexes && firebase use default",
         "options": {
           "cwd": "${workspaceFolder:firebase}",
         },

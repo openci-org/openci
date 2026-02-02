@@ -5,6 +5,7 @@ WIP: CI/CD Made Easy
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
 echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc && \
+echo 'export PATH="$PATH":"$HOME/.pub-cache/bin"' >> ~/.zshrc && \
 source ~/.zshrc && \
 brew install cirruslabs/cli/tart && \
 brew tap dart-lang/dart && \
