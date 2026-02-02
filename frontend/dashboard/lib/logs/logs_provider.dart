@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -15,7 +15,9 @@ Stream<List<BuildJob>> buildJobsList(ref) {
     return Stream.value([]);
   }
 
-  return FirebaseFirestore.instance
+  final firestore = ref.read(firestoreProvider);
+
+  return firestore
       .collection(buildJobsCollection)
       .where('userId', isEqualTo: userId)
       .orderBy('createdAt', descending: true)
@@ -29,7 +31,9 @@ Stream<List<BuildJob>> buildJobsList(ref) {
 
 @riverpod
 Stream<List<BuildLog>> buildLogs(ref, String buildJobId, String runId) {
-  return FirebaseFirestore.instance
+  final firestore = ref.read(firestoreProvider);
+
+  return firestore
       .collection(buildJobsCollection)
       .doc(buildJobId)
       .collection('runs')

@@ -1,13 +1,17 @@
+import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class SettingsPage extends HookWidget {
+class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDeleting = useState(false);
+    final auth = ref.watch(authProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -21,10 +25,17 @@ class SettingsPage extends HookWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Text('Firebase App Name: ${auth.getFirebaseAuth().app.name}'),
+                  SizedBox(height: 16),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      fixedSize: Size(200, 20),
+                    ),
                     onPressed: () async {
                       try {
-                        await FirebaseAuth.instance.signOut();
+                        await auth.getFirebaseAuth().signOut();
+                        ref.invalidate(authProvider);
+                        ref.invalidate(firestoreProvider);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -47,7 +58,7 @@ class SettingsPage extends HookWidget {
                     },
                     child: Text("Logout"),
                   ),
-                  SizedBox(height: 32),
+                  SizedBox(height: 8),
                   _DeleteAccountButton(
                     isDeleting: isDeleting,
                   ),
@@ -72,7 +83,10 @@ class _DeleteAccountButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        fixedSize: Size(200, 20),
+      ),
       onPressed: isDeleting.value
           ? null
           : () => _showDeleteConfirmationDialog(context),
