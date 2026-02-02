@@ -82,7 +82,6 @@
     "files.associations": {
       "*.css": "tailwindcss",
     },
-    "java.compile.nullAnalysis.mode": "disabled",
   },
   "launch": {
     "version": "0.2.0",
@@ -137,18 +136,36 @@
         },
       },
       {
-        "label": "Deploy Firebase Functions",
+        "label": "(Dev) Deploy Firebase Functions",
         "type": "shell",
-        "command": "firebase deploy --only functions",
+        "command": "firebase use default && firebase deploy --only functions",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },
         "problemMatcher": [],
       },
       {
-        "label": "Deploy Firestore Security Rules",
+        "label": "(Dev) Deploy Firestore Security Rules",
         "type": "shell",
-        "command": "firebase deploy --only firestore:rules",
+        "command": "firebase use default && firebase deploy --only firestore:rules",
+        "options": {
+          "cwd": "${workspaceFolder:firebase}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "(Prod) Deploy Firebase Functions",
+        "type": "shell",
+        "command": "firebase use prod && firebase deploy --only functions && firebase use default",
+        "options": {
+          "cwd": "${workspaceFolder:firebase-functions}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "(Prod) Deploy Firestore Security Rules",
+        "type": "shell",
+        "command": "firebase use prod && firebase deploy --only firestore:rules && firebase use default",
         "options": {
           "cwd": "${workspaceFolder:firebase}",
         },
@@ -173,7 +190,24 @@
         "problemMatcher": [],
       },
       {
-        "label": "(debug) Run OpenCI Worker CLI",
+        "label": "(Dev) Run OpenCI Worker CLI",
+        "type": "shell",
+        "command": "dart",
+        "args": [
+          "run",
+          "bin/openci_worker_cli.dart",
+          "--project-id",
+          "openci-dev-da298",
+          "--service-account",
+          "firebase_service_account_dev.json",
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:openci_worker_cli}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "(Prod) Run OpenCI Worker CLI",
         "type": "shell",
         "command": "dart",
         "args": [
