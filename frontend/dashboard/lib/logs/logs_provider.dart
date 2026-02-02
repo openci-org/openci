@@ -9,7 +9,7 @@ part 'logs_provider.freezed.dart';
 part 'logs_provider.g.dart';
 
 @riverpod
-Stream<List<BuildJob>> buildJobsList(ref) {
+Stream<List<BuildJob>> buildJobsList(Ref ref) {
   final userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) {
     return Stream.value([]);
@@ -28,7 +28,7 @@ Stream<List<BuildJob>> buildJobsList(ref) {
 }
 
 @riverpod
-Stream<List<BuildLog>> buildLogs(ref, String buildJobId, String runId) {
+Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
   return FirebaseFirestore.instance
       .collection(buildJobsCollection)
       .doc(buildJobId)
