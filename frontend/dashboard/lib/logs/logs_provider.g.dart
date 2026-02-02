@@ -62,7 +62,7 @@ Json? _$JsonConverterToJson<Json, Value>(
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(buildJobsList)
-const buildJobsListProvider = BuildJobsListProvider._();
+final buildJobsListProvider = BuildJobsListProvider._();
 
 final class BuildJobsListProvider
     extends
@@ -72,7 +72,7 @@ final class BuildJobsListProvider
           Stream<List<BuildJob>>
         >
     with $FutureModifier<List<BuildJob>>, $StreamProvider<List<BuildJob>> {
-  const BuildJobsListProvider._()
+  BuildJobsListProvider._()
     : super(
         from: null,
         argument: null,
@@ -101,7 +101,7 @@ final class BuildJobsListProvider
 String _$buildJobsListHash() => r'deca912ce66a3d00e1c1e8e8a6131ee59c7c1c12';
 
 @ProviderFor(buildLogs)
-const buildLogsProvider = BuildLogsFamily._();
+final buildLogsProvider = BuildLogsFamily._();
 
 final class BuildLogsProvider
     extends
@@ -111,7 +111,7 @@ final class BuildLogsProvider
           Stream<List<BuildLog>>
         >
     with $FutureModifier<List<BuildLog>>, $StreamProvider<List<BuildLog>> {
-  const BuildLogsProvider._({
+  BuildLogsProvider._({
     required BuildLogsFamily super.from,
     required (String, String) super.argument,
   }) : super(
@@ -159,7 +159,7 @@ String _$buildLogsHash() => r'c633cffb94a5de3d4fd77b83a7bf73eb31b9d3ab';
 
 final class BuildLogsFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
-  const BuildLogsFamily._()
+  BuildLogsFamily._()
     : super(
         retry: null,
         name: r'buildLogsProvider',

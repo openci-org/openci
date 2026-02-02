@@ -10,7 +10,7 @@ part of 'workflow_list_provider.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(workflowList)
-const workflowListProvider = WorkflowListProvider._();
+final workflowListProvider = WorkflowListProvider._();
 
 final class WorkflowListProvider
     extends
@@ -20,7 +20,7 @@ final class WorkflowListProvider
           Stream<List<Workflow>>
         >
     with $FutureModifier<List<Workflow>>, $StreamProvider<List<Workflow>> {
-  const WorkflowListProvider._()
+  WorkflowListProvider._()
     : super(
         from: null,
         argument: null,
