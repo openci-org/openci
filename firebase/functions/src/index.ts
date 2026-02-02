@@ -59,7 +59,15 @@ export const githubApp = onRequest(
       if (event === "pull_request") {
         if (body.action === "opened" || body.action === "synchronize") {
           logger.info(`PR ${body.action}`, { structuredData: true });
-          await saveBuildJob(app, eventData);
+          await createBuildJobs(app, eventData);
+        }
+      } else if (event === "push") {
+        logger.info(`Push to ${body.ref}`, { structuredData: true });
+        await createBuildJobs(app, eventData);
+      } else if (event === "create") {
+        if (body.ref_type === "tag") {
+          logger.info(`Tag created: ${body.ref}`, { structuredData: true });
+          await createBuildJobs(app, eventData);
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
@@ -78,7 +86,7 @@ export const githubApp = onRequest(
 const buildJobCollectionPath = "build_jobs_v0";
 const secretsCollectionPath = "secrets_v0";
 
-async function saveBuildJob(
+async function createBuildJobs(
   app: App,
   params: {
     event: string;
@@ -88,37 +96,56 @@ async function saveBuildJob(
     payload: any;
   },
 ) {
-  const { payload } = params;
-  const documentId = uuidv4();
+  const { payload, event } = params;
 
-  const installationId = payload.installation?.id;
-  const commitSha = payload.pull_request?.head?.sha || null;
-  const pullRequestNumber = payload.pull_request?.number || payload.issue?.number;
+  let branch: string | null = null;
+  let triggerType: string | null = null;
+  let tagName: string | null = null;
 
-  let userId: string | null = null;
-  try {
-    const workflowSnapshot = await db
-      .collection("workflows_v1")
-      .where("workflowConfig.selectedRepository", "==", params.repository)
-      .limit(1)
-      .get();
-
-    if (!workflowSnapshot.empty) {
-      userId = workflowSnapshot.docs[0].data().userId ?? null;
-    }
-  } catch (error) {
-    logger.error("Failed to get userId from workflow", error);
+  if (event === "pull_request") {
+    branch = payload.pull_request.base.ref;
+    triggerType = "pullRequest";
+  } else if (event === "push") {
+    branch = payload.ref.replace("refs/heads/", "");
+    triggerType = "push";
+  } else if (event === "create" && payload.ref_type === "tag") {
+    tagName = payload.ref;
+    triggerType = "tag";
   }
 
+  if (!triggerType || (triggerType !== "tag" && !branch)) {
+    logger.info(`Skipping event ${event}: unable to determine trigger type`);
+    return;
+  }
+
+  let workflowQuery = db
+    .collection("workflows_v1")
+    .where("workflowConfig.selectedRepository", "==", params.repository)
+    .where("workflowConfig.selectedTriggerType", "==", triggerType);
+
+  if (triggerType !== "tag" && branch) {
+    workflowQuery = workflowQuery.where("workflowConfig.selectedTriggerBranch", "==", branch);
+  }
+
+  const workflowSnapshot = await workflowQuery.get();
+
+  if (workflowSnapshot.empty) {
+    logger.info(`No workflows found for ${params.repository} on ${branch} (${triggerType})`);
+    return;
+  }
+
+  logger.info(
+    `Found ${workflowSnapshot.size} workflows matching ${params.repository} on ${branch}`,
+  );
+
+  const installationId = payload.installation?.id;
   let installationToken: string | null = null;
   let tokenExpiresAt: string | null = null;
-  let checkRunId: number | null = null;
+  let octokit: any = null;
 
   if (installationId) {
     try {
-      const octokit = await app.getInstallationOctokit(installationId);
-
-      // Get installation token
+      octokit = await app.getInstallationOctokit(installationId);
       const {
         data: { token, expires_at },
       } = await octokit.request("POST /app/installations/{installation_id}/access_tokens", {
@@ -126,45 +153,82 @@ async function saveBuildJob(
       });
       installationToken = token;
       tokenExpiresAt = expires_at;
+    } catch (error) {
+      logger.error("Failed to authenticate with GitHub", error);
+    }
+  }
 
-      // Create Check Run if we have a commit SHA
-      if (commitSha) {
+  let commitSha =
+    event === "pull_request"
+      ? payload.pull_request?.head?.sha
+      : payload.head_commit?.id || payload.after;
+
+  if (triggerType === "tag" && tagName && octokit) {
+    try {
+      const { data: commit } = await octokit.request("GET /repos/{owner}/{repo}/commits/{ref}", {
+        owner: params.repository.split("/")[0],
+        repo: params.repository.split("/")[1],
+        ref: tagName,
+      });
+      commitSha = commit.sha;
+    } catch (error) {
+      logger.error("Failed to fetch commit SHA for tag", error);
+    }
+  }
+  const pullRequestNumber = payload.pull_request?.number || null;
+
+  for (const doc of workflowSnapshot.docs) {
+    const workflow = doc.data();
+    const workflowId = doc.id;
+    const userId = workflow.userId ?? null;
+    const checkRunName = workflow.name;
+
+    let checkRunId: number | null = null;
+
+    if (octokit && commitSha) {
+      try {
         const { data: checkRun } = await octokit.request("POST /repos/{owner}/{repo}/check-runs", {
           owner: params.repository.split("/")[0],
           repo: params.repository.split("/")[1],
-          name: "OpenCI",
+          name: checkRunName,
           head_sha: commitSha,
           status: "queued",
           started_at: new Date().toISOString(),
         });
         checkRunId = checkRun.id;
+      } catch (error) {
+        logger.error(`Failed to create check run for workflow ${workflowId}`, error);
       }
-    } catch (error) {
-      logger.error("Failed to authenticate or create check run", error);
     }
-  }
 
-  await db
-    .collection(buildJobCollectionPath)
-    .doc(documentId)
-    .set({
-      ...params,
-      updatedAt: FieldValue.serverTimestamp(),
-      createdAt: FieldValue.serverTimestamp(),
-      status: "queued",
-      id: documentId,
-      userId,
-      installationId,
-      commitSha,
-      pullRequestNumber,
-      owner: params.repository.split("/")[0],
-      repo: params.repository.split("/")[1],
-      installationToken,
-      tokenExpiresAt,
-      checkRunId,
-      runCount: 0,
-      latestRunId: null,
-    });
+    const documentId = uuidv4();
+    const jobData = { ...params };
+    delete jobData.payload;
+
+    await db
+      .collection(buildJobCollectionPath)
+      .doc(documentId)
+      .set({
+        ...jobData,
+        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        status: "queued",
+        id: documentId,
+        userId,
+        workflowId,
+        installationId,
+        commitSha,
+        pullRequestNumber,
+        owner: params.repository.split("/")[0],
+        repo: params.repository.split("/")[1],
+        installationToken,
+        tokenExpiresAt,
+        checkRunId,
+        runCount: 0,
+        latestRunId: null,
+        tagName,
+      });
+  }
 }
 
 export const createSecretV1 = onCall(

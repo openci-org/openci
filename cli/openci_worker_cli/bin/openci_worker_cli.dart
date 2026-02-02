@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.9';
+const String version = '0.4.10';
 
 enum LogLevel { info, warning, error }
 
@@ -212,7 +212,7 @@ Future<bool> processJob(
   final doc = await firestore
       .collection('build_jobs_v0')
       .where('status', WhereFilter.equal, 'queued')
-      .orderBy('createdAt', descending: true)
+      .orderBy('createdAt', descending: false)
       .limit(1)
       .get();
 
@@ -423,6 +423,7 @@ Future<bool> processJob(
     } catch (e) {
       await logger.warning('Error deleting VM: $e');
     }
+    await pruneStaleVms(logger);
   }
 
   return true;
@@ -523,5 +524,40 @@ Future<String> fetchSecretValue(
     return utf8.decode(base64.decode(payload));
   } finally {
     client.close();
+  }
+}
+
+Future<void> pruneStaleVms(BuildLogger logger) async {
+  try {
+    final shell = Shell(throwOnError: false, verbose: false);
+    final result = await shell.run('tart list');
+    if (result.isEmpty) return;
+
+    final output = result.first.stdout.toString();
+    final lines = LineSplitter.split(output);
+
+    for (var line in lines) {
+      line = line.trim();
+      if (line.isEmpty) continue;
+      if (line.startsWith('Source') && line.contains('Name')) continue;
+
+      final parts = line.split(RegExp(r'\s+'));
+
+      final vmNameIndex = parts.indexWhere((p) => p.startsWith('openci-vm-'));
+      if (vmNameIndex == -1) continue;
+
+      final vmName = parts[vmNameIndex];
+      // State is the last column
+      final state = parts.last;
+
+      if (state == 'running') {
+        continue;
+      }
+
+      await logger.info('Deleting unused VM: $vmName (State: $state)');
+      await shell.run('tart delete $vmName');
+    }
+  } catch (e) {
+    await logger.warning('Error pruning stale VMs: $e');
   }
 }
