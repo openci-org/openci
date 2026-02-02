@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,7 +11,8 @@ part 'workflow_editor_provider.g.dart';
 class WorkflowEditor extends _$WorkflowEditor {
   @override
   Stream<Workflow> build(String workflowId) {
-    return FirebaseFirestore.instance
+    return ref
+        .watch(firestoreProvider)
         .collection(workflowsCollection)
         .doc(workflowId)
         .withConverter(
@@ -29,7 +30,8 @@ class WorkflowEditor extends _$WorkflowEditor {
   }
 
   Future<void> updateName(String name) async {
-    await FirebaseFirestore.instance
+    await ref
+        .watch(firestoreProvider)
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({'name': name});

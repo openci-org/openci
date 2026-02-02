@@ -4,13 +4,15 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class ReactNativeIosCdForm extends HookWidget {
+class ReactNativeIosCdForm extends HookConsumerWidget {
   const ReactNativeIosCdForm({
     super.key,
     required this.documentId,
@@ -19,7 +21,7 @@ class ReactNativeIosCdForm extends HookWidget {
   final String documentId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
     final issuerIdController = useTextEditingController();
@@ -189,7 +191,8 @@ class ReactNativeIosCdForm extends HookWidget {
                                   'value': teamIdController.text,
                                 })).data['documentId'];
 
-                            await FirebaseFirestore.instance
+                            await ref
+                                .watch(firestoreProvider)
                                 .collection(workflowsCollection)
                                 .doc(documentId)
                                 .update({

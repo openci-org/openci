@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_android_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_ios_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/workflow_template.dart';
@@ -94,6 +95,7 @@ npx -y react-native-version --never-amend
                             context,
                             codeController: codeController,
                             template: template,
+                            ref: ref,
                           );
                         }
                       },
@@ -152,6 +154,7 @@ npx -y react-native-version --never-amend
     BuildContext context, {
     required ValueNotifier<CodeController> codeController,
     required WorkflowTemplate template,
+    required WidgetRef ref,
   }) {
     showModalBottomSheet(
       isScrollControlled: true,
@@ -196,7 +199,8 @@ npx -y react-native-version --never-amend
               SizedBox(height: 12.0),
               ElevatedButton(
                 onPressed: () async {
-                  await FirebaseFirestore.instance
+                  await ref
+                      .watch(firestoreProvider)
                       .collection(workflowsCollection)
                       .doc(documentId)
                       .update({

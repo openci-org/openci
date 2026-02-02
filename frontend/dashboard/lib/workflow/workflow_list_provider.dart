@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,7 +12,8 @@ Stream<List<Workflow>> workflowList(Ref ref) {
   if (userId == null) {
     return Stream.value([]);
   }
-  return FirebaseFirestore.instance
+  return ref
+      .read(firestoreProvider)
       .collection(workflowsCollection)
       .where('userId', isEqualTo: userId)
       .orderBy('updatedAt', descending: true)

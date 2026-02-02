@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -20,7 +21,9 @@ class SecretManager extends _$SecretManager {
     if (userId == null) {
       return throw Exception('User not logged in');
     }
-    return FirebaseFirestore.instance
+
+    final firestore = ref.read(firestoreProvider.notifier).state;
+    return firestore
         .collection(secretsCollection)
         .withConverter(
           fromFirestore: (snapshot, _) => Secret.fromJson(snapshot.data()!),

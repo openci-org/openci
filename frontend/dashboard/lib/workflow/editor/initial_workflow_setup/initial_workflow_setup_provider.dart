@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -56,7 +56,9 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
       throw Exception('Firebase Auth User Id is null');
     }
 
-    await FirebaseFirestore.instance
+    await ref
+        .read(firestoreProvider.notifier)
+        .state
         .collection('workflows_v1')
         .doc(documentId)
         .set(
