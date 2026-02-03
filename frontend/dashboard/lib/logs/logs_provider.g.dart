@@ -98,7 +98,7 @@ final class BuildJobsListProvider
   }
 }
 
-String _$buildJobsListHash() => r'021139e2e362eeb11e1def0087070f6ad6f5c99c';
+String _$buildJobsListHash() => r'920ee36225dcfe45cfc4aaa62cd856fbf1aed7d2';
 
 @ProviderFor(buildLogs)
 final buildLogsProvider = BuildLogsFamily._();
@@ -155,7 +155,7 @@ final class BuildLogsProvider
   }
 }
 
-String _$buildLogsHash() => r'751893229456e4bd977838ba1f556a27c22be80b';
+String _$buildLogsHash() => r'55b7b69b0cf6c73b3a52888305ecbd9b5cedd765';
 
 final class BuildLogsFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
