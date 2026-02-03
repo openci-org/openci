@@ -46,8 +46,7 @@ class LogsPage extends HookConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error'));
-        },
+        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
   }
@@ -184,8 +183,8 @@ class _LogsListView extends ConsumerWidget {
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text('Error: $error'),
+        padding: const EdgeInsets.all(16),
+        child: Text('Error: $error'),
       ),
     );
   }
