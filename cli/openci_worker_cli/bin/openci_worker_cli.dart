@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.11';
+const String version = '0.4.12';
 
 enum LogLevel { info, warning, error }
 
@@ -244,7 +244,12 @@ Future<bool> processJob(
   final token = buildJobData['installationToken'] as String;
   final owner = buildJobData['owner'] as String;
   final repo = buildJobData['repo'] as String;
+  final commitSha = buildJobData['commitSha'] as String?;
   final checkRunId = buildJobData['checkRunId'] as int?;
+
+  if (commitSha == null || commitSha.isEmpty) {
+    throw Exception('commitSha is missing in build job data');
+  }
 
   final runDocRef = firestore
       .collection('build_jobs_v0')
@@ -325,6 +330,9 @@ Future<bool> processJob(
         'https://x-access-token:$token@github.com/$owner/$repo.git';
 
     await execCommand('git clone --progress $cloneUrl');
+
+    await logger.info('Checking out commit $commitSha...');
+    await execCommand('cd $repo && git checkout $commitSha');
 
     await logger.info('Repository cloned successfully');
 
