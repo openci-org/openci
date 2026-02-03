@@ -9,7 +9,7 @@ part 'logs_provider.freezed.dart';
 part 'logs_provider.g.dart';
 
 @riverpod
-Stream<List<BuildJob>> buildJobsList(ref) {
+Stream<List<BuildJob>> buildJobsList(Ref ref) {
   final userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) {
     return Stream.value([]);
@@ -21,16 +21,17 @@ Stream<List<BuildJob>> buildJobsList(ref) {
       .collection(buildJobsCollection)
       .where('userId', isEqualTo: userId)
       .orderBy('createdAt', descending: true)
+      .withConverter(
+        fromFirestore: (snapshot, _) => BuildJob.fromJson(snapshot.data()!),
+        toFirestore: (buildJob, _) => buildJob.toJson(),
+      )
       .limit(20)
       .snapshots()
-      .map(
-        (snapshot) =>
-            snapshot.docs.map((doc) => BuildJob.fromJson(doc.data())).toList(),
-      );
+      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
 }
 
 @riverpod
-Stream<List<BuildLog>> buildLogs(ref, String buildJobId, String runId) {
+Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
   final firestore = ref.read(firestoreProvider);
 
   return firestore
@@ -40,11 +41,12 @@ Stream<List<BuildLog>> buildLogs(ref, String buildJobId, String runId) {
       .doc(runId)
       .collection('logs')
       .orderBy('timestamp', descending: false)
+      .withConverter(
+        fromFirestore: (snapshot, _) => BuildLog.fromJson(snapshot.data()!),
+        toFirestore: (buildLog, _) => buildLog.toJson(),
+      )
       .snapshots()
-      .map(
-        (snapshot) =>
-            snapshot.docs.map((doc) => BuildLog.fromJson(doc.data())).toList(),
-      );
+      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
 }
 
 @freezed
