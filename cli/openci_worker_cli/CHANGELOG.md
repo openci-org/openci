@@ -1,3 +1,7 @@
+## 0.4.11 - 2026-02-03
+
+- feat: throw exception when command fails
+
 ## 0.4.10 - 2026-02-01
 
 - fix: Worker CLI now processes jobs in ascending order (oldest first).
