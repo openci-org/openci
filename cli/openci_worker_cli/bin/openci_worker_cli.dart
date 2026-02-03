@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.12';
+const String version = '0.4.13';
 
 enum LogLevel { info, warning, error }
 
@@ -332,7 +332,7 @@ Future<bool> processJob(
     await execCommand('git clone --progress $cloneUrl');
 
     await logger.info('Checking out commit $commitSha...');
-    await execCommand('cd $repo && git checkout $commitSha');
+    await execCommand('git -C $repo checkout $commitSha');
 
     await logger.info('Repository cloned successfully');
 
