@@ -1,4 +1,8 @@
-## 0.4.12 - 2026-02-04
+## 0.4.13 - 2026-02-03
+
+- fix: Worker CLI now checkout the assigned commit SHA.
+
+## 0.4.12 - 2026-02-03
 
 - fix: Worker CLI now checkout the assigned commit SHA.
 
