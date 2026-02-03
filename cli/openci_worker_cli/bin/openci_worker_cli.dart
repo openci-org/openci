@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.10';
+const String version = '0.4.11';
 
 enum LogLevel { info, warning, error }
 
@@ -267,7 +267,7 @@ Future<bool> processJob(
   await Shell().run('tart clone $baseVmName $currentVmName');
 
   Future<void> execCommand(String command, {String? displayCommand}) async {
-    var shell = Shell(verbose: true);
+    var shell = Shell(verbose: true, throwOnError: false);
     final results = await shell.run("tart exec $currentVmName $command");
 
     for (final result in results) {
@@ -281,6 +281,10 @@ Future<bool> processJob(
       if (stderr != null && stderr.isNotEmpty) {
         final maskedOutput = stderr.replaceAll(token, '***');
         await logger.info(maskedOutput);
+      }
+
+      if (result.exitCode != 0) {
+        throw Exception('Command failed with exit code ${result.exitCode}');
       }
     }
   }
