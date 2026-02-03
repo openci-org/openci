@@ -1,3 +1,7 @@
+## 0.4.12 - 2026-02-04
+
+- fix: Worker CLI now checkout the assigned commit SHA.
+
 ## 0.4.11 - 2026-02-03
 
 - feat: throw exception when command fails
