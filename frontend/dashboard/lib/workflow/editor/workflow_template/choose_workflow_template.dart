@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/workflow/editor/workflow_template/react_native_android_cd_form.dart';
-import 'package:dashboard/workflow/editor/workflow_template/react_native_ios_cd_form.dart';
+import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_android_cd_form.dart';
+import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_ios_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
@@ -67,10 +67,11 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
                     padding: const EdgeInsets.all(20.0),
                     child: InkWell(
                       onTap: () {
-                        if (template.name == 'react_native_cd_ios') {
-                          _showReactNativeIosCdForm(context);
-                        } else if (template.name == 'react_native_cd_android') {
-                          _showReactNativeAndroidCdForm(context);
+                        if (template.name == 'react_native_expo_cd_ios') {
+                          _showReactNativeExpoIosCdForm(context);
+                        } else if (template.name ==
+                            'react_native_expo_cd_android') {
+                          _showReactNativeExpoAndroidCdForm(context);
                         } else {
                           var script = 'echo "Hello World"';
                           if (template.name == 'set_version_ios_with_tag') {
@@ -130,22 +131,22 @@ npx -y react-native-version --never-amend
     );
   }
 
-  void _showReactNativeIosCdForm(BuildContext context) {
+  void _showReactNativeExpoIosCdForm(BuildContext context) {
     showModalBottomSheet(
       isScrollControlled: true,
       context: context,
       builder: (context) {
-        return ReactNativeIosCdForm(documentId: documentId);
+        return ReactNativeExpoIosCdForm(documentId: documentId);
       },
     );
   }
 
-  void _showReactNativeAndroidCdForm(BuildContext context) {
+  void _showReactNativeExpoAndroidCdForm(BuildContext context) {
     showModalBottomSheet(
       isScrollControlled: true,
       context: context,
       builder: (context) {
-        return ReactNativeAndroidCdForm(documentId: documentId);
+        return ReactNativeExpoAndroidCdForm(documentId: documentId);
       },
     );
   }

@@ -9,12 +9,12 @@ const workflowTemplateList = [
     title: 'Write your code',
   ),
   WorkflowTemplate(
-    name: 'react_native_cd_ios',
-    title: 'React Native CD (iOS)',
+    name: 'react_native_expo_cd_ios',
+    title: 'React Native (Expo) CD (iOS)',
   ),
   WorkflowTemplate(
-    name: 'react_native_cd_android',
-    title: 'React Native CD (Android)',
+    name: 'react_native_expo_cd_android',
+    title: 'React Native (Expo) CD (Android)',
   ),
   WorkflowTemplate(
     name: 'set_version_ios_with_tag',

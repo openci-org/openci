@@ -12,8 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class ReactNativeIosCdForm extends HookConsumerWidget {
-  const ReactNativeIosCdForm({
+class ReactNativeExpoIosCdForm extends HookConsumerWidget {
+  const ReactNativeExpoIosCdForm({
     super.key,
     required this.documentId,
   });
@@ -41,7 +41,7 @@ class ReactNativeIosCdForm extends HookConsumerWidget {
                 const SizedBox(width: 48),
                 Expanded(
                   child: Text(
-                    "React Native CD (iOS)",
+                    "React Native (Expo) CD (iOS)",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
