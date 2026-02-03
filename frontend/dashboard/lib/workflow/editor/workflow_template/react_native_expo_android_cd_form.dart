@@ -12,8 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class ReactNativeAndroidCdForm extends HookConsumerWidget {
-  const ReactNativeAndroidCdForm({
+class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
+  const ReactNativeExpoAndroidCdForm({
     super.key,
     required this.documentId,
   });
@@ -47,7 +47,7 @@ class ReactNativeAndroidCdForm extends HookConsumerWidget {
                 const SizedBox(width: 48),
                 Expanded(
                   child: Text(
-                    "React Native CD (Android)",
+                    "React Native (Expo) CD (Android)",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -363,10 +363,10 @@ class ReactNativeAndroidCdForm extends HookConsumerWidget {
   if (/signingConfigs \\{/) {
     print \$0
     print "        release {"
-    print "            storeFile file(project.findProperty(\\\"MYAPP_UPLOAD_STORE_FILE\\\") ?: \\\"release.keystore\\\")"
-    print "            storePassword project.findProperty(\\\"MYAPP_UPLOAD_STORE_PASSWORD\\\") ?: \\\"\\\""
-    print "            keyAlias project.findProperty(\\\"MYAPP_UPLOAD_KEY_ALIAS\\\") ?: \\\"\\\""
-    print "            keyPassword project.findProperty(\\\"MYAPP_UPLOAD_KEY_PASSWORD\\\") ?: \\\"\\\""
+    print "            storeFile file(project.findProperty(\\"MYAPP_UPLOAD_STORE_FILE\\") ?: \\"release.keystore\\")"
+    print "            storePassword project.findProperty(\\"MYAPP_UPLOAD_STORE_PASSWORD\\") ?: \\"\\""
+    print "            keyAlias project.findProperty(\\"MYAPP_UPLOAD_KEY_ALIAS\\") ?: \\"\\""
+    print "            keyPassword project.findProperty(\\"MYAPP_UPLOAD_KEY_PASSWORD\\") ?: \\"\\""
     print "        }"
     next
   }
