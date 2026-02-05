@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.13';
+const String version = '0.4.14';
 
 enum LogLevel { info, warning, error }
 
@@ -441,7 +441,7 @@ Future<bool> processJob(
   return true;
 }
 
-const baseVmName = 'ghcr.io/cirruslabs/macos-sequoia-xcode:latest';
+const baseVmName = 'sequoia-base';
 
 Future<void> updateCheckRun(
   String owner,
