@@ -6,8 +6,15 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { beforeUserCreated } from "firebase-functions/v2/identity";
 import { App } from "octokit";
-
 import { v4 as uuidv4 } from "uuid";
+
+import {
+  buildJobsCollectionPath,
+  orgsCollectionPath,
+  secretsCollectionPath,
+  usersCollectionPath,
+  workflowsCollectionPath,
+} from "../firestore-collection-paths";
 
 initializeApp();
 const db = getFirestore();
@@ -84,11 +91,6 @@ export const githubApp = onRequest(
   },
 );
 
-const buildJobCollectionPath = "build_jobs_v0";
-const secretsCollectionPath = "secrets_v0";
-const usersCollectionPath = "users_v0";
-const orgsCollectionPath = "orgs_v0";
-
 async function createBuildJobs(
   app: App,
   params: {
@@ -122,7 +124,7 @@ async function createBuildJobs(
   }
 
   let workflowQuery = db
-    .collection("workflows_v1")
+    .collection(workflowsCollectionPath)
     .where("workflowConfig.selectedRepository", "==", params.repository)
     .where("workflowConfig.selectedTriggerType", "==", triggerType);
 
@@ -209,7 +211,7 @@ async function createBuildJobs(
     delete jobData.payload;
 
     await db
-      .collection(buildJobCollectionPath)
+      .collection(buildJobsCollectionPath)
       .doc(documentId)
       .set({
         ...jobData,
