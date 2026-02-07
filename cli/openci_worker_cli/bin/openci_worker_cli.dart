@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.15';
+const String version = '0.4.16';
 
 enum LogLevel { info, warning, error }
 
@@ -295,22 +295,23 @@ Future<bool> processJob(
   }
 
   try {
-    final workflowQs = await firestore
-        .collection('workflows_v1')
-        .where(
-          'workflowConfig.selectedRepository',
-          WhereFilter.equal,
-          '$owner/$repo',
-        )
-        .get();
-
-    if (workflowQs.docs.isEmpty) {
-      await logger.error('No workflow found for repository $owner/$repo.');
-      throw Exception('No workflow found');
+    final workflowId = buildJobData['workflowId'] as String?;
+    if (workflowId == null || workflowId.isEmpty) {
+      await logger.error('workflowId is missing in build job data');
+      throw Exception('workflowId is missing');
     }
 
-    final workflowDoc = workflowQs.docs.first;
-    final workflowData = workflowDoc.data();
+    final workflowDoc = await firestore
+        .collection('workflows_v1')
+        .doc(workflowId)
+        .get();
+
+    if (!workflowDoc.exists) {
+      await logger.error('Workflow not found: $workflowId');
+      throw Exception('Workflow not found');
+    }
+
+    final workflowData = workflowDoc.data()!;
     final steps = workflowData['workflowSteps'] as List;
     final workflowConfig =
         workflowData['workflowConfig'] as Map<String, dynamic>?;
@@ -372,13 +373,14 @@ Future<bool> processJob(
       }
 
       final commandParts = [
+        'set -e',
         'export LANG=en_US.UTF-8',
         'cd $workingDirectory',
         ...exportCommands,
         command,
       ];
 
-      final fullCommand = commandParts.join(' && ');
+      final fullCommand = commandParts.join('\n');
       final encodedCommand = base64Encode(utf8.encode(fullCommand));
       await execCommand(
         "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",

@@ -1,3 +1,7 @@
+## 0.4.16 - 2026-02-05
+
+- fix: OpenCI Worker CLI doesn't get the correct workflow
+
 ## 0.4.15 - 2026-02-05
 
 - fix
