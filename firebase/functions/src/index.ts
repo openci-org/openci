@@ -14,7 +14,7 @@ import {
   secretsCollectionPath,
   usersCollectionPath,
   workflowsCollectionPath,
-} from "../firestore-collection-paths";
+} from "./firestore-collection-paths";
 
 initializeApp();
 const db = getFirestore();
