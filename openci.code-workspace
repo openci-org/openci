@@ -83,6 +83,10 @@
     "files.associations": {
       "*.css": "tailwindcss",
     },
+    "files.exclude": {
+      "**/*.g.dart": true,
+      "**/*.freezed.dart": true,
+    },
   },
   "launch": {
     "version": "0.2.0",
