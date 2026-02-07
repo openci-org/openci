@@ -379,7 +379,7 @@ export const onUserSignUp = beforeUserCreated(
 
     const userRef = db.collection(usersCollectionPath).doc(userId);
     batch.set(userRef, {
-      userId,
+      id: userId,
       email,
       personalOrgId: orgId,
       selectedOrgId: orgId,
