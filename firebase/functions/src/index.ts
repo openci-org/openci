@@ -4,6 +4,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { onCall, onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
+import { beforeUserCreated } from "firebase-functions/v2/identity";
 import { App } from "octokit";
 
 import { v4 as uuidv4 } from "uuid";
@@ -85,6 +86,8 @@ export const githubApp = onRequest(
 
 const buildJobCollectionPath = "build_jobs_v0";
 const secretsCollectionPath = "secrets_v0";
+const usersCollectionPath = "users_v0";
+const orgsCollectionPath = "orgs_v0";
 
 async function createBuildJobs(
   app: App,
@@ -331,5 +334,62 @@ export const createSecretV1 = onCall(
       logger.error("Failed to create secret", error);
       throw new Error(`Failed to create secret: ${error.message}`);
     }
+  },
+);
+
+export const onUserSignUp = beforeUserCreated(
+  {
+    region: "asia-northeast1",
+  },
+  async (event) => {
+    if (!event.data) {
+      throw new Error("No user data in event");
+    }
+
+    const userId = event.data.uid;
+    const email = event.data.email;
+
+    if (!email) {
+      throw new Error("No email found for user");
+    }
+
+    const slug = `user-${userId.slice(0, 8)}`;
+
+    const batch = db.batch();
+
+    const orgRef = db.collection(orgsCollectionPath).doc();
+    const orgId = orgRef.id;
+
+    batch.set(orgRef, {
+      id: orgId,
+      name: email,
+      slug,
+      type: "personal",
+      ownerId: userId,
+      members: [
+        {
+          role: "owner",
+          userId,
+        },
+      ],
+      memberIds: [userId],
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const userRef = db.collection(usersCollectionPath).doc(userId);
+    batch.set(userRef, {
+      userId,
+      email,
+      personalOrgId: orgId,
+      selectedOrgId: orgId,
+      orgIds: [orgId],
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    logger.info(`Created personal org ${orgId} for user ${userId}`);
   },
 );
