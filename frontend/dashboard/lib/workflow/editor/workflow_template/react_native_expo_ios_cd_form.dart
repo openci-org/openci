@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -160,6 +161,10 @@ class ReactNativeExpoIosCdForm extends HookConsumerWidget {
                         onPressed: () async {
                           try {
                             final functions = ref.read(functionsProvider);
+                            final teamId = ref
+                                .read(teamStateProvider)
+                                .requireValue
+                                .id;
                             final createSecret = functions.httpsCallable(
                               'createSecretV1',
                             );
@@ -168,12 +173,14 @@ class ReactNativeExpoIosCdForm extends HookConsumerWidget {
                                 (await createSecret.call({
                                   'name': 'APP_STORE_CONNECT_ISSUER_ID',
                                   'value': issuerIdController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             final keyIdSecretDocumentId =
                                 (await createSecret.call({
                                   'name': 'APP_STORE_CONNECT_KEY_ID',
                                   'value': keyIdController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             final privateKeySecretDocumentId =
@@ -181,12 +188,14 @@ class ReactNativeExpoIosCdForm extends HookConsumerWidget {
                                   'name':
                                       'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
                                   'value': privateKeyController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             final teamIdSecretDocumentId =
                                 (await createSecret.call({
                                   'name': 'TEAM_ID',
                                   'value': teamIdController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             await ref

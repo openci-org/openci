@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -242,6 +243,10 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                         onPressed: () async {
                           try {
                             final functions = ref.read(functionsProvider);
+                            final teamId = ref
+                                .read(teamStateProvider)
+                                .requireValue
+                                .id;
                             final createSecret = functions.httpsCallable(
                               'createSecretV1',
                             );
@@ -251,22 +256,26 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                                 (await createSecret.call({
                                   'name': 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
                                   'value': serviceAccountJsonController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             final keystoreSecretId = (await createSecret.call({
                               'name': 'ANDROID_KEYSTORE_BASE64',
                               'value': keystoreController.text,
+                              'teamId': teamId,
                             })).data['documentId'];
 
                             final keystorePasswordSecretId =
                                 (await createSecret.call({
                                   'name': 'ANDROID_KEYSTORE_PASSWORD',
                                   'value': keystorePasswordController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             final keyAliasSecretId = (await createSecret.call({
                               'name': 'ANDROID_KEY_ALIAS',
                               'value': keyAliasController.text,
+                              'teamId': teamId,
                             })).data['documentId'];
 
                             // Use same password for both keystore and key
@@ -277,6 +286,7 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                                 (await createSecret.call({
                                   'name': 'ANDROID_PACKAGE_NAME',
                                   'value': packageNameController.text,
+                                  'teamId': teamId,
                                 })).data['documentId'];
 
                             await ref
