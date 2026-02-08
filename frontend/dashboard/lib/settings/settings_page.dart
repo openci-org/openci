@@ -1,5 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -26,7 +27,26 @@ class SettingsPage extends HookConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('Firebase App Name: ${auth.getFirebaseAuth().app.name}'),
-                  SizedBox(height: 16),
+                  SizedBox(height: 40),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      fixedSize: Size(200, 20),
+                    ),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        showDragHandle: true,
+                        context: context,
+                        builder: (context) {
+                          return SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: InviteTeamMemberBottomSheet(),
+                          );
+                        },
+                      );
+                    },
+                    child: Text("Invite Team Member"),
+                  ),
+                  SizedBox(height: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       fixedSize: Size(200, 20),

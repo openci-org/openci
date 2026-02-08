@@ -50,10 +50,12 @@ class SecretManagerPage extends HookConsumerWidget {
                 TextButton(
                   onPressed: () async {
                     try {
-                      await addSecret(
-                        secretNameController.text,
-                        secretValueController.text,
-                      );
+                      await ref
+                          .read(secretManagerProvider.notifier)
+                          .addSecret(
+                            secretNameController.text,
+                            secretValueController.text,
+                          );
                     } catch (e) {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
