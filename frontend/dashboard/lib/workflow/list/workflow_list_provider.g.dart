@@ -46,4 +46,4 @@ final class WorkflowListProvider
   }
 }
 
-String _$workflowListHash() => r'cb431fc5d725b2aeb4fba840416deba8a0561f30';
+String _$workflowListHash() => r'fe27627d24103f7686b84ac286fa6f1a6e13a6b9';

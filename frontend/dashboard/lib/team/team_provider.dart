@@ -2,6 +2,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
+import 'package:dashboard/users/user_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -42,7 +43,11 @@ final teamList = [
 class TeamState extends _$TeamState {
   @override
   Stream<Team> build() {
-    return Stream.value(teamList.first);
+    final user = ref.watch(userProvider).requireValue;
+    final teamList = ref.watch(teamListProvider).requireValue;
+    return Stream.value(
+      teamList.firstWhere((team) => team.id == user.selectedTeamId),
+    );
   }
 }
 
@@ -50,7 +55,25 @@ class TeamState extends _$TeamState {
 class TeamList extends _$TeamList {
   @override
   Stream<List<Team>> build() {
-    return Stream.value(teamList);
+    return fetchTeamList();
+  }
+
+  Stream<List<Team>> fetchTeamList() {
+    final firestore = ref.read(firestoreProvider);
+    final auth = ref.read(authProvider);
+    final currentUserId = auth.requireValue?.uid;
+    if (currentUserId == null) {
+      throw Exception('User is not authenticated');
+    }
+    return firestore
+        .collection(teamsCollection)
+        .where('members', arrayContains: currentUserId)
+        .withConverter(
+          fromFirestore: (snapshot, _) => Team.fromJson(snapshot.data()!),
+          toFirestore: (model, _) => model.toJson(),
+        )
+        .snapshots()
+        .map((qs) => qs.docs.map((d) => d.data()).toList());
   }
 
   Future<void> createTeam(String teamName) async {

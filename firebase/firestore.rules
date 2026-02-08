@@ -47,6 +47,11 @@ service cloud.firestore {
             allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
         }
 
+        match /users_v0/{userId} {
+            allow read, update: if isAuthenticated() && userId == request.auth.uid;
+            allow create, delete: if false;
+        }
+
         match /{document=**} {
             allow read, write: if false;
         }
