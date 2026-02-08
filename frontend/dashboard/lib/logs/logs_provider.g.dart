@@ -11,7 +11,7 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   status: json['status'] as String,
   owner: json['owner'] as String,
   repo: json['repo'] as String,
-  userId: json['userId'] as String?,
+  teamId: json['teamId'] as String?,
   commitSha: json['commitSha'] as String?,
   pullRequestNumber: (json['pullRequestNumber'] as num?)?.toInt(),
   runCount: (json['runCount'] as num?)?.toInt(),
@@ -25,7 +25,7 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'status': instance.status,
   'owner': instance.owner,
   'repo': instance.repo,
-  'userId': instance.userId,
+  'teamId': instance.teamId,
   'commitSha': instance.commitSha,
   'pullRequestNumber': instance.pullRequestNumber,
   'runCount': instance.runCount,
@@ -98,7 +98,7 @@ final class BuildJobsListProvider
   }
 }
 
-String _$buildJobsListHash() => r'920ee36225dcfe45cfc4aaa62cd856fbf1aed7d2';
+String _$buildJobsListHash() => r'9dacad2d62525ac9c4bfe9c74b8d12a97eea18e4';
 
 @ProviderFor(buildLogs)
 final buildLogsProvider = BuildLogsFamily._();
