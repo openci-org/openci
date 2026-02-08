@@ -198,7 +198,11 @@ class WorkflowListPage extends ConsumerWidget {
             ),
           );
         },
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, stackTrace) {
+          debugPrint('Error: $error');
+          debugPrint('Stack trace: $stackTrace');
+          return Center(child: Text('Error: $error'));
+        },
         loading: () => Center(child: CircularProgressIndicator.adaptive()),
       ),
     );
