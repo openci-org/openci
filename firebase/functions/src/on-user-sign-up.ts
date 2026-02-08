@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import { beforeUserCreated } from "firebase-functions/v2/identity";
 
@@ -11,14 +12,14 @@ export const onUserSignUp = beforeUserCreated(
   },
   async (event) => {
     if (!event.data) {
-      throw new Error("No user data in event");
+      throw new HttpsError("internal", "No user data in event");
     }
 
     const userId = event.data.uid;
     const email = event.data.email;
 
     if (!email) {
-      throw new Error("No email found for user");
+      throw new HttpsError("invalid-argument", "No email found for user");
     }
 
     const batch = db.batch();

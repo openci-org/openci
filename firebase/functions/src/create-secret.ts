@@ -1,6 +1,6 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { FieldValue } from "firebase-admin/firestore";
-import { onCall } from "firebase-functions/https";
+import { HttpsError, onCall } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import { v4 as uuidv4 } from "uuid";
 
@@ -15,19 +15,19 @@ export const createSecretV1 = onCall(
   },
   async (request) => {
     if (!request.auth) {
-      throw new Error("Unauthenticated");
+      throw new HttpsError("unauthenticated", "Unauthenticated");
     }
 
     const userId = request.auth.uid;
     const { name, value } = request.data as { name: string; value: string };
 
     if (!name || !value) {
-      throw new Error("Missing name or value");
+      throw new HttpsError("invalid-argument", "Missing name or value");
     }
 
     const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
     if (!projectId) {
-      throw new Error("Project ID not found");
+      throw new HttpsError("internal", "Project ID not found");
     }
 
     const secretId = `user-${userId}-${name}`;
@@ -107,7 +107,7 @@ export const createSecretV1 = onCall(
       }
 
       logger.error("Failed to create secret", error);
-      throw new Error(`Failed to create secret: ${error.message}`);
+      throw new HttpsError("internal", `Failed to create secret: ${error.message}`);
     }
   },
 );
