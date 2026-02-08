@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BuildJob {
 
- String get id; String get status; String get owner; String get repo; String? get userId; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;
+ String get id; String get status; String get owner; String get repo; String? get teamId; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $BuildJobCopyWith<BuildJob> get copyWith => _$BuildJobCopyWithImpl<BuildJob>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,status,owner,repo,userId,commitSha,pullRequestNumber,runCount,latestRunId,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,status,owner,repo,teamId,commitSha,pullRequestNumber,runCount,latestRunId,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, userId: $userId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $BuildJobCopyWith<$Res>  {
   factory $BuildJobCopyWith(BuildJob value, $Res Function(BuildJob) _then) = _$BuildJobCopyWithImpl;
 @useResult
 $Res call({
- String id, String status, String owner, String repo, String? userId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
+ String id, String status, String owner, String repo, String? teamId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -65,13 +65,13 @@ class _$BuildJobCopyWithImpl<$Res>
 
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? userId = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? teamId = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
 as String,repo: null == repo ? _self.repo : repo // ignore: cast_nullable_to_non_nullable
-as String,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,teamId: freezed == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String?,commitSha: freezed == commitSha ? _self.commitSha : commitSha // ignore: cast_nullable_to_non_nullable
 as String?,pullRequestNumber: freezed == pullRequestNumber ? _self.pullRequestNumber : pullRequestNumber // ignore: cast_nullable_to_non_nullable
 as int?,runCount: freezed == runCount ? _self.runCount : runCount // ignore: cast_nullable_to_non_nullable
@@ -163,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
-return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -184,10 +184,10 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob():
-return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +204,10 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
-return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -219,14 +219,14 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.
 @JsonSerializable()
 
 class _BuildJob implements BuildJob {
-  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.userId, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt});
+  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.teamId, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt});
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
 @override final  String id;
 @override final  String status;
 @override final  String owner;
 @override final  String repo;
-@override final  String? userId;
+@override final  String? teamId;
 @override final  String? commitSha;
 @override final  int? pullRequestNumber;
 @override final  int? runCount;
@@ -247,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,status,owner,repo,userId,commitSha,pullRequestNumber,runCount,latestRunId,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,status,owner,repo,teamId,commitSha,pullRequestNumber,runCount,latestRunId,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, userId: $userId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -267,7 +267,7 @@ abstract mixin class _$BuildJobCopyWith<$Res> implements $BuildJobCopyWith<$Res>
   factory _$BuildJobCopyWith(_BuildJob value, $Res Function(_BuildJob) _then) = __$BuildJobCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String status, String owner, String repo, String? userId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
+ String id, String status, String owner, String repo, String? teamId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -284,13 +284,13 @@ class __$BuildJobCopyWithImpl<$Res>
 
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? userId = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? teamId = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_BuildJob(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
 as String,repo: null == repo ? _self.repo : repo // ignore: cast_nullable_to_non_nullable
-as String,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,teamId: freezed == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String?,commitSha: freezed == commitSha ? _self.commitSha : commitSha // ignore: cast_nullable_to_non_nullable
 as String?,pullRequestNumber: freezed == pullRequestNumber ? _self.pullRequestNumber : pullRequestNumber // ignore: cast_nullable_to_non_nullable
 as int?,runCount: freezed == runCount ? _self.runCount : runCount // ignore: cast_nullable_to_non_nullable

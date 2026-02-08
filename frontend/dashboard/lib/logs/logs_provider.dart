@@ -1,7 +1,7 @@
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -10,16 +10,12 @@ part 'logs_provider.g.dart';
 
 @riverpod
 Stream<List<BuildJob>> buildJobsList(Ref ref) {
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null) {
-    return Stream.value([]);
-  }
-
-  final firestore = ref.read(firestoreProvider);
+  final firestore = ref.watch(firestoreProvider);
+  final teamId = ref.watch(teamStateProvider).requireValue.id;
 
   return firestore
       .collection(buildJobsCollection)
-      .where('userId', isEqualTo: userId)
+      .where('teamId', isEqualTo: teamId)
       .orderBy('createdAt', descending: true)
       .withConverter(
         fromFirestore: (snapshot, _) => BuildJob.fromJson(snapshot.data()!),
@@ -56,7 +52,7 @@ abstract class BuildJob with _$BuildJob {
     required String status,
     required String owner,
     required String repo,
-    String? userId,
+    String? teamId,
     String? commitSha,
     int? pullRequestNumber,
     int? runCount,

@@ -173,7 +173,7 @@ async function createBuildJobs(
   for (const doc of workflowSnapshot.docs) {
     const workflow = doc.data();
     const workflowId = doc.id;
-    const userId = workflow.userId ?? null;
+    const teamId = workflow.teamId ?? null;
     const checkRunName = workflow.name;
 
     let checkRunId: number | null = null;
@@ -207,7 +207,7 @@ async function createBuildJobs(
         createdAt: FieldValue.serverTimestamp(),
         status: "queued",
         id: documentId,
-        userId,
+        teamId,
         workflowId,
         installationId,
         commitSha,

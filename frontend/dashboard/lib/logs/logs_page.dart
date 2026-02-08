@@ -34,7 +34,6 @@ class LogsPage extends HookConsumerWidget {
           }
 
           return Scrollbar(
-            thumbVisibility: true,
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: buildJobs.length,
@@ -45,8 +44,13 @@ class LogsPage extends HookConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        loading: () =>
+            const Center(child: CircularProgressIndicator.adaptive()),
+        error: (error, stack) {
+          debugPrint('Error: $error');
+          debugPrint('Stack: $stack');
+          return Center(child: Text('Error: $error'));
+        },
       ),
     );
   }
@@ -165,7 +169,6 @@ class _LogsListView extends ConsumerWidget {
           color: const Color(0xFF1E1E1E),
           constraints: const BoxConstraints(maxHeight: 400),
           child: Scrollbar(
-            thumbVisibility: true,
             child: ListView.builder(
               shrinkWrap: true,
               padding: const EdgeInsets.all(16),
