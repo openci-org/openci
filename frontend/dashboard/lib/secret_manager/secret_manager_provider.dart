@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,24 +12,20 @@ part 'secret_manager_provider.g.dart';
 @riverpod
 class SecretManager extends _$SecretManager {
   @override
-  Stream build() {
+  Stream<List<Secret>> build() {
     return secretsStream();
   }
 
-  Stream secretsStream() {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      return throw Exception('User not logged in');
-    }
-
+  Stream<List<Secret>> secretsStream() {
     final firestore = ref.read(firestoreProvider.notifier).state;
+    final teamId = ref.watch(teamStateProvider).requireValue.id;
     return firestore
         .collection(secretsCollection)
         .withConverter(
           fromFirestore: (snapshot, _) => Secret.fromJson(snapshot.data()!),
           toFirestore: (secret, _) => secret.toJson(),
         )
-        .where('userId', isEqualTo: userId)
+        .where('teamId', isEqualTo: teamId)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
@@ -37,9 +33,11 @@ class SecretManager extends _$SecretManager {
   Future<void> addSecret(String name, String value) async {
     try {
       final functions = ref.read(functionsProvider);
+      final teamId = ref.read(teamStateProvider).requireValue.id;
       await functions.httpsCallable(callableFunctionPath).call({
         'name': name,
         'value': value,
+        'teamId': teamId,
       });
     } catch (e) {
       throw Exception('Failed to add secret: $e');
@@ -52,30 +50,11 @@ abstract class Secret with _$Secret {
   const factory Secret({
     required String id,
     required String name,
-    required String userId,
+    required String teamId,
     String? pathToSecret,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Secret;
 
   factory Secret.fromJson(Map<String, Object?> json) => _$SecretFromJson(json);
-}
-
-class DateTimeConverter implements JsonConverter<DateTime, dynamic> {
-  const DateTimeConverter();
-
-  @override
-  DateTime fromJson(dynamic value) {
-    if (value is Timestamp) {
-      return value.toDate();
-    } else if (value is String) {
-      return DateTime.parse(value);
-    }
-    throw ArgumentError(
-      'Invalid type for DateTime conversion: ${value.runtimeType}',
-    );
-  }
-
-  @override
-  dynamic toJson(DateTime date) => Timestamp.fromDate(date);
 }

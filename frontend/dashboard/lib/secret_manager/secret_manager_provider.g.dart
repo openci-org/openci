@@ -9,7 +9,7 @@ part of 'secret_manager_provider.dart';
 _Secret _$SecretFromJson(Map<String, dynamic> json) => _Secret(
   id: json['id'] as String,
   name: json['name'] as String,
-  userId: json['userId'] as String,
+  teamId: json['teamId'] as String,
   pathToSecret: json['pathToSecret'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt']),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
@@ -18,7 +18,7 @@ _Secret _$SecretFromJson(Map<String, dynamic> json) => _Secret(
 Map<String, dynamic> _$SecretToJson(_Secret instance) => <String, dynamic>{
   'id': instance.id,
   'name': instance.name,
-  'userId': instance.userId,
+  'teamId': instance.teamId,
   'pathToSecret': instance.pathToSecret,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
@@ -35,7 +35,7 @@ Map<String, dynamic> _$SecretToJson(_Secret instance) => <String, dynamic>{
 final secretManagerProvider = SecretManagerProvider._();
 
 final class SecretManagerProvider
-    extends $StreamNotifierProvider<SecretManager, dynamic> {
+    extends $StreamNotifierProvider<SecretManager, List<Secret>> {
   SecretManagerProvider._()
     : super(
         from: null,
@@ -55,19 +55,19 @@ final class SecretManagerProvider
   SecretManager create() => SecretManager();
 }
 
-String _$secretManagerHash() => r'c81c8d62774efd2951a16a81d365688894c11041';
+String _$secretManagerHash() => r'b27992732c9344d46c15fd7f51aea639551d1675';
 
-abstract class _$SecretManager extends $StreamNotifier<dynamic> {
-  Stream<dynamic> build();
+abstract class _$SecretManager extends $StreamNotifier<List<Secret>> {
+  Stream<List<Secret>> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<dynamic>, dynamic>;
+    final ref = this.ref as $Ref<AsyncValue<List<Secret>>, List<Secret>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<dynamic>, dynamic>,
-              AsyncValue<dynamic>,
+              AnyNotifier<AsyncValue<List<Secret>>, List<Secret>>,
+              AsyncValue<List<Secret>>,
               Object?,
               Object?
             >;
