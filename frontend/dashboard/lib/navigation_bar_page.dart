@@ -13,6 +13,29 @@ const tabPageList = [
   SettingsPage(),
 ];
 
+const navigationBarDestinations = [
+  NavigationDestination(
+    selectedIcon: Icon(Icons.account_tree),
+    icon: Icon(Symbols.account_tree_rounded),
+    label: 'Workflows',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.key),
+    icon: Icon(Symbols.key_rounded),
+    label: 'Secret Manager',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.article),
+    icon: Icon(Symbols.article_rounded),
+    label: 'Logs',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.settings),
+    icon: Icon(Icons.settings_outlined),
+    label: 'Settings',
+  ),
+];
+
 class NavigationBarPage extends HookWidget {
   const NavigationBarPage({super.key});
 
@@ -24,28 +47,7 @@ class NavigationBarPage extends HookWidget {
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         selectedIndex: currentPageIndex.value,
         onDestinationSelected: (int index) => currentPageIndex.value = index,
-        destinations: [
-          NavigationDestination(
-            selectedIcon: Icon(Icons.account_tree),
-            icon: Icon(Symbols.account_tree_rounded),
-            label: 'Workflows',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.key),
-            icon: Icon(Symbols.key_rounded),
-            label: 'Secret Manager',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.article),
-            icon: Icon(Symbols.article_rounded),
-            label: 'Logs',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
-          ),
-        ],
+        destinations: navigationBarDestinations,
       ),
       body: tabPageList[currentPageIndex.value],
     );
