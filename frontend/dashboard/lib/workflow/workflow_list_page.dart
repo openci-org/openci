@@ -1,3 +1,4 @@
+import 'package:dashboard/team/select_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
@@ -34,77 +35,8 @@ class WorkflowListPage extends ConsumerWidget {
                   showDragHandle: true,
                   context: context,
                   isScrollControlled: true,
-                  builder: (context) {
-                    return Consumer(
-                      builder: (context, ref, child) {
-                        final teamList = ref.watch(teamListProvider);
-
-                        return teamList.when(
-                          data: (data) {
-                            return SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: Scrollbar(
-                                thumbVisibility: true,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      children: [
-                                        const Text(
-                                          'Select a team',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        ...data.map((team) {
-                                          return Card(
-                                            child: ListTile(
-                                              title: Text(team.name),
-                                              onTap: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                            ),
-                                          );
-                                        }),
-                                        const SizedBox(height: 24),
-                                        const Divider(),
-                                        const SizedBox(height: 24),
-                                        const Text(
-                                          'Create New Team',
-                                          style: TextStyle(fontSize: 16),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        TextFormField(
-                                          decoration: const InputDecoration(
-                                            border: OutlineInputBorder(),
-                                            labelText: 'Team Name',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        FilledButton(
-                                          onPressed: () async {},
-                                          child: const Text('Create Team'),
-                                        ),
-                                        const SizedBox(height: 24),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          error: (error, stackTrace) => const Center(
-                            child: Text('Error'),
-                          ),
-                          loading: () => const Center(
-                            child: CircularProgressIndicator.adaptive(),
-                          ),
-                        );
-                      },
-                    );
+                  builder: (_) {
+                    return const SelectTeamBottomSheet();
                   },
                 );
               },

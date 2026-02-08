@@ -54,21 +54,19 @@ abstract class Secret with _$Secret {
     required String name,
     required String userId,
     String? pathToSecret,
-    @TimestampConverter() required DateTime createdAt,
-    @TimestampConverter() required DateTime updatedAt,
+    @DateTimeConverter() required DateTime createdAt,
+    @DateTimeConverter() required DateTime updatedAt,
   }) = _Secret;
 
   factory Secret.fromJson(Map<String, Object?> json) => _$SecretFromJson(json);
 }
 
-class TimestampConverter implements JsonConverter<DateTime, dynamic> {
-  const TimestampConverter();
+class DateTimeConverter implements JsonConverter<DateTime, dynamic> {
+  const DateTimeConverter();
 
   @override
   DateTime fromJson(dynamic value) {
-    if (value is Timestamp) {
-      return value.toDate();
-    } else if (value is String) {
+    if (value is String) {
       return DateTime.parse(value);
     }
     throw ArgumentError(
