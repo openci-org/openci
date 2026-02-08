@@ -66,7 +66,9 @@ class DateTimeConverter implements JsonConverter<DateTime, dynamic> {
 
   @override
   DateTime fromJson(dynamic value) {
-    if (value is String) {
+    if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is String) {
       return DateTime.parse(value);
     }
     throw ArgumentError(

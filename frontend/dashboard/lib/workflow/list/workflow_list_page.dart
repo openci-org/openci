@@ -2,8 +2,8 @@ import 'package:dashboard/team/select_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
+import 'package:dashboard/workflow/list/workflow_list_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
-import 'package:dashboard/workflow/workflow_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -62,9 +62,11 @@ class WorkflowListPage extends ConsumerWidget {
                             ),
                           );
                         },
-                        error: (error, stackTrace) => const Center(
-                          child: Text('Error'),
-                        ),
+                        error: (error, stackTrace) {
+                          debugPrint('Error: $error');
+                          debugPrint('Stack trace: $stackTrace');
+                          return const Center(child: Text('Error'));
+                        },
                         loading: () => const Center(
                           child: CircularProgressIndicator.adaptive(),
                         ),

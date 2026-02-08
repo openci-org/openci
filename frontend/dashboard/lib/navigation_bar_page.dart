@@ -1,7 +1,7 @@
 import 'package:dashboard/logs/logs_page.dart';
 import 'package:dashboard/secret_manager/secret_manager_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
-import 'package:dashboard/workflow/workflow_list_page.dart';
+import 'package:dashboard/workflow/list/workflow_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:material_symbols_icons/symbols.dart';

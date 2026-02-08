@@ -10,7 +10,7 @@ part 'workflow_list_provider.g.dart';
 Stream<List<Workflow>> workflowList(Ref ref) {
   final userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) {
-    return Stream.value([]);
+    throw Exception('User not logged in');
   }
   return ref
       .read(firestoreProvider)
