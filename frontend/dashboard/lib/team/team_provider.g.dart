@@ -3,6 +3,26 @@
 part of 'team_provider.dart';
 
 // **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_Team _$TeamFromJson(Map<String, dynamic> json) => _Team(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  members: (json['members'] as List<dynamic>).map((e) => e as String).toList(),
+  createdAt: const DateTimeConverter().fromJson(json['createdAt']),
+  updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
+);
+
+Map<String, dynamic> _$TeamToJson(_Team instance) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'members': instance.members,
+  'createdAt': const DateTimeConverter().toJson(instance.createdAt),
+  'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
+};
+
+// **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
@@ -76,7 +96,7 @@ final class TeamListProvider
   TeamList create() => TeamList();
 }
 
-String _$teamListHash() => r'f2c00618887f0962b58353b00b3c0d3056cc1ee8';
+String _$teamListHash() => r'c48b779f7b09f20854107a94f87da45b7ed34311';
 
 abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Secret {
 
- String get id; String get name; String get userId; String? get pathToSecret;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
+ String get id; String get name; String get userId; String? get pathToSecret;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;
 /// Create a copy of Secret
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $SecretCopyWith<$Res>  {
   factory $SecretCopyWith(Secret value, $Res Function(Secret) _then) = _$SecretCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String userId, String? pathToSecret,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String name, String userId, String? pathToSecret,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -158,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String userId,  String? pathToSecret, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String userId,  String? pathToSecret, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Secret() when $default != null:
 return $default(_that.id,_that.name,_that.userId,_that.pathToSecret,_that.createdAt,_that.updatedAt);case _:
@@ -179,7 +179,7 @@ return $default(_that.id,_that.name,_that.userId,_that.pathToSecret,_that.create
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String userId,  String? pathToSecret, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String userId,  String? pathToSecret, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Secret():
 return $default(_that.id,_that.name,_that.userId,_that.pathToSecret,_that.createdAt,_that.updatedAt);case _:
@@ -199,7 +199,7 @@ return $default(_that.id,_that.name,_that.userId,_that.pathToSecret,_that.create
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String userId,  String? pathToSecret, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String userId,  String? pathToSecret, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Secret() when $default != null:
 return $default(_that.id,_that.name,_that.userId,_that.pathToSecret,_that.createdAt,_that.updatedAt);case _:
@@ -214,15 +214,15 @@ return $default(_that.id,_that.name,_that.userId,_that.pathToSecret,_that.create
 @JsonSerializable()
 
 class _Secret implements Secret {
-  const _Secret({required this.id, required this.name, required this.userId, this.pathToSecret, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt});
+  const _Secret({required this.id, required this.name, required this.userId, this.pathToSecret, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt});
   factory _Secret.fromJson(Map<String, dynamic> json) => _$SecretFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override final  String userId;
 @override final  String? pathToSecret;
-@override@TimestampConverter() final  DateTime createdAt;
-@override@TimestampConverter() final  DateTime updatedAt;
+@override@DateTimeConverter() final  DateTime createdAt;
+@override@DateTimeConverter() final  DateTime updatedAt;
 
 /// Create a copy of Secret
 /// with the given fields replaced by the non-null parameter values.
@@ -257,7 +257,7 @@ abstract mixin class _$SecretCopyWith<$Res> implements $SecretCopyWith<$Res> {
   factory _$SecretCopyWith(_Secret value, $Res Function(_Secret) _then) = __$SecretCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String userId, String? pathToSecret,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String name, String userId, String? pathToSecret,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 

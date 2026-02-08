@@ -11,8 +11,8 @@ _Secret _$SecretFromJson(Map<String, dynamic> json) => _Secret(
   name: json['name'] as String,
   userId: json['userId'] as String,
   pathToSecret: json['pathToSecret'] as String?,
-  createdAt: const TimestampConverter().fromJson(json['createdAt']),
-  updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
+  createdAt: const DateTimeConverter().fromJson(json['createdAt']),
+  updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
 );
 
 Map<String, dynamic> _$SecretToJson(_Secret instance) => <String, dynamic>{
@@ -20,8 +20,8 @@ Map<String, dynamic> _$SecretToJson(_Secret instance) => <String, dynamic>{
   'name': instance.name,
   'userId': instance.userId,
   'pathToSecret': instance.pathToSecret,
-  'createdAt': const TimestampConverter().toJson(instance.createdAt),
-  'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
+  'createdAt': const DateTimeConverter().toJson(instance.createdAt),
+  'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
 };
 
 // **************************************************************************

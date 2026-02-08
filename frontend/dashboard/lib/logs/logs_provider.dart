@@ -61,8 +61,8 @@ abstract class BuildJob with _$BuildJob {
     int? pullRequestNumber,
     int? runCount,
     String? latestRunId,
-    @TimestampConverter() required DateTime createdAt,
-    @TimestampConverter() required DateTime updatedAt,
+    @DateTimeConverter() required DateTime createdAt,
+    @DateTimeConverter() required DateTime updatedAt,
   }) = _BuildJob;
 
   factory BuildJob.fromJson(Map<String, Object?> json) =>
@@ -74,7 +74,7 @@ abstract class BuildLog with _$BuildLog {
   const factory BuildLog({
     required String message,
     required String level,
-    @TimestampConverter() DateTime? timestamp,
+    @DateTimeConverter() DateTime? timestamp,
   }) = _BuildLog;
 
   factory BuildLog.fromJson(Map<String, Object?> json) =>

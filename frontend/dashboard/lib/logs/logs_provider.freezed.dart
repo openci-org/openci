@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BuildJob {
 
- String get id; String get status; String get owner; String get repo; String? get userId; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
+ String get id; String get status; String get owner; String get repo; String? get userId; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $BuildJobCopyWith<$Res>  {
   factory $BuildJobCopyWith(BuildJob value, $Res Function(BuildJob) _then) = _$BuildJobCopyWithImpl;
 @useResult
 $Res call({
- String id, String status, String owner, String repo, String? userId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String status, String owner, String repo, String? userId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -163,7 +163,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
 return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
@@ -184,7 +184,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob():
 return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
@@ -204,7 +204,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? userId,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
 return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.createdAt,_that.updatedAt);case _:
@@ -219,7 +219,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.userId,_that.
 @JsonSerializable()
 
 class _BuildJob implements BuildJob {
-  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.userId, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt});
+  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.userId, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt});
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
 @override final  String id;
@@ -231,8 +231,8 @@ class _BuildJob implements BuildJob {
 @override final  int? pullRequestNumber;
 @override final  int? runCount;
 @override final  String? latestRunId;
-@override@TimestampConverter() final  DateTime createdAt;
-@override@TimestampConverter() final  DateTime updatedAt;
+@override@DateTimeConverter() final  DateTime createdAt;
+@override@DateTimeConverter() final  DateTime updatedAt;
 
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
@@ -267,7 +267,7 @@ abstract mixin class _$BuildJobCopyWith<$Res> implements $BuildJobCopyWith<$Res>
   factory _$BuildJobCopyWith(_BuildJob value, $Res Function(_BuildJob) _then) = __$BuildJobCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String status, String owner, String repo, String? userId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String status, String owner, String repo, String? userId, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -308,7 +308,7 @@ as DateTime,
 /// @nodoc
 mixin _$BuildLog {
 
- String get message; String get level;@TimestampConverter() DateTime? get timestamp;
+ String get message; String get level;@DateTimeConverter() DateTime? get timestamp;
 /// Create a copy of BuildLog
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -341,7 +341,7 @@ abstract mixin class $BuildLogCopyWith<$Res>  {
   factory $BuildLogCopyWith(BuildLog value, $Res Function(BuildLog) _then) = _$BuildLogCopyWithImpl;
 @useResult
 $Res call({
- String message, String level,@TimestampConverter() DateTime? timestamp
+ String message, String level,@DateTimeConverter() DateTime? timestamp
 });
 
 
@@ -448,7 +448,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String message,  String level, @TimestampConverter()  DateTime? timestamp)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String message,  String level, @DateTimeConverter()  DateTime? timestamp)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BuildLog() when $default != null:
 return $default(_that.message,_that.level,_that.timestamp);case _:
@@ -469,7 +469,7 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String message,  String level, @TimestampConverter()  DateTime? timestamp)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String message,  String level, @DateTimeConverter()  DateTime? timestamp)  $default,) {final _that = this;
 switch (_that) {
 case _BuildLog():
 return $default(_that.message,_that.level,_that.timestamp);case _:
@@ -489,7 +489,7 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String message,  String level, @TimestampConverter()  DateTime? timestamp)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String message,  String level, @DateTimeConverter()  DateTime? timestamp)?  $default,) {final _that = this;
 switch (_that) {
 case _BuildLog() when $default != null:
 return $default(_that.message,_that.level,_that.timestamp);case _:
@@ -504,12 +504,12 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 @JsonSerializable()
 
 class _BuildLog implements BuildLog {
-  const _BuildLog({required this.message, required this.level, @TimestampConverter() this.timestamp});
+  const _BuildLog({required this.message, required this.level, @DateTimeConverter() this.timestamp});
   factory _BuildLog.fromJson(Map<String, dynamic> json) => _$BuildLogFromJson(json);
 
 @override final  String message;
 @override final  String level;
-@override@TimestampConverter() final  DateTime? timestamp;
+@override@DateTimeConverter() final  DateTime? timestamp;
 
 /// Create a copy of BuildLog
 /// with the given fields replaced by the non-null parameter values.
@@ -544,7 +544,7 @@ abstract mixin class _$BuildLogCopyWith<$Res> implements $BuildLogCopyWith<$Res>
   factory _$BuildLogCopyWith(_BuildLog value, $Res Function(_BuildLog) _then) = __$BuildLogCopyWithImpl;
 @override @useResult
 $Res call({
- String message, String level,@TimestampConverter() DateTime? timestamp
+ String message, String level,@DateTimeConverter() DateTime? timestamp
 });
 
 

@@ -3,35 +3,48 @@ rules_version = '2';
 service cloud.firestore {
     match /databases/{database}/documents {
 
-        match /workflows_v1/{workflowId} {
-            allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-            allow update: if request.auth != null 
-                && resource.data.userId == request.auth.uid;
-            allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        function isAuthenticated() {
+            return request.auth != null;
         }
 
-        match /secrets_v0/{secretId} {
-            allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-            allow update: if request.auth != null 
-                && resource.data.userId == request.auth.uid;
-            allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        function isOwner() {
+            return isAuthenticated() && resource.data.userId == request.auth.uid;
+        }
+
+        function isOwnerOfNewDoc() {
+            return isAuthenticated() && request.resource.data.userId == request.auth.uid;
         }
 
         match /build_jobs_v0/{buildJobId} {
-            allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+            allow read: if isOwner();
             allow write: if false;
 
             match /runs/{runId} {
-                allow read: if request.auth != null 
+                allow read: if isAuthenticated() 
                     && get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.userId == request.auth.uid;
                 allow write: if false;
 
                 match /logs/{logId} {
-                    allow read: if request.auth != null 
+                    allow read: if isAuthenticated() 
                         && get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.userId == request.auth.uid;
                     allow write: if false;
                 }
             }
+        }
+
+        match /workflows_v1/{workflowId} {
+            allow create: if isOwnerOfNewDoc();
+            allow read, update, delete: if isOwner();
+        }
+
+        match /secrets_v0/{secretId} {
+            allow create: if isOwnerOfNewDoc();
+            allow read, update, delete: if isOwner();
+        }
+
+        match /teams_v0/{teamId} {
+            allow create: if isAuthenticated();
+            allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
         }
 
         match /{document=**} {

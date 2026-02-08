@@ -16,8 +16,8 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   pullRequestNumber: (json['pullRequestNumber'] as num?)?.toInt(),
   runCount: (json['runCount'] as num?)?.toInt(),
   latestRunId: json['latestRunId'] as String?,
-  createdAt: const TimestampConverter().fromJson(json['createdAt']),
-  updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
+  createdAt: const DateTimeConverter().fromJson(json['createdAt']),
+  updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
 );
 
 Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
@@ -30,14 +30,14 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'pullRequestNumber': instance.pullRequestNumber,
   'runCount': instance.runCount,
   'latestRunId': instance.latestRunId,
-  'createdAt': const TimestampConverter().toJson(instance.createdAt),
-  'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
+  'createdAt': const DateTimeConverter().toJson(instance.createdAt),
+  'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
 };
 
 _BuildLog _$BuildLogFromJson(Map<String, dynamic> json) => _BuildLog(
   message: json['message'] as String,
   level: json['level'] as String,
-  timestamp: const TimestampConverter().fromJson(json['timestamp']),
+  timestamp: const DateTimeConverter().fromJson(json['timestamp']),
 );
 
 Map<String, dynamic> _$BuildLogToJson(_BuildLog instance) => <String, dynamic>{
@@ -45,7 +45,7 @@ Map<String, dynamic> _$BuildLogToJson(_BuildLog instance) => <String, dynamic>{
   'level': instance.level,
   'timestamp': _$JsonConverterToJson<dynamic, DateTime>(
     instance.timestamp,
-    const TimestampConverter().toJson,
+    const DateTimeConverter().toJson,
   ),
 };
 

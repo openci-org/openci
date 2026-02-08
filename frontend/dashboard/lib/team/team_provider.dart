@@ -1,25 +1,41 @@
+import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/secret_manager/secret_manager_provider.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+part 'team_provider.freezed.dart';
 part 'team_provider.g.dart';
 
-class Team {
-  final String id;
-  final String name;
+@freezed
+abstract class Team with _$Team {
+  const factory Team({
+    required String id,
+    required String name,
+    required List<String> members,
+    @DateTimeConverter() required DateTime createdAt,
+    @DateTimeConverter() required DateTime updatedAt,
+  }) = _Team;
 
-  const Team({required this.id, required this.name});
+  factory Team.fromJson(Map<String, Object?> json) => _$TeamFromJson(json);
 }
 
-const teamList = [
-  Team(id: '1', name: 'Team A'),
-  Team(id: '2', name: 'Team B'),
-  Team(id: '3', name: 'Team C'),
-  Team(id: '4', name: 'Team D'),
-  Team(id: '5', name: 'Team E'),
-  Team(id: '6', name: 'Team F'),
-  Team(id: '7', name: 'Team G'),
-  Team(id: '8', name: 'Team H'),
-  Team(id: '9', name: 'Team I'),
-  Team(id: '10', name: 'Team J'),
+final teamList = [
+  Team(
+    id: '1',
+    name: 'Team A',
+    members: ['1'],
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  ),
+  Team(
+    id: '2',
+    name: 'Team B',
+    members: ['2'],
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  ),
 ];
 
 @riverpod
@@ -37,7 +53,22 @@ class TeamList extends _$TeamList {
     return Stream.value(teamList);
   }
 
-  Future<void> selectTeam(String teamId) async {
-    // Call Firestore to update the selected team
+  Future<void> createTeam(String teamName) async {
+    final firestore = ref.read(firestoreProvider);
+    final auth = ref.read(authProvider);
+    final currentUserId = auth.requireValue?.uid;
+    if (currentUserId == null) {
+      throw Exception('User is not authenticated');
+    }
+    final docRef = firestore.collection(teamsCollection).doc();
+    await docRef.set(
+      Team(
+        id: docRef.id,
+        name: teamName,
+        members: [currentUserId],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ).toJson(),
+    );
   }
 }
