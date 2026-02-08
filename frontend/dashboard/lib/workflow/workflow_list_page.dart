@@ -43,41 +43,55 @@ class WorkflowListPage extends ConsumerWidget {
                           data: (data) {
                             return SizedBox(
                               height: MediaQuery.of(context).size.height * 0.6,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      'Select a team',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    ...data.map((team) {
-                                      return Card(
-                                        child: ListTile(
-                                          title: Text(team.name),
-                                          onTap: () {
-                                            Navigator.of(context).pop();
-                                          },
+                              child: Scrollbar(
+                                thumbVisibility: true,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: [
+                                        const Text(
+                                          'Select a team',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                          ),
                                         ),
-                                      );
-                                    }),
-                                    const SizedBox(height: 16),
-                                    FilledButton(
-                                      onPressed: () async {
-                                        await ref
-                                            .read(teamListProvider.notifier)
-                                            .selectTeam(data.first.id);
-                                        if (!context.mounted) return;
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Create Team'),
+                                        const SizedBox(height: 16),
+                                        ...data.map((team) {
+                                          return Card(
+                                            child: ListTile(
+                                              title: Text(team.name),
+                                              onTap: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                          );
+                                        }),
+                                        const SizedBox(height: 24),
+                                        const Divider(),
+                                        const SizedBox(height: 24),
+                                        const Text(
+                                          'Create New Team',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          decoration: const InputDecoration(
+                                            border: OutlineInputBorder(),
+                                            labelText: 'Team Name',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        FilledButton(
+                                          onPressed: () async {},
+                                          child: const Text('Create Team'),
+                                        ),
+                                        const SizedBox(height: 24),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             );
