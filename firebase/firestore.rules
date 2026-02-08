@@ -7,39 +7,35 @@ service cloud.firestore {
             return request.auth != null;
         }
 
-        function isOwner() {
-            return isAuthenticated() && resource.data.userId == request.auth.uid;
-        }
-
-        function isOwnerOfNewDoc() {
-            return isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        function isTeamMember(teamId) {
+            return isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/teams_v0/$(teamId)).data.members;
         }
 
         match /build_jobs_v0/{buildJobId} {
-            allow read: if isOwner();
+            allow read: if isTeamMember(resource.data.teamId);
             allow write: if false;
 
             match /runs/{runId} {
                 allow read: if isAuthenticated() 
-                    && get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.userId == request.auth.uid;
+                    && isTeamMember(get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.teamId);
                 allow write: if false;
 
                 match /logs/{logId} {
                     allow read: if isAuthenticated() 
-                        && get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.userId == request.auth.uid;
+                        && isTeamMember(get(/databases/$(database)/documents/build_jobs_v0/$(buildJobId)).data.teamId);
                     allow write: if false;
                 }
             }
         }
 
         match /workflows_v1/{workflowId} {
-            allow create: if isOwnerOfNewDoc();
-            allow read, update, delete: if isOwner();
+            allow create: if isTeamMember(request.resource.data.teamId);
+            allow read, update, delete: if isTeamMember(resource.data.teamId);
         }
 
         match /secrets_v0/{secretId} {
-            allow create: if isOwnerOfNewDoc();
-            allow read, update, delete: if isOwner();
+            allow create: if isTeamMember(request.resource.data.teamId);
+            allow read, update, delete: if isTeamMember(resource.data.teamId);
         }
 
         match /teams_v0/{teamId} {

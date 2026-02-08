@@ -1,6 +1,6 @@
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -51,10 +51,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     String? selectedTriggerBranch,
   }) async {
     final documentId = Uuid().v4();
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      throw Exception('Firebase Auth User Id is null');
-    }
+    final teamId = ref.watch(teamStateProvider).requireValue.id;
 
     await ref
         .read(firestoreProvider.notifier)
@@ -66,7 +63,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
             documentId: documentId,
-            userId: userId,
+            teamId: teamId,
             name: name,
             workflowConfig: WorkflowConfig(
               selectedRepository: selectedRepository,

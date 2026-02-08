@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Workflow {
 
- DateTime get createdAt; DateTime get updatedAt; String get documentId; String get userId; String get name; WorkflowConfig get workflowConfig; List<WorkflowStep> get workflowSteps; bool get isEditing;
+ DateTime get createdAt; DateTime get updatedAt; String get documentId; String get name; String get teamId; WorkflowConfig get workflowConfig; List<WorkflowStep> get workflowSteps; bool get isEditing;
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $WorkflowCopyWith<Workflow> get copyWith => _$WorkflowCopyWithImpl<Workflow>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Workflow&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.name, name) || other.name == name)&&(identical(other.workflowConfig, workflowConfig) || other.workflowConfig == workflowConfig)&&const DeepCollectionEquality().equals(other.workflowSteps, workflowSteps)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Workflow&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.name, name) || other.name == name)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.workflowConfig, workflowConfig) || other.workflowConfig == workflowConfig)&&const DeepCollectionEquality().equals(other.workflowSteps, workflowSteps)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,createdAt,updatedAt,documentId,userId,name,workflowConfig,const DeepCollectionEquality().hash(workflowSteps),isEditing);
+int get hashCode => Object.hash(runtimeType,createdAt,updatedAt,documentId,name,teamId,workflowConfig,const DeepCollectionEquality().hash(workflowSteps),isEditing);
 
 @override
 String toString() {
-  return 'Workflow(createdAt: $createdAt, updatedAt: $updatedAt, documentId: $documentId, userId: $userId, name: $name, workflowConfig: $workflowConfig, workflowSteps: $workflowSteps, isEditing: $isEditing)';
+  return 'Workflow(createdAt: $createdAt, updatedAt: $updatedAt, documentId: $documentId, name: $name, teamId: $teamId, workflowConfig: $workflowConfig, workflowSteps: $workflowSteps, isEditing: $isEditing)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $WorkflowCopyWith<$Res>  {
   factory $WorkflowCopyWith(Workflow value, $Res Function(Workflow) _then) = _$WorkflowCopyWithImpl;
 @useResult
 $Res call({
- DateTime createdAt, DateTime updatedAt, String documentId, String userId, String name, WorkflowConfig workflowConfig, List<WorkflowStep> workflowSteps, bool isEditing
+ DateTime createdAt, DateTime updatedAt, String documentId, String name, String teamId, WorkflowConfig workflowConfig, List<WorkflowStep> workflowSteps, bool isEditing
 });
 
 
@@ -65,13 +65,13 @@ class _$WorkflowCopyWithImpl<$Res>
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? createdAt = null,Object? updatedAt = null,Object? documentId = null,Object? userId = null,Object? name = null,Object? workflowConfig = null,Object? workflowSteps = null,Object? isEditing = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? createdAt = null,Object? updatedAt = null,Object? documentId = null,Object? name = null,Object? teamId = null,Object? workflowConfig = null,Object? workflowSteps = null,Object? isEditing = null,}) {
   return _then(_self.copyWith(
 createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
-as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,teamId: null == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String,workflowConfig: null == workflowConfig ? _self.workflowConfig : workflowConfig // ignore: cast_nullable_to_non_nullable
 as WorkflowConfig,workflowSteps: null == workflowSteps ? _self.workflowSteps : workflowSteps // ignore: cast_nullable_to_non_nullable
 as List<WorkflowStep>,isEditing: null == isEditing ? _self.isEditing : isEditing // ignore: cast_nullable_to_non_nullable
@@ -169,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime createdAt,  DateTime updatedAt,  String documentId,  String userId,  String name,  WorkflowConfig workflowConfig,  List<WorkflowStep> workflowSteps,  bool isEditing)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime createdAt,  DateTime updatedAt,  String documentId,  String name,  String teamId,  WorkflowConfig workflowConfig,  List<WorkflowStep> workflowSteps,  bool isEditing)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
-return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.userId,_that.name,_that.workflowConfig,_that.workflowSteps,_that.isEditing);case _:
+return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.name,_that.teamId,_that.workflowConfig,_that.workflowSteps,_that.isEditing);case _:
   return orElse();
 
 }
@@ -190,10 +190,10 @@ return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.userId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime createdAt,  DateTime updatedAt,  String documentId,  String userId,  String name,  WorkflowConfig workflowConfig,  List<WorkflowStep> workflowSteps,  bool isEditing)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime createdAt,  DateTime updatedAt,  String documentId,  String name,  String teamId,  WorkflowConfig workflowConfig,  List<WorkflowStep> workflowSteps,  bool isEditing)  $default,) {final _that = this;
 switch (_that) {
 case _Workflow():
-return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.userId,_that.name,_that.workflowConfig,_that.workflowSteps,_that.isEditing);case _:
+return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.name,_that.teamId,_that.workflowConfig,_that.workflowSteps,_that.isEditing);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +210,10 @@ return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.userId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime createdAt,  DateTime updatedAt,  String documentId,  String userId,  String name,  WorkflowConfig workflowConfig,  List<WorkflowStep> workflowSteps,  bool isEditing)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime createdAt,  DateTime updatedAt,  String documentId,  String name,  String teamId,  WorkflowConfig workflowConfig,  List<WorkflowStep> workflowSteps,  bool isEditing)?  $default,) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
-return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.userId,_that.name,_that.workflowConfig,_that.workflowSteps,_that.isEditing);case _:
+return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.name,_that.teamId,_that.workflowConfig,_that.workflowSteps,_that.isEditing);case _:
   return null;
 
 }
@@ -225,14 +225,14 @@ return $default(_that.createdAt,_that.updatedAt,_that.documentId,_that.userId,_t
 @JsonSerializable()
 
 class _Workflow implements Workflow {
-  const _Workflow({required this.createdAt, required this.updatedAt, required this.documentId, required this.userId, required this.name, required this.workflowConfig, required this.workflowSteps, required this.isEditing});
+  const _Workflow({required this.createdAt, required this.updatedAt, required this.documentId, required this.name, required this.teamId, required this.workflowConfig, required this.workflowSteps, required this.isEditing});
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);
 
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
 @override final  String documentId;
-@override final  String userId;
 @override final  String name;
+@override final  String teamId;
 @override final  WorkflowConfig workflowConfig;
 @override final  List<WorkflowStep> workflowSteps;
 @override final  bool isEditing;
@@ -250,16 +250,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Workflow&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.name, name) || other.name == name)&&(identical(other.workflowConfig, workflowConfig) || other.workflowConfig == workflowConfig)&&const DeepCollectionEquality().equals(other.workflowSteps, workflowSteps)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Workflow&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.documentId, documentId) || other.documentId == documentId)&&(identical(other.name, name) || other.name == name)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.workflowConfig, workflowConfig) || other.workflowConfig == workflowConfig)&&const DeepCollectionEquality().equals(other.workflowSteps, workflowSteps)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,createdAt,updatedAt,documentId,userId,name,workflowConfig,const DeepCollectionEquality().hash(workflowSteps),isEditing);
+int get hashCode => Object.hash(runtimeType,createdAt,updatedAt,documentId,name,teamId,workflowConfig,const DeepCollectionEquality().hash(workflowSteps),isEditing);
 
 @override
 String toString() {
-  return 'Workflow(createdAt: $createdAt, updatedAt: $updatedAt, documentId: $documentId, userId: $userId, name: $name, workflowConfig: $workflowConfig, workflowSteps: $workflowSteps, isEditing: $isEditing)';
+  return 'Workflow(createdAt: $createdAt, updatedAt: $updatedAt, documentId: $documentId, name: $name, teamId: $teamId, workflowConfig: $workflowConfig, workflowSteps: $workflowSteps, isEditing: $isEditing)';
 }
 
 
@@ -270,7 +270,7 @@ abstract mixin class _$WorkflowCopyWith<$Res> implements $WorkflowCopyWith<$Res>
   factory _$WorkflowCopyWith(_Workflow value, $Res Function(_Workflow) _then) = __$WorkflowCopyWithImpl;
 @override @useResult
 $Res call({
- DateTime createdAt, DateTime updatedAt, String documentId, String userId, String name, WorkflowConfig workflowConfig, List<WorkflowStep> workflowSteps, bool isEditing
+ DateTime createdAt, DateTime updatedAt, String documentId, String name, String teamId, WorkflowConfig workflowConfig, List<WorkflowStep> workflowSteps, bool isEditing
 });
 
 
@@ -287,13 +287,13 @@ class __$WorkflowCopyWithImpl<$Res>
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? createdAt = null,Object? updatedAt = null,Object? documentId = null,Object? userId = null,Object? name = null,Object? workflowConfig = null,Object? workflowSteps = null,Object? isEditing = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? createdAt = null,Object? updatedAt = null,Object? documentId = null,Object? name = null,Object? teamId = null,Object? workflowConfig = null,Object? workflowSteps = null,Object? isEditing = null,}) {
   return _then(_Workflow(
 createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,documentId: null == documentId ? _self.documentId : documentId // ignore: cast_nullable_to_non_nullable
-as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,teamId: null == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String,workflowConfig: null == workflowConfig ? _self.workflowConfig : workflowConfig // ignore: cast_nullable_to_non_nullable
 as WorkflowConfig,workflowSteps: null == workflowSteps ? _self.workflowSteps : workflowSteps // ignore: cast_nullable_to_non_nullable
 as List<WorkflowStep>,isEditing: null == isEditing ? _self.isEditing : isEditing // ignore: cast_nullable_to_non_nullable
