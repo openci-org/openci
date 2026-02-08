@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -241,9 +241,7 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                       child: ElevatedButton(
                         onPressed: () async {
                           try {
-                            final functions = FirebaseFunctions.instanceFor(
-                              region: 'asia-northeast1',
-                            );
+                            final functions = ref.read(functionsProvider);
                             final createSecret = functions.httpsCallable(
                               'createSecretV1',
                             );

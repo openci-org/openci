@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -33,17 +33,17 @@ class SecretManager extends _$SecretManager {
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
-}
 
-Future<void> addSecret(String name, String value) async {
-  try {
-    final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast1');
-    await functions.httpsCallable(callableFunctionPath).call({
-      'name': name,
-      'value': value,
-    });
-  } catch (e) {
-    throw Exception('Failed to add secret: $e');
+  Future<void> addSecret(String name, String value) async {
+    try {
+      final functions = ref.read(functionsProvider);
+      await functions.httpsCallable(callableFunctionPath).call({
+        'name': name,
+        'value': value,
+      });
+    } catch (e) {
+      throw Exception('Failed to add secret: $e');
+    }
   }
 }
 

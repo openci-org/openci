@@ -1,17 +1,19 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { onCall, onRequest } from "firebase-functions/https";
+import { HttpsError, onCall, onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { beforeUserCreated } from "firebase-functions/v2/identity";
 import { App } from "octokit";
 import { v4 as uuidv4 } from "uuid";
 
+import { getAuth } from "firebase-admin/auth";
 import {
   buildJobsCollectionPath,
   orgsCollectionPath,
   secretsCollectionPath,
+  teamsCollectionPath,
   usersCollectionPath,
   workflowsCollectionPath,
 } from "./firestore-collection-paths";
@@ -393,5 +395,61 @@ export const onUserSignUp = beforeUserCreated(
     await batch.commit();
 
     logger.info(`Created personal org ${orgId} for user ${userId}`);
+  },
+);
+
+export const inviteTeamMember = onCall(
+  {
+    region: "asia-northeast1",
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Unauthenticated");
+    }
+
+    const callerUid = request.auth.uid;
+    const { email, teamId } = request.data as { email: string; teamId: string };
+
+    if (!email || !teamId) {
+      throw new HttpsError("invalid-argument", "Missing email or teamId");
+    }
+
+    const teamRef = db.collection(teamsCollectionPath).doc(teamId);
+    const teamDoc = await teamRef.get();
+
+    if (!teamDoc.exists) {
+      throw new HttpsError("not-found", "Team not found");
+    }
+
+    const teamData = teamDoc.data()!;
+    const members: string[] = teamData.members || [];
+
+    if (!members.includes(callerUid)) {
+      throw new HttpsError("permission-denied", "You are not a member of this team");
+    }
+
+    let inviteeUid: string;
+    try {
+      const userRecord = await getAuth().getUserByEmail(email);
+      inviteeUid = userRecord.uid;
+    } catch (error: any) {
+      if (error.code === "auth/user-not-found") {
+        throw new HttpsError("not-found", `No user found with email: ${email}`);
+      }
+      throw new HttpsError("internal", error.message);
+    }
+
+    if (members.includes(inviteeUid)) {
+      throw new HttpsError("already-exists", "User is already a member of this team");
+    }
+
+    await teamRef.update({
+      members: FieldValue.arrayUnion(inviteeUid),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    logger.info(`User ${inviteeUid} added to team ${teamId} by ${callerUid}`);
+
+    return { success: true, inviteeUid };
   },
 );
