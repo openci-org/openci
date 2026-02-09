@@ -255,6 +255,24 @@
         },
         "problemMatcher": [],
       },
+      {
+        "label": "(Dev) Deploy Flutter Web to Firebase Hosting",
+        "type": "shell",
+        "command": "flutter build web --release && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use default && firebase deploy --only hosting",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "(Prod) Deploy Flutter Web to Firebase Hosting",
+        "type": "shell",
+        "command": "flutter build web --release && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use prod && firebase deploy --only hosting && firebase use default",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+      },
     ],
   },
 }
