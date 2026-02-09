@@ -21,7 +21,7 @@ class WorkflowEditorPage extends ConsumerWidget {
       ),
       body: state.when(
         data: (workflow) {
-          return WorkflowList(
+          return StepList(
             steps: workflow.workflowSteps,
             workflowConfig: workflow.workflowConfig,
             documentId: workflow.documentId,
@@ -48,22 +48,8 @@ class WorkflowEditorPage extends ConsumerWidget {
   }
 }
 
-Future<void> _showChooseWorkflowTemplate(
-  BuildContext context,
-  String documentId,
-) {
-  return showModalBottomSheet(
-    isScrollControlled: true,
-    context: context,
-    builder: (_) => SizedBox(
-      height: MediaQuery.of(context).size.height * 0.8,
-      child: ChooseWorkflowTemplate(documentId: documentId),
-    ),
-  );
-}
-
-class WorkflowList extends StatelessWidget {
-  const WorkflowList({
+class StepList extends StatelessWidget {
+  const StepList({
     super.key,
     required this.steps,
     required this.workflowConfig,
@@ -93,19 +79,13 @@ class WorkflowList extends StatelessWidget {
             ),
           ),
           if (steps.isNotEmpty) ...[
-            SizedBox(
-              height: 24,
-              child: Icon(Icons.arrow_downward),
-            ),
+            StepConnector(documentId: documentId, insertAt: 0),
             ...steps.asMap().entries.expand((entry) {
               final index = entry.key;
               final step = entry.value;
               return [
                 if (index > 0)
-                  SizedBox(
-                    height: 24.0,
-                    child: Icon(Icons.arrow_downward),
-                  ),
+                  StepConnector(documentId: documentId, insertAt: index),
                 StepCard(
                   title: step.name,
                   isCompleted: step.isCompleted,
@@ -113,22 +93,75 @@ class WorkflowList extends StatelessWidget {
               ];
             }),
           ],
-          ..._addButton(context, documentId),
+          IconButton.filled(
+            onPressed: () => showModalBottomSheet(
+              isScrollControlled: true,
+              context: context,
+              builder: (_) => SizedBox(
+                height: MediaQuery.of(context).size.height * 0.8,
+                child: ChooseWorkflowTemplate(documentId: documentId),
+              ),
+            ),
+            icon: const Icon(Icons.add),
+          ),
         ],
       ),
     );
   }
+}
 
-  List<Widget> _addButton(BuildContext context, String documentId) {
-    return [
-      SizedBox(height: 20.0),
-      Center(
-        child: IconButton.filled(
-          onPressed: () => _showChooseWorkflowTemplate(context, documentId),
-          icon: const Icon(Icons.add),
-        ),
+class StepConnector extends StatelessWidget {
+  const StepConnector({
+    required this.documentId,
+    required this.insertAt,
+    super.key,
+  });
+  final String documentId;
+  final int insertAt;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 60,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 2,
+            height: 52,
+            color: Colors.black26,
+          ),
+          IconButton(
+            iconSize: 16,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            style: ButtonStyle(
+              backgroundColor: WidgetStatePropertyAll(
+                Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              iconColor: WidgetStatePropertyAll(
+                Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            onPressed: () => showModalBottomSheet(
+              isScrollControlled: true,
+              context: context,
+              builder: (_) => SizedBox(
+                height: MediaQuery.of(context).size.height * 0.8,
+                child: ChooseWorkflowTemplate(
+                  documentId: documentId,
+                  insertAt: insertAt,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.add),
+          ),
+        ],
       ),
-    ];
+    );
   }
 }
 
