@@ -79,7 +79,7 @@ class WorkflowList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(14.0),
       child: Column(
         children: [
@@ -92,36 +92,28 @@ class WorkflowList extends StatelessWidget {
               title: Text('Basic Information'),
             ),
           ),
-          if (steps.isNotEmpty)
+          if (steps.isNotEmpty) ...[
             SizedBox(
               height: 24,
               child: Icon(Icons.arrow_downward),
             ),
-          if (steps.isEmpty) ..._addButton(context, documentId),
-          if (steps.isNotEmpty)
-            Expanded(
-              child: ListView.separated(
-                itemCount: steps.length,
-                separatorBuilder: (_, _) => SizedBox(
-                  height: 24.0,
-                  child: Icon(Icons.arrow_downward),
+            ...steps.asMap().entries.expand((entry) {
+              final index = entry.key;
+              final step = entry.value;
+              return [
+                if (index > 0)
+                  SizedBox(
+                    height: 24.0,
+                    child: Icon(Icons.arrow_downward),
+                  ),
+                StepCard(
+                  title: step.name,
+                  isCompleted: step.isCompleted,
                 ),
-                itemBuilder: (_, index) {
-                  final step = steps[index];
-
-                  return Column(
-                    children: [
-                      StepCard(
-                        title: step.name,
-                        isCompleted: step.isCompleted,
-                      ),
-                      if (index == steps.length - 1)
-                        ..._addButton(context, documentId),
-                    ],
-                  );
-                },
-              ),
-            ),
+              ];
+            }),
+          ],
+          ..._addButton(context, documentId),
         ],
       ),
     );
