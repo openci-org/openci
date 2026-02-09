@@ -2,7 +2,9 @@ import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class WorkflowEditorPage extends ConsumerWidget {
   const WorkflowEditorPage({
@@ -26,11 +28,7 @@ class WorkflowEditorPage extends ConsumerWidget {
             workflowConfig: workflow.workflowConfig,
             documentId: workflow.documentId,
             workflowName: workflow.name,
-            onNameChanged: (name) {
-              ref
-                  .read(workflowEditorProvider(workflowId).notifier)
-                  .updateName(name);
-            },
+            workflowId: workflowId,
           );
         },
         error: (error, stackTrace) {
@@ -55,13 +53,13 @@ class StepList extends StatelessWidget {
     required this.workflowConfig,
     required this.documentId,
     required this.workflowName,
-    required this.onNameChanged,
+    required this.workflowId,
   });
   final List<WorkflowStep> steps;
   final WorkflowConfig workflowConfig;
   final String documentId;
   final String workflowName;
-  final ValueChanged<String> onNameChanged;
+  final String workflowId;
 
   @override
   Widget build(BuildContext context) {
@@ -70,12 +68,67 @@ class StepList extends StatelessWidget {
       child: Column(
         children: [
           Card(
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
-              leading: Icon(
-                Icons.check_circle,
-                color: Colors.green,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
               ),
-              title: Text('Basic Information'),
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  showDragHandle: true,
+                  builder: (_) => EditBasicInfoBottomSheet(
+                    workflowName: workflowName,
+                    workflowConfig: workflowConfig,
+                    workflowId: workflowId,
+                  ),
+                );
+              },
+              title: Text(
+                workflowName,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          workflowConfig.selectedTriggerType == TriggerType.tag
+                              ? Icons.label_outline
+                              : Icons.merge,
+                          size: 16,
+                          color: Theme.of(context).hintColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          workflowConfig.selectedTriggerType == TriggerType.tag
+                              ? 'Tag'
+                              : (workflowConfig.selectedTriggerBranch ?? 'Tag'),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.folder_outlined,
+                          size: 16,
+                          color: Theme.of(context).hintColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          workflowConfig.selectedRepository,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           if (steps.isNotEmpty) ...[
@@ -88,6 +141,7 @@ class StepList extends StatelessWidget {
                   StepConnector(documentId: documentId, insertAt: index),
                 StepCard(
                   title: step.name,
+                  command: step.command,
                   isCompleted: step.isCompleted,
                 ),
               ];
@@ -105,6 +159,142 @@ class StepList extends StatelessWidget {
             icon: const Icon(Icons.add),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class EditBasicInfoBottomSheet extends HookConsumerWidget {
+  const EditBasicInfoBottomSheet({
+    super.key,
+    required this.workflowName,
+    required this.workflowConfig,
+    required this.workflowId,
+  });
+
+  final String workflowName;
+  final WorkflowConfig workflowConfig;
+  final String workflowId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nameController = useTextEditingController(text: workflowName);
+    final repositoryController = useTextEditingController(
+      text: workflowConfig.selectedRepository,
+    );
+    final workingDirectoryController = useTextEditingController(
+      text: workflowConfig.selectedWorkingDirectory,
+    );
+    final triggerBranchController = useTextEditingController(
+      text: workflowConfig.selectedTriggerBranch ?? '',
+    );
+    final selectedTriggerType = useState(workflowConfig.selectedTriggerType);
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.6,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              child: Column(
+                children: [
+                  Text(
+                    'Edit Basic Information',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Workflow Name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: repositoryController,
+                    decoration: InputDecoration(
+                      labelText: 'Repository',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: workingDirectoryController,
+                    decoration: InputDecoration(
+                      labelText: 'Current Working Directory',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  DropdownMenu(
+                    expandedInsets: EdgeInsets.zero,
+                    controller: TextEditingController(
+                      text: selectedTriggerType.value.toString(),
+                    ),
+                    label: const Text('Trigger Type'),
+                    dropdownMenuEntries: [
+                      DropdownMenuEntry(value: 'push', label: 'push'),
+                      DropdownMenuEntry(
+                        value: 'pullRequest',
+                        label: 'pullRequest',
+                      ),
+                      DropdownMenuEntry(value: 'tag', label: 'tag'),
+                    ],
+                    onSelected: (value) {
+                      if (value == null) return;
+                      selectedTriggerType.value = TriggerType.fromValue(value);
+                    },
+                  ),
+                  if (selectedTriggerType.value != TriggerType.tag) ...[
+                    SizedBox(height: 16),
+                    TextFormField(
+                      controller: triggerBranchController,
+                      decoration: InputDecoration(
+                        labelText: 'Trigger Branch',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 24),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: Size(double.infinity, 48),
+                    ),
+                    onPressed: () async {
+                      final notifier = ref.read(
+                        workflowEditorProvider(workflowId).notifier,
+                      );
+
+                      await notifier.updateName(nameController.text);
+
+                      final triggerBranch =
+                          selectedTriggerType.value == TriggerType.tag
+                              ? null
+                              : triggerBranchController.text;
+
+                      await notifier.updateWorkflowConfig(
+                        WorkflowConfig(
+                          selectedRepository: repositoryController.text,
+                          selectedWorkingDirectory:
+                              workingDirectoryController.text,
+                          selectedTriggerType: selectedTriggerType.value,
+                          selectedTriggerBranch: triggerBranch,
+                        ),
+                      );
+
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop();
+                    },
+                    icon: Icon(Icons.check),
+                    label: Text('Save'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -168,21 +358,50 @@ class StepConnector extends StatelessWidget {
 class StepCard extends StatelessWidget {
   const StepCard({
     required this.title,
+    required this.command,
     required this.isCompleted,
     super.key,
   });
   final bool isCompleted;
   final String title;
+  final String command;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
-        leading: Icon(
-          isCompleted ? Icons.check_circle : Icons.timelapse,
-          color: isCompleted ? Colors.green : Colors.amber,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
         ),
-        title: Text(title),
+        title: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Row(
+            children: [
+              Icon(
+                Symbols.deployed_code,
+                size: 16,
+                color: Theme.of(context).hintColor,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  command,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
