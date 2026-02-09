@@ -9,6 +9,10 @@ const workflowTemplateList = [
     title: 'Write your code',
   ),
   WorkflowTemplate(
+    name: 'save_secret_file',
+    title: 'Save secret file',
+  ),
+  WorkflowTemplate(
     name: 'react_native_expo_cd_ios',
     title: 'React Native (Expo) CD (iOS)',
   ),
