@@ -1,3 +1,7 @@
+## 0.4.17 - 2026-02-10
+
+- fix: flutter path
+
 ## 0.4.16 - 2026-02-05
 
 - fix: OpenCI Worker CLI doesn't get the correct workflow
