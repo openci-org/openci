@@ -6,6 +6,7 @@ import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -99,13 +100,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                                   .toLowerCase()
                                   .endsWith('.json')) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Please select a .json file',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
+                                  context.showSnackBarMessage(
+                                    'Please select a .json file',
                                   );
                                 }
                                 return;
@@ -128,10 +124,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                                 }
                               } catch (e) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to read file: $e'),
-                                    ),
+                                  context.showSnackBarMessage(
+                                    'Failed to read file: $e',
                                   );
                                 }
                               }
@@ -182,10 +176,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                                 }
                               } catch (e) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to read file: $e'),
-                                    ),
+                                  context.showSnackBarMessage(
+                                    'Failed to read file: $e',
                                   );
                                 }
                               }
@@ -497,11 +489,8 @@ echo "Upload complete!"
                                 });
                           } catch (e) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to add workflow: $e'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
+                              context.showSnackBarMessage(
+                                'Failed to add workflow: $e',
                               );
                             }
                           } finally {

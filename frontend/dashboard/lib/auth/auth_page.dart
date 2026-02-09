@@ -1,5 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -123,12 +124,7 @@ class AuthPage extends HookConsumerWidget {
                                     ref.invalidate(firestoreProvider);
                                   } catch (e) {
                                     if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Error: $e'),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
+                                    context.showSnackBarMessage('Error: $e');
                                   } finally {
                                     isLoading.value = false;
                                   }
@@ -158,12 +154,7 @@ class AuthPage extends HookConsumerWidget {
                                         );
                                   } catch (e) {
                                     if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Error: $e'),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
+                                    context.showSnackBarMessage('Error: $e');
                                   } finally {
                                     isLoading.value = false;
                                   }
@@ -220,13 +211,8 @@ class AuthPage extends HookConsumerWidget {
                           ref.invalidate(authProvider);
                           ref.invalidate(firestoreProvider);
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "Firebase reset successfully. Please restart the app.",
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          context.showSnackBarMessage(
+                            'Firebase reset successfully. Please restart the app.',
                           );
                         },
                         child: Text(
@@ -333,12 +319,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   ref.invalidate(firestoreProvider);
                 } catch (e) {
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  context.showSnackBarMessage('Error: $e');
                 } finally {
                   if (context.mounted) {
                     Navigator.pop(context);

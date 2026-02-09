@@ -1,6 +1,7 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -57,22 +58,12 @@ class SettingsPage extends HookConsumerWidget {
                         ref.invalidate(authProvider);
                         ref.invalidate(firestoreProvider);
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Logged out successfully",
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        context.showSnackBarMessage(
+                          'Logged out successfully',
                         );
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Failed to log out: $e",
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        context.showSnackBarMessage(
+                          'Failed to log out: $e',
                         );
                       }
                     },
@@ -158,39 +149,21 @@ class _DeleteAccountButton extends StatelessWidget {
       }
       await user.delete();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Account deleted successfully"),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      context.showSnackBarMessage('Account deleted successfully');
     } on FirebaseAuthException catch (e) {
       if (!context.mounted) return;
       if (e.code == 'requires-recent-login') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Please sign out and sign in again before deleting your account",
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
+        context.showSnackBarMessage(
+          'Please sign out and sign in again before deleting your account',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to delete account: ${e.message}"),
-            behavior: SnackBarBehavior.floating,
-          ),
+        context.showSnackBarMessage(
+          'Failed to delete account: ${e.message}',
         );
       }
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to delete account: $e"),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      context.showSnackBarMessage('Failed to delete account: $e');
     } finally {
       isDeleting.value = false;
     }
