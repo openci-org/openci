@@ -154,6 +154,7 @@ class StepList extends StatelessWidget {
           SizedBox(height: 8),
           IconButton.filled(
             onPressed: () => showModalBottomSheet(
+              showDragHandle: true,
               isScrollControlled: true,
               context: context,
               builder: (_) => SizedBox(
@@ -343,6 +344,7 @@ class StepConnector extends StatelessWidget {
             ),
             onPressed: () => showModalBottomSheet(
               isScrollControlled: true,
+              showDragHandle: true,
               context: context,
               builder: (_) => SizedBox(
                 height: MediaQuery.of(context).size.height * 0.8,

@@ -31,27 +31,11 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
     );
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    "Choose a Workflow Template",
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close),
-              ),
-              SizedBox(width: 8.0),
-            ],
-          ),
+        Text(
+          "Choose a Workflow Template",
+          style: Theme.of(context).textTheme.titleLarge,
         ),
+        SizedBox(height: 12.0),
         Expanded(
           child: Scrollbar(
             child: Padding(
