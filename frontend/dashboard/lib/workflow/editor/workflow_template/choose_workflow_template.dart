@@ -3,6 +3,7 @@ import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_android_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_ios_cd_form.dart';
+import 'package:dashboard/workflow/editor/workflow_template/save_secret_file_template.dart';
 import 'package:dashboard/workflow/editor/workflow_template/workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
@@ -31,27 +32,11 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
     );
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    "Choose a Workflow Template",
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.close),
-              ),
-              SizedBox(width: 8.0),
-            ],
-          ),
+        Text(
+          "Choose a Workflow Template",
+          style: Theme.of(context).textTheme.titleLarge,
         ),
+        SizedBox(height: 12.0),
         Expanded(
           child: Scrollbar(
             child: Padding(
@@ -69,7 +54,10 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
                     padding: const EdgeInsets.all(20.0),
                     child: InkWell(
                       onTap: () {
-                        if (template.name == 'react_native_expo_cd_ios') {
+                        if (template.name == 'save_secret_file') {
+                          _showSaveSecretFileForm(context);
+                        } else if (template.name ==
+                            'react_native_expo_cd_ios') {
                           _showReactNativeExpoIosCdForm(context);
                         } else if (template.name ==
                             'react_native_expo_cd_android') {
@@ -130,6 +118,20 @@ npx -y react-native-version --never-amend
           ),
         ),
       ],
+    );
+  }
+
+  void _showSaveSecretFileForm(BuildContext context) {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      showDragHandle: true,
+      context: context,
+      builder: (context) {
+        return SaveSecretFileTemplate(
+          documentId: documentId,
+          insertAt: insertAt,
+        );
+      },
     );
   }
 
