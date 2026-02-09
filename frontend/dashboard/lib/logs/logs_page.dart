@@ -10,53 +10,52 @@ class LogsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(buildJobsListProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Build Logs - ${DateTime.now().toFormattedDate()}',
         ),
       ),
-      body: ref
-          .watch(buildJobsListProvider)
-          .when(
-            data: (buildJobs) {
-              if (buildJobs.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No build jobs found',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                    ],
+      body: state.when(
+        data: (buildJobs) {
+          if (buildJobs.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No build jobs found',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
-                );
-              }
+                ],
+              ),
+            );
+          }
 
-              return Scrollbar(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: buildJobs.length,
-                  itemBuilder: (context, index) {
-                    final job = buildJobs[index];
-                    return _BuildJobCard(buildJob: job);
-                  },
-                ),
-              );
-            },
-            loading: () =>
-                const Center(child: CircularProgressIndicator.adaptive()),
-            error: asyncErrorWidget,
-          ),
+          return Scrollbar(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: buildJobs.length,
+              itemBuilder: (_, index) {
+                final job = buildJobs[index];
+                return BuildJobCard(buildJob: job);
+              },
+            ),
+          );
+        },
+        loading: () =>
+            const Center(child: CircularProgressIndicator.adaptive()),
+        error: asyncErrorWidget,
+      ),
     );
   }
 }
 
-class _BuildJobCard extends StatelessWidget {
-  const _BuildJobCard({required this.buildJob});
+class BuildJobCard extends StatelessWidget {
+  const BuildJobCard({super.key, required this.buildJob});
   final BuildJob buildJob;
 
   @override
@@ -114,7 +113,7 @@ class _BuildJobCard extends StatelessWidget {
             : null,
         children: [
           if (buildJob.latestRunId != null)
-            _LogsListView(
+            LogsListView(
               buildJobId: buildJob.id,
               runId: buildJob.latestRunId!,
             )
@@ -129,8 +128,9 @@ class _BuildJobCard extends StatelessWidget {
   }
 }
 
-class _LogsListView extends ConsumerWidget {
-  const _LogsListView({
+class LogsListView extends ConsumerWidget {
+  const LogsListView({
+    super.key,
     required this.buildJobId,
     required this.runId,
   });
@@ -172,7 +172,7 @@ class _LogsListView extends ConsumerWidget {
               itemCount: logs.length,
               itemBuilder: (context, index) {
                 final log = logs[index];
-                return _LogLine(log: log);
+                return LogLine(log: log);
               },
             ),
           ),
@@ -190,8 +190,8 @@ class _LogsListView extends ConsumerWidget {
   }
 }
 
-class _LogLine extends HookWidget {
-  const _LogLine({required this.log});
+class LogLine extends HookWidget {
+  const LogLine({super.key, required this.log});
   final BuildLog log;
 
   @override
