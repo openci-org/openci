@@ -99,7 +99,7 @@ class TeamList extends _$TeamList {
     final firestore = ref.read(firestoreProvider);
     await firestore.collection(teamsCollection).doc(teamId).update({
       'name': newName,
-      'updatedAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now(),
     });
   }
 }
