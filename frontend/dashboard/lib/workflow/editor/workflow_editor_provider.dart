@@ -21,12 +21,12 @@ class WorkflowEditor extends _$WorkflowEditor {
         )
         .snapshots()
         .map((doc) {
-          final workflow = doc.data();
-          if (workflow == null) {
-            throw Exception('Workflow not found');
-          }
-          return workflow;
-        });
+      final workflow = doc.data();
+      if (workflow == null) {
+        throw Exception('Workflow not found');
+      }
+      return workflow;
+    });
   }
 
   Future<void> updateName(String name) async {
@@ -35,6 +35,14 @@ class WorkflowEditor extends _$WorkflowEditor {
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({'name': name});
+  }
+
+  Future<void> updateWorkflowConfig(WorkflowConfig config) async {
+    await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .update({'workflowConfig': config.toJson()});
   }
 }
 
