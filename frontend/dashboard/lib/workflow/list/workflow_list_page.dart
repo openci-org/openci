@@ -1,5 +1,8 @@
-import 'package:dashboard/team/select_team_bottom_sheet.dart';
+import 'package:dashboard/team/create_team_bottom_sheet.dart';
+import 'package:dashboard/team/edit_team_bottom_sheet.dart';
+import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
 import 'package:dashboard/workflow/list/workflow_list_provider.dart';
@@ -28,53 +31,94 @@ class WorkflowListPage extends ConsumerWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () {
-                showModalBottomSheet(
-                  showDragHandle: true,
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) {
-                    return const SelectTeamBottomSheet();
+            child: MenuAnchor(
+              menuChildren: [
+                MenuItemButton(
+                  leadingIcon: const Icon(Icons.swap_horiz),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      showDragHandle: true,
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) {
+                        return const SwitchTeamBottomSheet();
+                      },
+                    );
                   },
-                );
-              },
-              child: Ink(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).primaryColorLight,
+                  child: const Text('Switch Team'),
                 ),
-                child: Center(
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      final team = ref.watch(teamStateProvider);
-                      return team.when(
-                        data: (team) {
-                          return Text(
-                            getInitials(team.name),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).primaryColor,
+                MenuItemButton(
+                  leadingIcon: const Icon(Icons.edit),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      showDragHandle: true,
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) {
+                        return const EditTeamBottomSheet();
+                      },
+                    );
+                  },
+                  child: const Text('Edit Team'),
+                ),
+                MenuItemButton(
+                  leadingIcon: const Icon(Icons.add),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      showDragHandle: true,
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) {
+                        return const CreateTeamBottomSheet();
+                      },
+                    );
+                  },
+                  child: const Text('Create Team'),
+                ),
+              ],
+              builder: (context, controller, child) {
+                return InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    if (controller.isOpen) {
+                      controller.close();
+                    } else {
+                      controller.open();
+                    }
+                  },
+                  child: Ink(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Theme.of(context).primaryColorLight,
+                    ),
+                    child: Center(
+                      child: Consumer(
+                        builder: (context, ref, child) {
+                          final team = ref.watch(teamStateProvider);
+                          return team.when(
+                            data: (team) {
+                              return Text(
+                                getInitials(team.name),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              );
+                            },
+                            error: asyncErrorWidget,
+                            loading: () => const Center(
+                              child: CircularProgressIndicator.adaptive(),
                             ),
                           );
                         },
-                        error: (error, stackTrace) {
-                          debugPrint('Error: $error');
-                          debugPrint('Stack trace: $stackTrace');
-                          return const Center(child: Text('Error'));
-                        },
-                        loading: () => const Center(
-                          child: CircularProgressIndicator.adaptive(),
-                        ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],
@@ -198,11 +242,7 @@ class WorkflowListPage extends ConsumerWidget {
             ),
           );
         },
-        error: (error, stackTrace) {
-          debugPrint('Error: $error');
-          debugPrint('Stack trace: $stackTrace');
-          return Center(child: Text('Error: $error'));
-        },
+        error: asyncErrorWidget,
         loading: () => Center(child: CircularProgressIndicator.adaptive()),
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
@@ -142,11 +143,8 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                 );
 
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Workflow created successfully'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                context.showSnackBarMessage(
+                  'Workflow created successfully',
                 );
 
                 Navigator.of(context).pop();

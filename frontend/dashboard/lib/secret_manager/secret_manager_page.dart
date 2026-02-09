@@ -1,4 +1,5 @@
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -58,11 +59,8 @@ class SecretManagerPage extends HookConsumerWidget {
                           );
                     } catch (e) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to add secret: $e'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      context.showSnackBarMessage(
+                        'Failed to add secret: $e',
                       );
                     }
                     if (!context.mounted) return;
