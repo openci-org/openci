@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.16';
+const String version = '0.4.17';
 
 enum LogLevel { info, warning, error }
 
@@ -74,10 +74,10 @@ class BuildLogger {
           .collection('runs')
           .doc(_runId)
           .update({
-            'status': status,
-            'updatedAt': FieldValue.serverTimestamp,
-            if (conclusion != null) 'conclusion': conclusion,
-          });
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp,
+        if (conclusion != null) 'conclusion': conclusion,
+      });
     } catch (e) {
       print('[BuildLogger] Failed to update run status: $e');
     }
@@ -91,10 +91,10 @@ class BuildLogger {
           .collection('runs')
           .doc(_runId)
           .set({
-            'id': _runId,
-            'createdAt': FieldValue.serverTimestamp,
-            'status': 'in_progress',
-          });
+        'id': _runId,
+        'createdAt': FieldValue.serverTimestamp,
+        'status': 'in_progress',
+      });
 
       await _firestore.collection('build_jobs_v0').doc(_buildJobId).update({
         'latestRunId': _runId,
@@ -301,10 +301,8 @@ Future<bool> processJob(
       throw Exception('workflowId is missing');
     }
 
-    final workflowDoc = await firestore
-        .collection('workflows_v1')
-        .doc(workflowId)
-        .get();
+    final workflowDoc =
+        await firestore.collection('workflows_v1').doc(workflowId).get();
 
     if (!workflowDoc.exists) {
       await logger.error('Workflow not found: $workflowId');
@@ -375,6 +373,7 @@ Future<bool> processJob(
       final commandParts = [
         'set -e',
         'export LANG=en_US.UTF-8',
+        'export PATH="/Users/admin/flutter/bin:\$PATH"',
         'cd $workingDirectory',
         ...exportCommands,
         command,
