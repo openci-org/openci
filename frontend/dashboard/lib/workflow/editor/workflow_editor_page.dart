@@ -79,12 +79,13 @@ class StepList extends StatelessWidget {
             ),
           ),
           if (steps.isNotEmpty) ...[
-            StepConnector(documentId: documentId),
+            StepConnector(documentId: documentId, insertAt: 0),
             ...steps.asMap().entries.expand((entry) {
               final index = entry.key;
               final step = entry.value;
               return [
-                if (index > 0) StepConnector(documentId: documentId),
+                if (index > 0)
+                  StepConnector(documentId: documentId, insertAt: index),
                 StepCard(
                   title: step.name,
                   isCompleted: step.isCompleted,
@@ -112,9 +113,11 @@ class StepList extends StatelessWidget {
 class StepConnector extends StatelessWidget {
   const StepConnector({
     required this.documentId,
+    required this.insertAt,
     super.key,
   });
   final String documentId;
+  final int insertAt;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +151,10 @@ class StepConnector extends StatelessWidget {
               context: context,
               builder: (_) => SizedBox(
                 height: MediaQuery.of(context).size.height * 0.8,
-                child: ChooseWorkflowTemplate(documentId: documentId),
+                child: ChooseWorkflowTemplate(
+                  documentId: documentId,
+                  insertAt: insertAt,
+                ),
               ),
             ),
             icon: const Icon(Icons.add),

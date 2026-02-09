@@ -15,9 +15,11 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
   const ChooseWorkflowTemplate({
     super.key,
     required this.documentId,
+    this.insertAt,
   });
 
   final String documentId;
+  final int? insertAt;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -200,19 +202,30 @@ npx -y react-native-version --never-amend
               SizedBox(height: 12.0),
               ElevatedButton(
                 onPressed: () async {
-                  await ref
+                  final newStep = WorkflowStep(
+                    name: template.title,
+                    command: codeController.value.text,
+                    isCompleted: true,
+                  );
+                  final docRef = ref
                       .watch(firestoreProvider)
                       .collection(workflowsCollection)
-                      .doc(documentId)
-                      .update({
-                        'workflowSteps': FieldValue.arrayUnion([
-                          WorkflowStep(
-                            name: template.title,
-                            command: codeController.value.text,
-                            isCompleted: true,
-                          ).toJson(),
-                        ]),
-                      });
+                      .doc(documentId);
+                  if (insertAt != null) {
+                    final snapshot = await docRef.get();
+                    final data = snapshot.data() as Map<String, dynamic>;
+                    final steps = List<Map<String, dynamic>>.from(
+                      data['workflowSteps'] as List,
+                    );
+                    steps.insert(insertAt!, newStep.toJson());
+                    await docRef.update({'workflowSteps': steps});
+                  } else {
+                    await docRef.update({
+                      'workflowSteps': FieldValue.arrayUnion([
+                        newStep.toJson(),
+                      ]),
+                    });
+                  }
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   Navigator.pop(context);
