@@ -26,15 +26,12 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
-    // Google Play Console Service Account
     final serviceAccountJsonController = useTextEditingController();
 
-    // Keystore settings
     final keystoreController = useTextEditingController();
     final keystorePasswordController = useTextEditingController();
     final keyAliasController = useTextEditingController(text: 'upload-key');
 
-    // App settings
     final packageNameController = useTextEditingController();
     final trackController = useTextEditingController(text: 'internal');
 
@@ -51,8 +48,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                   child: Text(
                     "React Native (Expo) CD (Android)",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -65,7 +62,6 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
             ),
           ),
           const Divider(height: 1),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
@@ -78,8 +74,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                     Text(
                       "Google Play Console",
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -142,8 +138,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                     Text(
                       "Signing Key (Keystore)",
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -209,8 +205,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                     Text(
                       "App Settings",
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -235,10 +231,8 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                         onPressed: () async {
                           try {
                             final functions = ref.read(functionsProvider);
-                            final teamId = ref
-                                .read(teamStateProvider)
-                                .requireValue
-                                .id;
+                            final teamId =
+                                ref.read(teamStateProvider).requireValue.id;
                             final createSecret = functions.httpsCallable(
                               'createSecretV1',
                             );
@@ -246,29 +240,33 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                             // Create secrets
                             final serviceAccountSecretId =
                                 (await createSecret.call({
-                                  'name': 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
-                                  'value': serviceAccountJsonController.text,
-                                  'teamId': teamId,
-                                })).data['documentId'];
+                              'name': 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
+                              'value': serviceAccountJsonController.text,
+                              'teamId': teamId,
+                            }))
+                                    .data['documentId'];
 
                             final keystoreSecretId = (await createSecret.call({
                               'name': 'ANDROID_KEYSTORE_BASE64',
                               'value': keystoreController.text,
                               'teamId': teamId,
-                            })).data['documentId'];
+                            }))
+                                .data['documentId'];
 
                             final keystorePasswordSecretId =
                                 (await createSecret.call({
-                                  'name': 'ANDROID_KEYSTORE_PASSWORD',
-                                  'value': keystorePasswordController.text,
-                                  'teamId': teamId,
-                                })).data['documentId'];
+                              'name': 'ANDROID_KEYSTORE_PASSWORD',
+                              'value': keystorePasswordController.text,
+                              'teamId': teamId,
+                            }))
+                                    .data['documentId'];
 
                             final keyAliasSecretId = (await createSecret.call({
                               'name': 'ANDROID_KEY_ALIAS',
                               'value': keyAliasController.text,
                               'teamId': teamId,
-                            })).data['documentId'];
+                            }))
+                                .data['documentId'];
 
                             // Use same password for both keystore and key
                             final keyPasswordSecretId =
@@ -276,90 +274,88 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
 
                             final packageNameSecretId =
                                 (await createSecret.call({
-                                  'name': 'ANDROID_PACKAGE_NAME',
-                                  'value': packageNameController.text,
-                                  'teamId': teamId,
-                                })).data['documentId'];
+                              'name': 'ANDROID_PACKAGE_NAME',
+                              'value': packageNameController.text,
+                              'teamId': teamId,
+                            }))
+                                    .data['documentId'];
 
                             await ref
                                 .read(firestoreProvider)
                                 .collection(workflowsCollection)
                                 .doc(documentId)
                                 .update({
-                                  'workflowSteps': FieldValue.arrayUnion([
-                                    WorkflowStep(
-                                      name: 'Install Node.js',
-                                      command: "brew install node",
-                                      isCompleted: true,
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Install Dependencies (npm)',
-                                      command: "npm install",
-                                      isCompleted: true,
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Prebuild (Expo)',
-                                      command:
-                                          "npx expo prebuild --platform android",
-                                      isCompleted: true,
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Setup Android SDK',
-                                      command:
-                                          "echo 'sdk.dir='\$HOME'/android-sdk' > android/local.properties",
-                                      isCompleted: true,
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Create Keystore File',
-                                      command:
-                                          "echo \$ANDROID_KEYSTORE_BASE64 | base64 -D > android/app/release.keystore",
-                                      isCompleted: true,
-                                      requiredSecrets: [
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEYSTORE_BASE64',
-                                          secretDocumentId: keystoreSecretId,
-                                        ),
-                                      ],
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name:
-                                          'Create Google Play Service Account',
-                                      command:
-                                          "echo \$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON | base64 -D > android/play-store-credentials.json",
-                                      isCompleted: true,
-                                      requiredSecrets: [
-                                        WorkflowStepRequiredSecret(
-                                          key:
-                                              'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
-                                          secretDocumentId:
-                                              serviceAccountSecretId,
-                                        ),
-                                      ],
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Configure Signing',
-                                      command:
-                                          "cat >> android/gradle.properties << 'EOF'\nMYAPP_UPLOAD_STORE_FILE=release.keystore\nMYAPP_UPLOAD_STORE_PASSWORD=\$ANDROID_KEYSTORE_PASSWORD\nMYAPP_UPLOAD_KEY_ALIAS=\$ANDROID_KEY_ALIAS\nMYAPP_UPLOAD_KEY_PASSWORD=\$ANDROID_KEY_PASSWORD\nEOF",
-                                      isCompleted: true,
-                                      requiredSecrets: [
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEYSTORE_PASSWORD',
-                                          secretDocumentId:
-                                              keystorePasswordSecretId,
-                                        ),
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEY_ALIAS',
-                                          secretDocumentId: keyAliasSecretId,
-                                        ),
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_KEY_PASSWORD',
-                                          secretDocumentId: keyPasswordSecretId,
-                                        ),
-                                      ],
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Patch build.gradle for signing',
-                                      command: '''awk '{
+                              'workflowSteps': FieldValue.arrayUnion([
+                                WorkflowStep(
+                                  name: 'Install Node.js',
+                                  command: "brew install node",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Install Dependencies (npm)',
+                                  command: "npm install",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Prebuild (Expo)',
+                                  command:
+                                      "npx expo prebuild --platform android",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Setup Android SDK',
+                                  command:
+                                      "echo 'sdk.dir='\$HOME'/android-sdk' > android/local.properties",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Create Keystore File',
+                                  command:
+                                      "echo \$ANDROID_KEYSTORE_BASE64 | base64 -D > android/app/release.keystore",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'ANDROID_KEYSTORE_BASE64',
+                                      secretDocumentId: keystoreSecretId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Create Google Play Service Account',
+                                  command:
+                                      "echo \$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON | base64 -D > android/play-store-credentials.json",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
+                                      secretDocumentId: serviceAccountSecretId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Configure Signing',
+                                  command:
+                                      "cat >> android/gradle.properties << 'EOF'\nMYAPP_UPLOAD_STORE_FILE=release.keystore\nMYAPP_UPLOAD_STORE_PASSWORD=\$ANDROID_KEYSTORE_PASSWORD\nMYAPP_UPLOAD_KEY_ALIAS=\$ANDROID_KEY_ALIAS\nMYAPP_UPLOAD_KEY_PASSWORD=\$ANDROID_KEY_PASSWORD\nEOF",
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'ANDROID_KEYSTORE_PASSWORD',
+                                      secretDocumentId:
+                                          keystorePasswordSecretId,
+                                    ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'ANDROID_KEY_ALIAS',
+                                      secretDocumentId: keyAliasSecretId,
+                                    ),
+                                    WorkflowStepRequiredSecret(
+                                      key: 'ANDROID_KEY_PASSWORD',
+                                      secretDocumentId: keyPasswordSecretId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Patch build.gradle for signing',
+                                  command: '''awk '{
   if (/signingConfigs \\{/) {
     print \$0
     print "        release {"
@@ -375,19 +371,18 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
   }
   print
 }' android/app/build.gradle > android/app/build.gradle.tmp && mv android/app/build.gradle.tmp android/app/build.gradle''',
-                                      isCompleted: true,
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name: 'Build Release AAB',
-                                      command:
-                                          "export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && export ANDROID_HOME=\$HOME/android-sdk && export PATH=\$JAVA_HOME/bin:\$ANDROID_HOME/platform-tools:\$PATH && echo 'sdk.dir='\$ANDROID_HOME > android/local.properties && cd android && ./gradlew bundleRelease > /tmp/gradle.log 2>&1 || (tail -n 200 /tmp/gradle.log && exit 1)",
-                                      isCompleted: true,
-                                    ).toJson(),
-                                    WorkflowStep(
-                                      name:
-                                          'Upload to Google Play (${trackController.text})',
-                                      command:
-                                          '''
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name: 'Build Release AAB',
+                                  command:
+                                      "export JAVA_HOME=/opt/homebrew/opt/openjdk@17 && export ANDROID_HOME=\$HOME/android-sdk && export PATH=\$JAVA_HOME/bin:\$ANDROID_HOME/platform-tools:\$PATH && echo 'sdk.dir='\$ANDROID_HOME > android/local.properties && cd android && ./gradlew bundleRelease > /tmp/gradle.log 2>&1 || (tail -n 200 /tmp/gradle.log && exit 1)",
+                                  isCompleted: true,
+                                ).toJson(),
+                                WorkflowStep(
+                                  name:
+                                      'Upload to Google Play (${trackController.text})',
+                                  command: '''
 # Parse service account JSON
 SA_FILE="android/play-store-credentials.json"
 CLIENT_EMAIL=\$(grep -o '"client_email"[^,]*' \$SA_FILE | cut -d'"' -f4)
@@ -477,16 +472,16 @@ fi
 
 echo "Upload complete!"
 ''',
-                                      isCompleted: true,
-                                      requiredSecrets: [
-                                        WorkflowStepRequiredSecret(
-                                          key: 'ANDROID_PACKAGE_NAME',
-                                          secretDocumentId: packageNameSecretId,
-                                        ),
-                                      ],
-                                    ).toJson(),
-                                  ]),
-                                });
+                                  isCompleted: true,
+                                  requiredSecrets: [
+                                    WorkflowStepRequiredSecret(
+                                      key: 'ANDROID_PACKAGE_NAME',
+                                      secretDocumentId: packageNameSecretId,
+                                    ),
+                                  ],
+                                ).toJson(),
+                              ]),
+                            });
                           } catch (e) {
                             if (context.mounted) {
                               context.showSnackBarMessage(
