@@ -2,7 +2,9 @@ import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:highlight/languages/shell.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -143,6 +145,8 @@ class StepList extends StatelessWidget {
                   title: step.name,
                   command: step.command,
                   isCompleted: step.isCompleted,
+                  workflowId: workflowId,
+                  stepIndex: index,
                 ),
               ];
             }),
@@ -360,11 +364,15 @@ class StepCard extends StatelessWidget {
     required this.title,
     required this.command,
     required this.isCompleted,
+    required this.workflowId,
+    required this.stepIndex,
     super.key,
   });
   final bool isCompleted;
   final String title;
   final String command;
+  final String workflowId;
+  final int stepIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -375,6 +383,19 @@ class StepCard extends StatelessWidget {
           horizontal: 16,
           vertical: 8,
         ),
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            showDragHandle: true,
+            builder: (_) => EditStepBottomSheet(
+              stepName: title,
+              stepCommand: command,
+              workflowId: workflowId,
+              stepIndex: stepIndex,
+            ),
+          );
+        },
         title: Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -402,6 +423,110 @@ class StepCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class EditStepBottomSheet extends HookConsumerWidget {
+  const EditStepBottomSheet({
+    super.key,
+    required this.stepName,
+    required this.stepCommand,
+    required this.workflowId,
+    required this.stepIndex,
+  });
+
+  final String stepName;
+  final String stepCommand;
+  final String workflowId;
+  final int stepIndex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nameController = useTextEditingController(text: stepName);
+    final codeController = useState(
+      CodeController(
+        text: stepCommand,
+        language: shell,
+      ),
+    );
+
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.6,
+      child: Column(
+        children: [
+          Text(
+            'Edit Step',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          SizedBox(height: 32),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Step Name',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  SizedBox(height: 8),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Build iOS App',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Command',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CodeTheme(
+                      data: CodeThemeData(),
+                      child: CodeField(
+                        controller: codeController.value,
+                        minLines: 4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: Size(double.infinity, 48),
+              ),
+              onPressed: () async {
+                final notifier = ref.read(
+                  workflowEditorProvider(workflowId).notifier,
+                );
+
+                await notifier.updateWorkflowStep(
+                  index: stepIndex,
+                  step: WorkflowStep(
+                    name: nameController.text,
+                    command: codeController.value.text,
+                    isCompleted: false,
+                  ),
+                );
+
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+              },
+              icon: Icon(Icons.check),
+              label: Text('Save'),
+            ),
+          ),
+        ],
       ),
     );
   }

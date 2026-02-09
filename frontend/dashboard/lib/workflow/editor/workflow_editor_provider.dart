@@ -44,6 +44,32 @@ class WorkflowEditor extends _$WorkflowEditor {
         .doc(workflowId)
         .update({'workflowConfig': config.toJson()});
   }
+
+  Future<void> updateWorkflowStep({
+    required int index,
+    required WorkflowStep step,
+  }) async {
+    final doc = await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .get();
+    final data = doc.data();
+    if (data == null) return;
+
+    final workflow = Workflow.fromJson(data);
+    final steps = List<WorkflowStep>.from(workflow.workflowSteps);
+    if (index < 0 || index >= steps.length) return;
+    steps[index] = step;
+
+    await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
+  }
 }
 
 @Freezed(makeCollectionsUnmodifiable: false)
