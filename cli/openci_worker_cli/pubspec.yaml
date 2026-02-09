@@ -4,7 +4,7 @@ version: 0.4.16
 repository: https://github.com/open-ci-io/openci
 
 environment:
-  sdk: ^3.10.7
+  sdk: ^3.6.0
 
 dependencies:
   args: ^2.7.0

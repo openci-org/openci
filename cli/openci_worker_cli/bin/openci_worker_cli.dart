@@ -375,6 +375,7 @@ Future<bool> processJob(
       final commandParts = [
         'set -e',
         'export LANG=en_US.UTF-8',
+        'export PATH="/Users/admin/flutter/bin:\$PATH"',
         'cd $workingDirectory',
         ...exportCommands,
         command,
