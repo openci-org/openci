@@ -1,57 +1,59 @@
+import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/logs/logs_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 
 class LogsPage extends HookConsumerWidget {
   const LogsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final buildJobsAsync = ref.watch(buildJobsListProvider);
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Build Logs'),
+        title: Text(
+          'Build Logs - ${DateTime.now().toFormattedDate()}',
+        ),
       ),
-      body: buildJobsAsync.when(
-        data: (buildJobs) {
-          if (buildJobs.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    'No build jobs found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: ref
+          .watch(buildJobsListProvider)
+          .when(
+            data: (buildJobs) {
+              if (buildJobs.isEmpty) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No build jobs found',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          return Scrollbar(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: buildJobs.length,
-              itemBuilder: (context, index) {
-                final job = buildJobs[index];
-                return _BuildJobCard(buildJob: job);
-              },
-            ),
-          );
-        },
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: (error, stack) {
-          debugPrint('Error: $error');
-          debugPrint('Stack: $stack');
-          return Center(child: Text('Error: $error'));
-        },
-      ),
+              return Scrollbar(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: buildJobs.length,
+                  itemBuilder: (context, index) {
+                    final job = buildJobs[index];
+                    return _BuildJobCard(buildJob: job);
+                  },
+                ),
+              );
+            },
+            loading: () =>
+                const Center(child: CircularProgressIndicator.adaptive()),
+            error: (error, stack) {
+              debugPrint('Error: $error');
+              debugPrint('Stack: $stack');
+              return Center(child: Text('Error: $error'));
+            },
+          ),
     );
   }
 }
@@ -78,8 +80,6 @@ class _BuildJobCard extends StatelessWidget {
       _ => Icons.help_outline,
     };
 
-    final dateFormat = DateFormat('MM/dd HH:mm');
-
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
@@ -101,7 +101,7 @@ class _BuildJobCard extends StatelessWidget {
                 style: const TextStyle(fontFamily: 'monospace'),
               ),
             Text(
-              dateFormat.format(buildJob.createdAt),
+              buildJob.createdAt.toFormattedDate(),
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
           ],
