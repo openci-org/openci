@@ -151,6 +151,7 @@ class StepList extends StatelessWidget {
               ];
             }),
           ],
+          SizedBox(height: 8),
           IconButton.filled(
             onPressed: () => showModalBottomSheet(
               isScrollControlled: true,
