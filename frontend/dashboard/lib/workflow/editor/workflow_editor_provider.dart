@@ -60,7 +60,12 @@ class WorkflowEditor extends _$WorkflowEditor {
     final workflow = Workflow.fromJson(data);
     final steps = List<WorkflowStep>.from(workflow.workflowSteps);
     if (index < 0 || index >= steps.length) return;
-    steps[index] = step;
+
+    final existingStep = steps[index];
+    final updatedStep = step.requiredSecrets.isEmpty
+        ? step.copyWith(requiredSecrets: existingStep.requiredSecrets)
+        : step;
+    steps[index] = updatedStep;
 
     await ref
         .watch(firestoreProvider)
