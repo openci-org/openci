@@ -5,6 +5,7 @@ import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class LogsPage extends HookConsumerWidget {
@@ -91,9 +92,8 @@ class BuildJobCard extends ConsumerWidget {
           '${buildJob.owner}/${buildJob.repo}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Wrap(
-          spacing: 8,
-          runSpacing: 4,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             workflowNameAsync.when(
               data: (name) => name == null ? SizedBox.shrink() : Text(name),
@@ -104,16 +104,39 @@ class BuildJobCard extends ConsumerWidget {
               ),
               error: asyncErrorWidget,
             ),
-            if (buildJob.pullRequestNumber != null)
-              Text('PR #${buildJob.pullRequestNumber}'),
-            if (buildJob.commitSha != null)
-              Text(
-                buildJob.commitSha!.substring(0, 7),
-                style: const TextStyle(fontFamily: 'monospace'),
-              ),
-            Text(
-              buildJob.createdAt.toFormattedDate(),
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (buildJob.pullRequestNumber != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FaIcon(
+                        FontAwesomeIcons.codePullRequest,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text('#${buildJob.pullRequestNumber}'),
+                    ],
+                  ),
+                if (buildJob.commitSha != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FaIcon(
+                        FontAwesomeIcons.codeCommit,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(buildJob.commitSha!.substring(0, 7)),
+                    ],
+                  ),
+                Text(
+                  buildJob.createdAt.toFormattedDate(),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
             ),
           ],
         ),
