@@ -12,24 +12,19 @@ part of 'workflow_list_provider.dart';
 @ProviderFor(workflowList)
 final workflowListProvider = WorkflowListProvider._();
 
-final class WorkflowListProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<Workflow>>,
-          List<Workflow>,
-          Stream<List<Workflow>>
-        >
+final class WorkflowListProvider extends $FunctionalProvider<
+        AsyncValue<List<Workflow>>, List<Workflow>, Stream<List<Workflow>>>
     with $FutureModifier<List<Workflow>>, $StreamProvider<List<Workflow>> {
   WorkflowListProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'workflowListProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'workflowListProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$workflowListHash();
@@ -37,8 +32,8 @@ final class WorkflowListProvider
   @$internal
   @override
   $StreamProviderElement<List<Workflow>> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
+          $ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
 
   @override
   Stream<List<Workflow>> create(Ref ref) {

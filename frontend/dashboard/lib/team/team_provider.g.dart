@@ -7,20 +7,21 @@ part of 'team_provider.dart';
 // **************************************************************************
 
 _Team _$TeamFromJson(Map<String, dynamic> json) => _Team(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  members: (json['members'] as List<dynamic>).map((e) => e as String).toList(),
-  createdAt: const DateTimeConverter().fromJson(json['createdAt']),
-  updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
-);
+      id: json['id'] as String,
+      name: json['name'] as String,
+      members:
+          (json['members'] as List<dynamic>).map((e) => e as String).toList(),
+      createdAt: const DateTimeConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
+    );
 
 Map<String, dynamic> _$TeamToJson(_Team instance) => <String, dynamic>{
-  'id': instance.id,
-  'name': instance.name,
-  'members': instance.members,
-  'createdAt': const DateTimeConverter().toJson(instance.createdAt),
-  'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
-};
+      'id': instance.id,
+      'name': instance.name,
+      'members': instance.members,
+      'createdAt': const DateTimeConverter().toJson(instance.createdAt),
+      'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
+    };
 
 // **************************************************************************
 // RiverpodGenerator
@@ -34,15 +35,15 @@ final teamStateProvider = TeamStateProvider._();
 
 final class TeamStateProvider extends $StreamNotifierProvider<TeamState, Team> {
   TeamStateProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'teamStateProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'teamStateProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$teamStateHash();
@@ -60,14 +61,11 @@ abstract class _$TeamState extends $StreamNotifier<Team> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<Team>, Team>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Team>, Team>,
-              AsyncValue<Team>,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<Team>, Team>,
+        AsyncValue<Team>,
+        Object?,
+        Object?>;
     element.handleCreate(ref, build);
   }
 }
@@ -78,15 +76,15 @@ final teamListProvider = TeamListProvider._();
 final class TeamListProvider
     extends $StreamNotifierProvider<TeamList, List<Team>> {
   TeamListProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'teamListProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'teamListProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$teamListHash();
@@ -96,7 +94,7 @@ final class TeamListProvider
   TeamList create() => TeamList();
 }
 
-String _$teamListHash() => r'6ef1c20339521d0e0031e4986ff6a5b272aaf9b1';
+String _$teamListHash() => r'5c8b6af5512a36ede5c1697b930c5ccaf2f0756a';
 
 abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();
@@ -104,14 +102,11 @@ abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<Team>>, List<Team>>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<Team>>, List<Team>>,
-              AsyncValue<List<Team>>,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<List<Team>>, List<Team>>,
+        AsyncValue<List<Team>>,
+        Object?,
+        Object?>;
     element.handleCreate(ref, build);
   }
 }

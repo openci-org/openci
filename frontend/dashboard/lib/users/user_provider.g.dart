@@ -7,9 +7,9 @@ part of 'user_provider.dart';
 // **************************************************************************
 
 _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
-  id: json['id'] as String,
-  selectedTeamId: json['selectedTeamId'] as String,
-);
+      id: json['id'] as String,
+      selectedTeamId: json['selectedTeamId'] as String,
+    );
 
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
     <String, dynamic>{
@@ -29,15 +29,15 @@ final userProvider = UserProvider._();
 
 final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   UserProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'userProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'userProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$userHash();
@@ -55,14 +55,11 @@ abstract class _$User extends $StreamNotifier<OpenCIUser> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<OpenCIUser>, OpenCIUser>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<OpenCIUser>, OpenCIUser>,
-              AsyncValue<OpenCIUser>,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<OpenCIUser>, OpenCIUser>,
+        AsyncValue<OpenCIUser>,
+        Object?,
+        Object?>;
     element.handleCreate(ref, build);
   }
 }
