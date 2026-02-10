@@ -45,7 +45,7 @@ export const githubApp = onRequest(
 
       const eventData = {
         event,
-        action: body.action,
+        action: body.action ?? null,
         repository: body.repository?.full_name,
         sender: body.sender?.login,
         createdAt: FieldValue.serverTimestamp(),

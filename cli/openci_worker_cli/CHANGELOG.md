@@ -1,3 +1,7 @@
+## 0.4.19 - 2026-02-11
+
+- add: built-in environment variables: #OPENCI_TAG & #OPENCI_TAG_VERSION
+
 ## 0.4.18 - 2026-02-10
 
 - fix: CLI checkouts
