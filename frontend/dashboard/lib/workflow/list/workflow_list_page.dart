@@ -3,6 +3,7 @@ import 'package:dashboard/team/edit_team_bottom_sheet.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_bottom_sheet.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
 import 'package:dashboard/workflow/list/workflow_list_provider.dart';
@@ -183,8 +184,8 @@ class WorkflowListPage extends ConsumerWidget {
                     title: Text(
                       workflow.name,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
@@ -206,10 +207,9 @@ class WorkflowListPage extends ConsumerWidget {
                                 workflow.workflowConfig.selectedTriggerType ==
                                         TriggerType.tag
                                     ? 'Tag'
-                                    : (workflow
-                                              .workflowConfig
-                                              .selectedTriggerBranch ??
-                                          'Tag'),
+                                    : (workflow.workflowConfig
+                                            .selectedTriggerBranch ??
+                                        'Tag'),
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium,
@@ -232,9 +232,111 @@ class WorkflowListPage extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: Theme.of(context).disabledColor,
+                    trailing: PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: Theme.of(context).disabledColor,
+                      ),
+                      onSelected: (value) async {
+                        switch (value) {
+                          case 'duplicate':
+                            try {
+                              await ref
+                                  .read(workflowListProvider.notifier)
+                                  .duplicateWorkflow(workflow);
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(
+                                'Workflow duplicated successfully',
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(
+                                'Failed to duplicate: $e',
+                              );
+                            }
+                            break;
+                          case 'delete':
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Workflow'),
+                                content: Text(
+                                  'Are you sure you want to delete "${workflow.name}"?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.error,
+                                    ),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              try {
+                                await ref
+                                    .read(workflowListProvider.notifier)
+                                    .deleteWorkflow(workflow.documentId);
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage(
+                                  'Workflow deleted',
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage(
+                                  'Failed to delete: $e',
+                                );
+                              }
+                            }
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'duplicate',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.copy,
+                                size: 20,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text('Duplicate'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );

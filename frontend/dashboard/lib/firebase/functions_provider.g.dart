@@ -15,15 +15,15 @@ final functionsProvider = FunctionsProvider._();
 final class FunctionsProvider
     extends $NotifierProvider<Functions, FirebaseFunctions> {
   FunctionsProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'functionsProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'functionsProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$functionsHash();
@@ -49,14 +49,11 @@ abstract class _$Functions extends $Notifier<FirebaseFunctions> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<FirebaseFunctions, FirebaseFunctions>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<FirebaseFunctions, FirebaseFunctions>,
-              FirebaseFunctions,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<FirebaseFunctions, FirebaseFunctions>,
+        FirebaseFunctions,
+        Object?,
+        Object?>;
     element.handleCreate(ref, build);
   }
 }

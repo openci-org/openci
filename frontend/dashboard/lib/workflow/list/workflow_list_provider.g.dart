@@ -9,12 +9,11 @@ part of 'workflow_list_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(workflowList)
+@ProviderFor(WorkflowList)
 final workflowListProvider = WorkflowListProvider._();
 
-final class WorkflowListProvider extends $FunctionalProvider<
-        AsyncValue<List<Workflow>>, List<Workflow>, Stream<List<Workflow>>>
-    with $FutureModifier<List<Workflow>>, $StreamProvider<List<Workflow>> {
+final class WorkflowListProvider
+    extends $StreamNotifierProvider<WorkflowList, List<Workflow>> {
   WorkflowListProvider._()
       : super(
           from: null,
@@ -31,14 +30,22 @@ final class WorkflowListProvider extends $FunctionalProvider<
 
   @$internal
   @override
-  $StreamProviderElement<List<Workflow>> $createElement(
-          $ProviderPointer pointer) =>
-      $StreamProviderElement(pointer);
-
-  @override
-  Stream<List<Workflow>> create(Ref ref) {
-    return workflowList(ref);
-  }
+  WorkflowList create() => WorkflowList();
 }
 
-String _$workflowListHash() => r'5763be9397924b8becd64f943bb8609d664325b2';
+String _$workflowListHash() => r'4cd083196c9273725adaef99a034af24e6697647';
+
+abstract class _$WorkflowList extends $StreamNotifier<List<Workflow>> {
+  Stream<List<Workflow>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<List<Workflow>>, List<Workflow>>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<List<Workflow>>, List<Workflow>>,
+        AsyncValue<List<Workflow>>,
+        Object?,
+        Object?>;
+    element.handleCreate(ref, build);
+  }
+}
