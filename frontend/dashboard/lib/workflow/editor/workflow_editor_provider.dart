@@ -75,6 +75,33 @@ class WorkflowEditor extends _$WorkflowEditor {
       'workflowSteps': steps.map((s) => s.toJson()).toList(),
     });
   }
+
+  Future<void> reorderSteps(int oldIndex, int newIndex) async {
+    final doc = await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .get();
+    final data = doc.data();
+    if (data == null) return;
+
+    final workflow = Workflow.fromJson(data);
+    final steps = List<WorkflowStep>.from(workflow.workflowSteps);
+
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = steps.removeAt(oldIndex);
+    steps.insert(newIndex, item);
+
+    await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
+  }
 }
 
 @Freezed(makeCollectionsUnmodifiable: false)

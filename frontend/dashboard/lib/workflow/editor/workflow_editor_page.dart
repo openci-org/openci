@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
@@ -48,7 +50,7 @@ class WorkflowEditorPage extends ConsumerWidget {
   }
 }
 
-class StepList extends StatelessWidget {
+class StepList extends ConsumerWidget {
   const StepList({
     super.key,
     required this.steps,
@@ -63,108 +65,147 @@ class StepList extends StatelessWidget {
   final String workflowName;
   final String workflowId;
 
+  Widget proxyDecorator(Widget child, int index, Animation<double> animation) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final animValue = Curves.easeInOut.transform(animation.value);
+        final scale = lerpDouble(1, 1.04, animValue)!;
+        return Transform.scale(
+          scale: scale,
+          child: Material(
+            color: Colors.transparent,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(12),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(14.0),
-      child: Column(
-        children: [
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  showDragHandle: true,
-                  builder: (_) => EditBasicInfoBottomSheet(
-                    workflowName: workflowName,
-                    workflowConfig: workflowConfig,
-                    workflowId: workflowId,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      // TODO(someone): Use ReorderableListView.separated once the issue is resolved
+      // https://github.com/flutter/flutter/issues/76706
+      child: ReorderableListView.builder(
+        proxyDecorator: proxyDecorator,
+        header: Column(
+          children: [
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    showDragHandle: true,
+                    builder: (_) => EditBasicInfoBottomSheet(
+                      workflowName: workflowName,
+                      workflowConfig: workflowConfig,
+                      workflowId: workflowId,
+                    ),
+                  );
+                },
+                title: Text(
+                  workflowName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            workflowConfig.selectedTriggerType ==
+                                    TriggerType.tag
+                                ? Icons.label_outline
+                                : Icons.merge,
+                            size: 16,
+                            color: Theme.of(context).hintColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            workflowConfig.selectedTriggerType ==
+                                    TriggerType.tag
+                                ? 'Tag'
+                                : (workflowConfig.selectedTriggerBranch ??
+                                    'Tag'),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.folder_outlined,
+                            size: 16,
+                            color: Theme.of(context).hintColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            workflowConfig.selectedRepository,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                );
-              },
-              title: Text(
-                workflowName,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          workflowConfig.selectedTriggerType == TriggerType.tag
-                              ? Icons.label_outline
-                              : Icons.merge,
-                          size: 16,
-                          color: Theme.of(context).hintColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          workflowConfig.selectedTriggerType == TriggerType.tag
-                              ? 'Tag'
-                              : (workflowConfig.selectedTriggerBranch ?? 'Tag'),
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.folder_outlined,
-                          size: 16,
-                          color: Theme.of(context).hintColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          workflowConfig.selectedRepository,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
             ),
-          ),
-          if (steps.isNotEmpty) ...[
-            StepConnector(documentId: documentId, insertAt: 0),
-            ...steps.asMap().entries.expand((entry) {
-              final index = entry.key;
-              final step = entry.value;
-              return [
-                if (index > 0)
-                  StepConnector(documentId: documentId, insertAt: index),
-                StepCard(
-                  title: step.name,
-                  command: step.command,
-                  isCompleted: step.isCompleted,
-                  workflowId: workflowId,
-                  stepIndex: index,
-                ),
-              ];
-            }),
+            if (steps.isNotEmpty)
+              StepConnector(documentId: documentId, insertAt: 0),
           ],
-          SizedBox(height: 8),
-          IconButton.filled(
-            onPressed: () => showModalBottomSheet(
-              showDragHandle: true,
-              isScrollControlled: true,
-              context: context,
-              builder: (_) => SizedBox(
-                height: MediaQuery.of(context).size.height * 0.8,
-                child: ChooseWorkflowTemplate(documentId: documentId),
+        ),
+        footer: Column(
+          children: [
+            SizedBox(height: 8),
+            IconButton.filled(
+              onPressed: () => showModalBottomSheet(
+                showDragHandle: true,
+                isScrollControlled: true,
+                context: context,
+                builder: (_) => SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  child: ChooseWorkflowTemplate(documentId: documentId),
+                ),
               ),
+              icon: const Icon(Icons.add),
             ),
-            icon: const Icon(Icons.add),
-          ),
-        ],
+          ],
+        ),
+        itemBuilder: (context, index) {
+          final step = steps[index];
+          return Column(
+            key: ValueKey('step_$index'),
+            children: [
+              StepCard(
+                title: step.name,
+                command: step.command,
+                isCompleted: step.isCompleted,
+                workflowId: workflowId,
+                stepIndex: index,
+              ),
+              if (index < steps.length - 1)
+                StepConnector(documentId: documentId, insertAt: index + 1),
+            ],
+          );
+        },
+        itemCount: steps.length,
+        onReorder: (oldIndex, newIndex) {
+          ref
+              .read(workflowEditorProvider(workflowId).notifier)
+              .reorderSteps(oldIndex, newIndex);
+        },
       ),
     );
   }
@@ -399,6 +440,10 @@ class StepCard extends StatelessWidget {
             ),
           );
         },
+        trailing: Icon(
+          Icons.drag_handle,
+          color: Theme.of(context).hintColor,
+        ),
         title: Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
