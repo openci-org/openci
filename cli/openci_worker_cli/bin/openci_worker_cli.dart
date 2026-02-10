@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.18';
+const String version = '0.4.19';
 
 enum LogLevel { info, warning, error }
 
@@ -358,6 +358,21 @@ Future<bool> processJob(
       workingDirectory = '$repo/$cwd';
     }
 
+    final tagName = buildJobData['tagName'] as String?;
+    final tagVersion = tagName != null && tagName.isNotEmpty
+        ? (tagName.startsWith('v') || tagName.startsWith('V')
+            ? tagName.substring(1)
+            : tagName)
+        : null;
+    final builtInEnvVars = <String>[
+      if (tagName != null && tagName.isNotEmpty) "export OPENCI_TAG='$tagName'",
+      if (tagVersion != null) "export OPENCI_TAG_VERSION='$tagVersion'",
+    ];
+
+    if (tagName != null && tagName.isNotEmpty) {
+      await logger.info('Tag: $tagName (available as \$OPENCI_TAG)');
+    }
+
     for (int i = 0; i < steps.length; i++) {
       final step = steps[i];
       final command = step['command'] as String;
@@ -392,6 +407,7 @@ Future<bool> processJob(
         'set -e',
         'export LANG=en_US.UTF-8',
         'export PATH="/Users/admin/flutter/bin:\$PATH"',
+        ...builtInEnvVars,
         'cd $workingDirectory',
         ...exportCommands,
         command,
