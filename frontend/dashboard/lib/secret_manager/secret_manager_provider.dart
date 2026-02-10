@@ -31,23 +31,13 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> addSecret(String name, String value) async {
-    try {
-      // Check for duplicate name on the client side
-      final currentSecrets = state.requireValue;
-      if (currentSecrets.any((s) => s.name == name)) {
-        throw Exception('Secret with name "$name" already exists');
-      }
-
-      final functions = ref.read(functionsProvider);
-      final teamId = ref.read(teamStateProvider).requireValue.id;
-      await functions.httpsCallable(callableFunctionPath).call({
-        'name': name,
-        'value': value,
-        'teamId': teamId,
-      });
-    } catch (e) {
-      throw Exception('Failed to add secret: $e');
-    }
+    final functions = ref.read(functionsProvider);
+    final teamId = ref.read(teamStateProvider).requireValue.id;
+    await functions.httpsCallable(callableFunctionPath).call({
+      'name': name,
+      'value': value,
+      'teamId': teamId,
+    });
   }
 
   Future<void> updateSecret({
@@ -55,18 +45,14 @@ class SecretManager extends _$SecretManager {
     required String name,
     String? value,
   }) async {
-    try {
-      final functions = ref.read(functionsProvider);
-      final teamId = ref.read(teamStateProvider).requireValue.id;
-      await functions.httpsCallable(updateSecretCallableFunctionPath).call({
-        'documentId': documentId,
-        'name': name,
-        if (value != null && value.isNotEmpty) 'value': value,
-        'teamId': teamId,
-      });
-    } catch (e) {
-      throw Exception('Failed to update secret: $e');
-    }
+    final functions = ref.read(functionsProvider);
+    final teamId = ref.read(teamStateProvider).requireValue.id;
+    await functions.httpsCallable(updateSecretCallableFunctionPath).call({
+      'documentId': documentId,
+      'name': name,
+      if (value != null && value.isNotEmpty) 'value': value,
+      'teamId': teamId,
+    });
   }
 }
 
