@@ -403,7 +403,7 @@ class StepConnector extends StatelessWidget {
   }
 }
 
-class StepCard extends StatelessWidget {
+class StepCard extends ConsumerWidget {
   const StepCard({
     required this.title,
     required this.command,
@@ -419,56 +419,99 @@ class StepCard extends StatelessWidget {
   final int stepIndex;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        onTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            showDragHandle: true,
-            builder: (_) => EditStepBottomSheet(
-              stepName: title,
-              stepCommand: command,
-              workflowId: workflowId,
-              stepIndex: stepIndex,
-            ),
-          );
-        },
-        trailing: Icon(
-          Icons.drag_handle,
-          color: Theme.of(context).hintColor,
-        ),
-        title: Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Dismissible(
+      key: ValueKey('dismiss_step_$stepIndex'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        return showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Step'),
+            content: Text('Are you sure you want to delete this step?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
               ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: Row(
-            children: [
-              Icon(
-                Symbols.deployed_code,
-                size: 16,
-                color: Theme.of(context).hintColor,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  command,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
                 ),
+                child: const Text('Delete'),
               ),
             ],
+          ),
+        );
+      },
+      onDismissed: (_) {
+        ref
+            .read(workflowEditorProvider(workflowId).notifier)
+            .deleteStep(stepIndex);
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.delete_outline,
+          color: Theme.of(context).colorScheme.onError,
+        ),
+      ),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => EditStepBottomSheet(
+                stepName: title,
+                stepCommand: command,
+                workflowId: workflowId,
+                stepIndex: stepIndex,
+              ),
+            );
+          },
+          trailing: Icon(
+            Icons.drag_handle,
+            color: Theme.of(context).hintColor,
+          ),
+          title: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              children: [
+                Icon(
+                  Symbols.deployed_code,
+                  size: 16,
+                  color: Theme.of(context).hintColor,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    command,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
