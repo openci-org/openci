@@ -37,6 +37,16 @@ class BuildJobs extends _$BuildJobs {
   }
 }
 
+@riverpod
+Future<String?> workflowName(Ref ref, String? workflowId) async {
+  if (workflowId == null) return null;
+  final firestore = ref.read(firestoreProvider);
+  final doc =
+      await firestore.collection(workflowsCollection).doc(workflowId).get();
+  if (!doc.exists) return null;
+  return doc.data()?['name'] as String?;
+}
+
 @freezed
 abstract class BuildJob with _$BuildJob {
   const factory BuildJob({
@@ -45,6 +55,7 @@ abstract class BuildJob with _$BuildJob {
     required String owner,
     required String repo,
     String? teamId,
+    String? workflowId,
     String? commitSha,
     int? pullRequestNumber,
     int? runCount,

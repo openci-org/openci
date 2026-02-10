@@ -62,6 +62,9 @@ class BuildJobCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final workflowNameAsync =
+        ref.watch(workflowNameProvider(buildJob.workflowId));
+
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
@@ -92,6 +95,15 @@ class BuildJobCard extends ConsumerWidget {
           spacing: 8,
           runSpacing: 4,
           children: [
+            workflowNameAsync.when(
+              data: (name) => name == null ? SizedBox.shrink() : Text(name),
+              loading: () => const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator.adaptive(),
+              ),
+              error: asyncErrorWidget,
+            ),
             if (buildJob.pullRequestNumber != null)
               Text('PR #${buildJob.pullRequestNumber}'),
             if (buildJob.commitSha != null)

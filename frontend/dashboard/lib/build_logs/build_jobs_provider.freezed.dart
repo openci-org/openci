@@ -19,6 +19,7 @@ mixin _$BuildJob {
   String get owner;
   String get repo;
   String? get teamId;
+  String? get workflowId;
   String? get commitSha;
   int? get pullRequestNumber;
   int? get runCount;
@@ -48,6 +49,8 @@ mixin _$BuildJob {
             (identical(other.owner, owner) || other.owner == owner) &&
             (identical(other.repo, repo) || other.repo == repo) &&
             (identical(other.teamId, teamId) || other.teamId == teamId) &&
+            (identical(other.workflowId, workflowId) ||
+                other.workflowId == workflowId) &&
             (identical(other.commitSha, commitSha) ||
                 other.commitSha == commitSha) &&
             (identical(other.pullRequestNumber, pullRequestNumber) ||
@@ -71,6 +74,7 @@ mixin _$BuildJob {
       owner,
       repo,
       teamId,
+      workflowId,
       commitSha,
       pullRequestNumber,
       runCount,
@@ -80,7 +84,7 @@ mixin _$BuildJob {
 
   @override
   String toString() {
-    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -95,6 +99,7 @@ abstract mixin class $BuildJobCopyWith<$Res> {
       String owner,
       String repo,
       String? teamId,
+      String? workflowId,
       String? commitSha,
       int? pullRequestNumber,
       int? runCount,
@@ -120,6 +125,7 @@ class _$BuildJobCopyWithImpl<$Res> implements $BuildJobCopyWith<$Res> {
     Object? owner = null,
     Object? repo = null,
     Object? teamId = freezed,
+    Object? workflowId = freezed,
     Object? commitSha = freezed,
     Object? pullRequestNumber = freezed,
     Object? runCount = freezed,
@@ -147,6 +153,10 @@ class _$BuildJobCopyWithImpl<$Res> implements $BuildJobCopyWith<$Res> {
       teamId: freezed == teamId
           ? _self.teamId
           : teamId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      workflowId: freezed == workflowId
+          ? _self.workflowId
+          : workflowId // ignore: cast_nullable_to_non_nullable
               as String?,
       commitSha: freezed == commitSha
           ? _self.commitSha
@@ -275,6 +285,7 @@ extension BuildJobPatterns on BuildJob {
             String owner,
             String repo,
             String? teamId,
+            String? workflowId,
             String? commitSha,
             int? pullRequestNumber,
             int? runCount,
@@ -293,6 +304,7 @@ extension BuildJobPatterns on BuildJob {
             _that.owner,
             _that.repo,
             _that.teamId,
+            _that.workflowId,
             _that.commitSha,
             _that.pullRequestNumber,
             _that.runCount,
@@ -325,6 +337,7 @@ extension BuildJobPatterns on BuildJob {
             String owner,
             String repo,
             String? teamId,
+            String? workflowId,
             String? commitSha,
             int? pullRequestNumber,
             int? runCount,
@@ -342,6 +355,7 @@ extension BuildJobPatterns on BuildJob {
             _that.owner,
             _that.repo,
             _that.teamId,
+            _that.workflowId,
             _that.commitSha,
             _that.pullRequestNumber,
             _that.runCount,
@@ -373,6 +387,7 @@ extension BuildJobPatterns on BuildJob {
             String owner,
             String repo,
             String? teamId,
+            String? workflowId,
             String? commitSha,
             int? pullRequestNumber,
             int? runCount,
@@ -390,6 +405,7 @@ extension BuildJobPatterns on BuildJob {
             _that.owner,
             _that.repo,
             _that.teamId,
+            _that.workflowId,
             _that.commitSha,
             _that.pullRequestNumber,
             _that.runCount,
@@ -411,6 +427,7 @@ class _BuildJob implements BuildJob {
       required this.owner,
       required this.repo,
       this.teamId,
+      this.workflowId,
       this.commitSha,
       this.pullRequestNumber,
       this.runCount,
@@ -430,6 +447,8 @@ class _BuildJob implements BuildJob {
   final String repo;
   @override
   final String? teamId;
+  @override
+  final String? workflowId;
   @override
   final String? commitSha;
   @override
@@ -470,6 +489,8 @@ class _BuildJob implements BuildJob {
             (identical(other.owner, owner) || other.owner == owner) &&
             (identical(other.repo, repo) || other.repo == repo) &&
             (identical(other.teamId, teamId) || other.teamId == teamId) &&
+            (identical(other.workflowId, workflowId) ||
+                other.workflowId == workflowId) &&
             (identical(other.commitSha, commitSha) ||
                 other.commitSha == commitSha) &&
             (identical(other.pullRequestNumber, pullRequestNumber) ||
@@ -493,6 +514,7 @@ class _BuildJob implements BuildJob {
       owner,
       repo,
       teamId,
+      workflowId,
       commitSha,
       pullRequestNumber,
       runCount,
@@ -502,7 +524,7 @@ class _BuildJob implements BuildJob {
 
   @override
   String toString() {
-    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -519,6 +541,7 @@ abstract mixin class _$BuildJobCopyWith<$Res>
       String owner,
       String repo,
       String? teamId,
+      String? workflowId,
       String? commitSha,
       int? pullRequestNumber,
       int? runCount,
@@ -544,6 +567,7 @@ class __$BuildJobCopyWithImpl<$Res> implements _$BuildJobCopyWith<$Res> {
     Object? owner = null,
     Object? repo = null,
     Object? teamId = freezed,
+    Object? workflowId = freezed,
     Object? commitSha = freezed,
     Object? pullRequestNumber = freezed,
     Object? runCount = freezed,
@@ -571,6 +595,10 @@ class __$BuildJobCopyWithImpl<$Res> implements _$BuildJobCopyWith<$Res> {
       teamId: freezed == teamId
           ? _self.teamId
           : teamId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      workflowId: freezed == workflowId
+          ? _self.workflowId
+          : workflowId // ignore: cast_nullable_to_non_nullable
               as String?,
       commitSha: freezed == commitSha
           ? _self.commitSha
