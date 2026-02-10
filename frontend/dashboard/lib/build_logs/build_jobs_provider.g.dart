@@ -17,6 +17,7 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
       pullRequestNumber: (json['pullRequestNumber'] as num?)?.toInt(),
       runCount: (json['runCount'] as num?)?.toInt(),
       latestRunId: json['latestRunId'] as String?,
+      tagName: json['tagName'] as String?,
       createdAt: const DateTimeConverter().fromJson(json['createdAt']),
       updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
     );
@@ -32,6 +33,7 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
       'pullRequestNumber': instance.pullRequestNumber,
       'runCount': instance.runCount,
       'latestRunId': instance.latestRunId,
+      'tagName': instance.tagName,
       'createdAt': const DateTimeConverter().toJson(instance.createdAt),
       'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
     };

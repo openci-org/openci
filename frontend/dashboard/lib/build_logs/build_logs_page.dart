@@ -125,10 +125,22 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
                     children: [
                       FaIcon(
                         FontAwesomeIcons.codePullRequest,
-                        size: 14,
+                        size: 12,
                       ),
                       const SizedBox(width: 4),
                       Text('#${buildJob.pullRequestNumber}'),
+                    ],
+                  ),
+                if (buildJob.tagName != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FaIcon(
+                        FontAwesomeIcons.tag,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(buildJob.tagName!),
                     ],
                   ),
                 if (buildJob.commitSha != null)

@@ -24,6 +24,7 @@ mixin _$BuildJob {
   int? get pullRequestNumber;
   int? get runCount;
   String? get latestRunId;
+  String? get tagName;
   @DateTimeConverter()
   DateTime get createdAt;
   @DateTimeConverter()
@@ -59,6 +60,7 @@ mixin _$BuildJob {
                 other.runCount == runCount) &&
             (identical(other.latestRunId, latestRunId) ||
                 other.latestRunId == latestRunId) &&
+            (identical(other.tagName, tagName) || other.tagName == tagName) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -79,12 +81,13 @@ mixin _$BuildJob {
       pullRequestNumber,
       runCount,
       latestRunId,
+      tagName,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -104,6 +107,7 @@ abstract mixin class $BuildJobCopyWith<$Res> {
       int? pullRequestNumber,
       int? runCount,
       String? latestRunId,
+      String? tagName,
       @DateTimeConverter() DateTime createdAt,
       @DateTimeConverter() DateTime updatedAt});
 }
@@ -130,6 +134,7 @@ class _$BuildJobCopyWithImpl<$Res> implements $BuildJobCopyWith<$Res> {
     Object? pullRequestNumber = freezed,
     Object? runCount = freezed,
     Object? latestRunId = freezed,
+    Object? tagName = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
@@ -173,6 +178,10 @@ class _$BuildJobCopyWithImpl<$Res> implements $BuildJobCopyWith<$Res> {
       latestRunId: freezed == latestRunId
           ? _self.latestRunId
           : latestRunId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tagName: freezed == tagName
+          ? _self.tagName
+          : tagName // ignore: cast_nullable_to_non_nullable
               as String?,
       createdAt: null == createdAt
           ? _self.createdAt
@@ -290,6 +299,7 @@ extension BuildJobPatterns on BuildJob {
             int? pullRequestNumber,
             int? runCount,
             String? latestRunId,
+            String? tagName,
             @DateTimeConverter() DateTime createdAt,
             @DateTimeConverter() DateTime updatedAt)?
         $default, {
@@ -309,6 +319,7 @@ extension BuildJobPatterns on BuildJob {
             _that.pullRequestNumber,
             _that.runCount,
             _that.latestRunId,
+            _that.tagName,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -342,6 +353,7 @@ extension BuildJobPatterns on BuildJob {
             int? pullRequestNumber,
             int? runCount,
             String? latestRunId,
+            String? tagName,
             @DateTimeConverter() DateTime createdAt,
             @DateTimeConverter() DateTime updatedAt)
         $default,
@@ -360,6 +372,7 @@ extension BuildJobPatterns on BuildJob {
             _that.pullRequestNumber,
             _that.runCount,
             _that.latestRunId,
+            _that.tagName,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -392,6 +405,7 @@ extension BuildJobPatterns on BuildJob {
             int? pullRequestNumber,
             int? runCount,
             String? latestRunId,
+            String? tagName,
             @DateTimeConverter() DateTime createdAt,
             @DateTimeConverter() DateTime updatedAt)?
         $default,
@@ -410,6 +424,7 @@ extension BuildJobPatterns on BuildJob {
             _that.pullRequestNumber,
             _that.runCount,
             _that.latestRunId,
+            _that.tagName,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -432,6 +447,7 @@ class _BuildJob implements BuildJob {
       this.pullRequestNumber,
       this.runCount,
       this.latestRunId,
+      this.tagName,
       @DateTimeConverter() required this.createdAt,
       @DateTimeConverter() required this.updatedAt});
   factory _BuildJob.fromJson(Map<String, dynamic> json) =>
@@ -457,6 +473,8 @@ class _BuildJob implements BuildJob {
   final int? runCount;
   @override
   final String? latestRunId;
+  @override
+  final String? tagName;
   @override
   @DateTimeConverter()
   final DateTime createdAt;
@@ -499,6 +517,7 @@ class _BuildJob implements BuildJob {
                 other.runCount == runCount) &&
             (identical(other.latestRunId, latestRunId) ||
                 other.latestRunId == latestRunId) &&
+            (identical(other.tagName, tagName) || other.tagName == tagName) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -519,12 +538,13 @@ class _BuildJob implements BuildJob {
       pullRequestNumber,
       runCount,
       latestRunId,
+      tagName,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -546,6 +566,7 @@ abstract mixin class _$BuildJobCopyWith<$Res>
       int? pullRequestNumber,
       int? runCount,
       String? latestRunId,
+      String? tagName,
       @DateTimeConverter() DateTime createdAt,
       @DateTimeConverter() DateTime updatedAt});
 }
@@ -572,6 +593,7 @@ class __$BuildJobCopyWithImpl<$Res> implements _$BuildJobCopyWith<$Res> {
     Object? pullRequestNumber = freezed,
     Object? runCount = freezed,
     Object? latestRunId = freezed,
+    Object? tagName = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
@@ -615,6 +637,10 @@ class __$BuildJobCopyWithImpl<$Res> implements _$BuildJobCopyWith<$Res> {
       latestRunId: freezed == latestRunId
           ? _self.latestRunId
           : latestRunId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tagName: freezed == tagName
+          ? _self.tagName
+          : tagName // ignore: cast_nullable_to_non_nullable
               as String?,
       createdAt: null == createdAt
           ? _self.createdAt

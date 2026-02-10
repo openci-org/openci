@@ -10,6 +10,7 @@ import 'package:dashboard/workflow/list/workflow_list_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 String getInitials(String name) {
   final words = name.trim().split(RegExp(r'\s+'));
@@ -197,9 +198,9 @@ class WorkflowListPage extends ConsumerWidget {
                               Icon(
                                 workflow.workflowConfig.selectedTriggerType ==
                                         TriggerType.tag
-                                    ? Icons.label_outline
-                                    : Icons.merge,
-                                size: 16,
+                                    ? FontAwesomeIcons.tag
+                                    : FontAwesomeIcons.codePullRequest,
+                                size: 14,
                                 color: Theme.of(context).hintColor,
                               ),
                               const SizedBox(width: 4),

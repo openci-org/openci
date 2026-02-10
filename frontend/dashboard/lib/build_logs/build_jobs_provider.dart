@@ -60,6 +60,7 @@ abstract class BuildJob with _$BuildJob {
     int? pullRequestNumber,
     int? runCount,
     String? latestRunId,
+    String? tagName,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _BuildJob;
