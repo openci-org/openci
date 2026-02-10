@@ -18,15 +18,15 @@ dependencies:
   firebase_core: ^4.4.0
   flutter:
     sdk: flutter
-  flutter_code_editor: ^0.3.5
   flutter_hooks: ^0.21.3+1
   flutter_riverpod: ^3.1.0
   freezed_annotation: ^3.1.0
-  highlight: ^0.7.0
   hooks_riverpod: ^3.1.0
   intl: ^0.20.2
   json_annotation: ^4.9.0
   material_symbols_icons: ^4.2892.0
+  re_editor: ^0.8.0
+  re_highlight: ^0.0.3
   riverpod_annotation: ^4.0.0
   url_launcher: ^6.3.2
   uuid: ^4.5.2
