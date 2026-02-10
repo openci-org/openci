@@ -39,6 +39,18 @@ export const createSecretV1 = onCall(
       throw new HttpsError("permission-denied", "You are not a member of this team");
     }
 
+    // Check for duplicate name
+    const duplicateCheck = await db
+      .collection(secretsCollectionPath)
+      .where("teamId", "==", teamId)
+      .where("name", "==", name)
+      .limit(1)
+      .get();
+
+    if (!duplicateCheck.empty) {
+      throw new HttpsError("already-exists", `Secret with name "${name}" already exists`);
+    }
+
     const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
     if (!projectId) {
       throw new HttpsError("internal", "Project ID not found");
@@ -82,44 +94,6 @@ export const createSecretV1 = onCall(
 
       return { success: true, documentId };
     } catch (error: any) {
-      if (error.code === 6) {
-        await secretManagerClient.addSecretVersion({
-          parent: `${parent}/secrets/${secretId}`,
-          payload: {
-            data: Buffer.from(value, "utf8"),
-          },
-        });
-
-        const existingDocs = await db
-          .collection(secretsCollectionPath)
-          .where("teamId", "==", teamId)
-          .where("name", "==", name)
-          .limit(1)
-          .get();
-
-        let documentId: string;
-        if (existingDocs.empty) {
-          documentId = uuidv4();
-          await db
-            .collection(secretsCollectionPath)
-            .doc(documentId)
-            .set({
-              id: documentId,
-              name,
-              teamId,
-              pathToSecret: `${parent}/secrets/${secretId}`,
-              createdAt: FieldValue.serverTimestamp(),
-              updatedAt: FieldValue.serverTimestamp(),
-            });
-          logger.info(`Secret document created for existing secret: ${secretId}`, { teamId, name });
-        } else {
-          documentId = existingDocs.docs[0].id;
-        }
-
-        logger.info(`Secret updated: ${secretId}`, { teamId, name });
-        return { success: true, documentId };
-      }
-
       logger.error("Failed to create secret", error);
       throw new HttpsError("internal", `Failed to create secret: ${error.message}`);
     }

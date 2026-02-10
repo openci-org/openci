@@ -9,9 +9,6 @@ class SecretManagerPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final secretNameController = useTextEditingController();
-    final secretValueController = useTextEditingController();
-
     final state = ref.watch(secretManagerProvider);
     return Scaffold(
       appBar: AppBar(
@@ -19,57 +16,11 @@ class SecretManagerPage extends HookConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          secretNameController.clear();
-          secretValueController.clear();
-          showDialog(
+          showModalBottomSheet(
+            showDragHandle: true,
             context: context,
-            builder: (context) => AlertDialog(
-              title: Text('Add Secret'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: secretNameController,
-                    decoration: InputDecoration(
-                      labelText: 'SECRET_NAME',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: secretValueController,
-                    decoration: InputDecoration(
-                      labelText: 'Secret Value',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    try {
-                      await ref.read(secretManagerProvider.notifier).addSecret(
-                            secretNameController.text,
-                            secretValueController.text,
-                          );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      context.showSnackBarMessage(
-                        'Failed to add secret: $e',
-                      );
-                    }
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
-            ),
+            isScrollControlled: true,
+            builder: (context) => const _AddSecretBottomSheet(),
           );
         },
         child: const Icon(Icons.add),
@@ -92,11 +43,12 @@ class SecretManagerPage extends HookConsumerWidget {
                       trailing: IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () {
-                          _showEditDialog(
+                          showModalBottomSheet(
+                            showDragHandle: true,
                             context: context,
-                            ref: ref,
-                            secret: secret,
-                            existingSecrets: secrets,
+                            isScrollControlled: true,
+                            builder: (context) =>
+                                _EditSecretBottomSheet(secret: secret),
                           );
                         },
                       ),
@@ -112,160 +64,201 @@ class SecretManagerPage extends HookConsumerWidget {
       ),
     );
   }
+}
 
-  void _showEditDialog({
-    required BuildContext context,
-    required WidgetRef ref,
-    required Secret secret,
-    required List<Secret> existingSecrets,
-  }) {
-    final nameController = TextEditingController(text: secret.name);
-    final valueController = TextEditingController();
+class _AddSecretBottomSheet extends HookConsumerWidget {
+  const _AddSecretBottomSheet();
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return _EditSecretDialog(
-          nameController: nameController,
-          valueController: valueController,
-          secret: secret,
-          existingSecrets: existingSecrets,
-          ref: ref,
-        );
-      },
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final secretNameController = useTextEditingController();
+    final secretValueController = useTextEditingController();
+    final formKey = useMemoized(() => GlobalKey<FormState>());
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    const Text(
+                      'Add Secret',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: secretNameController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'SECRET_NAME',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a secret name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: secretValueController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Secret Value',
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a secret value';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        try {
+                          await ref
+                              .read(secretManagerProvider.notifier)
+                              .addSecret(
+                                secretNameController.text.trim(),
+                                secretValueController.text,
+                              );
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(
+                            'Secret added successfully',
+                          );
+                          Navigator.of(context).pop();
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage('$e');
+                        }
+                      },
+                      child: const Text('Add Secret'),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class _EditSecretDialog extends HookConsumerWidget {
-  const _EditSecretDialog({
-    required this.nameController,
-    required this.valueController,
-    required this.secret,
-    required this.existingSecrets,
-    required this.ref,
-  });
+class _EditSecretBottomSheet extends HookConsumerWidget {
+  const _EditSecretBottomSheet({required this.secret});
 
-  final TextEditingController nameController;
-  final TextEditingController valueController;
   final Secret secret;
-  final List<Secret> existingSecrets;
-  final WidgetRef ref;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final nameController = useTextEditingController(text: secret.name);
+    final valueController = useTextEditingController();
+    final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
-    final nameError = useState<String?>(null);
 
-    return AlertDialog(
-      title: const Text('Edit Secret'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              labelText: 'SECRET_NAME',
-              border: const OutlineInputBorder(),
-              errorText: nameError.value,
-            ),
-            onChanged: (value) {
-              // Check for duplicate name in real-time
-              if (value != secret.name &&
-                  existingSecrets.any((s) => s.name == value)) {
-                nameError.value = 'This name is already in use';
-              } else {
-                nameError.value = null;
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: valueController,
-            decoration: const InputDecoration(
-              labelText: 'New Secret Value (leave empty to keep current)',
-              border: OutlineInputBorder(),
-            ),
-            obscureText: true,
-          ),
-          if (nameController.text != secret.name &&
-              nameController.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Changing the name will also update all workflows that reference this secret.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    const Text(
+                      'Edit Secret',
+                      style: TextStyle(fontSize: 16),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'SECRET_NAME',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a secret name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: valueController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText:
+                            'New Secret Value (leave empty to keep current)',
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: isLoading.value
+                          ? null
+                          : () async {
+                              if (!formKey.currentState!.validate()) return;
+                              final name = nameController.text.trim();
+
+                              isLoading.value = true;
+                              try {
+                                await ref
+                                    .read(secretManagerProvider.notifier)
+                                    .updateSecret(
+                                      documentId: secret.id,
+                                      name: name,
+                                      value: valueController.text.isNotEmpty
+                                          ? valueController.text
+                                          : null,
+                                    );
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage(
+                                  'Secret updated successfully',
+                                );
+                                Navigator.of(context).pop();
+                              } catch (e) {
+                                isLoading.value = false;
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage('$e');
+                              }
+                            },
+                      child: isLoading.value
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-        ],
+          ),
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: isLoading.value ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: isLoading.value
-              ? null
-              : () async {
-                  final name = nameController.text.trim();
-                  if (name.isEmpty) {
-                    nameError.value = 'Name cannot be empty';
-                    return;
-                  }
-
-                  // Check for duplicate
-                  if (name != secret.name &&
-                      existingSecrets.any((s) => s.name == name)) {
-                    nameError.value = 'This name is already in use';
-                    return;
-                  }
-
-                  isLoading.value = true;
-                  try {
-                    await this
-                        .ref
-                        .read(secretManagerProvider.notifier)
-                        .updateSecret(
-                          documentId: secret.id,
-                          name: name,
-                          value: valueController.text.isNotEmpty
-                              ? valueController.text
-                              : null,
-                        );
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                  } catch (e) {
-                    isLoading.value = false;
-                    if (!context.mounted) return;
-                    context.showSnackBarMessage(
-                      'Failed to update secret: $e',
-                    );
-                  }
-                },
-          child: isLoading.value
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save'),
-        ),
-      ],
     );
   }
 }
