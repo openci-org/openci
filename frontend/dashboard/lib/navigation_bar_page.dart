@@ -1,4 +1,4 @@
-import 'package:dashboard/logs/logs_page.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/secret_manager/secret_manager_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';

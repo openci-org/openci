@@ -1,6 +1,8 @@
+import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
-import 'package:dashboard/logs/logs_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -10,7 +12,7 @@ class LogsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(buildJobsListProvider);
+    final state = ref.watch(buildJobsProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -54,12 +56,12 @@ class LogsPage extends HookConsumerWidget {
   }
 }
 
-class BuildJobCard extends StatelessWidget {
+class BuildJobCard extends ConsumerWidget {
   const BuildJobCard({super.key, required this.buildJob});
   final BuildJob buildJob;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
@@ -102,15 +104,24 @@ class BuildJobCard extends StatelessWidget {
             ),
           ],
         ),
-        trailing: buildJob.runCount != null && buildJob.runCount! > 0
-            ? Chip(
-                label: Text(
-                  'Run ${buildJob.runCount}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                visualDensity: VisualDensity.compact,
-              )
-            : null,
+        trailing: IconButton(
+          onPressed: () async {
+            try {
+              context.showSnackBarMessage('Retrying build job...');
+              await ref
+                  .read(buildJobsProvider.notifier)
+                  .retryBuildJob(buildJob.id);
+              if (context.mounted) {
+                context.showSnackBarMessage('Build job queued successfully');
+              }
+            } catch (e) {
+              if (context.mounted) {
+                context.showSnackBarMessage('Failed to retry: $e');
+              }
+            }
+          },
+          icon: const Icon(Icons.replay),
+        ),
         children: [
           if (buildJob.latestRunId != null)
             LogsListView(

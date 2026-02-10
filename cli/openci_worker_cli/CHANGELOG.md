@@ -1,3 +1,7 @@
+## 0.4.18 - 2026-02-10
+
+- fix: CLI checkouts
+
 ## 0.4.17 - 2026-02-10
 
 - fix: flutter path
