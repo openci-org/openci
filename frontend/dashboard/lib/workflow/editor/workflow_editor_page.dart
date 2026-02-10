@@ -186,7 +186,7 @@ class StepList extends ConsumerWidget {
         itemBuilder: (context, index) {
           final step = steps[index];
           return Column(
-            key: ValueKey('step_$index'),
+            key: UniqueKey(),
             children: [
               StepCard(
                 title: step.name,
@@ -403,7 +403,7 @@ class StepConnector extends StatelessWidget {
   }
 }
 
-class StepCard extends StatelessWidget {
+class StepCard extends ConsumerWidget {
   const StepCard({
     required this.title,
     required this.command,
@@ -419,7 +419,7 @@ class StepCard extends StatelessWidget {
   final int stepIndex;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ListTile(
@@ -440,9 +440,48 @@ class StepCard extends StatelessWidget {
             ),
           );
         },
-        trailing: Icon(
-          Icons.drag_handle,
-          color: Theme.of(context).hintColor,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.error,
+                size: 20,
+              ),
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Step'),
+                    content: Text('Are you sure you want to delete this step?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await ref
+                      .read(workflowEditorProvider(workflowId).notifier)
+                      .deleteStep(stepIndex);
+                }
+              },
+            ),
+            Icon(
+              Icons.drag_handle,
+              color: Theme.of(context).hintColor,
+            ),
+          ],
         ),
         title: Text(
           title,

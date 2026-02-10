@@ -76,6 +76,30 @@ class WorkflowEditor extends _$WorkflowEditor {
     });
   }
 
+  Future<void> deleteStep(int index) async {
+    final doc = await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .get();
+    final data = doc.data();
+    if (data == null) return;
+
+    final workflow = Workflow.fromJson(data);
+    final steps = List<WorkflowStep>.from(workflow.workflowSteps);
+    if (index < 0 || index >= steps.length) return;
+
+    steps.removeAt(index);
+
+    await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
+  }
+
   Future<void> reorderSteps(int oldIndex, int newIndex) async {
     final doc = await ref
         .watch(firestoreProvider)
