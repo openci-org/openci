@@ -186,7 +186,7 @@ class StepList extends ConsumerWidget {
         itemBuilder: (context, index) {
           final step = steps[index];
           return Column(
-            key: UniqueKey(),
+            key: ValueKey('step_$index'),
             children: [
               StepCard(
                 title: step.name,
