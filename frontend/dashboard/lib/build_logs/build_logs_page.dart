@@ -73,7 +73,6 @@ class BuildJobCard extends ConsumerWidget {
     final statusIcon = switch (buildJob.status) {
       'success' => Icons.check_circle,
       'failure' => Icons.cancel,
-      'in_progress' => Icons.pending,
       'queued' => Icons.schedule,
       _ => Icons.help_outline,
     };
@@ -82,7 +81,9 @@ class BuildJobCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        leading: Icon(statusIcon, color: statusColor, size: 28),
+        leading: buildJob.status == 'in_progress'
+            ? const CircularProgressIndicator.adaptive()
+            : Icon(statusIcon, color: statusColor, size: 28),
         title: Text(
           '${buildJob.owner}/${buildJob.repo}',
           style: const TextStyle(fontWeight: FontWeight.bold),

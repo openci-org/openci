@@ -6,3 +6,4 @@ const teamsCollection = 'teams_v0';
 const usersCollection = 'users_v0';
 
 const callableFunctionPath = 'createSecretV1';
+const updateSecretCallableFunctionPath = 'updateSecretV1';
