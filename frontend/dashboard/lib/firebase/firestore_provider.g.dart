@@ -15,15 +15,15 @@ final firestoreProvider = FirestoreProvider._();
 final class FirestoreProvider
     extends $NotifierProvider<Firestore, FirebaseFirestore> {
   FirestoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'firestoreProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'firestoreProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
 
   @override
   String debugGetCreateSourceHash() => _$firestoreHash();
@@ -49,14 +49,11 @@ abstract class _$Firestore extends $Notifier<FirebaseFirestore> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<FirebaseFirestore, FirebaseFirestore>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<FirebaseFirestore, FirebaseFirestore>,
-              FirebaseFirestore,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<FirebaseFirestore, FirebaseFirestore>,
+        FirebaseFirestore,
+        Object?,
+        Object?>;
     element.handleCreate(ref, build);
   }
 }

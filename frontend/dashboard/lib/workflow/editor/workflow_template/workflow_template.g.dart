@@ -13,4 +13,7 @@ _WorkflowTemplate _$WorkflowTemplateFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$WorkflowTemplateToJson(_WorkflowTemplate instance) =>
-    <String, dynamic>{'name': instance.name, 'title': instance.title};
+    <String, dynamic>{
+      'name': instance.name,
+      'title': instance.title,
+    };
