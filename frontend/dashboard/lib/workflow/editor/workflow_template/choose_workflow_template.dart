@@ -7,10 +7,9 @@ import 'package:dashboard/workflow/editor/workflow_template/save_secret_file_tem
 import 'package:dashboard/workflow/editor/workflow_template/workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:highlight/languages/shell.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:re_editor/re_editor.dart';
 
 class ChooseWorkflowTemplate extends HookConsumerWidget {
   const ChooseWorkflowTemplate({
@@ -25,10 +24,7 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final codeController = useState(
-      CodeController(
-        text: 'echo "Hello World"',
-        language: shell,
-      ),
+      CodeLineEditingController.fromText('echo "Hello World"'),
     );
     return Column(
       children: [
@@ -78,10 +74,8 @@ npm version \$OPENCI_TAG --no-git-tag-version --allow-same-version --force
 npx -y react-native-version --never-amend
 ''';
                           }
-                          codeController.value = CodeController(
-                            text: script,
-                            language: shell,
-                          );
+                          codeController.value =
+                              CodeLineEditingController.fromText(script);
                           _showCodeEditorForm(
                             context,
                             codeController: codeController,
@@ -157,7 +151,7 @@ npx -y react-native-version --never-amend
 
   void _showCodeEditorForm(
     BuildContext context, {
-    required ValueNotifier<CodeController> codeController,
+    required ValueNotifier<CodeLineEditingController> codeController,
     required WorkflowTemplate template,
     required WidgetRef ref,
   }) {
@@ -193,12 +187,29 @@ npx -y react-native-version --never-amend
                   ],
                 ),
               ),
-              CodeTheme(
-                data: CodeThemeData(),
-                child: SingleChildScrollView(
-                  child: CodeField(
-                    controller: codeController.value,
+              SizedBox(
+                height: 200,
+                child: CodeEditor(
+                  controller: codeController.value,
+                  wordWrap: true,
+                  style: CodeEditorStyle(
+                    fontSize: 14,
                   ),
+                  indicatorBuilder: (
+                    context,
+                    editingController,
+                    chunkController,
+                    notifier,
+                  ) {
+                    return Row(
+                      children: [
+                        DefaultCodeLineNumber(
+                          controller: editingController,
+                          notifier: notifier,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               SizedBox(height: 12.0),

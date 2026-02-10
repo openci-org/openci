@@ -4,11 +4,12 @@ import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:highlight/languages/shell.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:re_editor/re_editor.dart';
+import 'package:re_highlight/languages/bash.dart';
+import 'package:re_highlight/styles/monokai.dart';
 
 class WorkflowEditorPage extends ConsumerWidget {
   const WorkflowEditorPage({
@@ -533,10 +534,7 @@ class EditStepBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nameController = useTextEditingController(text: stepName);
     final codeController = useState(
-      CodeController(
-        text: stepCommand,
-        language: shell,
-      ),
+      CodeLineEditingController.fromText(stepCommand),
     );
 
     return SizedBox(
@@ -574,11 +572,44 @@ class EditStepBottomSheet extends HookConsumerWidget {
                   SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: CodeTheme(
-                      data: CodeThemeData(),
-                      child: CodeField(
+                    child: SizedBox(
+                      height: 200,
+                      child: CodeEditor(
+                        padding: EdgeInsets.only(
+                          top: 12,
+                          left: 12,
+                          right: 12,
+                          bottom: 12,
+                        ),
                         controller: codeController.value,
-                        minLines: 4,
+                        wordWrap: true,
+                        borderRadius: BorderRadius.circular(12),
+                        style: CodeEditorStyle(
+                          fontSize: 14,
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          textColor: Colors.white,
+                          codeTheme: CodeHighlightTheme(
+                            languages: {
+                              'bash': CodeHighlightThemeMode(mode: langBash),
+                            },
+                            theme: monokaiTheme,
+                          ),
+                        ),
+                        indicatorBuilder: (
+                          context,
+                          editingController,
+                          chunkController,
+                          notifier,
+                        ) {
+                          return Row(
+                            children: [
+                              DefaultCodeLineNumber(
+                                controller: editingController,
+                                notifier: notifier,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
