@@ -57,12 +57,23 @@ class LogsPage extends HookConsumerWidget {
   }
 }
 
-class BuildJobCard extends ConsumerWidget {
+class BuildJobCard extends ConsumerStatefulWidget {
   const BuildJobCard({super.key, required this.buildJob});
   final BuildJob buildJob;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BuildJobCard> createState() => _BuildJobCardState();
+}
+
+class _BuildJobCardState extends ConsumerState<BuildJobCard>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final buildJob = widget.buildJob;
     final workflowNameAsync =
         ref.watch(workflowNameProvider(buildJob.workflowId));
 
