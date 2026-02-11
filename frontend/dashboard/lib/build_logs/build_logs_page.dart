@@ -93,75 +93,109 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
     };
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: buildJob.status == 'in_progress'
-            ? const CircularProgressIndicator.adaptive()
-            : Icon(statusIcon, color: statusColor, size: 28),
+            ? const SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator.adaptive(),
+              )
+            : Icon(statusIcon, color: statusColor, size: 32),
         title: Text(
           '${buildJob.owner}/${buildJob.repo}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            workflowNameAsync.when(
-              data: (name) => name == null ? SizedBox.shrink() : Text(name),
-              loading: () => const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator.adaptive(),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FaIcon(
+                    FontAwesomeIcons.clock,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    buildJob.createdAt.toTimeAgoEn(),
+                  ),
+                ],
               ),
-              error: asyncErrorWidget,
-            ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (buildJob.pullRequestNumber != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FaIcon(
-                        FontAwesomeIcons.codePullRequest,
-                        size: 12,
+              workflowNameAsync.when(
+                data: (name) => name == null
+                    ? SizedBox.shrink()
+                    : Row(
+                        children: [
+                          FaIcon(
+                            FontAwesomeIcons.code,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text('#${buildJob.pullRequestNumber}'),
-                    ],
-                  ),
-                if (buildJob.tagName != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FaIcon(
-                        FontAwesomeIcons.tag,
-                        size: 12,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(buildJob.tagName!),
-                    ],
-                  ),
-                if (buildJob.commitSha != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FaIcon(
-                        FontAwesomeIcons.codeCommit,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(buildJob.commitSha!.substring(0, 7)),
-                    ],
-                  ),
-                Text(
-                  buildJob.createdAt.toFormattedDate(),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                loading: () => const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator.adaptive(),
                 ),
-              ],
-            ),
-          ],
+                error: asyncErrorWidget,
+              ),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  if (buildJob.pullRequestNumber != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FaIcon(
+                          FontAwesomeIcons.codePullRequest,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text('#${buildJob.pullRequestNumber}'),
+                      ],
+                    ),
+                  if (buildJob.tagName != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FaIcon(
+                          FontAwesomeIcons.tag,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(buildJob.tagName!),
+                      ],
+                    ),
+                  if (buildJob.commitSha != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FaIcon(
+                          FontAwesomeIcons.codeCommit,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(buildJob.commitSha!.substring(0, 7)),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
         trailing: IconButton(
           onPressed: () async {
