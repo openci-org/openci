@@ -9,6 +9,10 @@
       "path": "cli/openci_worker_cli",
     },
     {
+      "name": "openci_vm_cli",
+      "path": "cli/openci_vm_cli",
+    },
+    {
       "name": "firebase-functions",
       "path": "firebase/functions",
     },
@@ -30,6 +34,7 @@
     },
   ],
   "settings": {
+    "terminal.integrated.scrollback": 10000,
     "cSpell.words": [
       "bento",
       "bradlc",
@@ -122,8 +127,9 @@
   "tasks": {
     "version": "2.0.0",
     "tasks": [
+      // ── Flutter ──────────────────────────────────────
       {
-        "label": "build_runner watch",
+        "label": "Flutter: build_runner watch",
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
@@ -134,7 +140,7 @@
         "isBackground": true,
       },
       {
-        "label": "flutter clean",
+        "label": "Flutter: clean",
         "type": "shell",
         "command": "flutter clean && flutter pub get",
         "options": {
@@ -142,7 +148,17 @@
         },
       },
       {
-        "label": "(Dev) Deploy Firebase Functions",
+        "label": "Flutter: Build .ipa",
+        "type": "shell",
+        "command": "flutter clean && flutter pub get && flutter build ipa",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+      },
+      // ── Firebase ─────────────────────────────────────
+      {
+        "label": "Firebase: (Dev) Deploy Functions",
         "type": "shell",
         "command": "firebase use default && firebase deploy --only functions",
         "options": {
@@ -151,7 +167,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "(Dev) Deploy Firestore Security Rules",
+        "label": "Firebase: (Dev) Deploy Rules",
         "type": "shell",
         "command": "firebase use default && firebase deploy --only firestore:rules",
         "options": {
@@ -160,7 +176,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "(Dev) Deploy Firestore Indexes",
+        "label": "Firebase: (Dev) Deploy Indexes",
         "type": "shell",
         "command": "firebase use default && firebase deploy --only firestore:indexes",
         "options": {
@@ -169,7 +185,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "(Prod) Deploy Firebase Functions",
+        "label": "Firebase: (Prod) Deploy Functions",
         "type": "shell",
         "command": "firebase use prod && firebase deploy --only functions && firebase use default",
         "options": {
@@ -178,7 +194,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "(Prod) Deploy Firestore Security Rules",
+        "label": "Firebase: (Prod) Deploy Rules",
         "type": "shell",
         "command": "firebase use prod && firebase deploy --only firestore:rules && firebase use default",
         "options": {
@@ -187,7 +203,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "(Prod) Deploy Firestore Indexes",
+        "label": "Firebase: (Prod) Deploy Indexes",
         "type": "shell",
         "command": "firebase use prod && firebase deploy --only firestore:indexes && firebase use default",
         "options": {
@@ -196,7 +212,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "Reauth Firebase Login",
+        "label": "Firebase: Reauth Login",
         "type": "shell",
         "command": "firebase login --reauth",
         "options": {
@@ -204,17 +220,28 @@
         },
         "problemMatcher": [],
       },
+      // ── Hosting ──────────────────────────────────────
       {
-        "label": "Publish OpenCI Worker CLI",
+        "label": "Hosting: (Dev) Deploy Web",
         "type": "shell",
-        "command": "dart pub publish",
+        "command": "flutter build web --release && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use default && firebase deploy --only hosting",
         "options": {
-          "cwd": "${workspaceFolder:openci_worker_cli}",
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
         },
         "problemMatcher": [],
       },
       {
-        "label": "(Dev) Run OpenCI Worker CLI",
+        "label": "Hosting: (Prod) Deploy Web",
+        "type": "shell",
+        "command": "flutter build web --release && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use prod && firebase deploy --only hosting && firebase use default",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        },
+        "problemMatcher": [],
+      },
+      // ── Worker CLI ───────────────────────────────────
+      {
+        "label": "Worker CLI: (Dev) Run",
         "type": "shell",
         "command": "dart",
         "args": [
@@ -231,7 +258,7 @@
         "problemMatcher": [],
       },
       {
-        "label": "(Prod) Run OpenCI Worker CLI",
+        "label": "Worker CLI: (Prod) Run",
         "type": "shell",
         "command": "dart",
         "args": [
@@ -247,30 +274,22 @@
         },
         "problemMatcher": [],
       },
+      // ── Publish ──────────────────────────────────────
       {
-        "label": "Flutter Build .ipa",
+        "label": "Publish: Worker CLI",
         "type": "shell",
-        "command": "flutter clean && flutter pub get && flutter build ipa",
+        "command": "dart pub publish",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:openci_worker_cli}",
         },
         "problemMatcher": [],
       },
       {
-        "label": "(Dev) Deploy Flutter Web to Firebase Hosting",
+        "label": "Publish: VM CLI",
         "type": "shell",
-        "command": "flutter build web --release && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use default && firebase deploy --only hosting",
+        "command": "dart pub publish",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "(Prod) Deploy Flutter Web to Firebase Hosting",
-        "type": "shell",
-        "command": "flutter build web --release && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use prod && firebase deploy --only hosting && firebase use default",
-        "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:openci_vm_cli}",
         },
         "problemMatcher": [],
       },

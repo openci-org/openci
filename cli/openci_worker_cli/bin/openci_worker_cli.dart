@@ -128,10 +128,10 @@ void printUsage(ArgParser argParser) {
 }
 
 Future<void> main(List<String> arguments) async {
-  final ArgParser argParser = buildParser();
+  final argParser = buildParser();
 
   try {
-    final ArgResults results = argParser.parse(arguments);
+    final results = argParser.parse(arguments);
 
     if (results.flag('help')) {
       printUsage(argParser);
@@ -364,9 +364,14 @@ Future<bool> processJob(
             ? tagName.substring(1)
             : tagName)
         : null;
+
+    final teamId = workflowData['teamId'] as String;
+
     final builtInEnvVars = <String>[
       if (tagName != null && tagName.isNotEmpty) "export OPENCI_TAG='$tagName'",
       if (tagVersion != null) "export OPENCI_TAG_VERSION='$tagVersion'",
+      "export OPENCI_PROJECT_ID='$projectId'",
+      "export OPENCI_TEAM_ID='$teamId'",
     ];
 
     if (tagName != null && tagName.isNotEmpty) {
@@ -375,12 +380,14 @@ Future<bool> processJob(
 
     for (int i = 0; i < steps.length; i++) {
       final step = steps[i];
-      final command = step['command'] as String;
       final stepName = step['name'] as String? ?? 'Step ${i + 1}';
-      final secrets = step['requiredSecrets'] as List;
-      final exportCommands = <String>[];
 
       await logger.info('Running step ${i + 1}/${steps.length}: $stepName');
+
+      final command = step['command'] as String;
+      final secrets = (step['requiredSecrets'] as List?) ?? [];
+      final exportCommands = <String>[];
+
       await logger.info('Command: $command');
 
       for (final secret in secrets) {

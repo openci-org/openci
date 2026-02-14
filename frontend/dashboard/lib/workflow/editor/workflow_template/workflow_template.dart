@@ -9,6 +9,10 @@ const workflowTemplateList = [
     title: 'Write your code',
   ),
   WorkflowTemplate(
+    name: 'ios_code_signing',
+    title: 'iOS Code Signing',
+  ),
+  WorkflowTemplate(
     name: 'save_secret_file',
     title: 'Save secret file',
   ),
