@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/workflow/editor/workflow_template/ios_code_signing_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_android_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_ios_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/save_secret_file_template.dart';
@@ -50,7 +51,9 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
                     padding: const EdgeInsets.all(20.0),
                     child: InkWell(
                       onTap: () {
-                        if (template.name == 'save_secret_file') {
+                        if (template.name == 'ios_code_signing') {
+                          _showIosCodeSigningForm(context);
+                        } else if (template.name == 'save_secret_file') {
                           _showSaveSecretFileForm(context);
                         } else if (template.name ==
                             'react_native_expo_cd_ios') {
@@ -112,6 +115,20 @@ npx -y react-native-version --never-amend
           ),
         ),
       ],
+    );
+  }
+
+  void _showIosCodeSigningForm(BuildContext context) {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      showDragHandle: true,
+      context: context,
+      builder: (context) {
+        return IosCodeSigningForm(
+          documentId: documentId,
+          insertAt: insertAt,
+        );
+      },
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_temp
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:re_editor/re_editor.dart';
@@ -132,7 +133,7 @@ class StepList extends ConsumerWidget {
                             workflowConfig.selectedTriggerType ==
                                     TriggerType.tag
                                 ? Icons.label_outline
-                                : Icons.merge,
+                                : FontAwesomeIcons.codePullRequest,
                             size: 16,
                             color: Theme.of(context).hintColor,
                           ),
@@ -190,9 +191,7 @@ class StepList extends ConsumerWidget {
             key: ValueKey('step_$index'),
             children: [
               StepCard(
-                title: step.name,
-                command: step.command,
-                isCompleted: step.isCompleted,
+                step: step,
                 workflowId: workflowId,
                 stepIndex: index,
               ),
@@ -406,16 +405,12 @@ class StepConnector extends StatelessWidget {
 
 class StepCard extends ConsumerWidget {
   const StepCard({
-    required this.title,
-    required this.command,
-    required this.isCompleted,
+    required this.step,
     required this.workflowId,
     required this.stepIndex,
     super.key,
   });
-  final bool isCompleted;
-  final String title;
-  final String command;
+  final WorkflowStep step;
   final String workflowId;
   final int stepIndex;
 
@@ -434,8 +429,8 @@ class StepCard extends ConsumerWidget {
             isScrollControlled: true,
             showDragHandle: true,
             builder: (_) => EditStepBottomSheet(
-              stepName: title,
-              stepCommand: command,
+              stepName: step.name,
+              stepCommand: step.command,
               workflowId: workflowId,
               stepIndex: stepIndex,
             ),
@@ -478,14 +473,10 @@ class StepCard extends ConsumerWidget {
                 }
               },
             ),
-            Icon(
-              Icons.drag_handle,
-              color: Theme.of(context).hintColor,
-            ),
           ],
         ),
         title: Text(
-          title,
+          step.name,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -502,7 +493,7 @@ class StepCard extends ConsumerWidget {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  command,
+                  step.command,
                   style: Theme.of(context).textTheme.bodyMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1198,7 +1198,7 @@ extension WorkflowStepPatterns on WorkflowStep {
 class _WorkflowStep implements WorkflowStep {
   const _WorkflowStep(
       {required this.name,
-      required this.command,
+      this.command = '',
       required this.isCompleted,
       this.requiredSecrets = const []});
   factory _WorkflowStep.fromJson(Map<String, dynamic> json) =>
@@ -1207,6 +1207,7 @@ class _WorkflowStep implements WorkflowStep {
   @override
   final String name;
   @override
+  @JsonKey()
   final String command;
   @override
   final bool isCompleted;
