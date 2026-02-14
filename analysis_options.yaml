@@ -1,3 +1,8 @@
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
 include: package:flutter_lints/flutter.yaml
 
 linter:
@@ -7,3 +12,6 @@ linter:
 
 formatter:
   trailing_commas: preserve
+
+plugins:
+  riverpod_lint: 3.1.2
