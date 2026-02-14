@@ -96,21 +96,24 @@ async function createBuildJobs(
   const { payload, event } = params;
 
   let branch: string | null = null;
+  let triggerBranch: string | null = null;
   let triggerType: string | null = null;
   let tagName: string | null = null;
 
   if (event === "pull_request") {
-    branch = payload.pull_request.base.ref;
+    branch = payload.pull_request.head.ref;
+    triggerBranch = payload.pull_request.base.ref;
     triggerType = "pullRequest";
   } else if (event === "push") {
     branch = payload.ref.replace("refs/heads/", "");
+    triggerBranch = branch;
     triggerType = "push";
   } else if (event === "create" && payload.ref_type === "tag") {
     tagName = payload.ref;
     triggerType = "tag";
   }
 
-  if (!triggerType || (triggerType !== "tag" && !branch)) {
+  if (!triggerType || (triggerType !== "tag" && !triggerBranch)) {
     logger.info(`Skipping event ${event}: unable to determine trigger type`);
     return;
   }
@@ -120,8 +123,12 @@ async function createBuildJobs(
     .where("workflowConfig.selectedRepository", "==", params.repository)
     .where("workflowConfig.selectedTriggerType", "==", triggerType);
 
-  if (triggerType !== "tag" && branch) {
-    workflowQuery = workflowQuery.where("workflowConfig.selectedTriggerBranch", "==", branch);
+  if (triggerType !== "tag" && triggerBranch) {
+    workflowQuery = workflowQuery.where(
+      "workflowConfig.selectedTriggerBranch",
+      "==",
+      triggerBranch,
+    );
   }
 
   const workflowSnapshot = await workflowQuery.get();
