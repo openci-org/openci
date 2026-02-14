@@ -6,6 +6,8 @@ repository: https://github.com/open-ci-io/openci
 environment:
   sdk: ^3.6.0
 
+resolution: workspace
+
 dependencies:
   args: ^2.7.0
   dart_firebase_admin: ^0.4.1
