@@ -115,13 +115,21 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
         title: Row(
           children: [
             Expanded(
-              child: Text(
-                '${buildJob.owner}/${buildJob.repo}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
+              child: workflowNameAsync.when(
+                data: (name) => Text(
+                  name ?? '${buildJob.owner}/${buildJob.repo}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
+                loading: () => const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                ),
+                error: asyncErrorWidget,
               ),
             ),
             Text(
@@ -138,34 +146,7 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 2: Workflow name
-              workflowNameAsync.when(
-                data: (name) => name == null
-                    ? const SizedBox.shrink()
-                    : Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text(
-                          name,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                loading: () => const Padding(
-                  padding: EdgeInsets.only(bottom: 6),
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                  ),
-                ),
-                error: asyncErrorWidget,
-              ),
-              // Row 3: Git metadata chips
+              // Git metadata chips
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
