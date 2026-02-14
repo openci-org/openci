@@ -196,10 +196,14 @@ class WorkflowListPage extends ConsumerWidget {
                           Row(
                             children: [
                               Icon(
-                                workflow.workflowConfig.selectedTriggerType ==
-                                        TriggerType.tag
-                                    ? FontAwesomeIcons.tag
-                                    : FontAwesomeIcons.codePullRequest,
+                                switch (workflow
+                                    .workflowConfig.selectedTriggerType) {
+                                  TriggerType.tag => FontAwesomeIcons.tag,
+                                  TriggerType.push =>
+                                    FontAwesomeIcons.codeCommit,
+                                  TriggerType.pullRequest =>
+                                    FontAwesomeIcons.codePullRequest,
+                                },
                                 size: 14,
                                 color: Theme.of(context).hintColor,
                               ),
@@ -217,7 +221,7 @@ class WorkflowListPage extends ConsumerWidget {
                               ),
                               const SizedBox(width: 12),
                               Icon(
-                                Icons.folder_outlined,
+                                FontAwesomeIcons.github,
                                 size: 16,
                                 color: Theme.of(context).hintColor,
                               ),
