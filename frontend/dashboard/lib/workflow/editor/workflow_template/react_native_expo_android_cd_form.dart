@@ -86,7 +86,7 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.upload_file),
                           onPressed: () async {
-                            final result = await FilePicker.pickFiles(
+                            final result = await FilePicker.platform.pickFiles(
                               type: FileType.any,
                               withData: true,
                             );
@@ -150,7 +150,7 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.upload_file),
                           onPressed: () async {
-                            final result = await FilePicker.pickFiles(
+                            final result = await FilePicker.platform.pickFiles(
                               type: FileType.any,
                               withData: true,
                             );

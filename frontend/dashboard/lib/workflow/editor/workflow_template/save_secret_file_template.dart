@@ -99,7 +99,7 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                     InkWell(
                       borderRadius: BorderRadius.circular(12.0),
                       onTap: () async {
-                        final result = await FilePicker.pickFiles(
+                        final result = await FilePicker.platform.pickFiles(
                           type: FileType.any,
                           withData: true,
                         );

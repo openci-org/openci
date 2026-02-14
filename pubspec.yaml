@@ -1,0 +1,10 @@
+name: _
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+workspace:
+  - cli/openci_vm_cli
+  - cli/openci_worker_cli
+  - frontend/dashboard
