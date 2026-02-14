@@ -58,8 +58,12 @@ export const githubApp = onRequest(
           await createBuildJobs(app, eventData);
         }
       } else if (event === "push") {
-        logger.info(`Push to ${body.ref}`, { structuredData: true });
-        await createBuildJobs(app, eventData);
+        if (body.ref.startsWith("refs/tags/")) {
+          logger.info(`Skipping push event for tag ${body.ref}`, { structuredData: true });
+        } else {
+          logger.info(`Push to ${body.ref}`, { structuredData: true });
+          await createBuildJobs(app, eventData);
+        }
       } else if (event === "create") {
         if (body.ref_type === "tag") {
           logger.info(`Tag created: ${body.ref}`, { structuredData: true });
