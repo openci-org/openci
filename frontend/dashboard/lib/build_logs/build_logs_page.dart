@@ -80,7 +80,7 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
-      'in_progress' => Colors.orange,
+      'in_progress' => Theme.of(context).colorScheme.primary,
       'queued' => Colors.blue,
       _ => Colors.grey,
     };
@@ -93,139 +93,142 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
     };
 
     return Card(
+      elevation: 0,
+      color: statusColor.withValues(alpha: 0.06),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: statusColor.withValues(alpha: 0.2),
+        ),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: buildJob.status == 'in_progress'
             ? const SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator.adaptive(),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 1.0),
               )
-            : Icon(statusIcon, color: statusColor, size: 32),
-        title: Text(
-          '${buildJob.owner}/${buildJob.repo}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            : Icon(statusIcon, color: statusColor, size: 28),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${buildJob.owner}/${buildJob.repo}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              buildJob.createdAt.toTimeAgoEn(),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FaIcon(
-                    FontAwesomeIcons.clock,
-                    size: 12,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    buildJob.createdAt.toTimeAgoEn(),
-                  ),
-                ],
-              ),
+              // Row 2: Workflow name
               workflowNameAsync.when(
                 data: (name) => name == null
-                    ? SizedBox.shrink()
-                    : Row(
-                        children: [
-                          FaIcon(
-                            FontAwesomeIcons.code,
-                            size: 12,
+                    ? const SizedBox.shrink()
+                    : Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                          name,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              name,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                loading: () => const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator.adaptive(),
+                loading: () => const Padding(
+                  padding: EdgeInsets.only(bottom: 6),
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                  ),
                 ),
                 error: asyncErrorWidget,
               ),
+              // Row 3: Git metadata chips
               Wrap(
-                spacing: 12,
-                runSpacing: 4,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
                   if (buildJob.branch != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FaIcon(
-                          FontAwesomeIcons.codeBranch,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(buildJob.branch!),
-                      ],
+                    _GitChip(
+                      icon: FontAwesomeIcons.codeBranch,
+                      label: buildJob.branch!,
+                      color: Colors.purple,
                     ),
                   if (buildJob.pullRequestNumber != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FaIcon(
-                          FontAwesomeIcons.codePullRequest,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text('#${buildJob.pullRequestNumber}'),
-                      ],
+                    _GitChip(
+                      icon: FontAwesomeIcons.codePullRequest,
+                      label: '#${buildJob.pullRequestNumber}',
+                      color: Colors.green,
                     ),
                   if (buildJob.tagName != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FaIcon(
-                          FontAwesomeIcons.tag,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(buildJob.tagName!),
-                      ],
+                    _GitChip(
+                      icon: FontAwesomeIcons.tag,
+                      label: buildJob.tagName!,
+                      color: Colors.amber,
                     ),
                   if (buildJob.commitSha != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FaIcon(
-                          FontAwesomeIcons.codeCommit,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(buildJob.commitSha!.substring(0, 7)),
-                      ],
+                    _GitChip(
+                      icon: FontAwesomeIcons.codeCommit,
+                      label: buildJob.commitSha!.substring(0, 7),
+                      color: Colors.blueGrey,
                     ),
                 ],
               ),
             ],
           ),
         ),
-        trailing: IconButton(
-          onPressed: () async {
-            try {
-              context.showSnackBarMessage('Retrying build job...');
-              await ref
-                  .read(buildJobsProvider.notifier)
-                  .retryBuildJob(buildJob.id);
-              if (context.mounted) {
-                context.showSnackBarMessage('Build job queued successfully');
-              }
-            } catch (e) {
-              if (context.mounted) {
-                context.showSnackBarMessage('Failed to retry: $e');
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'retry') {
+              try {
+                context.showSnackBarMessage('Retrying build job...');
+                await ref
+                    .read(buildJobsProvider.notifier)
+                    .retryBuildJob(buildJob.id);
+                if (context.mounted) {
+                  context.showSnackBarMessage('Build job queued successfully');
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  context.showSnackBarMessage('Failed to retry: $e');
+                }
               }
             }
           },
-          icon: const Icon(Icons.replay),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'retry',
+              child: Row(
+                children: [
+                  Icon(Icons.replay, size: 18),
+                  SizedBox(width: 8),
+                  Text('Retry'),
+                ],
+              ),
+            ),
+          ],
         ),
         children: [
           if (buildJob.latestRunId != null)
@@ -238,6 +241,48 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
               padding: EdgeInsets.all(16),
               child: Text('No runs yet'),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GitChip extends StatelessWidget {
+  const _GitChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FaIcon(
+            icon,
+            size: 11,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
