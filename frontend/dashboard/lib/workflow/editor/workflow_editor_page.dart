@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/bash.dart';
 import 'package:re_highlight/styles/monokai.dart';
@@ -130,10 +129,12 @@ class StepList extends ConsumerWidget {
                       Row(
                         children: [
                           Icon(
-                            workflowConfig.selectedTriggerType ==
-                                    TriggerType.tag
-                                ? Icons.label_outline
-                                : FontAwesomeIcons.codePullRequest,
+                            switch (workflowConfig.selectedTriggerType) {
+                              TriggerType.tag => Icons.label_outline,
+                              TriggerType.push => FontAwesomeIcons.codeCommit,
+                              TriggerType.pullRequest =>
+                                FontAwesomeIcons.codePullRequest,
+                            },
                             size: 16,
                             color: Theme.of(context).hintColor,
                           ),
@@ -142,13 +143,12 @@ class StepList extends ConsumerWidget {
                             workflowConfig.selectedTriggerType ==
                                     TriggerType.tag
                                 ? 'Tag'
-                                : (workflowConfig.selectedTriggerBranch ??
-                                    'Tag'),
+                                : (workflowConfig.selectedTriggerBranch ?? ''),
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(width: 12),
                           Icon(
-                            Icons.folder_outlined,
+                            FontAwesomeIcons.github,
                             size: 16,
                             color: Theme.of(context).hintColor,
                           ),
@@ -441,7 +441,7 @@ class StepCard extends ConsumerWidget {
           children: [
             IconButton(
               icon: Icon(
-                Icons.delete_outline,
+                FontAwesomeIcons.trashCan,
                 color: Theme.of(context).colorScheme.error,
                 size: 20,
               ),
@@ -486,11 +486,11 @@ class StepCard extends ConsumerWidget {
           child: Row(
             children: [
               Icon(
-                Symbols.deployed_code,
+                FontAwesomeIcons.code,
                 size: 16,
                 color: Theme.of(context).hintColor,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   step.command,
