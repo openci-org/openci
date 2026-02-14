@@ -224,6 +224,7 @@ async function createBuildJobs(
         runCount: 0,
         latestRunId: null,
         tagName,
+        branch,
       });
   }
 }
