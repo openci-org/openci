@@ -18,6 +18,7 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
       runCount: (json['runCount'] as num?)?.toInt(),
       latestRunId: json['latestRunId'] as String?,
       tagName: json['tagName'] as String?,
+      branch: json['branch'] as String?,
       createdAt: const DateTimeConverter().fromJson(json['createdAt']),
       updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
     );
@@ -34,6 +35,7 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
       'runCount': instance.runCount,
       'latestRunId': instance.latestRunId,
       'tagName': instance.tagName,
+      'branch': instance.branch,
       'createdAt': const DateTimeConverter().toJson(instance.createdAt),
       'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
     };

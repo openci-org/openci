@@ -61,6 +61,7 @@ abstract class BuildJob with _$BuildJob {
     int? runCount,
     String? latestRunId,
     String? tagName,
+    String? branch,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _BuildJob;

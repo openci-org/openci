@@ -32,7 +32,7 @@ class WorkflowListPage extends ConsumerWidget {
         title: const Text('Workflows'),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0),
+            padding: const EdgeInsets.only(right: 8.0),
             child: MenuAnchor(
               menuChildren: [
                 MenuItemButton(

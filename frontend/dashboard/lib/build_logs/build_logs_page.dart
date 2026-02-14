@@ -156,6 +156,18 @@ class _BuildJobCardState extends ConsumerState<BuildJobCard>
                 spacing: 12,
                 runSpacing: 4,
                 children: [
+                  if (buildJob.branch != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FaIcon(
+                          FontAwesomeIcons.codeBranch,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(buildJob.branch!),
+                      ],
+                    ),
                   if (buildJob.pullRequestNumber != null)
                     Row(
                       mainAxisSize: MainAxisSize.min,
