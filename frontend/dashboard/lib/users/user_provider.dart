@@ -12,9 +12,15 @@ abstract class OpenCIUser with _$OpenCIUser {
   const factory OpenCIUser({
     required String id,
     required String selectedTeamId,
+    String? githubAccessToken,
   }) = _OpenCIUser;
   factory OpenCIUser.fromJson(Map<String, Object?> json) =>
       _$OpenCIUserFromJson(json);
+
+  const OpenCIUser._();
+
+  bool get isGitHubConnected =>
+      githubAccessToken != null && githubAccessToken!.isNotEmpty;
 }
 
 @riverpod

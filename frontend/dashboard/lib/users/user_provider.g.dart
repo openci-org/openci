@@ -9,12 +9,14 @@ part of 'user_provider.dart';
 _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
       id: json['id'] as String,
       selectedTeamId: json['selectedTeamId'] as String,
+      githubAccessToken: json['githubAccessToken'] as String?,
     );
 
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
     <String, dynamic>{
       'id': instance.id,
       'selectedTeamId': instance.selectedTeamId,
+      'githubAccessToken': instance.githubAccessToken,
     };
 
 // **************************************************************************

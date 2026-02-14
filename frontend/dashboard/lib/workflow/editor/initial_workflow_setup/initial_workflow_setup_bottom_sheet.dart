@@ -1,4 +1,6 @@
+import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,8 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(initialWorkflowSetupProvider);
     final controller = ref.read(initialWorkflowSetupProvider.notifier);
+    final user = ref.watch(userProvider);
+    final isGitHubConnected = user.requireValue.isGitHubConnected;
 
     final nameController = useTextEditingController();
     final repositoryController = useTextEditingController();
@@ -22,7 +26,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
     final triggerBranchController = useTextEditingController();
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -45,7 +49,6 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                 ),
               ],
             ),
-
             if (state.selectedRepository.isNotEmpty &&
                 state.selectedWorkingDirectory.isNotEmpty &&
                 state.selectedTriggerBranch.isNotEmpty)
@@ -71,16 +74,29 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               ),
             ),
             SizedBox(height: 20.0),
-            SizedBox(
-              width: _width,
-              child: TextFormField(
-                controller: repositoryController,
-                decoration: InputDecoration(
-                  labelText: 'Repository',
-                  border: OutlineInputBorder(),
+            if (!isGitHubConnected)
+              SizedBox(
+                width: _width,
+                child: GitHubConnectionBanner(
+                  onConnectPressed: () async {
+                    // TODO: Implement GitHub OAuth flow
+                    await url_launcher.launchUrl(
+                      Uri.parse('https://github.com/login/oauth/authorize'),
+                    );
+                  },
+                ),
+              )
+            else
+              SizedBox(
+                width: _width,
+                child: TextFormField(
+                  controller: repositoryController,
+                  decoration: InputDecoration(
+                    labelText: 'Repository',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
-            ),
             SizedBox(height: 20.0),
             SizedBox(
               width: _width,
@@ -132,8 +148,8 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               onPressed: () async {
                 final triggerBranch =
                     state.selectedTriggerType == TriggerType.tag
-                    ? null
-                    : triggerBranchController.text;
+                        ? null
+                        : triggerBranchController.text;
 
                 await controller.save(
                   name: nameController.text,
