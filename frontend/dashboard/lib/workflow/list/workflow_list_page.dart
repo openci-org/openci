@@ -360,6 +360,7 @@ class WorkflowListPage extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
       builder: (_) => InitialWorkflowSetupBottomSheet(),
     );
   }

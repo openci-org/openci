@@ -16,7 +16,6 @@ T _$identity<T>(T value) => value;
 mixin _$OpenCIUser {
   String get id;
   String get selectedTeamId;
-  String? get githubAccessToken;
 
   /// Create a copy of OpenCIUser
   /// with the given fields replaced by the non-null parameter values.
@@ -35,19 +34,16 @@ mixin _$OpenCIUser {
             other is OpenCIUser &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.selectedTeamId, selectedTeamId) ||
-                other.selectedTeamId == selectedTeamId) &&
-            (identical(other.githubAccessToken, githubAccessToken) ||
-                other.githubAccessToken == githubAccessToken));
+                other.selectedTeamId == selectedTeamId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, selectedTeamId, githubAccessToken);
+  int get hashCode => Object.hash(runtimeType, id, selectedTeamId);
 
   @override
   String toString() {
-    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, githubAccessToken: $githubAccessToken)';
+    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId)';
   }
 }
 
@@ -57,7 +53,7 @@ abstract mixin class $OpenCIUserCopyWith<$Res> {
           OpenCIUser value, $Res Function(OpenCIUser) _then) =
       _$OpenCIUserCopyWithImpl;
   @useResult
-  $Res call({String id, String selectedTeamId, String? githubAccessToken});
+  $Res call({String id, String selectedTeamId});
 }
 
 /// @nodoc
@@ -74,7 +70,6 @@ class _$OpenCIUserCopyWithImpl<$Res> implements $OpenCIUserCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? selectedTeamId = null,
-    Object? githubAccessToken = freezed,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -85,10 +80,6 @@ class _$OpenCIUserCopyWithImpl<$Res> implements $OpenCIUserCopyWith<$Res> {
           ? _self.selectedTeamId
           : selectedTeamId // ignore: cast_nullable_to_non_nullable
               as String,
-      githubAccessToken: freezed == githubAccessToken
-          ? _self.githubAccessToken
-          : githubAccessToken // ignore: cast_nullable_to_non_nullable
-              as String?,
     ));
   }
 }
@@ -186,16 +177,13 @@ extension OpenCIUserPatterns on OpenCIUser {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(
-            String id, String selectedTeamId, String? githubAccessToken)?
-        $default, {
+    TResult Function(String id, String selectedTeamId)? $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _OpenCIUser() when $default != null:
-        return $default(
-            _that.id, _that.selectedTeamId, _that.githubAccessToken);
+        return $default(_that.id, _that.selectedTeamId);
       case _:
         return orElse();
     }
@@ -216,15 +204,12 @@ extension OpenCIUserPatterns on OpenCIUser {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(
-            String id, String selectedTeamId, String? githubAccessToken)
-        $default,
+    TResult Function(String id, String selectedTeamId) $default,
   ) {
     final _that = this;
     switch (_that) {
       case _OpenCIUser():
-        return $default(
-            _that.id, _that.selectedTeamId, _that.githubAccessToken);
+        return $default(_that.id, _that.selectedTeamId);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -244,15 +229,12 @@ extension OpenCIUserPatterns on OpenCIUser {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(
-            String id, String selectedTeamId, String? githubAccessToken)?
-        $default,
+    TResult? Function(String id, String selectedTeamId)? $default,
   ) {
     final _that = this;
     switch (_that) {
       case _OpenCIUser() when $default != null:
-        return $default(
-            _that.id, _that.selectedTeamId, _that.githubAccessToken);
+        return $default(_that.id, _that.selectedTeamId);
       case _:
         return null;
     }
@@ -261,10 +243,8 @@ extension OpenCIUserPatterns on OpenCIUser {
 
 /// @nodoc
 @JsonSerializable()
-class _OpenCIUser extends OpenCIUser {
-  const _OpenCIUser(
-      {required this.id, required this.selectedTeamId, this.githubAccessToken})
-      : super._();
+class _OpenCIUser implements OpenCIUser {
+  const _OpenCIUser({required this.id, required this.selectedTeamId});
   factory _OpenCIUser.fromJson(Map<String, dynamic> json) =>
       _$OpenCIUserFromJson(json);
 
@@ -272,8 +252,6 @@ class _OpenCIUser extends OpenCIUser {
   final String id;
   @override
   final String selectedTeamId;
-  @override
-  final String? githubAccessToken;
 
   /// Create a copy of OpenCIUser
   /// with the given fields replaced by the non-null parameter values.
@@ -297,19 +275,16 @@ class _OpenCIUser extends OpenCIUser {
             other is _OpenCIUser &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.selectedTeamId, selectedTeamId) ||
-                other.selectedTeamId == selectedTeamId) &&
-            (identical(other.githubAccessToken, githubAccessToken) ||
-                other.githubAccessToken == githubAccessToken));
+                other.selectedTeamId == selectedTeamId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, selectedTeamId, githubAccessToken);
+  int get hashCode => Object.hash(runtimeType, id, selectedTeamId);
 
   @override
   String toString() {
-    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, githubAccessToken: $githubAccessToken)';
+    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId)';
   }
 }
 
@@ -321,7 +296,7 @@ abstract mixin class _$OpenCIUserCopyWith<$Res>
       __$OpenCIUserCopyWithImpl;
   @override
   @useResult
-  $Res call({String id, String selectedTeamId, String? githubAccessToken});
+  $Res call({String id, String selectedTeamId});
 }
 
 /// @nodoc
@@ -338,7 +313,6 @@ class __$OpenCIUserCopyWithImpl<$Res> implements _$OpenCIUserCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? selectedTeamId = null,
-    Object? githubAccessToken = freezed,
   }) {
     return _then(_OpenCIUser(
       id: null == id
@@ -349,10 +323,6 @@ class __$OpenCIUserCopyWithImpl<$Res> implements _$OpenCIUserCopyWith<$Res> {
           ? _self.selectedTeamId
           : selectedTeamId // ignore: cast_nullable_to_non_nullable
               as String,
-      githubAccessToken: freezed == githubAccessToken
-          ? _self.githubAccessToken
-          : githubAccessToken // ignore: cast_nullable_to_non_nullable
-              as String?,
     ));
   }
 }

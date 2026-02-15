@@ -15,6 +15,7 @@ abstract class Team with _$Team {
     required String id,
     required String name,
     required List<String> members,
+    @Default([]) List<int> installationIds,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Team;
