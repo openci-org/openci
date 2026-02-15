@@ -1,5 +1,6 @@
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:dashboard/workflow/editor/initial_workflow_setup/directories_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
@@ -23,7 +24,6 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
     final nameController = useTextEditingController();
-    final workingDirectoryController = useTextEditingController();
     final triggerBranchController = useTextEditingController();
 
     return SizedBox(
@@ -137,16 +137,82 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                         ),
                   ),
                 SizedBox(height: 20.0),
-                SizedBox(
-                  width: _width,
-                  child: TextFormField(
-                    controller: workingDirectoryController,
-                    decoration: InputDecoration(
-                      labelText: 'Current Working Directory',
-                      border: OutlineInputBorder(),
+                if (state.selectedRepository.isEmpty)
+                  SizedBox(
+                    width: _width,
+                    child: TextFormField(
+                      enabled: false,
+                      decoration: InputDecoration(
+                        labelText: 'Current Working Directory',
+                        hintText: 'Select a repository first',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
+                  )
+                else
+                  SizedBox(
+                    width: _width,
+                    child: ref.watch(directoriesProvider).when(
+                          loading: () => TextFormField(
+                            enabled: false,
+                            decoration: InputDecoration(
+                              labelText: 'Current Working Directory',
+                              border: OutlineInputBorder(),
+                              suffixIcon: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          error: (e, _) => TextFormField(
+                            enabled: false,
+                            decoration: InputDecoration(
+                              labelText: 'Current Working Directory',
+                              border: OutlineInputBorder(),
+                              suffixIcon: Icon(
+                                Icons.error_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                          data: (dirs) => Autocomplete<String>(
+                            optionsBuilder: (textEditingValue) {
+                              if (textEditingValue.text.isEmpty) {
+                                return dirs;
+                              }
+                              final query = textEditingValue.text.toLowerCase();
+                              return dirs.where(
+                                (dir) => dir.toLowerCase().contains(query),
+                              );
+                            },
+                            onSelected: (value) {
+                              controller.updateSelectedWorkingDirectory(value);
+                            },
+                            fieldViewBuilder: (
+                              context,
+                              textController,
+                              focusNode,
+                              onFieldSubmitted,
+                            ) {
+                              return TextFormField(
+                                controller: textController,
+                                focusNode: focusNode,
+                                decoration: InputDecoration(
+                                  labelText: 'Current Working Directory',
+                                  border: OutlineInputBorder(),
+                                  suffixIcon: Icon(Icons.folder_open, size: 20),
+                                ),
+                              );
+                            },
+                            optionsMaxHeight: 200,
+                          ),
+                        ),
                   ),
-                ),
                 SizedBox(height: 20.0),
                 DropdownMenu(
                   width: _width,
@@ -196,7 +262,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                     await controller.save(
                       name: nameController.text,
                       selectedRepository: state.selectedRepository,
-                      selectedWorkingDirectory: workingDirectoryController.text,
+                      selectedWorkingDirectory: state.selectedWorkingDirectory,
                       selectedTriggerBranch: triggerBranch,
                     );
 
