@@ -32,7 +32,8 @@ Future<List<GitHubRepository>> repositories(Ref ref) async {
   final data = result.data as Map<String, dynamic>;
   final repos = (data['repositories'] as List<dynamic>)
       .map(
-          (e) => GitHubRepository.fromJson(Map<String, Object?>.from(e as Map)))
+        (e) => GitHubRepository.fromJson(Map<String, Object?>.from(e as Map)),
+      )
       .toList();
 
   return repos;
