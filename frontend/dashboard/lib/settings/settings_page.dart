@@ -1,11 +1,13 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
@@ -21,61 +23,82 @@ class SettingsPage extends HookConsumerWidget {
       ),
       body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Firebase App Name: ${auth.getFirebaseAuth().app.name}'),
-                  SizedBox(height: 40),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      fixedSize: Size(200, 20),
+          ListView(
+            children: [
+              ListTile(
+                leading: Icon(Symbols.notifications_rounded),
+                title: Text('Build Notifications'),
+                subtitle: Text('Configure when to receive notifications'),
+                trailing: Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationSettingsPage(),
                     ),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        showDragHandle: true,
-                        context: context,
-                        builder: (context) {
-                          return SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.6,
-                            child: InviteTeamMemberBottomSheet(),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Firebase App Name: ${auth.getFirebaseAuth().app.name}',
+                      ),
+                      SizedBox(height: 40),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          fixedSize: Size(200, 20),
+                        ),
+                        onPressed: () {
+                          showModalBottomSheet(
+                            showDragHandle: true,
+                            context: context,
+                            builder: (context) {
+                              return SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.6,
+                                child: InviteTeamMemberBottomSheet(),
+                              );
+                            },
                           );
                         },
-                      );
-                    },
-                    child: Text("Invite Team Member"),
+                        child: Text("Invite Team Member"),
+                      ),
+                      SizedBox(height: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          fixedSize: Size(200, 20),
+                        ),
+                        onPressed: () async {
+                          try {
+                            await auth.getFirebaseAuth().signOut();
+                            ref.invalidate(authProvider);
+                            ref.invalidate(firestoreProvider);
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage(
+                              'Logged out successfully',
+                            );
+                          } catch (e) {
+                            context.showSnackBarMessage(
+                              'Failed to log out: $e',
+                            );
+                          }
+                        },
+                        child: Text("Logout"),
+                      ),
+                      SizedBox(height: 8),
+                      _DeleteAccountButton(
+                        isDeleting: isDeleting,
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      fixedSize: Size(200, 20),
-                    ),
-                    onPressed: () async {
-                      try {
-                        await auth.getFirebaseAuth().signOut();
-                        ref.invalidate(authProvider);
-                        ref.invalidate(firestoreProvider);
-                        if (!context.mounted) return;
-                        context.showSnackBarMessage(
-                          'Logged out successfully',
-                        );
-                      } catch (e) {
-                        context.showSnackBarMessage(
-                          'Failed to log out: $e',
-                        );
-                      }
-                    },
-                    child: Text("Logout"),
-                  ),
-                  SizedBox(height: 8),
-                  _DeleteAccountButton(
-                    isDeleting: isDeleting,
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           if (isDeleting.value) ...[
             const ModalBarrier(dismissible: false, color: Colors.black26),

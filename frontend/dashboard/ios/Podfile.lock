@@ -52,12 +52,19 @@ PODS:
   - Firebase/Functions (12.8.0):
     - Firebase/CoreOnly
     - FirebaseFunctions (~> 12.8.0)
+  - Firebase/Messaging (12.8.0):
+    - Firebase/CoreOnly
+    - FirebaseMessaging (~> 12.8.0)
   - firebase_auth (6.1.4):
     - Firebase/Auth (= 12.8.0)
     - firebase_core
     - Flutter
   - firebase_core (4.4.0):
     - Firebase/CoreOnly (= 12.8.0)
+    - Flutter
+  - firebase_messaging (16.1.1):
+    - Firebase/Messaging (= 12.8.0)
+    - firebase_core
     - Flutter
   - FirebaseAppCheckInterop (12.8.0)
   - FirebaseAuth (12.8.0):
@@ -107,9 +114,26 @@ PODS:
     - FirebaseMessagingInterop (~> 12.8.0)
     - FirebaseSharedSwift (~> 12.8.0)
     - GTMSessionFetcher/Core (< 6.0, >= 3.4)
+  - FirebaseInstallations (12.8.0):
+    - FirebaseCore (~> 12.8.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - PromisesObjC (~> 2.4)
+  - FirebaseMessaging (12.8.0):
+    - FirebaseCore (~> 12.8.0)
+    - FirebaseInstallations (~> 12.8.0)
+    - GoogleDataTransport (~> 10.1)
+    - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/Reachability (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - nanopb (~> 3.30910.0)
   - FirebaseMessagingInterop (12.8.0)
   - FirebaseSharedSwift (12.8.0)
   - Flutter (1.0.0)
+  - GoogleDataTransport (10.1.0):
+    - nanopb (~> 3.30910.0)
+    - PromisesObjC (~> 2.4)
   - GoogleUtilities/AppDelegateSwizzler (8.1.0):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -131,6 +155,9 @@ PODS:
   - GoogleUtilities/Reachability (8.1.0):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
+  - GoogleUtilities/UserDefaults (8.1.0):
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Privacy
   - GTMSessionFetcher/Core (5.0.0)
   - leveldb-library (1.22.6)
   - nanopb (3.30910.0):
@@ -138,6 +165,7 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
+  - PromisesObjC (2.4.0)
   - RecaptchaInterop (101.0.0)
   - SDWebImage (5.21.5):
     - SDWebImage/Core (= 5.21.5)
@@ -152,6 +180,7 @@ DEPENDENCIES:
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
+  - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
   - FirebaseFirestore (from `https://github.com/invertase/firestore-ios-sdk-frameworks.git`, tag `12.8.0`)
   - Flutter (from `Flutter`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
@@ -174,12 +203,16 @@ SPEC REPOS:
     - FirebaseFirestoreGRPCCPPBinary
     - FirebaseFirestoreInternalBinary
     - FirebaseFunctions
+    - FirebaseInstallations
+    - FirebaseMessaging
     - FirebaseMessagingInterop
     - FirebaseSharedSwift
+    - GoogleDataTransport
     - GoogleUtilities
     - GTMSessionFetcher
     - leveldb-library
     - nanopb
+    - PromisesObjC
     - RecaptchaInterop
     - SDWebImage
     - SwiftyGif
@@ -195,6 +228,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
     :path: ".symlinks/plugins/firebase_core/ios"
+  firebase_messaging:
+    :path: ".symlinks/plugins/firebase_messaging/ios"
   FirebaseFirestore:
     :git: https://github.com/invertase/firestore-ios-sdk-frameworks.git
     :tag: 12.8.0
@@ -217,6 +252,7 @@ SPEC CHECKSUMS:
   Firebase: 9a58fdbc9d8655ed7b79a19cf9690bb007d3d46d
   firebase_auth: e9031a1dbe04a90d98e8d11ff2302352a1c6d9e8
   firebase_core: ee30637e6744af8e0c12a6a1e8a9718506ec2398
+  firebase_messaging: 343de01a8d3e18b60df0c6d37f7174c44ae38e02
   FirebaseAppCheckInterop: ba3dc604a89815379e61ec2365101608d365cf7d
   FirebaseAuth: 4c289b1a43f5955283244a55cf6bd616de344be5
   FirebaseAuthInterop: 95363fe96493cb4f106656666a0768b420cba090
@@ -231,13 +267,17 @@ SPEC CHECKSUMS:
   FirebaseFirestoreGRPCCPPBinary: 6c0134e8d230ee58b9d51dec2a30a48efd6d5dc7
   FirebaseFirestoreInternalBinary: b5e1ba28d3c0b30dcb2959e61ea7def0229be59c
   FirebaseFunctions: 65f773056cb7f654626e5fa4894b1d6539cb5feb
+  FirebaseInstallations: 6a14ab3d694ebd9f839c48d330da5547e9ca9dc0
+  FirebaseMessaging: 7f42cfd10ec64181db4e01b305a613791c8e782c
   FirebaseMessagingInterop: e27b8f42f682efdb101318a53c3f5316ce3402e6
   FirebaseSharedSwift: f57ed48f4542b2d7eb4738f4f23ba443f78b3780
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 02d6e866e90bc236f48a703a041dfe43e6221a29
   leveldb-library: cc8b8f8e013647a295ad3f8cd2ddf49a6f19be19
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
+  PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
   SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4

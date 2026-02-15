@@ -16,6 +16,8 @@ T _$identity<T>(T value) => value;
 mixin _$OpenCIUser {
   String get id;
   String get selectedTeamId;
+  NotificationPreference get notificationPreference;
+  List<String> get fcmTokens;
 
   /// Create a copy of OpenCIUser
   /// with the given fields replaced by the non-null parameter values.
@@ -34,16 +36,20 @@ mixin _$OpenCIUser {
             other is OpenCIUser &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.selectedTeamId, selectedTeamId) ||
-                other.selectedTeamId == selectedTeamId));
+                other.selectedTeamId == selectedTeamId) &&
+            (identical(other.notificationPreference, notificationPreference) ||
+                other.notificationPreference == notificationPreference) &&
+            const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, selectedTeamId);
+  int get hashCode => Object.hash(runtimeType, id, selectedTeamId,
+      notificationPreference, const DeepCollectionEquality().hash(fcmTokens));
 
   @override
   String toString() {
-    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId)';
+    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens)';
   }
 }
 
@@ -53,7 +59,11 @@ abstract mixin class $OpenCIUserCopyWith<$Res> {
           OpenCIUser value, $Res Function(OpenCIUser) _then) =
       _$OpenCIUserCopyWithImpl;
   @useResult
-  $Res call({String id, String selectedTeamId});
+  $Res call(
+      {String id,
+      String selectedTeamId,
+      NotificationPreference notificationPreference,
+      List<String> fcmTokens});
 }
 
 /// @nodoc
@@ -70,6 +80,8 @@ class _$OpenCIUserCopyWithImpl<$Res> implements $OpenCIUserCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? selectedTeamId = null,
+    Object? notificationPreference = null,
+    Object? fcmTokens = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -80,6 +92,14 @@ class _$OpenCIUserCopyWithImpl<$Res> implements $OpenCIUserCopyWith<$Res> {
           ? _self.selectedTeamId
           : selectedTeamId // ignore: cast_nullable_to_non_nullable
               as String,
+      notificationPreference: null == notificationPreference
+          ? _self.notificationPreference
+          : notificationPreference // ignore: cast_nullable_to_non_nullable
+              as NotificationPreference,
+      fcmTokens: null == fcmTokens
+          ? _self.fcmTokens
+          : fcmTokens // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -177,13 +197,19 @@ extension OpenCIUserPatterns on OpenCIUser {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(String id, String selectedTeamId)? $default, {
+    TResult Function(
+            String id,
+            String selectedTeamId,
+            NotificationPreference notificationPreference,
+            List<String> fcmTokens)?
+        $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _OpenCIUser() when $default != null:
-        return $default(_that.id, _that.selectedTeamId);
+        return $default(_that.id, _that.selectedTeamId,
+            _that.notificationPreference, _that.fcmTokens);
       case _:
         return orElse();
     }
@@ -204,12 +230,18 @@ extension OpenCIUserPatterns on OpenCIUser {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(String id, String selectedTeamId) $default,
+    TResult Function(
+            String id,
+            String selectedTeamId,
+            NotificationPreference notificationPreference,
+            List<String> fcmTokens)
+        $default,
   ) {
     final _that = this;
     switch (_that) {
       case _OpenCIUser():
-        return $default(_that.id, _that.selectedTeamId);
+        return $default(_that.id, _that.selectedTeamId,
+            _that.notificationPreference, _that.fcmTokens);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -229,12 +261,18 @@ extension OpenCIUserPatterns on OpenCIUser {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(String id, String selectedTeamId)? $default,
+    TResult? Function(
+            String id,
+            String selectedTeamId,
+            NotificationPreference notificationPreference,
+            List<String> fcmTokens)?
+        $default,
   ) {
     final _that = this;
     switch (_that) {
       case _OpenCIUser() when $default != null:
-        return $default(_that.id, _that.selectedTeamId);
+        return $default(_that.id, _that.selectedTeamId,
+            _that.notificationPreference, _that.fcmTokens);
       case _:
         return null;
     }
@@ -244,7 +282,12 @@ extension OpenCIUserPatterns on OpenCIUser {
 /// @nodoc
 @JsonSerializable()
 class _OpenCIUser implements OpenCIUser {
-  const _OpenCIUser({required this.id, required this.selectedTeamId});
+  const _OpenCIUser(
+      {required this.id,
+      required this.selectedTeamId,
+      this.notificationPreference = NotificationPreference.all,
+      final List<String> fcmTokens = const []})
+      : _fcmTokens = fcmTokens;
   factory _OpenCIUser.fromJson(Map<String, dynamic> json) =>
       _$OpenCIUserFromJson(json);
 
@@ -252,6 +295,17 @@ class _OpenCIUser implements OpenCIUser {
   final String id;
   @override
   final String selectedTeamId;
+  @override
+  @JsonKey()
+  final NotificationPreference notificationPreference;
+  final List<String> _fcmTokens;
+  @override
+  @JsonKey()
+  List<String> get fcmTokens {
+    if (_fcmTokens is EqualUnmodifiableListView) return _fcmTokens;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_fcmTokens);
+  }
 
   /// Create a copy of OpenCIUser
   /// with the given fields replaced by the non-null parameter values.
@@ -275,16 +329,21 @@ class _OpenCIUser implements OpenCIUser {
             other is _OpenCIUser &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.selectedTeamId, selectedTeamId) ||
-                other.selectedTeamId == selectedTeamId));
+                other.selectedTeamId == selectedTeamId) &&
+            (identical(other.notificationPreference, notificationPreference) ||
+                other.notificationPreference == notificationPreference) &&
+            const DeepCollectionEquality()
+                .equals(other._fcmTokens, _fcmTokens));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, selectedTeamId);
+  int get hashCode => Object.hash(runtimeType, id, selectedTeamId,
+      notificationPreference, const DeepCollectionEquality().hash(_fcmTokens));
 
   @override
   String toString() {
-    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId)';
+    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens)';
   }
 }
 
@@ -296,7 +355,11 @@ abstract mixin class _$OpenCIUserCopyWith<$Res>
       __$OpenCIUserCopyWithImpl;
   @override
   @useResult
-  $Res call({String id, String selectedTeamId});
+  $Res call(
+      {String id,
+      String selectedTeamId,
+      NotificationPreference notificationPreference,
+      List<String> fcmTokens});
 }
 
 /// @nodoc
@@ -313,6 +376,8 @@ class __$OpenCIUserCopyWithImpl<$Res> implements _$OpenCIUserCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? selectedTeamId = null,
+    Object? notificationPreference = null,
+    Object? fcmTokens = null,
   }) {
     return _then(_OpenCIUser(
       id: null == id
@@ -323,6 +388,14 @@ class __$OpenCIUserCopyWithImpl<$Res> implements _$OpenCIUserCopyWith<$Res> {
           ? _self.selectedTeamId
           : selectedTeamId // ignore: cast_nullable_to_non_nullable
               as String,
+      notificationPreference: null == notificationPreference
+          ? _self.notificationPreference
+          : notificationPreference // ignore: cast_nullable_to_non_nullable
+              as NotificationPreference,
+      fcmTokens: null == fcmTokens
+          ? _self._fcmTokens
+          : fcmTokens // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
