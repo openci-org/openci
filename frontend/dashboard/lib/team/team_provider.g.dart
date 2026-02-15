@@ -11,6 +11,10 @@ _Team _$TeamFromJson(Map<String, dynamic> json) => _Team(
       name: json['name'] as String,
       members:
           (json['members'] as List<dynamic>).map((e) => e as String).toList(),
+      installationIds: (json['installationIds'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
       createdAt: const DateTimeConverter().fromJson(json['createdAt']),
       updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
     );
@@ -19,6 +23,7 @@ Map<String, dynamic> _$TeamToJson(_Team instance) => <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
       'members': instance.members,
+      'installationIds': instance.installationIds,
       'createdAt': const DateTimeConverter().toJson(instance.createdAt),
       'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
     };

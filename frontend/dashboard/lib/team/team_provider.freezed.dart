@@ -17,6 +17,7 @@ mixin _$Team {
   String get id;
   String get name;
   List<String> get members;
+  List<int> get installationIds;
   @DateTimeConverter()
   DateTime get createdAt;
   @DateTimeConverter()
@@ -40,6 +41,8 @@ mixin _$Team {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
             const DeepCollectionEquality().equals(other.members, members) &&
+            const DeepCollectionEquality()
+                .equals(other.installationIds, installationIds) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -48,12 +51,18 @@ mixin _$Team {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name,
-      const DeepCollectionEquality().hash(members), createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      const DeepCollectionEquality().hash(members),
+      const DeepCollectionEquality().hash(installationIds),
+      createdAt,
+      updatedAt);
 
   @override
   String toString() {
-    return 'Team(id: $id, name: $name, members: $members, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Team(id: $id, name: $name, members: $members, installationIds: $installationIds, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -66,6 +75,7 @@ abstract mixin class $TeamCopyWith<$Res> {
       {String id,
       String name,
       List<String> members,
+      List<int> installationIds,
       @DateTimeConverter() DateTime createdAt,
       @DateTimeConverter() DateTime updatedAt});
 }
@@ -85,6 +95,7 @@ class _$TeamCopyWithImpl<$Res> implements $TeamCopyWith<$Res> {
     Object? id = null,
     Object? name = null,
     Object? members = null,
+    Object? installationIds = null,
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
@@ -101,6 +112,10 @@ class _$TeamCopyWithImpl<$Res> implements $TeamCopyWith<$Res> {
           ? _self.members
           : members // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      installationIds: null == installationIds
+          ? _self.installationIds
+          : installationIds // ignore: cast_nullable_to_non_nullable
+              as List<int>,
       createdAt: null == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -210,6 +225,7 @@ extension TeamPatterns on Team {
             String id,
             String name,
             List<String> members,
+            List<int> installationIds,
             @DateTimeConverter() DateTime createdAt,
             @DateTimeConverter() DateTime updatedAt)?
         $default, {
@@ -218,8 +234,8 @@ extension TeamPatterns on Team {
     final _that = this;
     switch (_that) {
       case _Team() when $default != null:
-        return $default(_that.id, _that.name, _that.members, _that.createdAt,
-            _that.updatedAt);
+        return $default(_that.id, _that.name, _that.members,
+            _that.installationIds, _that.createdAt, _that.updatedAt);
       case _:
         return orElse();
     }
@@ -244,6 +260,7 @@ extension TeamPatterns on Team {
             String id,
             String name,
             List<String> members,
+            List<int> installationIds,
             @DateTimeConverter() DateTime createdAt,
             @DateTimeConverter() DateTime updatedAt)
         $default,
@@ -251,8 +268,8 @@ extension TeamPatterns on Team {
     final _that = this;
     switch (_that) {
       case _Team():
-        return $default(_that.id, _that.name, _that.members, _that.createdAt,
-            _that.updatedAt);
+        return $default(_that.id, _that.name, _that.members,
+            _that.installationIds, _that.createdAt, _that.updatedAt);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -276,6 +293,7 @@ extension TeamPatterns on Team {
             String id,
             String name,
             List<String> members,
+            List<int> installationIds,
             @DateTimeConverter() DateTime createdAt,
             @DateTimeConverter() DateTime updatedAt)?
         $default,
@@ -283,8 +301,8 @@ extension TeamPatterns on Team {
     final _that = this;
     switch (_that) {
       case _Team() when $default != null:
-        return $default(_that.id, _that.name, _that.members, _that.createdAt,
-            _that.updatedAt);
+        return $default(_that.id, _that.name, _that.members,
+            _that.installationIds, _that.createdAt, _that.updatedAt);
       case _:
         return null;
     }
@@ -298,9 +316,11 @@ class _Team implements Team {
       {required this.id,
       required this.name,
       required final List<String> members,
+      final List<int> installationIds = const [],
       @DateTimeConverter() required this.createdAt,
       @DateTimeConverter() required this.updatedAt})
-      : _members = members;
+      : _members = members,
+        _installationIds = installationIds;
   factory _Team.fromJson(Map<String, dynamic> json) => _$TeamFromJson(json);
 
   @override
@@ -313,6 +333,15 @@ class _Team implements Team {
     if (_members is EqualUnmodifiableListView) return _members;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_members);
+  }
+
+  final List<int> _installationIds;
+  @override
+  @JsonKey()
+  List<int> get installationIds {
+    if (_installationIds is EqualUnmodifiableListView) return _installationIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_installationIds);
   }
 
   @override
@@ -345,6 +374,8 @@ class _Team implements Team {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
             const DeepCollectionEquality().equals(other._members, _members) &&
+            const DeepCollectionEquality()
+                .equals(other._installationIds, _installationIds) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -353,12 +384,18 @@ class _Team implements Team {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name,
-      const DeepCollectionEquality().hash(_members), createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      const DeepCollectionEquality().hash(_members),
+      const DeepCollectionEquality().hash(_installationIds),
+      createdAt,
+      updatedAt);
 
   @override
   String toString() {
-    return 'Team(id: $id, name: $name, members: $members, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Team(id: $id, name: $name, members: $members, installationIds: $installationIds, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -372,6 +409,7 @@ abstract mixin class _$TeamCopyWith<$Res> implements $TeamCopyWith<$Res> {
       {String id,
       String name,
       List<String> members,
+      List<int> installationIds,
       @DateTimeConverter() DateTime createdAt,
       @DateTimeConverter() DateTime updatedAt});
 }
@@ -391,6 +429,7 @@ class __$TeamCopyWithImpl<$Res> implements _$TeamCopyWith<$Res> {
     Object? id = null,
     Object? name = null,
     Object? members = null,
+    Object? installationIds = null,
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
@@ -407,6 +446,10 @@ class __$TeamCopyWithImpl<$Res> implements _$TeamCopyWith<$Res> {
           ? _self._members
           : members // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      installationIds: null == installationIds
+          ? _self._installationIds
+          : installationIds // ignore: cast_nullable_to_non_nullable
+              as List<int>,
       createdAt: null == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
