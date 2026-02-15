@@ -51,6 +51,7 @@
         "file_picker",
         "firebase_auth",
         "firebase_core",
+        "firebase_messaging",
         "flutter",
         "flutter_hooks",
         "flutter_riverpod",
@@ -345,6 +346,18 @@
         "meta",
         "sky_engine",
         "vector_math"
+      ]
+    },
+    {
+      "name": "firebase_messaging",
+      "version": "16.1.1",
+      "dependencies": [
+        "firebase_core",
+        "firebase_core_platform_interface",
+        "firebase_messaging_platform_interface",
+        "firebase_messaging_web",
+        "flutter",
+        "meta"
       ]
     },
     {
@@ -1074,14 +1087,28 @@
       "dependencies": []
     },
     {
-      "name": "firebase_core_web",
-      "version": "3.4.0",
+      "name": "firebase_messaging_web",
+      "version": "4.1.2",
       "dependencies": [
-        "firebase_core_platform_interface",
+        "_flutterfire_internals",
+        "firebase_core",
+        "firebase_core_web",
+        "firebase_messaging_platform_interface",
         "flutter",
         "flutter_web_plugins",
         "meta",
         "web"
+      ]
+    },
+    {
+      "name": "firebase_messaging_platform_interface",
+      "version": "4.7.6",
+      "dependencies": [
+        "_flutterfire_internals",
+        "firebase_core",
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
       ]
     },
     {
@@ -1093,6 +1120,17 @@
         "flutter_test",
         "meta",
         "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "firebase_core_web",
+      "version": "3.4.0",
+      "dependencies": [
+        "firebase_core_platform_interface",
+        "flutter",
+        "flutter_web_plugins",
+        "meta",
+        "web"
       ]
     },
     {
