@@ -105,7 +105,7 @@
     },
     {
       "name": "characters",
-      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/characters-1.4.0",
+      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/characters-1.4.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -335,7 +335,7 @@
       "name": "flutter",
       "rootUri": "file:///Users/masahiroaoki/fvm/versions/3.38.7/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "flutter_hooks",
@@ -371,13 +371,13 @@
       "name": "flutter_test",
       "rootUri": "file:///Users/masahiroaoki/fvm/versions/3.38.7/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "flutter_web_plugins",
       "rootUri": "file:///Users/masahiroaoki/fvm/versions/3.38.7/packages/flutter_web_plugins",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "font_awesome_flutter",
@@ -555,15 +555,15 @@
     },
     {
       "name": "matcher",
-      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/matcher-0.12.17",
+      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/matcher-0.12.18",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.7"
     },
     {
       "name": "material_color_utilities",
-      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/material_color_utilities-0.11.1",
+      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/material_color_utilities-0.13.0",
       "packageUri": "lib/",
-      "languageVersion": "2.17"
+      "languageVersion": "3.5"
     },
     {
       "name": "material_symbols_icons",
@@ -731,7 +731,7 @@
       "name": "sky_engine",
       "rootUri": "file:///Users/masahiroaoki/fvm/versions/3.38.7/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.9"
     },
     {
       "name": "source_gen",
@@ -807,21 +807,21 @@
     },
     {
       "name": "test",
-      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/test-1.26.3",
+      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/test-1.29.0",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "test_api",
-      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/test_api-0.7.7",
+      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/test_api-0.7.9",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "test_core",
-      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/test_core-0.6.12",
+      "rootUri": "file:///Users/masahiroaoki/.pub-cache/hosted/pub.dev/test_core-0.6.15",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "typed_data",
@@ -959,30 +959,30 @@
       "name": "_",
       "rootUri": "../",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.11"
     },
     {
       "name": "openci_vm_cli",
       "rootUri": "../cli/openci_vm_cli",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.11"
     },
     {
       "name": "openci_worker_cli",
       "rootUri": "../cli/openci_worker_cli",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.11"
     },
     {
       "name": "dashboard",
       "rootUri": "../frontend/dashboard",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.11"
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.10.7",
+  "generatorVersion": "3.11.0",
   "flutterRoot": "file:///Users/masahiroaoki/fvm/versions/3.38.7",
-  "flutterVersion": "3.38.7",
+  "flutterVersion": "3.41.1",
   "pubCache": "file:///Users/masahiroaoki/.pub-cache"
 }
