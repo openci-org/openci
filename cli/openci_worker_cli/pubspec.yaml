@@ -4,7 +4,7 @@ version: 0.4.19
 repository: https://github.com/open-ci-io/openci
 
 environment:
-  sdk: ^3.6.0
+  sdk: ^3.11.0
 
 resolution: workspace
 
@@ -15,7 +15,7 @@ dependencies:
   googleapis_auth: ^1.6.0
   http: ^1.6.0
   process_run: ^1.2.4
-    
+
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6
