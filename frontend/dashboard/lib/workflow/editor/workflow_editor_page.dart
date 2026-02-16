@@ -118,8 +118,8 @@ class StepList extends ConsumerWidget {
                 title: Text(
                   workflowName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 8.0),
@@ -236,108 +236,114 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
       text: workflowConfig.selectedTriggerBranch ?? '',
     );
     final selectedTriggerType = useState(workflowConfig.selectedTriggerType);
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SingleChildScrollView(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Column(
-                children: [
-                  Text(
-                    'Edit Basic Information',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Workflow Name',
-                      border: OutlineInputBorder(),
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SingleChildScrollView(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Edit Basic Information',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: repositoryController,
-                    decoration: InputDecoration(
-                      labelText: 'Repository',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: workingDirectoryController,
-                    decoration: InputDecoration(
-                      labelText: 'Current Working Directory',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  DropdownMenu(
-                    expandedInsets: EdgeInsets.zero,
-                    controller: TextEditingController(
-                      text: selectedTriggerType.value.toString(),
-                    ),
-                    label: const Text('Trigger Type'),
-                    dropdownMenuEntries: [
-                      DropdownMenuEntry(value: 'push', label: 'push'),
-                      DropdownMenuEntry(
-                        value: 'pullRequest',
-                        label: 'pullRequest',
-                      ),
-                      DropdownMenuEntry(value: 'tag', label: 'tag'),
-                    ],
-                    onSelected: (value) {
-                      if (value == null) return;
-                      selectedTriggerType.value = TriggerType.fromValue(value);
-                    },
-                  ),
-                  if (selectedTriggerType.value != TriggerType.tag) ...[
                     SizedBox(height: 16),
                     TextFormField(
-                      controller: triggerBranchController,
+                      controller: nameController,
                       decoration: InputDecoration(
-                        labelText: 'Trigger Branch',
+                        labelText: 'Workflow Name',
                         border: OutlineInputBorder(),
                       ),
                     ),
-                  ],
-                  SizedBox(height: 24),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      minimumSize: Size(double.infinity, 48),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      controller: repositoryController,
+                      decoration: InputDecoration(
+                        labelText: 'Repository',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                    onPressed: () async {
-                      final notifier = ref.read(
-                        workflowEditorProvider(workflowId).notifier,
-                      );
-
-                      await notifier.updateName(nameController.text);
-
-                      final triggerBranch =
-                          selectedTriggerType.value == TriggerType.tag
-                              ? null
-                              : triggerBranchController.text;
-
-                      await notifier.updateWorkflowConfig(
-                        WorkflowConfig(
-                          selectedRepository: repositoryController.text,
-                          selectedWorkingDirectory:
-                              workingDirectoryController.text,
-                          selectedTriggerType: selectedTriggerType.value,
-                          selectedTriggerBranch: triggerBranch,
+                    SizedBox(height: 16),
+                    TextFormField(
+                      controller: workingDirectoryController,
+                      decoration: InputDecoration(
+                        labelText: 'Current Working Directory',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    DropdownMenu(
+                      expandedInsets: EdgeInsets.zero,
+                      controller: TextEditingController(
+                        text: selectedTriggerType.value.toString(),
+                      ),
+                      label: const Text('Trigger Type'),
+                      dropdownMenuEntries: [
+                        DropdownMenuEntry(value: 'push', label: 'push'),
+                        DropdownMenuEntry(
+                          value: 'pullRequest',
+                          label: 'pullRequest',
                         ),
-                      );
+                        DropdownMenuEntry(value: 'tag', label: 'tag'),
+                      ],
+                      onSelected: (value) {
+                        if (value == null) return;
+                        selectedTriggerType.value = TriggerType.fromValue(
+                          value,
+                        );
+                      },
+                    ),
+                    if (selectedTriggerType.value != TriggerType.tag) ...[
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: triggerBranchController,
+                        decoration: InputDecoration(
+                          labelText: 'Trigger Branch',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 24),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: Size(double.infinity, 48),
+                      ),
+                      onPressed: () async {
+                        final notifier = ref.read(
+                          workflowEditorProvider(workflowId).notifier,
+                        );
 
-                      if (!context.mounted) return;
-                      Navigator.of(context).pop();
-                    },
-                    icon: Icon(Icons.check),
-                    label: Text('Save'),
-                  ),
-                ],
+                        await notifier.updateName(nameController.text);
+
+                        final triggerBranch =
+                            selectedTriggerType.value == TriggerType.tag
+                            ? null
+                            : triggerBranchController.text;
+
+                        await notifier.updateWorkflowConfig(
+                          WorkflowConfig(
+                            selectedRepository: repositoryController.text,
+                            selectedWorkingDirectory:
+                                workingDirectoryController.text,
+                            selectedTriggerType: selectedTriggerType.value,
+                            selectedTriggerBranch: triggerBranch,
+                          ),
+                        );
+
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop();
+                      },
+                      icon: Icon(Icons.check),
+                      label: Text('Save'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -478,8 +484,8 @@ class StepCard extends ConsumerWidget {
         title: Text(
           step.name,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            fontWeight: FontWeight.bold,
+          ),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 8.0),
@@ -528,114 +534,119 @@ class EditStepBottomSheet extends HookConsumerWidget {
       CodeLineEditingController.fromText(stepCommand),
     );
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6,
-      child: Column(
-        children: [
-          Text(
-            'Edit Step',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          SizedBox(height: 32),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Step Name',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  SizedBox(height: 8),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Build iOS App',
-                      border: OutlineInputBorder(),
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Column(
+          children: [
+            Text(
+              'Edit Step',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            SizedBox(height: 32),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Step Name',
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'Command',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      height: 200,
-                      child: CodeEditor(
-                        padding: EdgeInsets.only(
-                          top: 12,
-                          left: 12,
-                          right: 12,
-                          bottom: 12,
-                        ),
-                        controller: codeController.value,
-                        wordWrap: true,
-                        borderRadius: BorderRadius.circular(12),
-                        style: CodeEditorStyle(
-                          fontSize: 14,
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          textColor: Colors.white,
-                          codeTheme: CodeHighlightTheme(
-                            languages: {
-                              'bash': CodeHighlightThemeMode(mode: langBash),
-                            },
-                            theme: monokaiTheme,
-                          ),
-                        ),
-                        indicatorBuilder: (
-                          context,
-                          editingController,
-                          chunkController,
-                          notifier,
-                        ) {
-                          return Row(
-                            children: [
-                              DefaultCodeLineNumber(
-                                controller: editingController,
-                                notifier: notifier,
-                              ),
-                            ],
-                          );
-                        },
+                    SizedBox(height: 8),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Build iOS App',
+                        border: OutlineInputBorder(),
                       ),
                     ),
-                  ),
-                ],
+                    SizedBox(height: 20),
+                    Text(
+                      'Command',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        height: 200,
+                        child: CodeEditor(
+                          padding: EdgeInsets.only(
+                            top: 12,
+                            left: 12,
+                            right: 12,
+                            bottom: 12,
+                          ),
+                          controller: codeController.value,
+                          wordWrap: true,
+                          borderRadius: BorderRadius.circular(12),
+                          style: CodeEditorStyle(
+                            fontSize: 14,
+                            backgroundColor: const Color(0xFF1E1E1E),
+                            textColor: Colors.white,
+                            codeTheme: CodeHighlightTheme(
+                              languages: {
+                                'bash': CodeHighlightThemeMode(mode: langBash),
+                              },
+                              theme: monokaiTheme,
+                            ),
+                          ),
+                          indicatorBuilder:
+                              (
+                                context,
+                                editingController,
+                                chunkController,
+                                notifier,
+                              ) {
+                                return Row(
+                                  children: [
+                                    DefaultCodeLineNumber(
+                                      controller: editingController,
+                                      notifier: notifier,
+                                    ),
+                                  ],
+                                );
+                              },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: Size(double.infinity, 48),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: Size(double.infinity, 48),
+                ),
+                onPressed: () async {
+                  final notifier = ref.read(
+                    workflowEditorProvider(workflowId).notifier,
+                  );
+
+                  await notifier.updateWorkflowStep(
+                    index: stepIndex,
+                    step: WorkflowStep(
+                      name: nameController.text,
+                      command: codeController.value.text,
+                      isCompleted: false,
+                    ),
+                  );
+
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
+                },
+                icon: Icon(Icons.check),
+                label: Text('Save'),
               ),
-              onPressed: () async {
-                final notifier = ref.read(
-                  workflowEditorProvider(workflowId).notifier,
-                );
-
-                await notifier.updateWorkflowStep(
-                  index: stepIndex,
-                  step: WorkflowStep(
-                    name: nameController.text,
-                    command: codeController.value.text,
-                    isCompleted: false,
-                  ),
-                );
-
-                if (!context.mounted) return;
-                Navigator.of(context).pop();
-              },
-              icon: Icon(Icons.check),
-              label: Text('Save'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
