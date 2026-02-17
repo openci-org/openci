@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 1.0.9
+
+- Fix: `android-deploy` fails with "Only releases with status draft may be created on draft app" error
+  - Auto-fallback: when deploying to a draft app (never published), automatically retry with `status: draft` instead of failing
+  - Re-creates edit session and re-uploads artifact on fallback
+  - Shows a note guiding users to publish the release from Google Play Console
+
+## 1.0.8
+
+- Feature: `android-deploy` command to deploy AAB to Google Play Console
+  - Upload AAB to any release track (internal, alpha, beta, production)
+  - Google Play Developer API integration via service account authentication
+  - Support service account JSON via `--service-account-json` flag or `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` environment variable
+  - Optional release notes and release name support
+
 ## 1.0.7
 
 - Fix: `exportArchive Failed to Use Accounts` error during IPA export
