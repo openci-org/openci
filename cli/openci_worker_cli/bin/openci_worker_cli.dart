@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.21';
+const String version = '0.4.22';
 
 enum LogLevel { info, warning, error }
 
@@ -115,6 +115,12 @@ ArgParser buildParser() {
       help: 'Print this usage information.',
     )
     ..addFlag('version', negatable: false, help: 'Print the tool version.')
+    ..addFlag(
+      'update',
+      abbr: 'u',
+      negatable: false,
+      help: 'Update to the latest version.',
+    )
     ..addOption('project-id', help: 'The Firebase project ID.')
     ..addOption(
       'service-account',
@@ -127,7 +133,7 @@ ArgParser buildParser() {
 }
 
 void printUsage(ArgParser argParser) {
-  print('Usage: dart openci_worker_cli.dart <flags> [arguments]');
+  print('Usage: openci_worker <flags> [arguments]');
   print(argParser.usage);
 }
 
@@ -142,7 +148,14 @@ Future<void> main(List<String> arguments) async {
       return;
     }
     if (results.flag('version')) {
-      print('openci_worker_cli version: $version');
+      print('openci_worker version: $version');
+      return;
+    }
+    if (results.flag('update')) {
+      print('Updating openci_worker...');
+      final shell = Shell(verbose: true);
+      await shell.run('dart pub global activate openci_worker_cli');
+      print('Updated successfully!');
       return;
     }
 

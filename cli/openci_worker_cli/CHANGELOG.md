@@ -1,3 +1,8 @@
+## 0.4.22 - 2026-02-17
+
+- feat: rename executable from `openci_worker_cli` to `openci_worker`
+- feat: add `--update` (`-u`) flag for self-update via `dart pub global activate`
+
 ## 0.4.21 - 2026-02-17
 
 - fix: `tart run` failure (e.g., VM not found) no longer crashes the entire worker process
