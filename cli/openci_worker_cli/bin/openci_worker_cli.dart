@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.19';
+const String version = '0.4.22';
 
 enum LogLevel { info, warning, error }
 
@@ -41,7 +41,7 @@ class BuildLogger {
         'message': message,
         'level': level.name,
         'timestamp': FieldValue.serverTimestamp,
-        if (stackTrace != null) 'stackTrace': stackTrace,
+        'stackTrace': ?stackTrace,
       });
     } catch (e) {
       print('[BuildLogger] Failed to write log to Firestore: $e');
@@ -74,10 +74,10 @@ class BuildLogger {
           .collection('runs')
           .doc(_runId)
           .update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp,
-        if (conclusion != null) 'conclusion': conclusion,
-      });
+            'status': status,
+            'updatedAt': FieldValue.serverTimestamp,
+            'conclusion': ?conclusion,
+          });
     } catch (e) {
       print('[BuildLogger] Failed to update run status: $e');
     }
@@ -91,10 +91,10 @@ class BuildLogger {
           .collection('runs')
           .doc(_runId)
           .set({
-        'id': _runId,
-        'createdAt': FieldValue.serverTimestamp,
-        'status': 'in_progress',
-      });
+            'id': _runId,
+            'createdAt': FieldValue.serverTimestamp,
+            'status': 'in_progress',
+          });
 
       await _firestore.collection('build_jobs_v0').doc(_buildJobId).update({
         'latestRunId': _runId,
@@ -115,15 +115,25 @@ ArgParser buildParser() {
       help: 'Print this usage information.',
     )
     ..addFlag('version', negatable: false, help: 'Print the tool version.')
+    ..addFlag(
+      'update',
+      abbr: 'u',
+      negatable: false,
+      help: 'Update to the latest version.',
+    )
     ..addOption('project-id', help: 'The Firebase project ID.')
     ..addOption(
       'service-account',
       help: 'The path to the service account JSON file.',
+    )
+    ..addOption(
+      'worker-id',
+      help: 'Unique ID for this worker (e.g., worker-1, worker-2).',
     );
 }
 
 void printUsage(ArgParser argParser) {
-  print('Usage: dart openci_worker_cli.dart <flags> [arguments]');
+  print('Usage: openci_worker <flags> [arguments]');
   print(argParser.usage);
 }
 
@@ -138,15 +148,25 @@ Future<void> main(List<String> arguments) async {
       return;
     }
     if (results.flag('version')) {
-      print('openci_worker_cli version: $version');
+      print('openci_worker version: $version');
+      return;
+    }
+    if (results.flag('update')) {
+      print('Updating openci_worker...');
+      final shell = Shell(verbose: true);
+      await shell.run('dart pub global activate openci_worker_cli');
+      print('Updated successfully!');
       return;
     }
 
     final String? projectId = results['project-id'];
     final String? serviceAccountPath = results['service-account'];
+    final String? workerId = results['worker-id'];
 
-    if (projectId == null || serviceAccountPath == null) {
-      print('Error: --project-id and --service-account are required.');
+    if (projectId == null || serviceAccountPath == null || workerId == null) {
+      print(
+        'Error: --project-id, --service-account, and --worker-id are required.',
+      );
       printUsage(argParser);
       return;
     }
@@ -158,7 +178,10 @@ Future<void> main(List<String> arguments) async {
 
     final firestore = Firestore(admin);
 
-    print('Worker started. Polling for jobs...');
+    print('Worker started. Worker ID: $workerId');
+    print('Cleaning up orphaned VMs from previous runs...');
+    await cleanupOrphanedVms(workerId);
+    print('Polling for jobs...');
 
     final spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     int spinnerIndex = 0;
@@ -171,7 +194,12 @@ Future<void> main(List<String> arguments) async {
 
       if (pollCounter == 0) {
         try {
-          jobFound = await processJob(firestore, projectId, serviceAccountPath);
+          jobFound = await processJob(
+            firestore,
+            projectId,
+            serviceAccountPath,
+            workerId,
+          );
         } catch (e) {
           print('\nError processing job: $e');
         }
@@ -183,7 +211,7 @@ Future<void> main(List<String> arguments) async {
         final seconds = elapsed.inSeconds % 60;
         final timeStr = '${minutes}m ${seconds}s';
         stdout.write(
-          '\r${spinnerChars[spinnerIndex]} Waiting for jobs... ($timeStr)  ',
+          '\r${spinnerChars[spinnerIndex]} [$workerId] Waiting for jobs... ($timeStr)  ',
         );
         spinnerIndex = (spinnerIndex + 1) % spinnerChars.length;
         pollCounter = (pollCounter + 1) % pollInterval;
@@ -208,6 +236,7 @@ Future<bool> processJob(
   Firestore firestore,
   String projectId,
   String serviceAccountPath,
+  String workerId,
 ) async {
   final doc = await firestore
       .collection('build_jobs_v0')
@@ -267,7 +296,7 @@ Future<bool> processJob(
     await updateCheckRun(owner, repo, checkRunId, token, status: 'in_progress');
   }
 
-  final currentVmName = 'openci-vm-$buildJobId';
+  final currentVmName = 'openci-vm-$workerId-$buildJobId';
   await logger.info('Cloning VM $baseVmName to $currentVmName...');
   await Shell().run('tart clone $baseVmName $currentVmName');
 
@@ -301,8 +330,10 @@ Future<bool> processJob(
       throw Exception('workflowId is missing');
     }
 
-    final workflowDoc =
-        await firestore.collection('workflows_v1').doc(workflowId).get();
+    final workflowDoc = await firestore
+        .collection('workflows_v1')
+        .doc(workflowId)
+        .get();
 
     if (!workflowDoc.exists) {
       await logger.error('Workflow not found: $workflowId');
@@ -318,10 +349,15 @@ Future<bool> processJob(
     await logger.info('Loaded workflow with ${steps.length} steps');
     await logger.info('Working directory: ${cwd ?? "(root)"}');
 
-    unawaited(runTart(currentVmName));
+    Object? vmStartError;
+    unawaited(
+      runTart(currentVmName).catchError((e) {
+        vmStartError = e;
+      }),
+    );
 
     await logger.info('Waiting for VM to be ready...');
-    await waitForVmReady(currentVmName);
+    await waitForVmReady(currentVmName, vmStartError: () => vmStartError);
     await logger.info('VM is ready!');
 
     await logger.info('Cloning repository $owner/$repo...');
@@ -361,8 +397,8 @@ Future<bool> processJob(
     final tagName = buildJobData['tagName'] as String?;
     final tagVersion = tagName != null && tagName.isNotEmpty
         ? (tagName.startsWith('v') || tagName.startsWith('V')
-            ? tagName.substring(1)
-            : tagName)
+              ? tagName.substring(1)
+              : tagName)
         : null;
 
     final teamId = workflowData['teamId'] as String;
@@ -477,7 +513,7 @@ Future<bool> processJob(
     } catch (e) {
       await logger.warning('Error deleting VM: $e');
     }
-    await pruneStaleVms(logger);
+    await pruneStaleVms(logger, workerId: workerId);
   }
 
   return true;
@@ -497,10 +533,7 @@ Future<void> updateCheckRun(
     'https://api.github.com/repos/$owner/$repo/check-runs/$checkRunId',
   );
 
-  final body = {
-    'status': status,
-    if (conclusion != null) 'conclusion': conclusion,
-  };
+  final body = {'status': status, 'conclusion': ?conclusion};
 
   final response = await http.patch(
     url,
@@ -534,10 +567,19 @@ Future<void> deleteTart(String vmName) async {
   await shell.run('tart delete $vmName');
 }
 
-Future<void> waitForVmReady(String name) async {
+Future<void> waitForVmReady(
+  String name, {
+  Object? Function()? vmStartError,
+}) async {
   var shell = Shell(throwOnError: false);
   print('Waiting for Guest Agent to respond...');
   for (int i = 0; i < 60; i++) {
+    // Check if tart run has already failed
+    final error = vmStartError?.call();
+    if (error != null) {
+      throw Exception('VM failed to start: $error');
+    }
+
     var result = await shell.run('tart exec $name echo "ready"');
     print('exit code: ${result.first.exitCode}');
 
@@ -581,7 +623,9 @@ Future<String> fetchSecretValue(
   }
 }
 
-Future<void> pruneStaleVms(BuildLogger logger) async {
+/// Cleans up stopped VMs belonging to this worker at startup.
+/// Safe because this worker just started, so any of its VMs are orphans.
+Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     final shell = Shell(throwOnError: false, verbose: false);
     final result = await shell.run('tart list');
@@ -589,6 +633,7 @@ Future<void> pruneStaleVms(BuildLogger logger) async {
 
     final output = result.first.stdout.toString();
     final lines = LineSplitter.split(output);
+    final prefix = 'openci-vm-$workerId-';
 
     for (var line in lines) {
       line = line.trim();
@@ -597,18 +642,52 @@ Future<void> pruneStaleVms(BuildLogger logger) async {
 
       final parts = line.split(RegExp(r'\s+'));
 
-      final vmNameIndex = parts.indexWhere((p) => p.startsWith('openci-vm-'));
+      final vmNameIndex = parts.indexWhere((p) => p.startsWith(prefix));
       if (vmNameIndex == -1) continue;
 
       final vmName = parts[vmNameIndex];
-      // State is the last column
       final state = parts.last;
 
-      if (state == 'running') {
-        continue;
-      }
+      if (state == 'running') continue;
 
-      await logger.info('Deleting unused VM: $vmName (State: $state)');
+      print('Deleting orphaned VM: $vmName (State: $state)');
+      await shell.run('tart delete $vmName');
+    }
+  } catch (e) {
+    print('Error cleaning up orphaned VMs: $e');
+  }
+}
+
+/// Prunes stale VMs that belong to this worker only.
+Future<void> pruneStaleVms(
+  BuildLogger logger, {
+  required String workerId,
+}) async {
+  try {
+    final shell = Shell(throwOnError: false, verbose: false);
+    final result = await shell.run('tart list');
+    if (result.isEmpty) return;
+
+    final output = result.first.stdout.toString();
+    final lines = LineSplitter.split(output);
+    final prefix = 'openci-vm-$workerId-';
+
+    for (var line in lines) {
+      line = line.trim();
+      if (line.isEmpty) continue;
+      if (line.startsWith('Source') && line.contains('Name')) continue;
+
+      final parts = line.split(RegExp(r'\s+'));
+
+      final vmNameIndex = parts.indexWhere((p) => p.startsWith(prefix));
+      if (vmNameIndex == -1) continue;
+
+      final vmName = parts[vmNameIndex];
+      final state = parts.last;
+
+      if (state == 'running') continue;
+
+      await logger.info('Deleting stale VM: $vmName (State: $state)');
       await shell.run('tart delete $vmName');
     }
   } catch (e) {
