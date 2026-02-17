@@ -1,3 +1,15 @@
+## 0.4.21 - 2026-02-17
+
+- fix: `tart run` failure (e.g., VM not found) no longer crashes the entire worker process
+- fix: VM startup errors are now caught and properly reported as job failure
+
+## 0.4.20 - 2026-02-17
+
+- fix: prevent race condition where multiple workers on the same machine could delete each other's VMs
+- add: `--worker-id` option to isolate VM management per worker
+- add: startup cleanup of orphaned VMs belonging to this worker
+- add: worker ID is now displayed in the waiting spinner log
+
 ## 0.4.19 - 2026-02-11
 
 - add: built-in environment variables: #OPENCI_TAG & #OPENCI_TAG_VERSION
