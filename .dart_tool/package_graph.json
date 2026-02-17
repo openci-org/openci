@@ -14,9 +14,11 @@
     },
     {
       "name": "openci_vm_cli",
-      "version": "1.0.7",
+      "version": "1.0.9",
       "dependencies": [
         "args",
+        "googleapis",
+        "googleapis_auth",
         "http",
         "jose"
       ],
