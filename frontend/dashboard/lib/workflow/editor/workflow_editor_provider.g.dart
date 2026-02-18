@@ -11,8 +11,10 @@ _CreateWorkflowState _$CreateWorkflowStateFromJson(Map<String, dynamic> json) =>
       isCreated: json['isCreated'] as bool,
       selectedRepository: json['selectedRepository'] as String,
       selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
-      selectedTriggerType:
-          $enumDecode(_$TriggerTypeEnumMap, json['selectedTriggerType']),
+      selectedTriggerType: $enumDecode(
+        _$TriggerTypeEnumMap,
+        json['selectedTriggerType'],
+      ),
       selectedTriggerBranch: json['selectedTriggerBranch'] as String,
       selectedWorkflowSteps: (json['selectedWorkflowSteps'] as List<dynamic>)
           .map((e) => WorkflowStep.fromJson(e as Map<String, dynamic>))
@@ -20,22 +22,23 @@ _CreateWorkflowState _$CreateWorkflowStateFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$CreateWorkflowStateToJson(
-        _CreateWorkflowState instance) =>
-    <String, dynamic>{
-      'isCreated': instance.isCreated,
-      'selectedRepository': instance.selectedRepository,
-      'selectedWorkingDirectory': instance.selectedWorkingDirectory,
-      'selectedTriggerType':
-          _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
-      'selectedTriggerBranch': instance.selectedTriggerBranch,
-      'selectedWorkflowSteps':
-          instance.selectedWorkflowSteps.map((e) => e.toJson()).toList(),
-    };
+  _CreateWorkflowState instance,
+) => <String, dynamic>{
+  'isCreated': instance.isCreated,
+  'selectedRepository': instance.selectedRepository,
+  'selectedWorkingDirectory': instance.selectedWorkingDirectory,
+  'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
+  'selectedTriggerBranch': instance.selectedTriggerBranch,
+  'selectedWorkflowSteps': instance.selectedWorkflowSteps
+      .map((e) => e.toJson())
+      .toList(),
+};
 
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
   TriggerType.tag: 'tag',
+  TriggerType.release: 'release',
 };
 
 // **************************************************************************
@@ -50,16 +53,16 @@ final workflowEditorProvider = WorkflowEditorFamily._();
 
 final class WorkflowEditorProvider
     extends $StreamNotifierProvider<WorkflowEditor, Workflow> {
-  WorkflowEditorProvider._(
-      {required WorkflowEditorFamily super.from,
-      required String super.argument})
-      : super(
-          retry: null,
-          name: r'workflowEditorProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+  WorkflowEditorProvider._({
+    required WorkflowEditorFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'workflowEditorProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
   String debugGetCreateSourceHash() => _$workflowEditorHash();
@@ -90,20 +93,23 @@ String _$workflowEditorHash() => r'705eeab538409714b519173c8148b731fd4f8bd7';
 
 final class WorkflowEditorFamily extends $Family
     with
-        $ClassFamilyOverride<WorkflowEditor, AsyncValue<Workflow>, Workflow,
-            Stream<Workflow>, String> {
+        $ClassFamilyOverride<
+          WorkflowEditor,
+          AsyncValue<Workflow>,
+          Workflow,
+          Stream<Workflow>,
+          String
+        > {
   WorkflowEditorFamily._()
-      : super(
-          retry: null,
-          name: r'workflowEditorProvider',
-          dependencies: null,
-          $allTransitiveDependencies: null,
-          isAutoDispose: true,
-        );
+    : super(
+        retry: null,
+        name: r'workflowEditorProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
 
-  WorkflowEditorProvider call(
-    String workflowId,
-  ) =>
+  WorkflowEditorProvider call(String workflowId) =>
       WorkflowEditorProvider._(argument: workflowId, from: this);
 
   @override
@@ -114,22 +120,19 @@ abstract class _$WorkflowEditor extends $StreamNotifier<Workflow> {
   late final _$args = ref.$arg as String;
   String get workflowId => _$args;
 
-  Stream<Workflow> build(
-    String workflowId,
-  );
+  Stream<Workflow> build(String workflowId);
   @$mustCallSuper
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<Workflow>, Workflow>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<AsyncValue<Workflow>, Workflow>,
-        AsyncValue<Workflow>,
-        Object?,
-        Object?>;
-    element.handleCreate(
-        ref,
-        () => build(
-              _$args,
-            ));
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<Workflow>, Workflow>,
+              AsyncValue<Workflow>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args));
   }
 }

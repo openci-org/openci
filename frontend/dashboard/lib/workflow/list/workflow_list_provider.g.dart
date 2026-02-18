@@ -15,15 +15,15 @@ final workflowListProvider = WorkflowListProvider._();
 final class WorkflowListProvider
     extends $StreamNotifierProvider<WorkflowList, List<Workflow>> {
   WorkflowListProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'workflowListProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'workflowListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$workflowListHash();
@@ -41,11 +41,14 @@ abstract class _$WorkflowList extends $StreamNotifier<List<Workflow>> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<Workflow>>, List<Workflow>>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<AsyncValue<List<Workflow>>, List<Workflow>>,
-        AsyncValue<List<Workflow>>,
-        Object?,
-        Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<Workflow>>, List<Workflow>>,
+              AsyncValue<List<Workflow>>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

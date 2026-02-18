@@ -185,8 +185,8 @@ class WorkflowListPage extends ConsumerWidget {
                     title: Text(
                       workflow.name,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
@@ -197,12 +197,15 @@ class WorkflowListPage extends ConsumerWidget {
                             children: [
                               Icon(
                                 switch (workflow
-                                    .workflowConfig.selectedTriggerType) {
+                                    .workflowConfig
+                                    .selectedTriggerType) {
                                   TriggerType.tag => FontAwesomeIcons.tag,
                                   TriggerType.push =>
                                     FontAwesomeIcons.codeCommit,
                                   TriggerType.pullRequest =>
                                     FontAwesomeIcons.codePullRequest,
+                                  TriggerType.release =>
+                                    Icons.new_releases_outlined,
                                 },
                                 size: 14,
                                 color: Theme.of(context).hintColor,
@@ -210,11 +213,19 @@ class WorkflowListPage extends ConsumerWidget {
                               const SizedBox(width: 4),
                               Text(
                                 workflow.workflowConfig.selectedTriggerType ==
-                                        TriggerType.tag
-                                    ? 'Tag'
-                                    : (workflow.workflowConfig
-                                            .selectedTriggerBranch ??
-                                        'Tag'),
+                                            TriggerType.tag ||
+                                        workflow
+                                                .workflowConfig
+                                                .selectedTriggerType ==
+                                            TriggerType.release
+                                    ? workflow
+                                          .workflowConfig
+                                          .selectedTriggerType
+                                          .toString()
+                                    : (workflow
+                                              .workflowConfig
+                                              .selectedTriggerBranch ??
+                                          ''),
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium,
@@ -278,8 +289,9 @@ class WorkflowListPage extends ConsumerWidget {
                                     onPressed: () =>
                                         Navigator.of(context).pop(true),
                                     style: FilledButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.error,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
                                     ),
                                     child: const Text('Delete'),
                                   ),
@@ -313,9 +325,9 @@ class WorkflowListPage extends ConsumerWidget {
                               Icon(
                                 Icons.copy,
                                 size: 20,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 12),
                               const Text('Duplicate'),
