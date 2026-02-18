@@ -69,6 +69,11 @@ export const githubApp = onRequest(
           logger.info(`Tag created: ${body.ref}`, { structuredData: true });
           await createBuildJobs(app, eventData);
         }
+      } else if (event === "release") {
+        if (body.action === "published") {
+          logger.info(`Release published: ${body.release?.tag_name}`, { structuredData: true });
+          await createBuildJobs(app, eventData);
+        }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
           logger.info("Rerun requested via comment", { structuredData: true });
@@ -99,6 +104,7 @@ async function createBuildJobs(
   let triggerBranch: string | null = null;
   let triggerType: string | null = null;
   let tagName: string | null = null;
+  let releaseName: string | null = null;
 
   if (event === "pull_request") {
     branch = payload.pull_request.head.ref;
@@ -111,9 +117,13 @@ async function createBuildJobs(
   } else if (event === "create" && payload.ref_type === "tag") {
     tagName = payload.ref;
     triggerType = "tag";
+  } else if (event === "release" && payload.action === "published") {
+    tagName = payload.release?.tag_name ?? null;
+    releaseName = payload.release?.name ?? null;
+    triggerType = "release";
   }
 
-  if (!triggerType || (triggerType !== "tag" && !triggerBranch)) {
+  if (!triggerType || (!["tag", "release"].includes(triggerType) && !triggerBranch)) {
     logger.info(`Skipping event ${event}: unable to determine trigger type`);
     return;
   }
@@ -123,7 +133,7 @@ async function createBuildJobs(
     .where("workflowConfig.selectedRepository", "==", params.repository)
     .where("workflowConfig.selectedTriggerType", "==", triggerType);
 
-  if (triggerType !== "tag" && triggerBranch) {
+  if (!["tag", "release"].includes(triggerType) && triggerBranch) {
     workflowQuery = workflowQuery.where(
       "workflowConfig.selectedTriggerBranch",
       "==",
@@ -167,7 +177,7 @@ async function createBuildJobs(
       ? payload.pull_request?.head?.sha
       : payload.head_commit?.id || payload.after;
 
-  if (triggerType === "tag" && tagName && octokit) {
+  if ((triggerType === "tag" || triggerType === "release") && tagName && octokit) {
     try {
       const { data: commit } = await octokit.request("GET /repos/{owner}/{repo}/commits/{ref}", {
         owner: params.repository.split("/")[0],
@@ -232,6 +242,7 @@ async function createBuildJobs(
         latestRunId: null,
         tagName,
         branch,
+        releaseName,
       });
   }
 }

@@ -134,6 +134,8 @@ class StepList extends ConsumerWidget {
                               TriggerType.push => FontAwesomeIcons.codeCommit,
                               TriggerType.pullRequest =>
                                 FontAwesomeIcons.codePullRequest,
+                              TriggerType.release =>
+                                Icons.new_releases_outlined,
                             },
                             size: 16,
                             color: Theme.of(context).hintColor,
@@ -141,8 +143,10 @@ class StepList extends ConsumerWidget {
                           const SizedBox(width: 4),
                           Text(
                             workflowConfig.selectedTriggerType ==
-                                    TriggerType.tag
-                                ? 'Tag'
+                                        TriggerType.tag ||
+                                    workflowConfig.selectedTriggerType ==
+                                        TriggerType.release
+                                ? workflowConfig.selectedTriggerType.toString()
                                 : (workflowConfig.selectedTriggerBranch ?? ''),
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
@@ -291,6 +295,7 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                           label: 'pullRequest',
                         ),
                         DropdownMenuEntry(value: 'tag', label: 'tag'),
+                        DropdownMenuEntry(value: 'release', label: 'release'),
                       ],
                       onSelected: (value) {
                         if (value == null) return;
@@ -299,7 +304,8 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                         );
                       },
                     ),
-                    if (selectedTriggerType.value != TriggerType.tag) ...[
+                    if (selectedTriggerType.value != TriggerType.tag &&
+                        selectedTriggerType.value != TriggerType.release) ...[
                       SizedBox(height: 16),
                       TextFormField(
                         controller: triggerBranchController,
@@ -322,7 +328,8 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                         await notifier.updateName(nameController.text);
 
                         final triggerBranch =
-                            selectedTriggerType.value == TriggerType.tag
+                            selectedTriggerType.value == TriggerType.tag ||
+                                selectedTriggerType.value == TriggerType.release
                             ? null
                             : triggerBranchController.text;
 

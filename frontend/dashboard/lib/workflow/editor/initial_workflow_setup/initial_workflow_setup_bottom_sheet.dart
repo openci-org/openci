@@ -72,7 +72,9 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                 else
                   SizedBox(
                     width: _width,
-                    child: ref.watch(repositoriesProvider).when(
+                    child: ref
+                        .watch(repositoriesProvider)
+                        .when(
                           loading: () => TextFormField(
                             enabled: false,
                             decoration: InputDecoration(
@@ -113,25 +115,27 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                               );
                             },
                             onSelected: (repo) {
-                              controller
-                                  .updateSelectedRepository(repo.fullName);
-                            },
-                            fieldViewBuilder: (
-                              context,
-                              textController,
-                              focusNode,
-                              onFieldSubmitted,
-                            ) {
-                              return TextFormField(
-                                controller: textController,
-                                focusNode: focusNode,
-                                decoration: InputDecoration(
-                                  labelText: 'Repository',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.search, size: 20),
-                                ),
+                              controller.updateSelectedRepository(
+                                repo.fullName,
                               );
                             },
+                            fieldViewBuilder:
+                                (
+                                  context,
+                                  textController,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  return TextFormField(
+                                    controller: textController,
+                                    focusNode: focusNode,
+                                    decoration: InputDecoration(
+                                      labelText: 'Repository',
+                                      border: OutlineInputBorder(),
+                                      suffixIcon: Icon(Icons.search, size: 20),
+                                    ),
+                                  );
+                                },
                             optionsMaxHeight: 200,
                           ),
                         ),
@@ -152,7 +156,9 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                 else
                   SizedBox(
                     width: _width,
-                    child: ref.watch(directoriesProvider).when(
+                    child: ref
+                        .watch(directoriesProvider)
+                        .when(
                           loading: () => TextFormField(
                             enabled: false,
                             decoration: InputDecoration(
@@ -193,22 +199,26 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                             onSelected: (value) {
                               controller.updateSelectedWorkingDirectory(value);
                             },
-                            fieldViewBuilder: (
-                              context,
-                              textController,
-                              focusNode,
-                              onFieldSubmitted,
-                            ) {
-                              return TextFormField(
-                                controller: textController,
-                                focusNode: focusNode,
-                                decoration: InputDecoration(
-                                  labelText: 'Current Working Directory',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.folder_open, size: 20),
-                                ),
-                              );
-                            },
+                            fieldViewBuilder:
+                                (
+                                  context,
+                                  textController,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  return TextFormField(
+                                    controller: textController,
+                                    focusNode: focusNode,
+                                    decoration: InputDecoration(
+                                      labelText: 'Current Working Directory',
+                                      border: OutlineInputBorder(),
+                                      suffixIcon: Icon(
+                                        Icons.folder_open,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  );
+                                },
                             optionsMaxHeight: 200,
                           ),
                         ),
@@ -227,6 +237,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                       label: 'pullRequest',
                     ),
                     DropdownMenuEntry(value: 'tag', label: 'tag'),
+                    DropdownMenuEntry(value: 'release', label: 'release'),
                   ],
                   onSelected: (value) {
                     if (value == null) return;
@@ -235,7 +246,8 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                     );
                   },
                 ),
-                if (state.selectedTriggerType != TriggerType.tag) ...[
+                if (state.selectedTriggerType != TriggerType.tag &&
+                    state.selectedTriggerType != TriggerType.release) ...[
                   SizedBox(height: 20.0),
                   SizedBox(
                     width: _width,
@@ -255,9 +267,10 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                   ),
                   onPressed: () async {
                     final triggerBranch =
-                        state.selectedTriggerType == TriggerType.tag
-                            ? null
-                            : triggerBranchController.text;
+                        state.selectedTriggerType == TriggerType.tag ||
+                            state.selectedTriggerType == TriggerType.release
+                        ? null
+                        : triggerBranchController.text;
 
                     await controller.save(
                       name: nameController.text,

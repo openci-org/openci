@@ -59,6 +59,7 @@ enum TriggerType {
   pullRequest,
   push,
   tag,
+  release,
   ;
 
   @override
@@ -70,6 +71,8 @@ enum TriggerType {
         return 'push';
       case TriggerType.tag:
         return 'tag';
+      case TriggerType.release:
+        return 'release';
     }
   }
 
@@ -81,6 +84,8 @@ enum TriggerType {
         return TriggerType.push;
       case 'tag':
         return TriggerType.tag;
+      case 'release':
+        return TriggerType.release;
       default:
         throw ArgumentError('Invalid TriggerType value: $value');
     }

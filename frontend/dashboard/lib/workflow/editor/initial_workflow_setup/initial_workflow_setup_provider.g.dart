@@ -7,33 +7,35 @@ part of 'initial_workflow_setup_provider.dart';
 // **************************************************************************
 
 _InitialWorkflowSetupState _$InitialWorkflowSetupStateFromJson(
-        Map<String, dynamic> json) =>
-    _InitialWorkflowSetupState(
-      isCreated: json['isCreated'] as bool,
-      name: json['name'] as String,
-      selectedRepository: json['selectedRepository'] as String,
-      selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
-      selectedTriggerType:
-          $enumDecode(_$TriggerTypeEnumMap, json['selectedTriggerType']),
-      selectedTriggerBranch: json['selectedTriggerBranch'] as String,
-    );
+  Map<String, dynamic> json,
+) => _InitialWorkflowSetupState(
+  isCreated: json['isCreated'] as bool,
+  name: json['name'] as String,
+  selectedRepository: json['selectedRepository'] as String,
+  selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
+  selectedTriggerType: $enumDecode(
+    _$TriggerTypeEnumMap,
+    json['selectedTriggerType'],
+  ),
+  selectedTriggerBranch: json['selectedTriggerBranch'] as String,
+);
 
 Map<String, dynamic> _$InitialWorkflowSetupStateToJson(
-        _InitialWorkflowSetupState instance) =>
-    <String, dynamic>{
-      'isCreated': instance.isCreated,
-      'name': instance.name,
-      'selectedRepository': instance.selectedRepository,
-      'selectedWorkingDirectory': instance.selectedWorkingDirectory,
-      'selectedTriggerType':
-          _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
-      'selectedTriggerBranch': instance.selectedTriggerBranch,
-    };
+  _InitialWorkflowSetupState instance,
+) => <String, dynamic>{
+  'isCreated': instance.isCreated,
+  'name': instance.name,
+  'selectedRepository': instance.selectedRepository,
+  'selectedWorkingDirectory': instance.selectedWorkingDirectory,
+  'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
+  'selectedTriggerBranch': instance.selectedTriggerBranch,
+};
 
 const _$TriggerTypeEnumMap = {
   TriggerType.pullRequest: 'pullRequest',
   TriggerType.push: 'push',
   TriggerType.tag: 'tag',
+  TriggerType.release: 'release',
 };
 
 // **************************************************************************
@@ -49,15 +51,15 @@ final initialWorkflowSetupProvider = InitialWorkflowSetupProvider._();
 final class InitialWorkflowSetupProvider
     extends $NotifierProvider<InitialWorkflowSetup, InitialWorkflowSetupState> {
   InitialWorkflowSetupProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'initialWorkflowSetupProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'initialWorkflowSetupProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$initialWorkflowSetupHash();
@@ -86,11 +88,14 @@ abstract class _$InitialWorkflowSetup
   void runBuild() {
     final ref =
         this.ref as $Ref<InitialWorkflowSetupState, InitialWorkflowSetupState>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<InitialWorkflowSetupState, InitialWorkflowSetupState>,
-        InitialWorkflowSetupState,
-        Object?,
-        Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<InitialWorkflowSetupState, InitialWorkflowSetupState>,
+              InitialWorkflowSetupState,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }
