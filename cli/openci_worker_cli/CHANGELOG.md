@@ -1,3 +1,8 @@
+## 0.4.23 - 2026-02-17
+
+- feat: remove `--project-id` option; project ID is now auto-read from service account JSON
+- fix: improve `--update` command reliability
+
 ## 0.4.22 - 2026-02-17
 
 - feat: rename executable from `openci_worker_cli` to `openci_worker`

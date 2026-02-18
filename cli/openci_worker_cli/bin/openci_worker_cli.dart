@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.22';
+const String version = '0.4.23';
 
 enum LogLevel { info, warning, error }
 
@@ -121,7 +121,6 @@ ArgParser buildParser() {
       negatable: false,
       help: 'Update to the latest version.',
     )
-    ..addOption('project-id', help: 'The Firebase project ID.')
     ..addOption(
       'service-account',
       help: 'The path to the service account JSON file.',
@@ -159,21 +158,33 @@ Future<void> main(List<String> arguments) async {
       return;
     }
 
-    final String? projectId = results['project-id'];
     final String? serviceAccountPath = results['service-account'];
     final String? workerId = results['worker-id'];
 
-    if (projectId == null || serviceAccountPath == null || workerId == null) {
-      print(
-        'Error: --project-id, --service-account, and --worker-id are required.',
-      );
+    if (serviceAccountPath == null || workerId == null) {
+      print('Error: --service-account and --worker-id are required.');
       printUsage(argParser);
+      return;
+    }
+
+    final serviceAccountFile = File(serviceAccountPath);
+    if (!serviceAccountFile.existsSync()) {
+      print('Error: Service account file not found: $serviceAccountPath');
+      return;
+    }
+
+    final serviceAccountJson =
+        jsonDecode(serviceAccountFile.readAsStringSync())
+            as Map<String, dynamic>;
+    final projectId = serviceAccountJson['project_id'] as String?;
+    if (projectId == null || projectId.isEmpty) {
+      print('Error: project_id not found in service account file.');
       return;
     }
 
     final admin = FirebaseAdminApp.initializeApp(
       projectId,
-      Credential.fromServiceAccount(File(serviceAccountPath)),
+      Credential.fromServiceAccount(serviceAccountFile),
     );
 
     final firestore = Firestore(admin);

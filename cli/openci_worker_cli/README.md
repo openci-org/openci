@@ -11,14 +11,13 @@ dart pub global activate openci_worker_cli
 ## Usage
 
 ```bash
-openci_worker --project-id <project-id> --service-account <path-to-service-account-json> --worker-id <id>
+openci_worker --service-account <path-to-service-account-json> --worker-id <id>
 ```
 
 ### Options
 
 | Flag                | Short | Description                                         |
 | ------------------- | ----- | --------------------------------------------------- |
-| `--project-id`      |       | Firebase project ID (required)                      |
 | `--service-account` |       | Path to service account JSON file (required)        |
 | `--worker-id`       |       | Unique ID for this worker, e.g. `1`, `2` (required) |
 | `--update`          | `-u`  | Update to the latest version                        |
@@ -31,10 +30,10 @@ Each worker must have a unique `--worker-id` to avoid VM conflicts:
 
 ```bash
 # Terminal 1
-openci_worker --project-id xxx --service-account ./sa.json --worker-id 1
+openci_worker --service-account ./sa.json --worker-id 1
 
 # Terminal 2
-openci_worker --project-id xxx --service-account ./sa.json --worker-id 2
+openci_worker --service-account ./sa.json --worker-id 2
 ```
 
 ### Self-update
