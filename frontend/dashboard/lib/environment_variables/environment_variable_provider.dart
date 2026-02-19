@@ -9,8 +9,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'environment_variable_provider.freezed.dart';
 part 'environment_variable_provider.g.dart';
 
-const builtInRunNumberKey = 'OPENCI_RUN_NUMBER';
-
 @riverpod
 class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   @override
