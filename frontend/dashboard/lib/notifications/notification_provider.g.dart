@@ -15,15 +15,15 @@ final notificationServiceProvider = NotificationServiceProvider._();
 final class NotificationServiceProvider
     extends $AsyncNotifierProvider<NotificationService, void> {
   NotificationServiceProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'notificationServiceProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'notificationServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$notificationServiceHash();
@@ -34,7 +34,7 @@ final class NotificationServiceProvider
 }
 
 String _$notificationServiceHash() =>
-    r'd5a4f0bfc934a462629a89daba9c8e50ebd0a9df';
+    r'7b4f126b52526afb737704c885518fb6fce665cf';
 
 abstract class _$NotificationService extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -42,11 +42,14 @@ abstract class _$NotificationService extends $AsyncNotifier<void> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<void>, void>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<AsyncValue<void>, void>,
-        AsyncValue<void>,
-        Object?,
-        Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<void>, void>,
+              AsyncValue<void>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

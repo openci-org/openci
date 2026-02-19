@@ -13,17 +13,18 @@ part of 'github_connection_provider.dart';
 final isGitHubConnectedProvider = IsGitHubConnectedProvider._();
 
 final class IsGitHubConnectedProvider
-    extends $FunctionalProvider<bool, bool, bool> with $Provider<bool> {
+    extends $FunctionalProvider<bool, bool, bool>
+    with $Provider<bool> {
   IsGitHubConnectedProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'isGitHubConnectedProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isGitHubConnectedProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$isGitHubConnectedHash();
