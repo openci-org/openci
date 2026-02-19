@@ -7,6 +7,7 @@ import {
   buildJobsCollectionPath,
   teamsCollectionPath,
   usersCollectionPath,
+  workflowsCollectionPath,
 } from "./firestore-collection-paths";
 
 export const onBuildJobStatusChange = onDocumentUpdated(
@@ -53,12 +54,22 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     const owner = afterData.owner as string;
     const repo = afterData.repo as string;
     const branch = afterData.branch as string | undefined;
+    const workflowId = afterData.workflowId as string | undefined;
+
+    let workflowName: string | undefined;
+    if (workflowId) {
+      const workflowDoc = await db.collection(workflowsCollectionPath).doc(workflowId).get();
+      if (workflowDoc.exists) {
+        workflowName = workflowDoc.data()?.name as string | undefined;
+      }
+    }
 
     const isSuccess = currentStatus === "success";
     const title = isSuccess ? "✅ Build Succeeded" : "❌ Build Failed";
-    const repoInfo = `${owner}/${repo}${branch ? ` (${branch})` : ""}`;
+    const displayName = workflowName ?? `${owner}/${repo}`;
+    const bodyHeader = `${displayName}${branch ? ` (${branch})` : ""}`;
 
-    let body = repoInfo;
+    let body = bodyHeader;
     if (!isSuccess) {
       const latestRunId = afterData.latestRunId as string | undefined;
       if (latestRunId) {
@@ -74,14 +85,13 @@ export const onBuildJobStatusChange = onDocumentUpdated(
 
         if (logsSnapshot.docs.length >= 2) {
           const failureLog = logsSnapshot.docs[1].data();
-          body = `${repoInfo}\n${failureLog.message ?? "Unknown error"}`;
+          body = `${bodyHeader}\n${failureLog.message ?? "Unknown error"}`;
         } else {
-          body = `${repoInfo}\nUnknown error`;
+          body = `${bodyHeader}\nUnknown error`;
         }
       }
     }
 
-    // Collect FCM tokens from users based on their notification preference
     const tokensToNotify: string[] = [];
 
     for (const memberId of members) {
