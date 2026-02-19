@@ -1,3 +1,12 @@
+## 0.4.31 - 2026-02-19
+
+- feat: auto-provision distribution certificate secrets for `ios-sign` steps
+  - Automatically creates GCP Secret Manager secrets and Firestore `secrets_v0` entries when missing
+  - Updates workflow `requiredSecrets` so subsequent builds reuse existing secrets
+- feat: pass `{KEY}_SECRET_PATH` env var for each secret to enable in-VM secret updates
+- feat: gracefully handle empty or missing secrets (return empty string instead of crashing)
+- change: add `OPENCI_` prefix to distribution certificate env vars
+
 ## 0.4.30 - 2026-02-19
 
 - feat: support build cancellation from dashboard

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.0.10
+
+- Feature: Auto-save newly created distribution certificates to GCP Secret Manager
+  - Certificates are automatically stored and reused on subsequent builds
+  - Uses existing secret paths from worker CLI when available, falls back to creating new secrets
+- Change: Rename certificate env vars with `OPENCI_` prefix (`OPENCI_DISTRIBUTION_CERTIFICATE_P12`, `OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD`, `OPENCI_DISTRIBUTION_CERTIFICATE_ID`)
+
 ## 1.0.9
 
 - Fix: `android-deploy` fails with "Only releases with status draft may be created on draft app" error

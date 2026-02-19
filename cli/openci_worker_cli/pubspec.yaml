@@ -1,6 +1,6 @@
 name: openci_worker_cli
 description: OpenCI Worker CLI
-version: 0.4.30
+version: 0.4.31
 repository: https://github.com/open-ci-io/openci
 
 environment:
@@ -15,6 +15,7 @@ dependencies:
   googleapis_auth: ^1.6.0
   http: ^1.6.0
   process_run: ^1.2.4
+  uuid: ^4.5.2
 
 dev_dependencies:
   lints: ^6.0.0
