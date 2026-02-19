@@ -61,14 +61,16 @@ class BuildJobCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync =
-        ref.watch(workflowNameProvider(buildJob.workflowId));
+    final workflowNameAsync = ref.watch(
+      workflowNameProvider(buildJob.workflowId),
+    );
 
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
       'in_progress' => Theme.of(context).colorScheme.primary,
       'queued' => Colors.blue,
+      'cancelled' => Colors.orange,
       _ => Colors.grey,
     };
 
@@ -76,6 +78,7 @@ class BuildJobCard extends ConsumerWidget {
       'success' => Icons.check_circle,
       'failure' => Icons.cancel,
       'queued' => Icons.schedule,
+      'cancelled' => Icons.block,
       _ => Icons.help_outline,
     };
 
@@ -84,6 +87,7 @@ class BuildJobCard extends ConsumerWidget {
       'failure' => 'Failed',
       'in_progress' => 'In Progress',
       'queued' => 'Queued',
+      'cancelled' => 'Cancelled',
       _ => buildJob.status,
     };
 
@@ -93,10 +97,9 @@ class BuildJobCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       margin: const EdgeInsets.only(bottom: 12),
@@ -146,8 +149,9 @@ class BuildJobCard extends ConsumerWidget {
                           buildJob.createdAt.toTimeAgoEn(),
                           style: TextStyle(
                             fontSize: 12,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -230,10 +234,9 @@ class BuildJobCard extends ConsumerWidget {
               // Chevron indicator
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 size: 24,
               ),
             ],

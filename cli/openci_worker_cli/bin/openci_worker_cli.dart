@@ -10,9 +10,17 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.29';
+const String version = '0.4.30';
 
 enum LogLevel { info, warning, error }
+
+class CancelledException implements Exception {
+  final String message;
+  CancelledException([this.message = 'Build was cancelled']);
+
+  @override
+  String toString() => message;
+}
 
 class BuildLogger {
   final Firestore _firestore;
@@ -373,6 +381,26 @@ Future<bool> processJob(
     }
   }
 
+  Future<bool> isCancelled() async {
+    try {
+      final doc = await firestore
+          .collection('build_jobs_v0')
+          .doc(buildJobId)
+          .get();
+      if (!doc.exists) return false;
+      final data = doc.data();
+      return data?['status'] == 'cancelled';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> checkCancellation() async {
+    if (await isCancelled()) {
+      throw CancelledException();
+    }
+  }
+
   try {
     final workflowId = buildJobData['workflowId'] as String?;
     if (workflowId == null || workflowId.isEmpty) {
@@ -504,6 +532,8 @@ Future<bool> processJob(
     }
 
     for (int i = 0; i < steps.length; i++) {
+      await checkCancellation();
+
       final step = steps[i];
       final stepName = step['name'] as String? ?? 'Step ${i + 1}';
 
@@ -573,6 +603,19 @@ Future<bool> processJob(
     await firestore.collection('build_jobs_v0').doc(buildJobId).update({
       'status': 'success',
     });
+  } on CancelledException {
+    await logger.info('Build was cancelled by user');
+    if (checkRunId != null) {
+      await updateCheckRun(
+        owner,
+        repo,
+        checkRunId,
+        token,
+        status: 'completed',
+        conclusion: 'cancelled',
+      );
+    }
+    await logger.updateRunStatus('completed', conclusion: 'cancelled');
   } catch (e, s) {
     await logger.error('Job failed: $e', stackTrace: s.toString());
     if (checkRunId != null) {

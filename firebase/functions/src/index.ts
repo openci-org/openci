@@ -1,3 +1,4 @@
+export { cancelBuildJob } from "./cancel-build-job";
 export { createSecretV1 } from "./create-secret";
 export { githubApp } from "./github-app";
 export { githubSetup } from "./github-setup";

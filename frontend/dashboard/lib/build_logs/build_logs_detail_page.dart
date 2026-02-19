@@ -14,14 +14,16 @@ class BuildLogsDetailPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync =
-        ref.watch(workflowNameProvider(buildJob.workflowId));
+    final workflowNameAsync = ref.watch(
+      workflowNameProvider(buildJob.workflowId),
+    );
 
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
       'in_progress' => Theme.of(context).colorScheme.primary,
       'queued' => Colors.blue,
+      'cancelled' => Colors.orange,
       _ => Colors.grey,
     };
 
@@ -29,6 +31,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       'success' => Icons.check_circle,
       'failure' => Icons.cancel,
       'queued' => Icons.schedule,
+      'cancelled' => Icons.block,
       _ => Icons.help_outline,
     };
 
@@ -37,8 +40,12 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       'failure' => 'Failed',
       'in_progress' => 'In Progress',
       'queued' => 'Queued',
+      'cancelled' => 'Cancelled',
       _ => buildJob.status,
     };
+
+    final canCancel =
+        buildJob.status == 'queued' || buildJob.status == 'in_progress';
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
@@ -69,6 +76,55 @@ class BuildLogsDetailPage extends HookConsumerWidget {
           error: asyncErrorWidget,
         ),
         actions: [
+          // Cancel button (only for active builds)
+          if (canCancel)
+            IconButton(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Cancel Build'),
+                    content: const Text(
+                      'Are you sure you want to cancel this build?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('No'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Cancel Build'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+                try {
+                  if (!context.mounted) return;
+                  context.showSnackBarMessage('Cancelling build...');
+                  await ref
+                      .read(buildJobsProvider.notifier)
+                      .cancelBuildJob(buildJob.id);
+                  if (context.mounted) {
+                    context.showSnackBarMessage('Build cancelled');
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    context.showSnackBarMessage('Failed to cancel: $e');
+                  }
+                }
+              },
+              icon: Icon(
+                Icons.cancel_outlined,
+                size: 20,
+                color: Colors.orange[300],
+              ),
+              tooltip: 'Cancel',
+            ),
           // Retry button
           IconButton(
             onPressed: () async {

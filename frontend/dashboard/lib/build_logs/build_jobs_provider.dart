@@ -35,14 +35,23 @@ class BuildJobs extends _$BuildJobs {
       'buildJobId': buildJobId,
     });
   }
+
+  Future<void> cancelBuildJob(String buildJobId) async {
+    final functions = ref.watch(functionsProvider);
+    await functions.httpsCallable('cancelBuildJob').call({
+      'buildJobId': buildJobId,
+    });
+  }
 }
 
 @riverpod
 Future<String?> workflowName(Ref ref, String? workflowId) async {
   if (workflowId == null) return null;
   final firestore = ref.read(firestoreProvider);
-  final doc =
-      await firestore.collection(workflowsCollection).doc(workflowId).get();
+  final doc = await firestore
+      .collection(workflowsCollection)
+      .doc(workflowId)
+      .get();
   if (!doc.exists) return null;
   return doc.data()?['name'] as String?;
 }
