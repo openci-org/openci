@@ -1,4 +1,5 @@
 import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/environment_variables/environment_variables_page.dart';
 import 'package:dashboard/secret_manager/secret_manager_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
@@ -9,6 +10,7 @@ import 'package:material_symbols_icons/symbols.dart';
 const tabPageList = [
   WorkflowListPage(),
   SecretManagerPage(),
+  EnvironmentVariablesPage(),
   LogsPage(),
   SettingsPage(),
 ];
@@ -22,7 +24,12 @@ const navigationBarDestinations = [
   NavigationDestination(
     selectedIcon: Icon(Icons.key),
     icon: Icon(Symbols.key_rounded),
-    label: 'Secret Manager',
+    label: 'Secrets',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.data_object),
+    icon: Icon(Symbols.data_object_rounded),
+    label: 'Env Vars',
   ),
   NavigationDestination(
     selectedIcon: Icon(Icons.article),

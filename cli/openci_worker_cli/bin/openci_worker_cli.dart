@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.4.23';
+const String version = '0.4.29';
 
 enum LogLevel { info, warning, error }
 
@@ -214,6 +214,22 @@ Future<void> main(List<String> arguments) async {
         } catch (e) {
           print('\nError processing job: $e');
         }
+
+        try {
+          final shouldRestart = await checkForUpdate(firestore);
+          if (shouldRestart) {
+            print('\n🔄 Update complete. Restarting worker...');
+            await Process.start('openci_worker', [
+              '--service-account',
+              serviceAccountPath,
+              '--worker-id',
+              workerId,
+            ], mode: ProcessStartMode.inheritStdio);
+            exit(0);
+          }
+        } catch (e) {
+          print('\n[WARN] Update check failed: $e');
+        }
       }
 
       if (!jobFound) {
@@ -241,6 +257,29 @@ Future<void> main(List<String> arguments) async {
     print('Unexpected error: $e');
     exit(1);
   }
+}
+
+Future<bool> checkForUpdate(Firestore firestore) async {
+  final configDoc = await firestore
+      .collection('worker_config_v0')
+      .doc('latest_version')
+      .get();
+
+  if (!configDoc.exists) return false;
+
+  final data = configDoc.data();
+  if (data == null) return false;
+
+  final latestVersion = data['version'] as String?;
+  if (latestVersion == null || latestVersion == version) return false;
+
+  print('\n📦 New version available: $version → $latestVersion');
+  print('Updating...');
+
+  final shell = Shell(verbose: true);
+  await shell.run('dart pub global activate openci_worker_cli');
+
+  return true;
 }
 
 Future<bool> processJob(
@@ -420,6 +459,45 @@ Future<bool> processJob(
       "export OPENCI_PROJECT_ID='$projectId'",
       "export OPENCI_TEAM_ID='$teamId'",
     ];
+
+    final envVarsSnapshot = await firestore
+        .collection('environment_variables_v0')
+        .where('teamId', WhereFilter.equal, teamId)
+        .get();
+
+    for (final envVarDoc in envVarsSnapshot.docs) {
+      final envVarData = envVarDoc.data();
+      final key = envVarData['key'] as String;
+      var value = envVarData['value'] as String;
+      final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
+
+      if (autoIncrement) {
+        final docRef = firestore.doc(
+          'environment_variables_v0/${envVarDoc.id}',
+        );
+        await firestore.runTransaction((transaction) async {
+          final freshDoc = await transaction.get(docRef);
+          final currentValue = freshDoc.data()!['value'] as String;
+          value = currentValue;
+          final numValue = int.tryParse(currentValue);
+          if (numValue != null) {
+            transaction.update(docRef, {'value': '${numValue + 1}'});
+          }
+        });
+        await logger.info(
+          'Auto-incremented $key: $value → ${int.parse(value) + 1}',
+        );
+      }
+
+      final escapedValue = value.replaceAll("'", "'\\''");
+      builtInEnvVars.add("export $key='$escapedValue'");
+    }
+
+    if (envVarsSnapshot.docs.isNotEmpty) {
+      await logger.info(
+        'Loaded ${envVarsSnapshot.docs.length} environment variable(s)',
+      );
+    }
 
     if (tagName != null && tagName.isNotEmpty) {
       await logger.info('Tag: $tagName (available as \$OPENCI_TAG)');
@@ -634,8 +712,6 @@ Future<String> fetchSecretValue(
   }
 }
 
-/// Cleans up stopped VMs belonging to this worker at startup.
-/// Safe because this worker just started, so any of its VMs are orphans.
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     final shell = Shell(throwOnError: false, verbose: false);
@@ -669,7 +745,6 @@ Future<void> cleanupOrphanedVms(String workerId) async {
   }
 }
 
-/// Prunes stale VMs that belong to this worker only.
 Future<void> pruneStaleVms(
   BuildLogger logger, {
   required String workerId,

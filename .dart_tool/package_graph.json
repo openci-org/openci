@@ -29,7 +29,7 @@
     },
     {
       "name": "openci_worker_cli",
-      "version": "0.4.23",
+      "version": "0.4.29",
       "dependencies": [
         "args",
         "dart_firebase_admin",

@@ -1,3 +1,31 @@
+## 0.4.29 - 2026-02-19
+
+- feat: add `$OPENCI_RUN_NUMBER` built-in environment variable (auto-incremented per team)
+- remove: per-variable `autoIncrement` flag (replaced by team-level `runNumber`)
+
+## 0.4.28 - 2026-02-18
+
+- fix: version constant was not updated before publish, causing update loop
+
+## 0.4.27 - 2026-02-18
+
+- fix: remove unused comments
+
+## 0.4.26 - 2026-02-18
+
+- feat: auto-update via Firestore version check
+- Workers automatically detect new versions from `worker_config_v0/latest_version` and self-update + restart
+
+## 0.4.25 - 2026-02-18
+
+- feat: auto-increment support for environment variables
+- Environment variables with auto-increment enabled are atomically incremented via Firestore transaction after each build
+
+## 0.4.24 - 2026-02-18
+
+- feat: support team environment variables from dashboard
+- Environment variables set in the "Env Vars" tab are now automatically injected into every workflow step
+
 ## 0.4.23 - 2026-02-17
 
 - feat: remove `--project-id` option; project ID is now auto-read from service account JSON

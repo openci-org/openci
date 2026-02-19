@@ -34,23 +34,26 @@ Map<String, dynamic> _$GitHubRepositoryToJson(_GitHubRepository instance) =>
 @ProviderFor(repositories)
 final repositoriesProvider = RepositoriesProvider._();
 
-final class RepositoriesProvider extends $FunctionalProvider<
-        AsyncValue<List<GitHubRepository>>,
-        List<GitHubRepository>,
-        FutureOr<List<GitHubRepository>>>
+final class RepositoriesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<GitHubRepository>>,
+          List<GitHubRepository>,
+          FutureOr<List<GitHubRepository>>
+        >
     with
         $FutureModifier<List<GitHubRepository>>,
         $FutureProvider<List<GitHubRepository>> {
   RepositoriesProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'repositoriesProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'repositoriesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$repositoriesHash();
@@ -58,8 +61,8 @@ final class RepositoriesProvider extends $FunctionalProvider<
   @$internal
   @override
   $FutureProviderElement<List<GitHubRepository>> $createElement(
-          $ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<List<GitHubRepository>> create(Ref ref) {

@@ -14,390 +14,279 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$OpenCIUser {
-  String get id;
-  String get selectedTeamId;
-  NotificationPreference get notificationPreference;
-  List<String> get fcmTokens;
 
-  /// Create a copy of OpenCIUser
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @pragma('vm:prefer-inline')
-  $OpenCIUserCopyWith<OpenCIUser> get copyWith =>
-      _$OpenCIUserCopyWithImpl<OpenCIUser>(this as OpenCIUser, _$identity);
+ String get id; String get selectedTeamId; NotificationPreference get notificationPreference; List<String> get fcmTokens;
+/// Create a copy of OpenCIUser
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OpenCIUserCopyWith<OpenCIUser> get copyWith => _$OpenCIUserCopyWithImpl<OpenCIUser>(this as OpenCIUser, _$identity);
 
   /// Serializes this OpenCIUser to a JSON map.
   Map<String, dynamic> toJson();
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is OpenCIUser &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.selectedTeamId, selectedTeamId) ||
-                other.selectedTeamId == selectedTeamId) &&
-            (identical(other.notificationPreference, notificationPreference) ||
-                other.notificationPreference == notificationPreference) &&
-            const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens));
-  }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, selectedTeamId,
-      notificationPreference, const DeepCollectionEquality().hash(fcmTokens));
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OpenCIUser&&(identical(other.id, id) || other.id == id)&&(identical(other.selectedTeamId, selectedTeamId) || other.selectedTeamId == selectedTeamId)&&(identical(other.notificationPreference, notificationPreference) || other.notificationPreference == notificationPreference)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens));
+}
 
-  @override
-  String toString() {
-    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens)';
-  }
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,selectedTeamId,notificationPreference,const DeepCollectionEquality().hash(fcmTokens));
+
+@override
+String toString() {
+  return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens)';
+}
+
+
 }
 
 /// @nodoc
-abstract mixin class $OpenCIUserCopyWith<$Res> {
-  factory $OpenCIUserCopyWith(
-          OpenCIUser value, $Res Function(OpenCIUser) _then) =
-      _$OpenCIUserCopyWithImpl;
-  @useResult
-  $Res call(
-      {String id,
-      String selectedTeamId,
-      NotificationPreference notificationPreference,
-      List<String> fcmTokens});
-}
+abstract mixin class $OpenCIUserCopyWith<$Res>  {
+  factory $OpenCIUserCopyWith(OpenCIUser value, $Res Function(OpenCIUser) _then) = _$OpenCIUserCopyWithImpl;
+@useResult
+$Res call({
+ String id, String selectedTeamId, NotificationPreference notificationPreference, List<String> fcmTokens
+});
 
+
+
+
+}
 /// @nodoc
-class _$OpenCIUserCopyWithImpl<$Res> implements $OpenCIUserCopyWith<$Res> {
+class _$OpenCIUserCopyWithImpl<$Res>
+    implements $OpenCIUserCopyWith<$Res> {
   _$OpenCIUserCopyWithImpl(this._self, this._then);
 
   final OpenCIUser _self;
   final $Res Function(OpenCIUser) _then;
 
-  /// Create a copy of OpenCIUser
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? selectedTeamId = null,
-    Object? notificationPreference = null,
-    Object? fcmTokens = null,
-  }) {
-    return _then(_self.copyWith(
-      id: null == id
-          ? _self.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      selectedTeamId: null == selectedTeamId
-          ? _self.selectedTeamId
-          : selectedTeamId // ignore: cast_nullable_to_non_nullable
-              as String,
-      notificationPreference: null == notificationPreference
-          ? _self.notificationPreference
-          : notificationPreference // ignore: cast_nullable_to_non_nullable
-              as NotificationPreference,
-      fcmTokens: null == fcmTokens
-          ? _self.fcmTokens
-          : fcmTokens // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ));
-  }
+/// Create a copy of OpenCIUser
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? selectedTeamId = null,Object? notificationPreference = null,Object? fcmTokens = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,selectedTeamId: null == selectedTeamId ? _self.selectedTeamId : selectedTeamId // ignore: cast_nullable_to_non_nullable
+as String,notificationPreference: null == notificationPreference ? _self.notificationPreference : notificationPreference // ignore: cast_nullable_to_non_nullable
+as NotificationPreference,fcmTokens: null == fcmTokens ? _self.fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
 }
+
+}
+
 
 /// Adds pattern-matching-related methods to [OpenCIUser].
 extension OpenCIUserPatterns on OpenCIUser {
-  /// A variant of `map` that fallback to returning `orElse`.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case _:
-  ///     return orElse();
-  /// }
-  /// ```
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>(
-    TResult Function(_OpenCIUser value)? $default, {
-    required TResult orElse(),
-  }) {
-    final _that = this;
-    switch (_that) {
-      case _OpenCIUser() when $default != null:
-        return $default(_that);
-      case _:
-        return orElse();
-    }
-  }
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OpenCIUser value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OpenCIUser() when $default != null:
+return $default(_that);case _:
+  return orElse();
 
-  /// A `switch`-like method, using callbacks.
-  ///
-  /// Callbacks receives the raw object, upcasted.
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case final Subclass2 value:
-  ///     return ...;
-  /// }
-  /// ```
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
 
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>(
-    TResult Function(_OpenCIUser value) $default,
-  ) {
-    final _that = this;
-    switch (_that) {
-      case _OpenCIUser():
-        return $default(_that);
-      case _:
-        throw StateError('Unexpected subclass');
-    }
-  }
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OpenCIUser value)  $default,){
+final _that = this;
+switch (_that) {
+case _OpenCIUser():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
 
-  /// A variant of `map` that fallback to returning `null`.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case _:
-  ///     return null;
-  /// }
-  /// ```
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
 
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>(
-    TResult? Function(_OpenCIUser value)? $default,
-  ) {
-    final _that = this;
-    switch (_that) {
-      case _OpenCIUser() when $default != null:
-        return $default(_that);
-      case _:
-        return null;
-    }
-  }
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OpenCIUser value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OpenCIUser() when $default != null:
+return $default(_that);case _:
+  return null;
 
-  /// A variant of `when` that fallback to an `orElse` callback.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case Subclass(:final field):
-  ///     return ...;
-  ///   case _:
-  ///     return orElse();
-  /// }
-  /// ```
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>(
-    TResult Function(
-            String id,
-            String selectedTeamId,
-            NotificationPreference notificationPreference,
-            List<String> fcmTokens)?
-        $default, {
-    required TResult orElse(),
-  }) {
-    final _that = this;
-    switch (_that) {
-      case _OpenCIUser() when $default != null:
-        return $default(_that.id, _that.selectedTeamId,
-            _that.notificationPreference, _that.fcmTokens);
-      case _:
-        return orElse();
-    }
-  }
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OpenCIUser() when $default != null:
+return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens);case _:
+  return orElse();
 
-  /// A `switch`-like method, using callbacks.
-  ///
-  /// As opposed to `map`, this offers destructuring.
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case Subclass(:final field):
-  ///     return ...;
-  ///   case Subclass2(:final field2):
-  ///     return ...;
-  /// }
-  /// ```
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
 
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>(
-    TResult Function(
-            String id,
-            String selectedTeamId,
-            NotificationPreference notificationPreference,
-            List<String> fcmTokens)
-        $default,
-  ) {
-    final _that = this;
-    switch (_that) {
-      case _OpenCIUser():
-        return $default(_that.id, _that.selectedTeamId,
-            _that.notificationPreference, _that.fcmTokens);
-      case _:
-        throw StateError('Unexpected subclass');
-    }
-  }
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens)  $default,) {final _that = this;
+switch (_that) {
+case _OpenCIUser():
+return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens);case _:
+  throw StateError('Unexpected subclass');
 
-  /// A variant of `when` that fallback to returning `null`
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case Subclass(:final field):
-  ///     return ...;
-  ///   case _:
-  ///     return null;
-  /// }
-  /// ```
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
 
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(
-            String id,
-            String selectedTeamId,
-            NotificationPreference notificationPreference,
-            List<String> fcmTokens)?
-        $default,
-  ) {
-    final _that = this;
-    switch (_that) {
-      case _OpenCIUser() when $default != null:
-        return $default(_that.id, _that.selectedTeamId,
-            _that.notificationPreference, _that.fcmTokens);
-      case _:
-        return null;
-    }
-  }
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens)?  $default,) {final _that = this;
+switch (_that) {
+case _OpenCIUser() when $default != null:
+return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
+
 class _OpenCIUser implements OpenCIUser {
-  const _OpenCIUser(
-      {required this.id,
-      required this.selectedTeamId,
-      this.notificationPreference = NotificationPreference.all,
-      final List<String> fcmTokens = const []})
-      : _fcmTokens = fcmTokens;
-  factory _OpenCIUser.fromJson(Map<String, dynamic> json) =>
-      _$OpenCIUserFromJson(json);
+  const _OpenCIUser({required this.id, required this.selectedTeamId, this.notificationPreference = NotificationPreference.all, final  List<String> fcmTokens = const []}): _fcmTokens = fcmTokens;
+  factory _OpenCIUser.fromJson(Map<String, dynamic> json) => _$OpenCIUserFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String selectedTeamId;
-  @override
-  @JsonKey()
-  final NotificationPreference notificationPreference;
-  final List<String> _fcmTokens;
-  @override
-  @JsonKey()
-  List<String> get fcmTokens {
-    if (_fcmTokens is EqualUnmodifiableListView) return _fcmTokens;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_fcmTokens);
-  }
+@override final  String id;
+@override final  String selectedTeamId;
+@override@JsonKey() final  NotificationPreference notificationPreference;
+ final  List<String> _fcmTokens;
+@override@JsonKey() List<String> get fcmTokens {
+  if (_fcmTokens is EqualUnmodifiableListView) return _fcmTokens;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_fcmTokens);
+}
 
-  /// Create a copy of OpenCIUser
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @pragma('vm:prefer-inline')
-  _$OpenCIUserCopyWith<_OpenCIUser> get copyWith =>
-      __$OpenCIUserCopyWithImpl<_OpenCIUser>(this, _$identity);
 
-  @override
-  Map<String, dynamic> toJson() {
-    return _$OpenCIUserToJson(
-      this,
-    );
-  }
+/// Create a copy of OpenCIUser
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OpenCIUserCopyWith<_OpenCIUser> get copyWith => __$OpenCIUserCopyWithImpl<_OpenCIUser>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _OpenCIUser &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.selectedTeamId, selectedTeamId) ||
-                other.selectedTeamId == selectedTeamId) &&
-            (identical(other.notificationPreference, notificationPreference) ||
-                other.notificationPreference == notificationPreference) &&
-            const DeepCollectionEquality()
-                .equals(other._fcmTokens, _fcmTokens));
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$OpenCIUserToJson(this, );
+}
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, selectedTeamId,
-      notificationPreference, const DeepCollectionEquality().hash(_fcmTokens));
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OpenCIUser&&(identical(other.id, id) || other.id == id)&&(identical(other.selectedTeamId, selectedTeamId) || other.selectedTeamId == selectedTeamId)&&(identical(other.notificationPreference, notificationPreference) || other.notificationPreference == notificationPreference)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens));
+}
 
-  @override
-  String toString() {
-    return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens)';
-  }
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,selectedTeamId,notificationPreference,const DeepCollectionEquality().hash(_fcmTokens));
+
+@override
+String toString() {
+  return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens)';
+}
+
+
 }
 
 /// @nodoc
-abstract mixin class _$OpenCIUserCopyWith<$Res>
-    implements $OpenCIUserCopyWith<$Res> {
-  factory _$OpenCIUserCopyWith(
-          _OpenCIUser value, $Res Function(_OpenCIUser) _then) =
-      __$OpenCIUserCopyWithImpl;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String selectedTeamId,
-      NotificationPreference notificationPreference,
-      List<String> fcmTokens});
-}
+abstract mixin class _$OpenCIUserCopyWith<$Res> implements $OpenCIUserCopyWith<$Res> {
+  factory _$OpenCIUserCopyWith(_OpenCIUser value, $Res Function(_OpenCIUser) _then) = __$OpenCIUserCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String selectedTeamId, NotificationPreference notificationPreference, List<String> fcmTokens
+});
 
+
+
+
+}
 /// @nodoc
-class __$OpenCIUserCopyWithImpl<$Res> implements _$OpenCIUserCopyWith<$Res> {
+class __$OpenCIUserCopyWithImpl<$Res>
+    implements _$OpenCIUserCopyWith<$Res> {
   __$OpenCIUserCopyWithImpl(this._self, this._then);
 
   final _OpenCIUser _self;
   final $Res Function(_OpenCIUser) _then;
 
-  /// Create a copy of OpenCIUser
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $Res call({
-    Object? id = null,
-    Object? selectedTeamId = null,
-    Object? notificationPreference = null,
-    Object? fcmTokens = null,
-  }) {
-    return _then(_OpenCIUser(
-      id: null == id
-          ? _self.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      selectedTeamId: null == selectedTeamId
-          ? _self.selectedTeamId
-          : selectedTeamId // ignore: cast_nullable_to_non_nullable
-              as String,
-      notificationPreference: null == notificationPreference
-          ? _self.notificationPreference
-          : notificationPreference // ignore: cast_nullable_to_non_nullable
-              as NotificationPreference,
-      fcmTokens: null == fcmTokens
-          ? _self._fcmTokens
-          : fcmTokens // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ));
-  }
+/// Create a copy of OpenCIUser
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? selectedTeamId = null,Object? notificationPreference = null,Object? fcmTokens = null,}) {
+  return _then(_OpenCIUser(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,selectedTeamId: null == selectedTeamId ? _self.selectedTeamId : selectedTeamId // ignore: cast_nullable_to_non_nullable
+as String,notificationPreference: null == notificationPreference ? _self.notificationPreference : notificationPreference // ignore: cast_nullable_to_non_nullable
+as NotificationPreference,fcmTokens: null == fcmTokens ? _self._fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+
 }
 
 // dart format on
