@@ -1,3 +1,9 @@
+## 0.4.30 - 2026-02-19
+
+- feat: support build cancellation from dashboard
+- Worker checks Firestore status before each step and aborts if cancelled
+- GitHub Check Run is marked as `cancelled` instead of `failure`
+
 ## 0.4.29 - 2026-02-19
 
 - feat: add `$OPENCI_RUN_NUMBER` built-in environment variable (auto-incremented per team)
