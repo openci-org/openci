@@ -9,8 +9,9 @@ import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
+import 'package:uuid/uuid.dart';
 
-const String version = '0.4.30';
+const String version = '0.4.31';
 
 enum LogLevel { info, warning, error }
 
@@ -486,6 +487,11 @@ Future<bool> processJob(
       if (tagVersion != null) "export OPENCI_TAG_VERSION='$tagVersion'",
       "export OPENCI_PROJECT_ID='$projectId'",
       "export OPENCI_TEAM_ID='$teamId'",
+      () {
+        final saJson = File(serviceAccountPath).readAsStringSync();
+        final escaped = saJson.replaceAll("'", "'\\''");
+        return "export OPENCI_GCP_SA_JSON='$escaped'";
+      }(),
     ];
 
     final envVarsSnapshot = await firestore
@@ -534,13 +540,29 @@ Future<bool> processJob(
     for (int i = 0; i < steps.length; i++) {
       await checkCancellation();
 
-      final step = steps[i];
+      final step = steps[i] as Map<String, dynamic>;
       final stepName = step['name'] as String? ?? 'Step ${i + 1}';
 
       await logger.info('Running step ${i + 1}/${steps.length}: $stepName');
 
       final command = step['command'] as String;
-      final secrets = (step['requiredSecrets'] as List?) ?? [];
+
+      if (command.contains('ios-sign')) {
+        final updatedStep = await _ensureDistCertSecrets(
+          step: step,
+          stepIndex: i,
+          workflowId: workflowId,
+          teamId: teamId,
+          projectId: projectId,
+          serviceAccountPath: serviceAccountPath,
+          firestore: firestore,
+          logger: logger,
+        );
+        steps[i] = updatedStep;
+      }
+
+      final secrets =
+          (steps[i] as Map<String, dynamic>)['requiredSecrets'] as List? ?? [];
       final exportCommands = <String>[];
 
       await logger.info('Command: $command');
@@ -563,6 +585,8 @@ Future<bool> processJob(
 
         final escapedValue = secretValue.replaceAll("'", "'\\''");
         exportCommands.add("export $key='$escapedValue'");
+        final escapedPath = pathToSecret.replaceAll("'", "'\\''");
+        exportCommands.add("export ${key}_SECRET_PATH='$escapedPath'");
       }
 
       final commandParts = [
@@ -745,11 +769,18 @@ Future<String> fetchSecretValue(
     );
     final payload = response.payload?.data;
 
-    if (payload == null) {
-      throw Exception('Secret payload is empty');
+    if (payload == null || payload.isEmpty) {
+      return '';
     }
 
     return utf8.decode(base64.decode(payload));
+  } catch (e) {
+    if (e.toString().contains('NOT_FOUND') ||
+        e.toString().contains('404') ||
+        e.toString().contains('no versions')) {
+      return '';
+    }
+    rethrow;
   } finally {
     client.close();
   }
@@ -821,5 +852,101 @@ Future<void> pruneStaleVms(
     }
   } catch (e) {
     await logger.warning('Error pruning stale VMs: $e');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Distribution Certificate: Auto Secret Creation
+// ══════════════════════════════════════════════════════════════
+
+const _distCertKeys = [
+  'OPENCI_DISTRIBUTION_CERTIFICATE_P12',
+  'OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD',
+  'OPENCI_DISTRIBUTION_CERTIFICATE_ID',
+];
+
+Future<Map<String, dynamic>> _ensureDistCertSecrets({
+  required Map<String, dynamic> step,
+  required int stepIndex,
+  required String workflowId,
+  required String teamId,
+  required String projectId,
+  required String serviceAccountPath,
+  required Firestore firestore,
+  required BuildLogger logger,
+}) async {
+  final existing = ((step['requiredSecrets'] as List?) ?? [])
+      .cast<Map<String, dynamic>>();
+  final existingKeys = existing.map((s) => s['key'] as String).toSet();
+
+  final missingKeys = _distCertKeys
+      .where((k) => !existingKeys.contains(k))
+      .toList();
+
+  if (missingKeys.isEmpty) {
+    return step;
+  }
+
+  await logger.info(
+    '🔑 Auto-creating distribution cert secrets: ${missingKeys.join(", ")}',
+  );
+
+  final saJsonStr = File(serviceAccountPath).readAsStringSync();
+  final credentials = ServiceAccountCredentials.fromJson(saJsonStr);
+  final authClient = await clientViaServiceAccount(credentials, [
+    SecretManagerApi.cloudPlatformScope,
+  ]);
+
+  try {
+    final secretApi = SecretManagerApi(authClient);
+    final parent = 'projects/$projectId';
+
+    final newSecrets = <Map<String, dynamic>>[];
+
+    for (final key in missingKeys) {
+      final secretId = const Uuid().v4();
+      final secretName = '$parent/secrets/$secretId';
+
+      await secretApi.projects.secrets.create(
+        Secret(replication: Replication(automatic: Automatic())),
+        parent,
+        secretId: secretId,
+      );
+
+      final documentId = const Uuid().v4();
+      await firestore.collection('secrets_v0').doc(documentId).set({
+        'id': documentId,
+        'name': key,
+        'teamId': teamId,
+        'pathToSecret': secretName,
+        'createdAt': FieldValue.serverTimestamp,
+        'updatedAt': FieldValue.serverTimestamp,
+      });
+
+      newSecrets.add({'key': key, 'secretDocumentId': documentId});
+
+      await logger.info('  📦 Created: $key → $secretName');
+    }
+
+    final updatedSecrets = [...existing, ...newSecrets];
+    final updatedStep = Map<String, dynamic>.from(step);
+    updatedStep['requiredSecrets'] = updatedSecrets;
+
+    final workflowDoc = await firestore
+        .collection('workflows_v1')
+        .doc(workflowId)
+        .get();
+    if (workflowDoc.exists) {
+      final allSteps = (workflowDoc.data()!['workflowSteps'] as List).toList();
+      allSteps[stepIndex] = updatedStep;
+      await firestore.collection('workflows_v1').doc(workflowId).update({
+        'workflowSteps': allSteps,
+      });
+    }
+
+    await logger.info('  ✅ All distribution cert secrets provisioned');
+    return updatedStep;
+  } finally {
+    authClient.close();
   }
 }

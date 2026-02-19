@@ -4,7 +4,7 @@ import 'package:args/args.dart';
 import 'package:openci_vm_cli/commands/android_deploy.dart';
 import 'package:openci_vm_cli/commands/ios_sign.dart';
 
-const String version = '1.0.9';
+const String version = '1.0.10';
 
 void main(List<String> arguments) async {
   final parser = ArgParser()

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:googleapis/secretmanager/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:jose/jose.dart';
 
@@ -23,11 +25,7 @@ ArgParser iosSignParser() {
       help: 'Apple Developer Team ID',
       mandatory: true,
     )
-    ..addOption(
-      'scheme',
-      help: 'Xcode scheme name',
-      mandatory: true,
-    )
+    ..addOption('scheme', help: 'Xcode scheme name', mandatory: true)
     ..addOption(
       'workspace',
       help: 'Path to .xcworkspace (relative to working directory)',
@@ -61,9 +59,9 @@ Required environment variables:
   ASC_PRIVATE_KEY                     App Store Connect API Private Key (PEM)
 
 Optional environment variables (certificate caching):
-  DISTRIBUTION_CERTIFICATE_P12        Base64-encoded .p12 certificate
-  DISTRIBUTION_CERTIFICATE_ID         ASC certificate ID
-  DISTRIBUTION_CERTIFICATE_PASSWORD   .p12 password (default: openci)
+  OPENCI_DISTRIBUTION_CERTIFICATE_P12        Base64-encoded .p12 certificate
+  OPENCI_DISTRIBUTION_CERTIFICATE_ID         ASC certificate ID
+  OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD   .p12 password (default: openci)
 
 Options:
 ${iosSignParser().usage}
@@ -79,8 +77,9 @@ ${iosSignParser().usage}
   final workingDirectory = args['working-directory'] as String;
 
   // Create build log file
-  final resolvedDir =
-      workingDirectory == '.' ? Directory.current.path : workingDirectory;
+  final resolvedDir = workingDirectory == '.'
+      ? Directory.current.path
+      : workingDirectory;
   final buildDir = Directory('$resolvedDir/build');
   if (!buildDir.existsSync()) {
     buildDir.createSync(recursive: true);
@@ -110,10 +109,12 @@ ${iosSignParser().usage}
 
   // Optional: cached certificate
   final existingP12Base64 =
-      Platform.environment['DISTRIBUTION_CERTIFICATE_P12'];
-  final existingCertId = Platform.environment['DISTRIBUTION_CERTIFICATE_ID'];
+      Platform.environment['OPENCI_DISTRIBUTION_CERTIFICATE_P12'];
+  final existingCertId =
+      Platform.environment['OPENCI_DISTRIBUTION_CERTIFICATE_ID'];
   final existingCertPassword =
-      Platform.environment['DISTRIBUTION_CERTIFICATE_PASSWORD'] ?? 'openci';
+      Platform.environment['OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD'] ??
+      'openci';
 
   // ──────────────────────────────────────────────────────────
   // Step 1: Generate ASC JWT
@@ -133,7 +134,8 @@ ${iosSignParser().usage}
   String certificateId;
   bool isNewCertificate = false;
 
-  final hasExistingCert = existingP12Base64 != null &&
+  final hasExistingCert =
+      existingP12Base64 != null &&
       existingP12Base64.isNotEmpty &&
       existingCertId != null &&
       existingCertId.isNotEmpty;
@@ -150,8 +152,11 @@ ${iosSignParser().usage}
       _log('  ⚠️  Certificate expired/revoked, creating new...');
       // Try to delete old certificate
       try {
-        await _ascApiRequest(jwt, '/certificates/$existingCertId',
-            method: 'DELETE');
+        await _ascApiRequest(
+          jwt,
+          '/certificates/$existingCertId',
+          method: 'DELETE',
+        );
         _log('  🗑️  Deleted old certificate');
       } catch (_) {
         _log('  ℹ️  Old certificate already removed or inaccessible');
@@ -179,8 +184,11 @@ ${iosSignParser().usage}
   _log('');
   _log('📱 Step 3: Creating provisioning profile...');
 
-  final profile =
-      await _createProvisioningProfile(jwt, certificateId, bundleId);
+  final profile = await _createProvisioningProfile(
+    jwt,
+    certificateId,
+    bundleId,
+  );
   final profileBase64 = profile.profileContent;
   final profileUuid = profile.uuid;
   final profileName = profile.name;
@@ -199,12 +207,25 @@ ${iosSignParser().usage}
   const keychainPassword = 'openci_temp_password';
 
   await _run('security', ['delete-keychain', keychainName], ignoreError: true);
-  await _run(
-      'security', ['create-keychain', '-p', keychainPassword, keychainName]);
-  await _run(
-      'security', ['unlock-keychain', '-p', keychainPassword, keychainName]);
-  await _run(
-      'security', ['set-keychain-settings', '-t', '3600', '-u', keychainName]);
+  await _run('security', [
+    'create-keychain',
+    '-p',
+    keychainPassword,
+    keychainName,
+  ]);
+  await _run('security', [
+    'unlock-keychain',
+    '-p',
+    keychainPassword,
+    keychainName,
+  ]);
+  await _run('security', [
+    'set-keychain-settings',
+    '-t',
+    '3600',
+    '-u',
+    keychainName,
+  ]);
   await _run('security', [
     'list-keychains',
     '-d',
@@ -273,7 +294,8 @@ ${iosSignParser().usage}
         final content = file.readAsStringSync();
         if (content.contains('OpenCI') && content.contains(bundleId)) {
           _log(
-              '  🗑️  Removing old local profile: ${file.path.split('/').last}');
+            '  🗑️  Removing old local profile: ${file.path.split('/').last}',
+          );
           file.deleteSync();
         }
       } catch (_) {}
@@ -292,8 +314,9 @@ ${iosSignParser().usage}
   _log('');
   _log('✏️  Step 7: Configuring Xcode project for manual signing...');
 
-  final resolvedWorkingDir =
-      workingDirectory == '.' ? Directory.current.path : workingDirectory;
+  final resolvedWorkingDir = workingDirectory == '.'
+      ? Directory.current.path
+      : workingDirectory;
   final pbxprojPath = '$resolvedWorkingDir/$xcodeProjectPath/project.pbxproj';
   final pbxprojFile = File(pbxprojPath);
 
@@ -349,7 +372,8 @@ ${iosSignParser().usage}
   _log('📄 Step 8: Generating ExportOptions.plist...');
 
   final exportOptionsPath = '$resolvedWorkingDir/ExportOptions.plist';
-  final exportOptionsContent = '''<?xml version="1.0" encoding="UTF-8"?>
+  final exportOptionsContent =
+      '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -481,11 +505,18 @@ ${iosSignParser().usage}
   _log('');
   _log('🧹 Cleaning up...');
 
-  await _run('security', ['default-keychain', '-s', 'login.keychain-db'],
-      ignoreError: true);
-  await _run(
-      'security', ['list-keychains', '-d', 'user', '-s', 'login.keychain-db'],
-      ignoreError: true);
+  await _run('security', [
+    'default-keychain',
+    '-s',
+    'login.keychain-db',
+  ], ignoreError: true);
+  await _run('security', [
+    'list-keychains',
+    '-d',
+    'user',
+    '-s',
+    'login.keychain-db',
+  ], ignoreError: true);
   await _run('security', ['delete-keychain', keychainName], ignoreError: true);
 
   // Clean up ASC API key file (only if we created it)
@@ -500,16 +531,140 @@ ${iosSignParser().usage}
   // ──────────────────────────────────────────────────────────
   if (isNewCertificate) {
     _log('');
-    _log('💾 New certificate created. Save these as secrets for reuse:');
-    _log('  DISTRIBUTION_CERTIFICATE_ID=$certificateId');
-    _log(
-        '  DISTRIBUTION_CERTIFICATE_P12=<base64, ${certP12Base64.length} chars>');
-    _log('  DISTRIBUTION_CERTIFICATE_PASSWORD=$certPassword');
+    _log('💾 New certificate created. Saving to Secret Manager...');
+
+    final gcpSaJson = Platform.environment['OPENCI_GCP_SA_JSON'];
+    final projectId = Platform.environment['OPENCI_PROJECT_ID'];
+
+    if (gcpSaJson != null &&
+        gcpSaJson.isNotEmpty &&
+        projectId != null &&
+        projectId.isNotEmpty) {
+      try {
+        await _saveDistributionCertToSecretManager(
+          gcpSaJson: gcpSaJson,
+          projectId: projectId,
+          bundleId: bundleId,
+          certP12Base64: certP12Base64,
+          certPassword: certPassword,
+          certificateId: certificateId,
+        );
+        _log('  ✅ Certificate saved to Secret Manager automatically');
+        _log(
+          '     Next run will reuse this certificate via OPENCI_DISTRIBUTION_CERTIFICATE_P12',
+        );
+      } catch (e) {
+        _log('  ⚠️  Failed to save to Secret Manager: $e');
+        _log('  📋 Manual fallback - save these as secrets:');
+        _log('     OPENCI_DISTRIBUTION_CERTIFICATE_ID=$certificateId');
+        _log(
+          '     OPENCI_DISTRIBUTION_CERTIFICATE_P12=<base64, ${certP12Base64.length} chars>',
+        );
+        _log('     OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD=$certPassword');
+      }
+    } else {
+      _log('  📋 OPENCI_GCP_SA_JSON / OPENCI_PROJECT_ID not set.');
+      _log('     Save these manually as secrets:');
+      _log('     OPENCI_DISTRIBUTION_CERTIFICATE_ID=$certificateId');
+      _log(
+        '     OPENCI_DISTRIBUTION_CERTIFICATE_P12=<base64, ${certP12Base64.length} chars>',
+      );
+      _log('     OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD=$certPassword');
+    }
   }
 
   _log('');
   _log('🎉 iOS Code Signing & Build complete!');
   _log('   IPA: $exportPath/$scheme.ipa');
+}
+
+// ══════════════════════════════════════════════════════════════
+// Secret Manager: Save Distribution Certificate
+// ══════════════════════════════════════════════════════════════
+
+Future<void> _saveDistributionCertToSecretManager({
+  required String gcpSaJson,
+  required String projectId,
+  required String bundleId,
+  required String certP12Base64,
+  required String certPassword,
+  required String certificateId,
+}) async {
+  final credentials = ServiceAccountCredentials.fromJson(gcpSaJson);
+  final scopes = [SecretManagerApi.cloudPlatformScope];
+  final authClient = await clientViaServiceAccount(credentials, scopes);
+
+  try {
+    final secretApi = SecretManagerApi(authClient);
+    final parent = 'projects/$projectId';
+
+    final sanitized = bundleId.replaceAll('.', '-').replaceAll('_', '-');
+
+    final secretEntries = [
+      (
+        existingPath: Platform
+            .environment['OPENCI_DISTRIBUTION_CERTIFICATE_P12_SECRET_PATH'],
+        fallbackId: 'dist-cert-p12-$sanitized',
+        value: certP12Base64,
+        label: 'OPENCI_DISTRIBUTION_CERTIFICATE_P12',
+      ),
+      (
+        existingPath: Platform
+            .environment['OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD_SECRET_PATH'],
+        fallbackId: 'dist-cert-password-$sanitized',
+        value: certPassword,
+        label: 'OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD',
+      ),
+      (
+        existingPath: Platform
+            .environment['OPENCI_DISTRIBUTION_CERTIFICATE_ID_SECRET_PATH'],
+        fallbackId: 'dist-cert-id-$sanitized',
+        value: certificateId,
+        label: 'OPENCI_DISTRIBUTION_CERTIFICATE_ID',
+      ),
+    ];
+
+    for (final entry in secretEntries) {
+      final String secretName;
+
+      if (entry.existingPath != null && entry.existingPath!.isNotEmpty) {
+        secretName = entry.existingPath!;
+        _log('  🔄 Updating existing Secret: ${entry.label}');
+      } else {
+        final secretId = entry.fallbackId;
+        secretName = '$parent/secrets/$secretId';
+
+        bool exists = false;
+        try {
+          await secretApi.projects.secrets.get(secretName);
+          exists = true;
+        } catch (_) {}
+
+        if (!exists) {
+          await secretApi.projects.secrets.create(
+            Secret(replication: Replication(automatic: Automatic())),
+            parent,
+            secretId: secretId,
+          );
+          _log('  📦 Created new Secret: $secretId');
+        } else {
+          _log('  🔄 Updating Secret: $secretId');
+        }
+      }
+
+      await secretApi.projects.secrets.addVersion(
+        AddSecretVersionRequest(
+          payload: SecretPayload(data: base64Encode(utf8.encode(entry.value))),
+        ),
+        secretName,
+      );
+    }
+
+    _log('  ✅ Certificate data saved to Secret Manager');
+    _log('     Next run: these values will be injected automatically');
+  } finally {
+    authClient.close();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -600,9 +755,12 @@ Future<_CertValidation> _validateCertificate(String jwt, String certId) async {
 }
 
 Future<List<Map<String, dynamic>>> _listDistributionCertificates(
-    String jwt) async {
+  String jwt,
+) async {
   final response = await _ascApiRequest(
-      jwt, '/certificates?filter[certificateType]=DISTRIBUTION');
+    jwt,
+    '/certificates?filter[certificateType]=DISTRIBUTION',
+  );
   final data = response?['data'] as List? ?? [];
   return data.cast<Map<String, dynamic>>();
 }
@@ -642,8 +800,15 @@ Future<_CertificateResult> _createCertificateWithP12(String jwt) async {
     ]);
 
     // Convert CSR PEM → DER for ASC API
-    await _run('openssl',
-        ['req', '-in', csrPemPath, '-outform', 'DER', '-out', csrDerPath]);
+    await _run('openssl', [
+      'req',
+      '-in',
+      csrPemPath,
+      '-outform',
+      'DER',
+      '-out',
+      csrDerPath,
+    ]);
     final csrDerBytes = File(csrDerPath).readAsBytesSync();
     final csrBase64 = base64Encode(csrDerBytes);
 
@@ -659,16 +824,20 @@ Future<_CertificateResult> _createCertificateWithP12(String jwt) async {
 
     // Create certificate via ASC API
     _log('  📤 Creating distribution certificate via ASC API...');
-    final certResponse =
-        await _ascApiRequest(jwt, '/certificates', method: 'POST', body: {
-      'data': {
-        'type': 'certificates',
-        'attributes': {
-          'certificateType': 'DISTRIBUTION',
-          'csrContent': csrBase64,
+    final certResponse = await _ascApiRequest(
+      jwt,
+      '/certificates',
+      method: 'POST',
+      body: {
+        'data': {
+          'type': 'certificates',
+          'attributes': {
+            'certificateType': 'DISTRIBUTION',
+            'csrContent': csrBase64,
+          },
         },
       },
-    });
+    );
 
     final certId = certResponse!['data']['id'] as String;
     final certContent =
@@ -680,8 +849,15 @@ Future<_CertificateResult> _createCertificateWithP12(String jwt) async {
     File(certDerPath).writeAsBytesSync(base64Decode(certContent));
 
     // Convert DER → PEM
-    await _run('openssl',
-        ['x509', '-inform', 'DER', '-in', certDerPath, '-out', certPemPath]);
+    await _run('openssl', [
+      'x509',
+      '-inform',
+      'DER',
+      '-in',
+      certDerPath,
+      '-out',
+      certPemPath,
+    ]);
 
     // Create .p12 (private key + certificate)
     // Create .p12 file
@@ -753,9 +929,13 @@ class _ProfileInfo {
 }
 
 Future<String> _getBundleIdResourceId(
-    String jwt, String bundleIdentifier) async {
+  String jwt,
+  String bundleIdentifier,
+) async {
   final response = await _ascApiRequest(
-      jwt, '/bundleIds?filter[identifier]=$bundleIdentifier');
+    jwt,
+    '/bundleIds?filter[identifier]=$bundleIdentifier',
+  );
   final bundleIds = response?['data'] as List? ?? [];
   if (bundleIds.isEmpty) {
     _error(
@@ -776,8 +956,11 @@ Future<void> _deleteStaleProfiles(String jwt, String bundleIdentifier) async {
     if (name.startsWith('OpenCI ') && name.contains(bundleIdentifier)) {
       _log('  🗑️  Deleting stale profile: $name');
       try {
-        await _ascApiRequest(jwt, '/profiles/${profile['id']}',
-            method: 'DELETE');
+        await _ascApiRequest(
+          jwt,
+          '/profiles/${profile['id']}',
+          method: 'DELETE',
+        );
       } catch (_) {}
     }
   }
@@ -788,8 +971,10 @@ Future<_ProfileInfo> _createProvisioningProfile(
   String certificateId,
   String bundleIdentifier,
 ) async {
-  final bundleIdResourceId =
-      await _getBundleIdResourceId(jwt, bundleIdentifier);
+  final bundleIdResourceId = await _getBundleIdResourceId(
+    jwt,
+    bundleIdentifier,
+  );
 
   await _deleteStaleProfiles(jwt, bundleIdentifier);
 
@@ -799,32 +984,27 @@ Future<_ProfileInfo> _createProvisioningProfile(
       .substring(0, 19);
   final profileName = 'OpenCI AppStore $bundleIdentifier $timestamp';
 
-  final response =
-      await _ascApiRequest(jwt, '/profiles', method: 'POST', body: {
-    'data': {
-      'type': 'profiles',
-      'attributes': {
-        'name': profileName,
-        'profileType': 'IOS_APP_STORE',
-      },
-      'relationships': {
-        'bundleId': {
-          'data': {
-            'type': 'bundleIds',
-            'id': bundleIdResourceId,
+  final response = await _ascApiRequest(
+    jwt,
+    '/profiles',
+    method: 'POST',
+    body: {
+      'data': {
+        'type': 'profiles',
+        'attributes': {'name': profileName, 'profileType': 'IOS_APP_STORE'},
+        'relationships': {
+          'bundleId': {
+            'data': {'type': 'bundleIds', 'id': bundleIdResourceId},
           },
-        },
-        'certificates': {
-          'data': [
-            {
-              'type': 'certificates',
-              'id': certificateId,
-            },
-          ],
+          'certificates': {
+            'data': [
+              {'type': 'certificates', 'id': certificateId},
+            ],
+          },
         },
       },
     },
-  });
+  );
 
   return _ProfileInfo(
     response!['data']['id'] as String,
