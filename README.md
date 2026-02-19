@@ -10,6 +10,6 @@ source ~/.zshrc && \
 brew install cirruslabs/cli/tart && \
 brew tap dart-lang/dart && \
 brew install dart && \
-tart clone ghcr.io/open-ci-io/sequoia:1.0.0 sequoia-base && \
+tart clone ghcr.io/open-ci-io/sequoia:1.0.2 sequoia-base && \
 dart pub global activate openci_worker_cli
 ```

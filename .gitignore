@@ -1,5 +1,7 @@
 .idea/
-.dart_tool/
+**/.dart_tool/
+.DS_Store
 
 .vercel
 .env*.local
+!frontend/.env.local

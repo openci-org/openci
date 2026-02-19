@@ -34,6 +34,7 @@
     },
   ],
   "settings": {
+    "npm.packageManager": "pnpm",
     "terminal.integrated.scrollback": 10000,
     "cSpell.words": [
       "bento",
