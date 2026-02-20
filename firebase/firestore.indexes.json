@@ -16,15 +16,14 @@
           "fieldPath": "__name__",
           "order": "ASCENDING"
         }
-      ],
-      "density": "SPARSE_ALL"
+      ]
     },
     {
       "collectionGroup": "build_jobs_v0",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
+          "fieldPath": "teamId",
           "order": "ASCENDING"
         },
         {
@@ -35,34 +34,32 @@
           "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ],
-      "density": "SPARSE_ALL"
+      ]
     },
     {
-      "collectionGroup": "build_jobs_v0",
+      "collectionGroup": "environment_variables_v0",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "userId",
+          "fieldPath": "teamId",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
+          "fieldPath": "key",
+          "order": "ASCENDING"
         },
         {
           "fieldPath": "__name__",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
         }
-      ],
-      "density": "SPARSE_ALL"
+      ]
     },
     {
       "collectionGroup": "workflows_v1",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "userId",
+          "fieldPath": "teamId",
           "order": "ASCENDING"
         },
         {
@@ -73,8 +70,25 @@
           "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ],
-      "density": "SPARSE_ALL"
+      ]
+    },
+    {
+      "collectionGroup": "workflows_v1",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "workflowConfig.selectedRepository",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "workflowConfig.selectedTriggerType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "workflowConfig.selectedTriggerBranch",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

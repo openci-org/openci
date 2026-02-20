@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 1.0.12
+
+- Feature: Add `--upload-to-testflight` flag to `ios-sign` command
+  - When specified, the IPA is automatically uploaded to TestFlight after export
+  - Default behavior changed to export IPA only (no TestFlight upload)
+
+## 1.0.11
+
+- Fix: Handle 409 "already have a current Distribution certificate" error
+  - When certificate creation fails with 409, auto-delete the oldest distribution certificate and retry
+  - Add debug logging to show which `OPENCI_DISTRIBUTION_CERTIFICATE_*` env vars are missing
+
 ## 1.0.10
 
 - Feature: Auto-save newly created distribution certificates to GCP Secret Manager
