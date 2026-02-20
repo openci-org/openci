@@ -41,6 +41,12 @@ ArgParser iosSignParser() {
       help: 'Working directory for the build',
       defaultsTo: '.',
     )
+    ..addFlag(
+      'upload-to-testflight',
+      help: 'Upload the IPA to TestFlight after export',
+      defaultsTo: false,
+      negatable: false,
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
 }
 
@@ -75,6 +81,7 @@ ${iosSignParser().usage}
   final workspacePath = args['workspace'] as String;
   final xcodeProjectPath = args['xcodeproj'] as String;
   final workingDirectory = args['working-directory'] as String;
+  final uploadToTestflight = args['upload-to-testflight'] as bool;
 
   // Create build log file
   final resolvedDir = workingDirectory == '.'
@@ -169,6 +176,12 @@ ${iosSignParser().usage}
     }
   } else {
     _log('  No existing certificate found, creating new...');
+    if (existingP12Base64 == null || existingP12Base64.isEmpty) {
+      _log('  ℹ️  OPENCI_DISTRIBUTION_CERTIFICATE_P12 is not set');
+    }
+    if (existingCertId == null || existingCertId.isEmpty) {
+      _log('  ℹ️  OPENCI_DISTRIBUTION_CERTIFICATE_ID is not set');
+    }
     final result = await _createCertificateWithP12(jwt);
     certP12Base64 = result.p12Base64;
     certPassword = result.password;
@@ -372,6 +385,7 @@ ${iosSignParser().usage}
   _log('📄 Step 8: Generating ExportOptions.plist...');
 
   final exportOptionsPath = '$resolvedWorkingDir/ExportOptions.plist';
+  final destination = uploadToTestflight ? 'upload' : 'export';
   final exportOptionsContent =
       '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -391,7 +405,7 @@ ${iosSignParser().usage}
     <key>signingCertificate</key>
     <string>Apple Distribution</string>
     <key>destination</key>
-    <string>upload</string>
+    <string>$destination</string>
     <key>stripSwiftSymbols</key>
     <true/>
     <key>uploadSymbols</key>
@@ -824,20 +838,60 @@ Future<_CertificateResult> _createCertificateWithP12(String jwt) async {
 
     // Create certificate via ASC API
     _log('  📤 Creating distribution certificate via ASC API...');
-    final certResponse = await _ascApiRequest(
-      jwt,
-      '/certificates',
-      method: 'POST',
-      body: {
-        'data': {
-          'type': 'certificates',
-          'attributes': {
-            'certificateType': 'DISTRIBUTION',
-            'csrContent': csrBase64,
+    Map<String, dynamic>? certResponse;
+    try {
+      certResponse = await _ascApiRequest(
+        jwt,
+        '/certificates',
+        method: 'POST',
+        body: {
+          'data': {
+            'type': 'certificates',
+            'attributes': {
+              'certificateType': 'DISTRIBUTION',
+              'csrContent': csrBase64,
+            },
           },
         },
-      },
-    );
+      );
+    } catch (e) {
+      if (e.toString().contains('409')) {
+        _log('  ⚠️  409 Conflict: Distribution certificate limit reached.');
+        _log('  🔄 Deleting oldest distribution certificate and retrying...');
+        final certs = await _listDistributionCertificates(jwt);
+        if (certs.isNotEmpty) {
+          final oldest = certs.last;
+          final oldestId = oldest['id'] as String;
+          final oldestName =
+              oldest['attributes']?['name'] as String? ?? oldestId;
+          _log('  🗑️  Deleting: $oldestName ($oldestId)');
+          await _ascApiRequest(
+            jwt,
+            '/certificates/$oldestId',
+            method: 'DELETE',
+          );
+          _log('  📤 Retrying certificate creation...');
+          certResponse = await _ascApiRequest(
+            jwt,
+            '/certificates',
+            method: 'POST',
+            body: {
+              'data': {
+                'type': 'certificates',
+                'attributes': {
+                  'certificateType': 'DISTRIBUTION',
+                  'csrContent': csrBase64,
+                },
+              },
+            },
+          );
+        } else {
+          rethrow;
+        }
+      } else {
+        rethrow;
+      }
+    }
 
     final certId = certResponse!['data']['id'] as String;
     final certContent =
