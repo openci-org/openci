@@ -25,12 +25,8 @@
       "path": ".",
     },
     {
-      "name": "frontend",
-      "path": "frontend",
-    },
-    {
-      "name": "react-native-sample",
-      "path": "frontend/react-native-sample",
+      "name": "web",
+      "path": "web",
     },
   ],
   "settings": {
@@ -67,7 +63,6 @@
       "uuidv",
     ],
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "always",
       "source.fixAll": "always",
       "source.organizeImports": "explicit",
     },
@@ -123,7 +118,6 @@
     "recommendations": [
       "dart-code.dart-code",
       "dart-code.flutter",
-      "dbaeumer.vscode-eslint",
       "oxc.oxc-vscode",
       "bradlc.vscode-tailwindcss",
       "streetsidesoftware.code-spell-checker",
@@ -225,23 +219,23 @@
         },
         "problemMatcher": [],
       },
-      // ── Frontend (Next.js) ────────────────────────────
+      // ── Web (Next.js) ─────────────────────────────────
       {
-        "label": "Frontend: Dev Server",
+        "label": "Web: Dev Server",
         "type": "shell",
         "command": "pnpm dev",
         "options": {
-          "cwd": "${workspaceFolder:frontend}",
+          "cwd": "${workspaceFolder:web}",
         },
         "problemMatcher": [],
         "isBackground": true,
       },
       {
-        "label": "Frontend: Build",
+        "label": "Web: Build",
         "type": "shell",
         "command": "pnpm build",
         "options": {
-          "cwd": "${workspaceFolder:frontend}",
+          "cwd": "${workspaceFolder:web}",
         },
         "problemMatcher": [],
       },

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useEffect, useId, useRef, useState } from 'react'
 
 function Block({
   x,
@@ -75,7 +75,7 @@ export function GridPattern({
 
       setHoveredBlocks((blocks) => {
         const key = counter.current++
-        const block = [x, y, key] as (typeof hoveredBlocks)[number]
+        const block = [x, y, key] as [number, number, number]
         return [...blocks, block].filter(
           (block) => !(block[0] === x && block[1] === y && block[2] !== key),
         )

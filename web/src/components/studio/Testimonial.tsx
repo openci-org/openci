@@ -1,5 +1,5 @@
-import Image, { type ImageProps } from 'next/image'
 import clsx from 'clsx'
+import Image, { type ImageProps } from 'next/image'
 
 import { Container } from '@/components/studio/Container'
 import { FadeIn } from '@/components/studio/FadeIn'
@@ -28,8 +28,8 @@ export function Testimonial({
       <Container>
         <FadeIn>
           <figure className="mx-auto max-w-4xl">
-            <blockquote className="relative font-display text-3xl font-medium tracking-tight text-neutral-950 sm:text-4xl">
-              <p className="before:content-['\201C'] after:content-['\201D'] sm:before:absolute sm:before:right-full">
+            <blockquote className="font-display relative text-3xl font-medium tracking-tight text-neutral-950 sm:text-4xl">
+              <p className="before:content-['\u201C'] after:content-['\u201D'] sm:before:absolute sm:before:right-full">
                 {children}
               </p>
             </blockquote>

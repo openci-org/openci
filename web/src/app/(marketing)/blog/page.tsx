@@ -12,7 +12,11 @@ import {
   getPosts,
   getPostsCount,
 } from '@/sanity/queries'
-import type { FEATURED_POSTS_QUERYResult, POSTS_QUERYResult, CATEGORIES_QUERYResult } from '@/sanity/types'
+import type {
+  FEATURED_POSTS_QUERYResult,
+  POSTS_QUERYResult,
+  CATEGORIES_QUERYResult,
+} from '@/sanity/types'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
   CheckIcon,
@@ -107,8 +111,9 @@ async function Categories({ selected }: { selected?: string }) {
     <div className="flex flex-wrap items-center justify-between gap-2">
       <Menu>
         <MenuButton className="flex items-center justify-between gap-2 font-medium">
-          {categories.find(({ slug }: CATEGORIES_QUERYResult[number]) => slug === selected)?.title ||
-            'All categories'}
+          {categories.find(
+            ({ slug }: CATEGORIES_QUERYResult[number]) => slug === selected,
+          )?.title || 'All categories'}
           <ChevronUpDownIcon className="size-4 fill-gray-900" />
         </MenuButton>
         <MenuItems

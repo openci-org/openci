@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 80,
+  "experimentalTailwindcss": {
+    "stylesheet": "./src/styles/tailwind.css",
+    "functions": ["clsx"]
+  }
+}
