@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { OrgNameForm } from "@/components/org-name-form";
 
 export default async function OrgSettingsPage({
   params,
@@ -22,6 +23,8 @@ export default async function OrgSettingsPage({
   const org = await getOrgBySlug(supabase, orgSlug);
   if (!org) redirect("/auth/login");
 
+  const isOwner = org.role === "owner";
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -32,14 +35,24 @@ export default async function OrgSettingsPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Organization Details</CardTitle>
-          <CardDescription>Manage your organization name and slug.</CardDescription>
+          <CardDescription>
+            {isOwner
+              ? "Update your organization name."
+              : "Organization information."}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-sm">
-            <div>
-              <span className="text-muted-foreground">Name: </span>
-              <span className="font-medium">{org.name}</span>
+        <CardContent className="space-y-4">
+          {isOwner ? (
+            <OrgNameForm orgSlug={orgSlug} currentName={org.name} />
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Name: </span>
+                <span className="font-medium">{org.name}</span>
+              </div>
             </div>
+          )}
+          <div className="space-y-3 text-sm pt-2">
             <div>
               <span className="text-muted-foreground">Slug: </span>
               <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{org.slug}</span>
