@@ -1,6 +1,7 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
+import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,6 +35,20 @@ class SettingsPage extends HookConsumerWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const NotificationSettingsPage(),
+                    ),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(Symbols.credit_card_rounded),
+                title: Text('Subscription'),
+                subtitle: Text('Manage your subscription plan'),
+                trailing: Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SubscriptionPage(),
                     ),
                   );
                 },
