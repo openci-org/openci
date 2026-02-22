@@ -1,3 +1,7 @@
+## 0.4.34 - 2026-02-23
+
+- fix: bump version to 0.4.34
+
 ## 0.4.31 - 2026-02-19
 
 - feat: auto-provision distribution certificate secrets for `ios-sign` steps

@@ -11,7 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 import 'package:uuid/uuid.dart';
 
-const String version = '0.4.31';
+const String version = '0.4.34';
 
 enum LogLevel { info, warning, error }
 
