@@ -33,10 +33,17 @@ export async function getUserOrgs(
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
-    ...(row.organizations as unknown as Organization),
-    role: row.role,
-  }));
+  // Deduplicate by org id, keeping the first occurrence (highest-privilege role
+  // would appear first if the user has multiple memberships for the same org).
+  const seen = new Set<string>();
+  const result: OrganizationWithRole[] = [];
+  for (const row of data) {
+    const org = row.organizations as unknown as Organization;
+    if (!org?.id || seen.has(org.id)) continue;
+    seen.add(org.id);
+    result.push({ ...org, role: row.role });
+  }
+  return result;
 }
 
 // Returns a single organization by slug, or null if not found / not a member.
@@ -44,24 +51,8 @@ export async function getOrgBySlug(
   supabase: SupabaseClient,
   slug: string
 ): Promise<OrganizationWithRole | null> {
-  // First look up the org by slug, then verify the current user is a member.
-  const { data: org, error: orgError } = await supabase
-    .from("organizations")
-    .select("id, name, slug, billing_enabled, stripe_customer_id, stripe_subscription_id, created_at, updated_at")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (orgError || !org) return null;
-
-  const { data: membership, error: memberError } = await supabase
-    .from("org_members")
-    .select("role")
-    .eq("org_id", org.id)
-    .maybeSingle();
-
-  if (memberError || !membership) return null;
-
-  return { ...(org as Organization), role: membership.role };
+  const orgs = await getUserOrgs(supabase);
+  return orgs.find((o) => o.slug === slug) ?? null;
 }
 
 // Returns all projects in an org with last build status and counts.
