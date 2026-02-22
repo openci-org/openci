@@ -40,22 +40,31 @@ import {
   Moon,
   Laptop,
   Languages,
+  Check,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useTransition } from "react";
-import { MOCK_ORGS } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
 import { routing } from "@/i18n/routing";
+import type { OrganizationWithRole } from "@/lib/supabase/types";
 
 interface AppSidebarProps {
   email: string;
   locale: string;
+  currentOrg: OrganizationWithRole;
+  userOrgs: OrganizationWithRole[];
 }
 
-export function AppSidebar({ email, locale }: AppSidebarProps) {
+export function AppSidebar({
+  email,
+  locale,
+  currentOrg,
+  userOrgs,
+}: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("nav");
@@ -65,8 +74,11 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
   const [mounted, setMounted] = useState(false);
   const [, startTransition] = useTransition();
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
+  const orgBase = `/orgs/${currentOrg.slug}`;
   const isActive = (href: string) => pathname === href;
   const isActivePrefix = (prefix: string) => pathname.startsWith(prefix);
 
@@ -78,10 +90,19 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
 
   const setLocale = (next: string) => {
     document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000;SameSite=Lax`;
-    startTransition(() => { router.refresh(); });
+    startTransition(() => {
+      router.refresh();
+    });
   };
 
-  const ThemeIcon = !mounted ? Laptop : theme === "light" ? Sun : theme === "dark" ? Moon : Laptop;
+  const ThemeIcon =
+    !mounted
+      ? Laptop
+      : theme === "light"
+        ? Sun
+        : theme === "dark"
+          ? Moon
+          : Laptop;
 
   return (
     <Sidebar collapsible="icon">
@@ -99,7 +120,9 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
                     <Building2 className="size-4" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{MOCK_ORGS[0].name}</span>
+                    <span className="truncate font-semibold">
+                      {currentOrg.name}
+                    </span>
                     <span className="truncate text-xs text-muted-foreground">
                       {t("organization")}
                     </span>
@@ -113,14 +136,34 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
                 side="bottom"
                 sideOffset={4}
               >
-                {MOCK_ORGS.map((org) => (
-                  <DropdownMenuItem key={org.id} className="gap-2 p-2">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Organizations
+                </DropdownMenuLabel>
+                {userOrgs.map((org) => (
+                  <DropdownMenuItem
+                    key={org.id}
+                    className="gap-2 p-2"
+                    onClick={() => router.push(`/orgs/${org.slug}`)}
+                  >
                     <div className="flex size-6 items-center justify-center rounded-sm border">
                       <Building2 className="size-4 shrink-0" />
                     </div>
-                    {org.name}
+                    <span className="flex-1 truncate">{org.name}</span>
+                    {org.id === currentOrg.id && (
+                      <Check className="size-4 text-muted-foreground" />
+                    )}
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-2 p-2"
+                  onClick={() => router.push(`/onboarding?from=${encodeURIComponent(pathname)}`)}
+                >
+                  <div className="flex size-6 items-center justify-center rounded-sm border border-dashed">
+                    <Plus className="size-4 shrink-0" />
+                  </div>
+                  <span className="text-muted-foreground">New Organization</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
@@ -135,10 +178,10 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActive("/protected")}
+                  isActive={isActive(orgBase)}
                   tooltip={t("dashboard")}
                 >
-                  <Link href="/protected">
+                  <Link href={orgBase}>
                     <LayoutDashboard />
                     <span>{t("dashboard")}</span>
                   </Link>
@@ -147,10 +190,10 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActivePrefix("/protected/projects")}
+                  isActive={isActivePrefix(`${orgBase}/projects`)}
                   tooltip={t("projects")}
                 >
-                  <Link href="/protected/projects">
+                  <Link href={`${orgBase}/projects`}>
                     <FolderOpen />
                     <span>{t("projects")}</span>
                   </Link>
@@ -170,10 +213,10 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActivePrefix("/protected/teams")}
+                  isActive={isActivePrefix(`${orgBase}/teams`)}
                   tooltip={t("teams")}
                 >
-                  <Link href="/protected/teams">
+                  <Link href={`${orgBase}/teams`}>
                     <Users />
                     <span>{t("teams")}</span>
                   </Link>
@@ -182,10 +225,10 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActivePrefix("/protected/members")}
+                  isActive={isActivePrefix(`${orgBase}/members`)}
                   tooltip={t("members")}
                 >
-                  <Link href="/protected/members">
+                  <Link href={`${orgBase}/members`}>
                     <UserCog />
                     <span>{t("members")}</span>
                   </Link>
@@ -194,27 +237,29 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActivePrefix("/protected/integrations")}
+                  isActive={isActivePrefix(`${orgBase}/integrations`)}
                   tooltip={t("integrations")}
                 >
-                  <Link href="/protected/integrations">
+                  <Link href={`${orgBase}/integrations`}>
                     <Plug />
                     <span>{t("integrations")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActivePrefix("/protected/billing")}
-                  tooltip={t("billing")}
-                >
-                  <Link href="/protected/billing">
-                    <CreditCard />
-                    <span>{t("billing")}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {currentOrg.billing_enabled && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActivePrefix(`${orgBase}/billing`)}
+                    tooltip={t("billing")}
+                  >
+                    <Link href={`${orgBase}/billing`}>
+                      <CreditCard />
+                      <span>{t("billing")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -225,10 +270,10 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={isActivePrefix("/protected/settings")}
+              isActive={isActivePrefix(`${orgBase}/settings`)}
               tooltip={t("settings")}
             >
-              <Link href="/protected/settings">
+              <Link href={`${orgBase}/settings`}>
                 <Settings />
                 <span>{t("settings")}</span>
               </Link>
@@ -259,7 +304,9 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
                 side="top"
                 sideOffset={4}
               >
-                <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">{email}</div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
+                  {email}
+                </div>
                 <DropdownMenuSeparator />
 
                 {/* Language */}
@@ -282,7 +329,10 @@ export function AppSidebar({ email, locale }: AppSidebarProps) {
                   <ThemeIcon className="size-3.5" />
                   Theme
                 </DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={mounted ? (theme ?? "system") : "system"} onValueChange={setTheme}>
+                <DropdownMenuRadioGroup
+                  value={mounted ? (theme ?? "system") : "system"}
+                  onValueChange={setTheme}
+                >
                   <DropdownMenuRadioItem value="light" className="pl-6">
                     <Sun className="size-3.5 mr-1.5" /> Light
                   </DropdownMenuRadioItem>

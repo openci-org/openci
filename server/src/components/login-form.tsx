@@ -41,6 +41,7 @@ export function LoginForm({
         password,
       });
       if (authError) throw authError;
+      router.refresh();
       router.push("/protected");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("error"));

@@ -22,18 +22,18 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ProjectSwitcher } from "@/components/project-switcher";
 
 interface ProjectSidebarProps {
+  orgSlug: string;
   projectId: string;
   projectName: string;
 }
 
-export function ProjectSidebar({ projectId, projectName }: ProjectSidebarProps) {
+export function ProjectSidebar({ orgSlug, projectId, projectName }: ProjectSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
 
-  const base = `/protected/projects/${projectId}`;
+  const base = `/orgs/${orgSlug}/projects/${projectId}`;
   const isActive = (href: string) => pathname === href;
 
   const navItems = [
@@ -49,9 +49,6 @@ export function ProjectSidebar({ projectId, projectName }: ProjectSidebarProps) 
     <Sidebar collapsible="none" className="w-48 border-r shrink-0">
       <SidebarContent>
         <SidebarGroup>
-          <div className="px-2 py-2">
-            <ProjectSwitcher />
-          </div>
           <SidebarGroupLabel>{projectName}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

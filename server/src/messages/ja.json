@@ -27,7 +27,10 @@
       "passwordMismatch": "パスワードが一致しません",
       "haveAccount": "すでにアカウントをお持ちの方は",
       "login": "ログイン",
-      "error": "エラーが発生しました"
+      "error": "エラーが発生しました",
+      "checkEmail": "メールを確認してください",
+      "checkEmailDescription": "確認リンクをお送りしました",
+      "checkEmailSentTo": "確認メールを送信しました:"
     },
     "forgotPassword": {
       "title": "パスワードのリセット",
@@ -71,6 +74,27 @@
     "integrations": "インテグレーション",
     "settings": "設定",
     "organization": "オーガナイゼーション"
+  },
+  "onboarding": {
+    "title": "OpenCI へようこそ",
+    "description": "まだ組織に所属していません。新しい組織を作成するか、既存の組織に参加してください。",
+    "newOrgTitle": "新しい組織を作成",
+    "newOrgDescription": "チーム用の新しい組織を作成します。",
+    "createOrg": "組織を作成する",
+    "createOrgDescription": "チーム用の新しい組織をゼロから始めましょう。",
+    "createOrgButton": "組織を作成",
+    "orgName": "組織名",
+    "orgNamePlaceholder": "My Team",
+    "orgSlug": "URL スラッグ",
+    "orgSlugPlaceholder": "my-team",
+    "orgSlugHint": "URL に使用されます: openci.io/orgs/{slug}",
+    "creating": "作成中...",
+    "or": "または",
+    "joinOrg": "既存の組織に参加する",
+    "joinOrgDescription": "チームメンバーにメールで招待してもらうか、管理者に連絡してください。",
+    "error": "エラーが発生しました",
+    "slugTaken": "このスラッグはすでに使用されています",
+    "logout": "ログアウト"
   },
   "locale": {
     "switch": "言語",

@@ -27,7 +27,10 @@
       "passwordMismatch": "Passwords do not match",
       "haveAccount": "Already have an account?",
       "login": "Login",
-      "error": "An error occurred"
+      "error": "An error occurred",
+      "checkEmail": "Check your email",
+      "checkEmailDescription": "We've sent you a confirmation link",
+      "checkEmailSentTo": "A confirmation email was sent to"
     },
     "forgotPassword": {
       "title": "Reset Your Password",
@@ -71,6 +74,27 @@
     "integrations": "Integrations",
     "settings": "Settings",
     "organization": "Organization"
+  },
+  "onboarding": {
+    "title": "Welcome to OpenCI",
+    "description": "You're not part of any organization yet. Create a new one or join an existing one.",
+    "newOrgTitle": "New Organization",
+    "newOrgDescription": "Create a new organization for your team.",
+    "createOrg": "Create an organization",
+    "createOrgDescription": "Start fresh with a new organization for your team.",
+    "createOrgButton": "Create organization",
+    "orgName": "Organization name",
+    "orgNamePlaceholder": "My Team",
+    "orgSlug": "URL slug",
+    "orgSlugPlaceholder": "my-team",
+    "orgSlugHint": "Used in URLs: openci.io/orgs/{slug}",
+    "creating": "Creating...",
+    "or": "or",
+    "joinOrg": "Join an existing organization",
+    "joinOrgDescription": "Ask a team member to invite you via email, or contact your admin.",
+    "error": "An error occurred",
+    "slugTaken": "This slug is already taken",
+    "logout": "Sign out"
   },
   "locale": {
     "switch": "Language",

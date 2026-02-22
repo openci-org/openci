@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
-import { MOCK_PROJECTS, CURRENT_ORG } from "@/lib/mock-data";
+import { CURRENT_ORG } from "@/lib/mock-data";
 import {
   Card,
   CardContent,

@@ -14,15 +14,16 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface ProjectNavMobileProps {
+  orgSlug: string;
   projectId: string;
   projectName: string;
 }
 
-export function ProjectNavMobile({ projectId, projectName }: ProjectNavMobileProps) {
+export function ProjectNavMobile({ orgSlug, projectId, projectName }: ProjectNavMobileProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
 
-  const base = `/protected/projects/${projectId}`;
+  const base = `/orgs/${orgSlug}/projects/${projectId}`;
 
   const navItems = [
     { href: base, label: t("overview"), icon: LayoutGrid },

@@ -27,6 +27,7 @@ export function SignUpForm({
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const router = useRouter();
   const t = useTranslations("auth.signUpForm");
   const tAuth = useTranslations("auth");
@@ -44,7 +45,7 @@ export function SignUpForm({
     }
 
     try {
-      const { error: authError } = await supabase.auth.signUp({
+      const { data: signUpData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -55,13 +56,38 @@ export function SignUpForm({
         },
       });
       if (authError) throw authError;
-      router.push("/protected");
+      // If a session was returned immediately (email confirmation disabled),
+      // navigate to the dashboard. Otherwise show the "check your email" message.
+      if (signUpData.session) {
+        router.refresh();
+        router.push("/protected");
+      } else {
+        setEmailSent(true);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("error"));
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (emailSent) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{t("checkEmail")}</CardTitle>
+            <CardDescription>{t("checkEmailDescription")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {t("checkEmailSentTo")} <span className="font-medium text-foreground">{email}</span>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

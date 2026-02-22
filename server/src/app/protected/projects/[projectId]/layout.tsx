@@ -19,11 +19,11 @@ export default async function ProjectLayout({
   return (
     <div className="flex flex-1 -m-6">
       <div className="hidden md:flex">
-        <ProjectSidebar projectId={project.id} projectName={project.name} />
+        <ProjectSidebar orgSlug="" projectId={project.id} projectName={project.name} />
       </div>
       <div className="flex flex-1 flex-col gap-4 p-6 overflow-auto">
         <div className="md:hidden">
-          <ProjectNavMobile projectId={project.id} projectName={project.name} />
+          <ProjectNavMobile orgSlug="" projectId={project.id} projectName={project.name} />
         </div>
         {children}
       </div>

@@ -51,6 +51,7 @@ export function ProjectSwitcher() {
           variant="ghost"
           role="combobox"
           aria-expanded={open}
+          aria-controls="project-switcher-listbox"
           className="w-full justify-between px-2 h-9 text-sm font-medium"
         >
           <div className="flex items-center gap-2 min-w-0">
@@ -61,7 +62,7 @@ export function ProjectSwitcher() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start" side="bottom" sideOffset={4}>
-        <Command>
+        <Command id="project-switcher-listbox">
           <CommandInput placeholder={`${t("projects")}...`} />
           <CommandList>
             <CommandEmpty>No projects found.</CommandEmpty>
