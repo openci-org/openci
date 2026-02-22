@@ -58,7 +58,19 @@
     }
   },
   "nav": {
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "overview": "Overview",
+    "builds": "Builds",
+    "workflow": "Workflow",
+    "releases": "Releases",
+    "environment": "Environment",
+    "teams": "Teams",
+    "members": "Members",
+    "billing": "Billing",
+    "integrations": "Integrations",
+    "settings": "Settings",
+    "organization": "Organization"
   },
   "locale": {
     "switch": "Language",

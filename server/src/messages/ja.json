@@ -58,7 +58,19 @@
     }
   },
   "nav": {
-    "dashboard": "ダッシュボード"
+    "dashboard": "ダッシュボード",
+    "projects": "プロジェクト",
+    "overview": "概要",
+    "builds": "ビルド",
+    "workflow": "ワークフロー",
+    "releases": "リリース",
+    "environment": "環境変数",
+    "teams": "チーム",
+    "members": "メンバー",
+    "billing": "お支払い",
+    "integrations": "インテグレーション",
+    "settings": "設定",
+    "organization": "オーガナイゼーション"
   },
   "locale": {
     "switch": "言語",
