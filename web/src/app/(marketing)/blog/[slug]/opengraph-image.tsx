@@ -50,7 +50,7 @@ export default async function Image({
         justifyContent: 'center',
       }}
       src={`${imageUrl}`}
-      alt="blog header image"
+      alt="blog header"
     />,
   )
 }

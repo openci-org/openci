@@ -84,7 +84,8 @@ export default function About() {
         <p>アプリ開発を通じて、よりよい世界を創る。</p>
         <div className="mt-10 max-w-2xl space-y-6 text-base">
           <p>
-            初めまして。OpenCI (オープンシーアイ )株式会社の代表取締役社長、青木正浩です。
+            初めまして。OpenCI (オープンシーアイ
+            )株式会社の代表取締役社長、青木正浩です。
             <br />
             この度は弊社のサイトをご覧いただき、ありがとうございます。
           </p>
