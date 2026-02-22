@@ -1,7 +1,7 @@
 {
   "folders": [
     {
-      "name": "mobile (Flutter)",
+      "name": "mobile",
       "path": "mobile",
     },
     {
@@ -25,7 +25,7 @@
       "path": ".",
     },
     {
-      "name": "frontend (Next.js)",
+      "name": "frontend",
       "path": "frontend",
     },
     {
@@ -102,16 +102,16 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "dashboard",
-        "cwd": "${workspaceFolder:mobile (Flutter)}",
+        "name": "mobile",
+        "cwd": "${workspaceFolder:mobile}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
         "args": ["--dart-define-from-file=.env.local"],
       },
       {
-        "name": "(release) dashboard",
-        "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        "name": "(release) mobile",
+        "cwd": "${workspaceFolder:mobile}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
@@ -138,7 +138,7 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:mobile (Flutter)}",
+          "cwd": "${workspaceFolder:mobile}",
         },
         "problemMatcher": [],
         "group": "build",
@@ -149,7 +149,7 @@
         "type": "shell",
         "command": "flutter clean && flutter pub get",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:mobile}",
         },
       },
       {
@@ -157,7 +157,7 @@
         "type": "shell",
         "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=.env.local",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:mobile}",
         },
         "problemMatcher": [],
       },
@@ -225,22 +225,23 @@
         },
         "problemMatcher": [],
       },
-      // ── Hosting ──────────────────────────────────────
+      // ── Frontend (Next.js) ────────────────────────────
       {
-        "label": "Hosting: (Dev) Deploy Web",
+        "label": "Frontend: Dev Server",
         "type": "shell",
-        "command": "flutter build web --release --dart-define-from-file=.env.local && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use default && firebase deploy --only hosting",
+        "command": "pnpm dev",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:frontend}",
         },
         "problemMatcher": [],
+        "isBackground": true,
       },
       {
-        "label": "Hosting: (Prod) Deploy Web",
+        "label": "Frontend: Build",
         "type": "shell",
-        "command": "flutter build web --release --dart-define-from-file=.env.local && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use prod && firebase deploy --only hosting && firebase use default",
+        "command": "pnpm build",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:frontend}",
         },
         "problemMatcher": [],
       },
