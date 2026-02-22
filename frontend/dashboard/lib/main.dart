@@ -1,4 +1,5 @@
 import 'package:dashboard/firebase_options.dart';
+import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -17,6 +18,8 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await initializeRevenueCat();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(ProviderScope(child: Root()));
