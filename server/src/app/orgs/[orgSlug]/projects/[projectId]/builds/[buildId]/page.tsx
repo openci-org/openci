@@ -42,7 +42,7 @@ export default async function BuildDetailPage({
   ]);
 
   if (!org) redirect("/auth/login");
-  if (!project || !build) notFound();
+  if (!project || !build || build.project_id !== project.id) notFound();
 
   // Get logs for the latest run (SSR initial data)
   const initialLogs = build.latest_run_id

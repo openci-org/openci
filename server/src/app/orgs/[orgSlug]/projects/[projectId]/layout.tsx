@@ -17,12 +17,12 @@ export default async function ProjectLayout({
 
   const { orgSlug, projectId } = await params;
 
-  const [org, project] = await Promise.all([
-    getOrgBySlug(supabase, orgSlug),
-    getProjectById(supabase, projectId),
-  ]);
-
+  // Fetch org first, then scope project query to that org.
+  // This prevents cross-org access when a user belongs to multiple organizations:
+  // e.g. /orgs/org-a/projects/<org-b-project-uuid> would otherwise show org-b's data.
+  const org = await getOrgBySlug(supabase, orgSlug);
   if (!org) redirect("/auth/login");
+  const project = await getProjectById(supabase, projectId, org.id);
   if (!project) notFound();
 
   return (

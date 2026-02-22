@@ -128,16 +128,23 @@ export async function getProjectBySlug(
 }
 
 // Returns a single project by id.
+// When orgId is provided, also filters by org_id as defense-in-depth
+// to prevent cross-org access when a user belongs to multiple organizations.
 export async function getProjectById(
   supabase: SupabaseClient,
-  projectId: string
+  projectId: string,
+  orgId?: string
 ) {
-  const { data, error } = await supabase
+  let query = supabase
     .from("projects")
     .select("*")
-    .eq("id", projectId)
-    .single();
+    .eq("id", projectId);
 
+  if (orgId) {
+    query = query.eq("org_id", orgId);
+  }
+
+  const { data, error } = await query.single();
   if (error) return null;
   return data;
 }
