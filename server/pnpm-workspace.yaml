@@ -1,0 +1,9 @@
+ignoredBuiltDependencies:
+  - esbuild
+
+onlyBuiltDependencies:
+  - '@sentry/cli'
+  - lefthook
+  - sharp
+  - supabase
+  - unrs-resolver

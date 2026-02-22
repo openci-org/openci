@@ -1,0 +1,68 @@
+{
+  "auth": {
+    "signIn": "ログイン",
+    "signUp": "新規登録",
+    "logout": "ログアウト",
+    "greeting": "{email} さん",
+    "login": {
+      "title": "ログイン",
+      "description": "メールアドレスを入力してログインしてください",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "forgotPassword": "パスワードをお忘れですか？",
+      "submit": "ログイン",
+      "submitting": "ログイン中...",
+      "noAccount": "アカウントをお持ちでない方は",
+      "error": "エラーが発生しました"
+    },
+    "signUpForm": {
+      "title": "新規登録",
+      "description": "新しいアカウントを作成する",
+      "username": "ユーザー名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "repeatPassword": "パスワード（確認）",
+      "submit": "登録する",
+      "submitting": "登録中...",
+      "passwordMismatch": "パスワードが一致しません",
+      "haveAccount": "すでにアカウントをお持ちの方は",
+      "login": "ログイン",
+      "error": "エラーが発生しました"
+    },
+    "forgotPassword": {
+      "title": "パスワードのリセット",
+      "description": "メールアドレスを入力すると、リセット用のリンクをお送りします",
+      "email": "メールアドレス",
+      "submit": "リセットメールを送信",
+      "submitting": "送信中...",
+      "successTitle": "メールを確認してください",
+      "successDescription": "パスワードリセットの手順をお送りしました",
+      "successMessage": "メールアドレスとパスワードで登録している場合、パスワードリセットメールが届きます。",
+      "haveAccount": "すでにアカウントをお持ちの方は",
+      "login": "ログイン",
+      "error": "エラーが発生しました"
+    },
+    "updatePassword": {
+      "title": "パスワードのリセット",
+      "description": "新しいパスワードを入力してください。",
+      "newPassword": "新しいパスワード",
+      "placeholder": "新しいパスワード",
+      "submit": "パスワードを保存",
+      "submitting": "保存中...",
+      "error": "エラーが発生しました"
+    },
+    "error": {
+      "title": "エラーが発生しました。",
+      "codeError": "エラーコード: {error}",
+      "unspecified": "不明なエラーが発生しました。"
+    }
+  },
+  "nav": {
+    "dashboard": "ダッシュボード"
+  },
+  "locale": {
+    "switch": "言語",
+    "en": "English",
+    "ja": "日本語"
+  }
+}

@@ -28,6 +28,10 @@
       "name": "web",
       "path": "web",
     },
+    {
+      "name": "server",
+      "path": "server",
+    },
   ],
   "settings": {
     "npm.packageManager": "pnpm",
