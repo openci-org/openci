@@ -1,8 +1,8 @@
 {
   "folders": [
     {
-      "name": "dashboard (Flutter)",
-      "path": "frontend/dashboard",
+      "name": "mobile (Flutter)",
+      "path": "mobile",
     },
     {
       "name": "openci_worker_cli",
@@ -103,7 +103,7 @@
     "configurations": [
       {
         "name": "dashboard",
-        "cwd": "${workspaceFolder:dashboard (Flutter)}",
+        "cwd": "${workspaceFolder:mobile (Flutter)}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
@@ -138,7 +138,7 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:dashboard (Flutter)}",
+          "cwd": "${workspaceFolder:mobile (Flutter)}",
         },
         "problemMatcher": [],
         "group": "build",
