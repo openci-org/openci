@@ -128,7 +128,7 @@ export default function OnboardingPage() {
                   pattern="[a-z0-9-]{2,40}"
                   required
                 />
-                <p className="text-xs text-muted-foreground">{t("orgSlugHint")}</p>
+                <p className="text-xs text-muted-foreground">{t("orgSlugHint", { slug: orgSlug })}</p>
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" disabled={isCreating || !orgName || !orgSlug}>
