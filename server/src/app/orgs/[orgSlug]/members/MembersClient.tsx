@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CircleUserRound, Mail, UserPlus, Trash2, Loader2 } from "lucide-react";
+import { CircleUserRound, Mail, UserPlus, Trash2, Loader2, Copy, Check } from "lucide-react";
 import type { OrgRole } from "@/lib/supabase/types";
 
 interface Member {
@@ -68,8 +68,9 @@ export function MembersClient({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<OrgRole>("member");
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const canManage = orgRole === "owner" || orgRole === "admin";
   const isOwner = orgRole === "owner";
@@ -77,7 +78,7 @@ export function MembersClient({
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteError(null);
-    setInviteSuccess(null);
+    setInviteLink(null);
     setInviting(true);
 
     const res = await fetch(`/api/orgs/${orgSlug}/invitations`, {
@@ -97,10 +98,18 @@ export function MembersClient({
       return;
     }
 
-    setInviteSuccess(`Invitation sent to ${inviteEmail}`);
+    const data = (await res.json()) as { inviteLink: string };
+    setInviteLink(data.inviteLink);
     setInviteEmail("");
     setInviting(false);
     startTransition(() => router.refresh());
+  };
+
+  const handleCopyLink = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRoleChange = async (memberId: string, role: OrgRole) => {
@@ -192,8 +201,29 @@ export function MembersClient({
                 </div>
               </div>
               {inviteError && <p className="text-sm text-destructive">{inviteError}</p>}
-              {inviteSuccess && (
-                <p className="text-sm text-green-600 dark:text-green-400">{inviteSuccess}</p>
+              {inviteLink && (
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm text-muted-foreground">
+                    Share this link with the invitee:
+                  </p>
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
+                    <code className="flex-1 truncate text-xs">{inviteLink}</code>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 shrink-0"
+                      onClick={handleCopyLink}
+                      title="Copy link"
+                    >
+                      {copied ? (
+                        <Check className="size-3.5 text-green-600" />
+                      ) : (
+                        <Copy className="size-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
               )}
               <div>
                 <Button type="submit" size="sm" disabled={inviting}>

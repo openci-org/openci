@@ -44,8 +44,24 @@ export async function getOrgBySlug(
   supabase: SupabaseClient,
   slug: string
 ): Promise<OrganizationWithRole | null> {
-  const orgs = await getUserOrgs(supabase);
-  return orgs.find((o) => o.slug === slug) ?? null;
+  // First look up the org by slug, then verify the current user is a member.
+  const { data: org, error: orgError } = await supabase
+    .from("organizations")
+    .select("id, name, slug, billing_enabled, stripe_customer_id, stripe_subscription_id, created_at, updated_at")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (orgError || !org) return null;
+
+  const { data: membership, error: memberError } = await supabase
+    .from("org_members")
+    .select("role")
+    .eq("org_id", org.id)
+    .maybeSingle();
+
+  if (memberError || !membership) return null;
+
+  return { ...(org as Organization), role: membership.role };
 }
 
 // Returns all projects in an org with last build status and counts.
@@ -311,22 +327,26 @@ export async function getOrgStats(
 
   const ids = projectIds.map((p) => p.id);
 
-  const [buildsResult, workflowsResult] = await Promise.all([
+  const [totalResult, successResult, workflowsResult] = await Promise.all([
     supabase
       .from("builds")
-      .select("id, status")
+      .select("id", { count: "exact", head: true })
       .in("project_id", ids),
     supabase
+      .from("builds")
+      .select("id", { count: "exact", head: true })
+      .in("project_id", ids)
+      .eq("status", "success"),
+    supabase
       .from("workflows")
-      .select("id")
+      .select("id", { count: "exact", head: true })
       .in("project_id", ids)
       .eq("is_active", true),
   ]);
 
-  const builds = buildsResult.data ?? [];
   return {
-    totalBuilds: builds.length,
-    successBuilds: builds.filter((b) => b.status === "success").length,
-    activeWorkflows: workflowsResult.data?.length ?? 0,
+    totalBuilds: totalResult.count ?? 0,
+    successBuilds: successResult.count ?? 0,
+    activeWorkflows: workflowsResult.count ?? 0,
   };
 }
