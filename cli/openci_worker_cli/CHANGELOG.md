@@ -1,3 +1,12 @@
+## 0.4.32 - 2026-02-22
+
+- fix: increase VM boot timeout from 60s to ~210s with graduated backoff
+  - First 30 attempts: 1s interval
+  - Attempts 31-60: 2s interval
+  - Attempts 61-120: 3s interval
+- fix: add progress logging every 10 attempts during VM boot wait
+- fix: remove noisy per-attempt exit code logging
+
 ## 0.4.31 - 2026-02-19
 
 - feat: auto-provision distribution certificate secrets for `ios-sign` steps

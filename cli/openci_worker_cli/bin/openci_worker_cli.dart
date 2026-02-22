@@ -11,7 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 import 'package:uuid/uuid.dart';
 
-const String version = '0.4.31';
+const String version = '0.4.32';
 
 enum LogLevel { info, warning, error }
 
@@ -728,25 +728,36 @@ Future<void> waitForVmReady(
   Object? Function()? vmStartError,
 }) async {
   var shell = Shell(throwOnError: false);
-  print('Waiting for Guest Agent to respond...');
-  for (int i = 0; i < 60; i++) {
-    // Check if tart run has already failed
+  const maxRetries = 120;
+  print('Waiting for Guest Agent to respond (max $maxRetries attempts)...');
+  for (int i = 0; i < maxRetries; i++) {
     final error = vmStartError?.call();
     if (error != null) {
       throw Exception('VM failed to start: $error');
     }
 
     var result = await shell.run('tart exec $name echo "ready"');
-    print('exit code: ${result.first.exitCode}');
 
     if (result.first.exitCode == 0) {
+      print('Guest Agent responded after ${i + 1} attempts');
       return;
     }
 
-    await Future.delayed(const Duration(seconds: 1));
+    if (i > 0 && i % 10 == 0) {
+      print('Still waiting for Guest Agent... (attempt $i/$maxRetries)');
+    }
+
+    final delay = i < 30
+        ? const Duration(seconds: 1)
+        : i < 60
+        ? const Duration(seconds: 2)
+        : const Duration(seconds: 3);
+    await Future.delayed(delay);
   }
 
-  throw Exception('VM boot timeout: Guest Agent did not respond.');
+  throw Exception(
+    'VM boot timeout: Guest Agent did not respond after $maxRetries attempts.',
+  );
 }
 
 Future<String> fetchSecretValue(
