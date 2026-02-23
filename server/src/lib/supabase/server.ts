@@ -1,5 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+
+/**
+ * Service-role client for server-side operations that require elevated
+ * permissions (e.g. Supabase Vault secret management).
+ * Never expose this client or its key to the browser.
+ */
+export function createServiceClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  );
+}
 
 /**
  * Especially important if using Fluid compute: Don't put this client in a

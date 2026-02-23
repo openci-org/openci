@@ -47,6 +47,8 @@ make help
 | `make sb-status` | ローカル Supabase の状態と接続情報を表示 |
 | `make sb-migrate` | ローカル DB にマイグレーションを適用 |
 | `make sb-reset` | ローカル DB を初期化（全データ削除 + マイグレーション再実行） |
+| `make sb-setup` | 本番向け初回セットアップ一括実行（migrate + cron 登録） |
+| `make sb-setup-cron` | 本番 DB に cron ジョブのみを登録（要 pg_cron 有効化） |
 
 ### 環境変数・クリーンアップ
 
@@ -119,8 +121,16 @@ make sb-migrate  # マイグレーションを適用
 ```bash
 make sb-login
 make sb-link     # プロジェクト ref を入力（app.supabase.com で確認）
-make sb-migrate
 ```
+
+**前提**: Supabase Dashboard → Database → Extensions → **pg_cron** を有効化してください。
+
+```bash
+make sb-setup    # マイグレーション適用 + cron ジョブ登録を一括実行
+```
+
+`sb-setup` は `sb-migrate` と `sb-setup-cron` を順に実行します。再実行しても安全です。
+cron ジョブ登録後は Dashboard → Integrations → Cron で `purge-old-build-logs`（毎日 03:00 UTC）を確認できます。
 
 ### 3. 環境変数の確認
 
@@ -152,10 +162,22 @@ make vercel-open         # Vercel ダッシュボードを開く
 
 ```
 server/
-├── app/           # Next.js App Router のページ・レイアウト
-│   ├── auth/      # 認証関連ページ（ログイン・サインアップ等）
-│   └── protected/ # 認証済みユーザー向けページ
-├── components/    # UI コンポーネント
-├── lib/           # ユーティリティ・Supabase クライアント
-└── supabase/      # Supabase の設定・マイグレーション
+├── src/
+│   ├── app/                  # Next.js App Router のページ・レイアウト
+│   │   ├── (public)/         # 認証不要ページ（ログイン等）
+│   │   ├── orgs/[orgSlug]/   # 組織ダッシュボード
+│   │   └── api/              # API Routes
+│   ├── components/           # UI コンポーネント
+│   └── lib/
+│       └── supabase/
+│           ├── client.ts     # ブラウザ用クライアント
+│           ├── server.ts     # サーバー用クライアント
+│           ├── queries.ts    # DB クエリヘルパー
+│           └── types.ts      # 型定義
+└── supabase/
+    ├── migrations/           # DB マイグレーション（順番に適用）
+    ├── functions/            # Supabase Edge Functions
+    ├── setup/                # 初回セットアップ用 SQL（マイグレーション外）
+    │   └── cron.sql          # cron ジョブ登録（make sb-setup-cron で実行）
+    └── config.toml           # Supabase ローカル設定
 ```

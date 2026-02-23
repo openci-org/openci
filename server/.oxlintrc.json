@@ -73,6 +73,7 @@
     "build",
     "*.config.js",
     "*.config.ts",
-    "*.config.mjs"
+    "*.config.mjs",
+    "supabase/functions"
   ]
 }

@@ -129,13 +129,15 @@ class SupabaseWorkerClient {
     );
   }
 
-  // Write a log entry for a build run
+  // Write a log entry for a build run (with exponential backoff retry)
   Future<void> writeLog({
     required String buildRunId,
     required String buildId,
     required String message,
     required String level, // 'info' | 'warning' | 'error'
     String? stackTrace,
+    int? stepIndex,
+    String? stepName,
   }) async {
     final body = <String, dynamic>{
       'build_run_id': buildRunId,
@@ -144,11 +146,66 @@ class SupabaseWorkerClient {
       'level': level,
     };
     if (stackTrace != null) body['stack_trace'] = stackTrace;
+    if (stepIndex != null) body['step_index'] = stepIndex;
+    if (stepName != null) body['step_name'] = stepName;
 
-    await _httpClient.post(
-      _url('build_logs'),
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        final response = await _httpClient.post(
+          _url('build_logs'),
+          headers: _headers,
+          body: jsonEncode(body),
+        );
+        if (response.statusCode == 201) return;
+        // Non-201 on last attempt: give up silently to avoid blocking the build
+        if (attempt == 2) return;
+      } catch (_) {
+        if (attempt == 2) return;
+      }
+      await Future.delayed(Duration(seconds: 1 << attempt)); // 1s, 2s
+    }
+  }
+
+  // Fetch all logs for a build run (used for archiving)
+  Future<List<Map<String, dynamic>>> fetchAllLogs(String buildRunId) async {
+    final response = await _httpClient.get(
+      _url('build_logs', {
+        'build_run_id': 'eq.$buildRunId',
+        'select': 'id,created_at,level,message,stack_trace,step_index,step_name',
+        'order': 'id.asc',
+        'limit': '100000',
+      }),
       headers: _headers,
-      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) return [];
+    final data = jsonDecode(response.body) as List;
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  // Upload a text file to Supabase Storage (build-logs bucket)
+  Future<bool> uploadLogArchive({
+    required String path,
+    required String content,
+  }) async {
+    final uploadHeaders = {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'apikey': serviceRoleKey,
+      'Authorization': 'Bearer $serviceRoleKey',
+    };
+    final response = await _httpClient.post(
+      Uri.parse('$supabaseUrl/storage/v1/object/build-logs/$path'),
+      headers: uploadHeaders,
+      body: utf8.encode(content),
+    );
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
+
+  // Update builds.log_archive_path after successful upload
+  Future<void> updateLogArchivePath(String buildId, String path) async {
+    await _httpClient.patch(
+      _url('builds', {'id': 'eq.$buildId'}),
+      headers: _headers,
+      body: jsonEncode({'log_archive_path': path}),
     );
   }
 
@@ -211,10 +268,27 @@ class BuildLogger {
   final SupabaseWorkerClient _client;
   final String _buildId;
   final String _buildRunId;
+  final Map<String, dynamic> _buildMeta; // build row for archive header
 
-  BuildLogger(this._client, this._buildId, this._buildRunId);
+  // Current step context (set via beginStep)
+  int? _currentStepIndex;
+  String? _currentStepName;
+
+  BuildLogger(this._client, this._buildId, this._buildRunId, this._buildMeta);
 
   String get buildRunId => _buildRunId;
+
+  /// Call before executing each step to attach step context to subsequent logs.
+  void beginStep(int index, String name) {
+    _currentStepIndex = index;
+    _currentStepName = name;
+  }
+
+  /// Call after a step finishes (or on error) to clear step context.
+  void endStep() {
+    _currentStepIndex = null;
+    _currentStepName = null;
+  }
 
   Future<void> info(String message) async {
     print('[INFO] $message');
@@ -223,6 +297,8 @@ class BuildLogger {
       buildId: _buildId,
       message: message,
       level: 'info',
+      stepIndex: _currentStepIndex,
+      stepName: _currentStepName,
     );
   }
 
@@ -233,6 +309,8 @@ class BuildLogger {
       buildId: _buildId,
       message: message,
       level: 'warning',
+      stepIndex: _currentStepIndex,
+      stepName: _currentStepName,
     );
   }
 
@@ -245,12 +323,80 @@ class BuildLogger {
       message: message,
       level: 'error',
       stackTrace: stackTrace,
+      stepIndex: _currentStepIndex,
+      stepName: _currentStepName,
     );
   }
 
   Future<void> complete(String conclusion) async {
     await _client.completeBuildRun(_buildRunId, conclusion);
-    await _client.updateBuildStatus(_buildId, conclusion == 'success' ? 'success' : conclusion == 'cancelled' ? 'cancelled' : 'failure');
+    final status = conclusion == 'success'
+        ? 'success'
+        : conclusion == 'cancelled'
+            ? 'cancelled'
+            : 'failure';
+    await _client.updateBuildStatus(_buildId, status);
+    await _archiveLogs(conclusion);
+  }
+
+  /// Fetch all logs from DB, format as UTF-8 text, and upload to Supabase Storage.
+  Future<void> _archiveLogs(String conclusion) async {
+    try {
+      final logs = await _client.fetchAllLogs(_buildRunId);
+      final text = _formatArchive(logs, conclusion);
+      final orgId = _buildMeta['org_id'] as String? ?? 'unknown';
+      final projectId = _buildMeta['project_id'] as String;
+      final path = '$orgId/$projectId/$_buildId.txt';
+      final ok = await _client.uploadLogArchive(path: path, content: text);
+      if (ok) {
+        await _client.updateLogArchivePath(_buildId, path);
+      } else {
+        print('[Archive] Failed to upload log archive for build $_buildId');
+      }
+    } catch (e) {
+      print('[Archive] Error archiving logs for build $_buildId: $e');
+    }
+  }
+
+  String _formatArchive(List<Map<String, dynamic>> logs, String conclusion) {
+    final sb = StringBuffer();
+    sb.writeln('Build: $_buildId');
+    sb.writeln('Repository: ${_buildMeta['github_owner']}/${_buildMeta['github_repo']}');
+    if (_buildMeta['commit_sha'] != null) sb.writeln('Commit: ${(_buildMeta['commit_sha'] as String).substring(0, 7)}');
+    if (_buildMeta['branch'] != null) sb.writeln('Branch: ${_buildMeta['branch']}');
+    if (_buildMeta['tag_name'] != null) sb.writeln('Tag: ${_buildMeta['tag_name']}');
+    sb.writeln('Status: $conclusion');
+    sb.writeln('Date: ${DateTime.now().toUtc().toIso8601String()}');
+    sb.writeln('=' * 80);
+    sb.writeln();
+
+    int? lastStepIndex;
+    for (final log in logs) {
+      final stepIndex = log['step_index'] as int?;
+      final stepName = log['step_name'] as String?;
+
+      // Print step header when step changes
+      if (stepIndex != null && stepIndex != lastStepIndex) {
+        sb.writeln();
+        sb.writeln('[Step ${stepIndex + 1}] ${stepName ?? "Step ${stepIndex + 1}"}');
+        sb.writeln('-' * 80);
+        lastStepIndex = stepIndex;
+      }
+
+      final ts = log['created_at'] as String;
+      final level = (log['level'] as String).toUpperCase();
+      final message = log['message'] as String;
+      final levelTag = level == 'INFO' ? '' : '[$level] ';
+      sb.writeln('$ts ${levelTag}$message');
+
+      final stackTrace = log['stack_trace'] as String?;
+      if (stackTrace != null && stackTrace.isNotEmpty) {
+        for (final line in stackTrace.split('\n')) {
+          sb.writeln('    $line');
+        }
+      }
+    }
+    return sb.toString();
   }
 }
 
@@ -371,7 +517,7 @@ Future<void> _processBuild(
     return;
   }
 
-  final logger = BuildLogger(supabase, buildId, buildRunId);
+  final logger = BuildLogger(supabase, buildId, buildRunId, build);
 
   try {
     await logger.info('Build started. Worker: $workerId');
@@ -436,11 +582,13 @@ Future<void> _processBuild(
 
       if (command == null) continue;
 
+      logger.beginStep(i, stepName);
       await logger.info('▶ Running step: $stepName');
 
       // Check for cancellation before each step
       if (await supabase.isBuildCancelled(buildId)) {
         await logger.info('Build cancelled by user.');
+        logger.endStep();
         await logger.complete('cancelled');
         return;
       }
@@ -456,8 +604,10 @@ Future<void> _processBuild(
           }
         }
         await logger.info('✓ Step completed: $stepName');
+        logger.endStep();
       } catch (e, st) {
         await logger.error('✗ Step failed: $stepName\n$e', stackTrace: st.toString());
+        logger.endStep();
         await logger.complete('failure');
         return;
       }

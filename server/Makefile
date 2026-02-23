@@ -1,6 +1,6 @@
 .PHONY: help init start lint lint-fix typecheck \
         vercel-login vercel-link vercel-pull vercel-deploy vercel-deploy-prod vercel-open \
-        sb-login sb-link sb-start sb-stop sb-status sb-reset sb-migrate \
+        sb-login sb-link sb-start sb-stop sb-status sb-reset sb-migrate sb-setup sb-setup-cron \
         env-check \
         clear clear-db
 
@@ -98,6 +98,14 @@ sb-migrate:
 ## Reset local DB (drop all data and re-run migrations + seed)
 sb-reset:
 	pnpm supabase db reset
+
+## Run all one-time remote setup steps (migrate + cron). Requires: sb-login, sb-link, pg_cron enabled
+sb-setup: sb-migrate sb-setup-cron
+
+## Register the build-logs TTL cron job on the remote Supabase project (run once, requires pg_cron)
+sb-setup-cron:
+	@echo "Registering purge-old-build-logs cron job (requires pg_cron extension enabled)..."
+	pnpm supabase db execute --remote --file supabase/setup/cron.sql
 
 # === Environment variables
 

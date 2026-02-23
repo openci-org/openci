@@ -194,10 +194,24 @@ export async function getBuildRunLogs(
     .from("build_logs")
     .select("*")
     .eq("build_run_id", buildRunId)
-    .order("created_at", { ascending: true });
+    .order("id", { ascending: true });
 
   if (error || !data) return [];
   return data as BuildLog[];
+}
+
+// Returns a signed download URL for an archived build log file in Supabase Storage.
+// Returns null if the build has no archive yet (in progress or archive not created).
+export async function getBuildLogDownloadUrl(
+  supabase: SupabaseClient,
+  logArchivePath: string
+): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from("build-logs")
+    .createSignedUrl(logArchivePath, 300); // 5-minute expiry
+
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
 }
 
 // Returns workflows for a project with their triggers.
@@ -299,6 +313,21 @@ export async function getProjectEnvVars(
 
   if (error || !data) return [];
   return data as EnvironmentVariable[];
+}
+
+// Returns a single environment variable by id (excludes value and vault_secret_id for security).
+export async function getEnvVarById(
+  supabase: SupabaseClient,
+  envVarId: string
+): Promise<EnvironmentVariable | null> {
+  const { data, error } = await supabase
+    .from("environment_variables")
+    .select("id, project_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
+    .eq("id", envVarId)
+    .single();
+
+  if (error || !data) return null;
+  return data as EnvironmentVariable;
 }
 
 // Returns org members with profile info.

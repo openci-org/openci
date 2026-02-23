@@ -132,6 +132,7 @@ export default async function BuildDetailPage({
             buildRunId={build.latest_run_id ?? null}
             initialStatus={build.status}
             initialLogs={initialLogs}
+            logArchivePath={build.log_archive_path ?? null}
           />
         </CardContent>
       </Card>

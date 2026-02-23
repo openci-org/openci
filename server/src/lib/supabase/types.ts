@@ -118,6 +118,7 @@ export interface Build {
   retried_from_build_id: string | null;
   run_count: number;
   latest_run_id: string | null;
+  log_archive_path: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -138,6 +139,8 @@ export interface BuildLog {
   message: string;
   level: LogLevel;
   stack_trace: string | null;
+  step_index: number | null;
+  step_name: string | null;
   created_at: string;
 }
 
@@ -147,7 +150,7 @@ export interface EnvironmentVariable {
   key: string;
   value: string | null;
   is_secret: boolean;
-  secret_path: string | null;
+  vault_secret_id: string | null;
   auto_increment: boolean;
   created_at: string;
   updated_at: string;
