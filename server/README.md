@@ -268,6 +268,70 @@ Date: 2026-02-23T03:00:00Z
 ...
 ```
 
+## メール配信（Resend）
+
+すべてのトランザクションメール（組織招待、Supabase Auth のパスワードリセット・メール確認等）を [Resend](https://resend.com) 経由で送信します。
+
+### 環境変数
+
+| 変数名 | 説明 | 例 |
+|---|---|---|
+| `RESEND_API_KEY` | Resend API キー | `re_xxxxxxxxxxxx` |
+| `RESEND_FROM_EMAIL` | 送信元アドレス | `OpenCI <noreply@openci.io>` |
+
+ローカル開発用のシークレットは `server/.env.resend` に記載できます（`.gitignore` 済み）。
+
+### 本番セットアップ
+
+#### 1. Resend
+
+1. [resend.com](https://resend.com) でアカウント作成
+2. **Domains** で送信元ドメインを認証（DNS レコード追加）
+3. **API Keys** で API キーを発行
+
+#### 2. Vercel 環境変数
+
+Vercel ダッシュボード → Settings → Environment Variables に追加：
+
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+
+#### 3. Supabase Dashboard SMTP 設定
+
+Supabase Auth のメール（パスワードリセット、サインアップ確認等）も Resend 経由で送信するため、Supabase Dashboard で SMTP を設定します。
+
+1. [app.supabase.com](https://app.supabase.com) → プロジェクト → **Authentication** → **SMTP Settings**
+2. **Enable Custom SMTP** をオン
+3. 以下を入力：
+
+| 項目 | 値 |
+|---|---|
+| Sender email | `noreply@openci.io`（Resend で認証済みのアドレス） |
+| Sender name | `OpenCI` |
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | Resend API キー |
+
+4. **Save** をクリック
+
+#### 4. Supabase Dashboard メールテンプレート
+
+1. **Authentication** → **Email Templates**
+2. 各テンプレートタイプ（Confirm signup, Reset password, Change email address）の Subject と Body を `server/supabase/templates/` 内の対応する HTML ファイルの内容に置き換え
+
+| テンプレートタイプ | ソースファイル |
+|---|---|
+| Confirm signup | `supabase/templates/confirmation.html` |
+| Reset password | `supabase/templates/recovery.html` |
+| Change email address | `supabase/templates/email_change.html` |
+
+### 開発環境バナー
+
+`NODE_ENV === "development"` の場合、Resend SDK で送信するメール（組織招待等）の上部に黄色の開発環境バナーが表示されます。ローカル開発では Supabase の Inbucket（`http://localhost:54324`）でメールを確認できます。
+
+---
+
 ## ディレクトリ構成
 
 ```
@@ -279,6 +343,11 @@ server/
 │   │   └── api/              # API Routes
 │   ├── components/           # UI コンポーネント
 │   └── lib/
+│       ├── email/
+│       │   ├── resend.ts         # Resend クライアントラッパー
+│       │   └── templates/
+│       │       ├── base-layout.ts  # 共通HTMLレイアウト（開発バナー含む）
+│       │       └── invitation.ts   # 招待メールテンプレート
 │       └── supabase/
 │           ├── client.ts     # ブラウザ用クライアント
 │           ├── server.ts     # サーバー用クライアント
@@ -286,6 +355,7 @@ server/
 │           └── types.ts      # 型定義
 └── supabase/
     ├── migrations/           # DB マイグレーション（順番に適用）
+    ├── templates/            # Supabase Auth メールテンプレート（HTML）
     ├── functions/            # Supabase Edge Functions
     ├── setup/                # 初回セットアップ用 SQL（マイグレーション外）
     │   └── cron.sql          # cron ジョブ登録（make sb-setup-cron で実行）
