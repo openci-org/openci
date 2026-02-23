@@ -244,6 +244,48 @@ export async function getProjectWorkflows(
   });
 }
 
+// Returns a single workflow with its triggers, or null if not found.
+export async function getWorkflowById(
+  supabase: SupabaseClient,
+  workflowId: string
+): Promise<WorkflowWithTriggers | null> {
+  const { data, error } = await supabase
+    .from("workflows")
+    .select(
+      `
+      *,
+      workflow_triggers (*),
+      builds (
+        id, status, created_at
+      )
+    `
+    )
+    .eq("id", workflowId)
+    .single();
+
+  if (error || !data) return null;
+
+  const builds = (data.builds as Build[]) ?? [];
+  const lastBuild =
+    builds.length > 0
+      ? builds.reduce((a, b) =>
+          new Date(a.created_at) > new Date(b.created_at) ? a : b
+        )
+      : null;
+
+  return {
+    ...data,
+    workflow_triggers: data.workflow_triggers ?? [],
+    last_build: lastBuild
+      ? {
+          id: lastBuild.id,
+          status: lastBuild.status,
+          created_at: lastBuild.created_at,
+        }
+      : null,
+  };
+}
+
 // Returns environment variables for a project (excludes plain values for secrets).
 export async function getProjectEnvVars(
   supabase: SupabaseClient,

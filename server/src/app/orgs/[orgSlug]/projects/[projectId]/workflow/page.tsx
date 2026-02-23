@@ -9,9 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GitBranch, Plus, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { GitBranch, CheckCircle2, XCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import type { BuildStatus } from "@/lib/supabase/types";
+import { CreateWorkflowDialog } from "@/components/create-workflow-dialog";
 
 function StatusIcon({ status }: { status: BuildStatus | null }) {
   if (status === "success") return <CheckCircle2 className="size-4 text-green-500 shrink-0" />;
@@ -58,10 +59,7 @@ export default async function WorkflowPage({
           <p className="text-sm text-muted-foreground">{project.name}</p>
           <h1 className="text-2xl font-bold">Workflows</h1>
         </div>
-        <Button size="sm">
-          <Plus className="size-4" />
-          New Workflow
-        </Button>
+        <CreateWorkflowDialog orgSlug={orgSlug} projectId={projectId} />
       </div>
 
       {workflows.length === 0 ? (
@@ -71,10 +69,7 @@ export default async function WorkflowPage({
             <p className="text-sm text-muted-foreground mb-3">
               No workflows defined yet. Create a workflow to automate your builds.
             </p>
-            <Button size="sm">
-              <Plus className="size-4" />
-              Create Workflow
-            </Button>
+            <CreateWorkflowDialog orgSlug={orgSlug} projectId={projectId} label="Create Workflow" />
           </CardContent>
         </Card>
       ) : (
