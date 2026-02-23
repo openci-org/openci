@@ -1,0 +1,104 @@
+{
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "logout": "Logout",
+    "greeting": "Hey, {email}!",
+    "login": {
+      "title": "Login",
+      "description": "Enter your email below to login to your account",
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Forgot your password?",
+      "submit": "Login",
+      "submitting": "Logging in...",
+      "noAccount": "Don't have an account?",
+      "error": "An error occurred"
+    },
+    "signUpForm": {
+      "title": "Sign up",
+      "description": "Create a new account",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "repeatPassword": "Repeat Password",
+      "submit": "Sign up",
+      "submitting": "Creating an account...",
+      "passwordMismatch": "Passwords do not match",
+      "haveAccount": "Already have an account?",
+      "login": "Login",
+      "error": "An error occurred",
+      "checkEmail": "Check your email",
+      "checkEmailDescription": "We've sent you a confirmation link",
+      "checkEmailSentTo": "A confirmation email was sent to"
+    },
+    "forgotPassword": {
+      "title": "Reset Your Password",
+      "description": "Type in your email and we'll send you a link to reset your password",
+      "email": "Email",
+      "submit": "Send reset email",
+      "submitting": "Sending...",
+      "successTitle": "Check Your Email",
+      "successDescription": "Password reset instructions sent",
+      "successMessage": "If you registered using your email and password, you will receive a password reset email.",
+      "haveAccount": "Already have an account?",
+      "login": "Login",
+      "error": "An error occurred"
+    },
+    "updatePassword": {
+      "title": "Reset Your Password",
+      "description": "Please enter your new password below.",
+      "newPassword": "New password",
+      "placeholder": "New password",
+      "submit": "Save new password",
+      "submitting": "Saving...",
+      "error": "An error occurred"
+    },
+    "error": {
+      "title": "Sorry, something went wrong.",
+      "codeError": "Code error: {error}",
+      "unspecified": "An unspecified error occurred."
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "overview": "Overview",
+    "builds": "Builds",
+    "workflow": "Workflow",
+    "releases": "Releases",
+    "environment": "Environment",
+    "teams": "Teams",
+    "members": "Members",
+    "billing": "Billing",
+    "integrations": "Integrations",
+    "settings": "Settings",
+    "organization": "Organization"
+  },
+  "onboarding": {
+    "title": "Welcome to OpenCI",
+    "description": "You're not part of any organization yet. Create a new one or join an existing one.",
+    "newOrgTitle": "New Organization",
+    "newOrgDescription": "Create a new organization for your team.",
+    "createOrg": "Create an organization",
+    "createOrgDescription": "Start fresh with a new organization for your team.",
+    "createOrgButton": "Create organization",
+    "orgName": "Organization name",
+    "orgNamePlaceholder": "My Team",
+    "orgSlug": "URL slug",
+    "orgSlugPlaceholder": "my-team",
+    "orgSlugHint": "Used in URLs: openci.io/orgs/{slug}",
+    "creating": "Creating...",
+    "or": "or",
+    "joinOrg": "Join an existing organization",
+    "joinOrgDescription": "Ask a team member to invite you via email, or contact your admin.",
+    "error": "An error occurred",
+    "slugTaken": "This slug is already taken",
+    "logout": "Sign out"
+  },
+  "locale": {
+    "switch": "Language",
+    "en": "English",
+    "ja": "日本語"
+  }
+}

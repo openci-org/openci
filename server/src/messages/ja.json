@@ -1,0 +1,104 @@
+{
+  "auth": {
+    "signIn": "ログイン",
+    "signUp": "新規登録",
+    "logout": "ログアウト",
+    "greeting": "{email} さん",
+    "login": {
+      "title": "ログイン",
+      "description": "メールアドレスを入力してログインしてください",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "forgotPassword": "パスワードをお忘れですか？",
+      "submit": "ログイン",
+      "submitting": "ログイン中...",
+      "noAccount": "アカウントをお持ちでない方は",
+      "error": "エラーが発生しました"
+    },
+    "signUpForm": {
+      "title": "新規登録",
+      "description": "新しいアカウントを作成する",
+      "username": "ユーザー名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "repeatPassword": "パスワード（確認）",
+      "submit": "登録する",
+      "submitting": "登録中...",
+      "passwordMismatch": "パスワードが一致しません",
+      "haveAccount": "すでにアカウントをお持ちの方は",
+      "login": "ログイン",
+      "error": "エラーが発生しました",
+      "checkEmail": "メールを確認してください",
+      "checkEmailDescription": "確認リンクをお送りしました",
+      "checkEmailSentTo": "確認メールを送信しました:"
+    },
+    "forgotPassword": {
+      "title": "パスワードのリセット",
+      "description": "メールアドレスを入力すると、リセット用のリンクをお送りします",
+      "email": "メールアドレス",
+      "submit": "リセットメールを送信",
+      "submitting": "送信中...",
+      "successTitle": "メールを確認してください",
+      "successDescription": "パスワードリセットの手順をお送りしました",
+      "successMessage": "メールアドレスとパスワードで登録している場合、パスワードリセットメールが届きます。",
+      "haveAccount": "すでにアカウントをお持ちの方は",
+      "login": "ログイン",
+      "error": "エラーが発生しました"
+    },
+    "updatePassword": {
+      "title": "パスワードのリセット",
+      "description": "新しいパスワードを入力してください。",
+      "newPassword": "新しいパスワード",
+      "placeholder": "新しいパスワード",
+      "submit": "パスワードを保存",
+      "submitting": "保存中...",
+      "error": "エラーが発生しました"
+    },
+    "error": {
+      "title": "エラーが発生しました。",
+      "codeError": "エラーコード: {error}",
+      "unspecified": "不明なエラーが発生しました。"
+    }
+  },
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "projects": "プロジェクト",
+    "overview": "概要",
+    "builds": "ビルド",
+    "workflow": "ワークフロー",
+    "releases": "リリース",
+    "environment": "環境変数",
+    "teams": "チーム",
+    "members": "メンバー",
+    "billing": "お支払い",
+    "integrations": "インテグレーション",
+    "settings": "設定",
+    "organization": "オーガナイゼーション"
+  },
+  "onboarding": {
+    "title": "OpenCI へようこそ",
+    "description": "まだ組織に所属していません。新しい組織を作成するか、既存の組織に参加してください。",
+    "newOrgTitle": "新しい組織を作成",
+    "newOrgDescription": "チーム用の新しい組織を作成します。",
+    "createOrg": "組織を作成する",
+    "createOrgDescription": "チーム用の新しい組織をゼロから始めましょう。",
+    "createOrgButton": "組織を作成",
+    "orgName": "組織名",
+    "orgNamePlaceholder": "My Team",
+    "orgSlug": "URL スラッグ",
+    "orgSlugPlaceholder": "my-team",
+    "orgSlugHint": "URL に使用されます: openci.io/orgs/{slug}",
+    "creating": "作成中...",
+    "or": "または",
+    "joinOrg": "既存の組織に参加する",
+    "joinOrgDescription": "チームメンバーにメールで招待してもらうか、管理者に連絡してください。",
+    "error": "エラーが発生しました",
+    "slugTaken": "このスラッグはすでに使用されています",
+    "logout": "ログアウト"
+  },
+  "locale": {
+    "switch": "言語",
+    "en": "English",
+    "ja": "日本語"
+  }
+}
