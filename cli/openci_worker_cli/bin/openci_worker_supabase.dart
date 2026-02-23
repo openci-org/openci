@@ -10,23 +10,17 @@
 /// supabase-credentials.json format:
 ///   {
 ///     "supabase_url": "https://xxx.supabase.co",
-///     "worker_db_url": "postgresql://worker_role:password@xxx.supabase.co:5432/postgres"
+///     "service_role_key": "eyJhbGci..."
 ///   }
 ///
-/// Note: The worker_db_url uses direct PostgreSQL connection (not PostgREST JWT).
-/// The worker_role has minimum required permissions defined in migration 000030.
-///
-/// GCP Secret Manager: still used for secret values. The service account JSON
-/// path is passed via the existing --service-account flag alongside Supabase creds.
-/// You can extend the credentials JSON to include gcp_service_account_path.
+/// Note: Secret environment variables are fetched from Supabase Vault via the
+/// get_env_var_secret() SECURITY DEFINER RPC. No GCP credentials are required.
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:googleapis/secretmanager/v1.dart';
-import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 import 'package:uuid/uuid.dart';
@@ -245,6 +239,19 @@ class SupabaseWorkerClient {
     return data[0]['value'] as String?;
   }
 
+  // Fetch a secret env var value via get_env_var_secret() SECURITY DEFINER RPC
+  Future<String?> getEnvVarSecret(String envVarId) async {
+    final response = await _httpClient.post(
+      _url('rpc/get_env_var_secret'),
+      headers: _headers,
+      body: jsonEncode({'p_env_var_id': envVarId}),
+    );
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    if (data == null) return null;
+    return data as String?;
+  }
+
   // Get workflow details (yaml_definition) for a build
   Future<Map<String, dynamic>?> getWorkflow(String workflowId) async {
     final response = await _httpClient.get(
@@ -452,7 +459,6 @@ Future<void> main(List<String> arguments) async {
     final creds = jsonDecode(credFile.readAsStringSync()) as Map<String, dynamic>;
     final supabaseUrl = creds['supabase_url'] as String?;
     final serviceRoleKey = creds['service_role_key'] as String?;
-    final gcpServiceAccountPath = creds['gcp_service_account_path'] as String?;
 
     if (supabaseUrl == null || serviceRoleKey == null) {
       print('Error: supabase_url and service_role_key required in credentials JSON.');
@@ -482,7 +488,7 @@ Future<void> main(List<String> arguments) async {
         }
 
         print('Claimed build: ${build['id']} (project: ${build['project_id']})');
-        await _processBuild(supabase, build, workerId, gcpServiceAccountPath);
+        await _processBuild(supabase, build, workerId);
       } catch (e, st) {
         print('Worker loop error: $e\n$st');
         await Future.delayed(Duration(seconds: pollingIntervalSeconds));
@@ -503,7 +509,6 @@ Future<void> _processBuild(
   SupabaseWorkerClient supabase,
   Map<String, dynamic> build,
   String workerId,
-  String? gcpServiceAccountPath,
 ) async {
   final buildId = build['id'] as String;
   final projectId = build['project_id'] as String;
@@ -553,15 +558,12 @@ Future<void> _processBuild(
       if (ev['auto_increment'] == true) {
         final value = await supabase.incrementEnvVar(ev['id'] as String);
         if (value != null) env[key] = value;
-      } else if (ev['is_secret'] != true && ev['value'] != null) {
-        env[key] = ev['value'] as String;
-      } else if (ev['is_secret'] == true && ev['secret_path'] != null && gcpServiceAccountPath != null) {
-        // Fetch from GCP Secret Manager
-        final secretValue = await _fetchGcpSecret(
-          ev['secret_path'] as String,
-          gcpServiceAccountPath,
-        );
+      } else if (ev['is_secret'] == true) {
+        // Fetch from Supabase Vault via SECURITY DEFINER RPC
+        final secretValue = await supabase.getEnvVarSecret(ev['id'] as String);
         if (secretValue != null) env[key] = secretValue;
+      } else if (ev['value'] != null) {
+        env[key] = ev['value'] as String;
       }
     }
 
@@ -651,32 +653,3 @@ List<Map<String, String>> _parseWorkflowSteps(String yaml) {
   return steps;
 }
 
-// Fetch a secret value from GCP Secret Manager
-Future<String?> _fetchGcpSecret(String secretPath, String serviceAccountPath) async {
-  try {
-    final serviceAccountFile = File(serviceAccountPath);
-    if (!serviceAccountFile.existsSync()) return null;
-
-    final credentials = ServiceAccountCredentials.fromJson(
-      serviceAccountFile.readAsStringSync(),
-    );
-
-    final client = await clientViaServiceAccount(
-      credentials,
-      [SecretManagerApi.cloudPlatformScope],
-    );
-
-    try {
-      final api = SecretManagerApi(client);
-      final response = await api.projects.secrets.versions.access(secretPath);
-      final encoded = response.payload?.data;
-      if (encoded == null) return null;
-      return utf8.decode(base64Decode(encoded));
-    } finally {
-      client.close();
-    }
-  } catch (e) {
-    print('[SecretManager] Failed to fetch secret $secretPath: $e');
-    return null;
-  }
-}

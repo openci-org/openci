@@ -158,6 +158,116 @@ make vercel-deploy-prod  # 本番環境へデプロイ
 make vercel-open         # Vercel ダッシュボードを開く
 ```
 
+---
+
+## ビルドログ仕様
+
+### ログの流れ
+
+```
+ワーカー (Dart)
+  │  ステップ開始: beginStep(index, name)
+  │  ログ書き込み: writeLog(message, level, stepIndex, stepName)
+  │  ステップ終了: endStep()
+  └─ ビルド完了時:
+       1. build_logs を全行フェッチ
+       2. テキスト整形してSupabase Storageへアップロード
+       3. builds.log_archive_path を更新
+
+Supabase
+  ├─ build_logs テーブル（7日間保持）
+  └─ Storage: build-logs/{orgId}/{projectId}/{buildId}.txt
+
+ダッシュボード (Next.js)
+  ├─ ビルド中: Realtimeで build_logs の INSERT をストリーミング
+  ├─ ビルド完了: Realtimeで builds の UPDATE を受信 → Downloadボタン表示
+  └─ ログ閲覧: ステップごとのアコーディオン表示
+```
+
+### ログの保管とアーカイブ
+
+| 項目 | 内容 |
+|------|------|
+| **DB保持期間** | 7日間（`build_logs.created_at` 基準） |
+| **TTL削除** | pg_cron で毎日 03:00 UTC に `purge_old_build_logs()` を実行 |
+| **アーカイブ** | ビルド完了時にワーカーが Supabase Storage へアップロード |
+| **保存先** | `build-logs` バケット（プライベート）`{orgId}/{projectId}/{buildId}.txt` |
+| **フォーマット** | UTF-8 プレーンテキスト |
+| **ファイルサイズ上限** | なし（プランの容量上限のみ適用） |
+| **ダウンロード** | ダッシュボードの Download ボタン → 300秒有効の署名付きURL |
+
+7日経過後は DB のログは消えますが、Storage のアーカイブは残るためダウンロード可能です。
+
+### ステップグループ化
+
+ワーカーがログ書き込み時に `step_index`（0-based）と `step_name` を付与することで、ダッシュボード側でステップ単位のアコーディオン表示ができます。
+
+**`build_logs` テーブルの関連カラム：**
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| `step_index` | `smallint \| null` | ステップ番号（0-based）。NULL はステップ外のログ（preamble） |
+| `step_name` | `text \| null` | ステップ名（例: `"Build iOS"`） |
+
+ワーカー側の使い方（Dart）：
+
+```dart
+// ステップ開始を宣言
+logger.beginStep(0, "Build iOS");
+
+// このあとの writeLog() には step_index/step_name が自動付与される
+await logger.info("xcodebuild starting...");
+
+// ステップ終了（以降は preamble 扱い）
+logger.endStep();
+```
+
+ダッシュボードでの表示：
+- `step_index` が付いているログ → ステップアコーディオンに分類
+- `step_index` が NULL のログ → preamble（ステップ外ログ）として先頭に表示
+- 最新ステップは自動展開、過去ステップは折りたたみ
+
+### Realtime ストリーミング
+
+ダッシュボードは2つのチャンネルをサブスクライブします：
+
+| チャンネル | テーブル | イベント | 用途 |
+|-----------|---------|---------|------|
+| `build-logs-{buildRunId}` | `build_logs` | `INSERT` | 新しいログ行をリアルタイム追記 |
+| `build-status-{buildId}` | `builds` | `UPDATE` | ステータス変化・`log_archive_path` 更新を検知 |
+
+ビルド完了時に `builds.log_archive_path` が更新されると Realtime 経由でブラウザに通知され、Download ボタンが自動表示されます。
+
+### ワーカー側の実装ポイント
+
+**書き込みリトライ（指数バックオフ）：**
+`writeLog()` は失敗時に最大3回（1秒 → 2秒）リトライします。3回失敗した場合はログをドロップして続行（ビルド自体は止めない）。
+
+**アーカイブのタイミング：**
+ビルドが `success` / `failure` / `cancelled` のいずれかで完了した時点でワーカーが即時アップロードします。アップロード失敗時は `builds.log_archive_path` が NULL のまま残ります（7日以内はDBから参照可能）。
+
+**アーカイブファイルのフォーマット：**
+
+```
+Build: <buildId>
+Repository: owner/repo
+Commit: abc1234
+Branch: main
+Status: success
+Date: 2026-02-23T03:00:00Z
+================================================================================
+
+[Step 1] Build iOS
+--------------------------------------------------------------------------------
+10:00:01.123 [INFO] ▶ Running step: Build iOS
+10:00:30.789 [INFO] ✓ Step completed: Build iOS
+
+[Step 2] Upload to TestFlight
+--------------------------------------------------------------------------------
+10:00:31.012 [INFO] ▶ Running step: Upload to TestFlight
+...
+```
+
 ## ディレクトリ構成
 
 ```
