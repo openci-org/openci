@@ -1,4 +1,4 @@
-# Releasing Soon
+Releasing Soon
 
 WIP: CI/CD Made Easy
 
