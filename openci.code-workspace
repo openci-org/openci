@@ -232,6 +232,25 @@
         "problemMatcher": [],
         "isBackground": true,
       },
+      // ── Server (Deploy) ────────────────────────────
+      {
+        "label": "Server: Deploy Production",
+        "type": "shell",
+        "command": "make vercel-deploy-prod",
+        "options": {
+          "cwd": "${workspaceFolder:server}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "Supabase: Push to Production",
+        "type": "shell",
+        "command": "pnpm supabase db push",
+        "options": {
+          "cwd": "${workspaceFolder:server}",
+        },
+        "problemMatcher": [],
+      },
     ],
   },
 }
