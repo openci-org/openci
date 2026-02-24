@@ -1,13 +1,6 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/schemas/oxlint.schema.json",
-  "plugins": [
-    "react",
-    "react-hooks",
-    "typescript",
-    "unicorn",
-    "import",
-    "jsx-a11y"
-  ],
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "unicorn", "import", "jsx-a11y", "nextjs"],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -75,5 +68,13 @@
     "*.config.ts",
     "*.config.mjs",
     "supabase/functions"
+  ],
+  "overrides": [
+    {
+      "files": ["src/app/api/**/*.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
   ]
 }
