@@ -44,7 +44,7 @@ CREATE TABLE public.org_invitations (
   invited_by  uuid              NOT NULL REFERENCES auth.users(id),
   email       text              NOT NULL,
   role        org_role          NOT NULL DEFAULT 'member',
-  token       text              NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token       text              NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text, '-', ''),
   status      invitation_status NOT NULL DEFAULT 'pending',
   expires_at  timestamptz       NOT NULL DEFAULT (now() + interval '7 days'),
   created_at  timestamptz       NOT NULL DEFAULT now(),
