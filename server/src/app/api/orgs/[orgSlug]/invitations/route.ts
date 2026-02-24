@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgBySlug } from "@/lib/supabase/queries";
+import { sendEmail } from "@/lib/email/resend";
+import { buildInvitationEmail } from "@/lib/email/templates/invitation";
 import type { OrgRole } from "@/lib/supabase/types";
 
 // POST /api/orgs/[orgSlug]/invitations — invite a member by email
@@ -64,6 +66,18 @@ export async function POST(
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const inviteLink = `${appUrl}/auth/accept-invite?token=${invitation.token}`;
+
+  const { subject, html } = buildInvitationEmail({
+    orgName: org.name,
+    role,
+    inviteLink,
+  });
+
+  try {
+    await sendEmail({ to: email, subject, html });
+  } catch (emailError) {
+    console.error("Failed to send invitation email:", emailError);
+  }
 
   const { token: _token, ...invitationWithoutToken } = invitation;
   return NextResponse.json({ invitation: invitationWithoutToken, inviteLink }, { status: 201 });
