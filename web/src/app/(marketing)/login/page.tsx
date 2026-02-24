@@ -2,11 +2,6 @@
 
 import { Link } from '@/components/link'
 import { Mark } from '@/components/logo'
-import { auth } from '@/lib/firebase'
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from 'firebase/auth'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
@@ -24,10 +19,10 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
-      router.push('/dashboard')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in')
+      // TODO: Integrate with Supabase Auth
+      setError(
+        'Authentication is being migrated to Supabase. Please try again later.',
+      )
     } finally {
       setLoading(false)
     }
@@ -38,10 +33,10 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
-      router.push('/dashboard')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create account')
+      // TODO: Integrate with Supabase Auth
+      setError(
+        'Authentication is being migrated to Supabase. Please try again later.',
+      )
     } finally {
       setLoading(false)
     }
