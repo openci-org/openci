@@ -32,6 +32,10 @@
       "name": "server",
       "path": "server",
     },
+    {
+      "name": "worker",
+      "path": "worker",
+    },
   ],
   "settings": {
     "npm.packageManager": "pnpm",
@@ -61,6 +65,7 @@
       "Subcollection",
       "subcollections",
       "subheadline",
+      "supabase",
       "tailwindplus",
       "turbopack",
       "unawaited",
@@ -159,70 +164,6 @@
         },
         "problemMatcher": [],
       },
-      // ── Firebase ─────────────────────────────────────
-      {
-        "label": "Firebase: (Dev) Deploy Functions",
-        "type": "shell",
-        "command": "firebase use default && firebase deploy --only functions",
-        "options": {
-          "cwd": "${workspaceFolder:firebase-functions}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Firebase: (Dev) Deploy Rules",
-        "type": "shell",
-        "command": "firebase use default && firebase deploy --only firestore:rules",
-        "options": {
-          "cwd": "${workspaceFolder:firebase}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Firebase: (Dev) Deploy Indexes",
-        "type": "shell",
-        "command": "firebase use default && firebase deploy --only firestore:indexes",
-        "options": {
-          "cwd": "${workspaceFolder:firebase}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Firebase: (Prod) Deploy Functions",
-        "type": "shell",
-        "command": "firebase use prod && firebase deploy --only functions && firebase use default",
-        "options": {
-          "cwd": "${workspaceFolder:firebase-functions}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Firebase: (Prod) Deploy Rules",
-        "type": "shell",
-        "command": "firebase use prod && firebase deploy --only firestore:rules && firebase use default",
-        "options": {
-          "cwd": "${workspaceFolder:firebase}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Firebase: (Prod) Deploy Indexes",
-        "type": "shell",
-        "command": "firebase use prod && firebase deploy --only firestore:indexes && firebase use default",
-        "options": {
-          "cwd": "${workspaceFolder:firebase}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Firebase: Reauth Login",
-        "type": "shell",
-        "command": "firebase login --reauth",
-        "options": {
-          "cwd": "${workspaceFolder:firebase-functions}",
-        },
-        "problemMatcher": [],
-      },
       // ── Web (Next.js) ─────────────────────────────────
       {
         "label": "Web: Dev Server",
@@ -243,59 +184,53 @@
         },
         "problemMatcher": [],
       },
-      // ── Worker CLI ───────────────────────────────────
+      // ── Supabase ─────────────────────────────────────
       {
-        "label": "Worker CLI: (Dev) Run",
+        "label": "Supabase: Start",
         "type": "shell",
-        "command": "dart",
-        "args": [
-          "run",
-          "bin/openci_worker_cli.dart",
-          "--project-id",
-          "openci-dev-da298",
-          "--service-account",
-          "firebase_service_account_dev.json",
-        ],
+        "command": "make sb-start",
         "options": {
-          "cwd": "${workspaceFolder:openci_worker_cli}",
+          "cwd": "${workspaceFolder:server}",
         },
         "problemMatcher": [],
       },
       {
-        "label": "Worker CLI: (Prod) Run",
+        "label": "Supabase: Stop",
         "type": "shell",
-        "command": "dart",
-        "args": [
-          "run",
-          "bin/openci_worker_cli.dart",
-          "--project-id",
-          "openci-b1b91",
-          "--service-account",
-          "firebase_service_account.json",
-        ],
+        "command": "make sb-stop",
         "options": {
-          "cwd": "${workspaceFolder:openci_worker_cli}",
-        },
-        "problemMatcher": [],
-      },
-      // ── Publish ──────────────────────────────────────
-      {
-        "label": "Publish: Worker CLI",
-        "type": "shell",
-        "command": "dart pub publish",
-        "options": {
-          "cwd": "${workspaceFolder:openci_worker_cli}",
+          "cwd": "${workspaceFolder:server}",
         },
         "problemMatcher": [],
       },
       {
-        "label": "Publish: VM CLI",
+        "label": "Supabase: Reset (drop + migrate + seed)",
         "type": "shell",
-        "command": "dart pub publish",
+        "command": "make sb-reset",
         "options": {
-          "cwd": "${workspaceFolder:openci_vm_cli}",
+          "cwd": "${workspaceFolder:server}",
         },
         "problemMatcher": [],
+      },
+      {
+        "label": "Supabase: Status",
+        "type": "shell",
+        "command": "make sb-status",
+        "options": {
+          "cwd": "${workspaceFolder:server}",
+        },
+        "problemMatcher": [],
+      },
+      // ── Worker (TypeScript) ────────────────────────────
+      {
+        "label": "Worker: Dev Run",
+        "type": "shell",
+        "command": "pnpm tsx src/index.tsx",
+        "options": {
+          "cwd": "${workspaceFolder:worker}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
       },
     ],
   },

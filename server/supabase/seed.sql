@@ -19,51 +19,133 @@ INSERT INTO public.projects (id, org_id, name, slug, description, framework, pla
 VALUES (
   '00000000-0000-0000-0000-000000000010',
   '00000000-0000-0000-0000-000000000001',
-  'iOS Demo App',
-  'ios-demo-app',
-  'A sample iOS project for testing OpenCI workflows',
-  'Swift',
+  'OpenCI Demo',
+  'openci-demo',
+  'A sample project for testing OpenCI workflows',
+  'TypeScript',
   ARRAY['ios']
 )
 ON CONFLICT (org_id, slug) DO NOTHING;
 
--- Insert test workflow with GitHub Actions-style YAML
-INSERT INTO public.workflows (id, project_id, name, yaml_definition, is_active)
-VALUES (
-  '00000000-0000-0000-0000-000000000020',
-  '00000000-0000-0000-0000-000000000010',
-  'iOS Build & Deploy',
-  $yaml$
-name: iOS Build & Deploy
+-- Sample builds for worker testing (uses public repo — no token needed)
+-- yaml_definition is embedded directly in each build
+INSERT INTO public.builds (id, project_id, status, runner_os, github_owner, github_repo, commit_sha, branch, github_event, github_sender, yaml_definition)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000100',
+    '00000000-0000-0000-0000-000000000010',
+    'queued', 'macos',
+    'open-ci-io', 'openci',
+    '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
+    'push', 'demo-user',
+    $yaml$name: Simple Workflow
+
 on:
   push:
     branches:
-      - main
+      - develop
   pull_request:
     branches:
-      - main
+      - develop
 
 jobs:
-  build:
+  analyze:
+    runs-on: macos-latest
     steps:
-      - name: Install dependencies
-        run: bundle install
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Build and archive
-        run: fastlane build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-      - name: Upload to TestFlight
-        run: fastlane beta
-$yaml$,
-  true
-)
-ON CONFLICT DO NOTHING;
+      - name: Verify Node.js
+        run: |
+          echo "Node version: $(node --version)"
+          echo "npm version: $(npm --version)"
 
--- Insert matching workflow trigger
-INSERT INTO public.workflow_triggers (workflow_id, trigger_type, branch_pattern, github_repo)
-VALUES
-  ('00000000-0000-0000-0000-000000000020', 'push',         'main', 'demo-org/ios-demo-app'),
-  ('00000000-0000-0000-0000-000000000020', 'pull_request',  'main', 'demo-org/ios-demo-app')
+      - name: Hello World
+        run: echo "Hello World from OpenCI!"
+
+      - name: Show system info
+        run: |
+          echo "OS: $(uname -s)"
+          echo "Arch: $(uname -m)"
+          sw_vers
+$yaml$
+  ),
+  (
+    '00000000-0000-0000-0000-000000000101',
+    '00000000-0000-0000-0000-000000000010',
+    'queued', 'macos',
+    'open-ci-io', 'openci',
+    '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
+    'pull_request', 'demo-user',
+    $yaml$name: Simple Workflow
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  analyze:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify Node.js
+        run: |
+          echo "Node version: $(node --version)"
+          echo "npm version: $(npm --version)"
+
+      - name: Hello World
+        run: echo "Hello World from OpenCI!"
+
+      - name: Show system info
+        run: |
+          echo "OS: $(uname -s)"
+          echo "Arch: $(uname -m)"
+          sw_vers
+$yaml$
+  ),
+  (
+    '00000000-0000-0000-0000-000000000102',
+    '00000000-0000-0000-0000-000000000010',
+    'in_progress', 'macos',
+    'open-ci-io', 'openci',
+    '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
+    'push', 'demo-user',
+    NULL
+  ),
+  (
+    '00000000-0000-0000-0000-000000000103',
+    '00000000-0000-0000-0000-000000000010',
+    'success', 'macos',
+    'open-ci-io', 'openci',
+    '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
+    'push', 'demo-user',
+    NULL
+  ),
+  (
+    '00000000-0000-0000-0000-000000000104',
+    '00000000-0000-0000-0000-000000000010',
+    'failure', 'linux',
+    'open-ci-io', 'openci',
+    '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
+    'pull_request', 'demo-user',
+    NULL
+  )
 ON CONFLICT DO NOTHING;
 
 -- Worker config
