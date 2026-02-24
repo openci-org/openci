@@ -1,0 +1,24 @@
+name: Flutter Analyze
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  analyze:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Run Flutter analyze
+        run: flutter analyze
