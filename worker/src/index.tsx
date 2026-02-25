@@ -7,7 +7,8 @@ import { cleanupOrphanedVms, executeBuild } from "./executor.js";
 import { SupabaseWorkerClient } from "./supabase.js";
 import type { Build } from "./types.js";
 
-config({ path: ".env.local" });
+const envArg = process.argv.includes("--prod") ? ".env.production.local" : ".env.local";
+config({ path: envArg });
 
 const VERSION = "0.1.0";
 const POLLING_INTERVAL_MS = 10_000;

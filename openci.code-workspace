@@ -232,6 +232,16 @@
         "problemMatcher": [],
         "isBackground": true,
       },
+      {
+        "label": "Worker: Production Run",
+        "type": "shell",
+        "command": "pnpm tsx src/index.tsx --prod",
+        "options": {
+          "cwd": "${workspaceFolder:worker}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
+      },
       // ── Server (Deploy) ────────────────────────────
       {
         "label": "Server: Deploy Production",

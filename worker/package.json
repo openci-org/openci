@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/react": "^18.3.18",
     "oxlint": "^1.49.0",
+    "react-devtools-core": "^7.0.1",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   }
