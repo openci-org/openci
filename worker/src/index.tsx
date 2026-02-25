@@ -2,15 +2,33 @@ import { config } from "dotenv";
 import { Box, render, Text } from "ink";
 import Spinner from "ink-spinner";
 import meow from "meow";
+import os from "node:os";
 import { useEffect, useState } from "react";
 import { cleanupOrphanedVms, executeBuild } from "./executor.js";
 import { SupabaseWorkerClient } from "./supabase.js";
 import type { Build } from "./types.js";
 
+function getMachineInfo() {
+  const cpus = os.cpus();
+  const totalMemoryGB = (os.totalmem() / 1024 / 1024 / 1024).toFixed(1);
+  const freeMemoryGB = (os.freemem() / 1024 / 1024 / 1024).toFixed(1);
+  return {
+    hostname: os.hostname(),
+    platform: os.platform(),
+    arch: os.arch(),
+    cpuModel: cpus[0]?.model?.trim() ?? "unknown",
+    cpuCores: cpus.length,
+    totalMemoryGB,
+    freeMemoryGB,
+  };
+}
+
+const machineInfo = getMachineInfo();
+
 const envArg = process.argv.includes("--prod") ? ".env.production.local" : ".env.local";
 config({ path: envArg });
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const POLLING_INTERVAL_MS = 10_000;
 
 const cli = meow(
@@ -128,6 +146,17 @@ function App() {
         </Text>
         <Text>
           Worker: <Text bold>{workerId}</Text>
+        </Text>
+        <Text>
+          Host: <Text bold>{machineInfo.hostname}</Text>
+          <Text dimColor>
+            {" "}
+            ({machineInfo.platform}/{machineInfo.arch})
+          </Text>
+        </Text>
+        <Text dimColor>
+          CPU: {machineInfo.cpuModel} ({machineInfo.cpuCores} cores) · RAM:{" "}
+          {machineInfo.freeMemoryGB}/{machineInfo.totalMemoryGB} GB
         </Text>
         <Text dimColor>
           Polls: {pollCount} · Last: {lastPollAt} · Queued: {queuedCount} · Completed:{" "}
