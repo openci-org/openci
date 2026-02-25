@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { getMachineInfo } from "./machine.js";
 import type { SupabaseWorkerClient } from "./supabase.js";
 import type { Build } from "./types.js";
 
@@ -121,6 +122,12 @@ export async function executeBuild(runner: BuildRunner): Promise<"success" | "fa
   };
 
   try {
+    const machine = getMachineInfo();
+    log(`Worker: ${workerId} on ${machine.hostname} (${machine.platform}/${machine.arch})`);
+    log(
+      `CPU: ${machine.cpuModel} (${machine.cpuCores} cores) · RAM: ${machine.freeMemoryGB}/${machine.totalMemoryGB} GB`,
+    );
+
     const { yaml_definition: yamlDefinition } = build;
 
     if (!yamlDefinition) {
