@@ -3,16 +3,17 @@ name: Flutter Analyze
 on:
   push:
     branches:
-      - main
       - develop
   pull_request:
     branches:
-      - main
       - develop
 
 jobs:
   analyze:
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -15,7 +15,9 @@ export interface Build {
   pull_request_number: number | null;
   github_event: string | null;
   github_sender: string | null;
+  installation_id: number | null;
   installation_token: string | null;
+  check_run_id: number | null;
   created_at: string;
   updated_at: string;
 }

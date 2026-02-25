@@ -6,3 +6,8 @@ node_modules/
 .vercel
 .env*.local
 !web/.env.local
+
+worker/openci-worker
+worker/dist/
+worker/config*.json
+bun.lock
