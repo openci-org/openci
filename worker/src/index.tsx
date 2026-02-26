@@ -10,7 +10,7 @@ import { checkForUpdate, performUpdate, restartWorker } from "./updater.js";
 
 const machineInfo = getMachineInfo();
 
-const VERSION = "0.4.2";
+const VERSION = "0.4.3";
 const POLLING_INTERVAL_MS = 10_000;
 
 const cli = meow(
@@ -144,8 +144,8 @@ function App() {
               addLog("Update failed. Will retry later.");
             }
           }
-        } catch {
-          // silently ignore update check failures
+        } catch (err) {
+          addLog(`Update check error: ${err instanceof Error ? err.message : err}`);
         }
 
         await new Promise((r) => setTimeout(r, POLLING_INTERVAL_MS));

@@ -53,17 +53,25 @@ export async function checkForUpdate(currentVersion: string): Promise<string | n
 }
 
 export function performUpdate(): boolean {
+  const env = {
+    ...process.env,
+    PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`,
+  };
+
   try {
     execSync("brew update", {
       stdio: "inherit",
       timeout: 120_000,
+      env,
     });
     execSync("brew upgrade open-ci-io/tap/openci-worker", {
       stdio: "inherit",
       timeout: 120_000,
+      env,
     });
     return true;
-  } catch {
+  } catch (err) {
+    console.error("performUpdate failed:", err instanceof Error ? err.message : err);
     return false;
   }
 }
