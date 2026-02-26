@@ -1,6 +1,6 @@
 {
   "name": "openci-worker",
-  "version": "0.1.0",
+  "version": "0.4.1",
   "description": "OpenCI Worker CLI — polls Supabase for build jobs and executes them via act",
   "bin": {
     "openci-worker": "./dist/index.js"
@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "latest",
-    "dotenv": "^17.3.1",
     "ink": "^5.1.0",
     "ink-spinner": "^5.0.0",
     "meow": "^13.0.0",
@@ -26,6 +25,7 @@
   "devDependencies": {
     "@types/react": "^18.3.18",
     "oxlint": "^1.49.0",
+    "react-devtools-core": "^7.0.1",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   }

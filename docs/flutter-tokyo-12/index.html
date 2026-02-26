@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenCI — Flutter Tokyo #12</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #0a0a0f;
+        --surface: #12121a;
+        --border: #1e1e2e;
+        --text: #e4e4e7;
+        --text-dim: #71717a;
+        --accent: #6366f1;
+        --accent-light: #818cf8;
+        --green: #22c55e;
+        --orange: #f59e0b;
+        --pink: #ec4899;
+        --cyan: #06b6d4;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      .deck {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 60px 80px;
+        opacity: 0;
+        transform: translateX(40px);
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease;
+        pointer-events: none;
+      }
+
+      .slide.active {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+
+      .slide.prev {
+        opacity: 0;
+        transform: translateX(-40px);
+      }
+
+      h1 {
+        font-size: 4rem;
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        margin-bottom: 24px;
+      }
+
+      h2 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin-bottom: 20px;
+      }
+
+      h3 {
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: var(--text-dim);
+        margin-bottom: 12px;
+      }
+
+      p,
+      li {
+        font-size: 1.5rem;
+        line-height: 1.7;
+        color: var(--text);
+      }
+
+      .subtitle {
+        font-size: 1.6rem;
+        color: var(--text-dim);
+        font-weight: 500;
+      }
+
+      .gradient-text {
+        background: linear-gradient(135deg, var(--accent-light), var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .gradient-pink {
+        background: linear-gradient(135deg, var(--pink), var(--orange));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .gradient-green {
+        background: linear-gradient(135deg, var(--green), var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      ul {
+        list-style: none;
+        text-align: left;
+        max-width: 900px;
+      }
+
+      ul li {
+        padding: 10px 0;
+        padding-left: 32px;
+        position: relative;
+      }
+
+      ul li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--accent-light);
+        font-weight: 700;
+      }
+
+      .code-block {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px 40px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.2rem;
+        line-height: 1.8;
+        text-align: left;
+        max-width: 800px;
+        width: 100%;
+        margin-top: 20px;
+        color: var(--text);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .code-block::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--cyan), var(--pink));
+      }
+
+      .code-label {
+        position: absolute;
+        top: 14px;
+        right: 20px;
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        font-family: "Inter", sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .kw {
+        color: var(--pink);
+      }
+      .str {
+        color: var(--green);
+      }
+      .key {
+        color: var(--cyan);
+      }
+      .comment {
+        color: var(--text-dim);
+      }
+
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        max-width: 1000px;
+        width: 100%;
+        margin-top: 32px;
+      }
+
+      .pricing-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 36px 28px;
+        text-align: center;
+        transition:
+          transform 0.3s ease,
+          border-color 0.3s ease;
+      }
+
+      .pricing-card:hover {
+        transform: translateY(-4px);
+      }
+
+      .pricing-card.featured {
+        border-color: var(--accent);
+        background: linear-gradient(180deg, rgba(99, 102, 241, 0.08), var(--surface));
+        position: relative;
+      }
+
+      .pricing-card.featured::after {
+        content: "POPULAR";
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--accent);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 4px 16px;
+        border-radius: 20px;
+        letter-spacing: 0.1em;
+      }
+
+      .pricing-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-dim);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .pricing-price {
+        font-size: 3rem;
+        font-weight: 900;
+        margin-bottom: 8px;
+        letter-spacing: -0.03em;
+      }
+
+      .pricing-unit {
+        font-size: 1rem;
+        color: var(--text-dim);
+        margin-bottom: 20px;
+      }
+
+      .pricing-feature {
+        font-size: 1rem;
+        color: var(--text);
+        padding: 6px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .pricing-feature:first-of-type {
+        border-top: none;
+      }
+
+      .stats-row {
+        display: flex;
+        gap: 48px;
+        margin-top: 40px;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 3.5rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+
+      .stat-label {
+        font-size: 1rem;
+        color: var(--text-dim);
+        margin-top: 4px;
+      }
+
+      .badge {
+        display: inline-block;
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--accent-light);
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        letter-spacing: 0.03em;
+      }
+
+      .pain-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        max-width: 1000px;
+        margin-top: 32px;
+      }
+
+      .pain-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px 24px;
+        text-align: center;
+      }
+
+      .pain-icon {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+      }
+
+      .pain-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .pain-desc {
+        font-size: 0.95rem;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+
+      .dc-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        max-width: 900px;
+        margin-top: 28px;
+      }
+
+      .dc-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .dc-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+      }
+
+      .dc-text {
+        text-align: left;
+      }
+
+      .dc-text strong {
+        display: block;
+        font-size: 1.1rem;
+        margin-bottom: 4px;
+      }
+
+      .dc-text span {
+        font-size: 0.9rem;
+        color: var(--text-dim);
+      }
+
+      .slide-counter {
+        position: fixed;
+        bottom: 24px;
+        right: 32px;
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        font-variant-numeric: tabular-nums;
+        z-index: 100;
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--cyan));
+        transition: width 0.4s ease;
+        z-index: 100;
+      }
+
+      .cta-links {
+        display: flex;
+        gap: 32px;
+        margin-top: 32px;
+      }
+
+      .cta-link {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 32px;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text);
+        transition: border-color 0.3s ease;
+      }
+
+      .cta-link:hover {
+        border-color: var(--accent);
+      }
+
+      .cta-link strong {
+        display: block;
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+      }
+
+      .cta-link span {
+        font-size: 0.9rem;
+        color: var(--text-dim);
+      }
+
+      .center-text {
+        text-align: center;
+      }
+
+      .features-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        max-width: 900px;
+        margin-top: 24px;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.3rem;
+        padding: 12px 0;
+      }
+
+      .feature-check {
+        color: var(--green);
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+
+      .comparison-table {
+        max-width: 900px;
+        width: 100%;
+        margin-top: 28px;
+        border-collapse: collapse;
+      }
+
+      .comparison-table th,
+      .comparison-table td {
+        padding: 16px 24px;
+        text-align: center;
+        font-size: 1.15rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .comparison-table th {
+        color: var(--text-dim);
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .comparison-table td:first-child {
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .comparison-table .highlight {
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      .comparison-table .negative {
+        color: var(--pink);
+      }
+
+      .emoji-big {
+        font-size: 5rem;
+        margin-bottom: 20px;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      .float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+        50% {
+          box-shadow: 0 0 40px rgba(99, 102, 241, 0.25);
+        }
+      }
+
+      .glow {
+        animation: pulse-glow 3s ease-in-out infinite;
+      }
+
+      .dc-photo-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        max-width: 1100px;
+        width: 100%;
+        align-items: center;
+      }
+
+      .dc-photo-img {
+        width: 100%;
+        max-height: 500px;
+        object-fit: cover;
+        border-radius: 20px;
+        border: 2px solid var(--border);
+      }
+
+      .dc-photo-info {
+        text-align: left;
+      }
+
+      .dc-photo-info h2 {
+        text-align: left;
+      }
+
+      .dc-mini-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .dc-mini-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.95rem;
+      }
+
+      .dc-mini-item .icon {
+        font-size: 1.3rem;
+        flex-shrink: 0;
+      }
+
+      .thanks-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        max-width: 900px;
+        width: 100%;
+        margin-top: 28px;
+      }
+
+      .thanks-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        text-align: left;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .thanks-emoji {
+        font-size: 1.8rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .thanks-name {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--accent-light);
+        margin-bottom: 4px;
+      }
+
+      .thanks-desc {
+        font-size: 0.95rem;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+
+      .cta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        max-width: 900px;
+        width: 100%;
+        margin-top: 28px;
+      }
+
+      .cta-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px 20px;
+        text-align: center;
+        transition: border-color 0.3s ease, transform 0.3s ease;
+      }
+
+      .cta-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-3px);
+      }
+
+      .cta-card .cta-icon {
+        font-size: 2rem;
+        margin-bottom: 12px;
+      }
+
+      .cta-card strong {
+        display: block;
+        font-size: 1.15rem;
+        margin-bottom: 6px;
+      }
+
+      .cta-card span {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+
+      .qr-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        max-width: 900px;
+        width: 100%;
+        margin-top: 32px;
+      }
+
+      .qr-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        transition: border-color 0.3s ease, transform 0.3s ease;
+      }
+
+      .qr-item:hover {
+        border-color: var(--accent);
+        transform: translateY(-3px);
+      }
+
+      .qr-item img {
+        width: 150px;
+        height: 150px;
+        border-radius: 8px;
+        background: white;
+        padding: 8px;
+      }
+
+      .qr-label {
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .qr-url {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress-bar" id="progress"></div>
+    <div class="slide-counter" id="counter"></div>
+
+    <div class="deck" id="deck">
+      <!-- Slide 1: Title -->
+      <div class="slide active center-text">
+        <div class="badge">Flutter Tokyo #12 · 会場スポンサー</div>
+        <h1><span class="gradient-text">OpenCI</span></h1>
+        <p class="subtitle" style="font-size: 2rem; margin-top: 8px">Flutter のための OSS CI/CD</p>
+        <div class="stats-row" style="margin-top: 48px">
+          <div class="stat-item">
+            <div class="stat-number gradient-text">OSS</div>
+            <div class="stat-label">完全オープンソース</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number gradient-green">4社</div>
+            <div class="stat-label">導入決定済み</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number gradient-pink">¥0〜</div>
+            <div class="stat-label">毎月60分無料</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2: Pain Points -->
+      <div class="slide center-text">
+        <h2>Flutter の CI/CD、<br /><span class="gradient-pink">つらくないですか？</span></h2>
+        <div class="pain-grid">
+          <div class="pain-card">
+            <div class="pain-icon">💸</div>
+            <div class="pain-title">GitHub Actions</div>
+            <div class="pain-desc">macOS ランナーは<br />Linux の <strong>10倍</strong> の料金</div>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">🔒</div>
+            <div class="pain-title">Codemagic / Bitrise</div>
+            <div class="pain-desc">便利だけど料金が不透明<br />ロックインされる</div>
+          </div>
+          <div class="pain-card">
+            <div class="pain-icon">😵</div>
+            <div class="pain-title">設定の複雑さ</div>
+            <div class="pain-desc">エラーが出ても<br />何が悪いかわからない</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3: What is OpenCI -->
+      <div class="slide center-text">
+        <div class="badge">SOLUTION</div>
+        <h2><span class="gradient-text">OpenCI</span> とは</h2>
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <span>完全 <strong>OSS</strong></span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>GitHub Actions 互換</strong> YAML</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <span>Flutter 特化の <strong>UX</strong></span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>macOS / Linux</strong> 両対応</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <span>push → <strong>自動ビルド</strong></span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-check">✓</span>
+            <span><strong>リアルタイム</strong> ログ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 4: YAML Example -->
+      <div class="slide center-text">
+        <h2>GitHub Actions 使えるなら<br /><span class="gradient-green">そのまま使えます</span></h2>
+        <div class="code-block glow">
+          <div class="code-label">openci.yaml</div>
+          <span class="kw">on</span>: <span class="str">push</span><br /><br />
+          <span class="kw">jobs</span>:<br />
+          &nbsp;&nbsp;<span class="key">build</span>:<br />
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on</span>:
+          <span class="str">macos-latest</span><br />
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps</span>:<br />
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">uses</span>:
+          <span class="str">actions/checkout@v4</span><br />
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">run</span>:
+          <span class="str">flutter build ipa</span>
+        </div>
+        <p style="margin-top: 20px; color: var(--text-dim); font-size: 1.1rem">
+          移行コスト、ほぼゼロ。
+        </p>
+      </div>
+
+      <!-- Slide 5: Data Center with Photo -->
+      <div class="slide">
+        <div class="dc-photo-layout">
+          <img src="dc-photo.jpg" alt="DC構築中" class="dc-photo-img" />
+          <div class="dc-photo-info">
+            <div class="badge">INFRASTRUCTURE</div>
+            <h2>自前DC<br /><span class="gradient-pink">茨城県に構築中</span></h2>
+            <div class="dc-mini-grid">
+              <div class="dc-mini-item">
+                <span class="icon">🖥️</span>
+                <span><strong>Mac Mini</strong> 増設中</span>
+              </div>
+              <div class="dc-mini-item">
+                <span class="icon">🌐</span>
+                <span><strong>Unifi</strong> ネットワーク</span>
+              </div>
+              <div class="dc-mini-item">
+                <span class="icon">🔋</span>
+                <span><strong>UPS</strong> 無停電</span>
+              </div>
+              <div class="dc-mini-item">
+                <span class="icon">📡</span>
+                <span><strong>Starlink</strong> 回線</span>
+              </div>
+            </div>
+            <p style="margin-top: 20px; font-size: 1.1rem; color: var(--text-dim)">
+              クラウド macOS は高すぎる。<br />自前で劇的コスト削減。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 6: Price Comparison -->
+      <div class="slide center-text">
+        <h2>GitHub Actions と<span class="gradient-text">比べてみると</span></h2>
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>GitHub Actions</th>
+              <th style="color: var(--accent-light)">OpenCI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>macOS ビルド単価</td>
+              <td class="negative">$0.08 /分</td>
+              <td class="highlight">定額制</td>
+            </tr>
+            <tr>
+              <td>月100分のコスト</td>
+              <td class="negative">〜$8 (¥1,200)</td>
+              <td class="highlight">¥980</td>
+            </tr>
+            <tr>
+              <td>月300分のコスト</td>
+              <td class="negative">〜$24 (¥3,600)</td>
+              <td class="highlight">¥2,980</td>
+            </tr>
+            <tr>
+              <td>同時ビルド</td>
+              <td>制限あり</td>
+              <td class="highlight">最大 3 並列</td>
+            </tr>
+            <tr>
+              <td>OSS</td>
+              <td>—</td>
+              <td class="highlight">✓</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Slide 7: Pricing -->
+      <div class="slide center-text">
+        <h2>Pricing</h2>
+        <div class="pricing-grid">
+          <div class="pricing-card">
+            <div class="pricing-name">Free</div>
+            <div class="pricing-price gradient-green">¥0</div>
+            <div class="pricing-unit">/月</div>
+            <div class="pricing-feature">毎月 60分まで無料</div>
+            <div class="pricing-feature">同時 1 ビルド</div>
+            <div class="pricing-feature">まずはお試し</div>
+          </div>
+          <div class="pricing-card">
+            <div class="pricing-name">Starter</div>
+            <div class="pricing-price gradient-text">¥980</div>
+            <div class="pricing-unit">/月</div>
+            <div class="pricing-feature">無制限ビルド</div>
+            <div class="pricing-feature">同時 1 ビルド</div>
+            <div class="pricing-feature">個人開発者向け</div>
+          </div>
+          <div class="pricing-card featured">
+            <div class="pricing-name">Pro</div>
+            <div class="pricing-price gradient-pink">¥2,980</div>
+            <div class="pricing-unit">/月</div>
+            <div class="pricing-feature">無制限ビルド</div>
+            <div class="pricing-feature">同時 3 ビルド</div>
+            <div class="pricing-feature">チーム向け</div>
+          </div>
+        </div>
+        <p style="margin-top: 28px; font-size: 1.4rem; font-weight: 700">
+          すでに <span class="gradient-green">4社</span> の導入が決定 🎉
+        </p>
+      </div>
+
+      <!-- Slide 8: Special Thanks -->
+      <div class="slide center-text">
+        <div class="badge">SPECIAL THANKS</div>
+        <h2><span class="gradient-text">ありがとうございます</span> 🙏</h2>
+        <div class="thanks-grid">
+          <div class="thanks-card">
+            <div class="thanks-emoji">🛠️</div>
+            <div>
+              <div class="thanks-name">@flog_kt</div>
+              <div class="thanks-desc">DC構築および開発を<br />手伝ってくれました</div>
+            </div>
+          </div>
+          <div class="thanks-card">
+            <div class="thanks-emoji">🎁</div>
+            <div>
+              <div class="thanks-name">@jboy</div>
+              <div class="thanks-desc">M2 Mac Mini の<br />ご寄付ありがとうございます</div>
+            </div>
+          </div>
+          <div class="thanks-card">
+            <div class="thanks-emoji">🎁</div>
+            <div>
+              <div class="thanks-name">@heaven_osk</div>
+              <div class="thanks-desc">M1 MacBook Air の<br />ご寄付ありがとうございます</div>
+            </div>
+          </div>
+          <div class="thanks-card">
+            <div class="thanks-emoji">🎁</div>
+            <div>
+              <div class="thanks-name">@hobbydevelop</div>
+              <div class="thanks-desc">M4 Mac Mini の<br />ご寄付ありがとうございます</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 9: CTA -->
+      <div class="slide center-text">
+        <h1 style="font-size: 2.8rem">
+          <span class="gradient-text">OpenCI を使おう</span>
+        </h1>
+        <p style="font-size: 1.15rem; color: var(--text-dim); margin-bottom: 4px">
+          契約 ¥0〜 / Mac Mini 寄付も募集中！
+        </p>
+        <div class="qr-grid">
+          <div class="qr-item">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fopenci.org" alt="openci.org QR" />
+            <div class="qr-label">🌐 Website</div>
+            <div class="qr-url">openci.org</div>
+          </div>
+          <div class="qr-item">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fgithub.com%2Fopen-ci-io%2Fopenci" alt="GitHub QR" />
+            <div class="qr-label">⭐ GitHub</div>
+            <div class="qr-url">github.com/open-ci-io/openci</div>
+          </div>
+          <div class="qr-item">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fx.com%2Fopen_ci_io" alt="Twitter QR" />
+            <div class="qr-label">𝕏 Twitter</div>
+            <div class="qr-url">x.com/open_ci_io</div>
+          </div>
+        </div>
+        <p style="margin-top: 20px; font-size: 1.1rem; color: var(--text-dim)">
+          フィードバック・コントリビューション・Mac Mini 寄付、大歓迎！
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const slides = document.querySelectorAll(".slide");
+      const counter = document.getElementById("counter");
+      const progress = document.getElementById("progress");
+      let current = 0;
+
+      function updateSlide() {
+        slides.forEach((s, i) => {
+          s.classList.remove("active", "prev");
+          if (i === current) s.classList.add("active");
+          else if (i < current) s.classList.add("prev");
+        });
+        counter.textContent = `${current + 1} / ${slides.length}`;
+        progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+      }
+
+      function next() {
+        if (current < slides.length - 1) {
+          current++;
+          updateSlide();
+        }
+      }
+
+      function prev() {
+        if (current > 0) {
+          current--;
+          updateSlide();
+        }
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          next();
+        }
+        if (e.key === "ArrowLeft" || e.key === "Backspace") {
+          e.preventDefault();
+          prev();
+        }
+      });
+
+      let touchStartX = 0;
+      document.addEventListener("touchstart", (e) => {
+        touchStartX = e.touches[0].clientX;
+      });
+      document.addEventListener("touchend", (e) => {
+        const diff = touchStartX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) {
+          diff > 0 ? next() : prev();
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (e.clientX > window.innerWidth / 2) next();
+        else prev();
+      });
+
+      updateSlide();
+    </script>
+  </body>
+</html>

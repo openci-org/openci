@@ -90,6 +90,13 @@ function escapeRegex(str: string): string {
 }
 
 export async function POST(request: Request) {
+  console.log("Webhook received", {
+    SUPABASE_URL: Boolean(SUPABASE_URL),
+    SUPABASE_SERVICE_ROLE_KEY: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+    GITHUB_APP_ID: Boolean(GITHUB_APP_ID),
+    GITHUB_PRIVATE_KEY: Boolean(GITHUB_PRIVATE_KEY),
+    GITHUB_WEBHOOK_SECRET: Boolean(GITHUB_WEBHOOK_SECRET),
+  });
   const body = await request.text();
   const signature = request.headers.get("x-hub-signature-256") ?? "";
   const event = request.headers.get("x-github-event") ?? "";
@@ -187,7 +194,7 @@ export async function POST(request: Request) {
 
   const supabase = getServiceClient();
 
-  const { data: project } = await supabase
+  const { data: project, error: projectError } = await supabase
     .from("projects")
     .select("id")
     .eq("github_owner", owner)
@@ -195,7 +202,7 @@ export async function POST(request: Request) {
     .single();
 
   if (!project) {
-    console.log(`No project found for ${fullName}`);
+    console.log(`No project found for ${fullName}`, { owner, repoName, error: projectError });
     return NextResponse.json({ received: true, processed: false, reason: "no matching project" });
   }
 

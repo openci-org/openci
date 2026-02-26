@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { getMachineInfo } from "./machine.js";
 import type { SupabaseWorkerClient } from "./supabase.js";
 import type { Build } from "./types.js";
 
@@ -62,6 +63,42 @@ async function waitForVmReady(vmName: string, onLog: (msg: string) => void): Pro
   throw new Error("VM boot timeout: Guest Agent did not respond.");
 }
 
+async function updateCheckRun(
+  build: Build,
+  conclusion: "success" | "failure",
+  summary: string,
+): Promise<void> {
+  if (!build.check_run_id || !build.installation_token) return;
+
+  const url = `https://api.github.com/repos/${build.github_owner}/${build.github_repo}/check-runs/${build.check_run_id}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `token ${build.installation_token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        status: "completed",
+        conclusion,
+        completed_at: new Date().toISOString(),
+        output: {
+          title: conclusion === "success" ? "Build Passed" : "Build Failed",
+          summary,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      console.error(`Failed to update check run: ${res.status} ${await res.text()}`);
+    }
+  } catch (err) {
+    console.error("Failed to update check run:", err);
+  }
+}
+
 export interface BuildRunner {
   vmName: string;
   build: Build;
@@ -85,6 +122,12 @@ export async function executeBuild(runner: BuildRunner): Promise<"success" | "fa
   };
 
   try {
+    const machine = getMachineInfo();
+    log(`Worker: ${workerId} on ${machine.hostname} (${machine.platform}/${machine.arch})`);
+    log(
+      `CPU: ${machine.cpuModel} (${machine.cpuCores} cores) · RAM: ${machine.freeMemoryGB}/${machine.totalMemoryGB} GB`,
+    );
+
     const { yaml_definition: yamlDefinition } = build;
 
     if (!yamlDefinition) {
@@ -157,12 +200,14 @@ export async function executeBuild(runner: BuildRunner): Promise<"success" | "fa
     log("Build completed successfully!");
     await supabase.updateBuildStatus(build.id, "success");
     if (buildRunId) await supabase.completeBuildRun(buildRunId, "success");
+    await updateCheckRun(build, "success", "All steps passed.");
     return "success";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log(`Build failed: ${message}`, "error");
     await supabase.updateBuildStatus(build.id, "failure");
     if (buildRunId) await supabase.completeBuildRun(buildRunId, "failure");
+    await updateCheckRun(build, "failure", message);
     return "failure";
   } finally {
     log("Cleaning up VM...");
