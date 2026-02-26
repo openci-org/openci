@@ -3,21 +3,18 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
-  Organization,
-  OrganizationWithRole,
-  ProjectWithLastBuild,
-  WorkflowWithTriggers,
   Build,
   BuildLog,
   EnvironmentVariable,
-  OrgMember,
+  Organization,
+  OrganizationWithRole,
   OrgInvitation,
+  OrgMember,
+  WorkflowWithTriggers,
 } from "./types";
 
 // Returns all organizations the current user belongs to, with their role.
-export async function getUserOrgs(
-  supabase: SupabaseClient
-): Promise<OrganizationWithRole[]> {
+export async function getUserOrgs(supabase: SupabaseClient): Promise<OrganizationWithRole[]> {
   const { data, error } = await supabase
     .from("org_members")
     .select(
@@ -27,14 +24,12 @@ export async function getUserOrgs(
         id, name, slug, billing_enabled, stripe_customer_id,
         stripe_subscription_id, created_at, updated_at
       )
-    `
+    `,
     )
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
 
-  // Deduplicate by org id, keeping the first occurrence (highest-privilege role
-  // would appear first if the user has multiple memberships for the same org).
   const seen = new Set<string>();
   const result: OrganizationWithRole[] = [];
   for (const row of data) {
@@ -49,116 +44,22 @@ export async function getUserOrgs(
 // Returns a single organization by slug, or null if not found / not a member.
 export async function getOrgBySlug(
   supabase: SupabaseClient,
-  slug: string
+  slug: string,
 ): Promise<OrganizationWithRole | null> {
   const orgs = await getUserOrgs(supabase);
   return orgs.find((o) => o.slug === slug) ?? null;
 }
 
-// Returns all projects in an org with last build status and counts.
-export async function getOrgProjects(
-  supabase: SupabaseClient,
-  orgId: string
-): Promise<ProjectWithLastBuild[]> {
-  const { data, error } = await supabase
-    .from("projects")
-    .select(
-      `
-      id, org_id, name, slug, description, framework, platforms,
-      created_at, updated_at,
-      builds (
-        id, status, branch, created_at
-      ),
-      workflows (id)
-    `
-    )
-    .eq("org_id", orgId)
-    .order("created_at", { ascending: true });
-
-  if (error || !data) return [];
-
-  return data.map((project) => {
-    const builds = (project.builds as Build[]) ?? [];
-    const lastBuild =
-      builds.length > 0
-        ? builds.reduce((a, b) =>
-            new Date(a.created_at) > new Date(b.created_at) ? a : b
-          )
-        : null;
-
-    return {
-      id: project.id,
-      org_id: project.org_id,
-      name: project.name,
-      slug: project.slug,
-      description: project.description,
-      framework: project.framework,
-      platforms: project.platforms,
-      created_at: project.created_at,
-      updated_at: project.updated_at,
-      last_build: lastBuild
-        ? {
-            id: lastBuild.id,
-            status: lastBuild.status,
-            branch: lastBuild.branch,
-            created_at: lastBuild.created_at,
-          }
-        : null,
-      build_count: builds.length,
-      workflow_count: ((project.workflows as { id: string }[]) ?? []).length,
-    };
-  });
-}
-
-// Returns a single project by slug within an org.
-export async function getProjectBySlug(
+// Returns builds for an org, newest first.
+export async function getOrgBuilds(
   supabase: SupabaseClient,
   orgId: string,
-  slug: string
-) {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("org_id", orgId)
-    .eq("slug", slug)
-    .single();
-
-  if (error) return null;
-  return data;
-}
-
-// Returns a single project by id.
-// When orgId is provided, also filters by org_id as defense-in-depth
-// to prevent cross-org access when a user belongs to multiple organizations.
-export async function getProjectById(
-  supabase: SupabaseClient,
-  projectId: string,
-  orgId?: string
-) {
-  let query = supabase
-    .from("projects")
-    .select("*")
-    .eq("id", projectId);
-
-  if (orgId) {
-    query = query.eq("org_id", orgId);
-  }
-
-  const { data, error } = await query.single();
-  if (error) return null;
-  return data;
-}
-
-// Returns builds for a project, newest first.
-export async function getProjectBuilds(
-  supabase: SupabaseClient,
-  projectId: string,
-  limit = 50
+  limit = 50,
 ): Promise<Build[]> {
   const { data, error } = await supabase
     .from("builds")
     .select("*")
-    .eq("project_id", projectId)
+    .eq("org_id", orgId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -176,7 +77,7 @@ export async function getBuildById(supabase: SupabaseClient, buildId: string) {
       build_runs (
         id, status, conclusion, created_at, updated_at
       )
-    `
+    `,
     )
     .eq("id", buildId)
     .single();
@@ -188,7 +89,7 @@ export async function getBuildById(supabase: SupabaseClient, buildId: string) {
 // Returns logs for a build run, in order.
 export async function getBuildRunLogs(
   supabase: SupabaseClient,
-  buildRunId: string
+  buildRunId: string,
 ): Promise<BuildLog[]> {
   const { data, error } = await supabase
     .from("build_logs")
@@ -201,23 +102,22 @@ export async function getBuildRunLogs(
 }
 
 // Returns a signed download URL for an archived build log file in Supabase Storage.
-// Returns null if the build has no archive yet (in progress or archive not created).
 export async function getBuildLogDownloadUrl(
   supabase: SupabaseClient,
-  logArchivePath: string
+  logArchivePath: string,
 ): Promise<string | null> {
   const { data, error } = await supabase.storage
     .from("build-logs")
-    .createSignedUrl(logArchivePath, 300); // 5-minute expiry
+    .createSignedUrl(logArchivePath, 300);
 
   if (error || !data?.signedUrl) return null;
   return data.signedUrl;
 }
 
-// Returns workflows for a project with their triggers.
-export async function getProjectWorkflows(
+// Returns workflows for an org with their triggers.
+export async function getOrgWorkflows(
   supabase: SupabaseClient,
-  projectId: string
+  orgId: string,
 ): Promise<WorkflowWithTriggers[]> {
   const { data, error } = await supabase
     .from("workflows")
@@ -228,9 +128,9 @@ export async function getProjectWorkflows(
       builds (
         id, status, created_at
       )
-    `
+    `,
     )
-    .eq("project_id", projectId)
+    .eq("org_id", orgId)
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
@@ -239,9 +139,7 @@ export async function getProjectWorkflows(
     const builds = (wf.builds as Build[]) ?? [];
     const lastBuild =
       builds.length > 0
-        ? builds.reduce((a, b) =>
-            new Date(a.created_at) > new Date(b.created_at) ? a : b
-          )
+        ? builds.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
         : null;
 
     return {
@@ -261,7 +159,7 @@ export async function getProjectWorkflows(
 // Returns a single workflow with its triggers, or null if not found.
 export async function getWorkflowById(
   supabase: SupabaseClient,
-  workflowId: string
+  workflowId: string,
 ): Promise<WorkflowWithTriggers | null> {
   const { data, error } = await supabase
     .from("workflows")
@@ -272,7 +170,7 @@ export async function getWorkflowById(
       builds (
         id, status, created_at
       )
-    `
+    `,
     )
     .eq("id", workflowId)
     .single();
@@ -282,9 +180,7 @@ export async function getWorkflowById(
   const builds = (data.builds as Build[]) ?? [];
   const lastBuild =
     builds.length > 0
-      ? builds.reduce((a, b) =>
-          new Date(a.created_at) > new Date(b.created_at) ? a : b
-        )
+      ? builds.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
       : null;
 
   return {
@@ -300,29 +196,29 @@ export async function getWorkflowById(
   };
 }
 
-// Returns environment variables for a project (excludes plain values for secrets).
-export async function getProjectEnvVars(
+// Returns environment variables for an org (excludes plain values for secrets).
+export async function getOrgEnvVars(
   supabase: SupabaseClient,
-  projectId: string
+  orgId: string,
 ): Promise<EnvironmentVariable[]> {
   const { data, error } = await supabase
     .from("environment_variables")
-    .select("id, project_id, key, is_secret, auto_increment, created_at, updated_at")
-    .eq("project_id", projectId)
+    .select("id, org_id, key, is_secret, auto_increment, created_at, updated_at")
+    .eq("org_id", orgId)
     .order("key", { ascending: true });
 
   if (error || !data) return [];
   return data as EnvironmentVariable[];
 }
 
-// Returns a single environment variable by id (excludes value and vault_secret_id for security).
+// Returns a single environment variable by id.
 export async function getEnvVarById(
   supabase: SupabaseClient,
-  envVarId: string
+  envVarId: string,
 ): Promise<EnvironmentVariable | null> {
   const { data, error } = await supabase
     .from("environment_variables")
-    .select("id, project_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
+    .select("id, org_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
     .eq("id", envVarId)
     .single();
 
@@ -333,15 +229,20 @@ export async function getEnvVarById(
 // Returns org members with profile info.
 export async function getOrgMembers(
   supabase: SupabaseClient,
-  orgId: string
-): Promise<(OrgMember & { profile: { full_name: string | null; avatar_url: string | null } | null; email: string | null })[]> {
+  orgId: string,
+): Promise<
+  (OrgMember & {
+    profile: { full_name: string | null; avatar_url: string | null } | null;
+    email: string | null;
+  })[]
+> {
   const { data, error } = await supabase
     .from("org_members")
     .select(
       `
       id, org_id, user_id, role, created_at, updated_at,
       profiles (full_name, avatar_url)
-    `
+    `,
     )
     .eq("org_id", orgId)
     .order("created_at", { ascending: true });
@@ -355,15 +256,18 @@ export async function getOrgMembers(
     role: m.role,
     created_at: m.created_at,
     updated_at: m.updated_at,
-    profile: m.profiles as unknown as { full_name: string | null; avatar_url: string | null } | null,
-    email: null, // email comes from auth.users, not directly queryable via RLS
+    profile: m.profiles as unknown as {
+      full_name: string | null;
+      avatar_url: string | null;
+    } | null,
+    email: null,
   }));
 }
 
 // Returns pending invitations for an org.
 export async function getOrgInvitations(
   supabase: SupabaseClient,
-  orgId: string
+  orgId: string,
 ): Promise<OrgInvitation[]> {
   const { data, error } = await supabase
     .from("org_invitations")
@@ -379,37 +283,23 @@ export async function getOrgInvitations(
 // Returns org stats for the dashboard.
 export async function getOrgStats(
   supabase: SupabaseClient,
-  orgId: string
+  orgId: string,
 ): Promise<{
   totalBuilds: number;
   successBuilds: number;
   activeWorkflows: number;
 }> {
-  const { data: projectIds } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("org_id", orgId);
-
-  if (!projectIds || projectIds.length === 0) {
-    return { totalBuilds: 0, successBuilds: 0, activeWorkflows: 0 };
-  }
-
-  const ids = projectIds.map((p) => p.id);
-
   const [totalResult, successResult, workflowsResult] = await Promise.all([
+    supabase.from("builds").select("id", { count: "exact", head: true }).eq("org_id", orgId),
     supabase
       .from("builds")
       .select("id", { count: "exact", head: true })
-      .in("project_id", ids),
-    supabase
-      .from("builds")
-      .select("id", { count: "exact", head: true })
-      .in("project_id", ids)
+      .eq("org_id", orgId)
       .eq("status", "success"),
     supabase
       .from("workflows")
       .select("id", { count: "exact", head: true })
-      .in("project_id", ids)
+      .eq("org_id", orgId)
       .eq("is_active", true),
   ]);
 

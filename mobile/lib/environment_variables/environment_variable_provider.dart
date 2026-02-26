@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart' as cloud;
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -13,39 +11,43 @@ part 'environment_variable_provider.g.dart';
 class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   @override
   Stream<List<EnvironmentVariable>> build() {
-    final firestore = ref.read(firestoreProvider.notifier).state;
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
+    final supabase = ref.read(supabaseClientProvider);
 
-    return firestore
-        .collection(environmentVariablesCollection)
-        .withConverter(
-          fromFirestore: (snapshot, _) =>
-              EnvironmentVariable.fromJson(snapshot.data()!),
-          toFirestore: (envVar, _) => envVar.toJson(),
-        )
-        .where('teamId', isEqualTo: teamId)
-        .orderBy('key')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+    return supabase
+        .from('environment_variables')
+        .stream(primaryKey: ['id'])
+        .eq('is_secret', false)
+        .order('key')
+        .map((rows) {
+          return rows
+              .map(
+                (row) => EnvironmentVariable(
+                  id: row['id'] as String,
+                  key: row['key'] as String,
+                  value: row['value'] as String? ?? '',
+                  teamId: row['org_id'] as String,
+                  autoIncrement: row['auto_increment'] as bool? ?? false,
+                  createdAt: DateTime.parse(row['created_at'] as String),
+                  updatedAt: DateTime.parse(row['updated_at'] as String),
+                ),
+              )
+              .toList();
+        });
   }
 
   Future<void> addEnvironmentVariable(
     String key,
     String value,
   ) async {
-    final firestore = ref.read(firestoreProvider.notifier).state;
-    final teamId = ref.read(teamStateProvider).requireValue.id;
-    final docRef = firestore.collection(environmentVariablesCollection).doc();
-    await docRef.set(
-      EnvironmentVariable(
-        id: docRef.id,
-        key: key,
-        value: value,
-        teamId: teamId,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ).toJson(),
-    );
+    final supabase = ref.read(supabaseClientProvider);
+    final orgId = ref.read(teamStateProvider).requireValue.id;
+
+    await supabase.from('environment_variables').insert({
+      'org_id': orgId,
+      'key': key,
+      'value': value,
+      'is_secret': false,
+    });
   }
 
   Future<void> updateEnvironmentVariable({
@@ -53,23 +55,19 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     required String key,
     required String value,
   }) async {
-    final firestore = ref.read(firestoreProvider.notifier).state;
-    await firestore
-        .collection(environmentVariablesCollection)
-        .doc(documentId)
+    final supabase = ref.read(supabaseClientProvider);
+    await supabase
+        .from('environment_variables')
         .update({
           'key': key,
           'value': value,
-          'updatedAt': cloud.Timestamp.fromDate(DateTime.now()),
-        });
+        })
+        .eq('id', documentId);
   }
 
   Future<void> deleteEnvironmentVariable(String documentId) async {
-    final firestore = ref.read(firestoreProvider.notifier).state;
-    await firestore
-        .collection(environmentVariablesCollection)
-        .doc(documentId)
-        .delete();
+    final supabase = ref.read(supabaseClientProvider);
+    await supabase.from('environment_variables').delete().eq('id', documentId);
   }
 }
 

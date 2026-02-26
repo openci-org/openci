@@ -1,29 +1,31 @@
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'logs_provider.freezed.dart';
-part 'logs_provider.g.dart';
+part 'build_logs_provider.freezed.dart';
+part 'build_logs_provider.g.dart';
 
 @riverpod
 Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
-  final firestore = ref.read(firestoreProvider);
+  final supabase = ref.read(supabaseClientProvider);
 
-  return firestore
-      .collection(buildJobsCollection)
-      .doc(buildJobId)
-      .collection('runs')
-      .doc(runId)
-      .collection('logs')
-      .orderBy('timestamp', descending: false)
-      .withConverter(
-        fromFirestore: (snapshot, _) => BuildLog.fromJson(snapshot.data()!),
-        toFirestore: (buildLog, _) => buildLog.toJson(),
-      )
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  return supabase
+      .from('build_logs')
+      .stream(primaryKey: ['id'])
+      .eq('build_run_id', runId)
+      .order('created_at', ascending: true)
+      .map((rows) {
+        return rows.map((row) {
+          return BuildLog(
+            message: row['message'] as String,
+            level: row['level'] as String,
+            timestamp: row['created_at'] != null
+                ? DateTime.parse(row['created_at'] as String)
+                : null,
+          );
+        }).toList();
+      });
 }
 
 @freezed

@@ -1,7 +1,5 @@
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/users/user_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -24,32 +22,17 @@ abstract class Team with _$Team {
   factory Team.fromJson(Map<String, Object?> json) => _$TeamFromJson(json);
 }
 
-final teamList = [
-  Team(
-    id: '1',
-    name: 'Team A',
-    members: ['1'],
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-  ),
-  Team(
-    id: '2',
-    name: 'Team B',
-    members: ['2'],
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-  ),
-];
-
 @riverpod
 class TeamState extends _$TeamState {
   @override
   Stream<Team> build() {
-    final user = ref.watch(userProvider).requireValue;
-    final teamList = ref.watch(teamListProvider).requireValue;
-    return Stream.value(
-      teamList.firstWhere((team) => team.id == user.selectedTeamId),
-    );
+    final orgList = ref.watch(teamListProvider).requireValue;
+    final auth = ref.read(authProvider.notifier);
+    final currentUserId = auth.currentUserId;
+    if (currentUserId == null || orgList.isEmpty) {
+      throw Exception('User is not authenticated or has no organizations');
+    }
+    return Stream.value(orgList.first);
   }
 }
 
@@ -61,47 +44,68 @@ class TeamList extends _$TeamList {
   }
 
   Stream<List<Team>> fetchTeamList() {
-    final firestore = ref.read(firestoreProvider);
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final supabase = ref.read(supabaseClientProvider);
+    final auth = ref.read(authProvider.notifier);
+    final currentUserId = auth.currentUserId;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    return firestore
-        .collection(teamsCollection)
-        .where('members', arrayContains: currentUserId)
-        .withConverter(
-          fromFirestore: (snapshot, _) => Team.fromJson(snapshot.data()!),
-          toFirestore: (model, _) => model.toJson(),
-        )
-        .snapshots()
-        .map((qs) => qs.docs.map((d) => d.data()).toList());
+
+    return supabase
+        .from('org_members')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', currentUserId)
+        .asyncMap((memberRows) async {
+          if (memberRows.isEmpty) return <Team>[];
+          final orgIds = memberRows.map((r) => r['org_id'] as String).toList();
+          final orgs = await supabase
+              .from('organizations')
+              .select()
+              .inFilter('id', orgIds);
+
+          return orgs.map((org) {
+            final orgMembers = memberRows
+                .where((m) => m['org_id'] == org['id'])
+                .map((m) => m['user_id'] as String)
+                .toList();
+            return Team(
+              id: org['id'] as String,
+              name: org['name'] as String,
+              members: orgMembers,
+              createdAt: DateTime.parse(org['created_at'] as String),
+              updatedAt: DateTime.parse(org['updated_at'] as String),
+            );
+          }).toList();
+        });
   }
 
   Future<void> createTeam(String teamName) async {
-    final firestore = ref.read(firestoreProvider);
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final supabase = ref.read(supabaseClientProvider);
+    final auth = ref.read(authProvider.notifier);
+    final currentUserId = auth.currentUserId;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    final docRef = firestore.collection(teamsCollection).doc();
-    await docRef.set(
-      Team(
-        id: docRef.id,
-        name: teamName,
-        members: [currentUserId],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ).toJson(),
-    );
+    final slug = teamName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-');
+
+    final orgRow = await supabase
+        .from('organizations')
+        .insert({'name': teamName, 'slug': slug})
+        .select()
+        .single();
+
+    await supabase.from('org_members').insert({
+      'org_id': orgRow['id'],
+      'user_id': currentUserId,
+      'role': 'owner',
+    });
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final firestore = ref.read(firestoreProvider);
-    await firestore.collection(teamsCollection).doc(teamId).update({
-      'name': newName,
-      'updatedAt': DateTime.now(),
-    });
+    final supabase = ref.read(supabaseClientProvider);
+    await supabase
+        .from('organizations')
+        .update({'name': newName})
+        .eq('id', teamId);
   }
 }

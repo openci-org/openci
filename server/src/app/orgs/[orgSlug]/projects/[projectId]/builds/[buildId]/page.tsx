@@ -1,21 +1,11 @@
-import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import {
-  getOrgBySlug,
-  getProjectById,
-  getBuildById,
-  getBuildRunLogs,
-} from "@/lib/supabase/queries";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Clock, AlertCircle, GitBranch, Tag } from "lucide-react";
-import { BuildLogViewer } from "./build-log-viewer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getBuildById, getBuildRunLogs, getOrgBySlug } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import type { BuildStatus } from "@/lib/supabase/types";
+import { AlertCircle, CheckCircle2, Clock, GitBranch, Tag, XCircle } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
+import { BuildLogViewer } from "./build-log-viewer";
 
 function StatusIcon({ status }: { status: BuildStatus }) {
   if (status === "success") return <CheckCircle2 className="size-5 text-green-500" />;
@@ -35,14 +25,13 @@ export default async function BuildDetailPage({
   if (error || !data?.claims) redirect("/auth/login");
 
   const { orgSlug, projectId, buildId } = await params;
-  const [org, project, build] = await Promise.all([
+  const [org, build] = await Promise.all([
     getOrgBySlug(supabase, orgSlug),
-    getProjectById(supabase, projectId),
     getBuildById(supabase, buildId),
   ]);
 
   if (!org) redirect("/auth/login");
-  if (!project || !build || build.project_id !== project.id) notFound();
+  if (!build || build.org_id !== org.id) notFound();
 
   // Get logs for the latest run (SSR initial data)
   const initialLogs = build.latest_run_id
@@ -55,22 +44,21 @@ export default async function BuildDetailPage({
       <div className="flex items-center gap-3">
         <StatusIcon status={build.status} />
         <div>
-          <p className="text-sm text-muted-foreground">{project.name}</p>
+          <p className="text-sm text-muted-foreground">{org.name}</p>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            {build.branch
-              ? (
+            {build.branch ? (
               <>
                 <GitBranch className="size-4" />
                 {build.branch}
               </>
-            ) : (build.tag_name ? (
+            ) : build.tag_name ? (
               <>
                 <Tag className="size-4" />
                 {build.tag_name}
               </>
             ) : (
               `Build #${build.run_count}`
-            ))}
+            )}
           </h1>
         </div>
         <Badge variant="outline" className="ml-auto capitalize">
@@ -87,7 +75,9 @@ export default async function BuildDetailPage({
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <div>
               <dt className="text-muted-foreground text-xs">Repository</dt>
-              <dd className="font-medium">{build.github_owner}/{build.github_repo}</dd>
+              <dd className="font-medium">
+                {build.github_owner}/{build.github_repo}
+              </dd>
             </div>
             {build.commit_sha && (
               <div>
@@ -98,7 +88,10 @@ export default async function BuildDetailPage({
             {build.github_event && (
               <div>
                 <dt className="text-muted-foreground text-xs">Event</dt>
-                <dd>{build.github_event}{build.github_action ? ` · ${build.github_action}` : ""}</dd>
+                <dd>
+                  {build.github_event}
+                  {build.github_action ? ` · ${build.github_action}` : ""}
+                </dd>
               </div>
             )}
             {build.github_sender && (

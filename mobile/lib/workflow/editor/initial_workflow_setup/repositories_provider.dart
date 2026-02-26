@@ -1,4 +1,4 @@
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -23,14 +23,16 @@ abstract class GitHubRepository with _$GitHubRepository {
 @riverpod
 Future<List<GitHubRepository>> repositories(Ref ref) async {
   final team = ref.watch(teamStateProvider).requireValue;
-  final functions = ref.watch(functionsProvider);
+  final supabase = ref.read(supabaseClientProvider);
 
-  final result = await functions.httpsCallable('listRepositories').call({
-    'teamId': team.id,
-  });
+  final result = await supabase.rpc(
+    'list_repositories',
+    params: {
+      'p_org_id': team.id,
+    },
+  );
 
-  final data = result.data as Map<String, dynamic>;
-  final repos = (data['repositories'] as List<dynamic>)
+  final repos = (result as List<dynamic>)
       .map(
         (e) => GitHubRepository.fromJson(Map<String, Object?>.from(e as Map)),
       )

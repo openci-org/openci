@@ -1,36 +1,26 @@
-import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getTranslations } from "next-intl/server";
-import {
-  getOrgBySlug,
-  getProjectById,
-  getProjectBuilds,
-  getProjectWorkflows,
-} from "@/lib/supabase/queries";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Hammer,
-  GitBranch,
-  Package,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  TrendingUp,
-  FolderOpen,
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getOrgBuilds, getOrgBySlug, getOrgWorkflows } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import type { BuildStatus } from "@/lib/supabase/types";
+import {
+  CheckCircle2,
+  Clock,
+  FolderOpen,
+  GitBranch,
+  Hammer,
+  Package,
+  TrendingUp,
+  XCircle,
+} from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
 
 function StatusIcon({ status }: { status: BuildStatus | null }) {
   if (status === "success") return <CheckCircle2 className="size-4 text-green-500 shrink-0" />;
   if (status === "failure") return <XCircle className="size-4 text-red-500 shrink-0" />;
-  if (status === "in_progress") return <Clock className="size-4 text-yellow-500 animate-pulse shrink-0" />;
+  if (status === "in_progress")
+    return <Clock className="size-4 text-yellow-500 animate-pulse shrink-0" />;
   return <Clock className="size-4 text-muted-foreground shrink-0" />;
 }
 
@@ -44,7 +34,9 @@ function StatusBadge({ status }: { status: BuildStatus | null }) {
   };
   const label = status ?? "—";
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variants[status ?? ""] ?? ""}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variants[status ?? ""] ?? ""}`}
+    >
       {label}
     </span>
   );
@@ -73,27 +65,27 @@ export default async function ProjectOverviewPage({
   const { orgSlug, projectId } = await params;
   const navT = await getTranslations("nav");
 
-  const [org, project] = await Promise.all([
-    getOrgBySlug(supabase, orgSlug),
-    getProjectById(supabase, projectId),
-  ]);
+  const org = await getOrgBySlug(supabase, orgSlug);
 
   if (!org) redirect("/auth/login");
-  if (!project) notFound();
 
   const [builds, workflows] = await Promise.all([
-    getProjectBuilds(supabase, projectId, 5),
-    getProjectWorkflows(supabase, projectId),
+    getOrgBuilds(supabase, org.id, 5),
+    getOrgWorkflows(supabase, org.id),
   ]);
 
   const successBuilds = builds.filter((b) => b.status === "success").length;
-  const successRate =
-    builds.length > 0 ? Math.round((successBuilds / builds.length) * 100) : 0;
+  const successRate = builds.length > 0 ? Math.round((successBuilds / builds.length) * 100) : 0;
 
   const projectStats = [
     { label: "Total Builds", value: String(builds.length), icon: Hammer, trend: "All time" },
     { label: "Success Rate", value: `${successRate}%`, icon: TrendingUp, trend: "Recent builds" },
-    { label: "Active Workflows", value: String(workflows.filter((w) => w.is_active).length), icon: GitBranch, trend: "Across branches" },
+    {
+      label: "Active Workflows",
+      value: String(workflows.filter((w) => w.is_active).length),
+      icon: GitBranch,
+      trend: "Across branches",
+    },
     { label: "Releases", value: "—", icon: Package, trend: "Coming soon" },
   ];
 
@@ -102,7 +94,7 @@ export default async function ProjectOverviewPage({
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">
         <FolderOpen className="size-5" />
-        <h1 className="text-2xl font-bold">{project.name}</h1>
+        <h1 className="text-2xl font-bold">{org.name}</h1>
         <span className="text-muted-foreground text-sm">/ {navT("overview")}</span>
       </div>
 
@@ -127,7 +119,7 @@ export default async function ProjectOverviewPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Builds</CardTitle>
-            <CardDescription>Latest builds for {project.name}</CardDescription>
+            <CardDescription>Latest builds for {org.name}</CardDescription>
           </CardHeader>
           <CardContent>
             {builds.length === 0 ? (
@@ -168,7 +160,9 @@ export default async function ProjectOverviewPage({
           </CardHeader>
           <CardContent>
             {workflows.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No workflows defined yet.</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No workflows defined yet.
+              </p>
             ) : (
               <div className="divide-y">
                 {workflows.map((wf) => (
@@ -178,9 +172,14 @@ export default async function ProjectOverviewPage({
                       <div className="font-medium">{wf.name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {wf.workflow_triggers.length > 0
-                          ? wf.workflow_triggers.map((trigger) => `${trigger.trigger_type}${trigger.branch_pattern ? `:${trigger.branch_pattern}` : ""}`).join(", ")
-                          : "No triggers"
-                        } · Last run: {timeAgo(wf.last_build?.created_at ?? null)}
+                          ? wf.workflow_triggers
+                              .map(
+                                (trigger) =>
+                                  `${trigger.trigger_type}${trigger.branch_pattern ? `:${trigger.branch_pattern}` : ""}`,
+                              )
+                              .join(", ")
+                          : "No triggers"}{" "}
+                        · Last run: {timeAgo(wf.last_build?.created_at ?? null)}
                       </div>
                     </div>
                     <StatusBadge status={wf.last_build?.status ?? null} />

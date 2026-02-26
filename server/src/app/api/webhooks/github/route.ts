@@ -194,17 +194,28 @@ export async function POST(request: Request) {
 
   const supabase = getServiceClient();
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("github_owner", owner)
-    .eq("github_repo", repoName)
-    .single();
+  // Find the org that has this GitHub integration
+  const { data: integration, error: integrationError } = await supabase
+    .from("integrations")
+    .select("org_id")
+    .eq("github_account", owner)
+    .limit(1)
+    .maybeSingle();
 
-  if (!project) {
-    console.log(`No project found for ${fullName}`, { owner, repoName, error: projectError });
-    return NextResponse.json({ received: true, processed: false, reason: "no matching project" });
+  if (!integration) {
+    console.log(`No integration found for ${fullName}`, {
+      owner,
+      repoName,
+      error: integrationError,
+    });
+    return NextResponse.json({
+      received: true,
+      processed: false,
+      reason: "no matching integration",
+    });
   }
+
+  const orgId = integration.org_id;
 
   const ctx: WebhookContext = {
     event,
@@ -258,7 +269,7 @@ export async function POST(request: Request) {
     const { data: createdBuild, error: insertError } = await supabase
       .from("builds")
       .insert({
-        project_id: project.id,
+        org_id: orgId,
         status: "queued",
         runner_os: "macos",
         github_owner: owner,

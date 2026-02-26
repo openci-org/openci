@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { getEnvVarById } from "../queries";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { describe, expect, it, vi } from "vitest";
+import { getEnvVarById } from "../queries";
 
 function makeSupabase(result: { data: unknown; error: unknown }) {
   const single = vi.fn().mockResolvedValue(result);
@@ -13,7 +13,7 @@ function makeSupabase(result: { data: unknown; error: unknown }) {
 describe("getEnvVarById", () => {
   const baseEnvVar = {
     id: "ev-1",
-    project_id: "proj-1",
+    org_id: "org-1",
     key: "API_KEY",
     is_secret: false,
     vault_secret_id: null,
@@ -45,7 +45,12 @@ describe("getEnvVarById", () => {
   });
 
   it("returns env var with vault_secret_id for secret variable", async () => {
-    const secretVar = { ...baseEnvVar, is_secret: true, vault_secret_id: "vault-uuid-1", value: null };
+    const secretVar = {
+      ...baseEnvVar,
+      is_secret: true,
+      vault_secret_id: "vault-uuid-1",
+      value: null,
+    };
     const supabase = makeSupabase({ data: secretVar, error: null });
     const result = await getEnvVarById(supabase, "ev-1");
     if (!result) throw new Error("Expected result to be non-null");

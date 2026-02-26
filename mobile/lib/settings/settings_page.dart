@@ -1,14 +1,13 @@
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
@@ -16,7 +15,6 @@ class SettingsPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDeleting = useState(false);
-    final auth = ref.watch(authProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -60,9 +58,6 @@ class SettingsPage extends HookConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Firebase App Name: ${auth.getFirebaseAuth().app.name}',
-                      ),
                       SizedBox(height: 40),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -90,14 +85,14 @@ class SettingsPage extends HookConsumerWidget {
                         ),
                         onPressed: () async {
                           try {
-                            await auth.getFirebaseAuth().signOut();
+                            await Supabase.instance.client.auth.signOut();
                             ref.invalidate(authProvider);
-                            ref.invalidate(firestoreProvider);
                             if (!context.mounted) return;
                             context.showSnackBarMessage(
                               'Logged out successfully',
                             );
                           } catch (e) {
+                            if (!context.mounted) return;
                             context.showSnackBarMessage(
                               'Failed to log out: $e',
                             );
@@ -181,24 +176,15 @@ class _DeleteAccountButton extends StatelessWidget {
   Future<void> _deleteAccount(BuildContext context) async {
     isDeleting.value = true;
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
       if (user == null) {
         throw Exception("No user is currently signed in");
       }
-      await user.delete();
+      await supabase.rpc('delete_user');
+      await supabase.auth.signOut();
       if (!context.mounted) return;
       context.showSnackBarMessage('Account deleted successfully');
-    } on FirebaseAuthException catch (e) {
-      if (!context.mounted) return;
-      if (e.code == 'requires-recent-login') {
-        context.showSnackBarMessage(
-          'Please sign out and sign in again before deleting your account',
-        );
-      } else {
-        context.showSnackBarMessage(
-          'Failed to delete account: ${e.message}',
-        );
-      }
     } catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage('Failed to delete account: $e');
