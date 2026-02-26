@@ -10,7 +10,7 @@ import { checkForUpdate, performUpdate, restartWorker } from "./updater.js";
 
 const machineInfo = getMachineInfo();
 
-const VERSION = "0.4.1";
+const VERSION = "0.4.2";
 const POLLING_INTERVAL_MS = 10_000;
 
 const cli = meow(
