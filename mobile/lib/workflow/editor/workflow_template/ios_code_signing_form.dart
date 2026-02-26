@@ -1,7 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/workflow/workflow.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -49,8 +46,8 @@ class IosCodeSigningForm extends HookConsumerWidget {
                 child: Text(
                   'openci ios-sign コマンドのシェルステップを生成します',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).hintColor,
-                      ),
+                    color: Theme.of(context).hintColor,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -75,8 +72,8 @@ class IosCodeSigningForm extends HookConsumerWidget {
               Text(
                 'Apple Developer Portal の Team ID',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
+                  color: Theme.of(context).hintColor,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -95,8 +92,8 @@ class IosCodeSigningForm extends HookConsumerWidget {
               Text(
                 'Working directory からの相対パス',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
+                  color: Theme.of(context).hintColor,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -153,9 +150,7 @@ class IosCodeSigningForm extends HookConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '事前準備',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(
                                   color: Theme.of(context).hintColor,
                                 ),
@@ -167,8 +162,8 @@ class IosCodeSigningForm extends HookConsumerWidget {
                         '• Secret Manager に ASC_KEY_ID / ASC_ISSUER_ID / ASC_PRIVATE_KEY を登録\n'
                         '• このステップは openci CLI をVM内にインストールして実行します',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).hintColor,
-                            ),
+                          color: Theme.of(context).hintColor,
+                        ),
                       ),
                     ],
                   ),
@@ -190,8 +185,8 @@ class IosCodeSigningForm extends HookConsumerWidget {
                 : () async {
                     final bundleId = bundleIdController.text.trim();
                     final appleTeamId = appleTeamIdController.text.trim();
-                    final xcodeProjectPath =
-                        xcodeProjectPathController.text.trim();
+                    final xcodeProjectPath = xcodeProjectPathController.text
+                        .trim();
                     final scheme = schemeController.text.trim();
                     final workspacePath = workspacePathController.text.trim();
 
@@ -238,46 +233,13 @@ class IosCodeSigningForm extends HookConsumerWidget {
 
                     isLoading.value = true;
 
-                    // Generate the shell command for openci CLI
-                    // ASC credentials (ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY)
-                    // should be added as workflow secrets.
-                    final shellCommand = [
-                      'dart pub global activate openci_vm_cli',
-                      'export PATH="\$PATH":"\$HOME/.pub-cache/bin"',
-                      'openci_vm ios-sign \\',
-                      '  --bundle-id "$bundleId" \\',
-                      '  --apple-team-id "$appleTeamId" \\',
-                      '  --scheme "$scheme" \\',
-                      '  --workspace "$workspacePath" \\',
-                      '  --xcodeproj "$xcodeProjectPath"',
-                    ].join('\n');
-
-                    final newStep = WorkflowStep(
-                      name: 'iOS Code Signing & Build',
-                      command: shellCommand,
-                      isCompleted: true,
-                    );
-
-                    final docRef = ref
-                        .watch(firestoreProvider)
-                        .collection(workflowsCollection)
-                        .doc(documentId);
-
-                    if (insertAt != null) {
-                      final snapshot = await docRef.get();
-                      final data = snapshot.data() as Map<String, dynamic>;
-                      final steps = List<Map<String, dynamic>>.from(
-                        data['workflowSteps'] as List,
-                      );
-                      steps.insert(insertAt!, newStep.toJson());
-                      await docRef.update({'workflowSteps': steps});
-                    } else {
-                      await docRef.update({
-                        'workflowSteps': FieldValue.arrayUnion([
-                          newStep.toJson(),
-                        ]),
-                      });
-                    }
+                    final supabase = ref.read(supabaseClientProvider);
+                    await supabase
+                        .from('workflows')
+                        .update({
+                          'yaml_definition': '',
+                        })
+                        .eq('id', documentId);
 
                     if (!context.mounted) return;
                     Navigator.pop(context);

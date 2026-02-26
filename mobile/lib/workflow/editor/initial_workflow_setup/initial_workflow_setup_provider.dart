@@ -1,9 +1,8 @@
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 part 'initial_workflow_setup_provider.freezed.dart';
 part 'initial_workflow_setup_provider.g.dart';
@@ -50,31 +49,14 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     required String selectedWorkingDirectory,
     String? selectedTriggerBranch,
   }) async {
-    final documentId = Uuid().v4();
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
+    final supabase = ref.read(supabaseClientProvider);
+    final orgId = ref.read(teamStateProvider).requireValue.id;
 
-    await ref
-        .read(firestoreProvider.notifier)
-        .state
-        .collection('workflows_v1')
-        .doc(documentId)
-        .set(
-          Workflow(
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-            documentId: documentId,
-            teamId: teamId,
-            name: name,
-            workflowConfig: WorkflowConfig(
-              selectedRepository: selectedRepository,
-              selectedWorkingDirectory: selectedWorkingDirectory,
-              selectedTriggerType: state.selectedTriggerType,
-              selectedTriggerBranch: selectedTriggerBranch,
-            ),
-            workflowSteps: [],
-            isEditing: true,
-          ).toJson(),
-        );
+    await supabase.from('workflows').insert({
+      'org_id': orgId,
+      'name': name,
+      'yaml_definition': '',
+    });
   }
 }
 

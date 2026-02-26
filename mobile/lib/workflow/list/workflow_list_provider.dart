@@ -1,6 +1,4 @@
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -10,42 +8,50 @@ part 'workflow_list_provider.g.dart';
 class WorkflowList extends _$WorkflowList {
   @override
   Stream<List<Workflow>> build() {
-    final team = ref.watch(teamStateProvider).requireValue;
-    return ref
-        .read(firestoreProvider)
-        .collection(workflowsCollection)
-        .where('teamId', isEqualTo: team.id)
-        .orderBy('updatedAt', descending: true)
-        .withConverter(
-          fromFirestore: (snapshot, _) => Workflow.fromJson(snapshot.data()!),
-          toFirestore: (model, _) => model.toJson(),
-        )
-        .snapshots()
-        .map((qs) => qs.docs.map((d) => d.data()).toList());
+    final supabase = ref.read(supabaseClientProvider);
+
+    return supabase
+        .from('workflows')
+        .stream(primaryKey: ['id'])
+        .order('updated_at', ascending: false)
+        .map((rows) {
+          return rows
+              .map(
+                (row) => Workflow(
+                  createdAt: DateTime.parse(row['created_at'] as String),
+                  updatedAt: DateTime.parse(row['updated_at'] as String),
+                  documentId: row['id'] as String,
+                  name: row['name'] as String,
+                  teamId: row['org_id'] as String? ?? '',
+                  workflowConfig: WorkflowConfig(
+                    selectedRepository: '',
+                    selectedWorkingDirectory: '',
+                    selectedTriggerType: TriggerType.push,
+                  ),
+                  workflowSteps: [],
+                  isEditing: false,
+                ),
+              )
+              .toList();
+        });
   }
 
   Future<String> duplicateWorkflow(Workflow workflow) async {
-    final now = DateTime.now();
-    final newDoc =
-        ref.watch(firestoreProvider).collection(workflowsCollection).doc();
-
-    final duplicated = workflow.copyWith(
-      documentId: newDoc.id,
-      name: '${workflow.name} (Copy)',
-      createdAt: now,
-      updatedAt: now,
-      isEditing: false,
-    );
-
-    await newDoc.set(duplicated.toJson());
-    return newDoc.id;
+    final supabase = ref.read(supabaseClientProvider);
+    final row = await supabase
+        .from('workflows')
+        .insert({
+          'org_id': workflow.teamId,
+          'name': '${workflow.name} (Copy)',
+          'yaml_definition': '',
+        })
+        .select()
+        .single();
+    return row['id'] as String;
   }
 
   Future<void> deleteWorkflow(String workflowId) async {
-    await ref
-        .watch(firestoreProvider)
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .delete();
+    final supabase = ref.read(supabaseClientProvider);
+    await supabase.from('workflows').delete().eq('id', workflowId);
   }
 }

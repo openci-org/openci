@@ -106,7 +106,15 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "mobile",
+        "name": "mobile(Prod)",
+        "cwd": "${workspaceFolder:mobile}",
+        "request": "launch",
+        "type": "dart",
+        "program": "lib/main.dart",
+        "args": ["--dart-define-from-file=.env.production.local"],
+      },
+      {
+        "name": "mobile(Local)",
         "cwd": "${workspaceFolder:mobile}",
         "request": "launch",
         "type": "dart",

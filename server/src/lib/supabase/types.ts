@@ -2,14 +2,8 @@
 // These match the schema defined in supabase/migrations/
 
 export type OrgRole = "owner" | "admin" | "member";
-export type ProjectRole = "admin" | "write" | "read";
 export type InvitationStatus = "pending" | "accepted" | "expired" | "cancelled";
-export type BuildStatus =
-  | "queued"
-  | "in_progress"
-  | "success"
-  | "failure"
-  | "cancelled";
+export type BuildStatus = "queued" | "in_progress" | "success" | "failure" | "cancelled";
 export type LogLevel = "info" | "warning" | "error";
 export type TriggerType = "push" | "pull_request" | "tag" | "release";
 
@@ -56,30 +50,9 @@ export interface OrgInvitation {
   updated_at: string;
 }
 
-export interface Project {
-  id: string;
-  org_id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  framework: string | null;
-  platforms: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProjectMember {
-  id: string;
-  project_id: string;
-  user_id: string;
-  role: ProjectRole;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Workflow {
   id: string;
-  project_id: string;
+  org_id: string;
   name: string;
   yaml_definition: string;
   is_active: boolean;
@@ -99,7 +72,7 @@ export interface WorkflowTrigger {
 
 export interface Build {
   id: string;
-  project_id: string;
+  org_id: string;
   workflow_id: string | null;
   status: BuildStatus;
   github_owner: string;
@@ -146,7 +119,7 @@ export interface BuildLog {
 
 export interface EnvironmentVariable {
   id: string;
-  project_id: string;
+  org_id: string;
   key: string;
   value: string | null;
   is_secret: boolean;
@@ -176,12 +149,6 @@ export interface WorkerConfig {
 
 export interface OrganizationWithRole extends Organization {
   role: OrgRole;
-}
-
-export interface ProjectWithLastBuild extends Project {
-  last_build: Pick<Build, "id" | "status" | "branch" | "created_at"> | null;
-  build_count: number;
-  workflow_count: number;
 }
 
 export interface WorkflowWithTriggers extends Workflow {

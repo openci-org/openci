@@ -1,30 +1,17 @@
-import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import {
-  getOrgBySlug,
-  getProjectById,
-  getProjectBuilds,
-} from "@/lib/supabase/queries";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
-import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getOrgBuilds, getOrgBySlug } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import type { BuildStatus } from "@/lib/supabase/types";
+import { AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 function StatusIcon({ status }: { status: BuildStatus }) {
   if (status === "success") return <CheckCircle2 className="size-4 text-green-500 shrink-0" />;
   if (status === "failure") return <XCircle className="size-4 text-red-500 shrink-0" />;
-  if (status === "in_progress") return <Clock className="size-4 text-yellow-500 animate-pulse shrink-0" />;
+  if (status === "in_progress")
+    return <Clock className="size-4 text-yellow-500 animate-pulse shrink-0" />;
   if (status === "cancelled") return <AlertCircle className="size-4 text-gray-400 shrink-0" />;
   return <Clock className="size-4 text-muted-foreground shrink-0" />;
 }
@@ -38,7 +25,9 @@ function StatusBadge({ status }: { status: BuildStatus }) {
     cancelled: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variants[status]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variants[status]}`}
+    >
       {status}
     </span>
   );
@@ -64,20 +53,16 @@ export default async function BuildsPage({
   if (error || !data?.claims) redirect("/auth/login");
 
   const { orgSlug, projectId } = await params;
-  const [org, project] = await Promise.all([
-    getOrgBySlug(supabase, orgSlug),
-    getProjectById(supabase, projectId),
-  ]);
+  const org = await getOrgBySlug(supabase, orgSlug);
 
   if (!org) redirect("/auth/login");
-  if (!project) notFound();
 
-  const builds = await getProjectBuilds(supabase, projectId, 50);
+  const builds = await getOrgBuilds(supabase, org.id, 50);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-sm text-muted-foreground">{project.name}</p>
+        <p className="text-sm text-muted-foreground">{org.name}</p>
         <h1 className="text-2xl font-bold">Builds</h1>
       </div>
 
@@ -117,7 +102,9 @@ export default async function BuildsPage({
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-muted-foreground">{timeAgo(build.created_at)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {timeAgo(build.created_at)}
+                    </span>
                     <StatusBadge status={build.status} />
                   </div>
                 </Link>

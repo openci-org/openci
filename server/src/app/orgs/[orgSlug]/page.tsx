@@ -1,35 +1,28 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getTranslations } from "next-intl/server";
-import { getOrgBySlug, getOrgProjects, getOrgStats } from "@/lib/supabase/queries";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Hammer,
-  GitBranch,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Building2,
-  Plus,
-  UserPlus,
-  TrendingUp,
-  Activity,
-} from "lucide-react";
-import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getOrgBuilds, getOrgBySlug, getOrgStats, getOrgWorkflows } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import type { BuildStatus } from "@/lib/supabase/types";
+import {
+  Activity,
+  Building2,
+  CheckCircle2,
+  Clock,
+  GitBranch,
+  Hammer,
+  TrendingUp,
+  UserPlus,
+  XCircle,
+} from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 function StatusIcon({ status }: { status: BuildStatus | null }) {
   if (status === "success") return <CheckCircle2 className="size-4 text-green-500 shrink-0" />;
   if (status === "failure") return <XCircle className="size-4 text-red-500 shrink-0" />;
-  if (status === "in_progress") return <Clock className="size-4 text-yellow-500 animate-pulse shrink-0" />;
+  if (status === "in_progress")
+    return <Clock className="size-4 text-yellow-500 animate-pulse shrink-0" />;
   return <Clock className="size-4 text-muted-foreground shrink-0" />;
 }
 
@@ -43,7 +36,9 @@ function StatusBadge({ status }: { status: BuildStatus | null }) {
   };
   const label = status ?? "—";
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variants[status ?? ""] ?? ""}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variants[status ?? ""] ?? ""}`}
+    >
       {label}
     </span>
   );
@@ -75,20 +70,23 @@ export default async function OrgDashboardPage({
   const org = await getOrgBySlug(supabase, orgSlug);
   if (!org) redirect("/auth/login");
 
-  const [projects, stats] = await Promise.all([
-    getOrgProjects(supabase, org.id),
+  const [stats, builds, workflows] = await Promise.all([
     getOrgStats(supabase, org.id),
+    getOrgBuilds(supabase, org.id, 10),
+    getOrgWorkflows(supabase, org.id),
   ]);
 
   const successRate =
-    stats.totalBuilds > 0
-      ? Math.round((stats.successBuilds / stats.totalBuilds) * 100)
-      : 0;
+    stats.totalBuilds > 0 ? Math.round((stats.successBuilds / stats.totalBuilds) * 100) : 0;
 
   const orgStats = [
     { label: "Total Builds", value: String(stats.totalBuilds), icon: Hammer, trend: "All time" },
-    { label: "Active Workflows", value: String(stats.activeWorkflows), icon: GitBranch, trend: "Across all projects" },
-    { label: "Projects", value: String(projects.length), icon: Building2, trend: "In this organization" },
+    {
+      label: "Active Workflows",
+      value: String(stats.activeWorkflows),
+      icon: GitBranch,
+      trend: "In this organization",
+    },
     { label: "Success Rate", value: `${successRate}%`, icon: TrendingUp, trend: "All time" },
   ];
 
@@ -110,17 +108,11 @@ export default async function OrgDashboardPage({
               Invite Member
             </Link>
           </Button>
-          <Button size="sm" asChild>
-            <Link href={`/orgs/${orgSlug}/projects/new`}>
-              <Plus className="size-4" />
-              New Project
-            </Link>
-          </Button>
         </div>
       </div>
 
       {/* Org Stats */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {orgStats.map(({ label, value, icon: Icon, trend }) => (
           <Card key={label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -135,59 +127,39 @@ export default async function OrgDashboardPage({
         ))}
       </div>
 
-      {/* Projects Overview */}
+      {/* Recent Builds */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Activity className="size-4" />
-            <CardTitle className="text-base">Projects</CardTitle>
+            <CardTitle className="text-base">Recent Builds</CardTitle>
           </div>
-          <CardDescription>Status of all projects in {org.name}</CardDescription>
+          <CardDescription>Latest builds in {org.name}</CardDescription>
         </CardHeader>
         <CardContent>
-          {projects.length === 0 ? (
+          {builds.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">No projects yet.</p>
-              <Button size="sm" className="mt-3" asChild>
-                <Link href={`/orgs/${orgSlug}/projects/new`}>
-                  <Plus className="size-4" />
-                  Create your first project
-                </Link>
-              </Button>
+              <p className="text-sm">No builds yet.</p>
             </div>
           ) : (
             <div className="divide-y">
-              {projects.map((project) => (
-                <div key={project.id} className="flex items-center gap-3 py-3">
-                  <StatusIcon status={project.last_build?.status ?? null} />
+              {builds.map((build) => (
+                <div key={build.id} className="flex items-center gap-3 py-3">
+                  <StatusIcon status={build.status} />
                   <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/orgs/${orgSlug}/projects/${project.id}`}
-                      className="font-medium text-sm hover:underline"
-                    >
-                      {project.name}
-                    </Link>
+                    <span className="font-medium text-sm">
+                      {build.branch ?? build.tag_name ?? build.commit_sha?.slice(0, 7) ?? "—"}
+                    </span>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {project.last_build?.branch && (
-                        <span className="text-xs text-muted-foreground">{project.last_build.branch}</span>
-                      )}
-                      {project.framework && (
-                        <Badge variant="outline" className="text-xs">{project.framework}</Badge>
-                      )}
                       <span className="text-xs text-muted-foreground">
-                        {timeAgo(project.last_build?.created_at ?? null)}
+                        {build.github_owner}/{build.github_repo}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {timeAgo(build.created_at)}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                    <span className="flex items-center gap-1">
-                      <Hammer className="size-3" />{project.build_count}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <GitBranch className="size-3" />{project.workflow_count}
-                    </span>
-                    <StatusBadge status={project.last_build?.status ?? null} />
-                  </div>
+                  <StatusBadge status={build.status} />
                 </div>
               ))}
             </div>

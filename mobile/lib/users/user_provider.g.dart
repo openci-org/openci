@@ -8,7 +8,7 @@ part of 'user_provider.dart';
 
 _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
   id: json['id'] as String,
-  selectedTeamId: json['selectedTeamId'] as String,
+  selectedOrgId: json['selectedOrgId'] as String,
   notificationPreference:
       $enumDecodeNullable(
         _$NotificationPreferenceEnumMap,
@@ -23,7 +23,7 @@ _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'selectedTeamId': instance.selectedTeamId,
+      'selectedOrgId': instance.selectedOrgId,
       'notificationPreference':
           _$NotificationPreferenceEnumMap[instance.notificationPreference]!,
       'fcmTokens': instance.fcmTokens,
@@ -66,7 +66,7 @@ final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   User create() => User();
 }
 
-String _$userHash() => r'99a283e7c0fb3a100fa8f70cd52bbf3b66562cfb';
+String _$userHash() => r'45e56b391fa4c7f33f336a5534310922b932cee3';
 
 abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();

@@ -1,12 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/ios_code_signing_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_android_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_ios_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/save_secret_file_template.dart';
 import 'package:dashboard/workflow/editor/workflow_template/workflow_template.dart';
-import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -212,50 +209,32 @@ npx -y react-native-version --never-amend
                   style: CodeEditorStyle(
                     fontSize: 14,
                   ),
-                  indicatorBuilder: (
-                    context,
-                    editingController,
-                    chunkController,
-                    notifier,
-                  ) {
-                    return Row(
-                      children: [
-                        DefaultCodeLineNumber(
-                          controller: editingController,
-                          notifier: notifier,
-                        ),
-                      ],
-                    );
-                  },
+                  indicatorBuilder:
+                      (
+                        context,
+                        editingController,
+                        chunkController,
+                        notifier,
+                      ) {
+                        return Row(
+                          children: [
+                            DefaultCodeLineNumber(
+                              controller: editingController,
+                              notifier: notifier,
+                            ),
+                          ],
+                        );
+                      },
                 ),
               ),
               SizedBox(height: 12.0),
               ElevatedButton(
                 onPressed: () async {
-                  final newStep = WorkflowStep(
-                    name: template.title,
-                    command: codeController.value.text,
-                    isCompleted: true,
-                  );
-                  final docRef = ref
-                      .watch(firestoreProvider)
-                      .collection(workflowsCollection)
-                      .doc(documentId);
-                  if (insertAt != null) {
-                    final snapshot = await docRef.get();
-                    final data = snapshot.data() as Map<String, dynamic>;
-                    final steps = List<Map<String, dynamic>>.from(
-                      data['workflowSteps'] as List,
-                    );
-                    steps.insert(insertAt!, newStep.toJson());
-                    await docRef.update({'workflowSteps': steps});
-                  } else {
-                    await docRef.update({
-                      'workflowSteps': FieldValue.arrayUnion([
-                        newStep.toJson(),
-                      ]),
-                    });
-                  }
+                  final supabase = ref.read(supabaseClientProvider);
+                  await supabase
+                      .from('workflows')
+                      .update({'updated_at': DateTime.now().toIso8601String()})
+                      .eq('id', documentId);
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   Navigator.pop(context);

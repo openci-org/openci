@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { getWorkflowById } from "../queries";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { describe, expect, it, vi } from "vitest";
+import { getWorkflowById } from "../queries";
 
 function makeSupabase(result: { data: unknown; error: unknown }) {
   const single = vi.fn().mockResolvedValue(result);
@@ -13,7 +13,7 @@ function makeSupabase(result: { data: unknown; error: unknown }) {
 describe("getWorkflowById", () => {
   const baseWorkflow = {
     id: "wf-1",
-    project_id: "proj-1",
+    org_id: "org-1",
     name: "My Workflow",
     yaml_definition: "steps: []",
     is_active: true,

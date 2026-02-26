@@ -1,6 +1,4 @@
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -17,26 +15,38 @@ class SecretManager extends _$SecretManager {
   }
 
   Stream<List<Secret>> secretsStream() {
-    final firestore = ref.read(firestoreProvider.notifier).state;
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
-    return firestore
-        .collection(secretsCollection)
-        .withConverter(
-          fromFirestore: (snapshot, _) => Secret.fromJson(snapshot.data()!),
-          toFirestore: (secret, _) => secret.toJson(),
-        )
-        .where('teamId', isEqualTo: teamId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+    final supabase = ref.read(supabaseClientProvider);
+
+    return supabase
+        .from('environment_variables')
+        .stream(primaryKey: ['id'])
+        .eq('is_secret', true)
+        .map((rows) {
+          return rows
+              .where((r) => r['org_id'] != null)
+              .map(
+                (row) => Secret(
+                  id: row['id'] as String,
+                  name: row['key'] as String,
+                  teamId: row['org_id'] as String,
+                  pathToSecret: row['secret_path'] as String?,
+                  createdAt: DateTime.parse(row['created_at'] as String),
+                  updatedAt: DateTime.parse(row['updated_at'] as String),
+                ),
+              )
+              .toList();
+        });
   }
 
   Future<void> addSecret(String name, String value) async {
-    final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
-    await functions.httpsCallable(callableFunctionPath).call({
-      'name': name,
-      'value': value,
-      'teamId': teamId,
+    final supabase = ref.read(supabaseClientProvider);
+    final orgId = ref.read(teamStateProvider).requireValue.id;
+
+    await supabase.from('environment_variables').insert({
+      'org_id': orgId,
+      'key': name,
+      'is_secret': true,
+      'secret_path': 'pending',
     });
   }
 
@@ -45,14 +55,13 @@ class SecretManager extends _$SecretManager {
     required String name,
     String? value,
   }) async {
-    final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
-    await functions.httpsCallable(updateSecretCallableFunctionPath).call({
-      'documentId': documentId,
-      'name': name,
-      if (value != null && value.isNotEmpty) 'value': value,
-      'teamId': teamId,
-    });
+    final supabase = ref.read(supabaseClientProvider);
+    await supabase
+        .from('environment_variables')
+        .update({
+          'key': name,
+        })
+        .eq('id', documentId);
   }
 }
 

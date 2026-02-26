@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getOrgBySlug, getProjectById, getProjectWorkflows } from "@/lib/supabase/queries";
+import { getOrgBySlug, getOrgWorkflows } from "@/lib/supabase/queries";
 import {
   Card,
   CardContent,
@@ -42,21 +42,17 @@ export default async function WorkflowPage({
   if (error || !data?.claims) redirect("/auth/login");
 
   const { orgSlug, projectId } = await params;
-  const [org, project] = await Promise.all([
-    getOrgBySlug(supabase, orgSlug),
-    getProjectById(supabase, projectId),
-  ]);
+  const org = await getOrgBySlug(supabase, orgSlug);
 
   if (!org) redirect("/auth/login");
-  if (!project) notFound();
 
-  const workflows = await getProjectWorkflows(supabase, projectId);
+  const workflows = await getOrgWorkflows(supabase, org.id);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">{project.name}</p>
+          <p className="text-sm text-muted-foreground">{org.name}</p>
           <h1 className="text-2xl font-bold">Workflows</h1>
         </div>
         <CreateWorkflowDialog orgSlug={orgSlug} projectId={projectId} />

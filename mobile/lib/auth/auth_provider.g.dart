@@ -12,17 +12,17 @@ part of 'auth_provider.dart';
 @ProviderFor(Auth)
 final authProvider = AuthProvider._();
 
-final class AuthProvider extends $StreamNotifierProvider<Auth, User?> {
+final class AuthProvider extends $StreamNotifierProvider<Auth, Session?> {
   AuthProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'authProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$authHash();
@@ -32,19 +32,22 @@ final class AuthProvider extends $StreamNotifierProvider<Auth, User?> {
   Auth create() => Auth();
 }
 
-String _$authHash() => r'65c775d7188a3b555bad07798f91a3b9436a6f57';
+String _$authHash() => r'12e397d57b96a0bc7a5e6a4ce96b273e4a01dccf';
 
-abstract class _$Auth extends $StreamNotifier<User?> {
-  Stream<User?> build();
+abstract class _$Auth extends $StreamNotifier<Session?> {
+  Stream<Session?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<User?>, User?>;
-    final element = ref.element as $ClassProviderElement<
-        AnyNotifier<AsyncValue<User?>, User?>,
-        AsyncValue<User?>,
-        Object?,
-        Object?>;
+    final ref = this.ref as $Ref<AsyncValue<Session?>, Session?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<Session?>, Session?>,
+              AsyncValue<Session?>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

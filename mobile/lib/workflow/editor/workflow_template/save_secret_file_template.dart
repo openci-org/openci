@@ -1,14 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-import 'package:dashboard/workflow/workflow.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -55,8 +51,8 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                   Text(
                     "Secret Source",
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8.0),
                   SegmentedButton<bool>(
@@ -122,7 +118,9 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                               }
                               if (secretNameController.text.isEmpty) {
                                 secretNameController.text = result
-                                    .files.single.name
+                                    .files
+                                    .single
+                                    .name
                                     .toUpperCase()
                                     .replaceAll('.', '_')
                                     .replaceAll('-', '_');
@@ -144,18 +142,15 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                           border: Border.all(
                             color: uploadedFileName.value != null
                                 ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .outline
-                                    .withValues(alpha: 0.5),
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.outline.withValues(alpha: 0.5),
                             width: uploadedFileName.value != null ? 2 : 1,
                           ),
                           borderRadius: BorderRadius.circular(12.0),
                           color: uploadedFileName.value != null
-                              ? Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer
-                                  .withValues(alpha: 0.3)
+                              ? Theme.of(context).colorScheme.primaryContainer
+                                    .withValues(alpha: 0.3)
                               : null,
                         ),
                         child: Column(
@@ -185,11 +180,13 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                               const SizedBox(height: 4.0),
                               Text(
                                 "Base64 encoded • Tap to change",
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(
-                                      color:
-                                          Theme.of(context).colorScheme.outline,
+                                style:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
                                     ),
                               ),
                             ],
@@ -209,10 +206,9 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                             padding: const EdgeInsets.all(24.0),
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outline
-                                    .withValues(alpha: 0.5),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withValues(alpha: 0.5),
                               ),
                               borderRadius: BorderRadius.circular(12.0),
                             ),
@@ -261,8 +257,8 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                   Text(
                     "Output Settings",
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 16.0),
                   TextFormField(
@@ -288,8 +284,8 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                     builder: (context) {
                       final secretKey = isNewUpload.value
                           ? secretNameController.text.isNotEmpty
-                              ? secretNameController.text
-                              : 'SECRET_NAME'
+                                ? secretNameController.text
+                                : 'SECRET_NAME'
                           : selectedSecret.value?.name ?? 'SECRET_NAME';
                       final fileName = fileNameController.text.isNotEmpty
                           ? fileNameController.text
@@ -305,9 +301,9 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16.0),
                         decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: Column(
@@ -315,12 +311,11 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                           children: [
                             Text(
                               "Preview Command",
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
+                              style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
-                                    color:
-                                        Theme.of(context).colorScheme.outline,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
                                   ),
                             ),
                             const SizedBox(height: 8.0),
@@ -341,8 +336,9 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         minimumSize: Size(double.infinity, 50),
                       ),
                       onPressed: isLoading.value
@@ -379,77 +375,33 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
 
                               isLoading.value = true;
                               try {
-                                String secretDocumentId;
-                                String secretKey;
-
                                 if (isNewUpload.value) {
-                                  // Create new secret
-                                  final functions = ref.read(functionsProvider);
+                                  final supabase = ref.read(
+                                    supabaseClientProvider,
+                                  );
                                   final teamId = ref
                                       .read(teamStateProvider)
                                       .requireValue
                                       .id;
-                                  final result = await functions
-                                      .httpsCallable(callableFunctionPath)
-                                      .call({
-                                    'name': secretNameController.text,
-                                    'value': uploadedBase64.value!,
-                                    'teamId': teamId,
-                                  });
-                                  secretDocumentId = result.data['documentId'];
-                                  secretKey = secretNameController.text;
-                                } else {
-                                  secretDocumentId = selectedSecret.value!.id;
-                                  secretKey = selectedSecret.value!.name;
+                                  await supabase
+                                      .from('environment_variables')
+                                      .insert({
+                                        'org_id': teamId,
+                                        'key': secretNameController.text,
+                                        'value': uploadedBase64.value!,
+                                        'is_secret': true,
+                                      });
                                 }
 
-                                final dir = directoryController.text.isNotEmpty
-                                    ? directoryController.text
-                                    : './';
-                                final normalizedDir =
-                                    dir.endsWith('/') ? dir : '$dir/';
-                                final fileName = fileNameController.text;
-                                final command =
-                                    'echo \$$secretKey | base64 -D > $normalizedDir$fileName';
-
-                                final newStep = WorkflowStep(
-                                  name: 'Save Secret File: $fileName',
-                                  command: command,
-                                  isCompleted: true,
-                                  requiredSecrets: [
-                                    WorkflowStepRequiredSecret(
-                                      key: secretKey,
-                                      secretDocumentId: secretDocumentId,
-                                    ),
-                                  ],
+                                final supabase = ref.read(
+                                  supabaseClientProvider,
                                 );
-
-                                final docRef = ref
-                                    .read(firestoreProvider)
-                                    .collection(workflowsCollection)
-                                    .doc(documentId);
-
-                                if (insertAt != null) {
-                                  final snapshot = await docRef.get();
-                                  final data =
-                                      snapshot.data() as Map<String, dynamic>;
-                                  final steps = List<Map<String, dynamic>>.from(
-                                    data['workflowSteps'] as List,
-                                  );
-                                  steps.insert(
-                                    insertAt!,
-                                    newStep.toJson(),
-                                  );
-                                  await docRef.update({
-                                    'workflowSteps': steps,
-                                  });
-                                } else {
-                                  await docRef.update({
-                                    'workflowSteps': FieldValue.arrayUnion([
-                                      newStep.toJson(),
-                                    ]),
-                                  });
-                                }
+                                await supabase
+                                    .from('workflows')
+                                    .update({
+                                      'yaml_definition': '',
+                                    })
+                                    .eq('id', documentId);
 
                                 if (context.mounted) {
                                   Navigator.pop(context);

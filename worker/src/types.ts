@@ -3,7 +3,7 @@ export type RunnerOS = "macos" | "linux";
 
 export interface Build {
   id: string;
-  project_id: string;
+  org_id: string;
   status: BuildStatus;
   yaml_definition: string | null;
   runner_os: RunnerOS;
@@ -24,7 +24,7 @@ export interface Build {
 
 export interface Workflow {
   id: string;
-  project_id: string;
+  org_id: string;
   name: string;
   yaml_definition: string;
   is_active: boolean;

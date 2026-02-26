@@ -1,5 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -81,26 +80,18 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         : () async {
                             if (!formKey.currentState!.validate()) return;
                             try {
-                              await ref
-                                  .read(functionsProvider)
-                                  .httpsCallable('inviteTeamMember')
-                                  .call({
-                                    'email': emailController.text.trim(),
-                                    'teamId': selectedTeamId.value,
-                                  });
+                              final supabase = ref.read(supabaseClientProvider);
+                              await supabase.from('org_invitations').insert({
+                                'org_id': selectedTeamId.value,
+                                'invited_by': supabase.auth.currentUser!.id,
+                                'email': emailController.text.trim(),
+                                'role': 'member',
+                              });
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
                                 'Team member invited successfully',
                               );
                               Navigator.of(context).pop();
-                            } on FirebaseFunctionsException catch (e) {
-                              debugPrint(
-                                'FirebaseFunctionsException: ${e.code} ${e.message}',
-                              );
-                              if (!context.mounted) return;
-                              context.showSnackBarMessage(
-                                e.message ?? 'An error occurred',
-                              );
                             } catch (e, s) {
                               debugPrint(e.toString());
                               debugPrint(s.toString());
