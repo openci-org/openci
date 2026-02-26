@@ -10,7 +10,7 @@ import { checkForUpdate, performUpdate, restartWorker } from "./updater.js";
 
 const machineInfo = getMachineInfo();
 
-const VERSION = "0.4.2";
+const VERSION = "0.4.15";
 const POLLING_INTERVAL_MS = 10_000;
 
 const cli = meow(
@@ -35,6 +35,8 @@ if (!cli.input[0]) {
 
 let configFromArg: Record<string, string> = {};
 const arg = cli.input[0];
+const { resolve } = await import("node:path");
+const configPath = arg.trim().startsWith("{") ? arg : resolve(arg);
 try {
   if (arg.trim().startsWith("{")) {
     configFromArg = JSON.parse(arg);
@@ -91,10 +93,12 @@ function App() {
         addLog(`Cleaned ${cleaned.length} orphaned VM(s)`);
       }
 
+      let lastUpdateCheck = 0;
+      const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
       while (active) {
         setStatus("polling");
         setCurrentBuild(null);
-        setBuildLogs([]);
         const now = new Date().toLocaleTimeString();
         setLastPollAt(now);
         setPollCount((c) => c + 1);
@@ -109,6 +113,7 @@ function App() {
           if (build) {
             setCurrentBuild(build);
             setStatus("running");
+            setBuildLogs([]);
             addLog(`Build claimed: ${build.github_owner}/${build.github_repo}`);
 
             const result = await executeBuild({
@@ -129,23 +134,27 @@ function App() {
           }
         }
 
-        try {
-          const newVersion = await checkForUpdate(VERSION);
-          if (newVersion) {
-            setStatus("updating");
-            addLog(`📦 New version available: ${VERSION} → ${newVersion}`);
-            addLog("Updating via Homebrew...");
-            const updated = performUpdate();
-            if (updated) {
-              addLog("Update complete. Restarting...");
-              await new Promise((r) => setTimeout(r, 1000));
-              restartWorker();
-            } else {
-              addLog("Update failed. Will retry later.");
+        const now2 = Date.now();
+        if (now2 - lastUpdateCheck >= UPDATE_CHECK_INTERVAL_MS) {
+          lastUpdateCheck = now2;
+          try {
+            const newVersion = await checkForUpdate(VERSION, addLog);
+            if (newVersion) {
+              setStatus("updating");
+              addLog(`📦 New version available: ${VERSION} → ${newVersion}`);
+              addLog("Updating via Homebrew...");
+              const updated = performUpdate();
+              if (updated) {
+                addLog("Update complete. Restarting...");
+                await new Promise((r) => setTimeout(r, 1000));
+                restartWorker(configPath);
+              } else {
+                addLog("Update failed. Will retry later.");
+              }
             }
+          } catch (err) {
+            addLog(`Update check error: ${err instanceof Error ? err.message : err}`);
           }
-        } catch {
-          // silently ignore update check failures
         }
 
         await new Promise((r) => setTimeout(r, POLLING_INTERVAL_MS));

@@ -1,6 +1,6 @@
 {
   "name": "openci-worker",
-  "version": "0.4.2",
+  "version": "0.4.15",
   "description": "OpenCI Worker CLI — polls Supabase for build jobs and executes them via act",
   "bin": {
     "openci-worker": "./dist/index.js"
