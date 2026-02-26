@@ -63,14 +63,28 @@ async function waitForVmReady(vmName: string, onLog: (msg: string) => void): Pro
   throw new Error("VM boot timeout: Guest Agent did not respond.");
 }
 
-async function updateCheckRun(
+async function updateCheckRunStatus(
   build: Build,
-  conclusion: "success" | "failure",
-  summary: string,
+  params:
+    | { status: "in_progress" }
+    | { status: "completed"; conclusion: "success" | "failure"; summary: string },
 ): Promise<void> {
   if (!build.check_run_id || !build.installation_token) return;
 
   const url = `https://api.github.com/repos/${build.github_owner}/${build.github_repo}/check-runs/${build.check_run_id}`;
+
+  const body: Record<string, unknown> = { status: params.status };
+
+  if (params.status === "in_progress") {
+    body.started_at = new Date().toISOString();
+  } else {
+    body.conclusion = params.conclusion;
+    body.completed_at = new Date().toISOString();
+    body.output = {
+      title: params.conclusion === "success" ? "Build Passed" : "Build Failed",
+      summary: params.summary,
+    };
+  }
 
   try {
     const res = await fetch(url, {
@@ -80,15 +94,7 @@ async function updateCheckRun(
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
-      body: JSON.stringify({
-        status: "completed",
-        conclusion,
-        completed_at: new Date().toISOString(),
-        output: {
-          title: conclusion === "success" ? "Build Passed" : "Build Failed",
-          summary,
-        },
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -122,6 +128,8 @@ export async function executeBuild(runner: BuildRunner): Promise<"success" | "fa
   };
 
   try {
+    await updateCheckRunStatus(build, { status: "in_progress" });
+
     const machine = getMachineInfo();
     log(`Worker: ${workerId} on ${machine.hostname} (${machine.platform}/${machine.arch})`);
     log(
@@ -200,14 +208,22 @@ export async function executeBuild(runner: BuildRunner): Promise<"success" | "fa
     log("Build completed successfully!");
     await supabase.updateBuildStatus(build.id, "success");
     if (buildRunId) await supabase.completeBuildRun(buildRunId, "success");
-    await updateCheckRun(build, "success", "All steps passed.");
+    await updateCheckRunStatus(build, {
+      status: "completed",
+      conclusion: "success",
+      summary: "All steps passed.",
+    });
     return "success";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log(`Build failed: ${message}`, "error");
     await supabase.updateBuildStatus(build.id, "failure");
     if (buildRunId) await supabase.completeBuildRun(buildRunId, "failure");
-    await updateCheckRun(build, "failure", message);
+    await updateCheckRunStatus(build, {
+      status: "completed",
+      conclusion: "failure",
+      summary: message,
+    });
     return "failure";
   } finally {
     log("Cleaning up VM...");

@@ -8,6 +8,8 @@ node_modules/
 !web/.env.local
 
 worker/openci-worker
+worker/*.tar.gz
 worker/dist/
 worker/config*.json
 bun.lock
+*.bun-build
