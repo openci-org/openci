@@ -1,3 +1,4 @@
+import 'package:dashboard/auth/email_verification_page.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,6 @@ class AuthPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final emailController = useTextEditingController();
-    final passwordController = useTextEditingController();
     final isAgreed = useState(true);
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final tapGestureRecognizer = useMemoized(() => TapGestureRecognizer());
@@ -41,21 +41,11 @@ class AuthPage extends HookConsumerWidget {
                       TextFormField(
                         controller: emailController,
                         decoration: InputDecoration(labelText: 'Email'),
+                        keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        controller: passwordController,
-                        decoration: InputDecoration(labelText: 'Password'),
-                        obscureText: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
                           }
                           return null;
                         },
@@ -109,9 +99,16 @@ class AuthPage extends HookConsumerWidget {
                                 if (formKey.currentState!.validate()) {
                                   isLoading.value = true;
                                   try {
-                                    await supabase.auth.signInWithPassword(
+                                    await supabase.auth.signInWithOtp(
                                       email: emailController.text,
-                                      password: passwordController.text,
+                                    );
+                                    if (!context.mounted) return;
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => EmailVerificationPage(
+                                          email: emailController.text,
+                                        ),
+                                      ),
                                     );
                                   } catch (e) {
                                     if (!context.mounted) return;
@@ -122,41 +119,7 @@ class AuthPage extends HookConsumerWidget {
                                 }
                               }
                             : null,
-                        child: Text('Log in'),
-                      ),
-                      SizedBox(
-                        height: 8,
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
-                          backgroundColor: Theme.of(context).primaryColor,
-                        ),
-                        onPressed: (isAgreed.value && !isLoading.value)
-                            ? () async {
-                                if (formKey.currentState!.validate()) {
-                                  isLoading.value = true;
-                                  try {
-                                    await supabase.auth.signUp(
-                                      email: emailController.text,
-                                      password: passwordController.text,
-                                    );
-                                  } catch (e) {
-                                    if (!context.mounted) return;
-                                    context.showSnackBarMessage('Error: $e');
-                                    debugPrint(e.toString());
-                                  } finally {
-                                    isLoading.value = false;
-                                  }
-                                }
-                              }
-                            : null,
-                        child: Text(
-                          'Create new account',
-                          style: TextStyle(
-                            color: Theme.of(context).secondaryHeaderColor,
-                          ),
-                        ),
+                        child: Text('Continue with email'),
                       ),
                     ],
                   ),
