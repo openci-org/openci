@@ -366,9 +366,9 @@ class _WorkflowCard extends ConsumerWidget {
     return switch (status) {
       'success' => Colors.green,
       'failure' => Colors.red,
-      'in_progress' => Colors.amber,
-      'queued' => Colors.grey,
-      'cancelled' => Colors.grey.shade400,
+      'in_progress' => Colors.blue,
+      'queued' => Colors.orange,
+      'cancelled' => Colors.grey,
       _ => Colors.transparent,
     };
   }
@@ -899,8 +899,8 @@ class _BuildStatusBadge extends StatelessWidget {
     final (icon, color, label) = switch (status) {
       'success' => (Icons.check_circle, Colors.green, 'Passed'),
       'failure' => (Icons.cancel, Colors.red, 'Failed'),
-      'in_progress' => (Icons.sync, Colors.amber.shade700, 'Running'),
-      'queued' => (Icons.schedule, Colors.grey, 'Queued'),
+      'in_progress' => (Icons.sync, Colors.blue, 'Running'),
+      'queued' => (Icons.schedule, Colors.orange, 'Queued'),
       'cancelled' => (Icons.block, Colors.grey, 'Cancelled'),
       _ => (Icons.help_outline, Colors.grey, 'Unknown'),
     };
@@ -917,7 +917,17 @@ class _BuildStatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 11),
+          if (status == 'in_progress')
+            SizedBox(
+              width: 11,
+              height: 11,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: color,
+              ),
+            )
+          else
+            Icon(icon, color: color, size: 11),
           const SizedBox(width: 4),
           Text(
             label,

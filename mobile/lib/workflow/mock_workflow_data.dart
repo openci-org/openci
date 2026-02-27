@@ -1,3 +1,5 @@
+import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/environment_variables/environment_variable_provider.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
@@ -284,6 +286,190 @@ List<EnvironmentVariable> getMockEnvironmentVariables() {
       teamId: 'mock-org-1',
       createdAt: now.subtract(const Duration(days: 7)),
       updatedAt: now.subtract(const Duration(days: 1)),
+    ),
+  ];
+}
+
+List<BuildJob> getMockBuildJobs() {
+  final now = DateTime.now();
+  return [
+    BuildJob(
+      id: 'mock-build-1',
+      status: 'success',
+      owner: 'open-ci-io',
+      repo: 'openci',
+      teamId: 'mock-org-1',
+      workflowId: 'mock-wf-1',
+      commitSha: 'a1b2c3d4e5f6789012345678901234567890abcd',
+      branch: 'main',
+      runCount: 1,
+      latestRunId: 'mock-run-1',
+      createdAt: now.subtract(const Duration(minutes: 12)),
+      updatedAt: now.subtract(const Duration(minutes: 8)),
+    ),
+    BuildJob(
+      id: 'mock-build-2',
+      status: 'failure',
+      owner: 'open-ci-io',
+      repo: 'openci',
+      teamId: 'mock-org-1',
+      workflowId: 'mock-wf-2',
+      commitSha: 'f4e5d6c7890123456789012345678901234567ab',
+      branch: 'develop',
+      pullRequestNumber: 42,
+      runCount: 1,
+      latestRunId: 'mock-run-2',
+      createdAt: now.subtract(const Duration(hours: 1)),
+      updatedAt: now.subtract(const Duration(minutes: 45)),
+    ),
+    BuildJob(
+      id: 'mock-build-3',
+      status: 'in_progress',
+      owner: 'open-ci-io',
+      repo: 'openci',
+      teamId: 'mock-org-1',
+      workflowId: 'mock-wf-3',
+      commitSha: '7a8b9c0d1e2f3456789012345678901234567abc',
+      branch: 'main',
+      tagName: 'v1.2.0',
+      runCount: 1,
+      latestRunId: 'mock-run-3',
+      createdAt: now.subtract(const Duration(minutes: 3)),
+      updatedAt: now.subtract(const Duration(minutes: 1)),
+    ),
+    BuildJob(
+      id: 'mock-build-4',
+      status: 'queued',
+      owner: 'open-ci-io',
+      repo: 'openci',
+      teamId: 'mock-org-1',
+      workflowId: 'mock-wf-4',
+      commitSha: 'deadbeef0123456789012345678901234567890a',
+      branch: 'develop',
+      runCount: 1,
+      createdAt: now.subtract(const Duration(minutes: 1)),
+      updatedAt: now.subtract(const Duration(seconds: 30)),
+    ),
+    BuildJob(
+      id: 'mock-build-5',
+      status: 'success',
+      owner: 'open-ci-io',
+      repo: 'openci',
+      teamId: 'mock-org-1',
+      workflowId: 'mock-wf-5',
+      commitSha: 'cafe1234567890123456789012345678901234ab',
+      branch: 'main',
+      tagName: 'v1.1.0',
+      runCount: 1,
+      latestRunId: 'mock-run-5',
+      createdAt: now.subtract(const Duration(hours: 5)),
+      updatedAt: now.subtract(const Duration(hours: 4, minutes: 50)),
+    ),
+    BuildJob(
+      id: 'mock-build-6',
+      status: 'cancelled',
+      owner: 'open-ci-io',
+      repo: 'openci',
+      teamId: 'mock-org-1',
+      workflowId: 'mock-wf-1',
+      commitSha: 'abcdef01234567890123456789012345678901ef',
+      branch: 'feature/new-ui',
+      pullRequestNumber: 38,
+      runCount: 1,
+      latestRunId: 'mock-run-6',
+      createdAt: now.subtract(const Duration(hours: 8)),
+      updatedAt: now.subtract(const Duration(hours: 7)),
+    ),
+  ];
+}
+
+List<BuildLog> getMockBuildLogs() {
+  return const [
+    BuildLog(
+      message: '[Setup] Preparing build environment...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Setup] macOS 15.3 • Xcode 16.2 • Flutter 3.38.7',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Checkout] Cloning repository open-ci-io/openci...',
+      level: 'info',
+    ),
+    BuildLog(
+      message:
+          '[Checkout] HEAD is now at a1b2c3d feat: add new workflow editor',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Flutter] Running flutter pub get...',
+      level: 'info',
+    ),
+    BuildLog(
+      message:
+          '[Flutter] Resolving dependencies...\n'
+          '  cloud_firestore 5.6.9 (5.7.0 available)\n'
+          '  firebase_auth 5.5.4 (5.6.0 available)\n'
+          '  flutter_hooks 0.20.5\n'
+          '  hooks_riverpod 2.6.5\n'
+          '  Changed 0 dependencies!',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Analyze] Running flutter analyze...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Analyze] No issues found!',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Test] Running flutter test...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Test] 00:05 +23: All tests passed!',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Build] Building IPA for release...',
+      level: 'info',
+    ),
+    BuildLog(
+      message:
+          '[Build] warning: The iOS deployment target is set to 12.0,\n'
+          'but the range supported by the installed SDKs is 16.0 to 18.2.\n'
+          'Consider updating the deployment target.',
+      level: 'warning',
+    ),
+    BuildLog(
+      message: '[Build] Compiling Swift sources... (42/42)',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Build] Linking Runner...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Build] Signing with identity "Apple Distribution"',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Build] Build succeeded — build/ios/ipa/OpenCI.ipa (28.4 MB)',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Deploy] Uploading to App Store Connect...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Deploy] Upload complete. Processing by Apple.',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Done] Pipeline finished in 4m 32s ✓',
+      level: 'success',
     ),
   ];
 }

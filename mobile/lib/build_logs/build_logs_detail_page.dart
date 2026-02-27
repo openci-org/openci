@@ -21,9 +21,9 @@ class BuildLogsDetailPage extends HookConsumerWidget {
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
-      'in_progress' => Theme.of(context).colorScheme.primary,
-      'queued' => Colors.blue,
-      'cancelled' => Colors.orange,
+      'in_progress' => Colors.blue,
+      'queued' => Colors.orange,
+      'cancelled' => Colors.grey,
       _ => Colors.grey,
     };
 

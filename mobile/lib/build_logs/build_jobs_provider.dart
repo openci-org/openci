@@ -1,5 +1,6 @@
 import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
+import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -10,6 +11,10 @@ part 'build_jobs_provider.g.dart';
 class BuildJobs extends _$BuildJobs {
   @override
   Stream<List<BuildJob>> build() {
+    if (useMockData) {
+      return Stream.value(getMockBuildJobs());
+    }
+
     final supabase = ref.watch(supabaseClientProvider);
 
     return supabase
@@ -29,11 +34,13 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> retryBuildJob(String buildJobId) async {
+    if (useMockData) return;
     final supabase = ref.read(supabaseClientProvider);
     await supabase.rpc('retry_build', params: {'p_build_id': buildJobId});
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
+    if (useMockData) return;
     final supabase = ref.read(supabaseClientProvider);
     await supabase
         .from('builds')
@@ -42,9 +49,18 @@ class BuildJobs extends _$BuildJobs {
   }
 }
 
+const _mockWorkflowNames = {
+  'mock-wf-1': 'iOS Release Build',
+  'mock-wf-2': 'Pull Request Check',
+  'mock-wf-3': 'Android Release',
+  'mock-wf-4': 'Nightly E2E Tests',
+  'mock-wf-5': 'Tag Deploy',
+};
+
 @riverpod
 Future<String?> workflowName(Ref ref, String? workflowId) async {
   if (workflowId == null) return null;
+  if (useMockData) return _mockWorkflowNames[workflowId];
   final supabase = ref.read(supabaseClientProvider);
   final rows = await supabase
       .from('workflows')

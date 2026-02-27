@@ -20,13 +20,13 @@ const navigationBarDestinations = [
     label: 'Workflows',
   ),
   NavigationDestination(
-    selectedIcon: Icon(Symbols.vpn_key_rounded, fill: 1),
-    icon: Icon(Symbols.vpn_key_rounded),
+    selectedIcon: Icon(Symbols.passkey_rounded, fill: 1),
+    icon: Icon(Symbols.passkey_rounded),
     label: 'Variables',
   ),
   NavigationDestination(
-    selectedIcon: Icon(Symbols.article_rounded, fill: 1),
-    icon: Icon(Symbols.article_rounded),
+    selectedIcon: Icon(Symbols.terminal_rounded, fill: 1),
+    icon: Icon(Symbols.terminal_rounded),
     label: 'Logs',
   ),
   NavigationDestination(
