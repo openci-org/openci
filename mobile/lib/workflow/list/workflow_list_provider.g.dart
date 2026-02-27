@@ -3,6 +3,46 @@
 part of 'workflow_list_provider.dart';
 
 // **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_WorkflowListItem _$WorkflowListItemFromJson(Map<String, dynamic> json) =>
+    _WorkflowListItem(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      orgId: json['orgId'] as String,
+      yamlDefinition: json['yamlDefinition'] as String,
+      triggerSummary: json['triggerSummary'] as String,
+      repository: json['repository'] as String,
+      branch: json['branch'] as String? ?? 'main',
+      filePath: json['filePath'] as String? ?? '.openci/workflow.yaml',
+      commitSha: json['commitSha'] as String?,
+      lastBuildStatus: json['lastBuildStatus'] as String?,
+      lastBuildAt: json['lastBuildAt'] == null
+          ? null
+          : DateTime.parse(json['lastBuildAt'] as String),
+      createdAt: const DateTimeConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
+    );
+
+Map<String, dynamic> _$WorkflowListItemToJson(_WorkflowListItem instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'orgId': instance.orgId,
+      'yamlDefinition': instance.yamlDefinition,
+      'triggerSummary': instance.triggerSummary,
+      'repository': instance.repository,
+      'branch': instance.branch,
+      'filePath': instance.filePath,
+      'commitSha': instance.commitSha,
+      'lastBuildStatus': instance.lastBuildStatus,
+      'lastBuildAt': instance.lastBuildAt?.toIso8601String(),
+      'createdAt': const DateTimeConverter().toJson(instance.createdAt),
+      'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
+    };
+
+// **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
@@ -13,7 +53,7 @@ part of 'workflow_list_provider.dart';
 final workflowListProvider = WorkflowListProvider._();
 
 final class WorkflowListProvider
-    extends $StreamNotifierProvider<WorkflowList, List<Workflow>> {
+    extends $StreamNotifierProvider<WorkflowList, List<WorkflowListItem>> {
   WorkflowListProvider._()
     : super(
         from: null,
@@ -33,19 +73,24 @@ final class WorkflowListProvider
   WorkflowList create() => WorkflowList();
 }
 
-String _$workflowListHash() => r'0898dd7b20c5f719f03c632fd35cd858d833d82d';
+String _$workflowListHash() => r'7a13aef965ca87d668f8a208652075e3a19368a4';
 
-abstract class _$WorkflowList extends $StreamNotifier<List<Workflow>> {
-  Stream<List<Workflow>> build();
+abstract class _$WorkflowList extends $StreamNotifier<List<WorkflowListItem>> {
+  Stream<List<WorkflowListItem>> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<Workflow>>, List<Workflow>>;
+    final ref =
+        this.ref
+            as $Ref<AsyncValue<List<WorkflowListItem>>, List<WorkflowListItem>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<Workflow>>, List<Workflow>>,
-              AsyncValue<List<Workflow>>,
+              AnyNotifier<
+                AsyncValue<List<WorkflowListItem>>,
+                List<WorkflowListItem>
+              >,
+              AsyncValue<List<WorkflowListItem>>,
               Object?,
               Object?
             >;

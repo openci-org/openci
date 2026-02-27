@@ -11,77 +11,87 @@ part of 'workflow_editor_provider.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
-mixin _$CreateWorkflowState {
+mixin _$WorkflowEditorState {
 
- bool get isCreated; String get selectedRepository; String get selectedWorkingDirectory; TriggerType get selectedTriggerType; String get selectedTriggerBranch; List<WorkflowStep> get selectedWorkflowSteps;
-/// Create a copy of CreateWorkflowState
+ String get workflowId; String get orgId; String get dbName; String get yamlRaw; YamlWorkflow get parsedWorkflow; String? get parseError; String get repository; String get branch; String get filePath; String? get commitSha;
+/// Create a copy of WorkflowEditorState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$CreateWorkflowStateCopyWith<CreateWorkflowState> get copyWith => _$CreateWorkflowStateCopyWithImpl<CreateWorkflowState>(this as CreateWorkflowState, _$identity);
+$WorkflowEditorStateCopyWith<WorkflowEditorState> get copyWith => _$WorkflowEditorStateCopyWithImpl<WorkflowEditorState>(this as WorkflowEditorState, _$identity);
 
-  /// Serializes this CreateWorkflowState to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateWorkflowState&&(identical(other.isCreated, isCreated) || other.isCreated == isCreated)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&(identical(other.selectedTriggerType, selectedTriggerType) || other.selectedTriggerType == selectedTriggerType)&&(identical(other.selectedTriggerBranch, selectedTriggerBranch) || other.selectedTriggerBranch == selectedTriggerBranch)&&const DeepCollectionEquality().equals(other.selectedWorkflowSteps, selectedWorkflowSteps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowEditorState&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.orgId, orgId) || other.orgId == orgId)&&(identical(other.dbName, dbName) || other.dbName == dbName)&&(identical(other.yamlRaw, yamlRaw) || other.yamlRaw == yamlRaw)&&(identical(other.parsedWorkflow, parsedWorkflow) || other.parsedWorkflow == parsedWorkflow)&&(identical(other.parseError, parseError) || other.parseError == parseError)&&(identical(other.repository, repository) || other.repository == repository)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
-int get hashCode => Object.hash(runtimeType,isCreated,selectedRepository,selectedWorkingDirectory,selectedTriggerType,selectedTriggerBranch,const DeepCollectionEquality().hash(selectedWorkflowSteps));
+int get hashCode => Object.hash(runtimeType,workflowId,orgId,dbName,yamlRaw,parsedWorkflow,parseError,repository,branch,filePath,commitSha);
 
 @override
 String toString() {
-  return 'CreateWorkflowState(isCreated: $isCreated, selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, selectedTriggerType: $selectedTriggerType, selectedTriggerBranch: $selectedTriggerBranch, selectedWorkflowSteps: $selectedWorkflowSteps)';
+  return 'WorkflowEditorState(workflowId: $workflowId, orgId: $orgId, dbName: $dbName, yamlRaw: $yamlRaw, parsedWorkflow: $parsedWorkflow, parseError: $parseError, repository: $repository, branch: $branch, filePath: $filePath, commitSha: $commitSha)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $CreateWorkflowStateCopyWith<$Res>  {
-  factory $CreateWorkflowStateCopyWith(CreateWorkflowState value, $Res Function(CreateWorkflowState) _then) = _$CreateWorkflowStateCopyWithImpl;
+abstract mixin class $WorkflowEditorStateCopyWith<$Res>  {
+  factory $WorkflowEditorStateCopyWith(WorkflowEditorState value, $Res Function(WorkflowEditorState) _then) = _$WorkflowEditorStateCopyWithImpl;
 @useResult
 $Res call({
- bool isCreated, String selectedRepository, String selectedWorkingDirectory, TriggerType selectedTriggerType, String selectedTriggerBranch, List<WorkflowStep> selectedWorkflowSteps
+ String workflowId, String orgId, String dbName, String yamlRaw, YamlWorkflow parsedWorkflow, String? parseError, String repository, String branch, String filePath, String? commitSha
 });
 
 
-
+$YamlWorkflowCopyWith<$Res> get parsedWorkflow;
 
 }
 /// @nodoc
-class _$CreateWorkflowStateCopyWithImpl<$Res>
-    implements $CreateWorkflowStateCopyWith<$Res> {
-  _$CreateWorkflowStateCopyWithImpl(this._self, this._then);
+class _$WorkflowEditorStateCopyWithImpl<$Res>
+    implements $WorkflowEditorStateCopyWith<$Res> {
+  _$WorkflowEditorStateCopyWithImpl(this._self, this._then);
 
-  final CreateWorkflowState _self;
-  final $Res Function(CreateWorkflowState) _then;
+  final WorkflowEditorState _self;
+  final $Res Function(WorkflowEditorState) _then;
 
-/// Create a copy of CreateWorkflowState
+/// Create a copy of WorkflowEditorState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isCreated = null,Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? selectedTriggerType = null,Object? selectedTriggerBranch = null,Object? selectedWorkflowSteps = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? orgId = null,Object? dbName = null,Object? yamlRaw = null,Object? parsedWorkflow = null,Object? parseError = freezed,Object? repository = null,Object? branch = null,Object? filePath = null,Object? commitSha = freezed,}) {
   return _then(_self.copyWith(
-isCreated: null == isCreated ? _self.isCreated : isCreated // ignore: cast_nullable_to_non_nullable
-as bool,selectedRepository: null == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
-as String,selectedWorkingDirectory: null == selectedWorkingDirectory ? _self.selectedWorkingDirectory : selectedWorkingDirectory // ignore: cast_nullable_to_non_nullable
-as String,selectedTriggerType: null == selectedTriggerType ? _self.selectedTriggerType : selectedTriggerType // ignore: cast_nullable_to_non_nullable
-as TriggerType,selectedTriggerBranch: null == selectedTriggerBranch ? _self.selectedTriggerBranch : selectedTriggerBranch // ignore: cast_nullable_to_non_nullable
-as String,selectedWorkflowSteps: null == selectedWorkflowSteps ? _self.selectedWorkflowSteps : selectedWorkflowSteps // ignore: cast_nullable_to_non_nullable
-as List<WorkflowStep>,
+workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
+as String,orgId: null == orgId ? _self.orgId : orgId // ignore: cast_nullable_to_non_nullable
+as String,dbName: null == dbName ? _self.dbName : dbName // ignore: cast_nullable_to_non_nullable
+as String,yamlRaw: null == yamlRaw ? _self.yamlRaw : yamlRaw // ignore: cast_nullable_to_non_nullable
+as String,parsedWorkflow: null == parsedWorkflow ? _self.parsedWorkflow : parsedWorkflow // ignore: cast_nullable_to_non_nullable
+as YamlWorkflow,parseError: freezed == parseError ? _self.parseError : parseError // ignore: cast_nullable_to_non_nullable
+as String?,repository: null == repository ? _self.repository : repository // ignore: cast_nullable_to_non_nullable
+as String,branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
+as String,filePath: null == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
+as String,commitSha: freezed == commitSha ? _self.commitSha : commitSha // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
-
+/// Create a copy of WorkflowEditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$YamlWorkflowCopyWith<$Res> get parsedWorkflow {
+  
+  return $YamlWorkflowCopyWith<$Res>(_self.parsedWorkflow, (value) {
+    return _then(_self.copyWith(parsedWorkflow: value));
+  });
+}
 }
 
 
-/// Adds pattern-matching-related methods to [CreateWorkflowState].
-extension CreateWorkflowStatePatterns on CreateWorkflowState {
+/// Adds pattern-matching-related methods to [WorkflowEditorState].
+extension WorkflowEditorStatePatterns on WorkflowEditorState {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -94,10 +104,10 @@ extension CreateWorkflowStatePatterns on CreateWorkflowState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CreateWorkflowState value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WorkflowEditorState value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _CreateWorkflowState() when $default != null:
+case _WorkflowEditorState() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -116,10 +126,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CreateWorkflowState value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WorkflowEditorState value)  $default,){
 final _that = this;
 switch (_that) {
-case _CreateWorkflowState():
+case _WorkflowEditorState():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -137,10 +147,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CreateWorkflowState value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WorkflowEditorState value)?  $default,){
 final _that = this;
 switch (_that) {
-case _CreateWorkflowState() when $default != null:
+case _WorkflowEditorState() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -158,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isCreated,  String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String selectedTriggerBranch,  List<WorkflowStep> selectedWorkflowSteps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String workflowId,  String orgId,  String dbName,  String yamlRaw,  YamlWorkflow parsedWorkflow,  String? parseError,  String repository,  String branch,  String filePath,  String? commitSha)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _CreateWorkflowState() when $default != null:
-return $default(_that.isCreated,_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch,_that.selectedWorkflowSteps);case _:
+case _WorkflowEditorState() when $default != null:
+return $default(_that.workflowId,_that.orgId,_that.dbName,_that.yamlRaw,_that.parsedWorkflow,_that.parseError,_that.repository,_that.branch,_that.filePath,_that.commitSha);case _:
   return orElse();
 
 }
@@ -179,10 +189,10 @@ return $default(_that.isCreated,_that.selectedRepository,_that.selectedWorkingDi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isCreated,  String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String selectedTriggerBranch,  List<WorkflowStep> selectedWorkflowSteps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String workflowId,  String orgId,  String dbName,  String yamlRaw,  YamlWorkflow parsedWorkflow,  String? parseError,  String repository,  String branch,  String filePath,  String? commitSha)  $default,) {final _that = this;
 switch (_that) {
-case _CreateWorkflowState():
-return $default(_that.isCreated,_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch,_that.selectedWorkflowSteps);case _:
+case _WorkflowEditorState():
+return $default(_that.workflowId,_that.orgId,_that.dbName,_that.yamlRaw,_that.parsedWorkflow,_that.parseError,_that.repository,_that.branch,_that.filePath,_that.commitSha);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +209,10 @@ return $default(_that.isCreated,_that.selectedRepository,_that.selectedWorkingDi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isCreated,  String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String selectedTriggerBranch,  List<WorkflowStep> selectedWorkflowSteps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String workflowId,  String orgId,  String dbName,  String yamlRaw,  YamlWorkflow parsedWorkflow,  String? parseError,  String repository,  String branch,  String filePath,  String? commitSha)?  $default,) {final _that = this;
 switch (_that) {
-case _CreateWorkflowState() when $default != null:
-return $default(_that.isCreated,_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch,_that.selectedWorkflowSteps);case _:
+case _WorkflowEditorState() when $default != null:
+return $default(_that.workflowId,_that.orgId,_that.dbName,_that.yamlRaw,_that.parsedWorkflow,_that.parseError,_that.repository,_that.branch,_that.filePath,_that.commitSha);case _:
   return null;
 
 }
@@ -211,82 +221,96 @@ return $default(_that.isCreated,_that.selectedRepository,_that.selectedWorkingDi
 }
 
 /// @nodoc
-@JsonSerializable()
 
-class _CreateWorkflowState implements CreateWorkflowState {
-  const _CreateWorkflowState({required this.isCreated, required this.selectedRepository, required this.selectedWorkingDirectory, required this.selectedTriggerType, required this.selectedTriggerBranch, required this.selectedWorkflowSteps});
-  factory _CreateWorkflowState.fromJson(Map<String, dynamic> json) => _$CreateWorkflowStateFromJson(json);
 
-@override final  bool isCreated;
-@override final  String selectedRepository;
-@override final  String selectedWorkingDirectory;
-@override final  TriggerType selectedTriggerType;
-@override final  String selectedTriggerBranch;
-@override final  List<WorkflowStep> selectedWorkflowSteps;
+class _WorkflowEditorState implements WorkflowEditorState {
+  const _WorkflowEditorState({required this.workflowId, required this.orgId, required this.dbName, required this.yamlRaw, required this.parsedWorkflow, this.parseError, required this.repository, required this.branch, required this.filePath, this.commitSha});
+  
 
-/// Create a copy of CreateWorkflowState
+@override final  String workflowId;
+@override final  String orgId;
+@override final  String dbName;
+@override final  String yamlRaw;
+@override final  YamlWorkflow parsedWorkflow;
+@override final  String? parseError;
+@override final  String repository;
+@override final  String branch;
+@override final  String filePath;
+@override final  String? commitSha;
+
+/// Create a copy of WorkflowEditorState
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$CreateWorkflowStateCopyWith<_CreateWorkflowState> get copyWith => __$CreateWorkflowStateCopyWithImpl<_CreateWorkflowState>(this, _$identity);
+_$WorkflowEditorStateCopyWith<_WorkflowEditorState> get copyWith => __$WorkflowEditorStateCopyWithImpl<_WorkflowEditorState>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$CreateWorkflowStateToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateWorkflowState&&(identical(other.isCreated, isCreated) || other.isCreated == isCreated)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&(identical(other.selectedTriggerType, selectedTriggerType) || other.selectedTriggerType == selectedTriggerType)&&(identical(other.selectedTriggerBranch, selectedTriggerBranch) || other.selectedTriggerBranch == selectedTriggerBranch)&&const DeepCollectionEquality().equals(other.selectedWorkflowSteps, selectedWorkflowSteps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowEditorState&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.orgId, orgId) || other.orgId == orgId)&&(identical(other.dbName, dbName) || other.dbName == dbName)&&(identical(other.yamlRaw, yamlRaw) || other.yamlRaw == yamlRaw)&&(identical(other.parsedWorkflow, parsedWorkflow) || other.parsedWorkflow == parsedWorkflow)&&(identical(other.parseError, parseError) || other.parseError == parseError)&&(identical(other.repository, repository) || other.repository == repository)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
-int get hashCode => Object.hash(runtimeType,isCreated,selectedRepository,selectedWorkingDirectory,selectedTriggerType,selectedTriggerBranch,const DeepCollectionEquality().hash(selectedWorkflowSteps));
+int get hashCode => Object.hash(runtimeType,workflowId,orgId,dbName,yamlRaw,parsedWorkflow,parseError,repository,branch,filePath,commitSha);
 
 @override
 String toString() {
-  return 'CreateWorkflowState(isCreated: $isCreated, selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, selectedTriggerType: $selectedTriggerType, selectedTriggerBranch: $selectedTriggerBranch, selectedWorkflowSteps: $selectedWorkflowSteps)';
+  return 'WorkflowEditorState(workflowId: $workflowId, orgId: $orgId, dbName: $dbName, yamlRaw: $yamlRaw, parsedWorkflow: $parsedWorkflow, parseError: $parseError, repository: $repository, branch: $branch, filePath: $filePath, commitSha: $commitSha)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$CreateWorkflowStateCopyWith<$Res> implements $CreateWorkflowStateCopyWith<$Res> {
-  factory _$CreateWorkflowStateCopyWith(_CreateWorkflowState value, $Res Function(_CreateWorkflowState) _then) = __$CreateWorkflowStateCopyWithImpl;
+abstract mixin class _$WorkflowEditorStateCopyWith<$Res> implements $WorkflowEditorStateCopyWith<$Res> {
+  factory _$WorkflowEditorStateCopyWith(_WorkflowEditorState value, $Res Function(_WorkflowEditorState) _then) = __$WorkflowEditorStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isCreated, String selectedRepository, String selectedWorkingDirectory, TriggerType selectedTriggerType, String selectedTriggerBranch, List<WorkflowStep> selectedWorkflowSteps
+ String workflowId, String orgId, String dbName, String yamlRaw, YamlWorkflow parsedWorkflow, String? parseError, String repository, String branch, String filePath, String? commitSha
 });
 
 
-
+@override $YamlWorkflowCopyWith<$Res> get parsedWorkflow;
 
 }
 /// @nodoc
-class __$CreateWorkflowStateCopyWithImpl<$Res>
-    implements _$CreateWorkflowStateCopyWith<$Res> {
-  __$CreateWorkflowStateCopyWithImpl(this._self, this._then);
+class __$WorkflowEditorStateCopyWithImpl<$Res>
+    implements _$WorkflowEditorStateCopyWith<$Res> {
+  __$WorkflowEditorStateCopyWithImpl(this._self, this._then);
 
-  final _CreateWorkflowState _self;
-  final $Res Function(_CreateWorkflowState) _then;
+  final _WorkflowEditorState _self;
+  final $Res Function(_WorkflowEditorState) _then;
 
-/// Create a copy of CreateWorkflowState
+/// Create a copy of WorkflowEditorState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isCreated = null,Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? selectedTriggerType = null,Object? selectedTriggerBranch = null,Object? selectedWorkflowSteps = null,}) {
-  return _then(_CreateWorkflowState(
-isCreated: null == isCreated ? _self.isCreated : isCreated // ignore: cast_nullable_to_non_nullable
-as bool,selectedRepository: null == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
-as String,selectedWorkingDirectory: null == selectedWorkingDirectory ? _self.selectedWorkingDirectory : selectedWorkingDirectory // ignore: cast_nullable_to_non_nullable
-as String,selectedTriggerType: null == selectedTriggerType ? _self.selectedTriggerType : selectedTriggerType // ignore: cast_nullable_to_non_nullable
-as TriggerType,selectedTriggerBranch: null == selectedTriggerBranch ? _self.selectedTriggerBranch : selectedTriggerBranch // ignore: cast_nullable_to_non_nullable
-as String,selectedWorkflowSteps: null == selectedWorkflowSteps ? _self.selectedWorkflowSteps : selectedWorkflowSteps // ignore: cast_nullable_to_non_nullable
-as List<WorkflowStep>,
+@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? orgId = null,Object? dbName = null,Object? yamlRaw = null,Object? parsedWorkflow = null,Object? parseError = freezed,Object? repository = null,Object? branch = null,Object? filePath = null,Object? commitSha = freezed,}) {
+  return _then(_WorkflowEditorState(
+workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
+as String,orgId: null == orgId ? _self.orgId : orgId // ignore: cast_nullable_to_non_nullable
+as String,dbName: null == dbName ? _self.dbName : dbName // ignore: cast_nullable_to_non_nullable
+as String,yamlRaw: null == yamlRaw ? _self.yamlRaw : yamlRaw // ignore: cast_nullable_to_non_nullable
+as String,parsedWorkflow: null == parsedWorkflow ? _self.parsedWorkflow : parsedWorkflow // ignore: cast_nullable_to_non_nullable
+as YamlWorkflow,parseError: freezed == parseError ? _self.parseError : parseError // ignore: cast_nullable_to_non_nullable
+as String?,repository: null == repository ? _self.repository : repository // ignore: cast_nullable_to_non_nullable
+as String,branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
+as String,filePath: null == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
+as String,commitSha: freezed == commitSha ? _self.commitSha : commitSha // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
-
+/// Create a copy of WorkflowEditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$YamlWorkflowCopyWith<$Res> get parsedWorkflow {
+  
+  return $YamlWorkflowCopyWith<$Res>(_self.parsedWorkflow, (value) {
+    return _then(_self.copyWith(parsedWorkflow: value));
+  });
+}
 }
 
 // dart format on
