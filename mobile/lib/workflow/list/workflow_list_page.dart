@@ -10,10 +10,12 @@ import 'package:dashboard/workflow/editor/workflow_editor_page.dart';
 import 'package:dashboard/workflow/list/git_context_provider.dart';
 import 'package:dashboard/workflow/list/workflow_list_provider.dart';
 import 'package:dashboard/workflow/mock_workflow_data.dart';
+import 'package:dashboard/workflow/yaml_workflow_converter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:yaml/yaml.dart';
 
 String getInitials(String name) {
   final words = name.trim().split(RegExp(r'\s+'));
@@ -60,11 +62,18 @@ class WorkflowListPage extends ConsumerWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: [
+                          colorScheme.primary.withValues(alpha: 0.12),
+                          colorScheme.surfaceContainerHighest,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
                       child: Icon(
@@ -258,12 +267,17 @@ class WorkflowListPage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 88,
+                      height: 88,
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        gradient: RadialGradient(
+                          colors: [
+                            Theme.of(context).colorScheme.primaryContainer
+                                .withValues(alpha: 0.5),
+                            Theme.of(context).colorScheme.primaryContainer
+                                .withValues(alpha: 0.1),
+                          ],
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -287,15 +301,18 @@ class WorkflowListPage extends ConsumerWidget {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     FilledButton.icon(
                       onPressed: () => _showSetupSheet(context),
                       icon: const Icon(Icons.add),
                       label: const Text('Create Workflow'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                          horizontal: 28,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -356,10 +373,45 @@ class _WorkflowCard extends ConsumerWidget {
     };
   }
 
+  List<String> _parseTriggerTypes() {
+    if (workflow.yamlDefinition.isEmpty) return [];
+    try {
+      final yamlMap = loadYaml(workflow.yamlDefinition);
+      if (yamlMap is Map) {
+        final parsed = YamlWorkflowConverter.fromYamlMap(
+          Map<String, dynamic>.from(yamlMap),
+        );
+        final types = <String>[];
+        if (parsed.on.push != null) types.add('push');
+        if (parsed.on.pullRequest != null) types.add('pr');
+        if (parsed.on.tag == true) types.add('tag');
+        if (parsed.on.release != null) types.add('release');
+        return types;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  int _parseStepCount() {
+    if (workflow.yamlDefinition.isEmpty) return 0;
+    try {
+      final yamlMap = loadYaml(workflow.yamlDefinition);
+      if (yamlMap is Map) {
+        final parsed = YamlWorkflowConverter.fromYamlMap(
+          Map<String, dynamic>.from(yamlMap),
+        );
+        return parsed.steps.length;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final hasStatus = workflow.lastBuildStatus != null;
+    final triggerTypes = _parseTriggerTypes();
+    final stepCount = _parseStepCount();
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -424,59 +476,136 @@ class _WorkflowCard extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(
-                            Icons.description_outlined,
-                            size: 12,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            workflow.filePath,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontFamily: 'monospace',
-                              color: colorScheme.onSurfaceVariant,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                          ),
-                        ],
-                      ),
-                      if (workflow.triggerSummary.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              FontAwesomeIcons.bolt,
-                              size: 10,
-                              color: colorScheme.onSurfaceVariant,
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                workflow.triggerSummary,
-                                style: TextStyle(
-                                  fontSize: 12,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.description_outlined,
+                                  size: 10,
                                   color: colorScheme.onSurfaceVariant,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 3),
+                                Text(
+                                  workflow.filePath.split('/').last,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.w500,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (stepCount > 0) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.layers_outlined,
+                                    size: 10,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '$stepCount steps',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
+                        ],
+                      ),
+                      if (triggerTypes.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: triggerTypes.map((type) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer.withValues(
+                                  alpha: 0.5,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    FontAwesomeIcons.bolt,
+                                    size: 8,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    type,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ],
                       if (workflow.lastBuildAt != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          workflow.lastBuildAt!.toTimeAgoEn(),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.7,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              size: 11,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 4),
+                            Text(
+                              workflow.lastBuildAt!.toTimeAgoEn(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -768,8 +897,8 @@ class _BuildStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color, label) = switch (status) {
-      'success' => (Icons.check, Colors.green, 'Passed'),
-      'failure' => (Icons.close, Colors.red, 'Failed'),
+      'success' => (Icons.check_circle, Colors.green, 'Passed'),
+      'failure' => (Icons.cancel, Colors.red, 'Failed'),
       'in_progress' => (Icons.sync, Colors.amber.shade700, 'Running'),
       'queued' => (Icons.schedule, Colors.grey, 'Queued'),
       'cancelled' => (Icons.block, Colors.grey, 'Cancelled'),
@@ -779,19 +908,22 @@ class _BuildStatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 12),
+          Icon(icon, color: color, size: 11),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
               color: color,
             ),
           ),
