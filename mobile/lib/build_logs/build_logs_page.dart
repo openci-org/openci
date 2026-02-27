@@ -400,6 +400,7 @@ class _BuildJobMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final canCancel =
         buildJob.status == 'queued' || buildJob.status == 'in_progress';
+    final isFailed = buildJob.status == 'failure';
 
     return PopupMenuButton<String>(
       icon: Icon(
@@ -465,6 +466,9 @@ class _BuildJobMenu extends ConsumerWidget {
                 }
               }
             }
+          case 'ai_fix':
+            if (!context.mounted) return;
+            showAIFixSheet(context: context, buildJob: buildJob);
         }
       },
       itemBuilder: (context) => [
@@ -498,6 +502,24 @@ class _BuildJobMenu extends ConsumerWidget {
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                   ),
+                ),
+              ],
+            ),
+          ),
+        if (isFailed)
+          PopupMenuItem(
+            value: 'ai_fix',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_fix_high_rounded,
+                  size: 18,
+                  color: Colors.green[400],
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Fix with AI',
+                  style: TextStyle(color: Colors.green[400]),
                 ),
               ],
             ),

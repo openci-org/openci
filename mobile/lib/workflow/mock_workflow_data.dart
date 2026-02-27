@@ -473,3 +473,64 @@ List<BuildLog> getMockBuildLogs() {
     ),
   ];
 }
+
+List<BuildLog> getMockFailureBuildLogs() {
+  return const [
+    BuildLog(
+      message: '[Setup] Preparing build environment...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Setup] macOS 15.3 • Xcode 16.2 • Flutter 3.38.7',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Checkout] Cloning repository open-ci-io/openci...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Checkout] HEAD is now at f4e5d6c fix: update auth flow',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Flutter] Running flutter pub get...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Flutter] Got dependencies!',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Analyze] Running flutter analyze...',
+      level: 'info',
+    ),
+    BuildLog(
+      message: '[Analyze] No issues found!',
+      level: 'success',
+    ),
+    BuildLog(
+      message: '[Test] Running flutter test...',
+      level: 'info',
+    ),
+    BuildLog(
+      message:
+          '[Test] 00:03 +12 -1: test/auth/auth_provider_test.dart: '
+          'AuthProvider should handle token refresh\n'
+          '\n'
+          "  Expected: 'authenticated'\n"
+          "    Actual: 'unauthenticated'\n"
+          '\n'
+          '  package:test_api/src/expect/expect.dart 64:16  expect\n'
+          '  test/auth/auth_provider_test.dart:42:7         main.<fn>\n',
+      level: 'error',
+    ),
+    BuildLog(
+      message: '[Test] 00:05 +22 -1: Some tests failed.',
+      level: 'error',
+    ),
+    BuildLog(
+      message: '[Done] Pipeline failed in 1m 47s ✕',
+      level: 'error',
+    ),
+  ];
+}

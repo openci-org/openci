@@ -10,6 +10,9 @@ part 'build_logs_provider.g.dart';
 @riverpod
 Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
   if (useMockData) {
+    if (buildJobId == 'mock-build-2') {
+      return Stream.value(getMockFailureBuildLogs());
+    }
     return Stream.value(getMockBuildLogs());
   }
 
