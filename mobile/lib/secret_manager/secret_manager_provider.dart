@@ -1,6 +1,7 @@
 import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
+import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -11,6 +12,9 @@ part 'secret_manager_provider.g.dart';
 class SecretManager extends _$SecretManager {
   @override
   Stream<List<Secret>> build() {
+    if (useMockData) {
+      return Stream.value(getMockSecrets());
+    }
     return secretsStream();
   }
 

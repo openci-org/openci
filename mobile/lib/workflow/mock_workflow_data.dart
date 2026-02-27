@@ -1,3 +1,5 @@
+import 'package:dashboard/environment_variables/environment_variable_provider.dart';
+import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 import 'package:dashboard/workflow/list/workflow_list_provider.dart';
 import 'package:dashboard/workflow/yaml_workflow.dart';
@@ -207,4 +209,81 @@ WorkflowEditorState getMockEditorState(String workflowId) {
     filePath: mockFilePaths[workflowId] ?? '.openci/workflow.yaml',
     commitSha: 'a1b2c3d4e5f6789012345678901234567890abcd',
   );
+}
+
+List<Secret> getMockSecrets() {
+  final now = DateTime.now();
+  return [
+    Secret(
+      id: 'mock-secret-1',
+      name: 'APP_STORE_CONNECT_API_KEY',
+      teamId: 'mock-org-1',
+      pathToSecret: 'secrets/app_store_key',
+      createdAt: now.subtract(const Duration(days: 30)),
+      updatedAt: now.subtract(const Duration(days: 2)),
+    ),
+    Secret(
+      id: 'mock-secret-2',
+      name: 'GITHUB_TOKEN',
+      teamId: 'mock-org-1',
+      pathToSecret: 'secrets/github_token',
+      createdAt: now.subtract(const Duration(days: 25)),
+      updatedAt: now.subtract(const Duration(days: 1)),
+    ),
+    Secret(
+      id: 'mock-secret-3',
+      name: 'SIGNING_CERTIFICATE_P12',
+      teamId: 'mock-org-1',
+      pathToSecret: 'secrets/signing_cert',
+      createdAt: now.subtract(const Duration(days: 20)),
+      updatedAt: now.subtract(const Duration(days: 5)),
+    ),
+    Secret(
+      id: 'mock-secret-4',
+      name: 'FIREBASE_SERVICE_ACCOUNT',
+      teamId: 'mock-org-1',
+      pathToSecret: 'secrets/firebase_sa',
+      createdAt: now.subtract(const Duration(days: 15)),
+      updatedAt: now.subtract(const Duration(days: 3)),
+    ),
+  ];
+}
+
+List<EnvironmentVariable> getMockEnvironmentVariables() {
+  final now = DateTime.now();
+  return [
+    EnvironmentVariable(
+      id: 'mock-env-1',
+      key: 'OPENCI_RUN_NUMBER',
+      value: '42',
+      teamId: 'mock-org-1',
+      autoIncrement: true,
+      createdAt: now.subtract(const Duration(days: 60)),
+      updatedAt: now.subtract(const Duration(hours: 2)),
+    ),
+    EnvironmentVariable(
+      id: 'mock-env-2',
+      key: 'FLUTTER_VERSION',
+      value: '3.38.7',
+      teamId: 'mock-org-1',
+      createdAt: now.subtract(const Duration(days: 14)),
+      updatedAt: now.subtract(const Duration(days: 1)),
+    ),
+    EnvironmentVariable(
+      id: 'mock-env-3',
+      key: 'XCODE_VERSION',
+      value: '16.2',
+      teamId: 'mock-org-1',
+      createdAt: now.subtract(const Duration(days: 10)),
+      updatedAt: now.subtract(const Duration(days: 3)),
+    ),
+    EnvironmentVariable(
+      id: 'mock-env-4',
+      key: 'BUILD_CONFIGURATION',
+      value: 'release',
+      teamId: 'mock-org-1',
+      createdAt: now.subtract(const Duration(days: 7)),
+      updatedAt: now.subtract(const Duration(days: 1)),
+    ),
+  ];
 }

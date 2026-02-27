@@ -98,7 +98,7 @@ final class GitBranchesProvider
   }
 }
 
-String _$gitBranchesHash() => r'6323829e482d6977ace5861f365b8f6eef9e309c';
+String _$gitBranchesHash() => r'72ab96d44a2817a8713362fca7537a7af11864fc';
 
 @ProviderFor(gitCommits)
 final gitCommitsProvider = GitCommitsFamily._();
@@ -155,7 +155,7 @@ final class GitCommitsProvider
   }
 }
 
-String _$gitCommitsHash() => r'b56adf4ee063ff8a369c2f2543cf5e3911384d08';
+String _$gitCommitsHash() => r'60aecfd68049d7086ffca26261c79f249d2626b2';
 
 final class GitCommitsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<GitCommit>>, String> {

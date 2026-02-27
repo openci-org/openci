@@ -1,4 +1,4 @@
-import 'package:dashboard/workflow/list/workflow_list_page.dart';
+import 'package:dashboard/navigation_bar_page.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -19,7 +19,7 @@ class MockApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
       ),
-      home: const WorkflowListPage(),
+      home: const NavigationBarPage(),
     );
   }
 }
