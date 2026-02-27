@@ -143,17 +143,45 @@ class _EditorScaffold extends HookConsumerWidget {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save_outlined),
-            tooltip: 'Save Changes',
-            onPressed: () => _showSaveDialog(context, ref),
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: FilledButton.tonalIcon(
+              onPressed: () => _showSaveDialog(context, ref),
+              icon: const Icon(Icons.save_outlined, size: 18),
+              label: const Text('Save'),
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
         ],
         bottom: TabBar(
           controller: tabController,
           tabs: const [
-            Tab(text: 'Visual'),
-            Tab(text: 'YAML'),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.account_tree_outlined, size: 16),
+                  SizedBox(width: 6),
+                  Text('Visual'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.code, size: 16),
+                  SizedBox(width: 6),
+                  Text('YAML'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -431,9 +459,10 @@ class _VisualEditorTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final workflow = editorState.parsedWorkflow;
     final steps = workflow.steps;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
         _TriggerCard(
           trigger: workflow.on,
@@ -449,6 +478,7 @@ class _VisualEditorTab extends ConsumerWidget {
             step: steps[i],
             stepIndex: i,
             workflowId: workflowId,
+            isLast: i == steps.length - 1,
           ),
           if (i < steps.length - 1)
             _StepConnector(
@@ -456,11 +486,46 @@ class _VisualEditorTab extends ConsumerWidget {
               insertAt: i + 1,
             ),
         ],
-        const SizedBox(height: 12),
-        Center(
-          child: IconButton.filled(
-            onPressed: () => _showAddStepDialog(context, ref),
-            icon: const Icon(Icons.add),
+        const SizedBox(height: 16),
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showAddStepDialog(context, ref),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+                style: BorderStyle.solid,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    size: 16,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Add Step',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -489,8 +554,12 @@ class _TriggerCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summary = YamlWorkflowConverter.triggerSummary(trigger);
     final colorScheme = Theme.of(context).colorScheme;
+    final triggerTypes = <String>[];
+    if (trigger.push != null) triggerTypes.add('push');
+    if (trigger.pullRequest != null) triggerTypes.add('pull_request');
+    if (trigger.tag == true) triggerTypes.add('tag');
+    if (trigger.release != null) triggerTypes.add('release');
 
     return Card(
       elevation: 0,
@@ -536,16 +605,23 @@ class _TriggerCard extends ConsumerWidget {
                   child: Row(
                     children: [
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            colors: [
+                              colorScheme.primary.withValues(alpha: 0.15),
+                              colorScheme.primaryContainer,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
                           child: Icon(
                             FontAwesomeIcons.bolt,
-                            color: colorScheme.onPrimaryContainer,
+                            color: colorScheme.primary,
                             size: 14,
                           ),
                         ),
@@ -560,15 +636,32 @@ class _TriggerCard extends ConsumerWidget {
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              summary,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: triggerTypes.map((type) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer
+                                        .withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    type,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ],
                         ),
@@ -595,15 +688,19 @@ class _StepCard extends ConsumerWidget {
     required this.step,
     required this.stepIndex,
     required this.workflowId,
+    this.isLast = false,
   });
 
   final YamlWorkflowStep step;
   final int stepIndex;
   final String workflowId;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isUses = step.uses != null;
+    final hasWithParams = step.withParams.isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -633,8 +730,8 @@ class _StepCard extends ConsumerWidget {
           child: Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
@@ -643,7 +740,7 @@ class _StepCard extends ConsumerWidget {
                   child: Text(
                     '${stepIndex + 1}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -661,15 +758,42 @@ class _StepCard extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(
-                          step.uses != null
-                              ? FontAwesomeIcons.puzzlePiece
-                              : FontAwesomeIcons.terminal,
-                          size: 10,
-                          color: colorScheme.onSurfaceVariant,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isUses
+                                ? Colors.purple.withValues(alpha: 0.1)
+                                : Colors.teal.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isUses
+                                    ? FontAwesomeIcons.puzzlePiece
+                                    : FontAwesomeIcons.terminal,
+                                size: 8,
+                                color: isUses ? Colors.purple : Colors.teal,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                isUses ? 'uses' : 'run',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'monospace',
+                                  color: isUses ? Colors.purple : Colors.teal,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -684,15 +808,36 @@ class _StepCard extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (hasWithParams)
+                          Container(
+                            margin: const EdgeInsets.only(left: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${step.withParams.length} params',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 4),
               IconButton(
                 icon: Icon(
                   Icons.delete_outline,
-                  color: colorScheme.error.withValues(alpha: 0.7),
+                  color: colorScheme.error.withValues(alpha: 0.5),
                   size: 18,
                 ),
                 visualDensity: VisualDensity.compact,
@@ -747,51 +892,125 @@ class _StepConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 52,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 2,
-            height: 44,
-            color: Theme.of(context).dividerColor,
-          ),
-          Consumer(
-            builder: (context, ref, _) {
-              return IconButton(
-                iconSize: 14,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 28,
-                  minHeight: 28,
+      height: 48,
+      child: Consumer(
+        builder: (context, ref, _) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder: (_) => _AddStepSheet(
+                  workflowId: workflowId,
+                  insertAt: insertAt,
                 ),
-                style: ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll(
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
-                  ),
-                  iconColor: WidgetStatePropertyAll(
-                    Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    showDragHandle: true,
-                    builder: (_) => _AddStepSheet(
-                      workflowId: workflowId,
-                      insertAt: insertAt,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add),
               );
             },
-          ),
-        ],
+            child: CustomPaint(
+              size: const Size(double.infinity, 48),
+              painter: _PipelineConnectorPainter(
+                lineColor: colorScheme.primary.withValues(alpha: 0.25),
+                arrowColor: colorScheme.primary.withValues(alpha: 0.5),
+                buttonColor: colorScheme.surface,
+                buttonBorderColor: colorScheme.primary.withValues(alpha: 0.3),
+                iconColor: colorScheme.primary.withValues(alpha: 0.6),
+              ),
+            ),
+          );
+        },
       ),
     );
+  }
+}
+
+class _PipelineConnectorPainter extends CustomPainter {
+  _PipelineConnectorPainter({
+    required this.lineColor,
+    required this.arrowColor,
+    required this.buttonColor,
+    required this.buttonBorderColor,
+    required this.iconColor,
+  });
+
+  final Color lineColor;
+  final Color arrowColor;
+  final Color buttonColor;
+  final Color buttonBorderColor;
+  final Color iconColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(
+      Offset(centerX, 0),
+      Offset(centerX, centerY - 14),
+      linePaint,
+    );
+
+    canvas.drawLine(
+      Offset(centerX, centerY + 14),
+      Offset(centerX, size.height),
+      linePaint,
+    );
+
+    final arrowPaint = Paint()
+      ..color = arrowColor
+      ..style = PaintingStyle.fill;
+
+    final arrowPath = Path()
+      ..moveTo(centerX - 5, centerY + 7)
+      ..lineTo(centerX + 5, centerY + 7)
+      ..lineTo(centerX, centerY + 13)
+      ..close();
+    canvas.drawPath(arrowPath, arrowPaint);
+
+    final circlePaint = Paint()
+      ..color = buttonColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(centerX, centerY), 11, circlePaint);
+
+    final borderPaint = Paint()
+      ..color = buttonBorderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawCircle(Offset(centerX, centerY), 11, borderPaint);
+
+    final iconPaint = Paint()
+      ..color = iconColor
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(
+      Offset(centerX - 4, centerY),
+      Offset(centerX + 4, centerY),
+      iconPaint,
+    );
+    canvas.drawLine(
+      Offset(centerX, centerY - 4),
+      Offset(centerX, centerY + 4),
+      iconPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PipelineConnectorPainter oldDelegate) {
+    return lineColor != oldDelegate.lineColor ||
+        arrowColor != oldDelegate.arrowColor ||
+        buttonColor != oldDelegate.buttonColor ||
+        buttonBorderColor != oldDelegate.buttonBorderColor ||
+        iconColor != oldDelegate.iconColor;
   }
 }
 
@@ -935,6 +1154,7 @@ class _AddStepSheet extends HookConsumerWidget {
     final withKeyController = useTextEditingController();
     final withValueController = useTextEditingController();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -943,25 +1163,51 @@ class _AddStepSheet extends HookConsumerWidget {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Add Step',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.add,
+                          size: 18,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Add Step',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
+                _SectionLabel(icon: Icons.label_outline, label: 'Name'),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Step Name',
+                  decoration: InputDecoration(
                     hintText: 'e.g. Build iOS App',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                _SectionLabel(icon: Icons.category_outlined, label: 'Type'),
+                const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(
@@ -978,28 +1224,42 @@ class _AddStepSheet extends HookConsumerWidget {
                   selected: {stepType.value},
                   onSelectionChanged: (v) => stepType.value = v.first,
                 ),
-                const SizedBox(height: 16),
-                if (stepType.value == 'run')
+                const SizedBox(height: 20),
+                if (stepType.value == 'run') ...[
+                  _SectionLabel(
+                    icon: FontAwesomeIcons.terminal,
+                    label: 'Command',
+                    iconSize: 12,
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: commandController,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Command',
+                    decoration: InputDecoration(
                       hintText: 'e.g. flutter build ipa',
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 14,
                     ),
-                  )
-                else ...[
+                  ),
+                ] else ...[
+                  _SectionLabel(
+                    icon: FontAwesomeIcons.puzzlePiece,
+                    label: 'Action',
+                    iconSize: 12,
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: usesController,
                     decoration: InputDecoration(
-                      labelText: 'Action',
                       hintText: 'e.g. actions/checkout@v4',
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.search),
                         onPressed: () async {
@@ -1021,46 +1281,51 @@ class _AddStepSheet extends HookConsumerWidget {
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text('with:', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 8),
-                  ...withParams.value.entries.map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${e.key}: ${e.value}',
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            onPressed: () {
-                              final updated = Map<String, String>.from(
-                                withParams.value,
-                              );
-                              updated.remove(e.key);
-                              withParams.value = updated;
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: 20),
+                  _SectionLabel(
+                    icon: Icons.tune,
+                    label: 'Parameters (with)',
                   ),
+                  const SizedBox(height: 8),
+                  if (withParams.value.isNotEmpty)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: withParams.value.entries
+                          .map(
+                            (e) => Chip(
+                              label: Text(
+                                '${e.key}: ${e.value}',
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                ),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 14),
+                              onDeleted: () {
+                                final updated = Map<String, String>.from(
+                                  withParams.value,
+                                );
+                                updated.remove(e.key);
+                                withParams.value = updated;
+                              },
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  if (withParams.value.isNotEmpty) const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
                           controller: withKeyController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'key',
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           style: const TextStyle(
                             fontFamily: 'monospace',
@@ -1072,10 +1337,12 @@ class _AddStepSheet extends HookConsumerWidget {
                       Expanded(
                         child: TextFormField(
                           controller: withValueController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'value',
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           style: const TextStyle(
                             fontFamily: 'monospace',
@@ -1083,8 +1350,13 @@ class _AddStepSheet extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                      const SizedBox(width: 4),
+                      IconButton.filled(
+                        icon: const Icon(Icons.add, size: 18),
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size(36, 36),
+                          padding: EdgeInsets.zero,
+                        ),
                         onPressed: () {
                           if (withKeyController.text.isEmpty) return;
                           final updated = Map<String, String>.from(
@@ -1100,10 +1372,13 @@ class _AddStepSheet extends HookConsumerWidget {
                     ],
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
                     if (nameController.text.isEmpty) return;
@@ -1126,8 +1401,9 @@ class _AddStepSheet extends HookConsumerWidget {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.add),
-                  label: const Text('Add'),
+                  label: const Text('Add Step'),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -1158,6 +1434,7 @@ class _EditStepSheet extends HookConsumerWidget {
     final withKeyController = useTextEditingController();
     final withValueController = useTextEditingController();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -1166,24 +1443,67 @@ class _EditStepSheet extends HookConsumerWidget {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Edit Step',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${stepIndex + 1}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Edit Step',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            step.name,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
+                _SectionLabel(icon: Icons.label_outline, label: 'Name'),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Step Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                _SectionLabel(icon: Icons.category_outlined, label: 'Type'),
+                const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(
@@ -1200,27 +1520,41 @@ class _EditStepSheet extends HookConsumerWidget {
                   selected: {stepType.value},
                   onSelectionChanged: (v) => stepType.value = v.first,
                 ),
-                const SizedBox(height: 16),
-                if (stepType.value == 'run')
+                const SizedBox(height: 20),
+                if (stepType.value == 'run') ...[
+                  _SectionLabel(
+                    icon: FontAwesomeIcons.terminal,
+                    label: 'Command',
+                    iconSize: 12,
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: commandController,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Command',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 14,
                     ),
-                  )
-                else ...[
+                  ),
+                ] else ...[
+                  _SectionLabel(
+                    icon: FontAwesomeIcons.puzzlePiece,
+                    label: 'Action',
+                    iconSize: 12,
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: usesController,
                     decoration: InputDecoration(
-                      labelText: 'Action',
                       hintText: 'e.g. actions/checkout@v4',
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.search),
                         onPressed: () async {
@@ -1242,46 +1576,51 @@ class _EditStepSheet extends HookConsumerWidget {
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text('with:', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 8),
-                  ...withParams.value.entries.map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${e.key}: ${e.value}',
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            onPressed: () {
-                              final updated = Map<String, String>.from(
-                                withParams.value,
-                              );
-                              updated.remove(e.key);
-                              withParams.value = updated;
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: 20),
+                  _SectionLabel(
+                    icon: Icons.tune,
+                    label: 'Parameters (with)',
                   ),
+                  const SizedBox(height: 8),
+                  if (withParams.value.isNotEmpty)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: withParams.value.entries
+                          .map(
+                            (e) => Chip(
+                              label: Text(
+                                '${e.key}: ${e.value}',
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                ),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 14),
+                              onDeleted: () {
+                                final updated = Map<String, String>.from(
+                                  withParams.value,
+                                );
+                                updated.remove(e.key);
+                                withParams.value = updated;
+                              },
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  if (withParams.value.isNotEmpty) const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
                           controller: withKeyController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'key',
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           style: const TextStyle(
                             fontFamily: 'monospace',
@@ -1293,10 +1632,12 @@ class _EditStepSheet extends HookConsumerWidget {
                       Expanded(
                         child: TextFormField(
                           controller: withValueController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'value',
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           style: const TextStyle(
                             fontFamily: 'monospace',
@@ -1304,8 +1645,13 @@ class _EditStepSheet extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                      const SizedBox(width: 4),
+                      IconButton.filled(
+                        icon: const Icon(Icons.add, size: 18),
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size(36, 36),
+                          padding: EdgeInsets.zero,
+                        ),
                         onPressed: () {
                           if (withKeyController.text.isEmpty) return;
                           final updated = Map<String, String>.from(
@@ -1321,10 +1667,13 @@ class _EditStepSheet extends HookConsumerWidget {
                     ],
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
                     final updated = stepType.value == 'run'
@@ -1346,8 +1695,9 @@ class _EditStepSheet extends HookConsumerWidget {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.check),
-                  label: const Text('Save'),
+                  label: const Text('Save Changes'),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -1379,6 +1729,7 @@ class _EditTriggerSheet extends HookConsumerWidget {
       text: trigger.pullRequest?.branches.join(', ') ?? '',
     );
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -1387,19 +1738,41 @@ class _EditTriggerSheet extends HookConsumerWidget {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Edit Trigger',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          FontAwesomeIcons.bolt,
+                          size: 14,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Edit Trigger',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
-                SwitchListTile(
-                  title: const Text('Push'),
-                  value: pushEnabled.value,
+                _TriggerOptionTile(
+                  icon: Icons.upload,
+                  title: 'Push',
+                  enabled: pushEnabled.value,
                   onChanged: (v) => pushEnabled.value = v,
                 ),
                 if (pushEnabled.value)
@@ -1407,20 +1780,28 @@ class _EditTriggerSheet extends HookConsumerWidget {
                     padding: const EdgeInsets.only(
                       left: 16,
                       right: 16,
-                      bottom: 8,
+                      bottom: 12,
                     ),
                     child: TextFormField(
                       controller: pushBranchController,
-                      decoration: const InputDecoration(
-                        labelText: 'Branches (comma separated)',
+                      decoration: InputDecoration(
+                        labelText: 'Branches',
                         hintText: 'e.g. main, develop',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
                       ),
                     ),
                   ),
-                SwitchListTile(
-                  title: const Text('Pull Request'),
-                  value: prEnabled.value,
+                _TriggerOptionTile(
+                  icon: Icons.merge_type,
+                  title: 'Pull Request',
+                  enabled: prEnabled.value,
                   onChanged: (v) => prEnabled.value = v,
                 ),
                 if (prEnabled.value)
@@ -1428,31 +1809,43 @@ class _EditTriggerSheet extends HookConsumerWidget {
                     padding: const EdgeInsets.only(
                       left: 16,
                       right: 16,
-                      bottom: 8,
+                      bottom: 12,
                     ),
                     child: TextFormField(
                       controller: prBranchController,
-                      decoration: const InputDecoration(
-                        labelText: 'Base branches (comma separated)',
+                      decoration: InputDecoration(
+                        labelText: 'Base branches',
                         hintText: 'e.g. main, develop',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
                       ),
                     ),
                   ),
-                SwitchListTile(
-                  title: const Text('Tag'),
-                  value: tagEnabled.value,
+                _TriggerOptionTile(
+                  icon: Icons.sell_outlined,
+                  title: 'Tag',
+                  enabled: tagEnabled.value,
                   onChanged: (v) => tagEnabled.value = v,
                 ),
-                SwitchListTile(
-                  title: const Text('Release'),
-                  value: releaseEnabled.value,
+                _TriggerOptionTile(
+                  icon: Icons.new_releases_outlined,
+                  title: 'Release',
+                  enabled: releaseEnabled.value,
                   onChanged: (v) => releaseEnabled.value = v,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
                     List<String> parseBranches(String text) {
@@ -1489,8 +1882,9 @@ class _EditTriggerSheet extends HookConsumerWidget {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.check),
-                  label: const Text('Save'),
+                  label: const Text('Save Trigger'),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -1642,5 +2036,84 @@ class _ActionSearchSheet extends HookConsumerWidget {
       return '${(stars / 1000).toStringAsFixed(1)}k';
     }
     return stars.toString();
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({
+    required this.icon,
+    required this.label,
+    this.iconSize = 14,
+  });
+
+  final IconData icon;
+  final String label;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: iconSize, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TriggerOptionTile extends StatelessWidget {
+  const _TriggerOptionTile({
+    required this.icon,
+    required this.title,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SwitchListTile(
+      secondary: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: enabled
+              ? colorScheme.primaryContainer
+              : colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: 14,
+            color: enabled
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+      value: enabled,
+      onChanged: onChanged,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      dense: true,
+    );
   }
 }
