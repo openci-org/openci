@@ -1,5 +1,4 @@
 import 'package:dashboard/supabase/supabase_provider.dart';
-import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -33,7 +32,7 @@ class SecretManager extends _$SecretManager {
                   id: row['id'] as String,
                   name: row['key'] as String,
                   teamId: row['org_id'] as String,
-                  pathToSecret: row['secret_path'] as String?,
+                  pathToSecret: row['vault_secret_id']?.toString(),
                   createdAt: DateTime.parse(row['created_at'] as String),
                   updatedAt: DateTime.parse(row['updated_at'] as String),
                 ),
@@ -43,15 +42,9 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> addSecret(String name, String value) async {
-    final supabase = ref.read(supabaseClientProvider);
-    final orgId = ref.read(teamStateProvider).requireValue.id;
-
-    await supabase.from('environment_variables').insert({
-      'org_id': orgId,
-      'key': name,
-      'is_secret': true,
-      'secret_path': 'pending',
-    });
+    throw UnimplementedError(
+      'Secret creation requires Vault integration. Coming soon.',
+    );
   }
 
   Future<void> updateSecret({

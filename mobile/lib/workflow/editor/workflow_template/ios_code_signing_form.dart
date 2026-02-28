@@ -1,4 +1,3 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -232,14 +231,6 @@ class IosCodeSigningForm extends HookConsumerWidget {
                     }
 
                     isLoading.value = true;
-
-                    final supabase = ref.read(supabaseClientProvider);
-                    await supabase
-                        .from('workflows')
-                        .update({
-                          'yaml_definition': '',
-                        })
-                        .eq('id', documentId);
 
                     if (!context.mounted) return;
                     Navigator.pop(context);

@@ -13,7 +13,7 @@ part of 'workflow_editor_provider.dart';
 final workflowEditorProvider = WorkflowEditorFamily._();
 
 final class WorkflowEditorProvider
-    extends $StreamNotifierProvider<WorkflowEditor, WorkflowEditorState> {
+    extends $AsyncNotifierProvider<WorkflowEditor, WorkflowEditorState> {
   WorkflowEditorProvider._({
     required WorkflowEditorFamily super.from,
     required String super.argument,
@@ -50,7 +50,7 @@ final class WorkflowEditorProvider
   }
 }
 
-String _$workflowEditorHash() => r'281688c0e8f21d2d975d11bd3d619f3eecace44d';
+String _$workflowEditorHash() => r'e7f910162660728c8250d80884a9228c61ea11e8';
 
 final class WorkflowEditorFamily extends $Family
     with
@@ -58,7 +58,7 @@ final class WorkflowEditorFamily extends $Family
           WorkflowEditor,
           AsyncValue<WorkflowEditorState>,
           WorkflowEditorState,
-          Stream<WorkflowEditorState>,
+          FutureOr<WorkflowEditorState>,
           String
         > {
   WorkflowEditorFamily._()
@@ -77,11 +77,11 @@ final class WorkflowEditorFamily extends $Family
   String toString() => r'workflowEditorProvider';
 }
 
-abstract class _$WorkflowEditor extends $StreamNotifier<WorkflowEditorState> {
+abstract class _$WorkflowEditor extends $AsyncNotifier<WorkflowEditorState> {
   late final _$args = ref.$arg as String;
   String get workflowId => _$args;
 
-  Stream<WorkflowEditorState> build(String workflowId);
+  FutureOr<WorkflowEditorState> build(String workflowId);
   @$mustCallSuper
   @override
   void runBuild() {

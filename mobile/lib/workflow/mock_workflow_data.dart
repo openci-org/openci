@@ -8,7 +8,7 @@ import 'package:dashboard/workflow/yaml_workflow.dart';
 import 'package:dashboard/workflow/yaml_workflow_converter.dart';
 import 'package:yaml/yaml.dart';
 
-const useMockData = true;
+const useMockData = false;
 
 const mockWorkflowYaml1 = '''
 name: iOS Release Build

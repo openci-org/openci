@@ -71,7 +71,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'249a8d52f5e2610f6ed7cb39929c43d53ae6af60';
+String _$buildJobsHash() => r'd51854e8025a28e4feb9a6e952587f2a8a3b772d';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
@@ -140,7 +140,7 @@ final class WorkflowNameProvider
   }
 }
 
-String _$workflowNameHash() => r'575553d27b1b8aa62cc228b0754b2938e5008de3';
+String _$workflowNameHash() => r'160fc57b4474630dc52db5c71b6463ab6667e34b';
 
 final class WorkflowNameFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<String?>, String?> {

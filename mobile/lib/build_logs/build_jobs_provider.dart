@@ -35,8 +35,7 @@ class BuildJobs extends _$BuildJobs {
 
   Future<void> retryBuildJob(String buildJobId) async {
     if (useMockData) return;
-    final supabase = ref.read(supabaseClientProvider);
-    await supabase.rpc('retry_build', params: {'p_build_id': buildJobId});
+    throw UnimplementedError('retry_build RPC is not yet implemented');
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
@@ -61,14 +60,7 @@ const _mockWorkflowNames = {
 Future<String?> workflowName(Ref ref, String? workflowId) async {
   if (workflowId == null) return null;
   if (useMockData) return _mockWorkflowNames[workflowId];
-  final supabase = ref.read(supabaseClientProvider);
-  final rows = await supabase
-      .from('workflows')
-      .select('name')
-      .eq('id', workflowId)
-      .limit(1);
-  if (rows.isEmpty) return null;
-  return rows.first['name'] as String?;
+  return null;
 }
 
 @freezed
@@ -100,7 +92,9 @@ abstract class BuildJob with _$BuildJob {
       owner: row['github_owner'] as String? ?? '',
       repo: row['github_repo'] as String? ?? '',
       teamId: row['org_id'] as String?,
-      workflowId: row['workflow_id'] as String?,
+      workflowId: row.containsKey('workflow_id')
+          ? row['workflow_id'] as String?
+          : null,
       commitSha: row['commit_sha'] as String?,
       pullRequestNumber: row['pull_request_number'] as int?,
       runCount: row['run_count'] as int?,

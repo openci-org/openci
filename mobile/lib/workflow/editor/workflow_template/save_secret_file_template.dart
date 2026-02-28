@@ -393,16 +393,6 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                                       });
                                 }
 
-                                final supabase = ref.read(
-                                  supabaseClientProvider,
-                                );
-                                await supabase
-                                    .from('workflows')
-                                    .update({
-                                      'yaml_definition': '',
-                                    })
-                                    .eq('id', documentId);
-
                                 if (context.mounted) {
                                   Navigator.pop(context);
                                   Navigator.pop(context);

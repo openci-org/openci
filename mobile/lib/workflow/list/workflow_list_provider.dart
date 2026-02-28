@@ -1,5 +1,7 @@
 import 'package:dashboard/supabase/supabase_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
+import 'package:dashboard/workflow/list/git_context_provider.dart';
 import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:dashboard/workflow/yaml_workflow_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -12,93 +14,110 @@ part 'workflow_list_provider.g.dart';
 @riverpod
 class WorkflowList extends _$WorkflowList {
   @override
-  Stream<List<WorkflowListItem>> build() {
+  Future<List<WorkflowListItem>> build() async {
     if (useMockData) {
-      return Stream.value(getMockWorkflowList());
+      return getMockWorkflowList();
     }
 
     final supabase = ref.read(supabaseClientProvider);
+    final team = ref.read(teamStateProvider).requireValue;
+    final gitContext = ref.read(gitContextProvider);
 
-    return supabase
-        .from('workflows')
-        .stream(primaryKey: ['id'])
-        .order('updated_at', ascending: false)
-        .asyncMap((rows) async {
-          final items = <WorkflowListItem>[];
+    final installationRows = await supabase
+        .from('github_installations')
+        .select('installation_id')
+        .eq('org_id', team.id);
 
-          for (final row in rows) {
-            final workflowId = row['id'] as String;
-            final yamlRaw = row['yaml_definition'] as String? ?? '';
+    if (installationRows.isEmpty) return [];
 
-            String triggerSummary = '';
-            String repository = '';
-            if (yamlRaw.isNotEmpty) {
-              try {
-                final yamlMap = loadYaml(yamlRaw);
-                if (yamlMap is Map) {
-                  final parsed = YamlWorkflowConverter.fromYamlMap(
-                    Map<String, dynamic>.from(yamlMap),
-                  );
-                  triggerSummary = YamlWorkflowConverter.triggerSummary(
-                    parsed.on,
-                  );
-                }
-              } catch (_) {}
-            }
+    final installationId = installationRows.first['installation_id'];
 
-            final latestBuild = await supabase
-                .from('builds')
-                .select('id, status, created_at')
-                .eq('org_id', row['org_id'] as String)
-                .order('created_at', ascending: false)
-                .limit(1)
-                .maybeSingle();
+    final response = await supabase.functions.invoke(
+      'github-proxy',
+      body: {
+        'action': 'list_workflow_files',
+        'installation_id': installationId,
+        'owner': gitContext.repository.split('/').first,
+        'repo': gitContext.repository.split('/').last,
+        'ref': gitContext.branch,
+      },
+    );
 
-            items.add(
-              WorkflowListItem(
-                id: workflowId,
-                name: row['name'] as String? ?? 'Untitled',
-                orgId: row['org_id'] as String? ?? '',
-                yamlDefinition: yamlRaw,
-                triggerSummary: triggerSummary,
-                repository: repository,
-                lastBuildStatus: latestBuild?['status'] as String?,
-                lastBuildAt: latestBuild != null
-                    ? DateTime.tryParse(
-                        latestBuild['created_at'] as String? ?? '',
-                      )
-                    : null,
-                createdAt: DateTime.parse(row['created_at'] as String),
-                updatedAt: DateTime.parse(row['updated_at'] as String),
-              ),
+    if (response.status != 200) return [];
+
+    final files = (response.data as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final items = <WorkflowListItem>[];
+
+    for (final file in files) {
+      final filePath = file['path'] as String? ?? '';
+      final content = file['content'] as String? ?? '';
+
+      String name = filePath
+          .split('/')
+          .last
+          .replaceAll('.yaml', '')
+          .replaceAll('.yml', '');
+      String triggerSummary = '';
+
+      if (content.isNotEmpty) {
+        try {
+          final yamlMap = loadYaml(content);
+          if (yamlMap is Map) {
+            final parsed = YamlWorkflowConverter.fromYamlMap(
+              Map<String, dynamic>.from(yamlMap),
             );
+            name = parsed.name;
+            triggerSummary = YamlWorkflowConverter.triggerSummary(parsed.on);
           }
+        } catch (_) {}
+      }
 
-          return items;
-        });
+      final latestBuild = await supabase
+          .from('builds')
+          .select('id, status, created_at')
+          .eq('org_id', team.id)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      items.add(
+        WorkflowListItem(
+          id: filePath,
+          name: name,
+          orgId: team.id,
+          yamlDefinition: content,
+          triggerSummary: triggerSummary,
+          repository: gitContext.repository,
+          branch: gitContext.branch,
+          filePath: filePath,
+          commitSha: gitContext.commitSha,
+          lastBuildStatus: latestBuild?['status'] as String?,
+          lastBuildAt: latestBuild != null
+              ? DateTime.tryParse(
+                  latestBuild['created_at'] as String? ?? '',
+                )
+              : null,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+
+    return items;
+  }
+
+  Future<void> deleteWorkflow(String filePath) async {
+    if (useMockData) return;
+    throw UnimplementedError(
+      'Deleting workflow files via GitHub API is not yet implemented',
+    );
   }
 
   Future<String> duplicateWorkflow(WorkflowListItem workflow) async {
     if (useMockData) return 'mock-duplicated';
-
-    final supabase = ref.read(supabaseClientProvider);
-    final row = await supabase
-        .from('workflows')
-        .insert({
-          'org_id': workflow.orgId,
-          'name': '${workflow.name} (Copy)',
-          'yaml_definition': workflow.yamlDefinition,
-        })
-        .select()
-        .single();
-    return row['id'] as String;
-  }
-
-  Future<void> deleteWorkflow(String workflowId) async {
-    if (useMockData) return;
-
-    final supabase = ref.read(supabaseClientProvider);
-    await supabase.from('workflows').delete().eq('id', workflowId);
+    throw UnimplementedError(
+      'Duplicating workflow files via GitHub API is not yet implemented',
+    );
   }
 }
 
