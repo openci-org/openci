@@ -113,6 +113,7 @@ class AuthPage extends HookConsumerWidget {
                                   } catch (e) {
                                     if (!context.mounted) return;
                                     context.showSnackBarMessage('Error: $e');
+                                    debugPrint('Error: $e');
                                   } finally {
                                     isLoading.value = false;
                                   }
