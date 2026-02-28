@@ -235,31 +235,31 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                             await supabase.from('environment_variables').insert(
                               [
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
                                   'value': serviceAccountJsonController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'ANDROID_KEYSTORE_BASE64',
                                   'value': keystoreController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'ANDROID_KEYSTORE_PASSWORD',
                                   'value': keystorePasswordController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'ANDROID_KEY_ALIAS',
                                   'value': keyAliasController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'ANDROID_PACKAGE_NAME',
                                   'value': packageNameController.text,
                                   'is_secret': true,

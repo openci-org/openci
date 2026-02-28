@@ -26,7 +26,7 @@ class WorkflowList extends _$WorkflowList {
     final installationRows = await supabase
         .from('github_installations')
         .select('installation_id')
-        .eq('org_id', team.id);
+        .eq('team_id', team.id);
 
     if (installationRows.isEmpty) return [];
 
@@ -75,7 +75,7 @@ class WorkflowList extends _$WorkflowList {
       final latestBuild = await supabase
           .from('builds')
           .select('id, status, created_at')
-          .eq('org_id', team.id)
+          .eq('team_id', team.id)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();

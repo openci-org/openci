@@ -13,7 +13,7 @@ function makeSupabase(result: { data: unknown; error: unknown }) {
 describe("getWorkflowById", () => {
   const baseWorkflow = {
     id: "wf-1",
-    org_id: "org-1",
+    team_id: "org-1",
     name: "My Workflow",
     yaml_definition: "steps: []",
     is_active: true,

@@ -81,8 +81,8 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                             if (!formKey.currentState!.validate()) return;
                             try {
                               final supabase = ref.read(supabaseClientProvider);
-                              await supabase.from('org_invitations').insert({
-                                'org_id': selectedTeamId.value,
+                              await supabase.from('team_invitations').insert({
+                                'team_id': selectedTeamId.value,
                                 'invited_by': supabase.auth.currentUser!.id,
                                 'email': emailController.text.trim(),
                                 'role': 'member',

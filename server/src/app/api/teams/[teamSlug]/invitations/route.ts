@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOrgBySlug } from "@/lib/supabase/queries";
+import { getTeamBySlug } from "@/lib/supabase/queries";
 import { sendEmail } from "@/lib/email/resend";
 import { buildInvitationEmail } from "@/lib/email/templates/invitation";
 import type { OrgRole } from "@/lib/supabase/types";
 
-// POST /api/orgs/[orgSlug]/invitations — invite a member by email
+// POST /api/orgs/[teamSlug]/invitations — invite a member by email
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: Promise<{ teamSlug: string }> }
 ) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
@@ -16,10 +16,10 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orgSlug } = await params;
-  const org = await getOrgBySlug(supabase, orgSlug);
+  const { teamSlug } = await params;
+  const org = await getTeamBySlug(supabase, teamSlug);
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
   if (org.role !== "owner" && org.role !== "admin") {
@@ -47,9 +47,9 @@ export async function POST(
   const userId = authData.claims.sub as string;
 
   const { data: invitation, error } = await supabase
-    .from("org_invitations")
+    .from("team_invitations")
     .insert({
-      org_id: org.id,
+      team_id: org.id,
       invited_by: userId,
       email,
       role,

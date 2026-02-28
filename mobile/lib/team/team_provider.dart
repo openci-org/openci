@@ -26,13 +26,13 @@ abstract class Team with _$Team {
 class TeamState extends _$TeamState {
   @override
   Stream<Team> build() {
-    final orgList = ref.watch(teamListProvider).requireValue;
+    final teamList = ref.watch(teamListProvider).requireValue;
     final auth = ref.read(authProvider.notifier);
     final currentUserId = auth.currentUserId;
-    if (currentUserId == null || orgList.isEmpty) {
-      throw Exception('User is not authenticated or has no organizations');
+    if (currentUserId == null || teamList.isEmpty) {
+      throw Exception('User is not authenticated or has no teams');
     }
-    return Stream.value(orgList.first);
+    return Stream.value(teamList.first);
   }
 }
 
@@ -52,28 +52,30 @@ class TeamList extends _$TeamList {
     }
 
     return supabase
-        .from('org_members')
+        .from('team_members')
         .stream(primaryKey: ['id'])
         .eq('user_id', currentUserId)
         .asyncMap((memberRows) async {
           if (memberRows.isEmpty) return <Team>[];
-          final orgIds = memberRows.map((r) => r['org_id'] as String).toList();
-          final orgs = await supabase
-              .from('organizations')
+          final teamIds = memberRows
+              .map((r) => r['team_id'] as String)
+              .toList();
+          final teams = await supabase
+              .from('teams')
               .select()
-              .inFilter('id', orgIds);
+              .inFilter('id', teamIds);
 
-          return orgs.map((org) {
-            final orgMembers = memberRows
-                .where((m) => m['org_id'] == org['id'])
+          return teams.map((team) {
+            final teamMembers = memberRows
+                .where((m) => m['team_id'] == team['id'])
                 .map((m) => m['user_id'] as String)
                 .toList();
             return Team(
-              id: org['id'] as String,
-              name: org['name'] as String,
-              members: orgMembers,
-              createdAt: DateTime.parse(org['created_at'] as String),
-              updatedAt: DateTime.parse(org['updated_at'] as String),
+              id: team['id'] as String,
+              name: team['name'] as String,
+              members: teamMembers,
+              createdAt: DateTime.parse(team['created_at'] as String),
+              updatedAt: DateTime.parse(team['updated_at'] as String),
             );
           }).toList();
         });
@@ -88,14 +90,14 @@ class TeamList extends _$TeamList {
     }
     final slug = teamName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-');
 
-    final orgRow = await supabase
-        .from('organizations')
+    final teamRow = await supabase
+        .from('teams')
         .insert({'name': teamName, 'slug': slug})
         .select()
         .single();
 
-    await supabase.from('org_members').insert({
-      'org_id': orgRow['id'],
+    await supabase.from('team_members').insert({
+      'team_id': teamRow['id'],
       'user_id': currentUserId,
       'role': 'owner',
     });
@@ -103,9 +105,6 @@ class TeamList extends _$TeamList {
 
   Future<void> updateTeamName(String teamId, String newName) async {
     final supabase = ref.read(supabaseClientProvider);
-    await supabase
-        .from('organizations')
-        .update({'name': newName})
-        .eq('id', teamId);
+    await supabase.from('teams').update({'name': newName}).eq('id', teamId);
   }
 }

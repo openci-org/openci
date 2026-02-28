@@ -30,7 +30,7 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
                   id: row['id'] as String,
                   key: row['key'] as String,
                   value: row['value'] as String? ?? '',
-                  teamId: row['org_id'] as String,
+                  teamId: row['team_id'] as String,
                   autoIncrement: row['auto_increment'] as bool? ?? false,
                   createdAt: DateTime.parse(row['created_at'] as String),
                   updatedAt: DateTime.parse(row['updated_at'] as String),
@@ -48,7 +48,7 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     final orgId = ref.read(teamStateProvider).requireValue.id;
 
     await supabase.from('environment_variables').insert({
-      'org_id': orgId,
+      'team_id': orgId,
       'key': key,
       'value': value,
       'is_secret': false,
