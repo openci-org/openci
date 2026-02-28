@@ -30,7 +30,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 vi.mock("@/lib/supabase/queries", () => ({
-  getOrgBySlug: vi.fn(),
+  getTeamBySlug: vi.fn(),
 }));
 
 vi.mock("@/lib/email/resend", () => ({
@@ -45,7 +45,7 @@ vi.mock("@/lib/email/templates/invitation", () => ({
 }));
 
 import { createClient } from "@/lib/supabase/server";
-import { getOrgBySlug } from "@/lib/supabase/queries";
+import { getTeamBySlug } from "@/lib/supabase/queries";
 import { sendEmail } from "@/lib/email/resend";
 import { buildInvitationEmail } from "@/lib/email/templates/invitation";
 import { POST } from "../route";
@@ -85,7 +85,7 @@ function makeFromMock(
   return vi.fn().mockReturnValue({ insert: insertMock });
 }
 
-describe("POST /api/orgs/[orgSlug]/invitations", () => {
+describe("POST /api/orgs/[teamSlug]/invitations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.openci.io");
@@ -100,7 +100,7 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
     vi.mocked(createClient).mockResolvedValue(supabase as never);
 
     const res = await POST(makeRequest({ email: "a@b.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(401);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -109,10 +109,10 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
   it("returns 404 when org not found", async () => {
     const supabase = makeSupabaseMock();
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(null);
+    vi.mocked(getTeamBySlug).mockResolvedValue(null);
 
     const res = await POST(makeRequest({ email: "a@b.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(404);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -121,13 +121,13 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
   it("returns 403 when user is not admin or owner", async () => {
     const supabase = makeSupabaseMock();
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue({
+    vi.mocked(getTeamBySlug).mockResolvedValue({
       ...mockOrg,
       role: "member",
     } as never);
 
     const res = await POST(makeRequest({ email: "a@b.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(403);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -136,7 +136,7 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
   it("returns 400 for invalid JSON", async () => {
     const supabase = makeSupabaseMock();
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
 
     const badRequest = new Request("http://localhost/api/orgs/acme/invitations", {
       method: "POST",
@@ -144,7 +144,7 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
       body: "not json",
     });
     const res = await POST(badRequest, {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(400);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -153,10 +153,10 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
   it("returns 400 for invalid email", async () => {
     const supabase = makeSupabaseMock();
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
 
     const res = await POST(makeRequest({ email: "not-an-email" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(400);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -165,11 +165,11 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
   it("returns 400 for invalid role", async () => {
     const supabase = makeSupabaseMock();
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
 
     const res = await POST(
       makeRequest({ email: "a@b.com", role: "superadmin" }),
-      { params: Promise.resolve({ orgSlug: "acme" }) },
+      { params: Promise.resolve({ teamSlug: "acme" }) },
     );
     expect(res.status).toBe(400);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -182,10 +182,10 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
     });
     const supabase = makeSupabaseMock({ from: fromMock });
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
 
     const res = await POST(makeRequest({ email: "a@b.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(409);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -198,10 +198,10 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
     });
     const supabase = makeSupabaseMock({ from: fromMock });
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
 
     const res = await POST(makeRequest({ email: "a@b.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(500);
     expect(sendEmail).not.toHaveBeenCalled();
@@ -211,11 +211,11 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
     const fromMock = makeFromMock();
     const supabase = makeSupabaseMock({ from: fromMock });
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
     vi.mocked(sendEmail).mockResolvedValue({ id: "email-1" });
 
     const res = await POST(makeRequest({ email: "new@example.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(201);
 
@@ -242,7 +242,7 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
     const fromMock = makeFromMock();
     const supabase = makeSupabaseMock({ from: fromMock });
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
     vi.mocked(sendEmail).mockRejectedValue(new Error("Resend is down"));
 
     const consoleSpy = vi
@@ -250,7 +250,7 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
       .mockImplementation(() => {});
 
     const res = await POST(makeRequest({ email: "new@example.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     expect(res.status).toBe(201);
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -265,11 +265,11 @@ describe("POST /api/orgs/[orgSlug]/invitations", () => {
     const fromMock = makeFromMock();
     const supabase = makeSupabaseMock({ from: fromMock });
     vi.mocked(createClient).mockResolvedValue(supabase as never);
-    vi.mocked(getOrgBySlug).mockResolvedValue(mockOrg as never);
+    vi.mocked(getTeamBySlug).mockResolvedValue(mockOrg as never);
     vi.mocked(sendEmail).mockResolvedValue({ id: "email-1" });
 
     const res = await POST(makeRequest({ email: "new@example.com" }), {
-      params: Promise.resolve({ orgSlug: "acme" }),
+      params: Promise.resolve({ teamSlug: "acme" }),
     });
     const body = (await res.json()) as { invitation: Record<string, unknown> };
     expect(body.invitation).not.toHaveProperty("token");

@@ -197,7 +197,7 @@ export async function POST(request: Request) {
   // Find the org that has this GitHub integration
   const { data: integration, error: integrationError } = await supabase
     .from("integrations")
-    .select("org_id")
+    .select("team_id")
     .eq("github_account", owner)
     .limit(1)
     .maybeSingle();
@@ -215,7 +215,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const orgId = integration.org_id;
+  const teamId = integration.team_id;
 
   const ctx: WebhookContext = {
     event,
@@ -269,7 +269,7 @@ export async function POST(request: Request) {
     const { data: createdBuild, error: insertError } = await supabase
       .from("builds")
       .insert({
-        org_id: orgId,
+        team_id: teamId,
         status: "queued",
         runner_os: "macos",
         github_owner: owner,

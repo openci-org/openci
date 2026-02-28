@@ -1,40 +1,40 @@
-import { getOrgBySlug, getWorkflowById } from "@/lib/supabase/queries";
+import { getTeamBySlug, getWorkflowById } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { TriggerType } from "@/lib/supabase/types";
 import { NextResponse } from "next/server";
 
-type Params = { params: Promise<{ orgSlug: string; workflowId: string }> };
+type Params = { params: Promise<{ teamSlug: string; workflowId: string }> };
 
-async function resolveContext(orgSlug: string, workflowId: string) {
+async function resolveContext(teamSlug: string, workflowId: string) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
   if (authError || !authData?.claims) return { error: "Unauthorized", status: 401 } as const;
 
-  const org = await getOrgBySlug(supabase, orgSlug);
-  if (!org) return { error: "Organization not found", status: 404 } as const;
+  const org = await getTeamBySlug(supabase, teamSlug);
+  if (!org) return { error: "Team not found", status: 404 } as const;
 
   const workflow = await getWorkflowById(supabase, workflowId);
-  if (!workflow || workflow.org_id !== org.id) {
+  if (!workflow || workflow.team_id !== org.id) {
     return { error: "Workflow not found", status: 404 } as const;
   }
 
   return { supabase, workflow } as const;
 }
 
-// GET /api/orgs/[orgSlug]/workflows/[workflowId]
+// GET /api/orgs/[teamSlug]/workflows/[workflowId]
 export async function GET(_request: Request, { params }: Params) {
-  const { orgSlug, workflowId } = await params;
-  const ctx = await resolveContext(orgSlug, workflowId);
+  const { teamSlug, workflowId } = await params;
+  const ctx = await resolveContext(teamSlug, workflowId);
   if ("error" in ctx) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
   return NextResponse.json({ workflow: ctx.workflow });
 }
 
-// PATCH /api/orgs/[orgSlug]/workflows/[workflowId]
+// PATCH /api/orgs/[teamSlug]/workflows/[workflowId]
 export async function PATCH(request: Request, { params }: Params) {
-  const { orgSlug, workflowId } = await params;
-  const ctx = await resolveContext(orgSlug, workflowId);
+  const { teamSlug, workflowId } = await params;
+  const ctx = await resolveContext(teamSlug, workflowId);
   if ("error" in ctx) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
@@ -102,10 +102,10 @@ export async function PATCH(request: Request, { params }: Params) {
   return NextResponse.json({ workflow: updated });
 }
 
-// DELETE /api/orgs/[orgSlug]/workflows/[workflowId]
+// DELETE /api/orgs/[teamSlug]/workflows/[workflowId]
 export async function DELETE(_request: Request, { params }: Params) {
-  const { orgSlug, workflowId } = await params;
-  const ctx = await resolveContext(orgSlug, workflowId);
+  const { teamSlug, workflowId } = await params;
+  const ctx = await resolveContext(teamSlug, workflowId);
   if ("error" in ctx) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }

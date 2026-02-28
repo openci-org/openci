@@ -25,7 +25,7 @@ class BuildJobs extends _$BuildJobs {
         .map((rows) {
           return rows
               .where((r) {
-                final projectId = r['org_id'] as String?;
+                final projectId = r['team_id'] as String?;
                 return projectId != null;
               })
               .map((row) => BuildJob.fromSupabase(row))
@@ -91,7 +91,7 @@ abstract class BuildJob with _$BuildJob {
       status: row['status'] as String,
       owner: row['github_owner'] as String? ?? '',
       repo: row['github_repo'] as String? ?? '',
-      teamId: row['org_id'] as String?,
+      teamId: row['team_id'] as String?,
       workflowId: row.containsKey('workflow_id')
           ? row['workflow_id'] as String?
           : null,

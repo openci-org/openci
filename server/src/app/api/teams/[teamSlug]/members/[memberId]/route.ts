@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOrgBySlug } from "@/lib/supabase/queries";
+import { getTeamBySlug } from "@/lib/supabase/queries";
 import type { OrgRole } from "@/lib/supabase/types";
 
-// DELETE /api/orgs/[orgSlug]/members/[memberId] — remove a member
+// DELETE /api/orgs/[teamSlug]/members/[memberId] — remove a member
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ orgSlug: string; memberId: string }> }
+  { params }: { params: Promise<{ teamSlug: string; memberId: string }> }
 ) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
@@ -14,20 +14,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orgSlug, memberId } = await params;
-  const org = await getOrgBySlug(supabase, orgSlug);
+  const { teamSlug, memberId } = await params;
+  const org = await getTeamBySlug(supabase, teamSlug);
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
   const userId = authData.claims.sub as string;
 
   // Fetch the target member to check they belong to this org
   const { data: member, error: fetchError } = await supabase
-    .from("org_members")
+    .from("team_members")
     .select("id, user_id, role")
     .eq("id", memberId)
-    .eq("org_id", org.id)
+    .eq("team_id", org.id)
     .single();
 
   if (fetchError || !member) {
@@ -45,9 +45,9 @@ export async function DELETE(
   // Cannot remove the last owner
   if (member.role === "owner") {
     const { count } = await supabase
-      .from("org_members")
+      .from("team_members")
       .select("id", { count: "exact", head: true })
-      .eq("org_id", org.id)
+      .eq("team_id", org.id)
       .eq("role", "owner");
 
     if ((count ?? 0) <= 1) {
@@ -59,7 +59,7 @@ export async function DELETE(
   }
 
   const { error } = await supabase
-    .from("org_members")
+    .from("team_members")
     .delete()
     .eq("id", memberId);
 
@@ -70,10 +70,10 @@ export async function DELETE(
   return NextResponse.json({ success: true });
 }
 
-// PATCH /api/orgs/[orgSlug]/members/[memberId] — change member role
+// PATCH /api/orgs/[teamSlug]/members/[memberId] — change member role
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ orgSlug: string; memberId: string }> }
+  { params }: { params: Promise<{ teamSlug: string; memberId: string }> }
 ) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
@@ -81,10 +81,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orgSlug, memberId } = await params;
-  const org = await getOrgBySlug(supabase, orgSlug);
+  const { teamSlug, memberId } = await params;
+  const org = await getTeamBySlug(supabase, teamSlug);
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
   // Only owners can change roles
@@ -106,10 +106,10 @@ export async function PATCH(
 
   // Fetch the target member
   const { data: member, error: fetchError } = await supabase
-    .from("org_members")
+    .from("team_members")
     .select("id, role")
     .eq("id", memberId)
-    .eq("org_id", org.id)
+    .eq("team_id", org.id)
     .single();
 
   if (fetchError || !member) {
@@ -119,9 +119,9 @@ export async function PATCH(
   // Prevent demoting the last owner
   if (member.role === "owner" && role !== "owner") {
     const { count } = await supabase
-      .from("org_members")
+      .from("team_members")
       .select("id", { count: "exact", head: true })
-      .eq("org_id", org.id)
+      .eq("team_id", org.id)
       .eq("role", "owner");
 
     if ((count ?? 0) <= 1) {
@@ -133,7 +133,7 @@ export async function PATCH(
   }
 
   const { data: updated, error } = await supabase
-    .from("org_members")
+    .from("team_members")
     .update({ role })
     .eq("id", memberId)
     .select("id, role")

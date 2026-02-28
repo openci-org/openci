@@ -2,12 +2,12 @@
 
 export const MOCK_ORGS = [
   { id: "org-1", name: "Acme Corp" },
-  { id: "org-2", name: "My Organization" },
+  { id: "org-2", name: "My Team" },
 ] as const;
 
 export const MOCK_PROJECTS = [
-  { id: "project-a", name: "Project A", orgId: "org-1" },
-  { id: "project-b", name: "Project B", orgId: "org-1" },
+  { id: "project-a", name: "Project A", teamId: "org-1" },
+  { id: "project-b", name: "Project B", teamId: "org-1" },
 ] as const;
 
 // Currently "selected" context (mock — will come from URL/session later)

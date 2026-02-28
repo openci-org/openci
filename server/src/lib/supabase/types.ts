@@ -1,7 +1,7 @@
 // Supabase database types for OpenCI
 // These match the schema defined in supabase/migrations/
 
-export type OrgRole = "owner" | "admin" | "member";
+export type TeamRole = "owner" | "admin" | "member";
 export type InvitationStatus = "pending" | "accepted" | "expired" | "cancelled";
 export type BuildStatus = "queued" | "in_progress" | "success" | "failure" | "cancelled";
 export type LogLevel = "info" | "warning" | "error";
@@ -17,7 +17,7 @@ export interface Profile {
   updated_at: string;
 }
 
-export interface Organization {
+export interface Team {
   id: string;
   name: string;
   slug: string;
@@ -28,21 +28,21 @@ export interface Organization {
   updated_at: string;
 }
 
-export interface OrgMember {
+export interface TeamMember {
   id: string;
-  org_id: string;
+  team_id: string;
   user_id: string;
-  role: OrgRole;
+  role: TeamRole;
   created_at: string;
   updated_at: string;
 }
 
-export interface OrgInvitation {
+export interface TeamInvitation {
   id: string;
-  org_id: string;
+  team_id: string;
   invited_by: string;
   email: string;
-  role: OrgRole;
+  role: TeamRole;
   token: string;
   status: InvitationStatus;
   expires_at: string;
@@ -50,29 +50,9 @@ export interface OrgInvitation {
   updated_at: string;
 }
 
-export interface Workflow {
-  id: string;
-  org_id: string;
-  name: string;
-  yaml_definition: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface WorkflowTrigger {
-  id: string;
-  workflow_id: string;
-  trigger_type: TriggerType;
-  branch_pattern: string | null;
-  github_repo: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Build {
   id: string;
-  org_id: string;
+  team_id: string;
   workflow_id: string | null;
   status: BuildStatus;
   github_owner: string;
@@ -92,6 +72,8 @@ export interface Build {
   run_count: number;
   latest_run_id: string | null;
   log_archive_path: string | null;
+  runner_os: string | null;
+  yaml_definition: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -119,7 +101,7 @@ export interface BuildLog {
 
 export interface EnvironmentVariable {
   id: string;
-  org_id: string;
+  team_id: string;
   key: string;
   value: string | null;
   is_secret: boolean;
@@ -131,7 +113,7 @@ export interface EnvironmentVariable {
 
 export interface Integration {
   id: string;
-  org_id: string;
+  team_id: string;
   provider: string;
   installation_id: number;
   github_account: string | null;
@@ -145,13 +127,6 @@ export interface WorkerConfig {
   updated_at: string;
 }
 
-// Joined types for common UI queries
-
-export interface OrganizationWithRole extends Organization {
-  role: OrgRole;
-}
-
-export interface WorkflowWithTriggers extends Workflow {
-  workflow_triggers: WorkflowTrigger[];
-  last_build: Pick<Build, "id" | "status" | "created_at"> | null;
+export interface TeamWithRole extends Team {
+  role: TeamRole;
 }

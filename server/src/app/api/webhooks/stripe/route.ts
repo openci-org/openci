@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
       if (customerId && subscriptionId) {
         await supabase
-          .from("organizations")
+          .from("teams")
           .update({
             stripe_subscription_id: subscriptionId,
             billing_enabled: status === "active" || status === "trialing",
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
       if (customerId) {
         await supabase
-          .from("organizations")
+          .from("teams")
           .update({
             stripe_subscription_id: null,
             billing_enabled: false,

@@ -46,7 +46,6 @@ enum NotificationPreference {
 abstract class OpenCIUser with _$OpenCIUser {
   const factory OpenCIUser({
     required String id,
-    required String selectedOrgId,
     @Default(NotificationPreference.all)
     NotificationPreference notificationPreference,
     @Default([]) List<String> fcmTokens,
@@ -87,7 +86,6 @@ class User extends _$User {
         [];
     return OpenCIUser(
       id: userId,
-      selectedOrgId: '',
       notificationPreference: NotificationPreference.fromDbValue(
         row['notification_preference'] as String? ?? 'all',
       ),
@@ -113,16 +111,9 @@ class User extends _$User {
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
-    final supabase = ref.read(supabaseClientProvider);
-    final auth = ref.read(authProvider.notifier);
-    final currentUserId = auth.currentUserId;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
-    await supabase
-        .from('profiles')
-        .update({'selected_org_id': teamId})
-        .eq('id', currentUserId);
+    throw UnimplementedError(
+      'selected_team_id column does not exist in profiles yet',
+    );
   }
 
   Future<void> addFcmToken(String token) async {

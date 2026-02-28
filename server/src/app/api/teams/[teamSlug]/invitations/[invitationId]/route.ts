@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOrgBySlug } from "@/lib/supabase/queries";
+import { getTeamBySlug } from "@/lib/supabase/queries";
 
-// DELETE /api/orgs/[orgSlug]/invitations/[invitationId] — cancel a pending invitation
+// DELETE /api/orgs/[teamSlug]/invitations/[invitationId] — cancel a pending invitation
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ orgSlug: string; invitationId: string }> }
+  { params }: { params: Promise<{ teamSlug: string; invitationId: string }> }
 ) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
@@ -13,10 +13,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orgSlug, invitationId } = await params;
-  const org = await getOrgBySlug(supabase, orgSlug);
+  const { teamSlug, invitationId } = await params;
+  const org = await getTeamBySlug(supabase, teamSlug);
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
   if (org.role !== "owner" && org.role !== "admin") {
@@ -24,10 +24,10 @@ export async function DELETE(
   }
 
   const { data: invitation, error: fetchError } = await supabase
-    .from("org_invitations")
+    .from("team_invitations")
     .select("id, status")
     .eq("id", invitationId)
-    .eq("org_id", org.id)
+    .eq("team_id", org.id)
     .single();
 
   if (fetchError || !invitation) {
@@ -42,7 +42,7 @@ export async function DELETE(
   }
 
   const { error } = await supabase
-    .from("org_invitations")
+    .from("team_invitations")
     .update({ status: "cancelled" })
     .eq("id", invitationId);
 

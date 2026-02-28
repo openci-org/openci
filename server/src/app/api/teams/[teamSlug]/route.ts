@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOrgBySlug } from "@/lib/supabase/queries";
+import { getTeamBySlug } from "@/lib/supabase/queries";
 
-// PATCH /api/orgs/[orgSlug] — update organization name (owners only)
+// PATCH /api/orgs/[teamSlug] — update organization name (owners only)
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: Promise<{ teamSlug: string }> }
 ) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
@@ -13,10 +13,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orgSlug } = await params;
-  const org = await getOrgBySlug(supabase, orgSlug);
+  const { teamSlug } = await params;
+  const org = await getTeamBySlug(supabase, teamSlug);
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
   // Only owners can update organization details
@@ -37,7 +37,7 @@ export async function PATCH(
   }
 
   const { data: updated, error } = await supabase
-    .from("organizations")
+    .from("teams")
     .update({ name })
     .eq("id", org.id)
     .select("id, name, slug")

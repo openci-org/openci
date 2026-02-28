@@ -1,29 +1,29 @@
-import { getEnvVarById, getOrgBySlug } from "@/lib/supabase/queries";
+import { getEnvVarById, getTeamBySlug } from "@/lib/supabase/queries";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-type Params = { params: Promise<{ orgSlug: string; envVarId: string }> };
+type Params = { params: Promise<{ teamSlug: string; envVarId: string }> };
 
-async function resolveContext(orgSlug: string, envVarId: string) {
+async function resolveContext(teamSlug: string, envVarId: string) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
   if (authError || !authData?.claims) return { error: "Unauthorized", status: 401 } as const;
 
-  const org = await getOrgBySlug(supabase, orgSlug);
-  if (!org) return { error: "Organization not found", status: 404 } as const;
+  const org = await getTeamBySlug(supabase, teamSlug);
+  if (!org) return { error: "Team not found", status: 404 } as const;
 
   const envVar = await getEnvVarById(supabase, envVarId);
-  if (!envVar || envVar.org_id !== org.id) {
+  if (!envVar || envVar.team_id !== org.id) {
     return { error: "Environment variable not found", status: 404 } as const;
   }
 
   return { supabase, envVar, org } as const;
 }
 
-// PATCH /api/orgs/[orgSlug]/env/[envVarId] — update value
+// PATCH /api/orgs/[teamSlug]/env/[envVarId] — update value
 export async function PATCH(request: Request, { params }: Params) {
-  const { orgSlug, envVarId } = await params;
-  const ctx = await resolveContext(orgSlug, envVarId);
+  const { teamSlug, envVarId } = await params;
+  const ctx = await resolveContext(teamSlug, envVarId);
   if ("error" in ctx) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
@@ -105,10 +105,10 @@ export async function PATCH(request: Request, { params }: Params) {
   return NextResponse.json({ envVar: updated });
 }
 
-// DELETE /api/orgs/[orgSlug]/env/[envVarId]
+// DELETE /api/orgs/[teamSlug]/env/[envVarId]
 export async function DELETE(_request: Request, { params }: Params) {
-  const { orgSlug, envVarId } = await params;
-  const ctx = await resolveContext(orgSlug, envVarId);
+  const { teamSlug, envVarId } = await params;
+  const ctx = await resolveContext(teamSlug, envVarId);
   if ("error" in ctx) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }

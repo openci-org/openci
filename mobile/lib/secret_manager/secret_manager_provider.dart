@@ -26,12 +26,12 @@ class SecretManager extends _$SecretManager {
         .eq('is_secret', true)
         .map((rows) {
           return rows
-              .where((r) => r['org_id'] != null)
+              .where((r) => r['team_id'] != null)
               .map(
                 (row) => Secret(
                   id: row['id'] as String,
                   name: row['key'] as String,
-                  teamId: row['org_id'] as String,
+                  teamId: row['team_id'] as String,
                   pathToSecret: row['vault_secret_id']?.toString(),
                   createdAt: DateTime.parse(row['created_at'] as String),
                   updatedAt: DateTime.parse(row['updated_at'] as String),

@@ -1,19 +1,19 @@
-import { getOrgBySlug } from "@/lib/supabase/queries";
+import { getTeamBySlug } from "@/lib/supabase/queries";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-// POST /api/orgs/[orgSlug]/env — add an environment variable
-export async function POST(request: Request, { params }: { params: Promise<{ orgSlug: string }> }) {
+// POST /api/orgs/[teamSlug]/env — add an environment variable
+export async function POST(request: Request, { params }: { params: Promise<{ teamSlug: string }> }) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
   if (authError || !authData?.claims) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orgSlug } = await params;
-  const org = await getOrgBySlug(supabase, orgSlug);
+  const { teamSlug } = await params;
+  const org = await getTeamBySlug(supabase, teamSlug);
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
   let body: { key?: string; value?: string; is_secret?: boolean };
@@ -49,13 +49,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ org
     const { data: envVar, error: dbError } = await supabase
       .from("environment_variables")
       .insert({
-        org_id: org.id,
+        team_id: org.id,
         key,
         value: null,
         is_secret: true,
         vault_secret_id: vaultId as string,
       })
-      .select("id, org_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
+      .select("id, team_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
       .single();
 
     if (dbError) {
@@ -71,13 +71,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ org
     const { data: envVar, error: dbError } = await supabase
       .from("environment_variables")
       .insert({
-        org_id: org.id,
+        team_id: org.id,
         key,
         value,
         is_secret: false,
         vault_secret_id: null,
       })
-      .select("id, org_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
+      .select("id, team_id, key, is_secret, vault_secret_id, auto_increment, created_at, updated_at")
       .single();
 
     if (dbError) {

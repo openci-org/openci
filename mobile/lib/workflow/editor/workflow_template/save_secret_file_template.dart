@@ -386,7 +386,7 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                                   await supabase
                                       .from('environment_variables')
                                       .insert({
-                                        'org_id': teamId,
+                                        'team_id': teamId,
                                         'key': secretNameController.text,
                                         'value': uploadedBase64.value!,
                                         'is_secret': true,

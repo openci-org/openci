@@ -27,7 +27,7 @@ export async function POST(
   const { data: retryBuild, error: insertError } = await supabase
     .from("builds")
     .insert({
-      org_id: original.org_id,
+      team_id: original.team_id,
       workflow_id: original.workflow_id,
       status: "queued",
       github_owner: original.github_owner,

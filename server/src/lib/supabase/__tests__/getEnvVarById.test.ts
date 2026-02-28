@@ -13,7 +13,7 @@ function makeSupabase(result: { data: unknown; error: unknown }) {
 describe("getEnvVarById", () => {
   const baseEnvVar = {
     id: "ev-1",
-    org_id: "org-1",
+    team_id: "org-1",
     key: "API_KEY",
     is_secret: false,
     vault_secret_id: null,

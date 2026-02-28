@@ -159,25 +159,25 @@ class ReactNativeExpoIosCdForm extends HookConsumerWidget {
                             await supabase.from('environment_variables').insert(
                               [
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'APP_STORE_CONNECT_ISSUER_ID',
                                   'value': issuerIdController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'APP_STORE_CONNECT_KEY_ID',
                                   'value': keyIdController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
                                   'value': privateKeyController.text,
                                   'is_secret': true,
                                 },
                                 {
-                                  'org_id': teamId,
+                                  'team_id': teamId,
                                   'key': 'TEAM_ID',
                                   'value': teamIdController.text,
                                   'is_secret': true,

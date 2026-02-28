@@ -40,18 +40,18 @@ INSERT INTO auth.identities (
   NOW(), NOW(), NOW()
 ) ON CONFLICT (provider_id, provider) DO NOTHING;
 
--- Insert test organization (bypasses RLS; seed runs as postgres)
-INSERT INTO public.organizations (id, name, slug, billing_enabled)
+-- Insert test team (bypasses RLS; seed runs as postgres)
+INSERT INTO public.teams (id, name, slug, billing_enabled)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
-  'Demo Organization',
-  'demo-org',
+  'Demo Team',
+  'demo-team',
   false
 )
 ON CONFLICT (slug) DO NOTHING;
 
--- Link test user to demo org as owner
-INSERT INTO public.org_members (org_id, user_id, role)
+-- Link test user to demo team as owner
+INSERT INTO public.team_members (team_id, user_id, role)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000099',
@@ -59,7 +59,7 @@ VALUES (
 ) ON CONFLICT DO NOTHING;
 
 -- Sample builds for worker testing (uses public repo — no token needed)
-INSERT INTO public.builds (id, org_id, status, runner_os, github_owner, github_repo, commit_sha, branch, github_event, github_sender, yaml_definition)
+INSERT INTO public.builds (id, team_id, status, runner_os, github_owner, github_repo, commit_sha, branch, github_event, github_sender, yaml_definition)
 VALUES
   (
     '00000000-0000-0000-0000-000000000100',
@@ -179,7 +179,7 @@ $yaml$
 ON CONFLICT DO NOTHING;
 
 -- Sample environment variables (non-secret)
-INSERT INTO public.environment_variables (id, org_id, key, value, is_secret)
+INSERT INTO public.environment_variables (id, team_id, key, value, is_secret)
 VALUES
   (
     '00000000-0000-0000-0000-000000000300',
