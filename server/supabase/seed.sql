@@ -193,7 +193,3 @@ VALUES
   )
 ON CONFLICT DO NOTHING;
 
--- Worker config
-INSERT INTO public.worker_config (key, value)
-VALUES ('latest_version', '0.0.1')
-ON CONFLICT (key) DO NOTHING;
