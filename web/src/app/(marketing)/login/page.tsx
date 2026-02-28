@@ -1,7 +1,7 @@
 'use client'
 
-import { Link } from '@/components/link'
-import { Mark } from '@/components/logo'
+import { Link } from '@/marketing-components/link'
+import { Mark } from '@/marketing-components/logo'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 

@@ -24,7 +24,7 @@ class WorkflowList extends _$WorkflowList {
     final gitContext = ref.read(gitContextProvider);
 
     final installationRows = await supabase
-        .from('github_installations')
+        .from('integrations')
         .select('installation_id')
         .eq('team_id', team.id);
 
