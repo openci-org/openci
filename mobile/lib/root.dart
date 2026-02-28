@@ -27,7 +27,6 @@ class HomePage extends ConsumerWidget {
     final fcm = ref.watch(notificationServiceProvider);
     return authState.when(
       data: (session) {
-        print('session: $session');
         if (session == null) {
           return AuthPage();
         }
