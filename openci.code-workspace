@@ -127,7 +127,7 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--release", "--dart-define-from-file=.env.local"],
+        "args": ["--release", "--dart-define-from-file=.env.production.local"],
       },
     ],
   },
