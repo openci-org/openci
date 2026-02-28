@@ -2,6 +2,11 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    - "**/build/**"
+    - "**/node_modules/**"
+    - "web/**"
+    - "worker/**"
+    - "firebase/**"
 
 include: package:flutter_lints/flutter.yaml
 
@@ -13,5 +18,3 @@ linter:
 formatter:
   trailing_commas: preserve
 
-plugins:
-  riverpod_lint: 3.1.2

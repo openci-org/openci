@@ -13,18 +13,6 @@
       "path": "cli/openci_vm_cli",
     },
     {
-      "name": "firebase-functions",
-      "path": "firebase/functions",
-    },
-    {
-      "name": "firebase",
-      "path": "firebase",
-    },
-    {
-      "name": "root",
-      "path": ".",
-    },
-    {
       "name": "web",
       "path": "web",
     },
@@ -34,6 +22,8 @@
     },
   ],
   "settings": {
+    "dart.onlyAnalyzeProjectsWithOpenFiles": true,
+    "dart.analysisExcludedFolders": ["web", "worker", "firebase"],
     "npm.packageManager": "pnpm",
     "terminal.integrated.scrollback": 10000,
     "cSpell.words": [
