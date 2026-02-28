@@ -24,20 +24,13 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final fcm = ref.watch(notificationServiceProvider);
+    ref.listen(notificationServiceProvider, (_, _) {});
     return authState.when(
       data: (session) {
         if (session == null) {
           return AuthPage();
         }
-
-        return fcm.when(
-          data: (data) => NavigationBarPage(),
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator.adaptive()),
-          ),
-          error: asyncErrorWidget,
-        );
+        return NavigationBarPage();
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),
