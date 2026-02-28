@@ -29,10 +29,6 @@
       "path": "web",
     },
     {
-      "name": "server",
-      "path": "server",
-    },
-    {
       "name": "worker",
       "path": "worker",
     },
