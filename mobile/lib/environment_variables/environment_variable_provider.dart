@@ -1,6 +1,7 @@
 import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
+import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -11,6 +12,10 @@ part 'environment_variable_provider.g.dart';
 class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   @override
   Stream<List<EnvironmentVariable>> build() {
+    if (useMockData) {
+      return Stream.value(getMockEnvironmentVariables());
+    }
+
     final supabase = ref.read(supabaseClientProvider);
 
     return supabase
