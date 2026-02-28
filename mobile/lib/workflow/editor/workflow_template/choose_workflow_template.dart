@@ -1,4 +1,3 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/workflow/editor/workflow_template/ios_code_signing_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_android_cd_form.dart';
 import 'package:dashboard/workflow/editor/workflow_template/react_native_expo_ios_cd_form.dart';
@@ -230,11 +229,6 @@ npx -y react-native-version --never-amend
               SizedBox(height: 12.0),
               ElevatedButton(
                 onPressed: () async {
-                  final supabase = ref.read(supabaseClientProvider);
-                  await supabase
-                      .from('workflows')
-                      .update({'updated_at': DateTime.now().toIso8601String()})
-                      .eq('id', documentId);
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   Navigator.pop(context);

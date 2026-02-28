@@ -178,8 +178,22 @@ $yaml$
   )
 ON CONFLICT DO NOTHING;
 
+-- Sample environment variables (non-secret)
+INSERT INTO public.environment_variables (id, org_id, key, value, is_secret)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000300',
+    '00000000-0000-0000-0000-000000000001',
+    'FLUTTER_VERSION', '3.38.7', false
+  ),
+  (
+    '00000000-0000-0000-0000-000000000301',
+    '00000000-0000-0000-0000-000000000001',
+    'XCODE_VERSION', '16.2', false
+  )
+ON CONFLICT DO NOTHING;
+
 -- Worker config
 INSERT INTO public.worker_config (key, value)
 VALUES ('latest_version', '0.0.1')
 ON CONFLICT (key) DO NOTHING;
-

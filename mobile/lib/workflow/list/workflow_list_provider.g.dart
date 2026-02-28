@@ -53,7 +53,7 @@ Map<String, dynamic> _$WorkflowListItemToJson(_WorkflowListItem instance) =>
 final workflowListProvider = WorkflowListProvider._();
 
 final class WorkflowListProvider
-    extends $StreamNotifierProvider<WorkflowList, List<WorkflowListItem>> {
+    extends $AsyncNotifierProvider<WorkflowList, List<WorkflowListItem>> {
   WorkflowListProvider._()
     : super(
         from: null,
@@ -73,10 +73,10 @@ final class WorkflowListProvider
   WorkflowList create() => WorkflowList();
 }
 
-String _$workflowListHash() => r'7a13aef965ca87d668f8a208652075e3a19368a4';
+String _$workflowListHash() => r'3a6c405ce6805814ae7fb2a85ad082b2c87026f8';
 
-abstract class _$WorkflowList extends $StreamNotifier<List<WorkflowListItem>> {
-  Stream<List<WorkflowListItem>> build();
+abstract class _$WorkflowList extends $AsyncNotifier<List<WorkflowListItem>> {
+  FutureOr<List<WorkflowListItem>> build();
   @$mustCallSuper
   @override
   void runBuild() {

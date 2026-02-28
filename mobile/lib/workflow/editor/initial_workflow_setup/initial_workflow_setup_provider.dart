@@ -1,11 +1,45 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
-import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'initial_workflow_setup_provider.freezed.dart';
 part 'initial_workflow_setup_provider.g.dart';
+
+enum TriggerType {
+  pullRequest,
+  push,
+  tag,
+  release,
+  ;
+
+  @override
+  toString() {
+    switch (this) {
+      case TriggerType.pullRequest:
+        return 'pullRequest';
+      case TriggerType.push:
+        return 'push';
+      case TriggerType.tag:
+        return 'tag';
+      case TriggerType.release:
+        return 'release';
+    }
+  }
+
+  static TriggerType fromValue(String value) {
+    switch (value) {
+      case 'pullRequest':
+        return TriggerType.pullRequest;
+      case 'push':
+        return TriggerType.push;
+      case 'tag':
+        return TriggerType.tag;
+      case 'release':
+        return TriggerType.release;
+      default:
+        throw ArgumentError('Invalid TriggerType value: $value');
+    }
+  }
+}
 
 @riverpod
 class InitialWorkflowSetup extends _$InitialWorkflowSetup {
@@ -49,14 +83,10 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     required String selectedWorkingDirectory,
     String? selectedTriggerBranch,
   }) async {
-    final supabase = ref.read(supabaseClientProvider);
-    final orgId = ref.read(teamStateProvider).requireValue.id;
-
-    await supabase.from('workflows').insert({
-      'org_id': orgId,
-      'name': name,
-      'yaml_definition': '',
-    });
+    throw UnimplementedError(
+      'Workflow creation via GitHub commit is not yet implemented. '
+      'Workflows are managed as .openci/*.yaml files in the repository.',
+    );
   }
 }
 
