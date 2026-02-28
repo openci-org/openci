@@ -29,6 +29,7 @@ Future<void> main() async {
       'Pass them via --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...',
     );
   }
+
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
   await initializeRevenueCat();
