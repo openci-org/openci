@@ -60,32 +60,18 @@ export async function getTeamBuilds(
 
 // Returns a single build by id.
 export async function getBuildById(supabase: SupabaseClient, buildId: string) {
-  const { data, error } = await supabase
-    .from("builds")
-    .select(
-      `
-      *,
-      build_runs (
-        id, status, conclusion, created_at, updated_at
-      )
-    `,
-    )
-    .eq("id", buildId)
-    .single();
+  const { data, error } = await supabase.from("builds").select("*").eq("id", buildId).single();
 
   if (error) return null;
   return data;
 }
 
-// Returns logs for a build run, in order.
-export async function getBuildRunLogs(
-  supabase: SupabaseClient,
-  buildRunId: string,
-): Promise<BuildLog[]> {
+// Returns logs for a build, in order.
+export async function getBuildLogs(supabase: SupabaseClient, buildId: string): Promise<BuildLog[]> {
   const { data, error } = await supabase
     .from("build_logs")
     .select("*")
-    .eq("build_run_id", buildRunId)
+    .eq("build_id", buildId)
     .order("id", { ascending: true });
 
   if (error || !data) return [];

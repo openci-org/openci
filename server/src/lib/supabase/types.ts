@@ -39,7 +39,6 @@ export interface TeamMember {
 export interface Build {
   id: string;
   team_id: string;
-  workflow_id: string | null;
   status: BuildStatus;
   github_owner: string;
   github_repo: string;
@@ -55,8 +54,6 @@ export interface Build {
   token_expires_at: string | null;
   check_run_id: number | null;
   retried_from_build_id: string | null;
-  run_count: number;
-  latest_run_id: string | null;
   log_archive_path: string | null;
   runner_os: string | null;
   yaml_definition: string | null;
@@ -64,18 +61,8 @@ export interface Build {
   updated_at: string;
 }
 
-export interface BuildRun {
-  id: string;
-  build_id: string;
-  status: "in_progress" | "completed";
-  conclusion: "success" | "failure" | "cancelled" | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface BuildLog {
   id: number;
-  build_run_id: string;
   build_id: string;
   message: string;
   level: LogLevel;

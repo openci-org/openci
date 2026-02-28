@@ -8,7 +8,7 @@ part 'build_logs_provider.freezed.dart';
 part 'build_logs_provider.g.dart';
 
 @riverpod
-Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
+Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId) {
   if (useMockData) {
     if (buildJobId == 'mock-build-2') {
       return Stream.value(getMockFailureBuildLogs());
@@ -21,7 +21,7 @@ Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
   return supabase
       .from('build_logs')
       .stream(primaryKey: ['id'])
-      .eq('build_run_id', runId)
+      .eq('build_id', buildJobId)
       .order('created_at', ascending: true)
       .map((rows) {
         return rows.map((row) {
