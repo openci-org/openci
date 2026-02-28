@@ -245,9 +245,6 @@ class _BuildJobCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync = ref.watch(
-      workflowNameProvider(buildJob.workflowId),
-    );
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -295,22 +292,11 @@ class _BuildJobCard extends ConsumerWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: workflowNameAsync.when(
-                              data: (name) => Text(
-                                name ?? '${buildJob.owner}/${buildJob.repo}',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              loading: () => Container(
-                                width: 120,
-                                height: 14,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                              error: asyncErrorWidget,
+                            child: Text(
+                              '${buildJob.owner}/${buildJob.repo}',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           _BuildStatusBadge(status: buildJob.status),

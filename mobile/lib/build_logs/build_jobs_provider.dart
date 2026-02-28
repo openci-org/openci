@@ -48,21 +48,6 @@ class BuildJobs extends _$BuildJobs {
   }
 }
 
-const _mockWorkflowNames = {
-  'mock-wf-1': 'iOS Release Build',
-  'mock-wf-2': 'Pull Request Check',
-  'mock-wf-3': 'Android Release',
-  'mock-wf-4': 'Nightly E2E Tests',
-  'mock-wf-5': 'Tag Deploy',
-};
-
-@riverpod
-Future<String?> workflowName(Ref ref, String? workflowId) async {
-  if (workflowId == null) return null;
-  if (useMockData) return _mockWorkflowNames[workflowId];
-  return null;
-}
-
 @freezed
 abstract class BuildJob with _$BuildJob {
   const factory BuildJob({
@@ -71,11 +56,8 @@ abstract class BuildJob with _$BuildJob {
     required String owner,
     required String repo,
     String? teamId,
-    String? workflowId,
     String? commitSha,
     int? pullRequestNumber,
-    int? runCount,
-    String? latestRunId,
     String? tagName,
     String? branch,
     @DateTimeConverter() required DateTime createdAt,
@@ -92,13 +74,8 @@ abstract class BuildJob with _$BuildJob {
       owner: row['github_owner'] as String? ?? '',
       repo: row['github_repo'] as String? ?? '',
       teamId: row['team_id'] as String?,
-      workflowId: row.containsKey('workflow_id')
-          ? row['workflow_id'] as String?
-          : null,
       commitSha: row['commit_sha'] as String?,
       pullRequestNumber: row['pull_request_number'] as int?,
-      runCount: row['run_count'] as int?,
-      latestRunId: row['latest_run_id'] as String?,
       tagName: row['tag_name'] as String?,
       branch: row['branch'] as String?,
       createdAt: DateTime.parse(row['created_at'] as String),

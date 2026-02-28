@@ -1,6 +1,5 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
-import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,10 +13,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync = ref.watch(
-      workflowNameProvider(buildJob.workflowId),
-    );
-
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
       'failure' => Colors.red,
@@ -57,24 +52,13 @@ class BuildLogsDetailPage extends HookConsumerWidget {
           color: Colors.white70,
           onPressed: () => Navigator.pop(context),
         ),
-        title: workflowNameAsync.when(
-          data: (name) => Text(
-            name ?? '${buildJob.owner}/${buildJob.repo}',
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: Colors.white,
-            ),
+        title: Text(
+          '${buildJob.owner}/${buildJob.repo}',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: Colors.white,
           ),
-          loading: () => Container(
-            width: 120,
-            height: 14,
-            decoration: BoxDecoration(
-              color: Colors.white10,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          error: asyncErrorWidget,
         ),
         actions: [
           if (canCancel)
@@ -254,31 +238,9 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             ),
           ),
           Expanded(
-            child: buildJob.latestRunId != null
-                ? _DetailLogsView(
-                    buildJob: buildJob,
-                    runId: buildJob.latestRunId!,
-                  )
-                : Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.hourglass_empty,
-                          size: 40,
-                          color: Colors.white.withValues(alpha: 0.15),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Waiting for run to start...',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            child: _DetailLogsView(
+              buildJob: buildJob,
+            ),
           ),
         ],
       ),
@@ -1263,15 +1225,13 @@ class _FixOptionTile extends StatelessWidget {
 class _DetailLogsView extends ConsumerWidget {
   const _DetailLogsView({
     required this.buildJob,
-    required this.runId,
   });
 
   final BuildJob buildJob;
-  final String runId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final logsAsync = ref.watch(buildLogsProvider(buildJob.id, runId));
+    final logsAsync = ref.watch(buildLogsProvider(buildJob.id));
 
     return logsAsync.when(
       data: (logs) {

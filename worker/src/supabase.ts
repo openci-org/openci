@@ -35,38 +35,19 @@ export class SupabaseWorkerClient {
     await this.client.from("builds").update({ status }).eq("id", buildId);
   }
 
-  async createBuildRun(buildId: string): Promise<string | null> {
-    const { data, error } = await this.client
-      .from("build_runs")
-      .insert({ build_id: buildId, status: "in_progress" })
-      .select("id")
-      .single();
-
-    if (error || !data) return null;
-    return data.id;
-  }
-
   async insertLog(
-    buildRunId: string,
     buildId: string,
     message: string,
     level: "info" | "warn" | "error" = "info",
+    stepIndex?: number,
+    stepName?: string,
   ): Promise<void> {
     await this.client.from("build_logs").insert({
-      build_run_id: buildRunId,
       build_id: buildId,
       message,
       level,
+      step_index: stepIndex,
+      step_name: stepName,
     });
-  }
-
-  async completeBuildRun(
-    buildRunId: string,
-    conclusion: "success" | "failure" | "cancelled",
-  ): Promise<void> {
-    await this.client
-      .from("build_runs")
-      .update({ status: "completed", conclusion })
-      .eq("id", buildRunId);
   }
 }

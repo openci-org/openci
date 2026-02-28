@@ -46,7 +46,7 @@ final class BuildLogsProvider
     with $FutureModifier<List<BuildLog>>, $StreamProvider<List<BuildLog>> {
   BuildLogsProvider._({
     required BuildLogsFamily super.from,
-    required (String, String) super.argument,
+    required String super.argument,
   }) : super(
          retry: null,
          name: r'buildLogsProvider',
@@ -62,7 +62,7 @@ final class BuildLogsProvider
   String toString() {
     return r'buildLogsProvider'
         ''
-        '$argument';
+        '($argument)';
   }
 
   @$internal
@@ -73,8 +73,8 @@ final class BuildLogsProvider
 
   @override
   Stream<List<BuildLog>> create(Ref ref) {
-    final argument = this.argument as (String, String);
-    return buildLogs(ref, argument.$1, argument.$2);
+    final argument = this.argument as String;
+    return buildLogs(ref, argument);
   }
 
   @override
@@ -88,10 +88,10 @@ final class BuildLogsProvider
   }
 }
 
-String _$buildLogsHash() => r'3dab3864f8322e4b82e39eb3d3b63c96e8354b5b';
+String _$buildLogsHash() => r'4b5ec9613b213054f50abd10b60c85d004ccdae2';
 
 final class BuildLogsFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
+    with $FunctionalFamilyOverride<Stream<List<BuildLog>>, String> {
   BuildLogsFamily._()
     : super(
         retry: null,
@@ -101,8 +101,8 @@ final class BuildLogsFamily extends $Family
         isAutoDispose: true,
       );
 
-  BuildLogsProvider call(String buildJobId, String runId) =>
-      BuildLogsProvider._(argument: (buildJobId, runId), from: this);
+  BuildLogsProvider call(String buildJobId) =>
+      BuildLogsProvider._(argument: buildJobId, from: this);
 
   @override
   String toString() => r'buildLogsProvider';
