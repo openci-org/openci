@@ -1,4 +1,4 @@
--- Drop build_runs table and simplify build_logs to reference builds directly.
+-- Drop build_runs table, worker_config table, and fix duplicate indexes.
 -- Retries are modeled as new build records using builds.retried_from_build_id.
 
 BEGIN;
@@ -25,7 +25,18 @@ DROP TABLE IF EXISTS public.build_runs CASCADE;
 -- 5. Drop the trigger function that was used by build_runs
 DROP FUNCTION IF EXISTS public.update_build_on_run_created();
 
--- 6. Revoke worker_role grants on build_runs (already gone via CASCADE, but be explicit)
--- (No-op since table is dropped)
+-- 6. Drop worker_config table (no longer used; version check uses GitHub Releases API)
+DROP POLICY IF EXISTS "worker_config: anyone can read" ON public.worker_config;
+REVOKE ALL ON public.worker_config FROM worker_role;
+DROP TABLE IF EXISTS public.worker_config;
+
+-- 7. Fix duplicate indexes on builds
+--    idx_builds_queued and idx_builds_queued_runner_os had identical definitions.
+--    Replace both with a proper composite index that includes runner_os for claim_next_build().
+DROP INDEX IF EXISTS idx_builds_queued;
+DROP INDEX IF EXISTS idx_builds_queued_runner_os;
+CREATE INDEX idx_builds_queued_runner_os
+  ON public.builds(runner_os, created_at ASC)
+  WHERE status = 'queued';
 
 COMMIT;
