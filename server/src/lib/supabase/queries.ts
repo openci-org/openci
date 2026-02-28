@@ -2,15 +2,7 @@
 // All functions require a server-side Supabase client (createClient from @/lib/supabase/server)
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  Build,
-  BuildLog,
-  EnvironmentVariable,
-  Team,
-  TeamInvitation,
-  TeamMember,
-  TeamWithRole,
-} from "./types";
+import type { Build, BuildLog, EnvironmentVariable, Team, TeamMember, TeamWithRole } from "./types";
 
 // Returns all teams the current user belongs to, with their role.
 export async function getUserTeams(supabase: SupabaseClient): Promise<TeamWithRole[]> {
@@ -179,22 +171,6 @@ export async function getTeamMembers(
     } | null,
     email: null,
   }));
-}
-
-// Returns pending invitations for a team.
-export async function getTeamInvitations(
-  supabase: SupabaseClient,
-  teamId: string,
-): Promise<TeamInvitation[]> {
-  const { data, error } = await supabase
-    .from("team_invitations")
-    .select("*")
-    .eq("team_id", teamId)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
-  if (error || !data) return [];
-  return data as TeamInvitation[];
 }
 
 // Returns team stats for the dashboard.

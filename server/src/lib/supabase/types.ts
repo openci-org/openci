@@ -2,7 +2,6 @@
 // These match the schema defined in supabase/migrations/
 
 export type TeamRole = "owner" | "admin" | "member";
-export type InvitationStatus = "pending" | "accepted" | "expired" | "cancelled";
 export type BuildStatus = "queued" | "in_progress" | "success" | "failure" | "cancelled";
 export type LogLevel = "info" | "warning" | "error";
 export type TriggerType = "push" | "pull_request" | "tag" | "release";
@@ -33,19 +32,6 @@ export interface TeamMember {
   team_id: string;
   user_id: string;
   role: TeamRole;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TeamInvitation {
-  id: string;
-  team_id: string;
-  invited_by: string;
-  email: string;
-  role: TeamRole;
-  token: string;
-  status: InvitationStatus;
-  expires_at: string;
   created_at: string;
   updated_at: string;
 }

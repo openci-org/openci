@@ -1,7 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
-import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -87,33 +86,7 @@ class SettingsPage extends HookConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Team',
-                colorScheme: colorScheme,
-              ),
-              const SizedBox(height: 8),
-              _SettingsCard(
-                isDark: isDark,
-                colorScheme: colorScheme,
-                children: [
-                  _SettingsTile(
-                    icon: Symbols.group_add_rounded,
-                    iconColor: const Color(0xFF3FB950),
-                    title: 'Invite Team Member',
-                    subtitle: 'Add collaborators to your organization',
-                    colorScheme: colorScheme,
-                    onTap: () => showModalBottomSheet(
-                      showDragHandle: true,
-                      context: context,
-                      builder: (context) => SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: const InviteTeamMemberBottomSheet(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+
               const SizedBox(height: 24),
               _SectionHeader(
                 title: 'Support',
