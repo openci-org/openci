@@ -1,48 +1,53 @@
-import { SanityLive } from '@/sanity/live'
-import { revalidateSyncTags } from '@/sanity/revalidateSyncTags'
-import '@/styles/tailwind.css'
-import { Analytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import type { Metadata } from 'next'
+import type { Metadata } from "next";
+import { Geist } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import "./globals.css";
+
+const defaultUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
 
 export const metadata: Metadata = {
-  title: {
-    template: '%s - OpenCI',
-    default:
-      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust.',
-  },
-  openGraph: {
-    url: 'https://openci.org',
-    siteName: 'OpenCI',
-    images: [{ url: 'https://openci.org/screenshots/lp.png' }],
-  },
-}
+  metadataBase: new URL(defaultUrl),
+  title: "OpenCI",
+  description: "OpenCI Dashboard",
+};
 
-export default function RootLayout({
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  display: "swap",
+  subsets: ["latin"],
+});
+
+export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/css?f%5B%5D=switzer@400,500,600,700&amp;display=swap"
-        />
-        <link
-          rel="alternate"
-          type="application/rss+xml"
-          title="The OpenCI Blog"
-          href="/blog/feed.xml"
-        />
-      </head>
-      <body className="text-gray-950 antialiased">
-        {children}
-        <Analytics />
-        <SanityLive revalidateSyncTags={revalidateSyncTags} />
-        <SpeedInsights />
+    <html lang={locale} suppressHydrationWarning>
+      <body className={`${geistSans.className} antialiased`}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <TooltipProvider>
+              <div className="min-h-screen flex flex-col">
+                {children}
+              </div>
+            </TooltipProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
-  )
+  );
 }

@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 
-import { Border } from '@/components/studio/Border'
-import { ContactSection } from '@/components/studio/ContactSection'
-import { Container } from '@/components/studio/Container'
-import { FadeIn, FadeInStagger } from '@/components/studio/FadeIn'
-import { PageIntro } from '@/components/studio/PageIntro'
+import { Border } from '@/marketing-components/studio/Border'
+import { ContactSection } from '@/marketing-components/studio/ContactSection'
+import { Container } from '@/marketing-components/studio/Container'
+import { FadeIn, FadeInStagger } from '@/marketing-components/studio/FadeIn'
+import { PageIntro } from '@/marketing-components/studio/PageIntro'
 import imageMasahiroAoki from '@/images/studio/team/masahiro-aoki.jpg'
-import { StudioRootLayout } from '@/components/studio/StudioRootLayout'
+import { StudioRootLayout } from '@/marketing-components/studio/StudioRootLayout'
 
 const team = [
   {

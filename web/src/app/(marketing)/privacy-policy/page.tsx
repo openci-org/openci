@@ -1,8 +1,8 @@
-import { Container } from '@/components/container'
-import { Footer } from '@/components/footer'
-import { GradientBackground } from '@/components/gradient'
-import { Navbar } from '@/components/navbar'
-import { Heading } from '@/components/text'
+import { Container } from '@/marketing-components/container'
+import { Footer } from '@/marketing-components/footer'
+import { GradientBackground } from '@/marketing-components/gradient'
+import { Navbar } from '@/marketing-components/navbar'
+import { Heading } from '@/marketing-components/text'
 
 export default async function PrivacyPolicy() {
   return (
