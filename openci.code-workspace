@@ -221,6 +221,15 @@
         "problemMatcher": [],
       },
       {
+        "label": "Supabase: Reset + Start",
+        "type": "shell",
+        "command": "make sb-reset && make sb-start",
+        "options": {
+          "cwd": "${workspaceFolder:server}",
+        },
+        "problemMatcher": [],
+      },
+      {
         "label": "Supabase: Status",
         "type": "shell",
         "command": "make sb-status",

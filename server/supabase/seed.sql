@@ -1,8 +1,44 @@
 -- Seed data for local development
 -- Run after: supabase db reset
 
--- Note: auth.users rows are created via Supabase Auth (not seeded directly in production).
--- For local testing, use the Supabase Studio Auth UI or supabase/tests/auth.sql.
+-- Test user (triggers profile auto-creation via handle_new_user())
+-- Email: test@example.com / Password: password123
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email,
+  encrypted_password, email_confirmed_at,
+  created_at, updated_at, confirmation_token,
+  raw_app_meta_data, raw_user_meta_data,
+  email_change, email_change_token_new, email_change_token_current,
+  email_change_confirm_status,
+  phone, phone_change, phone_change_token,
+  recovery_token, reauthentication_token
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  '00000000-0000-0000-0000-000000000099',
+  'authenticated', 'authenticated',
+  'test@openci.org',
+  crypt('password123', gen_salt('bf')),
+  NOW(),
+  NOW(), NOW(), '',
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Demo User"}',
+  '', '', '',
+  0,
+  '', '', '',
+  '', ''
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.identities (
+  id, user_id, identity_data, provider, provider_id,
+  last_sign_in_at, created_at, updated_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000099',
+  '00000000-0000-0000-0000-000000000099',
+  jsonb_build_object('sub', '00000000-0000-0000-0000-000000000099', 'email', 'test@example.com'),
+  'email',
+  '00000000-0000-0000-0000-000000000099',
+  NOW(), NOW(), NOW()
+) ON CONFLICT (provider_id, provider) DO NOTHING;
 
 -- Insert test organization (bypasses RLS; seed runs as postgres)
 INSERT INTO public.organizations (id, name, slug, billing_enabled)
@@ -14,26 +50,20 @@ VALUES (
 )
 ON CONFLICT (slug) DO NOTHING;
 
--- Insert test project
-INSERT INTO public.projects (id, org_id, name, slug, description, framework, platforms)
+-- Link test user to demo org as owner
+INSERT INTO public.org_members (org_id, user_id, role)
 VALUES (
-  '00000000-0000-0000-0000-000000000010',
   '00000000-0000-0000-0000-000000000001',
-  'OpenCI Demo',
-  'openci-demo',
-  'A sample project for testing OpenCI workflows',
-  'TypeScript',
-  ARRAY['ios']
-)
-ON CONFLICT (org_id, slug) DO NOTHING;
+  '00000000-0000-0000-0000-000000000099',
+  'owner'
+) ON CONFLICT DO NOTHING;
 
 -- Sample builds for worker testing (uses public repo — no token needed)
--- yaml_definition is embedded directly in each build
-INSERT INTO public.builds (id, project_id, status, runner_os, github_owner, github_repo, commit_sha, branch, github_event, github_sender, yaml_definition)
+INSERT INTO public.builds (id, org_id, status, runner_os, github_owner, github_repo, commit_sha, branch, github_event, github_sender, yaml_definition)
 VALUES
   (
     '00000000-0000-0000-0000-000000000100',
-    '00000000-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000001',
     'queued', 'macos',
     'open-ci-io', 'openci',
     '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
@@ -77,7 +107,7 @@ $yaml$
   ),
   (
     '00000000-0000-0000-0000-000000000101',
-    '00000000-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000001',
     'queued', 'macos',
     'open-ci-io', 'openci',
     '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
@@ -121,7 +151,7 @@ $yaml$
   ),
   (
     '00000000-0000-0000-0000-000000000102',
-    '00000000-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000001',
     'in_progress', 'macos',
     'open-ci-io', 'openci',
     '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
@@ -130,7 +160,7 @@ $yaml$
   ),
   (
     '00000000-0000-0000-0000-000000000103',
-    '00000000-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000001',
     'success', 'macos',
     'open-ci-io', 'openci',
     '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
@@ -139,7 +169,7 @@ $yaml$
   ),
   (
     '00000000-0000-0000-0000-000000000104',
-    '00000000-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000001',
     'failure', 'linux',
     'open-ci-io', 'openci',
     '6641e45bf5c90414ed9668f8a4a97e8c6ca03b87', 'develop',
@@ -152,3 +182,4 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.worker_config (key, value)
 VALUES ('latest_version', '0.0.1')
 ON CONFLICT (key) DO NOTHING;
+

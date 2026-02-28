@@ -34,7 +34,33 @@ UPDATE public.environment_variables ev
   WHERE ev.project_id = p.id;
 
 -- ============================================================
--- 3. Make org_id NOT NULL, drop project_id
+-- 3. Drop old RLS policies that reference project_id BEFORE dropping columns
+-- ============================================================
+
+DROP POLICY IF EXISTS "workflows: project members can read" ON public.workflows;
+DROP POLICY IF EXISTS "workflows: write role can create" ON public.workflows;
+DROP POLICY IF EXISTS "workflows: write role can update" ON public.workflows;
+DROP POLICY IF EXISTS "workflows: write role can delete" ON public.workflows;
+
+DROP POLICY IF EXISTS "workflow_triggers: project members can read" ON public.workflow_triggers;
+DROP POLICY IF EXISTS "workflow_triggers: write role can manage" ON public.workflow_triggers;
+DROP POLICY IF EXISTS "workflow_triggers: write role can update" ON public.workflow_triggers;
+DROP POLICY IF EXISTS "workflow_triggers: write role can delete" ON public.workflow_triggers;
+
+DROP POLICY IF EXISTS "builds: project members can read" ON public.builds;
+DROP POLICY IF EXISTS "builds: write role can cancel" ON public.builds;
+
+DROP POLICY IF EXISTS "build_runs: project members can read" ON public.build_runs;
+
+DROP POLICY IF EXISTS "build_logs: project members can read" ON public.build_logs;
+
+DROP POLICY IF EXISTS "env_vars: project members can read" ON public.environment_variables;
+DROP POLICY IF EXISTS "env_vars: write role can create" ON public.environment_variables;
+DROP POLICY IF EXISTS "env_vars: write role can update" ON public.environment_variables;
+DROP POLICY IF EXISTS "env_vars: write role can delete" ON public.environment_variables;
+
+-- ============================================================
+-- 4. Make org_id NOT NULL, drop project_id
 -- ============================================================
 
 ALTER TABLE public.workflows
@@ -97,13 +123,8 @@ SET search_path = public AS $$
 $$;
 
 -- ============================================================
--- 9. Replace RLS policies for workflows
+-- 9. Create new RLS policies for workflows
 -- ============================================================
-
-DROP POLICY IF EXISTS "workflows: project members can read" ON public.workflows;
-DROP POLICY IF EXISTS "workflows: write role can create" ON public.workflows;
-DROP POLICY IF EXISTS "workflows: write role can update" ON public.workflows;
-DROP POLICY IF EXISTS "workflows: write role can delete" ON public.workflows;
 
 CREATE POLICY "workflows: org members can read"
   ON public.workflows FOR SELECT
@@ -122,13 +143,8 @@ CREATE POLICY "workflows: org admins can delete"
   USING (public.user_org_write(org_id));
 
 -- ============================================================
--- 10. Replace RLS policies for workflow_triggers
+-- 10. Create new RLS policies for workflow_triggers
 -- ============================================================
-
-DROP POLICY IF EXISTS "workflow_triggers: project members can read" ON public.workflow_triggers;
-DROP POLICY IF EXISTS "workflow_triggers: write role can manage" ON public.workflow_triggers;
-DROP POLICY IF EXISTS "workflow_triggers: write role can update" ON public.workflow_triggers;
-DROP POLICY IF EXISTS "workflow_triggers: write role can delete" ON public.workflow_triggers;
 
 CREATE POLICY "workflow_triggers: org members can read"
   ON public.workflow_triggers FOR SELECT
@@ -164,11 +180,8 @@ CREATE POLICY "workflow_triggers: org admins can delete"
   );
 
 -- ============================================================
--- 11. Replace RLS policies for builds
+-- 11. Create new RLS policies for builds
 -- ============================================================
-
-DROP POLICY IF EXISTS "builds: project members can read" ON public.builds;
-DROP POLICY IF EXISTS "builds: write role can cancel" ON public.builds;
 
 CREATE POLICY "builds: org members can read"
   ON public.builds FOR SELECT
@@ -179,10 +192,8 @@ CREATE POLICY "builds: org admins can cancel"
   USING (public.user_org_write(org_id));
 
 -- ============================================================
--- 12. Replace RLS policies for build_runs
+-- 12. Create new RLS policies for build_runs
 -- ============================================================
-
-DROP POLICY IF EXISTS "build_runs: project members can read" ON public.build_runs;
 
 CREATE POLICY "build_runs: org members can read"
   ON public.build_runs FOR SELECT
@@ -194,10 +205,8 @@ CREATE POLICY "build_runs: org members can read"
   );
 
 -- ============================================================
--- 13. Replace RLS policies for build_logs
+-- 13. Create new RLS policies for build_logs
 -- ============================================================
-
-DROP POLICY IF EXISTS "build_logs: project members can read" ON public.build_logs;
 
 CREATE POLICY "build_logs: org members can read"
   ON public.build_logs FOR SELECT
@@ -209,13 +218,8 @@ CREATE POLICY "build_logs: org members can read"
   );
 
 -- ============================================================
--- 14. Replace RLS policies for environment_variables
+-- 14. Create new RLS policies for environment_variables
 -- ============================================================
-
-DROP POLICY IF EXISTS "env_vars: project members can read" ON public.environment_variables;
-DROP POLICY IF EXISTS "env_vars: write role can create" ON public.environment_variables;
-DROP POLICY IF EXISTS "env_vars: write role can update" ON public.environment_variables;
-DROP POLICY IF EXISTS "env_vars: write role can delete" ON public.environment_variables;
 
 CREATE POLICY "env_vars: org members can read"
   ON public.environment_variables FOR SELECT
@@ -234,20 +238,7 @@ CREATE POLICY "env_vars: org admins can delete"
   USING (public.user_org_write(org_id));
 
 -- ============================================================
--- 15. Drop old project RLS policies
--- ============================================================
-
-DROP POLICY IF EXISTS "projects: org members can read" ON public.projects;
-DROP POLICY IF EXISTS "projects: org admins can create projects" ON public.projects;
-DROP POLICY IF EXISTS "projects: write role can update" ON public.projects;
-DROP POLICY IF EXISTS "projects: org owners can delete" ON public.projects;
-DROP POLICY IF EXISTS "project_members: org members can read" ON public.project_members;
-DROP POLICY IF EXISTS "project_members: project write can manage" ON public.project_members;
-DROP POLICY IF EXISTS "project_members: project write can update" ON public.project_members;
-DROP POLICY IF EXISTS "project_members: project write can delete" ON public.project_members;
-
--- ============================================================
--- 16. Drop project_role type if exists
+-- 15. Drop project_role type if exists
 -- ============================================================
 
 DROP TYPE IF EXISTS public.project_role;
