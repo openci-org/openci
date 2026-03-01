@@ -1,37 +1,37 @@
 {
   "folders": [
     {
+      "name": "root",
+      "path": "."
+    },
+    {
       "name": "agent",
-      "path": "apps/agent",
+      "path": "apps/agent"
     },
     {
       "name": "orchestrator",
-      "path": "apps/orchestrator",
+      "path": "apps/orchestrator"
     },
     {
       "name": "worker_cli",
-      "path": "apps/worker_cli",
+      "path": "apps/worker_cli"
     },
     {
       "name": "vm_cli",
-      "path": "apps/vm_cli",
+      "path": "apps/vm_cli"
     },
     {
       "name": "mobile",
-      "path": "apps/mobile",
+      "path": "apps/mobile"
     },
     {
       "name": "web",
-      "path": "apps/web",
+      "path": "apps/web"
     },
     {
       "name": "dart_avf",
-      "path": "packages/dart_avf",
-    },
-    {
-      "name": "dart_avf",
-      "path": "packages/dart_avf",
-    },
+      "path": "packages/dart_avf"
+    }
   ],
   "settings": {
     "dart.onlyAnalyzeProjectsWithOpenFiles": true,
@@ -67,38 +67,38 @@
       "tailwindplus",
       "turbopack",
       "unawaited",
-      "uuidv",
+      "uuidv"
     ],
     "editor.codeActionsOnSave": {
       "source.fixAll": "always",
-      "source.organizeImports": "explicit",
+      "source.organizeImports": "explicit"
     },
     "editor.formatOnSave": true,
     "[jsonc]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[json]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[javascript]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[typescript]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[typescriptreact]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[yaml]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode",
+      "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "files.associations": {
-      "*.css": "tailwindcss",
+      "*.css": "tailwindcss"
     },
     "files.exclude": {
       "**/*.g.dart": true,
-      "**/*.freezed.dart": true,
-    },
+      "**/*.freezed.dart": true
+    }
   },
   "launch": {
     "version": "0.2.0",
@@ -109,7 +109,7 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--dart-define-from-file=.env.production.local"],
+        "args": ["--dart-define-from-file=.env.production.local"]
       },
       {
         "name": "mobile(Local)",
@@ -117,7 +117,7 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--dart-define-from-file=.env.local"],
+        "args": ["--dart-define-from-file=.env.local"]
       },
       {
         "name": "(release) mobile",
@@ -125,9 +125,9 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--release", "--dart-define-from-file=.env.production.local"],
-      },
-    ],
+        "args": ["--release", "--dart-define-from-file=.env.production.local"]
+      }
+    ]
   },
   "extensions": {
     "recommendations": [
@@ -135,8 +135,8 @@
       "dart-code.flutter",
       "oxc.oxc-vscode",
       "bradlc.vscode-tailwindcss",
-      "streetsidesoftware.code-spell-checker",
-    ],
+      "streetsidesoftware.code-spell-checker"
+    ]
   },
   "tasks": {
     "version": "2.0.0",
@@ -146,66 +146,66 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:mobile}",
+          "cwd": "${workspaceFolder:mobile}"
         },
         "problemMatcher": [],
         "group": "build",
-        "isBackground": true,
+        "isBackground": true
       },
       {
         "label": "Flutter: clean",
         "type": "shell",
         "command": "flutter clean && flutter pub get",
         "options": {
-          "cwd": "${workspaceFolder:mobile}",
-        },
+          "cwd": "${workspaceFolder:mobile}"
+        }
       },
       {
         "label": "Flutter: Build .ipa",
         "type": "shell",
         "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=.env.local",
         "options": {
-          "cwd": "${workspaceFolder:mobile}",
+          "cwd": "${workspaceFolder:mobile}"
         },
-        "problemMatcher": [],
+        "problemMatcher": []
       },
       {
         "label": "Web: Dev Server",
         "type": "shell",
         "command": "pnpm dev",
         "options": {
-          "cwd": "${workspaceFolder:web}",
+          "cwd": "${workspaceFolder:web}"
         },
         "problemMatcher": [],
-        "isBackground": true,
+        "isBackground": true
       },
       {
         "label": "Web: Build",
         "type": "shell",
         "command": "pnpm build",
         "options": {
-          "cwd": "${workspaceFolder:web}",
+          "cwd": "${workspaceFolder:web}"
         },
-        "problemMatcher": [],
+        "problemMatcher": []
       },
       {
         "label": "Supabase: Start",
         "type": "shell",
         "command": "pnpm supabase start",
         "options": {
-          "cwd": "${workspaceFolder:web}",
+          "cwd": "${workspaceFolder:web}"
         },
-        "problemMatcher": [],
+        "problemMatcher": []
       },
       {
         "label": "Supabase: Stop",
         "type": "shell",
         "command": "pnpm supabase stop",
         "options": {
-          "cwd": "${workspaceFolder:web}",
+          "cwd": "${workspaceFolder:web}"
         },
-        "problemMatcher": [],
-      },
-    ],
-  },
+        "problemMatcher": []
+      }
+    ]
+  }
 }
