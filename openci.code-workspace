@@ -4,14 +4,7 @@
       "name": "root",
       "path": "."
     },
-    {
-      "name": "agent",
-      "path": "apps/agent"
-    },
-    {
-      "name": "orchestrator",
-      "path": "apps/orchestrator"
-    },
+
     {
       "name": "worker_cli",
       "path": "apps/worker_cli"
@@ -21,16 +14,12 @@
       "path": "apps/vm_cli"
     },
     {
-      "name": "mobile",
-      "path": "apps/mobile"
+      "name": "dashboard",
+      "path": "apps/dashboard"
     },
     {
       "name": "web",
       "path": "apps/web"
-    },
-    {
-      "name": "dart_avf",
-      "path": "packages/dart_avf"
     }
   ],
   "settings": {
@@ -104,24 +93,24 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "mobile(Prod)",
-        "cwd": "${workspaceFolder:mobile}",
+        "name": "dashboard(Prod)",
+        "cwd": "${workspaceFolder:dashboard}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
         "args": ["--dart-define-from-file=.env.production.local"]
       },
       {
-        "name": "mobile(Local)",
-        "cwd": "${workspaceFolder:mobile}",
+        "name": "dashboard(Local)",
+        "cwd": "${workspaceFolder:dashboard}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
         "args": ["--dart-define-from-file=.env.local"]
       },
       {
-        "name": "(release) mobile",
-        "cwd": "${workspaceFolder:mobile}",
+        "name": "(release) dashboard",
+        "cwd": "${workspaceFolder:dashboard}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
@@ -146,7 +135,7 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:mobile}"
+          "cwd": "${workspaceFolder:dashboard}"
         },
         "problemMatcher": [],
         "group": "build",
@@ -157,7 +146,7 @@
         "type": "shell",
         "command": "flutter clean && flutter pub get",
         "options": {
-          "cwd": "${workspaceFolder:mobile}"
+          "cwd": "${workspaceFolder:dashboard}"
         }
       },
       {
@@ -165,7 +154,7 @@
         "type": "shell",
         "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=.env.local",
         "options": {
-          "cwd": "${workspaceFolder:mobile}"
+          "cwd": "${workspaceFolder:dashboard}"
         },
         "problemMatcher": []
       },
@@ -183,24 +172,6 @@
         "label": "Web: Build",
         "type": "shell",
         "command": "pnpm build",
-        "options": {
-          "cwd": "${workspaceFolder:web}"
-        },
-        "problemMatcher": []
-      },
-      {
-        "label": "Supabase: Start",
-        "type": "shell",
-        "command": "pnpm supabase start",
-        "options": {
-          "cwd": "${workspaceFolder:web}"
-        },
-        "problemMatcher": []
-      },
-      {
-        "label": "Supabase: Stop",
-        "type": "shell",
-        "command": "pnpm supabase stop",
         "options": {
           "cwd": "${workspaceFolder:web}"
         },
