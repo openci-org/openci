@@ -1,5 +1,6 @@
 name: openci_vm_cli
 description: OpenCI VM CLI
+publish_to: none
 version: 1.0.12
 repository: https://github.com/open-ci-io/openci
 homepage: https://openci.io
@@ -11,6 +12,8 @@ resolution: workspace
 
 dependencies:
   args: ^2.7.0
+  dart_avf:
+    path: ../../packages/dart_avf
   googleapis: ^13.2.0
   googleapis_auth: ^1.6.0
   http: ^1.6.0

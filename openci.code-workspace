@@ -20,6 +20,10 @@
       "name": "worker",
       "path": "worker",
     },
+    {
+      "name": "dart_avf",
+      "path": "packages/dart_avf",
+    },
   ],
   "settings": {
     "dart.onlyAnalyzeProjectsWithOpenFiles": true,
