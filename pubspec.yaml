@@ -5,9 +5,9 @@ environment:
   sdk: ^3.11.0
 
 workspace:
-  - cli/openci_agent
-  - cli/openci_orchestrator
-  - cli/openci_vm_cli
-  - cli/openci_worker_cli
-  - mobile
+  - apps/agent
+  - apps/mobile
+  - apps/orchestrator
+  - apps/vm_cli
+  - apps/worker_cli
   - packages/dart_avf

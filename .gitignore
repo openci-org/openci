@@ -11,5 +11,6 @@ worker/openci-worker
 worker/*.tar.gz
 worker/dist/
 worker/config*.json
+apps/worker_ts/config*.json
 bun.lock
 *.bun-build
