@@ -1,24 +1,28 @@
 {
   "folders": [
     {
+      "name": "agent",
+      "path": "apps/agent",
+    },
+    {
+      "name": "orchestrator",
+      "path": "apps/orchestrator",
+    },
+    {
+      "name": "worker_cli",
+      "path": "apps/worker_cli",
+    },
+    {
+      "name": "vm_cli",
+      "path": "apps/vm_cli",
+    },
+    {
       "name": "mobile",
-      "path": "mobile",
-    },
-    {
-      "name": "openci_worker_cli",
-      "path": "cli/openci_worker_cli",
-    },
-    {
-      "name": "openci_vm_cli",
-      "path": "cli/openci_vm_cli",
+      "path": "apps/mobile",
     },
     {
       "name": "web",
-      "path": "web",
-    },
-    {
-      "name": "worker",
-      "path": "worker",
+      "path": "apps/web",
     },
     {
       "name": "dart_avf",
@@ -27,7 +31,7 @@
   ],
   "settings": {
     "dart.onlyAnalyzeProjectsWithOpenFiles": true,
-    "dart.analysisExcludedFolders": ["web", "worker", "firebase"],
+    "dart.analysisExcludedFolders": ["apps/web"],
     "npm.packageManager": "pnpm",
     "terminal.integrated.scrollback": 10000,
     "cSpell.words": [
@@ -133,7 +137,6 @@
   "tasks": {
     "version": "2.0.0",
     "tasks": [
-      // ── Flutter ──────────────────────────────────────
       {
         "label": "Flutter: build_runner watch",
         "type": "shell",
@@ -162,7 +165,6 @@
         },
         "problemMatcher": [],
       },
-      // ── Web (Next.js) ─────────────────────────────────
       {
         "label": "Web: Dev Server",
         "type": "shell",
@@ -182,89 +184,21 @@
         },
         "problemMatcher": [],
       },
-      // ── Supabase ─────────────────────────────────────
       {
         "label": "Supabase: Start",
         "type": "shell",
-        "command": "make sb-start",
+        "command": "pnpm supabase start",
         "options": {
-          "cwd": "${workspaceFolder:server}",
+          "cwd": "${workspaceFolder:web}",
         },
         "problemMatcher": [],
       },
       {
         "label": "Supabase: Stop",
         "type": "shell",
-        "command": "make sb-stop",
+        "command": "pnpm supabase stop",
         "options": {
-          "cwd": "${workspaceFolder:server}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Supabase: Reset (drop + migrate + seed)",
-        "type": "shell",
-        "command": "make sb-reset",
-        "options": {
-          "cwd": "${workspaceFolder:server}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Supabase: Reset + Start",
-        "type": "shell",
-        "command": "make sb-reset && make sb-start",
-        "options": {
-          "cwd": "${workspaceFolder:server}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Supabase: Status",
-        "type": "shell",
-        "command": "make sb-status",
-        "options": {
-          "cwd": "${workspaceFolder:server}",
-        },
-        "problemMatcher": [],
-      },
-      // ── Worker (TypeScript) ────────────────────────────
-      {
-        "label": "Worker: Dev Run",
-        "type": "shell",
-        "command": "pnpm tsx src/index.tsx",
-        "options": {
-          "cwd": "${workspaceFolder:worker}",
-        },
-        "problemMatcher": [],
-        "isBackground": true,
-      },
-      {
-        "label": "Worker: Production Run",
-        "type": "shell",
-        "command": "pnpm tsx src/index.tsx --prod",
-        "options": {
-          "cwd": "${workspaceFolder:worker}",
-        },
-        "problemMatcher": [],
-        "isBackground": true,
-      },
-      // ── Server (Deploy) ────────────────────────────
-      {
-        "label": "Server: Deploy Production",
-        "type": "shell",
-        "command": "make vercel-deploy-prod",
-        "options": {
-          "cwd": "${workspaceFolder:server}",
-        },
-        "problemMatcher": [],
-      },
-      {
-        "label": "Supabase: Push to Production",
-        "type": "shell",
-        "command": "pnpm supabase db push",
-        "options": {
-          "cwd": "${workspaceFolder:server}",
+          "cwd": "${workspaceFolder:web}",
         },
         "problemMatcher": [],
       },
