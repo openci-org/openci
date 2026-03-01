@@ -1,0 +1,31 @@
+name: dart_avf
+description: >
+  Dart bindings for Apple's Virtualization.Framework.
+  Create, install, clone, and run macOS virtual machines programmatically.
+version: 0.1.0
+repository: https://github.com/open-ci-io/openci/tree/main/packages/dart_avf
+issue_tracker: https://github.com/open-ci-io/openci/issues
+
+environment:
+  sdk: ^3.8.0
+
+resolution: workspace
+
+platforms:
+  macos:
+
+topics:
+  - virtualization
+  - macos
+  - vm
+  - ci-cd
+  - apple
+
+dependencies:
+  ffi: ^2.1.0
+  objective_c: ^9.2.3
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.24.0
