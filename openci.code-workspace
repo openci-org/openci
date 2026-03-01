@@ -28,6 +28,10 @@
       "name": "dart_avf",
       "path": "packages/dart_avf",
     },
+    {
+      "name": "dart_avf",
+      "path": "packages/dart_avf",
+    },
   ],
   "settings": {
     "dart.onlyAnalyzeProjectsWithOpenFiles": true,
