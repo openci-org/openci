@@ -1,7 +1,7 @@
-name: openci_worker_cli
-description: OpenCI Worker CLI
-version: 0.5.0
+name: openci_orchestrator
+description: OpenCI VM Orchestrator — REST API for macOS VM lifecycle management
 publish_to: none
+version: 0.1.0
 repository: https://github.com/open-ci-io/openci
 
 environment:
@@ -10,14 +10,12 @@ environment:
 resolution: workspace
 
 dependencies:
-  args: ^2.7.0
   dart_avf:
     path: ../../packages/dart_avf
+  relic: ^1.1.0
   http: ^1.6.0
+  args: ^2.7.0
 
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6
-
-executables:
-  openci_worker: openci_worker_cli
