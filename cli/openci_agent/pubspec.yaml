@@ -1,5 +1,5 @@
-name: openci_orchestrator
-description: OpenCI Orchestrator — Central server for managing distributed agents
+name: openci_agent
+description: OpenCI Agent — REST API for macOS VM lifecycle on physical Mac hardware
 publish_to: none
 version: 0.1.0
 repository: https://github.com/open-ci-io/openci
@@ -10,8 +10,9 @@ environment:
 resolution: workspace
 
 dependencies:
+  dart_avf:
+    path: ../../packages/dart_avf
   relic: ^1.1.0
-  http: ^1.6.0
   args: ^2.7.0
 
 dev_dependencies:
