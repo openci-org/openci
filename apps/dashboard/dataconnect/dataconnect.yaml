@@ -1,0 +1,13 @@
+specVersion: "v1"
+serviceId: "openci-b1b91-service"
+location: "asia-northeast1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "openci-b1b91-database"
+      cloudSql:
+        instanceId: "openci-b1b91-instance"
+        # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
+        # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
+connectorDirs: ["./dashboard"]

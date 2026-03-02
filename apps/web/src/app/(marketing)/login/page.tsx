@@ -19,9 +19,8 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      // TODO: Integrate with Supabase Auth
       setError(
-        'Authentication is being migrated to Supabase. Please try again later.',
+        'Authentication is coming soon. Please try again later.',
       )
     } finally {
       setLoading(false)
@@ -33,9 +32,8 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      // TODO: Integrate with Supabase Auth
       setError(
-        'Authentication is being migrated to Supabase. Please try again later.',
+        'Authentication is coming soon. Please try again later.',
       )
     } finally {
       setLoading(false)

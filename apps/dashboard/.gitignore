@@ -52,3 +52,4 @@ app.*.map.json
 /ios/Runner/GoogleService-Info.plist
 /firebase.json
 .firebase/
+.dataconnect/
