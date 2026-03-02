@@ -67,14 +67,5 @@
     "*.config.js",
     "*.config.ts",
     "*.config.mjs",
-    "supabase/functions"
-  ],
-  "overrides": [
-    {
-      "files": ["src/app/api/**/*.ts"],
-      "rules": {
-        "no-console": "off"
-      }
-    }
   ]
 }
