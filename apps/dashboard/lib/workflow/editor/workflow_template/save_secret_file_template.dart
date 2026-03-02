@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
@@ -376,21 +375,13 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                               isLoading.value = true;
                               try {
                                 if (isNewUpload.value) {
-                                  final supabase = ref.read(
-                                    supabaseClientProvider,
-                                  );
                                   final teamId = ref
                                       .read(teamStateProvider)
                                       .requireValue
                                       .id;
-                                  await supabase
-                                      .from('environment_variables')
-                                      .insert({
-                                        'team_id': teamId,
-                                        'key': secretNameController.text,
-                                        'value': uploadedBase64.value!,
-                                        'is_secret': true,
-                                      });
+                                  throw UnimplementedError(
+                                    'TODO: Migrate to Firebase Data Connect (teamId: $teamId)',
+                                  );
                                 }
 
                                 if (context.mounted) {

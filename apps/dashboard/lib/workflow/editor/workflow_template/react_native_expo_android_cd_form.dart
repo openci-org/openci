@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
@@ -226,45 +225,13 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                       child: ElevatedButton(
                         onPressed: () async {
                           try {
-                            final supabase = ref.read(supabaseClientProvider);
                             final teamId = ref
                                 .read(teamStateProvider)
                                 .requireValue
                                 .id;
 
-                            await supabase.from('environment_variables').insert(
-                              [
-                                {
-                                  'team_id': teamId,
-                                  'key': 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON',
-                                  'value': serviceAccountJsonController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'ANDROID_KEYSTORE_BASE64',
-                                  'value': keystoreController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'ANDROID_KEYSTORE_PASSWORD',
-                                  'value': keystorePasswordController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'ANDROID_KEY_ALIAS',
-                                  'value': keyAliasController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'ANDROID_PACKAGE_NAME',
-                                  'value': packageNameController.text,
-                                  'is_secret': true,
-                                },
-                              ],
+                            throw UnimplementedError(
+                              'TODO: Migrate to Firebase Data Connect (teamId: $teamId)',
                             );
                           } catch (e) {
                             if (context.mounted) {

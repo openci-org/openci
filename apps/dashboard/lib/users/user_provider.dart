@@ -1,5 +1,4 @@
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -60,54 +59,23 @@ class User extends _$User {
   Stream<OpenCIUser> build() => fetchUser();
 
   Stream<OpenCIUser> fetchUser() {
-    final supabase = ref.read(supabaseClientProvider);
     final auth = ref.read(authProvider.notifier);
     final currentUserId = auth.currentUserId;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
 
-    return supabase
-        .from('profiles')
-        .stream(primaryKey: ['id'])
-        .eq('id', currentUserId)
-        .map((rows) {
-          if (rows.isEmpty) throw Exception('User profile not found');
-          final row = rows.first;
-          return _profileToUser(row, currentUserId);
-        });
-  }
-
-  OpenCIUser _profileToUser(Map<String, dynamic> row, String userId) {
-    final fcmTokens =
-        (row['fcm_tokens'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [];
-    return OpenCIUser(
-      id: userId,
-      notificationPreference: NotificationPreference.fromDbValue(
-        row['notification_preference'] as String? ?? 'all',
-      ),
-      fcmTokens: fcmTokens,
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
     );
   }
 
   Future<void> updateNotificationPreference(
     NotificationPreference preference,
   ) async {
-    final supabase = ref.read(supabaseClientProvider);
-    final auth = ref.read(authProvider.notifier);
-    final currentUserId = auth.currentUserId;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
-    await supabase
-        .from('profiles')
-        .update({
-          'notification_preference': preference.toDbValue(),
-        })
-        .eq('id', currentUserId);
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
@@ -117,26 +85,8 @@ class User extends _$User {
   }
 
   Future<void> addFcmToken(String token) async {
-    final supabase = ref.read(supabaseClientProvider);
-    final auth = ref.read(authProvider.notifier);
-    final currentUserId = auth.currentUserId;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
-    final row = await supabase
-        .from('profiles')
-        .select('fcm_tokens')
-        .eq('id', currentUserId)
-        .single();
-    final existingTokens = List<String>.from(row['fcm_tokens'] as List? ?? []);
-    if (!existingTokens.contains(token)) {
-      existingTokens.add(token);
-      await supabase
-          .from('profiles')
-          .update({
-            'fcm_tokens': existingTokens,
-          })
-          .eq('id', currentUserId);
-    }
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 }

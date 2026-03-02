@@ -1,4 +1,3 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -22,21 +21,9 @@ abstract class GitHubRepository with _$GitHubRepository {
 
 @riverpod
 Future<List<GitHubRepository>> repositories(Ref ref) async {
-  final team = ref.watch(teamStateProvider).requireValue;
-  final supabase = ref.read(supabaseClientProvider);
+  ref.watch(teamStateProvider).requireValue;
 
-  final result = await supabase.rpc(
-    'list_repositories',
-    params: {
-      'p_org_id': team.id,
-    },
+  throw UnimplementedError(
+    'TODO: Migrate to Firebase Data Connect',
   );
-
-  final repos = (result as List<dynamic>)
-      .map(
-        (e) => GitHubRepository.fromJson(Map<String, Object?>.from(e as Map)),
-      )
-      .toList();
-
-  return repos;
 }
