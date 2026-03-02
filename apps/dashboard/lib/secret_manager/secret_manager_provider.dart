@@ -1,4 +1,3 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -18,27 +17,9 @@ class SecretManager extends _$SecretManager {
   }
 
   Stream<List<Secret>> secretsStream() {
-    final supabase = ref.read(supabaseClientProvider);
-
-    return supabase
-        .from('environment_variables')
-        .stream(primaryKey: ['id'])
-        .eq('is_secret', true)
-        .map((rows) {
-          return rows
-              .where((r) => r['team_id'] != null)
-              .map(
-                (row) => Secret(
-                  id: row['id'] as String,
-                  name: row['key'] as String,
-                  teamId: row['team_id'] as String,
-                  pathToSecret: row['vault_secret_id']?.toString(),
-                  createdAt: DateTime.parse(row['created_at'] as String),
-                  updatedAt: DateTime.parse(row['updated_at'] as String),
-                ),
-              )
-              .toList();
-        });
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 
   Future<void> addSecret(String name, String value) async {
@@ -52,13 +33,9 @@ class SecretManager extends _$SecretManager {
     required String name,
     String? value,
   }) async {
-    final supabase = ref.read(supabaseClientProvider);
-    await supabase
-        .from('environment_variables')
-        .update({
-          'key': name,
-        })
-        .eq('id', documentId);
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 }
 

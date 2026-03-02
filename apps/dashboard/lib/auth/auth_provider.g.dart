@@ -12,7 +12,7 @@ part of 'auth_provider.dart';
 @ProviderFor(Auth)
 final authProvider = AuthProvider._();
 
-final class AuthProvider extends $StreamNotifierProvider<Auth, Session?> {
+final class AuthProvider extends $StreamNotifierProvider<Auth, User?> {
   AuthProvider._()
     : super(
         from: null,
@@ -32,19 +32,19 @@ final class AuthProvider extends $StreamNotifierProvider<Auth, Session?> {
   Auth create() => Auth();
 }
 
-String _$authHash() => r'12e397d57b96a0bc7a5e6a4ce96b273e4a01dccf';
+String _$authHash() => r'0a33dae0b918aadafec5a04dd6f2a180bee268d1';
 
-abstract class _$Auth extends $StreamNotifier<Session?> {
-  Stream<Session?> build();
+abstract class _$Auth extends $StreamNotifier<User?> {
+  Stream<User?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<Session?>, Session?>;
+    final ref = this.ref as $Ref<AsyncValue<User?>, User?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Session?>, Session?>,
-              AsyncValue<Session?>,
+              AnyNotifier<AsyncValue<User?>, User?>,
+              AsyncValue<User?>,
               Object?,
               Object?
             >;

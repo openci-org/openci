@@ -93,20 +93,12 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "dashboard(Prod)",
+        "name": "dashboard",
         "cwd": "${workspaceFolder:dashboard}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--dart-define-from-file=.env.production.local"]
-      },
-      {
-        "name": "dashboard(Local)",
-        "cwd": "${workspaceFolder:dashboard}",
-        "request": "launch",
-        "type": "dart",
-        "program": "lib/main.dart",
-        "args": ["--dart-define-from-file=.env.local"]
+        "args": ["--dart-define-from-file=config.json"]
       },
       {
         "name": "(release) dashboard",
@@ -114,7 +106,7 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--release", "--dart-define-from-file=.env.production.local"]
+        "args": ["--release", "--dart-define-from-file=config.json"]
       }
     ]
   },
@@ -152,7 +144,7 @@
       {
         "label": "Flutter: Build .ipa",
         "type": "shell",
-        "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=.env.local",
+        "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=config.json",
         "options": {
           "cwd": "${workspaceFolder:dashboard}"
         },

@@ -73,7 +73,7 @@ final class WorkflowListProvider
   WorkflowList create() => WorkflowList();
 }
 
-String _$workflowListHash() => r'49d4d5c3d38596d041f3b9a0353990e93c4f195f';
+String _$workflowListHash() => r'85715c7218c547d7bde99d405455ab870ce88dd8';
 
 abstract class _$WorkflowList extends $AsyncNotifier<List<WorkflowListItem>> {
   FutureOr<List<WorkflowListItem>> build();

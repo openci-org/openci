@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
@@ -150,39 +149,13 @@ class ReactNativeExpoIosCdForm extends HookConsumerWidget {
                       child: ElevatedButton(
                         onPressed: () async {
                           try {
-                            final supabase = ref.read(supabaseClientProvider);
                             final teamId = ref
                                 .read(teamStateProvider)
                                 .requireValue
                                 .id;
 
-                            await supabase.from('environment_variables').insert(
-                              [
-                                {
-                                  'team_id': teamId,
-                                  'key': 'APP_STORE_CONNECT_ISSUER_ID',
-                                  'value': issuerIdController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'APP_STORE_CONNECT_KEY_ID',
-                                  'value': keyIdController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'APP_STORE_CONNECT_PRIVATE_KEY_BASE64',
-                                  'value': privateKeyController.text,
-                                  'is_secret': true,
-                                },
-                                {
-                                  'team_id': teamId,
-                                  'key': 'TEAM_ID',
-                                  'value': teamIdController.text,
-                                  'is_secret': true,
-                                },
-                              ],
+                            throw UnimplementedError(
+                              'TODO: Migrate to Firebase Data Connect (teamId: $teamId)',
                             );
                           } catch (e) {
                             if (context.mounted) {

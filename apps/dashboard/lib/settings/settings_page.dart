@@ -2,13 +2,13 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
@@ -23,7 +23,7 @@ class SettingsPage extends HookConsumerWidget {
     String email;
     String initial;
     try {
-      final user = Supabase.instance.client.auth.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
       email = user?.email ?? 'user@example.com';
     } catch (_) {
       email = 'user@example.com';
@@ -150,7 +150,7 @@ class SettingsPage extends HookConsumerWidget {
                     colorScheme: colorScheme,
                     onTap: () async {
                       try {
-                        await Supabase.instance.client.auth.signOut();
+                        await FirebaseAuth.instance.signOut();
                         ref.invalidate(authProvider);
                         if (!context.mounted) return;
                         context.showSnackBarMessage(
@@ -286,13 +286,12 @@ class SettingsPage extends HookConsumerWidget {
   ) async {
     isDeleting.value = true;
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('No user is currently signed in');
       }
-      await supabase.rpc('delete_user');
-      await supabase.auth.signOut();
+      await user.delete();
+      await FirebaseAuth.instance.signOut();
       if (!context.mounted) return;
       context.showSnackBarMessage('Account deleted successfully');
     } catch (e) {

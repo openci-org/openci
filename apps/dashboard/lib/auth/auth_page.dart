@@ -1,10 +1,10 @@
 import 'package:dashboard/auth/email_verification_page.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AuthPage extends HookConsumerWidget {
@@ -17,8 +17,6 @@ class AuthPage extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final tapGestureRecognizer = useMemoized(() => TapGestureRecognizer());
     final isLoading = useState(false);
-
-    final supabase = Supabase.instance.client;
 
     return Scaffold(
       body: Stack(
@@ -99,9 +97,17 @@ class AuthPage extends HookConsumerWidget {
                                 if (formKey.currentState!.validate()) {
                                   isLoading.value = true;
                                   try {
-                                    await supabase.auth.signInWithOtp(
-                                      email: emailController.text,
-                                    );
+                                    final actionCodeSettings =
+                                        ActionCodeSettings(
+                                          url: 'https://openci.org',
+                                          handleCodeInApp: true,
+                                        );
+                                    await FirebaseAuth.instance
+                                        .sendSignInLinkToEmail(
+                                          email: emailController.text,
+                                          actionCodeSettings:
+                                              actionCodeSettings,
+                                        );
                                     if (!context.mounted) return;
                                     await Navigator.of(context).push(
                                       MaterialPageRoute(

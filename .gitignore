@@ -12,5 +12,6 @@ worker/*.tar.gz
 worker/dist/
 worker/config*.json
 apps/worker_ts/config*.json
+apps/dashboard/config.json
 bun.lock
 *.bun-build

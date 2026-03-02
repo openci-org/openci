@@ -1,4 +1,3 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:dashboard/workflow/mock_workflow_data.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -15,22 +14,9 @@ class BuildJobs extends _$BuildJobs {
       return Stream.value(getMockBuildJobs());
     }
 
-    final supabase = ref.watch(supabaseClientProvider);
-
-    return supabase
-        .from('builds')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false)
-        .limit(20)
-        .map((rows) {
-          return rows
-              .where((r) {
-                final projectId = r['team_id'] as String?;
-                return projectId != null;
-              })
-              .map((row) => BuildJob.fromSupabase(row))
-              .toList();
-        });
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 
   Future<void> retryBuildJob(String buildJobId) async {
@@ -40,11 +26,9 @@ class BuildJobs extends _$BuildJobs {
 
   Future<void> cancelBuildJob(String buildJobId) async {
     if (useMockData) return;
-    final supabase = ref.read(supabaseClientProvider);
-    await supabase
-        .from('builds')
-        .update({'status': 'cancelled'})
-        .eq('id', buildJobId);
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 }
 
@@ -67,7 +51,7 @@ abstract class BuildJob with _$BuildJob {
   factory BuildJob.fromJson(Map<String, Object?> json) =>
       _$BuildJobFromJson(json);
 
-  factory BuildJob.fromSupabase(Map<String, dynamic> row) {
+  factory BuildJob.fromMap(Map<String, dynamic> row) {
     return BuildJob(
       id: row['id'] as String,
       status: row['status'] as String,

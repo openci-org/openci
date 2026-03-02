@@ -1,4 +1,3 @@
-import 'package:dashboard/supabase/supabase_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:dashboard/workflow/mock_workflow_data.dart';
@@ -16,43 +15,19 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
       return Stream.value(getMockEnvironmentVariables());
     }
 
-    final supabase = ref.read(supabaseClientProvider);
-
-    return supabase
-        .from('environment_variables')
-        .stream(primaryKey: ['id'])
-        .eq('is_secret', false)
-        .order('key')
-        .map((rows) {
-          return rows
-              .map(
-                (row) => EnvironmentVariable(
-                  id: row['id'] as String,
-                  key: row['key'] as String,
-                  value: row['value'] as String? ?? '',
-                  teamId: row['team_id'] as String,
-                  autoIncrement: row['auto_increment'] as bool? ?? false,
-                  createdAt: DateTime.parse(row['created_at'] as String),
-                  updatedAt: DateTime.parse(row['updated_at'] as String),
-                ),
-              )
-              .toList();
-        });
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 
   Future<void> addEnvironmentVariable(
     String key,
     String value,
   ) async {
-    final supabase = ref.read(supabaseClientProvider);
     final orgId = ref.read(teamStateProvider).requireValue.id;
-
-    await supabase.from('environment_variables').insert({
-      'team_id': orgId,
-      'key': key,
-      'value': value,
-      'is_secret': false,
-    });
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect (orgId: $orgId)',
+    );
   }
 
   Future<void> updateEnvironmentVariable({
@@ -60,19 +35,15 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     required String key,
     required String value,
   }) async {
-    final supabase = ref.read(supabaseClientProvider);
-    await supabase
-        .from('environment_variables')
-        .update({
-          'key': key,
-          'value': value,
-        })
-        .eq('id', documentId);
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 
   Future<void> deleteEnvironmentVariable(String documentId) async {
-    final supabase = ref.read(supabaseClientProvider);
-    await supabase.from('environment_variables').delete().eq('id', documentId);
+    throw UnimplementedError(
+      'TODO: Migrate to Firebase Data Connect',
+    );
   }
 }
 
