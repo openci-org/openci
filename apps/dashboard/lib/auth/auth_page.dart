@@ -1,4 +1,5 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
@@ -22,6 +23,7 @@ class AuthPage extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final tapGestureRecognizer = useMemoized(() => TapGestureRecognizer());
     final isPasswordVisible = useState(false);
+    final t = context.t;
 
     final mutationState = ref.watch(authMutation);
 
@@ -33,15 +35,13 @@ class AuthPage extends HookConsumerWidget {
         final message = switch (error) {
           FirebaseAuthException(code: final code, message: final msg) =>
             switch (code) {
-              'email-already-in-use' => 'This email is already registered.',
+              'email-already-in-use' => t.auth.emailAlreadyInUse,
               'wrong-password' ||
-              'invalid-credential' => 'Invalid email or password.',
-              'user-not-found' => 'No account found with this email.',
-              'weak-password' =>
-                'Password is too weak. Use at least 6 characters.',
-              'too-many-requests' =>
-                'Too many attempts. Please try again later.',
-              _ => msg ?? 'Authentication failed.',
+              'invalid-credential' => t.auth.invalidCredential,
+              'user-not-found' => t.auth.userNotFound,
+              'weak-password' => t.auth.weakPassword,
+              'too-many-requests' => t.auth.tooManyRequests,
+              _ => msg ?? t.auth.authFailed,
             },
           _ => 'Error: $error',
         };
@@ -88,16 +88,18 @@ class AuthPage extends HookConsumerWidget {
                       const SizedBox(height: 40),
                       TextFormField(
                         controller: emailController,
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration: InputDecoration(
+                          labelText: t.auth.email,
+                        ),
                         keyboardType: TextInputType.emailAddress,
                         autocorrect: false,
                         textInputAction: TextInputAction.next,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your email';
+                            return t.auth.pleaseEnterEmail;
                           }
                           if (!value.contains('@')) {
-                            return 'Please enter a valid email';
+                            return t.auth.pleaseEnterValidEmail;
                           }
                           return null;
                         },
@@ -106,7 +108,7 @@ class AuthPage extends HookConsumerWidget {
                       TextFormField(
                         controller: passwordController,
                         decoration: InputDecoration(
-                          labelText: 'Password',
+                          labelText: t.auth.password,
                           suffixIcon: IconButton(
                             icon: Icon(
                               isPasswordVisible.value
@@ -124,10 +126,10 @@ class AuthPage extends HookConsumerWidget {
                         onFieldSubmitted: (_) => submit(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return t.auth.pleaseEnterPassword;
                           }
                           if (isSignUp.value && value.length < 6) {
-                            return 'Password must be at least 6 characters';
+                            return t.auth.passwordTooShort;
                           }
                           return null;
                         },
@@ -151,11 +153,11 @@ class AuthPage extends HookConsumerWidget {
                               ),
                               Text.rich(
                                 TextSpan(
-                                  text: 'I agree to the ',
+                                  text: t.auth.agreePrefix,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                   children: [
                                     TextSpan(
-                                      text: 'Terms of Service',
+                                      text: t.auth.termsOfService,
                                       style: TextStyle(
                                         color: Theme.of(context).primaryColor,
                                         decoration: TextDecoration.underline,
@@ -185,7 +187,7 @@ class AuthPage extends HookConsumerWidget {
                             ? submit
                             : null,
                         child: Text(
-                          isSignUp.value ? 'Sign up' : 'Sign in',
+                          isSignUp.value ? t.auth.signUp : t.auth.signIn,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -196,8 +198,8 @@ class AuthPage extends HookConsumerWidget {
                         },
                         child: Text(
                           isSignUp.value
-                              ? 'Already have an account? Sign in'
-                              : "Don't have an account? Sign up",
+                              ? t.auth.switchToSignIn
+                              : t.auth.switchToSignUp,
                         ),
                       ),
                     ],

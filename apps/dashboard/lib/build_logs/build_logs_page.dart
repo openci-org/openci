@@ -1,6 +1,7 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ class LogsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final state = ref.watch(buildJobsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -44,7 +46,7 @@ class LogsPage extends HookConsumerWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              'Build Logs',
+              t.logs.title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -91,7 +93,7 @@ class LogsPage extends HookConsumerWidget {
               if (activeJobs.isNotEmpty) ...[
                 _SectionHeader(
                   icon: Icons.play_circle_outline,
-                  label: 'Active',
+                  label: t.logs.active,
                   count: activeJobs.length,
                   color: colorScheme.primary,
                 ),
@@ -105,7 +107,7 @@ class LogsPage extends HookConsumerWidget {
               if (completedJobs.isNotEmpty) ...[
                 _SectionHeader(
                   icon: Icons.history,
-                  label: 'Recent',
+                  label: t.logs.recent,
                   count: completedJobs.length,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -181,6 +183,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -207,14 +210,14 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'No builds yet',
+              t.logs.noBuildsYet,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Build logs will appear here\nwhen workflows are triggered.',
+              t.logs.noBuildsDesc,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -384,6 +387,7 @@ class _BuildJobMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final canCancel =
         buildJob.status == 'queued' || buildJob.status == 'in_progress';
     final isFailed = buildJob.status == 'failure';
@@ -403,35 +407,37 @@ class _BuildJobMenu extends ConsumerWidget {
         switch (value) {
           case 'retry':
             try {
-              context.showSnackBarMessage('Retrying build...');
+              context.showSnackBarMessage(t.logs.retrying);
               await ref
                   .read(buildJobsProvider.notifier)
                   .retryBuildJob(buildJob.id);
               if (!context.mounted) return;
-              context.showSnackBarMessage('Build queued successfully');
+              context.showSnackBarMessage(t.logs.buildQueued);
             } catch (e) {
               if (!context.mounted) return;
-              context.showSnackBarMessage('Failed to retry: $e');
+              context.showSnackBarMessage(
+                t.logs.retryFailed(error: '$e'),
+              );
             }
           case 'cancel':
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Cancel Build'),
-                content: const Text(
-                  'Are you sure you want to cancel this build?',
+                title: Text(t.logs.cancelBuild),
+                content: Text(
+                  t.logs.cancelBuildConfirm,
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('No'),
+                    child: Text(t.logs.no),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: FilledButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.error,
                     ),
-                    child: const Text('Cancel Build'),
+                    child: Text(t.logs.cancelBuild),
                   ),
                 ],
               ),
@@ -439,16 +445,18 @@ class _BuildJobMenu extends ConsumerWidget {
             if (confirmed == true) {
               try {
                 if (!context.mounted) return;
-                context.showSnackBarMessage('Cancelling build...');
+                context.showSnackBarMessage(t.logs.cancelling);
                 await ref
                     .read(buildJobsProvider.notifier)
                     .cancelBuildJob(buildJob.id);
                 if (context.mounted) {
-                  context.showSnackBarMessage('Build cancelled');
+                  context.showSnackBarMessage(t.logs.buildCancelled);
                 }
               } catch (e) {
                 if (context.mounted) {
-                  context.showSnackBarMessage('Failed to cancel: $e');
+                  context.showSnackBarMessage(
+                    t.logs.cancelFailed(error: '$e'),
+                  );
                 }
               }
             }
@@ -468,7 +476,7 @@ class _BuildJobMenu extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
-              const Text('Retry'),
+              Text(t.logs.retry),
             ],
           ),
         ),
@@ -484,7 +492,7 @@ class _BuildJobMenu extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Cancel',
+                  t.common.cancel,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                   ),
@@ -504,7 +512,7 @@ class _BuildJobMenu extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Fix with AI',
+                  t.logs.fixWithAI,
                   style: TextStyle(color: Colors.green[400]),
                 ),
               ],

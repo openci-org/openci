@@ -1,4 +1,5 @@
 import 'package:dashboard/extensions/date_time_extensions.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/create_team_bottom_sheet.dart';
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
@@ -30,6 +31,7 @@ class WorkflowListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final workflowList = ref.watch(workflowListProvider);
 
     return Scaffold(
@@ -162,7 +164,7 @@ class WorkflowListPage extends ConsumerWidget {
                       },
                     );
                   },
-                  child: const Text('Switch Team'),
+                  child: Text(t.workflows.switchTeam),
                 ),
                 MenuItemButton(
                   leadingIcon: const Icon(Icons.edit),
@@ -176,7 +178,7 @@ class WorkflowListPage extends ConsumerWidget {
                       },
                     );
                   },
-                  child: const Text('Edit Team'),
+                  child: Text(t.workflows.editTeam),
                 ),
                 MenuItemButton(
                   leadingIcon: const Icon(Icons.add),
@@ -190,7 +192,7 @@ class WorkflowListPage extends ConsumerWidget {
                       },
                     );
                   },
-                  child: const Text('Create Team'),
+                  child: Text(t.workflows.createTeam),
                 ),
               ],
               builder: (context, controller, child) {
@@ -288,14 +290,14 @@ class WorkflowListPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'No workflows yet',
+                      t.workflows.noWorkflows,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Create your first CI/CD workflow to start\nautomating builds and deployments.',
+                      t.workflows.noWorkflowsDesc,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -305,7 +307,7 @@ class WorkflowListPage extends ConsumerWidget {
                     FilledButton.icon(
                       onPressed: () => _showSetupSheet(context),
                       icon: const Icon(Icons.add),
-                      label: const Text('Create Workflow'),
+                      label: Text(t.workflows.createWorkflow),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 28,
@@ -408,6 +410,7 @@ class _WorkflowCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final colorScheme = Theme.of(context).colorScheme;
     final hasStatus = workflow.lastBuildStatus != null;
     final triggerTypes = _parseTriggerTypes();
@@ -530,7 +533,7 @@ class _WorkflowCard extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 3),
                                   Text(
-                                    '$stepCount steps',
+                                    t.workflows.steps(count: stepCount),
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w500,
@@ -626,6 +629,7 @@ class _CardMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.more_horiz,
@@ -645,30 +649,34 @@ class _CardMenu extends ConsumerWidget {
                   .read(workflowListProvider.notifier)
                   .duplicateWorkflow(workflow);
               if (!context.mounted) return;
-              context.showSnackBarMessage('Workflow duplicated');
+              context.showSnackBarMessage(t.workflows.duplicated);
             } catch (e) {
               if (!context.mounted) return;
-              context.showSnackBarMessage('Failed to duplicate: $e');
+              context.showSnackBarMessage(
+                t.workflows.duplicateFailed(error: '$e'),
+              );
             }
           case 'delete':
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Delete Workflow'),
+                title: Text(t.workflows.deleteWorkflow),
                 content: Text(
-                  'Are you sure you want to delete "${workflow.name}"?',
+                  t.workflows.deleteWorkflowConfirm(
+                    name: workflow.name,
+                  ),
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
+                    child: Text(t.common.cancel),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: FilledButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.error,
                     ),
-                    child: const Text('Delete'),
+                    child: Text(t.common.delete),
                   ),
                 ],
               ),
@@ -679,10 +687,14 @@ class _CardMenu extends ConsumerWidget {
                     .read(workflowListProvider.notifier)
                     .deleteWorkflow(workflow.id);
                 if (!context.mounted) return;
-                context.showSnackBarMessage('Workflow deleted');
+                context.showSnackBarMessage(
+                  t.workflows.workflowDeleted,
+                );
               } catch (e) {
                 if (!context.mounted) return;
-                context.showSnackBarMessage('Failed to delete: $e');
+                context.showSnackBarMessage(
+                  t.workflows.deleteFailed(error: '$e'),
+                );
               }
             }
         }
@@ -698,7 +710,7 @@ class _CardMenu extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
-              const Text('Duplicate'),
+              Text(t.workflows.duplicate),
             ],
           ),
         ),
@@ -713,7 +725,7 @@ class _CardMenu extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Delete',
+                t.common.delete,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
@@ -729,6 +741,7 @@ class _GitContextSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final gitContext = ref.watch(gitContextProvider);
     final branches = ref.watch(gitBranchesProvider);
     final selectedBranch = useState(gitContext.branch);
@@ -741,7 +754,7 @@ class _GitContextSheet extends HookConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'Switch Branch & Commit',
+            t.workflows.switchBranchCommit,
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
@@ -761,7 +774,7 @@ class _GitContextSheet extends HookConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'Branch',
+            t.workflows.branch,
             style: Theme.of(context).textTheme.labelLarge,
           ),
         ),
@@ -805,7 +818,7 @@ class _GitContextSheet extends HookConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'Commits',
+            t.workflows.commits,
             style: Theme.of(context).textTheme.labelLarge,
           ),
         ),
