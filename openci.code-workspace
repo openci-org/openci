@@ -1,11 +1,6 @@
 {
   "folders": [
     {
-      "name": "root",
-      "path": "."
-    },
-
-    {
       "name": "worker_cli",
       "path": "apps/worker_cli"
     },
@@ -20,7 +15,11 @@
     {
       "name": "web",
       "path": "apps/web"
-    }
+    },
+      {
+      "name": "root",
+      "path": "."
+    },
   ],
   "settings": {
     "dart.onlyAnalyzeProjectsWithOpenFiles": true,

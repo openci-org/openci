@@ -23,5 +23,9 @@ Future<void> main() async {
   await initializeRevenueCat();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  runApp(ProviderScope(child: Root()));
+  runApp(
+    ProviderScope(
+      child: Root(),
+    ),
+  );
 }
