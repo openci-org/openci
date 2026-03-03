@@ -1,11 +1,13 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/navigation_bar_page.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class Root extends StatelessWidget {
@@ -13,8 +15,22 @@ class Root extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return TranslationProvider(
+      child: _App(),
+    );
+  }
+}
+
+class _App extends StatelessWidget {
+  const _App();
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: kDebugMode,
+      locale: TranslationProvider.of(context).flutterLocale,
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: HomePage(),
     );
   }

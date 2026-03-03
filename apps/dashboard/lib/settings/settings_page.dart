@@ -1,4 +1,5 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -10,11 +11,18 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+String _localeDisplayName(BuildContext context, AppLocale locale) =>
+    switch (locale) {
+      AppLocale.en => context.t.locale.en,
+      AppLocale.ja => context.t.locale.ja,
+    };
+
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final isDeleting = useState(false);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -32,8 +40,8 @@ class SettingsPage extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Settings',
+        title: Text(
+          t.settings.title,
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
@@ -51,7 +59,7 @@ class SettingsPage extends HookConsumerWidget {
               ),
               const SizedBox(height: 28),
               _SectionHeader(
-                title: 'General',
+                title: t.settings.general,
                 colorScheme: colorScheme,
               ),
               const SizedBox(height: 8),
@@ -62,8 +70,8 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsTile(
                     icon: Symbols.notifications_rounded,
                     iconColor: const Color(0xFF58A6FF),
-                    title: 'Build Notifications',
-                    subtitle: 'Configure when to receive alerts',
+                    title: t.settings.buildNotifications,
+                    subtitle: t.settings.buildNotificationsDesc,
                     colorScheme: colorScheme,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -75,8 +83,8 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsTile(
                     icon: Symbols.credit_card_rounded,
                     iconColor: const Color(0xFFD2A8FF),
-                    title: 'Subscription',
-                    subtitle: 'Manage your plan & billing',
+                    title: t.settings.subscription,
+                    subtitle: t.settings.subscriptionDesc,
                     colorScheme: colorScheme,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -89,7 +97,7 @@ class SettingsPage extends HookConsumerWidget {
 
               const SizedBox(height: 24),
               _SectionHeader(
-                title: 'Support',
+                title: t.settings.support,
                 colorScheme: colorScheme,
               ),
               const SizedBox(height: 8),
@@ -100,11 +108,13 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsTile(
                     icon: FontAwesomeIcons.github,
                     iconColor: colorScheme.onSurface,
-                    title: 'GitHub Repository',
-                    subtitle: 'Star & contribute to OpenCI',
+                    title: t.settings.githubRepo,
+                    subtitle: t.settings.githubRepoDesc,
                     colorScheme: colorScheme,
                     onTap: () {
-                      context.showSnackBarMessage('Opening GitHub...');
+                      context.showSnackBarMessage(
+                        t.settings.openingGithub,
+                      );
                     },
                     trailing: FaIcon(
                       FontAwesomeIcons.arrowUpRightFromSquare,
@@ -116,12 +126,12 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsTile(
                     icon: Symbols.bug_report_rounded,
                     iconColor: const Color(0xFFFF6B6B),
-                    title: 'Report a Bug',
-                    subtitle: 'Help us improve OpenCI',
+                    title: t.settings.reportBug,
+                    subtitle: t.settings.reportBugDesc,
                     colorScheme: colorScheme,
                     onTap: () {
                       context.showSnackBarMessage(
-                        'Opening issue tracker...',
+                        t.settings.openingIssueTracker,
                       );
                     },
                     trailing: FaIcon(
@@ -134,7 +144,38 @@ class SettingsPage extends HookConsumerWidget {
               ),
               const SizedBox(height: 24),
               _SectionHeader(
-                title: 'Account',
+                title: t.settings.language,
+                colorScheme: colorScheme,
+              ),
+              const SizedBox(height: 8),
+              _SettingsCard(
+                isDark: isDark,
+                colorScheme: colorScheme,
+                children: [
+                  _SettingsTile(
+                    icon: Symbols.language_rounded,
+                    iconColor: const Color(0xFF56D364),
+                    title: t.settings.language,
+                    subtitle: t.settings.languageDesc,
+                    colorScheme: colorScheme,
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      showDragHandle: true,
+                      builder: (_) => const _LanguageSheet(),
+                    ),
+                    trailing: Text(
+                      _localeDisplayName(context, LocaleSettings.currentLocale),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _SectionHeader(
+                title: t.settings.account,
                 colorScheme: colorScheme,
               ),
               const SizedBox(height: 8),
@@ -145,8 +186,8 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsTile(
                     icon: Symbols.logout_rounded,
                     iconColor: const Color(0xFFF0883E),
-                    title: 'Logout',
-                    subtitle: 'Sign out from this device',
+                    title: t.settings.logout,
+                    subtitle: t.settings.logoutDesc,
                     colorScheme: colorScheme,
                     onTap: () async {
                       try {
@@ -154,12 +195,12 @@ class SettingsPage extends HookConsumerWidget {
                         ref.invalidate(authProvider);
                         if (!context.mounted) return;
                         context.showSnackBarMessage(
-                          'Logged out successfully',
+                          t.settings.loggedOut,
                         );
                       } catch (e) {
                         if (!context.mounted) return;
                         context.showSnackBarMessage(
-                          'Failed to log out: $e',
+                          t.settings.logoutFailed(error: '$e'),
                         );
                       }
                     },
@@ -168,8 +209,8 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsTile(
                     icon: Symbols.delete_forever_rounded,
                     iconColor: const Color(0xFFFF6B6B),
-                    title: 'Delete Account',
-                    subtitle: 'Permanently remove all your data',
+                    title: t.settings.deleteAccount,
+                    subtitle: t.settings.deleteAccountDesc,
                     colorScheme: colorScheme,
                     destructive: true,
                     onTap: isDeleting.value
@@ -198,7 +239,7 @@ class SettingsPage extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'v1.4.0 · Open Source CI/CD',
+                      'v1.4.0 · ${t.common.openSource}',
                       style: TextStyle(
                         fontSize: 11,
                         color: colorScheme.onSurfaceVariant.withValues(
@@ -229,7 +270,7 @@ class SettingsPage extends HookConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(
               Icons.warning_amber_rounded,
@@ -238,15 +279,13 @@ class SettingsPage extends HookConsumerWidget {
             ),
             SizedBox(width: 10),
             Text(
-              'Delete Account',
+              t.settings.deleteAccount,
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
           ],
         ),
         content: Text(
-          'Are you sure you want to delete your account? '
-          'This action cannot be undone and all your data '
-          'will be permanently deleted.',
+          t.settings.deleteConfirmation,
           style: TextStyle(
             fontSize: 13,
             color: colorScheme.onSurfaceVariant,
@@ -257,7 +296,7 @@ class SettingsPage extends HookConsumerWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              'Cancel',
+              t.common.cancel,
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
           ),
@@ -269,7 +308,7 @@ class SettingsPage extends HookConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text('Delete'),
+            child: Text(t.common.delete),
           ),
         ],
       ),
@@ -293,13 +332,73 @@ class SettingsPage extends HookConsumerWidget {
       await user.delete();
       await FirebaseAuth.instance.signOut();
       if (!context.mounted) return;
-      context.showSnackBarMessage('Account deleted successfully');
+      context.showSnackBarMessage(t.settings.accountDeleted);
     } catch (e) {
       if (!context.mounted) return;
-      context.showSnackBarMessage('Failed to delete account: $e');
+      context.showSnackBarMessage(
+        t.settings.deleteAccountFailed(error: '$e'),
+      );
     } finally {
       isDeleting.value = false;
     }
+  }
+}
+
+class _LanguageSheet extends StatelessWidget {
+  const _LanguageSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    final colorScheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              t.settings.language,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...AppLocale.values.map((locale) {
+              final isSelected = LocaleSettings.currentLocale == locale;
+              return ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                title: Text(
+                  _localeDisplayName(context, locale),
+                  style: TextStyle(
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+                selected: isSelected,
+                onTap: () {
+                  LocaleSettings.setLocale(locale);
+                  Navigator.of(context).pop();
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:dashboard/environment_variables/environment_variable_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -11,6 +12,7 @@ class VariablesPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     final tabController = useTabController(initialLength: 2);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -43,7 +45,7 @@ class VariablesPage extends HookWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              'Variables',
+              t.variables.title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -52,14 +54,14 @@ class VariablesPage extends HookWidget {
         ),
         bottom: TabBar(
           controller: tabController,
-          tabs: const [
+          tabs: [
             Tab(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.lock_outline, size: 15),
                   SizedBox(width: 6),
-                  Text('Secrets'),
+                  Text(t.variables.secrets),
                 ],
               ),
             ),
@@ -69,7 +71,7 @@ class VariablesPage extends HookWidget {
                 children: [
                   Icon(Icons.tune, size: 15),
                   SizedBox(width: 6),
-                  Text('Environment'),
+                  Text(t.variables.environment),
                 ],
               ),
             ),
@@ -130,6 +132,7 @@ class _SecretsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final state = ref.watch(secretManagerProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -138,9 +141,8 @@ class _SecretsTab extends ConsumerWidget {
         if (secrets.isEmpty) {
           return _EmptyState(
             icon: Icons.lock_outline,
-            title: 'No secrets yet',
-            subtitle:
-                'Add encrypted secrets like API keys,\ntokens, and certificates.',
+            title: t.variables.noSecretsYet,
+            subtitle: t.variables.noSecretsDesc,
             onAdd: () => showModalBottomSheet(
               showDragHandle: true,
               context: context,
@@ -184,6 +186,7 @@ class _EnvVarsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final state = ref.watch(environmentVariableManagerProvider);
 
     return state.when(
@@ -191,9 +194,8 @@ class _EnvVarsTab extends ConsumerWidget {
         if (envVars.isEmpty) {
           return _EmptyState(
             icon: Icons.tune,
-            title: 'No environment variables',
-            subtitle:
-                'Add variables that will be available\nduring your CI/CD builds.',
+            title: t.variables.noEnvVars,
+            subtitle: t.variables.noEnvVarsDesc,
             onAdd: () => showModalBottomSheet(
               showDragHandle: true,
               context: context,
@@ -253,12 +255,14 @@ class _EnvVarsTab extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Variable'),
-        content: Text('Delete "${envVar.key}"?'),
+        title: Text(t.variables.deleteVariable),
+        content: Text(
+          t.variables.deleteVariableConfirm(key: envVar.key),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(t.common.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -268,7 +272,9 @@ class _EnvVarsTab extends ConsumerWidget {
                     .deleteEnvironmentVariable(envVar.id);
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
-                context.showSnackBarMessage('Deleted successfully');
+                context.showSnackBarMessage(
+                  t.variables.deletedSuccessfully,
+                );
               } catch (e) {
                 if (!context.mounted) return;
                 context.showSnackBarMessage('$e');
@@ -277,7 +283,7 @@ class _EnvVarsTab extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Delete'),
+            child: Text(t.common.delete),
           ),
         ],
       ),
@@ -506,6 +512,7 @@ class _AddSecretSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final nameController = useTextEditingController();
     final valueController = useTextEditingController();
     final formKey = useMemoized(GlobalKey<FormState>.new);
@@ -540,7 +547,7 @@ class _AddSecretSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Add Secret',
+                    t.variables.addSecret,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -551,8 +558,8 @@ class _AddSecretSheet extends HookConsumerWidget {
               TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(
-                  labelText: 'SECRET_NAME',
-                  hintText: 'e.g. API_KEY',
+                  labelText: t.variables.secretName,
+                  hintText: t.variables.secretNameHint,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -561,7 +568,7 @@ class _AddSecretSheet extends HookConsumerWidget {
                 textCapitalization: TextCapitalization.characters,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a secret name';
+                    return t.variables.pleaseEnterSecretName;
                   }
                   return null;
                 },
@@ -570,7 +577,7 @@ class _AddSecretSheet extends HookConsumerWidget {
               TextFormField(
                 controller: valueController,
                 decoration: InputDecoration(
-                  labelText: 'Secret Value',
+                  labelText: t.variables.secretValue,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -578,7 +585,7 @@ class _AddSecretSheet extends HookConsumerWidget {
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a secret value';
+                    return t.variables.pleaseEnterSecretValue;
                   }
                   return null;
                 },
@@ -593,7 +600,7 @@ class _AddSecretSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Secrets are encrypted and never exposed in logs.',
+                    t.variables.secretsEncryptedNote,
                     style: TextStyle(
                       fontSize: 11,
                       color: colorScheme.onSurfaceVariant.withValues(
@@ -621,7 +628,9 @@ class _AddSecretSheet extends HookConsumerWidget {
                           valueController.text,
                         );
                     if (!context.mounted) return;
-                    context.showSnackBarMessage('Secret added');
+                    context.showSnackBarMessage(
+                      t.variables.secretAdded,
+                    );
                     Navigator.of(context).pop();
                   } catch (e) {
                     if (!context.mounted) return;
@@ -629,7 +638,7 @@ class _AddSecretSheet extends HookConsumerWidget {
                   }
                 },
                 icon: const Icon(Icons.check),
-                label: const Text('Add Secret'),
+                label: Text(t.variables.addSecret),
               ),
               const SizedBox(height: 24),
             ],
@@ -646,6 +655,7 @@ class _EditSecretSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final nameController = useTextEditingController(text: secret.name);
     final valueController = useTextEditingController();
     final formKey = useMemoized(GlobalKey<FormState>.new);
@@ -680,7 +690,7 @@ class _EditSecretSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Edit Secret',
+                    t.variables.editSecret,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -691,7 +701,7 @@ class _EditSecretSheet extends HookConsumerWidget {
               TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(
-                  labelText: 'SECRET_NAME',
+                  labelText: t.variables.secretName,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -699,7 +709,7 @@ class _EditSecretSheet extends HookConsumerWidget {
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a secret name';
+                    return t.variables.pleaseEnterSecretName;
                   }
                   return null;
                 },
@@ -708,7 +718,7 @@ class _EditSecretSheet extends HookConsumerWidget {
               TextFormField(
                 controller: valueController,
                 decoration: InputDecoration(
-                  labelText: 'New Value (leave empty to keep current)',
+                  labelText: t.variables.newValueHint,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -739,7 +749,9 @@ class _EditSecretSheet extends HookConsumerWidget {
                                     : null,
                               );
                           if (!context.mounted) return;
-                          context.showSnackBarMessage('Secret updated');
+                          context.showSnackBarMessage(
+                            t.variables.secretUpdated,
+                          );
                           Navigator.of(context).pop();
                         } catch (e) {
                           isLoading.value = false;
@@ -754,7 +766,7 @@ class _EditSecretSheet extends HookConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check),
-                label: const Text('Save Changes'),
+                label: Text(t.variables.saveChanges),
               ),
               const SizedBox(height: 24),
             ],
@@ -770,6 +782,7 @@ class _AddEnvVarSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final keyController = useTextEditingController();
     final valueController = useTextEditingController();
     final formKey = useMemoized(GlobalKey<FormState>.new);
@@ -805,7 +818,7 @@ class _AddEnvVarSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Add Variable',
+                    t.variables.addEnvVar,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -871,7 +884,9 @@ class _AddEnvVarSheet extends HookConsumerWidget {
                           valueController.text,
                         );
                     if (!context.mounted) return;
-                    context.showSnackBarMessage('Variable added');
+                    context.showSnackBarMessage(
+                      t.variables.variableAdded,
+                    );
                     Navigator.of(context).pop();
                   } catch (e) {
                     if (!context.mounted) return;
@@ -879,7 +894,7 @@ class _AddEnvVarSheet extends HookConsumerWidget {
                   }
                 },
                 icon: const Icon(Icons.check),
-                label: const Text('Add Variable'),
+                label: Text(t.variables.addEnvVar),
               ),
               const SizedBox(height: 24),
             ],
@@ -896,6 +911,7 @@ class _EditEnvVarSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final keyController = useTextEditingController(text: envVar.key);
     final valueController = useTextEditingController(text: envVar.value);
     final formKey = useMemoized(GlobalKey<FormState>.new);
@@ -932,7 +948,7 @@ class _EditEnvVarSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Edit Variable',
+                    t.variables.editEnvVar,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -1002,7 +1018,9 @@ class _EditEnvVarSheet extends HookConsumerWidget {
                                 value: valueController.text,
                               );
                           if (!context.mounted) return;
-                          context.showSnackBarMessage('Variable updated');
+                          context.showSnackBarMessage(
+                            t.variables.variableUpdated,
+                          );
                           Navigator.of(context).pop();
                         } catch (e) {
                           isLoading.value = false;
@@ -1017,7 +1035,7 @@ class _EditEnvVarSheet extends HookConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check),
-                label: const Text('Save Changes'),
+                label: Text(t.variables.saveChanges),
               ),
               const SizedBox(height: 24),
             ],
@@ -1034,6 +1052,7 @@ class _EditBuiltInEnvVarSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
     final valueController = useTextEditingController(text: envVar.value);
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final isLoading = useState(false);
@@ -1145,7 +1164,7 @@ class _EditBuiltInEnvVarSheet extends HookConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check),
-                label: const Text('Save'),
+                label: Text(t.common.save),
               ),
               const SizedBox(height: 24),
             ],
