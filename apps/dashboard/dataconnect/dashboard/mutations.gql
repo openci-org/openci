@@ -1,1 +1,33 @@
+mutation CreateUserWithDefaultTeam($teamName: String! = "My Team", $uid: String!)
+@auth(expr: "vars.uid == auth.uid") {
+  team_insert(data: { name: $teamName, members: [$uid], installationIds: [] })
 
+  user_insert(data: { id_expr: "auth.uid", notificationPreference: ALL, fcmTokens: [] })
+}
+
+mutation CreateTeam($teamName: String!, $uid: String!) @auth(expr: "vars.uid == auth.uid") {
+  team_insert(data: { name: $teamName, members: [$uid], installationIds: [] })
+}
+
+mutation UpdateTeamName($teamId: UUID!, $newName: String!) @auth(level: USER) @transaction {
+  query {
+    team(id: $teamId) {
+      members @check(expr: "auth.uid in this", message: "Must be a team member")
+    }
+  }
+  team_update(id: $teamId, data: { name: $newName, updatedAt_expr: "request.time" })
+}
+
+mutation UpdateNotificationPreference($preference: NotificationPreference!) @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: { notificationPreference: $preference, updatedAt_expr: "request.time" }
+  )
+}
+
+mutation AddFcmToken($token: String!) @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: { fcmTokens_update: { append: [$token] }, updatedAt_expr: "request.time" }
+  )
+}

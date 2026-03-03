@@ -1,1 +1,25 @@
+enum NotificationPreference {
+  ALL
+  SUCCESS_ONLY
+  FAILURE_ONLY
+  NONE
+}
 
+type User @table {
+  id: String! @default(expr: "auth.uid")
+  selectedTeamId: String
+  notificationPreference: NotificationPreference! @default(value: ALL)
+  fcmTokens: [String!]!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Team @table {
+  id: UUID! @default(expr: "uuidV4()")
+  name: String!
+  members: [String!]!
+  installationIds: [Int!]!
+  runNumber: Int! @default(value: 1)
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

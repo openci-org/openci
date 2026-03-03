@@ -1,1 +1,21 @@
+query GetMyUser @auth(level: USER) {
+  user(id_expr: "auth.uid") {
+    id
+    selectedTeamId
+    notificationPreference
+    fcmTokens
+  }
+}
 
+query GetMyTeams($uid: String!)
+@auth(expr: "vars.uid == auth.uid", insecureReason: "uid is validated to equal auth.uid via expr") {
+  teams(where: { members: { includes: $uid } }) {
+    id
+    name
+    members
+    installationIds
+    runNumber
+    createdAt
+    updatedAt
+  }
+}

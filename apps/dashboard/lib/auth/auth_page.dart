@@ -1,4 +1,5 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/dataconnect_generated/generated.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -54,10 +55,16 @@ class AuthPage extends HookConsumerWidget {
 
       authMutation.run(ref, (tsx) async {
         if (isSignUp.value) {
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text,
-          );
+          final credential = await FirebaseAuth.instance
+              .createUserWithEmailAndPassword(
+                email: emailController.text.trim(),
+                password: passwordController.text,
+              );
+          await DashboardConnector.instance
+              .createUserWithDefaultTeam(
+                uid: credential.user!.uid,
+              )
+              .execute();
         } else {
           await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: emailController.text.trim(),

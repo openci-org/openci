@@ -82,9 +82,13 @@
     "[yaml]": {
       "editor.defaultFormatter": "oxc.oxc-vscode",
     },
+    "[graphql]": {
+      "editor.defaultFormatter": "oxc.oxc-vscode",
+    },
     "files.associations": {
       "*.css": "tailwindcss",
       "*.code-workspace": "jsonc",
+      "*.gql": "graphql",
     },
     "files.exclude": {
       "**/*.g.dart": true,
@@ -101,6 +105,7 @@
         "type": "dart",
         "program": "lib/main.dart",
         "args": ["--dart-define-from-file=config.json"],
+        "preLaunchTask": "Dashboard: Data Connect Emulator",
       },
       {
         "name": "(release) dashboard",
@@ -169,6 +174,34 @@
         "options": {
           "cwd": "${workspaceFolder:web}",
         },
+        "problemMatcher": [],
+      },
+      {
+        "label": "Dashboard: Data Connect Emulator",
+        "type": "shell",
+        "command": "firebase emulators:start --only auth,dataconnect",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard}",
+        },
+        "problemMatcher": {
+          "pattern": {
+            "regexp": "^never match$",
+            "file": 1,
+            "location": 2,
+            "message": 3,
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "Starting emulators",
+            "endsPattern": "ready",
+          },
+        },
+        "isBackground": true,
+      },
+      {
+        "label": "Firebase: Relogin",
+        "type": "shell",
+        "command": "firebase logout && firebase login",
         "problemMatcher": [],
       },
     ],

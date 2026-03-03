@@ -1,4 +1,3 @@
-import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -10,127 +9,128 @@ class NotificationSettingsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(userProvider);
+    // final userAsync = ref.watch(userProvider);
+    return Text("mock");
 
-    return userAsync.when(
-      data: (user) => _NotificationSettingsContent(
-        currentPreference: user.notificationPreference,
-      ),
-      loading: () => const SizedBox(
-        height: 100,
-        child: Center(child: CircularProgressIndicator.adaptive()),
-      ),
-      error: asyncErrorWidget,
-    );
+    // return userAsync.when(
+    //   data: (user) => _NotificationSettingsContent(
+    //     currentPreference: user.notificationPreference,
+    //   ),
+    //   loading: () => const SizedBox(
+    //     height: 100,
+    //     child: Center(child: CircularProgressIndicator.adaptive()),
+    //   ),
+    //   error: asyncErrorWidget,
+    // );
   }
 }
 
-class _NotificationSettingsContent extends ConsumerWidget {
-  const _NotificationSettingsContent({required this.currentPreference});
+// class _NotificationSettingsContent extends ConsumerWidget {
+//   const _NotificationSettingsContent({required this.currentPreference});
 
-  final NotificationPreference currentPreference;
+//   final NotificationPreference currentPreference;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final theme = Theme.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            children: [
-              Icon(
-                Symbols.notifications_rounded,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Build Notifications',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        _NotificationOptionTile(
-          title: 'All',
-          subtitle: 'Notify on both success and failure',
-          icon: Symbols.notifications_active_rounded,
-          isSelected: currentPreference == NotificationPreference.all,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.all,
-          ),
-        ),
-        _NotificationOptionTile(
-          title: 'Success Only',
-          subtitle: 'Notify only when build succeeds',
-          icon: Symbols.check_circle_rounded,
-          iconColor: Colors.green,
-          isSelected: currentPreference == NotificationPreference.successOnly,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.successOnly,
-          ),
-        ),
-        _NotificationOptionTile(
-          title: 'Failure Only',
-          subtitle: 'Notify only when build fails',
-          icon: Symbols.error_rounded,
-          iconColor: Colors.redAccent,
-          isSelected: currentPreference == NotificationPreference.failureOnly,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.failureOnly,
-          ),
-        ),
-        _NotificationOptionTile(
-          title: 'None',
-          subtitle: 'Do not send any notifications',
-          icon: Symbols.notifications_off_rounded,
-          iconColor: Colors.grey,
-          isSelected: currentPreference == NotificationPreference.none,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.none,
-          ),
-        ),
-      ],
-    );
-  }
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Padding(
+//           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+//           child: Row(
+//             children: [
+//               Icon(
+//                 Symbols.notifications_rounded,
+//                 size: 20,
+//                 color: theme.colorScheme.primary,
+//               ),
+//               const SizedBox(width: 8),
+//               Text(
+//                 'Build Notifications',
+//                 style: theme.textTheme.titleSmall?.copyWith(
+//                   fontWeight: FontWeight.w600,
+//                   color: theme.colorScheme.primary,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//         const SizedBox(height: 4),
+//         _NotificationOptionTile(
+//           title: 'All',
+//           subtitle: 'Notify on both success and failure',
+//           icon: Symbols.notifications_active_rounded,
+//           isSelected: currentPreference == NotificationPreference.all,
+//           onTap: () => _updatePreference(
+//             context,
+//             ref,
+//             NotificationPreference.all,
+//           ),
+//         ),
+//         _NotificationOptionTile(
+//           title: 'Success Only',
+//           subtitle: 'Notify only when build succeeds',
+//           icon: Symbols.check_circle_rounded,
+//           iconColor: Colors.green,
+//           isSelected: currentPreference == NotificationPreference.successOnly,
+//           onTap: () => _updatePreference(
+//             context,
+//             ref,
+//             NotificationPreference.successOnly,
+//           ),
+//         ),
+//         _NotificationOptionTile(
+//           title: 'Failure Only',
+//           subtitle: 'Notify only when build fails',
+//           icon: Symbols.error_rounded,
+//           iconColor: Colors.redAccent,
+//           isSelected: currentPreference == NotificationPreference.failureOnly,
+//           onTap: () => _updatePreference(
+//             context,
+//             ref,
+//             NotificationPreference.failureOnly,
+//           ),
+//         ),
+//         _NotificationOptionTile(
+//           title: 'None',
+//           subtitle: 'Do not send any notifications',
+//           icon: Symbols.notifications_off_rounded,
+//           iconColor: Colors.grey,
+//           isSelected: currentPreference == NotificationPreference.none,
+//           onTap: () => _updatePreference(
+//             context,
+//             ref,
+//             NotificationPreference.none,
+//           ),
+//         ),
+//       ],
+//     );
+//   }
 
-  Future<void> _updatePreference(
-    BuildContext context,
-    WidgetRef ref,
-    NotificationPreference preference,
-  ) async {
-    if (preference == currentPreference) return;
-    try {
-      await ref
-          .read(userProvider.notifier)
-          .updateNotificationPreference(preference);
-      if (!context.mounted) return;
-      context.showSnackBarMessage(
-        'Notification preference updated',
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      context.showSnackBarMessage(
-        'Failed to update: $e',
-      );
-    }
-  }
-}
+//   Future<void> _updatePreference(
+//     BuildContext context,
+//     WidgetRef ref,
+//     NotificationPreference preference,
+//   ) async {
+//     if (preference == currentPreference) return;
+//     try {
+//       await ref
+//           .read(userProvider.notifier)
+//           .updateNotificationPreference(preference);
+//       if (!context.mounted) return;
+//       context.showSnackBarMessage(
+//         'Notification preference updated',
+//       );
+//     } catch (e) {
+//       if (!context.mounted) return;
+//       context.showSnackBarMessage(
+//         'Failed to update: $e',
+//       );
+//     }
+//   }
+// }
 
 class _NotificationOptionTile extends StatelessWidget {
   const _NotificationOptionTile({

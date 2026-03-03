@@ -1,5 +1,4 @@
 import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -42,9 +41,10 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                             title: Text(team.name),
                             onTap: () async {
                               try {
-                                await ref
-                                    .read(userProvider.notifier)
-                                    .updateSelectedTeamId(team.id);
+                                // TODO(mafreud: fix this to use FDC
+                                // await ref
+                                //     .read(userProvider.notifier)
+                                //     .updateSelectedTeamId(team.id);
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
                                   'Team selected successfully',

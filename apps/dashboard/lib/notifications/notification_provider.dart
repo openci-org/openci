@@ -1,4 +1,4 @@
-import 'package:dashboard/users/user_provider.dart';
+// import 'package:dashboard/users/user_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -40,8 +40,9 @@ class NotificationService extends _$NotificationService {
       final token = await messaging.getToken();
       if (!ref.mounted) return;
       if (token != null) {
-        final userNotifier = ref.read(userProvider.notifier);
-        await userNotifier.addFcmToken(token);
+        // TODO(mafreud): fix this
+        // final userNotifier = ref.read(userProvider.notifier);
+        // await userNotifier.addFcmToken(token);
         debugPrint('[FCM] Token registered: ${token.substring(0, 10)}...');
       } else {
         debugPrint('[FCM] FCM token is null');
@@ -49,8 +50,9 @@ class NotificationService extends _$NotificationService {
 
       messaging.onTokenRefresh.listen((newToken) async {
         if (!ref.mounted) return;
-        final userNotifier = ref.read(userProvider.notifier);
-        await userNotifier.addFcmToken(newToken);
+        // TODO(mafreud): fix this
+        // final userNotifier = ref.read(userProvider.notifier);
+        // await userNotifier.addFcmToken(newToken);
         debugPrint(
           '[FCM] Token refreshed: ${newToken.substring(0, 10)}...',
         );
