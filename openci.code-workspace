@@ -2,26 +2,27 @@
   "folders": [
     {
       "name": "worker_cli",
-      "path": "apps/worker_cli"
+      "path": "apps/worker_cli",
     },
     {
       "name": "vm_cli",
-      "path": "apps/vm_cli"
+      "path": "apps/vm_cli",
     },
     {
       "name": "dashboard",
-      "path": "apps/dashboard"
+      "path": "apps/dashboard",
     },
     {
       "name": "web",
-      "path": "apps/web"
+      "path": "apps/web",
     },
-      {
+    {
       "name": "root",
-      "path": "."
+      "path": ".",
     },
   ],
   "settings": {
+    "oxc.path.oxfmt": "/Users/masahiroaoki/Developer/openci-inc/openci/apps/web/node_modules/.bin/oxfmt",
     "explorer.autoReveal": false,
     "dart.onlyAnalyzeProjectsWithOpenFiles": true,
     "dart.analysisExcludedFolders": ["apps/web"],
@@ -56,38 +57,39 @@
       "tailwindplus",
       "turbopack",
       "unawaited",
-      "uuidv"
+      "uuidv",
     ],
     "editor.codeActionsOnSave": {
       "source.fixAll": "always",
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
     },
     "editor.formatOnSave": true,
     "[jsonc]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode"
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[json]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode"
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[javascript]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode"
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[typescript]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode"
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[typescriptreact]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode"
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "[yaml]": {
-      "editor.defaultFormatter": "oxc.oxc-vscode"
+      "editor.defaultFormatter": "oxc.oxc-vscode",
     },
     "files.associations": {
-      "*.css": "tailwindcss"
+      "*.css": "tailwindcss",
+      "*.code-workspace": "jsonc",
     },
     "files.exclude": {
       "**/*.g.dart": true,
-      "**/*.freezed.dart": true
-    }
+      "**/*.freezed.dart": true,
+    },
   },
   "launch": {
     "version": "0.2.0",
@@ -98,7 +100,7 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--dart-define-from-file=config.json"]
+        "args": ["--dart-define-from-file=config.json"],
       },
       {
         "name": "(release) dashboard",
@@ -106,9 +108,9 @@
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
-        "args": ["--release", "--dart-define-from-file=config.json"]
-      }
-    ]
+        "args": ["--release", "--dart-define-from-file=config.json"],
+      },
+    ],
   },
   "extensions": {
     "recommendations": [
@@ -116,8 +118,8 @@
       "dart-code.flutter",
       "oxc.oxc-vscode",
       "bradlc.vscode-tailwindcss",
-      "streetsidesoftware.code-spell-checker"
-    ]
+      "streetsidesoftware.code-spell-checker",
+    ],
   },
   "tasks": {
     "version": "2.0.0",
@@ -127,48 +129,48 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:dashboard}"
+          "cwd": "${workspaceFolder:dashboard}",
         },
         "problemMatcher": [],
         "group": "build",
-        "isBackground": true
+        "isBackground": true,
       },
       {
         "label": "Flutter: clean",
         "type": "shell",
         "command": "flutter clean && flutter pub get",
         "options": {
-          "cwd": "${workspaceFolder:dashboard}"
-        }
+          "cwd": "${workspaceFolder:dashboard}",
+        },
       },
       {
         "label": "Flutter: Build .ipa",
         "type": "shell",
         "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=config.json",
         "options": {
-          "cwd": "${workspaceFolder:dashboard}"
+          "cwd": "${workspaceFolder:dashboard}",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "Web: Dev Server",
         "type": "shell",
         "command": "pnpm dev",
         "options": {
-          "cwd": "${workspaceFolder:web}"
+          "cwd": "${workspaceFolder:web}",
         },
         "problemMatcher": [],
-        "isBackground": true
+        "isBackground": true,
       },
       {
         "label": "Web: Build",
         "type": "shell",
         "command": "pnpm build",
         "options": {
-          "cwd": "${workspaceFolder:web}"
+          "cwd": "${workspaceFolder:web}",
         },
-        "problemMatcher": []
-      }
-    ]
-  }
+        "problemMatcher": [],
+      },
+    ],
+  },
 }
