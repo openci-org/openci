@@ -18,6 +18,8 @@ _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
   fcmTokens:
       (json['fcmTokens'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
+  selectedRepository: json['selectedRepository'] as String?,
+  selectedBranch: json['selectedBranch'] as String?,
 );
 
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
@@ -27,6 +29,8 @@ Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
       'notificationPreference':
           _$NotificationPreferenceEnumMap[instance.notificationPreference]!,
       'fcmTokens': instance.fcmTokens,
+      'selectedRepository': instance.selectedRepository,
+      'selectedBranch': instance.selectedBranch,
     };
 
 const _$NotificationPreferenceEnumMap = {
@@ -66,7 +70,7 @@ final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   User create() => User();
 }
 
-String _$userHash() => r'99a283e7c0fb3a100fa8f70cd52bbf3b66562cfb';
+String _$userHash() => r'e6d80f09571ad24b030e9a151415a43c5e2e450e';
 
 abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();

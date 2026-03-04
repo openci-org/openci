@@ -56,23 +56,3 @@ Future<List<String>> gitHubBranches(Ref ref, String repoFullName) async {
 
   return branches;
 }
-
-@riverpod
-class SelectedRepository extends _$SelectedRepository {
-  @override
-  String? build() => null;
-
-  void select(String repoFullName) {
-    state = repoFullName;
-  }
-}
-
-@riverpod
-class SelectedBranch extends _$SelectedBranch {
-  @override
-  String? build() => null;
-
-  void select(String branch) {
-    state = branch;
-  }
-}

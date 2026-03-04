@@ -22,6 +22,8 @@ abstract class OpenCIUser with _$OpenCIUser {
     @Default(NotificationPreference.all)
     NotificationPreference notificationPreference,
     @Default([]) List<String> fcmTokens,
+    String? selectedRepository,
+    String? selectedBranch,
   }) = _OpenCIUser;
   factory OpenCIUser.fromJson(Map<String, Object?> json) =>
       _$OpenCIUserFromJson(json);
@@ -91,5 +93,33 @@ class User extends _$User {
       existingTokens.add(token);
       await docRef.update({'fcmTokens': existingTokens});
     }
+  }
+
+  Future<void> updateSelectedRepository({
+    required String repository,
+    required String defaultBranch,
+  }) async {
+    final firestore = ref.read(firestoreProvider);
+    final auth = ref.read(authProvider);
+    final currentUserId = auth.requireValue?.uid;
+    if (currentUserId == null) {
+      throw Exception('User is not authenticated');
+    }
+    await firestore.collection(usersCollection).doc(currentUserId).update({
+      'selectedRepository': repository,
+      'selectedBranch': defaultBranch,
+    });
+  }
+
+  Future<void> updateSelectedBranch(String branch) async {
+    final firestore = ref.read(firestoreProvider);
+    final auth = ref.read(authProvider);
+    final currentUserId = auth.requireValue?.uid;
+    if (currentUserId == null) {
+      throw Exception('User is not authenticated');
+    }
+    await firestore.collection(usersCollection).doc(currentUserId).update({
+      'selectedBranch': branch,
+    });
   }
 }
