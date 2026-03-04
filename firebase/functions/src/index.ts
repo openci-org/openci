@@ -3,9 +3,11 @@ export { createSecretV1 } from "./create-secret";
 export { githubApp } from "./github-app";
 export { githubSetup } from "./github-setup";
 export { inviteTeamMember } from "./invite-team-member";
+export { listBranches } from "./list-branches";
 export { listDirectories } from "./list-directories";
 export { listRepositories } from "./list-repositories";
 export { onUserSignUp } from "./on-user-sign-up";
 export { retryBuildJob } from "./retry-build-job";
 export { onBuildJobStatusChange } from "./send-build-notification";
 export { updateSecretV1 } from "./update-secret";
+
