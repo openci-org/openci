@@ -1,16 +1,16 @@
 {
   "folders": [
     {
-      "name": "mobile",
-      "path": "mobile",
+      "name": "dashboard",
+      "path": "apps/dashboard",
     },
     {
       "name": "openci_worker_cli",
-      "path": "cli/openci_worker_cli",
+      "path": "apps/openci_worker_cli",
     },
     {
       "name": "openci_vm_cli",
-      "path": "cli/openci_vm_cli",
+      "path": "apps/openci_vm_cli",
     },
     {
       "name": "firebase-functions",
@@ -26,7 +26,7 @@
     },
     {
       "name": "web",
-      "path": "web",
+      "path": "apps/web",
     },
   ],
   "settings": {
@@ -97,16 +97,16 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "mobile",
-        "cwd": "${workspaceFolder:mobile}",
+        "name": "dashboard",
+        "cwd": "${workspaceFolder:dashboard}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
         "args": ["--dart-define-from-file=.env.local"],
       },
       {
-        "name": "(release) mobile",
-        "cwd": "${workspaceFolder:mobile}",
+        "name": "(release) dashboard",
+        "cwd": "${workspaceFolder:dashboard}",
         "request": "launch",
         "type": "dart",
         "program": "lib/main.dart",
@@ -132,7 +132,7 @@
         "type": "shell",
         "command": "dart run build_runner watch -d",
         "options": {
-          "cwd": "${workspaceFolder:mobile}",
+          "cwd": "${workspaceFolder:dashboard}",
         },
         "problemMatcher": [],
         "group": "build",
@@ -143,7 +143,7 @@
         "type": "shell",
         "command": "flutter clean && flutter pub get",
         "options": {
-          "cwd": "${workspaceFolder:mobile}",
+          "cwd": "${workspaceFolder:dashboard}",
         },
       },
       {
@@ -151,7 +151,7 @@
         "type": "shell",
         "command": "flutter clean && flutter pub get && flutter build ipa --dart-define-from-file=.env.local",
         "options": {
-          "cwd": "${workspaceFolder:mobile}",
+          "cwd": "${workspaceFolder:dashboard}",
         },
         "problemMatcher": [],
       },

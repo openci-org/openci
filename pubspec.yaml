@@ -5,6 +5,6 @@ environment:
   sdk: ^3.11.0
 
 workspace:
-  - cli/openci_vm_cli
-  - cli/openci_worker_cli
-  - mobile
+  - apps/openci_vm_cli
+  - apps/openci_worker_cli
+  - apps/dashboard
