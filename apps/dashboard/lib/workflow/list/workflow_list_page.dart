@@ -36,6 +36,11 @@ class WorkflowListPage extends ConsumerWidget {
         final selectedBranch = user.selectedBranch;
 
         return Scaffold(
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {},
+            label: const Text('Add Workflow'),
+            icon: const Icon(Icons.add),
+          ),
           appBar: AppBar(
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,9 +82,13 @@ class WorkflowListPage extends ConsumerWidget {
                       if (selectedBranch != null)
                         InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () => showBranchSelector(
-                            context,
-                            selectedRepo,
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            showDragHandle: true,
+                            builder: (_) => SelectBranchBottomSheet(
+                              repoFullName: selectedRepo,
+                            ),
                           ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -236,15 +245,6 @@ class WorkflowListPage extends ConsumerWidget {
                 ),
         );
       },
-    );
-  }
-
-  void showBranchSelector(BuildContext context, String repoFullName) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => SelectBranchBottomSheet(repoFullName: repoFullName),
     );
   }
 }
