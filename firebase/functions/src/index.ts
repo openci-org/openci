@@ -1,5 +1,6 @@
 export { cancelBuildJob } from "./cancel-build-job";
 export { createSecretV1 } from "./create-secret";
+export { createWorkflowFile } from "./create-workflow-file";
 export { githubApp } from "./github-app";
 export { githubSetup } from "./github-setup";
 export { inviteTeamMember } from "./invite-team-member";

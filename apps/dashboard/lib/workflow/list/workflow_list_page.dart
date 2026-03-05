@@ -4,6 +4,7 @@ import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/workflow/list/create_workflow_page.dart';
 import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
@@ -36,6 +37,23 @@ class WorkflowListPage extends ConsumerWidget {
         final selectedBranch = user.selectedBranch;
 
         return Scaffold(
+          floatingActionButton: selectedRepo != null && selectedBranch != null
+              ? FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        fullscreenDialog: true,
+                        builder: (_) => CreateWorkflowPage(
+                          repository: selectedRepo,
+                          branch: selectedBranch,
+                        ),
+                      ),
+                    );
+                  },
+                  label: const Text('Add Workflow'),
+                  icon: const Icon(Icons.add),
+                )
+              : null,
           appBar: AppBar(
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,9 +95,13 @@ class WorkflowListPage extends ConsumerWidget {
                       if (selectedBranch != null)
                         InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () => showBranchSelector(
-                            context,
-                            selectedRepo,
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            showDragHandle: true,
+                            builder: (_) => SelectBranchBottomSheet(
+                              repoFullName: selectedRepo,
+                            ),
                           ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -236,15 +258,6 @@ class WorkflowListPage extends ConsumerWidget {
                 ),
         );
       },
-    );
-  }
-
-  void showBranchSelector(BuildContext context, String repoFullName) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => SelectBranchBottomSheet(repoFullName: repoFullName),
     );
   }
 }
