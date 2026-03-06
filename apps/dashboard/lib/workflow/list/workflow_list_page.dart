@@ -331,10 +331,22 @@ class _WorkflowBody extends ConsumerWidget {
                     vertical: 8,
                   ),
                   onTap: () {
+                    final repo = ref
+                        .read(userProvider)
+                        .requireValue
+                        .selectedRepository;
+                    final branch = ref
+                        .read(userProvider)
+                        .requireValue
+                        .selectedBranch;
+                    if (repo == null || branch == null) return;
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) =>
-                            WorkflowFileDetailPage(file: file),
+                        builder: (context) => CreateWorkflowPage(
+                          repository: repo,
+                          branch: branch,
+                          existingFile: file,
+                        ),
                       ),
                     );
                   },
@@ -364,37 +376,6 @@ class _WorkflowBody extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class WorkflowFileDetailPage extends StatelessWidget {
-  const WorkflowFileDetailPage({super.key, required this.file});
-
-  final WorkflowFile file;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(file.name)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: SelectableText(
-            file.content,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontFamily: 'monospace',
-              height: 1.5,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
