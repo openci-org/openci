@@ -1,0 +1,12 @@
+name: my-workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    steps:
+      - name: Build
+        uses: subosito/flutter-action@v2.21.0
