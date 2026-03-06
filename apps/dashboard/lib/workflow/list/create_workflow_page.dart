@@ -18,35 +18,54 @@ class CreateWorkflowPage extends HookConsumerWidget {
     super.key,
     required this.repository,
     required this.branch,
+    this.existingFile,
   });
 
   final String repository;
   final String branch;
+  final WorkflowFile? existingFile;
+
+  bool get isEditing => existingFile != null;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tabController = useTabController(initialLength: 2);
-    final workflowName = useState('my-workflow');
-    final triggerType = useState('push');
-    final triggerBranch = useState('main');
-    final steps = useState<List<WorkflowYamlStep>>([
-      WorkflowYamlStep(name: 'Build', run: 'echo "Hello, OpenCI!"'),
-    ]);
+
+    final initialConfig = existingFile != null
+        ? yamlToConfig(existingFile!.content)
+        : null;
+
+    final workflowName = useState(initialConfig?.name ?? 'my-workflow');
+    final triggerType = useState(initialConfig?.triggerType ?? 'push');
+    final triggerBranch = useState(
+      initialConfig?.triggerBranches.isNotEmpty == true
+          ? initialConfig!.triggerBranches.first
+          : 'main',
+    );
+    final steps = useState<List<WorkflowYamlStep>>(
+      initialConfig?.steps ??
+          [WorkflowYamlStep(name: 'Build', run: 'echo "Hello, OpenCI!"')],
+    );
     final yamlController = useState(
       CodeLineEditingController.fromText(
-        stepsToYaml(
-          WorkflowYamlConfig(
-            name: 'my-workflow',
-            triggerType: 'push',
-            triggerBranches: ['main'],
-            steps: [
-              WorkflowYamlStep(name: 'Build', run: 'echo "Hello, OpenCI!"'),
-            ],
-          ),
-        ),
+        existingFile?.content ??
+            stepsToYaml(
+              WorkflowYamlConfig(
+                name: 'my-workflow',
+                triggerType: 'push',
+                triggerBranches: ['main'],
+                steps: [
+                  WorkflowYamlStep(
+                    name: 'Build',
+                    run: 'echo "Hello, OpenCI!"',
+                  ),
+                ],
+              ),
+            ),
       ),
     );
-    final fileName = useState('workflow.yaml');
+    final existingFileName = existingFile?.name ?? 'workflow.yaml';
+    final fileName = useState(existingFileName);
     final isLoading = useState(false);
     final isSyncingFromEditor = useState(false);
     final isSyncingFromYaml = useState(false);
@@ -71,7 +90,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Create Workflow'),
+            Text(isEditing ? 'Edit Workflow' : 'Create Workflow'),
             Text(
               '$repository ($branch)',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -195,6 +214,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
             : currentYaml,
         fileName: fileName,
         isLoading: isLoading,
+        isEditing: isEditing,
       ),
     );
   }
@@ -999,6 +1019,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
     required this.yamlContent,
     required this.fileName,
     required this.isLoading,
+    this.isEditing = false,
   });
 
   final String repository;
@@ -1006,6 +1027,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
   final String yamlContent;
   final ValueNotifier<String> fileName;
   final ValueNotifier<bool> isLoading;
+  final bool isEditing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1037,6 +1059,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: fileNameController,
+                      readOnly: isEditing,
                       decoration: InputDecoration(
                         hintText: 'e.g. build.yaml',
                         border: const OutlineInputBorder(),
@@ -1044,7 +1067,9 @@ class _CommitBottomSheet extends HookConsumerWidget {
                         prefixStyle: Theme.of(context).textTheme.bodyMedium
                             ?.copyWith(color: Theme.of(context).hintColor),
                       ),
-                      onChanged: (value) => fileName.value = value,
+                      onChanged: isEditing
+                          ? null
+                          : (value) => fileName.value = value,
                     ),
                     const SizedBox(height: 20),
                     Text(
