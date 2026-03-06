@@ -6,7 +6,7 @@ import { App } from "octokit";
 import { v4 as uuidv4 } from "uuid";
 
 import { db } from "./firebase";
-import { buildJobsCollectionPath, workflowsCollectionPath } from "./firestore-collection-paths";
+import { buildJobsCollectionPath } from "./firestore-collection-paths";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -99,6 +99,7 @@ async function createBuildJobs(
   },
 ) {
   const { payload, event } = params;
+  const [owner, repo] = params.repository.split("/");
 
   let branch: string | null = null;
   let triggerBranch: string | null = null;
@@ -128,30 +129,6 @@ async function createBuildJobs(
     return;
   }
 
-  let workflowQuery = db
-    .collection(workflowsCollectionPath)
-    .where("workflowConfig.selectedRepository", "==", params.repository)
-    .where("workflowConfig.selectedTriggerType", "==", triggerType);
-
-  if (!["tag", "release"].includes(triggerType) && triggerBranch) {
-    workflowQuery = workflowQuery.where(
-      "workflowConfig.selectedTriggerBranch",
-      "==",
-      triggerBranch,
-    );
-  }
-
-  const workflowSnapshot = await workflowQuery.get();
-
-  if (workflowSnapshot.empty) {
-    logger.info(`No workflows found for ${params.repository} on ${branch} (${triggerType})`);
-    return;
-  }
-
-  logger.info(
-    `Found ${workflowSnapshot.size} workflows matching ${params.repository} on ${branch}`,
-  );
-
   const installationId = payload.installation?.id;
   let installationToken: string | null = null;
   let tokenExpiresAt: string | null = null;
@@ -180,8 +157,8 @@ async function createBuildJobs(
   if ((triggerType === "tag" || triggerType === "release") && tagName && octokit) {
     try {
       const { data: commit } = await octokit.request("GET /repos/{owner}/{repo}/commits/{ref}", {
-        owner: params.repository.split("/")[0],
-        repo: params.repository.split("/")[1],
+        owner,
+        repo,
         ref: tagName,
       });
       commitSha = commit.sha;
@@ -189,60 +166,231 @@ async function createBuildJobs(
       logger.error("Failed to fetch commit SHA for tag", error);
     }
   }
+
   const pullRequestNumber = payload.pull_request?.number || null;
+  let createdJobCount = 0;
 
-  for (const doc of workflowSnapshot.docs) {
-    const workflow = doc.data();
-    const workflowId = doc.id;
-    const teamId = workflow.teamId ?? null;
-    const checkRunName = workflow.name;
+  // --- .openci/ YAML workflows ---
+  if (octokit) {
+    try {
+      const ref =
+        commitSha ||
+        (triggerType === "push" || triggerType === "pullRequest"
+          ? `heads/${triggerBranch}`
+          : undefined);
 
-    let checkRunId: number | null = null;
-
-    if (octokit && commitSha) {
+      let contents: any[] = [];
       try {
-        const { data: checkRun } = await octokit.request("POST /repos/{owner}/{repo}/check-runs", {
-          owner: params.repository.split("/")[0],
-          repo: params.repository.split("/")[1],
-          name: checkRunName,
-          head_sha: commitSha,
-          status: "queued",
-          started_at: new Date().toISOString(),
+        const { data } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
+          owner,
+          repo,
+          path: ".openci",
+          ref,
         });
-        checkRunId = checkRun.id;
-      } catch (error) {
-        logger.error(`Failed to create check run for workflow ${workflowId}`, error);
+        if (Array.isArray(data)) {
+          contents = data;
+        }
+      } catch (e: any) {
+        if (e.status !== 404) {
+          logger.warn("Failed to list .openci/ directory", e);
+        }
+      }
+
+      const yamlFiles = contents.filter(
+        (item: any) =>
+          item.type === "file" && (item.name.endsWith(".yaml") || item.name.endsWith(".yml")),
+      );
+
+      for (const file of yamlFiles) {
+        try {
+          const { data: fileData } = await octokit.request(
+            "GET /repos/{owner}/{repo}/contents/{path}",
+            { owner, repo, path: file.path, ref },
+          );
+
+          const content = Buffer.from((fileData as any).content, "base64").toString("utf-8");
+          const yaml = await import("js-yaml");
+          const parsed = yaml.load(content) as any;
+          if (!parsed || typeof parsed !== "object") continue;
+
+          const workflowName = parsed.name || file.name.replace(/\.(yaml|yml)$/, "");
+
+          if (!matchesTrigger(parsed, triggerType, triggerBranch, tagName)) {
+            logger.info(
+              `Workflow ${file.name} does not match trigger ${triggerType}/${triggerBranch}`,
+            );
+            continue;
+          }
+
+          const steps = extractSteps(parsed);
+          if (steps.length === 0) {
+            logger.info(`Workflow ${file.name} has no steps, skipping`);
+            continue;
+          }
+
+          logger.info(`Matched .openci/${file.name} with ${steps.length} steps`);
+
+          let checkRunId: number | null = null;
+          if (commitSha) {
+            try {
+              const { data: checkRun } = await octokit.request(
+                "POST /repos/{owner}/{repo}/check-runs",
+                {
+                  owner,
+                  repo,
+                  name: workflowName,
+                  head_sha: commitSha,
+                  status: "queued",
+                  started_at: new Date().toISOString(),
+                },
+              );
+              checkRunId = checkRun.id;
+            } catch (error) {
+              logger.error(`Failed to create check run for ${file.name}`, error);
+            }
+          }
+
+          const teamId = await findTeamIdForInstallation(installationId);
+
+          const documentId = uuidv4();
+          const jobData = { ...params };
+          delete jobData.payload;
+
+          await db
+            .collection(buildJobsCollectionPath)
+            .doc(documentId)
+            .set({
+              ...jobData,
+              updatedAt: FieldValue.serverTimestamp(),
+              createdAt: FieldValue.serverTimestamp(),
+              status: "queued",
+              id: documentId,
+              teamId,
+              workflowId: null,
+              workflowSource: "yaml",
+              workflowFileName: file.name,
+              workflowSteps: steps,
+              installationId,
+              commitSha,
+              pullRequestNumber,
+              owner,
+              repo,
+              installationToken,
+              tokenExpiresAt,
+              checkRunId,
+              runCount: 0,
+              latestRunId: null,
+              tagName,
+              branch,
+              releaseName,
+            });
+
+          createdJobCount++;
+        } catch (e) {
+          logger.error(`Failed to process .openci/${file.name}`, e);
+        }
+      }
+    } catch (error) {
+      logger.error("Failed to read .openci/ workflows", error);
+    }
+  }
+
+  if (createdJobCount === 0) {
+    logger.info(`No workflows found for ${params.repository} on ${branch} (${triggerType})`);
+  } else {
+    logger.info(`Created ${createdJobCount} build jobs for ${params.repository}`);
+  }
+}
+
+function matchesTrigger(
+  parsed: any,
+  triggerType: string,
+  triggerBranch: string | null,
+  tagName: string | null,
+): boolean {
+  const on = parsed.on;
+  if (!on) return false;
+
+  const yamlTriggerKey = triggerType === "pullRequest" ? "pull_request" : triggerType;
+
+  if (typeof on === "string") {
+    return on === yamlTriggerKey;
+  }
+
+  if (Array.isArray(on)) {
+    return on.includes(yamlTriggerKey);
+  }
+
+  if (typeof on === "object") {
+    const triggerConfig = on[yamlTriggerKey];
+    if (triggerConfig === undefined) return false;
+    if (triggerConfig === null) return true;
+
+    if (typeof triggerConfig === "object" && triggerConfig.branches) {
+      const branches: string[] = Array.isArray(triggerConfig.branches)
+        ? triggerConfig.branches
+        : [triggerConfig.branches];
+      if (triggerBranch && !branches.includes(triggerBranch)) {
+        return false;
       }
     }
 
-    const documentId = uuidv4();
-    const jobData = { ...params };
-    delete jobData.payload;
+    return true;
+  }
 
-    await db
-      .collection(buildJobsCollectionPath)
-      .doc(documentId)
-      .set({
-        ...jobData,
-        updatedAt: FieldValue.serverTimestamp(),
-        createdAt: FieldValue.serverTimestamp(),
-        status: "queued",
-        id: documentId,
-        teamId,
-        workflowId,
-        installationId,
-        commitSha,
-        pullRequestNumber,
-        owner: params.repository.split("/")[0],
-        repo: params.repository.split("/")[1],
-        installationToken,
-        tokenExpiresAt,
-        checkRunId,
-        runCount: 0,
-        latestRunId: null,
-        tagName,
-        branch,
-        releaseName,
-      });
+  return false;
+}
+
+function extractSteps(
+  parsed: any,
+): Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }> {
+  const steps: Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }> =
+    [];
+  const jobs = parsed.jobs;
+  if (!jobs || typeof jobs !== "object") return steps;
+
+  for (const jobKey of Object.keys(jobs)) {
+    const job = jobs[jobKey];
+    if (!job || !Array.isArray(job.steps)) continue;
+
+    for (const step of job.steps) {
+      if (!step || typeof step !== "object") continue;
+
+      const entry: { name: string; run?: string; uses?: string; with?: Record<string, string> } = {
+        name: step.name || "",
+      };
+
+      if (step.uses) {
+        entry.uses = step.uses;
+        if (step.with && typeof step.with === "object") {
+          entry.with = {};
+          for (const [k, v] of Object.entries(step.with)) {
+            entry.with[k] = String(v);
+          }
+        }
+      } else if (step.run) {
+        entry.run = step.run;
+      }
+
+      steps.push(entry);
+    }
+  }
+
+  return steps;
+}
+
+async function findTeamIdForInstallation(installationId: number): Promise<string | null> {
+  try {
+    const teamsSnapshot = await db
+      .collection("teams_v0")
+      .where("installationIds", "array-contains", installationId)
+      .limit(1)
+      .get();
+
+    if (teamsSnapshot.empty) return null;
+    return teamsSnapshot.docs[0].id;
+  } catch (e) {
+    logger.error("Failed to find team for installation", e);
+    return null;
   }
 }
