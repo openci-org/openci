@@ -1148,10 +1148,11 @@ class _CommitBottomSheet extends HookConsumerWidget {
       if (commitMode == CommitMode.pullRequest) {
         final prUrl = result['pullRequestUrl'] as String?;
         if (prUrl != null) {
+          final parentNavigator = Navigator.of(context, rootNavigator: true);
           Navigator.of(context).pop();
           if (!context.mounted) return;
           await showDialog(
-            context: context,
+            context: parentNavigator.context,
             builder: (ctx) => AlertDialog(
               title: const Text('Pull Request Created'),
               content: Text('PR #${result['pullRequestNumber']} was created.'),
@@ -1159,7 +1160,6 @@ class _CommitBottomSheet extends HookConsumerWidget {
                 TextButton(
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    Navigator.of(context).pop();
                   },
                   child: const Text('Close'),
                 ),
@@ -1167,7 +1167,6 @@ class _CommitBottomSheet extends HookConsumerWidget {
                   onPressed: () {
                     url_launcher.launchUrl(Uri.parse(prUrl));
                     Navigator.of(ctx).pop();
-                    Navigator.of(context).pop();
                   },
                   child: const Text('Open in GitHub'),
                 ),
