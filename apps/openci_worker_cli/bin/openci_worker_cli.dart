@@ -537,7 +537,7 @@ Future<bool> processJob(
     await execCommand('chmod +x /tmp/openci-act.sh');
 
     await execCommandStreaming(
-      ['/bin/zsh', '/tmp/openci-act.sh'],
+      ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
       currentVmName,
       logger,
       token,
