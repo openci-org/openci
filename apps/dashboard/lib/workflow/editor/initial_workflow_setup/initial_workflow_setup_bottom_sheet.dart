@@ -24,7 +24,17 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
     final nameController = useTextEditingController();
-    final triggerBranchController = useTextEditingController();
+
+    final branchControllers = <String, TextEditingController>{};
+    for (final type in ['push', 'pull_request']) {
+      branchControllers[type] = useTextEditingController(
+        text: state.triggers[type] ?? '',
+      );
+    }
+
+    final hasBranchTrigger =
+        state.triggers.containsKey('push') ||
+        state.triggers.containsKey('pull_request');
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -42,10 +52,8 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                 SizedBox(height: 20.0),
                 if (state.selectedRepository.isNotEmpty &&
                     state.selectedWorkingDirectory.isNotEmpty &&
-                    state.selectedTriggerBranch.isNotEmpty)
-                  InitialSetupSummary(
-                    state: state,
-                  ),
+                    hasBranchTrigger)
+                  InitialSetupSummary(state: state),
                 SizedBox(
                   width: _width,
                   child: TextFormField(
@@ -224,59 +232,80 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                         ),
                   ),
                 SizedBox(height: 20.0),
-                DropdownMenu(
-                  width: _width,
-                  controller: TextEditingController(
-                    text: state.selectedTriggerType.toString(),
-                  ),
-                  label: const Text('Trigger Type'),
-                  dropdownMenuEntries: [
-                    DropdownMenuEntry(value: 'push', label: 'push'),
-                    DropdownMenuEntry(
-                      value: 'pullRequest',
-                      label: 'pullRequest',
-                    ),
-                    DropdownMenuEntry(value: 'tag', label: 'tag'),
-                    DropdownMenuEntry(value: 'release', label: 'release'),
-                  ],
-                  onSelected: (value) {
-                    if (value == null) return;
-                    controller.updateSelectedTriggerType(
-                      TriggerType.fromValue(value),
-                    );
-                  },
-                ),
-                if (state.selectedTriggerType != TriggerType.tag &&
-                    state.selectedTriggerType != TriggerType.release) ...[
-                  SizedBox(height: 20.0),
-                  SizedBox(
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
                     width: _width,
-                    child: TextFormField(
-                      controller: triggerBranchController,
-                      decoration: InputDecoration(
-                        labelText: 'Trigger Branch',
-                        border: OutlineInputBorder(),
+                    child: Text(
+                      'Triggers',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8),
+                SizedBox(
+                  width: _width,
+                  child: Wrap(
+                    spacing: 8,
+                    children: TriggerType.values
+                        .map(
+                          (type) => FilterChip(
+                            label: Text(type.toString()),
+                            selected: state.triggers.containsKey(
+                              type.toString(),
+                            ),
+                            onSelected: (selected) {
+                              final current = Map<String, String?>.from(
+                                state.triggers,
+                              );
+                              final key = type.toString();
+                              if (selected) {
+                                final needsBranch =
+                                    type == TriggerType.push ||
+                                    type == TriggerType.pullRequest;
+                                current[key] = needsBranch ? 'main' : null;
+                              } else {
+                                current.remove(key);
+                              }
+                              if (current.isEmpty) return;
+                              controller.updateTriggers(current);
+                            },
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+                for (final type in ['push', 'pull_request'])
+                  if (state.triggers.containsKey(type)) ...[
+                    SizedBox(height: 12.0),
+                    SizedBox(
+                      width: _width,
+                      child: TextFormField(
+                        controller: branchControllers[type],
+                        decoration: InputDecoration(
+                          labelText: '$type branch',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          final current = Map<String, String?>.from(
+                            state.triggers,
+                          );
+                          current[type] = value;
+                          controller.updateTriggers(current);
+                        },
                       ),
                     ),
-                  ),
-                ],
+                  ],
                 SizedBox(height: 24.0),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size(_width, 48),
                   ),
                   onPressed: () async {
-                    final triggerBranch =
-                        state.selectedTriggerType == TriggerType.tag ||
-                            state.selectedTriggerType == TriggerType.release
-                        ? null
-                        : triggerBranchController.text;
-
                     await controller.save(
                       name: nameController.text,
                       selectedRepository: state.selectedRepository,
                       selectedWorkingDirectory: state.selectedWorkingDirectory,
-                      selectedTriggerBranch: triggerBranch,
                     );
 
                     if (!context.mounted) return;
@@ -322,18 +351,24 @@ class InitialSetupSummary extends StatelessWidget {
                   text: state.selectedRepository,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                TextSpan(text: ' repository, when a '),
+                TextSpan(text: ' repository, triggers: '),
+                for (final entry in state.triggers.entries) ...[
+                  TextSpan(
+                    text: entry.key,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  if (entry.value != null && entry.value!.isNotEmpty) ...[
+                    TextSpan(text: ' ('),
+                    TextSpan(
+                      text: entry.value,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextSpan(text: ')'),
+                  ],
+                  TextSpan(text: ' '),
+                ],
                 TextSpan(
-                  text: state.selectedTriggerType.toString(),
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextSpan(text: ' is created to the '),
-                TextSpan(
-                  text: state.selectedTriggerBranch,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextSpan(
-                  text: ' branch, the workflow will run using the ',
+                  text: 'using the ',
                 ),
                 TextSpan(
                   text: state.selectedWorkingDirectory,

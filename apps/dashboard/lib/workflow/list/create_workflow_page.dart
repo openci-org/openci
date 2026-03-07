@@ -38,12 +38,14 @@ class CreateWorkflowPage extends HookConsumerWidget {
         : null;
 
     final workflowName = useState(initialConfig?.name ?? 'my-workflow');
-    final triggerType = useState(initialConfig?.triggerType ?? 'push');
-    final triggerBranch = useState(
-      initialConfig?.triggerBranches.isNotEmpty == true
-          ? initialConfig!.triggerBranches.first
-          : 'main',
-    );
+    final triggers = useState<Map<String, String?>>(() {
+      if (initialConfig == null) return {'push': 'main'};
+      final result = <String, String?>{};
+      for (final entry in initialConfig.triggers.entries) {
+        result[entry.key] = entry.value.isNotEmpty ? entry.value.first : null;
+      }
+      return result;
+    }());
     final steps = useState<List<WorkflowYamlStep>>(
       initialConfig?.steps ??
           [WorkflowYamlStep(name: 'Build', run: 'echo "Hello, OpenCI!"')],
@@ -54,8 +56,9 @@ class CreateWorkflowPage extends HookConsumerWidget {
             stepsToYaml(
               WorkflowYamlConfig(
                 name: 'my-workflow',
-                triggerType: 'push',
-                triggerBranches: ['main'],
+                triggers: {
+                  'push': ['main'],
+                },
                 steps: [
                   WorkflowYamlStep(
                     name: 'Build',
@@ -75,11 +78,14 @@ class CreateWorkflowPage extends HookConsumerWidget {
     void syncEditorToYaml() {
       if (isSyncingFromYaml.value) return;
       isSyncingFromEditor.value = true;
+      final triggersForYaml = <String, List<String>>{};
+      for (final entry in triggers.value.entries) {
+        triggersForYaml[entry.key] = entry.value != null ? [entry.value!] : [];
+      }
       final yaml = stepsToYaml(
         WorkflowYamlConfig(
           name: workflowName.value,
-          triggerType: triggerType.value,
-          triggerBranches: [triggerBranch.value],
+          triggers: triggersForYaml,
           steps: steps.value,
         ),
       );
@@ -121,8 +127,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
                       fileName: fileName,
                       isLoading: isLoading,
                       workflowName: workflowName,
-                      triggerType: triggerType,
-                      triggerBranch: triggerBranch,
+                      triggers: triggers,
                       steps: steps,
                       tabController: tabController,
                     ),
@@ -144,8 +149,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
           _EditorTab(
             repository: repository,
             workflowName: workflowName,
-            triggerType: triggerType,
-            triggerBranch: triggerBranch,
+            triggers: triggers,
             steps: steps,
             teamId: teamId,
             onChanged: syncEditorToYaml,
@@ -158,10 +162,13 @@ class CreateWorkflowPage extends HookConsumerWidget {
               final config = yamlToConfig(yamlController.value.text);
               if (config != null) {
                 workflowName.value = config.name;
-                triggerType.value = config.triggerType;
-                triggerBranch.value = config.triggerBranches.isNotEmpty
-                    ? config.triggerBranches.first
-                    : 'main';
+                final parsedTriggers = <String, String?>{};
+                for (final entry in config.triggers.entries) {
+                  parsedTriggers[entry.key] = entry.value.isNotEmpty
+                      ? entry.value.first
+                      : null;
+                }
+                triggers.value = parsedTriggers;
                 steps.value = config.steps;
               }
               isSyncingFromYaml.value = false;
@@ -179,19 +186,25 @@ class CreateWorkflowPage extends HookConsumerWidget {
     required ValueNotifier<String> fileName,
     required ValueNotifier<bool> isLoading,
     required ValueNotifier<String> workflowName,
-    required ValueNotifier<String> triggerType,
-    required ValueNotifier<String> triggerBranch,
+    required ValueNotifier<Map<String, String?>> triggers,
     required ValueNotifier<List<WorkflowYamlStep>> steps,
     required TabController tabController,
   }) {
     final currentYaml = yamlController.value.text;
 
+    Map<String, List<String>> triggersForYaml() {
+      final result = <String, List<String>>{};
+      for (final entry in triggers.value.entries) {
+        result[entry.key] = entry.value != null ? [entry.value!] : [];
+      }
+      return result;
+    }
+
     if (tabController.index == 0) {
       final yaml = stepsToYaml(
         WorkflowYamlConfig(
           name: workflowName.value,
-          triggerType: triggerType.value,
-          triggerBranches: [triggerBranch.value],
+          triggers: triggersForYaml(),
           steps: steps.value,
         ),
       );
@@ -209,8 +222,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
             ? stepsToYaml(
                 WorkflowYamlConfig(
                   name: workflowName.value,
-                  triggerType: triggerType.value,
-                  triggerBranches: [triggerBranch.value],
+                  triggers: triggersForYaml(),
                   steps: steps.value,
                 ),
               )
@@ -227,8 +239,7 @@ class _EditorTab extends HookConsumerWidget {
   const _EditorTab({
     required this.repository,
     required this.workflowName,
-    required this.triggerType,
-    required this.triggerBranch,
+    required this.triggers,
     required this.steps,
     required this.onChanged,
     required this.teamId,
@@ -236,8 +247,7 @@ class _EditorTab extends HookConsumerWidget {
 
   final String repository;
   final ValueNotifier<String> workflowName;
-  final ValueNotifier<String> triggerType;
-  final ValueNotifier<String> triggerBranch;
+  final ValueNotifier<Map<String, String?>> triggers;
   final ValueNotifier<List<WorkflowYamlStep>> steps;
   final VoidCallback onChanged;
   final String teamId;
@@ -275,90 +285,104 @@ class _EditorTab extends HookConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: triggerType.value,
-                  decoration: const InputDecoration(
-                    labelText: 'Trigger Type',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'push', child: Text('push')),
-                    DropdownMenuItem(
-                      value: 'pull_request',
-                      child: Text('pull_request'),
-                    ),
-                    DropdownMenuItem(value: 'release', child: Text('release')),
-                    DropdownMenuItem(value: 'tag', child: Text('tag')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      triggerType.value = value;
-                      onChanged();
-                    }
-                  },
+                Text(
+                  'Triggers',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-                if (triggerType.value != 'tag' &&
-                    triggerType.value != 'release') ...[
-                  const SizedBox(height: 12),
-                  branchesAsync.when(
-                    loading: () => TextFormField(
-                      enabled: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Loading branches...',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    error: (e, _) => TextFormField(
-                      enabled: false,
-                      decoration: InputDecoration(
-                        labelText: 'Trigger Branch',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: Icon(
-                          Icons.error_outline,
-                          color: Theme.of(context).colorScheme.error,
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ['push', 'pull_request', 'release', 'tag']
+                      .map(
+                        (type) => FilterChip(
+                          label: Text(type),
+                          selected: triggers.value.containsKey(type),
+                          onSelected: (selected) {
+                            final current = Map<String, String?>.from(
+                              triggers.value,
+                            );
+                            if (selected) {
+                              final needsBranch =
+                                  type == 'push' || type == 'pull_request';
+                              current[type] = needsBranch ? 'main' : null;
+                            } else {
+                              current.remove(type);
+                            }
+                            if (current.isEmpty) return;
+                            triggers.value = current;
+                            onChanged();
+                          },
+                        ),
+                      )
+                      .toList(),
+                ),
+                for (final type in ['push', 'pull_request'])
+                  if (triggers.value.containsKey(type)) ...[
+                    const SizedBox(height: 12),
+                    branchesAsync.when(
+                      loading: () => TextFormField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: '$type branch (loading...)',
+                          border: const OutlineInputBorder(),
                         ),
                       ),
-                    ),
-                    data: (branches) => Autocomplete<String>(
-                      initialValue: TextEditingValue(
-                        text: branches.contains(triggerBranch.value)
-                            ? triggerBranch.value
-                            : '',
-                      ),
-                      optionsBuilder: (textEditingValue) {
-                        if (textEditingValue.text.isEmpty) {
-                          return branches;
-                        }
-                        return branches.where(
-                          (b) => b.toLowerCase().contains(
-                            textEditingValue.text.toLowerCase(),
+                      error: (e, _) => TextFormField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: '$type branch',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: Icon(
+                            Icons.error_outline,
+                            color: Theme.of(context).colorScheme.error,
                           ),
-                        );
-                      },
-                      fieldViewBuilder:
-                          (
-                            context,
-                            controller,
-                            focusNode,
-                            onFieldSubmitted,
-                          ) {
-                            return TextFormField(
-                              controller: controller,
-                              focusNode: focusNode,
-                              decoration: const InputDecoration(
-                                labelText: 'Trigger Branch',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.search, size: 20),
-                              ),
-                            );
-                          },
-                      onSelected: (value) {
-                        triggerBranch.value = value;
-                        onChanged();
-                      },
+                        ),
+                      ),
+                      data: (branches) => Autocomplete<String>(
+                        initialValue: TextEditingValue(
+                          text: triggers.value[type] ?? '',
+                        ),
+                        optionsBuilder: (textEditingValue) {
+                          if (textEditingValue.text.isEmpty) {
+                            return branches;
+                          }
+                          return branches.where(
+                            (b) => b.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            ),
+                          );
+                        },
+                        fieldViewBuilder:
+                            (
+                              context,
+                              controller,
+                              focusNode,
+                              onFieldSubmitted,
+                            ) {
+                              return TextFormField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                decoration: InputDecoration(
+                                  labelText: '$type branch',
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: const Icon(
+                                    Icons.search,
+                                    size: 20,
+                                  ),
+                                ),
+                              );
+                            },
+                        onSelected: (value) {
+                          final current = Map<String, String?>.from(
+                            triggers.value,
+                          );
+                          current[type] = value;
+                          triggers.value = current;
+                          onChanged();
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
               ],
             ),
           ),

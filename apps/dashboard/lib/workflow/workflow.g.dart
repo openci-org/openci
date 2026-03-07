@@ -36,28 +36,19 @@ _WorkflowConfig _$WorkflowConfigFromJson(Map<String, dynamic> json) =>
     _WorkflowConfig(
       selectedRepository: json['selectedRepository'] as String,
       selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
-      selectedTriggerType: $enumDecode(
-        _$TriggerTypeEnumMap,
-        json['selectedTriggerType'],
-      ),
-      selectedTriggerBranch: json['selectedTriggerBranch'] as String?,
+      triggers:
+          (json['triggers'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String?),
+          ) ??
+          const {},
     );
 
-Map<String, dynamic> _$WorkflowConfigToJson(
-  _WorkflowConfig instance,
-) => <String, dynamic>{
-  'selectedRepository': instance.selectedRepository,
-  'selectedWorkingDirectory': instance.selectedWorkingDirectory,
-  'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
-  'selectedTriggerBranch': instance.selectedTriggerBranch,
-};
-
-const _$TriggerTypeEnumMap = {
-  TriggerType.pullRequest: 'pullRequest',
-  TriggerType.push: 'push',
-  TriggerType.tag: 'tag',
-  TriggerType.release: 'release',
-};
+Map<String, dynamic> _$WorkflowConfigToJson(_WorkflowConfig instance) =>
+    <String, dynamic>{
+      'selectedRepository': instance.selectedRepository,
+      'selectedWorkingDirectory': instance.selectedWorkingDirectory,
+      'triggers': instance.triggers,
+    };
 
 _WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>
     _WorkflowStep(

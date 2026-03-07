@@ -11,11 +11,7 @@ _CreateWorkflowState _$CreateWorkflowStateFromJson(Map<String, dynamic> json) =>
       isCreated: json['isCreated'] as bool,
       selectedRepository: json['selectedRepository'] as String,
       selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
-      selectedTriggerType: $enumDecode(
-        _$TriggerTypeEnumMap,
-        json['selectedTriggerType'],
-      ),
-      selectedTriggerBranch: json['selectedTriggerBranch'] as String,
+      triggers: Map<String, String?>.from(json['triggers'] as Map),
       selectedWorkflowSteps: (json['selectedWorkflowSteps'] as List<dynamic>)
           .map((e) => WorkflowStep.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -27,18 +23,10 @@ Map<String, dynamic> _$CreateWorkflowStateToJson(
   'isCreated': instance.isCreated,
   'selectedRepository': instance.selectedRepository,
   'selectedWorkingDirectory': instance.selectedWorkingDirectory,
-  'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
-  'selectedTriggerBranch': instance.selectedTriggerBranch,
+  'triggers': instance.triggers,
   'selectedWorkflowSteps': instance.selectedWorkflowSteps
       .map((e) => e.toJson())
       .toList(),
-};
-
-const _$TriggerTypeEnumMap = {
-  TriggerType.pullRequest: 'pullRequest',
-  TriggerType.push: 'push',
-  TriggerType.tag: 'tag',
-  TriggerType.release: 'release',
 };
 
 // **************************************************************************

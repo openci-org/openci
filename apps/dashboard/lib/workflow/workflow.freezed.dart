@@ -317,7 +317,7 @@ $WorkflowConfigCopyWith<$Res> get workflowConfig {
 /// @nodoc
 mixin _$WorkflowConfig {
 
- String get selectedRepository; String get selectedWorkingDirectory; TriggerType get selectedTriggerType; String? get selectedTriggerBranch;
+ String get selectedRepository; String get selectedWorkingDirectory; Map<String, String?> get triggers;
 /// Create a copy of WorkflowConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -330,16 +330,16 @@ $WorkflowConfigCopyWith<WorkflowConfig> get copyWith => _$WorkflowConfigCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowConfig&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&(identical(other.selectedTriggerType, selectedTriggerType) || other.selectedTriggerType == selectedTriggerType)&&(identical(other.selectedTriggerBranch, selectedTriggerBranch) || other.selectedTriggerBranch == selectedTriggerBranch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowConfig&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&const DeepCollectionEquality().equals(other.triggers, triggers));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,selectedRepository,selectedWorkingDirectory,selectedTriggerType,selectedTriggerBranch);
+int get hashCode => Object.hash(runtimeType,selectedRepository,selectedWorkingDirectory,const DeepCollectionEquality().hash(triggers));
 
 @override
 String toString() {
-  return 'WorkflowConfig(selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, selectedTriggerType: $selectedTriggerType, selectedTriggerBranch: $selectedTriggerBranch)';
+  return 'WorkflowConfig(selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, triggers: $triggers)';
 }
 
 
@@ -350,7 +350,7 @@ abstract mixin class $WorkflowConfigCopyWith<$Res>  {
   factory $WorkflowConfigCopyWith(WorkflowConfig value, $Res Function(WorkflowConfig) _then) = _$WorkflowConfigCopyWithImpl;
 @useResult
 $Res call({
- String selectedRepository, String selectedWorkingDirectory, TriggerType selectedTriggerType, String? selectedTriggerBranch
+ String selectedRepository, String selectedWorkingDirectory, Map<String, String?> triggers
 });
 
 
@@ -367,13 +367,12 @@ class _$WorkflowConfigCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? selectedTriggerType = null,Object? selectedTriggerBranch = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? triggers = null,}) {
   return _then(_self.copyWith(
 selectedRepository: null == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
 as String,selectedWorkingDirectory: null == selectedWorkingDirectory ? _self.selectedWorkingDirectory : selectedWorkingDirectory // ignore: cast_nullable_to_non_nullable
-as String,selectedTriggerType: null == selectedTriggerType ? _self.selectedTriggerType : selectedTriggerType // ignore: cast_nullable_to_non_nullable
-as TriggerType,selectedTriggerBranch: freezed == selectedTriggerBranch ? _self.selectedTriggerBranch : selectedTriggerBranch // ignore: cast_nullable_to_non_nullable
-as String?,
+as String,triggers: null == triggers ? _self.triggers : triggers // ignore: cast_nullable_to_non_nullable
+as Map<String, String?>,
   ));
 }
 
@@ -458,10 +457,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String? selectedTriggerBranch)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String selectedRepository,  String selectedWorkingDirectory,  Map<String, String?> triggers)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowConfig() when $default != null:
-return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch);case _:
+return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.triggers);case _:
   return orElse();
 
 }
@@ -479,10 +478,10 @@ return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.se
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String? selectedTriggerBranch)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String selectedRepository,  String selectedWorkingDirectory,  Map<String, String?> triggers)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowConfig():
-return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch);case _:
+return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.triggers);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -499,10 +498,10 @@ return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.se
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String? selectedTriggerBranch)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String selectedRepository,  String selectedWorkingDirectory,  Map<String, String?> triggers)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowConfig() when $default != null:
-return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch);case _:
+return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.triggers);case _:
   return null;
 
 }
@@ -514,13 +513,18 @@ return $default(_that.selectedRepository,_that.selectedWorkingDirectory,_that.se
 @JsonSerializable()
 
 class _WorkflowConfig implements WorkflowConfig {
-  const _WorkflowConfig({required this.selectedRepository, required this.selectedWorkingDirectory, required this.selectedTriggerType, this.selectedTriggerBranch});
+  const _WorkflowConfig({required this.selectedRepository, required this.selectedWorkingDirectory, final  Map<String, String?> triggers = const {}}): _triggers = triggers;
   factory _WorkflowConfig.fromJson(Map<String, dynamic> json) => _$WorkflowConfigFromJson(json);
 
 @override final  String selectedRepository;
 @override final  String selectedWorkingDirectory;
-@override final  TriggerType selectedTriggerType;
-@override final  String? selectedTriggerBranch;
+ final  Map<String, String?> _triggers;
+@override@JsonKey() Map<String, String?> get triggers {
+  if (_triggers is EqualUnmodifiableMapView) return _triggers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_triggers);
+}
+
 
 /// Create a copy of WorkflowConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -535,16 +539,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowConfig&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&(identical(other.selectedTriggerType, selectedTriggerType) || other.selectedTriggerType == selectedTriggerType)&&(identical(other.selectedTriggerBranch, selectedTriggerBranch) || other.selectedTriggerBranch == selectedTriggerBranch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowConfig&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&const DeepCollectionEquality().equals(other._triggers, _triggers));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,selectedRepository,selectedWorkingDirectory,selectedTriggerType,selectedTriggerBranch);
+int get hashCode => Object.hash(runtimeType,selectedRepository,selectedWorkingDirectory,const DeepCollectionEquality().hash(_triggers));
 
 @override
 String toString() {
-  return 'WorkflowConfig(selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, selectedTriggerType: $selectedTriggerType, selectedTriggerBranch: $selectedTriggerBranch)';
+  return 'WorkflowConfig(selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, triggers: $triggers)';
 }
 
 
@@ -555,7 +559,7 @@ abstract mixin class _$WorkflowConfigCopyWith<$Res> implements $WorkflowConfigCo
   factory _$WorkflowConfigCopyWith(_WorkflowConfig value, $Res Function(_WorkflowConfig) _then) = __$WorkflowConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String selectedRepository, String selectedWorkingDirectory, TriggerType selectedTriggerType, String? selectedTriggerBranch
+ String selectedRepository, String selectedWorkingDirectory, Map<String, String?> triggers
 });
 
 
@@ -572,13 +576,12 @@ class __$WorkflowConfigCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? selectedTriggerType = null,Object? selectedTriggerBranch = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? triggers = null,}) {
   return _then(_WorkflowConfig(
 selectedRepository: null == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
 as String,selectedWorkingDirectory: null == selectedWorkingDirectory ? _self.selectedWorkingDirectory : selectedWorkingDirectory // ignore: cast_nullable_to_non_nullable
-as String,selectedTriggerType: null == selectedTriggerType ? _self.selectedTriggerType : selectedTriggerType // ignore: cast_nullable_to_non_nullable
-as TriggerType,selectedTriggerBranch: freezed == selectedTriggerBranch ? _self.selectedTriggerBranch : selectedTriggerBranch // ignore: cast_nullable_to_non_nullable
-as String?,
+as String,triggers: null == triggers ? _self._triggers : triggers // ignore: cast_nullable_to_non_nullable
+as Map<String, String?>,
   ));
 }
 

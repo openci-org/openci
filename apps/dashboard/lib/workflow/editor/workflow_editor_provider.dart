@@ -21,12 +21,12 @@ class WorkflowEditor extends _$WorkflowEditor {
         )
         .snapshots()
         .map((doc) {
-      final workflow = doc.data();
-      if (workflow == null) {
-        throw Exception('Workflow not found');
-      }
-      return workflow;
-    });
+          final workflow = doc.data();
+          if (workflow == null) {
+            throw Exception('Workflow not found');
+          }
+          return workflow;
+        });
   }
 
   Future<void> updateName(String name) async {
@@ -72,8 +72,8 @@ class WorkflowEditor extends _$WorkflowEditor {
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+          'workflowSteps': steps.map((s) => s.toJson()).toList(),
+        });
   }
 
   Future<void> deleteStep(int index) async {
@@ -96,8 +96,8 @@ class WorkflowEditor extends _$WorkflowEditor {
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+          'workflowSteps': steps.map((s) => s.toJson()).toList(),
+        });
   }
 
   Future<void> reorderSteps(int oldIndex, int newIndex) async {
@@ -123,8 +123,8 @@ class WorkflowEditor extends _$WorkflowEditor {
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+          'workflowSteps': steps.map((s) => s.toJson()).toList(),
+        });
   }
 }
 
@@ -134,8 +134,7 @@ abstract class CreateWorkflowState with _$CreateWorkflowState {
     required bool isCreated,
     required String selectedRepository,
     required String selectedWorkingDirectory,
-    required TriggerType selectedTriggerType,
-    required String selectedTriggerBranch,
+    required Map<String, String?> triggers,
     required List<WorkflowStep> selectedWorkflowSteps,
   }) = _CreateWorkflowState;
 

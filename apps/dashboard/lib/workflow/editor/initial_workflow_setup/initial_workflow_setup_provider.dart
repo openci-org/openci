@@ -16,8 +16,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     name: '',
     selectedRepository: '',
     selectedWorkingDirectory: '',
-    selectedTriggerType: TriggerType.push,
-    selectedTriggerBranch: '',
+    triggers: {'push': 'main'},
   );
 
   void updateName(String name) {
@@ -36,19 +35,14 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     state = state.copyWith(selectedWorkingDirectory: directory);
   }
 
-  void updateSelectedTriggerType(TriggerType type) {
-    state = state.copyWith(selectedTriggerType: type);
-  }
-
-  void updateSelectedTriggerBranch(String branch) {
-    state = state.copyWith(selectedTriggerBranch: branch);
+  void updateTriggers(Map<String, String?> triggers) {
+    state = state.copyWith(triggers: triggers);
   }
 
   Future<void> save({
     required String name,
     required String selectedRepository,
     required String selectedWorkingDirectory,
-    String? selectedTriggerBranch,
   }) async {
     final documentId = Uuid().v4();
     final teamId = ref.watch(teamStateProvider).requireValue.id;
@@ -68,8 +62,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
             workflowConfig: WorkflowConfig(
               selectedRepository: selectedRepository,
               selectedWorkingDirectory: selectedWorkingDirectory,
-              selectedTriggerType: state.selectedTriggerType,
-              selectedTriggerBranch: selectedTriggerBranch,
+              triggers: state.triggers,
             ),
             workflowSteps: [],
             isEditing: true,
@@ -85,8 +78,7 @@ abstract class InitialWorkflowSetupState with _$InitialWorkflowSetupState {
     required String name,
     required String selectedRepository,
     required String selectedWorkingDirectory,
-    required TriggerType selectedTriggerType,
-    required String selectedTriggerBranch,
+    required Map<String, String?> triggers,
   }) = _InitialWorkflowSetupState;
 
   factory InitialWorkflowSetupState.fromJson(Map<String, Object?> json) =>
