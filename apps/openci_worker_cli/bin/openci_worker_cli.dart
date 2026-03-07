@@ -397,14 +397,9 @@ Future<bool> processJob(
 
   try {
     final workflowFileName = buildJobData['workflowFileName'] as String?;
-    final workflowFileContent = buildJobData['workflowFileContent'] as String?;
     if (workflowFileName == null || workflowFileName.isEmpty) {
       await logger.error('workflowFileName is missing in build job data');
       throw Exception('workflowFileName is missing');
-    }
-    if (workflowFileContent == null || workflowFileContent.isEmpty) {
-      await logger.error('workflowFileContent is missing in build job data');
-      throw Exception('workflowFileContent is missing');
     }
 
     await logger.info('Workflow: $workflowFileName');
@@ -420,13 +415,34 @@ Future<bool> processJob(
     await waitForVmReady(currentVmName, vmStartError: () => vmStartError);
     await logger.info('VM is ready!');
 
-    await logger.info('Writing workflow file to VM...');
-    await execCommand('mkdir -p /tmp/openci-workflow/.openci');
-    await writeFileToVm(
-      currentVmName,
-      '/tmp/openci-workflow/.openci/$workflowFileName',
-      workflowFileContent,
-    );
+    await logger.info('Cloning repository $owner/$repo...');
+    final cloneUrl =
+        'https://x-access-token:$token@github.com/$owner/$repo.git';
+
+    await execCommand('git clone --progress $cloneUrl');
+
+    final pullRequestNumber = buildJobData['pullRequestNumber'] as int?;
+
+    await logger.info('Fetching commit $commitSha...');
+    try {
+      await execCommand('git -C $repo fetch origin $commitSha');
+    } catch (_) {
+      if (pullRequestNumber != null) {
+        await logger.info(
+          'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
+        );
+        await execCommand(
+          'git -C $repo fetch origin pull/$pullRequestNumber/head',
+        );
+      } else {
+        rethrow;
+      }
+    }
+
+    await logger.info('Checking out commit $commitSha...');
+    await execCommand('git -C $repo checkout $commitSha');
+
+    await logger.info('Repository cloned successfully');
 
     await logger.info('Setting up environment...');
 
@@ -526,7 +542,7 @@ Future<bool> processJob(
     final actScript = [
       'set -e',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
-      'cd /tmp/openci-workflow',
+      'cd $repo',
       'act -W .openci/$workflowFileName '
           '-P macos-latest=-self-hosted '
           '-P macos-14=-self-hosted '

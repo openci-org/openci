@@ -133,7 +133,6 @@ export const retryBuildJob = onCall(
       teamId: originalJob.teamId ?? null,
       workflowId: originalJob.workflowId ?? null,
       workflowFileName: originalJob.workflowFileName ?? null,
-      workflowFileContent: originalJob.workflowFileContent ?? null,
       installationId: originalJob.installationId ?? null,
       commitSha: originalJob.commitSha ?? null,
       pullRequestNumber: originalJob.pullRequestNumber ?? null,
