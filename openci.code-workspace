@@ -159,7 +159,7 @@
       {
         "label": "Firebase: (Dev) Deploy Functions",
         "type": "shell",
-        "command": "firebase use default && firebase deploy --only functions",
+        "command": "rm -rf node_modules package-lock.json lib && npm i && gcloud functions list --project openci-dev-da298 --format='value(name)' 2>/dev/null | xargs -I {} gcloud functions delete {} --project openci-dev-da298 --region asia-northeast1 --gen2 --quiet 2>/dev/null; firebase use default && firebase deploy --only functions",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },
@@ -186,7 +186,7 @@
       {
         "label": "Firebase: (Prod) Deploy Functions",
         "type": "shell",
-        "command": "firebase use prod && firebase deploy --only functions && firebase use default",
+        "command": "rm -rf node_modules package-lock.json lib && npm i && gcloud functions list --project openci-b1b91 --format='value(name)' 2>/dev/null | xargs -I {} gcloud functions delete {} --project openci-b1b91 --region asia-northeast1 --gen2 --quiet 2>/dev/null; firebase use prod && firebase deploy --only functions && firebase use default",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },

@@ -11,5 +11,5 @@
     "target": "es2022"
   },
   "compileOnSave": true,
-  "include": ["src"]
+  "include": ["src", "index.ts"]
 }
