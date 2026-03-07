@@ -447,8 +447,12 @@ Future<bool> processJob(
       'OPENCI_TEAM_ID': ?teamId,
     };
 
+    final saJsonCompact = jsonEncode(
+      jsonDecode(File(serviceAccountPath).readAsStringSync()),
+    );
+
     final secretVars = <String, String>{
-      'OPENCI_GCP_SA_JSON': File(serviceAccountPath).readAsStringSync(),
+      'OPENCI_GCP_SA_JSON': saJsonCompact,
       'GITHUB_TOKEN': token,
     };
 
