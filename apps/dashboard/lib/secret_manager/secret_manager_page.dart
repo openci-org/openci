@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +11,10 @@ class SecretManagerPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(secretManagerProvider);
+    final secretsT = t.secrets;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Secret Manager'),
+        title: Text(secretsT.title),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -28,7 +30,7 @@ class SecretManagerPage extends HookConsumerWidget {
       body: state.when(
         data: (secrets) {
           if (secrets.isEmpty) {
-            return const Center(child: Text('No secrets found'));
+            return Center(child: Text(secretsT.noSecrets));
           }
           return ListView.builder(
             itemCount: secrets.length,
@@ -60,7 +62,9 @@ class SecretManagerPage extends HookConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (error, stack) => Center(
+          child: Text(t.common.error(error: error.toString())),
+        ),
       ),
     );
   }
@@ -74,6 +78,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
     final secretNameController = useTextEditingController();
     final secretValueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    final secretsT = t.secrets;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -90,20 +95,20 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                 key: formKey,
                 child: Column(
                   children: [
-                    const Text(
-                      'Add Secret',
+                    Text(
+                      secretsT.addSecret,
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: secretNameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'SECRET_NAME',
+                        labelText: secretsT.secretName,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a secret name';
+                          return secretsT.enterSecretName;
                         }
                         return null;
                       },
@@ -111,14 +116,14 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: secretValueController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'Secret Value',
+                        labelText: secretsT.secretValue,
                       ),
                       obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a secret value';
+                          return secretsT.enterSecretValue;
                         }
                         return null;
                       },
@@ -136,7 +141,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                               );
                           if (!context.mounted) return;
                           context.showSnackBarMessage(
-                            'Secret added successfully',
+                            secretsT.addedSuccess,
                           );
                           Navigator.of(context).pop();
                         } catch (e) {
@@ -144,7 +149,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           context.showSnackBarMessage('$e');
                         }
                       },
-                      child: const Text('Add Secret'),
+                      child: Text(secretsT.addSecret),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -169,6 +174,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
     final valueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
+    final secretsT = t.secrets;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -185,20 +191,20 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                 key: formKey,
                 child: Column(
                   children: [
-                    const Text(
-                      'Edit Secret',
+                    Text(
+                      secretsT.editSecret,
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: nameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'SECRET_NAME',
+                        labelText: secretsT.secretName,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a secret name';
+                          return secretsT.enterSecretName;
                         }
                         return null;
                       },
@@ -206,10 +212,9 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: valueController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText:
-                            'New Secret Value (leave empty to keep current)',
+                        labelText: secretsT.newSecretValue,
                       ),
                       obscureText: true,
                     ),
@@ -234,7 +239,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                                     );
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
-                                  'Secret updated successfully',
+                                  secretsT.updatedSuccess,
                                 );
                                 Navigator.of(context).pop();
                               } catch (e) {
@@ -249,7 +254,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Save'),
+                          : Text(t.common.save),
                     ),
                     const SizedBox(height: 24),
                   ],

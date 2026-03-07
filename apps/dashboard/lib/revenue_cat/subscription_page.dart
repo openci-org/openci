@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/revenue_cat/subscription_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -19,24 +20,25 @@ class SubscriptionPage extends HookConsumerWidget {
     final offerings = ref.watch(offeringsProvider);
     final customerInfo = ref.watch(customerInfoProvider);
     final isPurchasing = useState(false);
+    final subT = t.subscription;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Subscription')),
+      appBar: AppBar(title: Text(subT.title)),
       body: Stack(
         children: [
           offerings.when(
             data: (data) {
               final current = data.current;
               if (current == null) {
-                return const Center(
-                  child: Text('No offerings available'),
+                return Center(
+                  child: Text(subT.noOfferings),
                 );
               }
 
               final packages = current.availablePackages;
               if (packages.isEmpty) {
-                return const Center(
-                  child: Text('No packages available'),
+                return Center(
+                  child: Text(subT.noPackages),
                 );
               }
 
@@ -53,7 +55,7 @@ class SubscriptionPage extends HookConsumerWidget {
                         const SizedBox(height: 24),
                       ],
                       Text(
-                        'Plans',
+                        subT.plans,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 12),
@@ -76,7 +78,7 @@ class SubscriptionPage extends HookConsumerWidget {
                       Center(
                         child: TextButton(
                           onPressed: () => _restorePurchases(context, ref),
-                          child: const Text('Restore Purchases'),
+                          child: Text(subT.restorePurchases),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -88,7 +90,7 @@ class SubscriptionPage extends HookConsumerWidget {
                   child: CircularProgressIndicator.adaptive(),
                 ),
                 error: (error, _) => Center(
-                  child: Text('Error: $error'),
+                  child: Text(t.common.error(error: error.toString())),
                 ),
               );
             },
@@ -122,16 +124,19 @@ class SubscriptionPage extends HookConsumerWidget {
     ValueNotifier<bool> isPurchasing,
   ) async {
     isPurchasing.value = true;
+    final subT = t.subscription;
     try {
       await Purchases.purchase(PurchaseParams.package(package));
       ref.invalidate(customerInfoProvider);
       if (!context.mounted) return;
-      context.showSnackBarMessage('Purchase successful!');
+      context.showSnackBarMessage(subT.purchaseSuccess);
     } on PlatformException catch (e) {
       if (!context.mounted) return;
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
-        context.showSnackBarMessage('Purchase failed: ${e.message}');
+        context.showSnackBarMessage(
+          subT.purchaseFailed(error: e.message ?? ''),
+        );
       }
     } finally {
       isPurchasing.value = false;
@@ -139,14 +144,17 @@ class SubscriptionPage extends HookConsumerWidget {
   }
 
   Future<void> _restorePurchases(BuildContext context, WidgetRef ref) async {
+    final subT = t.subscription;
     try {
       await Purchases.restorePurchases();
       ref.invalidate(customerInfoProvider);
       if (!context.mounted) return;
-      context.showSnackBarMessage('Purchases restored successfully');
+      context.showSnackBarMessage(subT.restoreSuccess);
     } on PlatformException catch (e) {
       if (!context.mounted) return;
-      context.showSnackBarMessage('Restore failed: ${e.message}');
+      context.showSnackBarMessage(
+        subT.restoreFailed(error: e.message ?? ''),
+      );
     }
   }
 }
@@ -156,17 +164,13 @@ class _SubscriptionTermsFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final subT = t.subscription;
     return Column(
       children: [
         const Divider(),
         const SizedBox(height: 8),
         Text(
-          'Subscriptions automatically renew unless canceled at least '
-          '24 hours before the end of the current period. '
-          'Your Apple ID account will be charged for renewal within '
-          '24 hours prior to the end of the current period. '
-          'You can manage and cancel your subscriptions by going to '
-          'your account settings on the App Store after purchase.',
+          subT.subscriptionTerms,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Colors.grey.shade600,
           ),
@@ -179,7 +183,7 @@ class _SubscriptionTermsFooter extends StatelessWidget {
             GestureDetector(
               onTap: () => _launchUrl(SubscriptionPage._termsOfServiceUrl),
               child: Text(
-                'Terms of Use',
+                subT.termsOfUse,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   decoration: TextDecoration.underline,
@@ -198,7 +202,7 @@ class _SubscriptionTermsFooter extends StatelessWidget {
             GestureDetector(
               onTap: () => _launchUrl(SubscriptionPage._privacyPolicyUrl),
               child: Text(
-                'Privacy Policy',
+                subT.privacyPolicy,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   decoration: TextDecoration.underline,
@@ -227,6 +231,7 @@ class _ActiveSubscriptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final subT = t.subscription;
     return Card(
       color: Colors.green.shade50,
       child: Padding(
@@ -240,7 +245,7 @@ class _ActiveSubscriptionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Active Subscription',
+                    subT.activeSubscription,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green.shade700,
@@ -277,6 +282,7 @@ class _PackageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final product = package.storeProduct;
     final periodLabel = _subscriptionPeriodLabel(product.subscriptionPeriod);
+    final subT = t.subscription;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -319,7 +325,7 @@ class _PackageCard extends StatelessWidget {
               const SizedBox(width: 12),
               if (isActive)
                 Chip(
-                  label: const Text('Active'),
+                  label: Text(subT.active),
                   backgroundColor: Colors.green.shade50,
                   labelStyle: TextStyle(color: Colors.green.shade700),
                 )
@@ -353,12 +359,13 @@ class _PackageCard extends StatelessWidget {
 
   String? _subscriptionPeriodLabel(String? period) {
     if (period == null) return null;
+    final subT = t.subscription;
     return switch (period) {
-      'P1W' => 'per week',
-      'P1M' => 'per month',
-      'P3M' => 'per 3 months',
-      'P6M' => 'per 6 months',
-      'P1Y' => 'per year',
+      'P1W' => subT.perWeek,
+      'P1M' => subT.perMonth,
+      'P3M' => subT.per3Months,
+      'P6M' => subT.per6Months,
+      'P1Y' => subT.perYear,
       _ => null,
     };
   }

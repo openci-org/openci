@@ -1,9 +1,11 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/navigation_bar_page.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class Root extends StatelessWidget {
@@ -13,6 +15,9 @@ class Root extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      locale: TranslationProvider.of(context).flutterLocale,
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: HomePage(),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
     final workflowNameAsync = ref.watch(
       workflowNameProvider(buildJob.workflowId),
     );
+    final detailT = t.buildLogs.detail;
 
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
@@ -36,11 +38,11 @@ class BuildLogsDetailPage extends HookConsumerWidget {
     };
 
     final statusLabel = switch (buildJob.status) {
-      'success' => 'Success',
-      'failure' => 'Failed',
-      'in_progress' => 'In Progress',
-      'queued' => 'Queued',
-      'cancelled' => 'Cancelled',
+      'success' => t.buildLogs.status.success,
+      'failure' => t.buildLogs.status.failed,
+      'in_progress' => t.buildLogs.status.inProgress,
+      'queued' => t.buildLogs.status.queued,
+      'cancelled' => t.buildLogs.status.cancelled,
       _ => buildJob.status,
     };
 
@@ -76,28 +78,25 @@ class BuildLogsDetailPage extends HookConsumerWidget {
           error: asyncErrorWidget,
         ),
         actions: [
-          // Cancel button (only for active builds)
           if (canCancel)
             IconButton(
               onPressed: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Cancel Build'),
-                    content: const Text(
-                      'Are you sure you want to cancel this build?',
-                    ),
+                    title: Text(detailT.cancelBuild),
+                    content: Text(detailT.cancelConfirm),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('No'),
+                        child: Text(detailT.cancelNo),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.red,
                         ),
-                        child: const Text('Cancel Build'),
+                        child: Text(detailT.cancelBuild),
                       ),
                     ],
                   ),
@@ -105,16 +104,18 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 if (confirmed != true) return;
                 try {
                   if (!context.mounted) return;
-                  context.showSnackBarMessage('Cancelling build...');
+                  context.showSnackBarMessage(detailT.cancelling);
                   await ref
                       .read(buildJobsProvider.notifier)
                       .cancelBuildJob(buildJob.id);
                   if (context.mounted) {
-                    context.showSnackBarMessage('Build cancelled');
+                    context.showSnackBarMessage(detailT.buildCancelled);
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    context.showSnackBarMessage('Failed to cancel: $e');
+                    context.showSnackBarMessage(
+                      detailT.failedToCancel(error: e.toString()),
+                    );
                   }
                 }
               },
@@ -123,22 +124,23 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 size: 20,
                 color: Colors.orange[300],
               ),
-              tooltip: 'Cancel',
+              tooltip: t.common.cancel,
             ),
-          // Retry button
           IconButton(
             onPressed: () async {
               try {
-                context.showSnackBarMessage('Retrying build job...');
+                context.showSnackBarMessage(detailT.retrying);
                 await ref
                     .read(buildJobsProvider.notifier)
                     .retryBuildJob(buildJob.id);
                 if (context.mounted) {
-                  context.showSnackBarMessage('Build job queued successfully');
+                  context.showSnackBarMessage(detailT.retrySuccess);
                 }
               } catch (e) {
                 if (context.mounted) {
-                  context.showSnackBarMessage('Failed to retry: $e');
+                  context.showSnackBarMessage(
+                    detailT.failedToRetry(error: e.toString()),
+                  );
                 }
               }
             },
@@ -155,7 +157,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Build job metadata header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -170,7 +171,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status badge
                 Row(
                   children: [
                     Container(
@@ -222,7 +222,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Git metadata chips
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -256,14 +255,13 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               ],
             ),
           ),
-          // Logs area
           Expanded(
             child: buildJob.latestRunId != null
                 ? _DetailLogsView(
                     buildJobId: buildJob.id,
                     runId: buildJob.latestRunId!,
                   )
-                : const Center(
+                : Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -274,7 +272,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'No runs yet',
+                          detailT.noRuns,
                           style: TextStyle(color: Colors.grey, fontSize: 16),
                         ),
                       ],
@@ -337,11 +335,12 @@ class _DetailLogsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final logsAsync = ref.watch(buildLogsProvider(buildJobId, runId));
+    final detailT = t.buildLogs.detail;
 
     return logsAsync.when(
       data: (logs) {
         if (logs.isEmpty) {
-          return const Center(
+          return Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -352,7 +351,7 @@ class _DetailLogsView extends ConsumerWidget {
                 ),
                 SizedBox(width: 8),
                 Text(
-                  'Waiting for logs...',
+                  detailT.waitingForLogs,
                   style: TextStyle(color: Colors.grey),
                 ),
               ],
@@ -362,7 +361,6 @@ class _DetailLogsView extends ConsumerWidget {
 
         return Column(
           children: [
-            // Log header toolbar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -382,7 +380,7 @@ class _DetailLogsView extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${logs.length} log entries',
+                    detailT.logEntries(count: logs.length.toString()),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.4),
@@ -390,13 +388,12 @@ class _DetailLogsView extends ConsumerWidget {
                     ),
                   ),
                   const Spacer(),
-                  // Copy all logs button
                   IconButton(
                     onPressed: () {
                       final allLogs = logs.map((l) => l.message).join('\n');
                       Clipboard.setData(ClipboardData(text: allLogs));
                       if (context.mounted) {
-                        context.showSnackBarMessage('Logs copied to clipboard');
+                        context.showSnackBarMessage(detailT.logsCopied);
                       }
                     },
                     icon: Icon(
@@ -404,7 +401,7 @@ class _DetailLogsView extends ConsumerWidget {
                       size: 18,
                       color: Colors.white.withValues(alpha: 0.4),
                     ),
-                    tooltip: 'Copy all logs',
+                    tooltip: detailT.copyAll,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
                       minWidth: 32,
@@ -414,7 +411,6 @@ class _DetailLogsView extends ConsumerWidget {
                 ],
               ),
             ),
-            // Scrollable log lines
             Expanded(
               child: Scrollbar(
                 child: ListView.builder(
@@ -440,7 +436,7 @@ class _DetailLogsView extends ConsumerWidget {
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 12),
             Text(
-              'Error: $error',
+              t.common.error(error: error.toString()),
               style: const TextStyle(color: Colors.red),
               textAlign: TextAlign.center,
             ),
@@ -476,7 +472,6 @@ class _DetailLogLine extends HookWidget {
       _ => Icons.circle,
     };
 
-    // Single-line log: simple row
     if (!isMultiLine) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),
@@ -506,7 +501,6 @@ class _DetailLogLine extends HookWidget {
       );
     }
 
-    // Multi-line log: prominent expandable card
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Container(
@@ -521,7 +515,6 @@ class _DetailLogLine extends HookWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Clickable header
             Material(
               color: Colors.transparent,
               child: InkWell(
@@ -538,7 +531,6 @@ class _DetailLogLine extends HookWidget {
                       const SizedBox(width: 12),
                       _levelIconWidget(levelIcon, levelColor),
                       const SizedBox(width: 8),
-                      // First line preview
                       Expanded(
                         child: Text(
                           lines.first,
@@ -553,7 +545,6 @@ class _DetailLogLine extends HookWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Expand badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -575,7 +566,9 @@ class _DetailLogLine extends HookWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${lines.length} lines',
+                              t.buildLogs.detail.lines(
+                                count: lines.length.toString(),
+                              ),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: levelColor,
@@ -591,7 +584,6 @@ class _DetailLogLine extends HookWidget {
                 ),
               ),
             ),
-            // Expanded content
             if (isExpanded.value) ...[
               Container(
                 width: double.infinity,

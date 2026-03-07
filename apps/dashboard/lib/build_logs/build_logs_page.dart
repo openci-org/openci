@@ -1,6 +1,7 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -15,20 +16,20 @@ class LogsPage extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Build Logs - ${DateTime.now().toFormattedDate()}',
+          t.buildLogs.title(date: DateTime.now().toFormattedDate()),
         ),
       ),
       body: state.when(
         data: (buildJobs) {
           if (buildJobs.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No build jobs found',
+                    t.buildLogs.noJobs,
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                 ],
@@ -83,11 +84,11 @@ class BuildJobCard extends ConsumerWidget {
     };
 
     final statusLabel = switch (buildJob.status) {
-      'success' => 'Success',
-      'failure' => 'Failed',
-      'in_progress' => 'In Progress',
-      'queued' => 'Queued',
-      'cancelled' => 'Cancelled',
+      'success' => t.buildLogs.status.success,
+      'failure' => t.buildLogs.status.failed,
+      'in_progress' => t.buildLogs.status.inProgress,
+      'queued' => t.buildLogs.status.queued,
+      'cancelled' => t.buildLogs.status.cancelled,
       _ => buildJob.status,
     };
 
@@ -117,12 +118,10 @@ class BuildJobCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title row
                     Row(
                       children: [
                         Expanded(
@@ -157,12 +156,10 @@ class BuildJobCard extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // Git metadata chips
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        // Status badge
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -231,7 +228,6 @@ class BuildJobCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Chevron indicator
               Icon(
                 Icons.chevron_right,
                 color: Theme.of(
@@ -275,12 +271,15 @@ class _GitChip extends StatelessWidget {
             color: color,
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

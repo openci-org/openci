@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -33,6 +34,7 @@ class _NotificationSettingsContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final notiT = t.notifications;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +50,7 @@ class _NotificationSettingsContent extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Build Notifications',
+                notiT.title,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.colorScheme.primary,
@@ -59,8 +61,8 @@ class _NotificationSettingsContent extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         _NotificationOptionTile(
-          title: 'All',
-          subtitle: 'Notify on both success and failure',
+          title: notiT.all,
+          subtitle: notiT.allDesc,
           icon: Symbols.notifications_active_rounded,
           isSelected: currentPreference == NotificationPreference.all,
           onTap: () => _updatePreference(
@@ -70,8 +72,8 @@ class _NotificationSettingsContent extends ConsumerWidget {
           ),
         ),
         _NotificationOptionTile(
-          title: 'Success Only',
-          subtitle: 'Notify only when build succeeds',
+          title: notiT.successOnly,
+          subtitle: notiT.successOnlyDesc,
           icon: Symbols.check_circle_rounded,
           iconColor: Colors.green,
           isSelected: currentPreference == NotificationPreference.successOnly,
@@ -82,8 +84,8 @@ class _NotificationSettingsContent extends ConsumerWidget {
           ),
         ),
         _NotificationOptionTile(
-          title: 'Failure Only',
-          subtitle: 'Notify only when build fails',
+          title: notiT.failureOnly,
+          subtitle: notiT.failureOnlyDesc,
           icon: Symbols.error_rounded,
           iconColor: Colors.redAccent,
           isSelected: currentPreference == NotificationPreference.failureOnly,
@@ -94,8 +96,8 @@ class _NotificationSettingsContent extends ConsumerWidget {
           ),
         ),
         _NotificationOptionTile(
-          title: 'None',
-          subtitle: 'Do not send any notifications',
+          title: notiT.none,
+          subtitle: notiT.noneDesc,
           icon: Symbols.notifications_off_rounded,
           iconColor: Colors.grey,
           isSelected: currentPreference == NotificationPreference.none,
@@ -115,18 +117,17 @@ class _NotificationSettingsContent extends ConsumerWidget {
     NotificationPreference preference,
   ) async {
     if (preference == currentPreference) return;
+    final notiT = t.notifications;
     try {
       await ref
           .read(userProvider.notifier)
           .updateNotificationPreference(preference);
       if (!context.mounted) return;
-      context.showSnackBarMessage(
-        'Notification preference updated',
-      );
+      context.showSnackBarMessage(notiT.updated);
     } catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage(
-        'Failed to update: $e',
+        notiT.updateFailed(error: e.toString()),
       );
     }
   }

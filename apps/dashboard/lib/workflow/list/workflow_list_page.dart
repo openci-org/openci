@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/create_team_bottom_sheet.dart';
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
@@ -26,6 +27,7 @@ class WorkflowListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProvider);
+    final wfT = t.workflow;
 
     return userAsync.when(
       loading: () => const Scaffold(
@@ -51,7 +53,7 @@ class WorkflowListPage extends ConsumerWidget {
                       ),
                     );
                   },
-                  label: const Text('Add Workflow'),
+                  label: Text(wfT.addWorkflow),
                   icon: const Icon(Icons.add),
                 )
               : null,
@@ -59,7 +61,7 @@ class WorkflowListPage extends ConsumerWidget {
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Workflows'),
+                Text(wfT.title),
                 if (selectedRepo != null)
                   Row(
                     children: [
@@ -184,7 +186,7 @@ class WorkflowListPage extends ConsumerWidget {
                           },
                         );
                       },
-                      child: const Text('Switch Team'),
+                      child: Text(t.team.switchTeam),
                     ),
                     MenuItemButton(
                       leadingIcon: const Icon(Icons.edit),
@@ -198,7 +200,7 @@ class WorkflowListPage extends ConsumerWidget {
                           },
                         );
                       },
-                      child: const Text('Edit Team'),
+                      child: Text(t.team.editTeam),
                     ),
                     MenuItemButton(
                       leadingIcon: const Icon(Icons.add),
@@ -212,7 +214,7 @@ class WorkflowListPage extends ConsumerWidget {
                           },
                         );
                       },
-                      child: const Text('Create Team'),
+                      child: Text(t.team.createTeam),
                     ),
                   ],
                   builder: (context, controller, child) {
@@ -284,6 +286,7 @@ class _WorkflowBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workflowFilesAsync = ref.watch(workflowFilesProvider);
+    final wfT = t.workflow;
 
     return workflowFilesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
@@ -302,12 +305,12 @@ class _WorkflowBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No workflow files found',
+                  wfT.noWorkflowFiles,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Add YAML files to .openci/ in your repository.',
+                  wfT.addYamlHint,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).hintColor,
                   ),
@@ -387,6 +390,7 @@ class SelectRepository extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final wfT = t.workflow;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -400,12 +404,12 @@ class SelectRepository extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Select a repository',
+              wfT.selectRepo,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              'Choose a GitHub repository to manage workflows.',
+              wfT.selectRepoHint,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).hintColor,
@@ -420,7 +424,7 @@ class SelectRepository extends StatelessWidget {
                 builder: (_) => const SelectRepositoryBottomSheet(),
               ),
               icon: const Icon(FontAwesomeIcons.github, size: 18),
-              label: const Text('Select Repository'),
+              label: Text(wfT.selectRepoButton),
             ),
           ],
         ),
