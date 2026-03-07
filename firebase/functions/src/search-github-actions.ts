@@ -9,6 +9,95 @@ import { teamsCollectionPath } from "./firestore-collection-paths";
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
 
+export const SEARCH_REPOS_QUERY = `
+  query($queryString: String!) {
+    search(query: $queryString, type: REPOSITORY, first: 50) {
+      nodes {
+        ... on Repository {
+          nameWithOwner
+          description
+          stargazerCount
+          owner {
+            login
+            avatarUrl
+          }
+          url
+          defaultBranchRef {
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
+export interface SearchReposQueryResult {
+  search: {
+    nodes: Array<{
+      nameWithOwner: string;
+      description: string | null;
+      stargazerCount: number;
+      owner: {
+        login: string;
+        avatarUrl: string;
+      };
+      url: string;
+      defaultBranchRef: {
+        name: string;
+      } | null;
+    }>;
+  };
+}
+
+export const TAGS_QUERY = `
+  query($owner: String!, $repo: String!) {
+    repository(owner: $owner, name: $repo) {
+      refs(refPrefix: "refs/tags/", first: 100, orderBy: {field: TAG_COMMIT_DATE, direction: DESC}) {
+        nodes {
+          name
+        }
+      }
+    }
+  }
+`;
+
+export interface TagsQueryResult {
+  repository: {
+    refs: {
+      nodes: Array<{
+        name: string;
+      }>;
+    };
+  };
+}
+
+export function parseSearchResults(result: SearchReposQueryResult) {
+  return result.search.nodes.map((repo) => ({
+    fullName: repo.nameWithOwner,
+    description: repo.description ?? "",
+    stars: repo.stargazerCount,
+    owner: repo.owner.login,
+    avatarUrl: repo.owner.avatarUrl,
+    htmlUrl: repo.url,
+    defaultBranch: repo.defaultBranchRef?.name ?? "main",
+    isOfficial: repo.owner.login === "actions",
+  }));
+}
+
+export function parseTags(result: TagsQueryResult): string[] {
+  const majorTags: string[] = [];
+  const allTags: string[] = [];
+
+  for (const ref of result.repository.refs.nodes) {
+    allTags.push(ref.name);
+    if (/^v\d+$/.test(ref.name)) {
+      majorTags.push(ref.name);
+    }
+  }
+
+  return majorTags.length > 0 ? majorTags : allTags;
+}
+
 export const searchGitHubActions = onCall(
   {
     region: "asia-northeast1",
@@ -55,26 +144,12 @@ export const searchGitHubActions = onCall(
       const octokit = await app.getInstallationOctokit(installationIds[0]);
 
       if (type === "search") {
-        const searchQuery = query?.trim() || "github action";
-        const { data } = await octokit.request("GET /search/repositories", {
-          q: searchQuery,
-          sort: "stars",
-          order: "desc",
-          per_page: 50,
+        const queryString = `${query?.trim() || "github action"} sort:stars-desc`;
+        const result = await octokit.graphql<SearchReposQueryResult>(SEARCH_REPOS_QUERY, {
+          queryString,
         });
 
-        const actions = data.items.map((repo: any) => ({
-          fullName: repo.full_name,
-          description: repo.description ?? "",
-          stars: repo.stargazers_count,
-          owner: repo.owner.login,
-          avatarUrl: repo.owner.avatar_url,
-          htmlUrl: repo.html_url,
-          defaultBranch: repo.default_branch ?? "main",
-          isOfficial: repo.owner.login === "actions",
-        }));
-
-        return { actions };
+        return { actions: parseSearchResults(result) };
       }
 
       if (type === "tags") {
@@ -83,23 +158,9 @@ export const searchGitHubActions = onCall(
         }
 
         const [owner, repo] = fullName.split("/");
-        const { data: tags } = await octokit.request("GET /repos/{owner}/{repo}/tags", {
-          owner,
-          repo,
-          per_page: 100,
-        });
+        const result = await octokit.graphql<TagsQueryResult>(TAGS_QUERY, { owner, repo });
 
-        const majorTags: string[] = [];
-        const allTags: string[] = [];
-
-        for (const tag of tags) {
-          allTags.push(tag.name);
-          if (/^v\d+$/.test(tag.name)) {
-            majorTags.push(tag.name);
-          }
-        }
-
-        return { tags: majorTags.length > 0 ? majorTags : allTags };
+        return { tags: parseTags(result) };
       }
 
       throw new HttpsError("invalid-argument", "Invalid type");
