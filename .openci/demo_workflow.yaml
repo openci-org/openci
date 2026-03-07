@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - develop
+  pull_request:
+    branches:
+      - develop
 
 jobs:
   build:
+    runs-on: macos-latest
     steps:
-      - name: 
+      - name:
         uses: actions/checkout@v4
       - name: Install dependencies
         run: flutter pub get
