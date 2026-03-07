@@ -9,7 +9,6 @@ import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
-import 'package:yaml/yaml.dart';
 
 const String version = '0.5.0';
 
@@ -382,27 +381,6 @@ Future<bool> processJob(
     }
   }
 
-  Future<String> execCommandWithOutput(String command) async {
-    var shell = Shell(verbose: false, throwOnError: false);
-    final results = await shell.run("tart exec $currentVmName $command");
-    final output = StringBuffer();
-
-    for (final result in results) {
-      final stdout = result.stdout?.toString().trim();
-      if (stdout != null && stdout.isNotEmpty) {
-        output.writeln(stdout);
-      }
-      if (result.exitCode != 0) {
-        final stderr = result.stderr?.toString().trim() ?? '';
-        throw Exception(
-          'Command failed with exit code ${result.exitCode}: $stderr',
-        );
-      }
-    }
-
-    return output.toString().trim();
-  }
-
   Future<bool> isCancelled() async {
     try {
       final doc = await firestore
@@ -417,20 +395,19 @@ Future<bool> processJob(
     }
   }
 
-  Future<void> checkCancellation() async {
-    if (await isCancelled()) {
-      throw CancelledException();
-    }
-  }
-
   try {
     final workflowFileName = buildJobData['workflowFileName'] as String?;
+    final workflowFileContent = buildJobData['workflowFileContent'] as String?;
     if (workflowFileName == null || workflowFileName.isEmpty) {
       await logger.error('workflowFileName is missing in build job data');
       throw Exception('workflowFileName is missing');
     }
+    if (workflowFileContent == null || workflowFileContent.isEmpty) {
+      await logger.error('workflowFileContent is missing in build job data');
+      throw Exception('workflowFileContent is missing');
+    }
 
-    await logger.info('Workflow file: .openci/$workflowFileName');
+    await logger.info('Workflow: $workflowFileName');
 
     Object? vmStartError;
     unawaited(
@@ -443,57 +420,15 @@ Future<bool> processJob(
     await waitForVmReady(currentVmName, vmStartError: () => vmStartError);
     await logger.info('VM is ready!');
 
-    await logger.info('Cloning repository $owner/$repo...');
-    final cloneUrl =
-        'https://x-access-token:$token@github.com/$owner/$repo.git';
-
-    await execCommand('git clone --progress $cloneUrl');
-
-    final pullRequestNumber = buildJobData['pullRequestNumber'] as int?;
-
-    await logger.info('Fetching commit $commitSha...');
-    try {
-      await execCommand('git -C $repo fetch origin $commitSha');
-    } catch (_) {
-      if (pullRequestNumber != null) {
-        await logger.info(
-          'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
-        );
-        await execCommand(
-          'git -C $repo fetch origin pull/$pullRequestNumber/head',
-        );
-      } else {
-        rethrow;
-      }
-    }
-
-    await logger.info('Checking out commit $commitSha...');
-    await execCommand('git -C $repo checkout $commitSha');
-
-    await logger.info('Repository cloned successfully');
-
-    await logger.info('Reading .openci/$workflowFileName...');
-    final yamlContent = await execCommandWithOutput(
-      "cat $repo/.openci/$workflowFileName",
+    await logger.info('Writing workflow file to VM...');
+    await execCommand('mkdir -p /tmp/openci-workflow/.openci');
+    await writeFileToVm(
+      currentVmName,
+      '/tmp/openci-workflow/.openci/$workflowFileName',
+      workflowFileContent,
     );
 
-    final parsedYaml = loadYaml(yamlContent);
-    if (parsedYaml is! YamlMap) {
-      await logger.error('Invalid YAML in .openci/$workflowFileName');
-      throw Exception('Invalid workflow YAML');
-    }
-
-    final steps = _extractStepsFromYaml(parsedYaml);
-    if (steps.isEmpty) {
-      await logger.error('No steps found in .openci/$workflowFileName');
-      throw Exception('No steps found in workflow YAML');
-    }
-
-    await logger.info(
-      'Loaded ${steps.length} steps from .openci/$workflowFileName',
-    );
-
-    final workingDirectory = repo;
+    await logger.info('Setting up environment...');
 
     final tagName = buildJobData['tagName'] as String?;
     final tagVersion = tagName != null && tagName.isNotEmpty
@@ -504,17 +439,18 @@ Future<bool> processJob(
 
     final teamId = buildJobData['teamId'] as String?;
 
-    final builtInEnvVars = <String>[
-      if (tagName != null && tagName.isNotEmpty) "export OPENCI_TAG='$tagName'",
-      if (tagVersion != null) "export OPENCI_TAG_VERSION='$tagVersion'",
-      "export OPENCI_PROJECT_ID='$projectId'",
-      if (teamId != null) "export OPENCI_TEAM_ID='$teamId'",
-      () {
-        final saJson = File(serviceAccountPath).readAsStringSync();
-        final escaped = saJson.replaceAll("'", "'\\''");
-        return "export OPENCI_GCP_SA_JSON='$escaped'";
-      }(),
-    ];
+    final envVars = <String, String>{
+      'LANG': 'en_US.UTF-8',
+      'OPENCI_PROJECT_ID': projectId,
+      if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
+      'OPENCI_TAG_VERSION': ?tagVersion,
+      'OPENCI_TEAM_ID': ?teamId,
+    };
+
+    final secretVars = <String, String>{
+      'OPENCI_GCP_SA_JSON': File(serviceAccountPath).readAsStringSync(),
+      'GITHUB_TOKEN': token,
+    };
 
     if (teamId != null) {
       final envVarsSnapshot = await firestore
@@ -546,8 +482,7 @@ Future<bool> processJob(
           );
         }
 
-        final escapedValue = value.replaceAll("'", "'\\''");
-        builtInEnvVars.add("export $key='$escapedValue'");
+        envVars[key] = value;
       }
 
       if (envVarsSnapshot.docs.isNotEmpty) {
@@ -561,57 +496,53 @@ Future<bool> processJob(
       await logger.info('Tag: $tagName (available as \$OPENCI_TAG)');
     }
 
-    for (int i = 0; i < steps.length; i++) {
-      await checkCancellation();
+    final envFileLines = <String>[];
+    final secretFileLines = <String>[];
 
-      final step = steps[i];
-      final stepName = step['name'] as String? ?? 'Step ${i + 1}';
-      final runCommand = step['run'] as String?;
-      final usesAction = step['uses'] as String?;
-
-      await logger.info('Running step ${i + 1}/${steps.length}: $stepName');
-
-      if (runCommand != null && runCommand.isNotEmpty) {
-        await logger.info('run: $runCommand');
-
-        final commandParts = [
-          'set -e',
-          'export LANG=en_US.UTF-8',
-          'export PATH="/Users/admin/flutter/bin:\$PATH"',
-          ...builtInEnvVars,
-          'cd $workingDirectory',
-          runCommand,
-        ];
-
-        final fullCommand = commandParts.join('\n');
-        final encodedCommand = base64Encode(utf8.encode(fullCommand));
-        await execCommand(
-          "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
-        );
-      } else if (usesAction != null && usesAction.isNotEmpty) {
-        final withParams = <String, String>{};
-        final rawWith = step['with'];
-        if (rawWith is Map) {
-          for (final entry in rawWith.entries) {
-            withParams[entry.key.toString()] = entry.value.toString();
-          }
-        }
-
-        await executeUsesStep(
-          uses: usesAction,
-          withParams: withParams,
-          workingDirectory: workingDirectory,
-          builtInEnvVars: builtInEnvVars,
-          logger: logger,
-          execCommand: execCommand,
-          execCommandWithOutput: execCommandWithOutput,
-        );
-      } else {
-        await logger.warning('Step ${i + 1} has no run or uses, skipping');
-      }
-
-      await logger.info('Step ${i + 1}/${steps.length} completed: $stepName');
+    for (final entry in envVars.entries) {
+      envFileLines.add('${entry.key}=${entry.value}');
     }
+    for (final entry in secretVars.entries) {
+      secretFileLines.add('${entry.key}=${entry.value}');
+    }
+
+    final envFileContent = envFileLines.join('\n');
+    final secretFileContent = secretFileLines.join('\n');
+
+    await writeFileToVm(currentVmName, '/tmp/openci-env', envFileContent);
+    await writeFileToVm(
+      currentVmName,
+      '/tmp/openci-secrets',
+      secretFileContent,
+    );
+    await logger.info('Environment variables written');
+
+    await logger.info('Running workflow with act...');
+
+    final actScript = [
+      'set -e',
+      'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
+      'cd /tmp/openci-workflow',
+      'act -W .openci/$workflowFileName '
+          '-P macos-latest=-self-hosted '
+          '-P macos-14=-self-hosted '
+          '-P macos-15=-self-hosted '
+          '-P ubuntu-latest=-self-hosted '
+          '--env-file /tmp/openci-env '
+          '--secret-file /tmp/openci-secrets '
+          '--detect-event',
+    ].join('\n');
+
+    await writeFileToVm(currentVmName, '/tmp/openci-act.sh', actScript);
+    await execCommand('chmod +x /tmp/openci-act.sh');
+
+    await execCommandStreaming(
+      '/bin/zsh /tmp/openci-act.sh',
+      currentVmName,
+      logger,
+      token,
+      isCancelled: isCancelled,
+    );
 
     await Future.delayed(const Duration(seconds: 5));
 
@@ -860,200 +791,88 @@ Future<void> pruneStaleVms(
   }
 }
 
-List<Map<String, dynamic>> _extractStepsFromYaml(YamlMap parsed) {
-  final steps = <Map<String, dynamic>>[];
-  final jobs = parsed['jobs'];
-  if (jobs is! YamlMap) return steps;
+Future<void> writeFileToVm(
+  String vmName,
+  String remotePath,
+  String content,
+) async {
+  final shell = Shell(throwOnError: false, verbose: false);
+  final encoded = base64Encode(utf8.encode(content));
 
-  for (final jobKey in jobs.keys) {
-    final job = jobs[jobKey];
-    if (job is! YamlMap) continue;
-    final jobSteps = job['steps'];
-    if (jobSteps is! YamlList) continue;
+  const chunkSize = 4096;
+  final chunks = <String>[];
+  for (var i = 0; i < encoded.length; i += chunkSize) {
+    final end = (i + chunkSize < encoded.length)
+        ? i + chunkSize
+        : encoded.length;
+    chunks.add(encoded.substring(i, end));
+  }
 
-    for (final step in jobSteps) {
-      if (step is! YamlMap) continue;
+  await shell.run("tart exec $vmName /bin/zsh -c 'rm -f $remotePath'");
 
-      final entry = <String, dynamic>{'name': step['name']?.toString() ?? ''};
-
-      if (step['uses'] != null) {
-        entry['uses'] = step['uses'].toString();
-        if (step['with'] is YamlMap) {
-          final withMap = <String, String>{};
-          final w = step['with'] as YamlMap;
-          for (final key in w.keys) {
-            withMap[key.toString()] = w[key].toString();
-          }
-          entry['with'] = withMap;
-        }
-      } else if (step['run'] != null) {
-        entry['run'] = step['run'].toString();
-      }
-
-      steps.add(entry);
+  for (final chunk in chunks) {
+    final result = await shell.run(
+      "tart exec $vmName /bin/zsh -c 'printf %s $chunk >> $remotePath.b64'",
+    );
+    if (result.first.exitCode != 0) {
+      throw Exception('Failed to write chunk to $remotePath');
     }
   }
 
-  return steps;
+  final decodeResult = await shell.run(
+    "tart exec $vmName /bin/zsh -c 'base64 -D < $remotePath.b64 > $remotePath && rm $remotePath.b64'",
+  );
+  if (decodeResult.first.exitCode != 0) {
+    throw Exception('Failed to decode $remotePath in VM');
+  }
 }
 
-Future<void> executeUsesStep({
-  required String uses,
-  required Map<String, String> withParams,
-  required String workingDirectory,
-  required List<String> builtInEnvVars,
-  required BuildLogger logger,
-  required Future<void> Function(String command) execCommand,
-  required Future<String> Function(String command) execCommandWithOutput,
+Future<void> execCommandStreaming(
+  String command,
+  String vmName,
+  BuildLogger logger,
+  String token, {
+  required Future<bool> Function() isCancelled,
 }) async {
-  await logger.info('uses: $uses');
+  final process = await Process.start('tart', ['exec', vmName, command]);
 
-  final atIndex = uses.indexOf('@');
-  final ref = atIndex != -1 ? uses.substring(atIndex + 1) : 'main';
-  final repoPath = atIndex != -1 ? uses.substring(0, atIndex) : uses;
-  final pathParts = repoPath.split('/');
+  final stdoutCompleter = Completer<void>();
+  final stderrCompleter = Completer<void>();
 
-  if (pathParts.length < 2) {
-    throw Exception('Invalid action reference: $uses');
-  }
-
-  final actionOwner = pathParts[0];
-  final actionRepo = pathParts[1];
-  final actionSubPath = pathParts.length > 2
-      ? pathParts.sublist(2).join('/')
-      : '';
-
-  final sanitizedRef = ref.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-  final actionDirName = '${actionOwner}_${actionRepo}_$sanitizedRef';
-  const actionBaseDir = '/tmp/openci-actions';
-  final actionDir = '$actionBaseDir/$actionDirName';
-  final actionRoot = actionSubPath.isNotEmpty
-      ? '$actionDir/$actionSubPath'
-      : actionDir;
-
-  await logger.info('Cloning action $actionOwner/$actionRepo@$ref...');
-
-  final cloneScript = [
-    'set -e',
-    'mkdir -p $actionBaseDir',
-    'if [ ! -d "$actionDir" ]; then',
-    '  git clone --depth 1 --branch $ref https://github.com/$actionOwner/$actionRepo.git $actionDir',
-    'fi',
-    'cat $actionRoot/action.yml 2>/dev/null || cat $actionRoot/action.yaml',
-  ].join('\n');
-
-  final encodedCloneScript = base64Encode(utf8.encode(cloneScript));
-  final actionYamlContent = await execCommandWithOutput(
-    "/bin/zsh -c 'echo $encodedCloneScript | base64 -D | /bin/zsh'",
-  );
-
-  final actionYaml = loadYaml(actionYamlContent);
-  if (actionYaml is! YamlMap) {
-    throw Exception('Invalid action.yml for $uses');
-  }
-
-  final runs = actionYaml['runs'] as YamlMap?;
-  if (runs == null) {
-    throw Exception('Invalid action.yml: missing "runs" section');
-  }
-
-  final using = runs['using']?.toString() ?? '';
-
-  final inputEnvVars = <String>[];
-
-  final inputs = actionYaml['inputs'] as YamlMap?;
-  if (inputs != null) {
-    for (final inputKey in inputs.keys) {
-      final inputDef = inputs[inputKey];
-      if (inputDef is YamlMap) {
-        final defaultValue = inputDef['default']?.toString();
-        if (defaultValue != null) {
-          final envKey =
-              'INPUT_${inputKey.toString().toUpperCase().replaceAll('-', '_')}';
-          final escaped = defaultValue.replaceAll("'", "'\\''");
-          inputEnvVars.add("export $envKey='$escaped'");
+  process.stdout.transform(utf8.decoder).listen((data) {
+    final masked = data.replaceAll(token, '***').trim();
+    if (masked.isNotEmpty) {
+      for (final line in LineSplitter.split(masked)) {
+        if (line.trim().isNotEmpty) {
+          logger.info(line.trim());
         }
       }
     }
-  }
+  }, onDone: () => stdoutCompleter.complete());
 
-  for (final entry in withParams.entries) {
-    final envKey = 'INPUT_${entry.key.toUpperCase().replaceAll('-', '_')}';
-    final escaped = entry.value.replaceAll("'", "'\\''");
-    inputEnvVars.add("export $envKey='$escaped'");
-  }
-
-  if (using == 'composite') {
-    final compositeSteps = runs['steps'] as YamlList?;
-    if (compositeSteps == null || compositeSteps.isEmpty) {
-      throw Exception('Composite action has no steps');
+  process.stderr.transform(utf8.decoder).listen((data) {
+    final masked = data.replaceAll(token, '***').trim();
+    if (masked.isNotEmpty) {
+      for (final line in LineSplitter.split(masked)) {
+        if (line.trim().isNotEmpty) {
+          logger.info(line.trim());
+        }
+      }
     }
+  }, onDone: () => stderrCompleter.complete());
 
-    await logger.info(
-      'Executing composite action with ${compositeSteps.length} sub-steps',
-    );
-
-    for (int j = 0; j < compositeSteps.length; j++) {
-      final compositeStep = compositeSteps[j];
-      if (compositeStep is! YamlMap) continue;
-
-      final subStepName =
-          compositeStep['name']?.toString() ?? 'Sub-step ${j + 1}';
-      await logger.info('  [$subStepName]');
-
-      final subRunCmd = compositeStep['run']?.toString();
-      if (subRunCmd == null || subRunCmd.isEmpty) continue;
-
-      final shell = compositeStep['shell']?.toString() ?? 'bash';
-      final stepWorkingDir = compositeStep['working-directory']?.toString();
-
-      final commandParts = [
-        'set -e',
-        'export LANG=en_US.UTF-8',
-        'export PATH="/Users/admin/flutter/bin:\$PATH"',
-        ...builtInEnvVars,
-        ...inputEnvVars,
-        'export GITHUB_ACTION_PATH="$actionRoot"',
-        if (stepWorkingDir != null)
-          'cd $workingDirectory/$stepWorkingDir'
-        else
-          'cd $workingDirectory',
-        subRunCmd,
-      ];
-
-      final fullCommand = commandParts.join('\n');
-      final encodedCommand = base64Encode(utf8.encode(fullCommand));
-      await execCommand(
-        "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/$shell'",
-      );
+  final cancelTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    if (await isCancelled()) {
+      process.kill(ProcessSignal.sigterm);
     }
-  } else if (using.startsWith('node')) {
-    final main = runs['main']?.toString();
-    if (main == null) {
-      throw Exception('Node action has no main entry point');
-    }
+  });
 
-    await logger.info('Executing Node.js action ($using): $main');
+  final exitCode = await process.exitCode;
+  cancelTimer.cancel();
+  await stdoutCompleter.future;
+  await stderrCompleter.future;
 
-    final commandParts = [
-      'set -e',
-      'export LANG=en_US.UTF-8',
-      'export PATH="/Users/admin/flutter/bin:\$PATH"',
-      ...builtInEnvVars,
-      ...inputEnvVars,
-      'export GITHUB_ACTION_PATH="$actionRoot"',
-      'cd $workingDirectory',
-      'node $actionRoot/$main',
-    ];
-
-    final fullCommand = commandParts.join('\n');
-    final encodedCommand = base64Encode(utf8.encode(fullCommand));
-    await execCommand(
-      "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
-    );
-  } else {
-    throw Exception(
-      'Unsupported action type: $using (only composite and node actions are supported)',
-    );
+  if (exitCode != 0) {
+    throw Exception('act exited with code $exitCode');
   }
 }

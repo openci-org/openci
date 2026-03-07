@@ -267,6 +267,7 @@ async function createBuildJobs(
               id: documentId,
               teamId,
               workflowFileName: file.name,
+              workflowFileContent: content,
               installationId,
               commitSha,
               pullRequestNumber,
