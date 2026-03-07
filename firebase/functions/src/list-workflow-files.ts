@@ -9,10 +9,63 @@ import { teamsCollectionPath } from "./firestore-collection-paths";
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
 
+export const WORKFLOW_FILES_QUERY = `
+  query($owner: String!, $repo: String!, $expression: String!) {
+    repository(owner: $owner, name: $repo) {
+      object(expression: $expression) {
+        ... on Tree {
+          entries {
+            name
+            type
+            object {
+              ... on Blob {
+                text
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export interface WorkflowFilesQueryResult {
+  repository: {
+    object: {
+      entries: Array<{
+        name: string;
+        type: string;
+        object: {
+          text: string;
+        } | null;
+      }>;
+    } | null;
+  };
+}
+
 interface WorkflowFile {
   name: string;
   path: string;
   content: string;
+}
+
+export function parseWorkflowFiles(result: WorkflowFilesQueryResult): WorkflowFile[] {
+  if (!result.repository.object) {
+    return [];
+  }
+
+  return result.repository.object.entries
+    .filter(
+      (entry) =>
+        entry.type === "blob" &&
+        (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")) &&
+        entry.object?.text != null,
+    )
+    .map((entry) => ({
+      name: entry.name,
+      path: `.openci/${entry.name}`,
+      content: entry.object!.text,
+    }));
 }
 
 export const listWorkflowFiles = onCall(
@@ -56,6 +109,7 @@ export const listWorkflowFiles = onCall(
     }
 
     const [owner, repo] = repository.split("/");
+    const expression = `${branch ?? "HEAD"}:.openci`;
 
     try {
       const app = new App({
@@ -67,59 +121,13 @@ export const listWorkflowFiles = onCall(
         try {
           const octokit = await app.getInstallationOctokit(installationId);
 
-          const ref =
-            branch ??
-            (await octokit.request("GET /repos/{owner}/{repo}", { owner, repo })).data
-              .default_branch;
+          const result = await octokit.graphql<WorkflowFilesQueryResult>(WORKFLOW_FILES_QUERY, {
+            owner,
+            repo,
+            expression,
+          });
 
-          let contents: any[];
-          try {
-            const { data } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
-              owner,
-              repo,
-              path: ".openci",
-              ref,
-            });
-
-            if (!Array.isArray(data)) {
-              return { files: [] };
-            }
-            contents = data;
-          } catch (e: any) {
-            if (e.status === 404) {
-              return { files: [] };
-            }
-            throw e;
-          }
-
-          const yamlFiles = contents.filter(
-            (item: any) =>
-              item.type === "file" && (item.name.endsWith(".yaml") || item.name.endsWith(".yml")),
-          );
-
-          const files: WorkflowFile[] = await Promise.all(
-            yamlFiles.map(async (file: any) => {
-              const { data: fileData } = await octokit.request(
-                "GET /repos/{owner}/{repo}/contents/{path}",
-                {
-                  owner,
-                  repo,
-                  path: file.path,
-                  ref,
-                },
-              );
-
-              const content = Buffer.from((fileData as any).content, "base64").toString("utf-8");
-
-              return {
-                name: file.name,
-                path: file.path,
-                content,
-              };
-            }),
-          );
-
-          return { files };
+          return { files: parseWorkflowFiles(result) };
         } catch (e) {
           if (e instanceof HttpsError) throw e;
           continue;
