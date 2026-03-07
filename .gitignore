@@ -5,3 +5,8 @@
 .vercel
 .env*.local
 !apps/web/.env.local
+
+# Build artifacts
+*.tar.gz
+apps/openci_worker_cli/openci-worker
+apps/openci_vm_cli/openci-vm

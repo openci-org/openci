@@ -9,9 +9,9 @@ import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
-import 'package:uuid/uuid.dart';
+import 'package:yaml/yaml.dart';
 
-const String version = '0.4.34';
+const String version = '0.5.0';
 
 enum LogLevel { info, warning, error }
 
@@ -359,7 +359,7 @@ Future<bool> processJob(
   await logger.info('Cloning VM $baseVmName to $currentVmName...');
   await Shell().run('tart clone $baseVmName $currentVmName');
 
-  Future<void> execCommand(String command, {String? displayCommand}) async {
+  Future<void> execCommand(String command) async {
     var shell = Shell(verbose: true, throwOnError: false);
     final results = await shell.run("tart exec $currentVmName $command");
 
@@ -380,6 +380,27 @@ Future<bool> processJob(
         throw Exception('Command failed with exit code ${result.exitCode}');
       }
     }
+  }
+
+  Future<String> execCommandWithOutput(String command) async {
+    var shell = Shell(verbose: false, throwOnError: false);
+    final results = await shell.run("tart exec $currentVmName $command");
+    final output = StringBuffer();
+
+    for (final result in results) {
+      final stdout = result.stdout?.toString().trim();
+      if (stdout != null && stdout.isNotEmpty) {
+        output.writeln(stdout);
+      }
+      if (result.exitCode != 0) {
+        final stderr = result.stderr?.toString().trim() ?? '';
+        throw Exception(
+          'Command failed with exit code ${result.exitCode}: $stderr',
+        );
+      }
+    }
+
+    return output.toString().trim();
   }
 
   Future<bool> isCancelled() async {
@@ -403,30 +424,13 @@ Future<bool> processJob(
   }
 
   try {
-    final workflowId = buildJobData['workflowId'] as String?;
-    if (workflowId == null || workflowId.isEmpty) {
-      await logger.error('workflowId is missing in build job data');
-      throw Exception('workflowId is missing');
+    final workflowFileName = buildJobData['workflowFileName'] as String?;
+    if (workflowFileName == null || workflowFileName.isEmpty) {
+      await logger.error('workflowFileName is missing in build job data');
+      throw Exception('workflowFileName is missing');
     }
 
-    final workflowDoc = await firestore
-        .collection('workflows_v1')
-        .doc(workflowId)
-        .get();
-
-    if (!workflowDoc.exists) {
-      await logger.error('Workflow not found: $workflowId');
-      throw Exception('Workflow not found');
-    }
-
-    final workflowData = workflowDoc.data()!;
-    final steps = workflowData['workflowSteps'] as List;
-    final workflowConfig =
-        workflowData['workflowConfig'] as Map<String, dynamic>?;
-    final cwd = workflowConfig?['selectedWorkingDirectory'] as String?;
-
-    await logger.info('Loaded workflow with ${steps.length} steps');
-    await logger.info('Working directory: ${cwd ?? "(root)"}');
+    await logger.info('Workflow file: .openci/$workflowFileName');
 
     Object? vmStartError;
     unawaited(
@@ -468,10 +472,28 @@ Future<bool> processJob(
 
     await logger.info('Repository cloned successfully');
 
-    String workingDirectory = repo;
-    if (cwd != null && cwd.isNotEmpty) {
-      workingDirectory = '$repo/$cwd';
+    await logger.info('Reading .openci/$workflowFileName...');
+    final yamlContent = await execCommandWithOutput(
+      "cat $repo/.openci/$workflowFileName",
+    );
+
+    final parsedYaml = loadYaml(yamlContent);
+    if (parsedYaml is! YamlMap) {
+      await logger.error('Invalid YAML in .openci/$workflowFileName');
+      throw Exception('Invalid workflow YAML');
     }
+
+    final steps = _extractStepsFromYaml(parsedYaml);
+    if (steps.isEmpty) {
+      await logger.error('No steps found in .openci/$workflowFileName');
+      throw Exception('No steps found in workflow YAML');
+    }
+
+    await logger.info(
+      'Loaded ${steps.length} steps from .openci/$workflowFileName',
+    );
+
+    final workingDirectory = repo;
 
     final tagName = buildJobData['tagName'] as String?;
     final tagVersion = tagName != null && tagName.isNotEmpty
@@ -480,13 +502,13 @@ Future<bool> processJob(
               : tagName)
         : null;
 
-    final teamId = workflowData['teamId'] as String;
+    final teamId = buildJobData['teamId'] as String?;
 
     final builtInEnvVars = <String>[
       if (tagName != null && tagName.isNotEmpty) "export OPENCI_TAG='$tagName'",
       if (tagVersion != null) "export OPENCI_TAG_VERSION='$tagVersion'",
       "export OPENCI_PROJECT_ID='$projectId'",
-      "export OPENCI_TEAM_ID='$teamId'",
+      if (teamId != null) "export OPENCI_TEAM_ID='$teamId'",
       () {
         final saJson = File(serviceAccountPath).readAsStringSync();
         final escaped = saJson.replaceAll("'", "'\\''");
@@ -494,43 +516,45 @@ Future<bool> processJob(
       }(),
     ];
 
-    final envVarsSnapshot = await firestore
-        .collection('environment_variables_v0')
-        .where('teamId', WhereFilter.equal, teamId)
-        .get();
+    if (teamId != null) {
+      final envVarsSnapshot = await firestore
+          .collection('environment_variables_v0')
+          .where('teamId', WhereFilter.equal, teamId)
+          .get();
 
-    for (final envVarDoc in envVarsSnapshot.docs) {
-      final envVarData = envVarDoc.data();
-      final key = envVarData['key'] as String;
-      var value = envVarData['value'] as String;
-      final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
+      for (final envVarDoc in envVarsSnapshot.docs) {
+        final envVarData = envVarDoc.data();
+        final key = envVarData['key'] as String;
+        var value = envVarData['value'] as String;
+        final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
 
-      if (autoIncrement) {
-        final docRef = firestore.doc(
-          'environment_variables_v0/${envVarDoc.id}',
-        );
-        await firestore.runTransaction((transaction) async {
-          final freshDoc = await transaction.get(docRef);
-          final currentValue = freshDoc.data()!['value'] as String;
-          value = currentValue;
-          final numValue = int.tryParse(currentValue);
-          if (numValue != null) {
-            transaction.update(docRef, {'value': '${numValue + 1}'});
-          }
-        });
-        await logger.info(
-          'Auto-incremented $key: $value → ${int.parse(value) + 1}',
-        );
+        if (autoIncrement) {
+          final docRef = firestore.doc(
+            'environment_variables_v0/${envVarDoc.id}',
+          );
+          await firestore.runTransaction((transaction) async {
+            final freshDoc = await transaction.get(docRef);
+            final currentValue = freshDoc.data()!['value'] as String;
+            value = currentValue;
+            final numValue = int.tryParse(currentValue);
+            if (numValue != null) {
+              transaction.update(docRef, {'value': '${numValue + 1}'});
+            }
+          });
+          await logger.info(
+            'Auto-incremented $key: $value → ${int.parse(value) + 1}',
+          );
+        }
+
+        final escapedValue = value.replaceAll("'", "'\\''");
+        builtInEnvVars.add("export $key='$escapedValue'");
       }
 
-      final escapedValue = value.replaceAll("'", "'\\''");
-      builtInEnvVars.add("export $key='$escapedValue'");
-    }
-
-    if (envVarsSnapshot.docs.isNotEmpty) {
-      await logger.info(
-        'Loaded ${envVarsSnapshot.docs.length} environment variable(s)',
-      );
+      if (envVarsSnapshot.docs.isNotEmpty) {
+        await logger.info(
+          'Loaded ${envVarsSnapshot.docs.length} environment variable(s)',
+        );
+      }
     }
 
     if (tagName != null && tagName.isNotEmpty) {
@@ -540,70 +564,51 @@ Future<bool> processJob(
     for (int i = 0; i < steps.length; i++) {
       await checkCancellation();
 
-      final step = steps[i] as Map<String, dynamic>;
+      final step = steps[i];
       final stepName = step['name'] as String? ?? 'Step ${i + 1}';
+      final runCommand = step['run'] as String?;
+      final usesAction = step['uses'] as String?;
 
       await logger.info('Running step ${i + 1}/${steps.length}: $stepName');
 
-      final command = step['command'] as String;
+      if (runCommand != null && runCommand.isNotEmpty) {
+        await logger.info('run: $runCommand');
 
-      if (command.contains('ios-sign')) {
-        final updatedStep = await _ensureDistCertSecrets(
-          step: step,
-          stepIndex: i,
-          workflowId: workflowId,
-          teamId: teamId,
-          projectId: projectId,
-          serviceAccountPath: serviceAccountPath,
-          firestore: firestore,
+        final commandParts = [
+          'set -e',
+          'export LANG=en_US.UTF-8',
+          'export PATH="/Users/admin/flutter/bin:\$PATH"',
+          ...builtInEnvVars,
+          'cd $workingDirectory',
+          runCommand,
+        ];
+
+        final fullCommand = commandParts.join('\n');
+        final encodedCommand = base64Encode(utf8.encode(fullCommand));
+        await execCommand(
+          "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
+        );
+      } else if (usesAction != null && usesAction.isNotEmpty) {
+        final withParams = <String, String>{};
+        final rawWith = step['with'];
+        if (rawWith is Map) {
+          for (final entry in rawWith.entries) {
+            withParams[entry.key.toString()] = entry.value.toString();
+          }
+        }
+
+        await executeUsesStep(
+          uses: usesAction,
+          withParams: withParams,
+          workingDirectory: workingDirectory,
+          builtInEnvVars: builtInEnvVars,
           logger: logger,
+          execCommand: execCommand,
+          execCommandWithOutput: execCommandWithOutput,
         );
-        steps[i] = updatedStep;
+      } else {
+        await logger.warning('Step ${i + 1} has no run or uses, skipping');
       }
-
-      final secrets =
-          (steps[i] as Map<String, dynamic>)['requiredSecrets'] as List? ?? [];
-      final exportCommands = <String>[];
-
-      await logger.info('Command: $command');
-
-      for (final secret in secrets) {
-        final secretDocumentId = secret['secretDocumentId'] as String;
-        final key = secret['key'] as String;
-        final secretDoc = await firestore
-            .collection('secrets_v0')
-            .doc(secretDocumentId)
-            .get();
-
-        final secretData = secretDoc.data()!;
-        final pathToSecret = secretData['pathToSecret'] as String;
-        final secretValue = await fetchSecretValue(
-          projectId,
-          pathToSecret,
-          serviceAccountPath,
-        );
-
-        final escapedValue = secretValue.replaceAll("'", "'\\''");
-        exportCommands.add("export $key='$escapedValue'");
-        final escapedPath = pathToSecret.replaceAll("'", "'\\''");
-        exportCommands.add("export ${key}_SECRET_PATH='$escapedPath'");
-      }
-
-      final commandParts = [
-        'set -e',
-        'export LANG=en_US.UTF-8',
-        'export PATH="/Users/admin/flutter/bin:\$PATH"',
-        ...builtInEnvVars,
-        'cd $workingDirectory',
-        ...exportCommands,
-        command,
-      ];
-
-      final fullCommand = commandParts.join('\n');
-      final encodedCommand = base64Encode(utf8.encode(fullCommand));
-      await execCommand(
-        "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
-      );
 
       await logger.info('Step ${i + 1}/${steps.length} completed: $stepName');
     }
@@ -855,98 +860,200 @@ Future<void> pruneStaleVms(
   }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Distribution Certificate: Auto Secret Creation
-// ══════════════════════════════════════════════════════════════
+List<Map<String, dynamic>> _extractStepsFromYaml(YamlMap parsed) {
+  final steps = <Map<String, dynamic>>[];
+  final jobs = parsed['jobs'];
+  if (jobs is! YamlMap) return steps;
 
-const _distCertKeys = [
-  'OPENCI_DISTRIBUTION_CERTIFICATE_P12',
-  'OPENCI_DISTRIBUTION_CERTIFICATE_PASSWORD',
-  'OPENCI_DISTRIBUTION_CERTIFICATE_ID',
-];
+  for (final jobKey in jobs.keys) {
+    final job = jobs[jobKey];
+    if (job is! YamlMap) continue;
+    final jobSteps = job['steps'];
+    if (jobSteps is! YamlList) continue;
 
-Future<Map<String, dynamic>> _ensureDistCertSecrets({
-  required Map<String, dynamic> step,
-  required int stepIndex,
-  required String workflowId,
-  required String teamId,
-  required String projectId,
-  required String serviceAccountPath,
-  required Firestore firestore,
-  required BuildLogger logger,
-}) async {
-  final existing = ((step['requiredSecrets'] as List?) ?? [])
-      .cast<Map<String, dynamic>>();
-  final existingKeys = existing.map((s) => s['key'] as String).toSet();
+    for (final step in jobSteps) {
+      if (step is! YamlMap) continue;
 
-  final missingKeys = _distCertKeys
-      .where((k) => !existingKeys.contains(k))
-      .toList();
+      final entry = <String, dynamic>{'name': step['name']?.toString() ?? ''};
 
-  if (missingKeys.isEmpty) {
-    return step;
+      if (step['uses'] != null) {
+        entry['uses'] = step['uses'].toString();
+        if (step['with'] is YamlMap) {
+          final withMap = <String, String>{};
+          final w = step['with'] as YamlMap;
+          for (final key in w.keys) {
+            withMap[key.toString()] = w[key].toString();
+          }
+          entry['with'] = withMap;
+        }
+      } else if (step['run'] != null) {
+        entry['run'] = step['run'].toString();
+      }
+
+      steps.add(entry);
+    }
   }
 
-  await logger.info(
-    '🔑 Auto-creating distribution cert secrets: ${missingKeys.join(", ")}',
+  return steps;
+}
+
+Future<void> executeUsesStep({
+  required String uses,
+  required Map<String, String> withParams,
+  required String workingDirectory,
+  required List<String> builtInEnvVars,
+  required BuildLogger logger,
+  required Future<void> Function(String command) execCommand,
+  required Future<String> Function(String command) execCommandWithOutput,
+}) async {
+  await logger.info('uses: $uses');
+
+  final atIndex = uses.indexOf('@');
+  final ref = atIndex != -1 ? uses.substring(atIndex + 1) : 'main';
+  final repoPath = atIndex != -1 ? uses.substring(0, atIndex) : uses;
+  final pathParts = repoPath.split('/');
+
+  if (pathParts.length < 2) {
+    throw Exception('Invalid action reference: $uses');
+  }
+
+  final actionOwner = pathParts[0];
+  final actionRepo = pathParts[1];
+  final actionSubPath = pathParts.length > 2
+      ? pathParts.sublist(2).join('/')
+      : '';
+
+  final sanitizedRef = ref.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+  final actionDirName = '${actionOwner}_${actionRepo}_$sanitizedRef';
+  const actionBaseDir = '/tmp/openci-actions';
+  final actionDir = '$actionBaseDir/$actionDirName';
+  final actionRoot = actionSubPath.isNotEmpty
+      ? '$actionDir/$actionSubPath'
+      : actionDir;
+
+  await logger.info('Cloning action $actionOwner/$actionRepo@$ref...');
+
+  final cloneScript = [
+    'set -e',
+    'mkdir -p $actionBaseDir',
+    'if [ ! -d "$actionDir" ]; then',
+    '  git clone --depth 1 --branch $ref https://github.com/$actionOwner/$actionRepo.git $actionDir',
+    'fi',
+    'cat $actionRoot/action.yml 2>/dev/null || cat $actionRoot/action.yaml',
+  ].join('\n');
+
+  final encodedCloneScript = base64Encode(utf8.encode(cloneScript));
+  final actionYamlContent = await execCommandWithOutput(
+    "/bin/zsh -c 'echo $encodedCloneScript | base64 -D | /bin/zsh'",
   );
 
-  final saJsonStr = File(serviceAccountPath).readAsStringSync();
-  final credentials = ServiceAccountCredentials.fromJson(saJsonStr);
-  final authClient = await clientViaServiceAccount(credentials, [
-    SecretManagerApi.cloudPlatformScope,
-  ]);
+  final actionYaml = loadYaml(actionYamlContent);
+  if (actionYaml is! YamlMap) {
+    throw Exception('Invalid action.yml for $uses');
+  }
 
-  try {
-    final secretApi = SecretManagerApi(authClient);
-    final parent = 'projects/$projectId';
+  final runs = actionYaml['runs'] as YamlMap?;
+  if (runs == null) {
+    throw Exception('Invalid action.yml: missing "runs" section');
+  }
 
-    final newSecrets = <Map<String, dynamic>>[];
+  final using = runs['using']?.toString() ?? '';
 
-    for (final key in missingKeys) {
-      final secretId = const Uuid().v4();
-      final secretName = '$parent/secrets/$secretId';
+  final inputEnvVars = <String>[];
 
-      await secretApi.projects.secrets.create(
-        Secret(replication: Replication(automatic: Automatic())),
-        parent,
-        secretId: secretId,
+  final inputs = actionYaml['inputs'] as YamlMap?;
+  if (inputs != null) {
+    for (final inputKey in inputs.keys) {
+      final inputDef = inputs[inputKey];
+      if (inputDef is YamlMap) {
+        final defaultValue = inputDef['default']?.toString();
+        if (defaultValue != null) {
+          final envKey =
+              'INPUT_${inputKey.toString().toUpperCase().replaceAll('-', '_')}';
+          final escaped = defaultValue.replaceAll("'", "'\\''");
+          inputEnvVars.add("export $envKey='$escaped'");
+        }
+      }
+    }
+  }
+
+  for (final entry in withParams.entries) {
+    final envKey = 'INPUT_${entry.key.toUpperCase().replaceAll('-', '_')}';
+    final escaped = entry.value.replaceAll("'", "'\\''");
+    inputEnvVars.add("export $envKey='$escaped'");
+  }
+
+  if (using == 'composite') {
+    final compositeSteps = runs['steps'] as YamlList?;
+    if (compositeSteps == null || compositeSteps.isEmpty) {
+      throw Exception('Composite action has no steps');
+    }
+
+    await logger.info(
+      'Executing composite action with ${compositeSteps.length} sub-steps',
+    );
+
+    for (int j = 0; j < compositeSteps.length; j++) {
+      final compositeStep = compositeSteps[j];
+      if (compositeStep is! YamlMap) continue;
+
+      final subStepName =
+          compositeStep['name']?.toString() ?? 'Sub-step ${j + 1}';
+      await logger.info('  [$subStepName]');
+
+      final subRunCmd = compositeStep['run']?.toString();
+      if (subRunCmd == null || subRunCmd.isEmpty) continue;
+
+      final shell = compositeStep['shell']?.toString() ?? 'bash';
+      final stepWorkingDir = compositeStep['working-directory']?.toString();
+
+      final commandParts = [
+        'set -e',
+        'export LANG=en_US.UTF-8',
+        'export PATH="/Users/admin/flutter/bin:\$PATH"',
+        ...builtInEnvVars,
+        ...inputEnvVars,
+        'export GITHUB_ACTION_PATH="$actionRoot"',
+        if (stepWorkingDir != null)
+          'cd $workingDirectory/$stepWorkingDir'
+        else
+          'cd $workingDirectory',
+        subRunCmd,
+      ];
+
+      final fullCommand = commandParts.join('\n');
+      final encodedCommand = base64Encode(utf8.encode(fullCommand));
+      await execCommand(
+        "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/$shell'",
       );
-
-      final documentId = const Uuid().v4();
-      await firestore.collection('secrets_v0').doc(documentId).set({
-        'id': documentId,
-        'name': key,
-        'teamId': teamId,
-        'pathToSecret': secretName,
-        'createdAt': FieldValue.serverTimestamp,
-        'updatedAt': FieldValue.serverTimestamp,
-      });
-
-      newSecrets.add({'key': key, 'secretDocumentId': documentId});
-
-      await logger.info('  📦 Created: $key → $secretName');
+    }
+  } else if (using.startsWith('node')) {
+    final main = runs['main']?.toString();
+    if (main == null) {
+      throw Exception('Node action has no main entry point');
     }
 
-    final updatedSecrets = [...existing, ...newSecrets];
-    final updatedStep = Map<String, dynamic>.from(step);
-    updatedStep['requiredSecrets'] = updatedSecrets;
+    await logger.info('Executing Node.js action ($using): $main');
 
-    final workflowDoc = await firestore
-        .collection('workflows_v1')
-        .doc(workflowId)
-        .get();
-    if (workflowDoc.exists) {
-      final allSteps = (workflowDoc.data()!['workflowSteps'] as List).toList();
-      allSteps[stepIndex] = updatedStep;
-      await firestore.collection('workflows_v1').doc(workflowId).update({
-        'workflowSteps': allSteps,
-      });
-    }
+    final commandParts = [
+      'set -e',
+      'export LANG=en_US.UTF-8',
+      'export PATH="/Users/admin/flutter/bin:\$PATH"',
+      ...builtInEnvVars,
+      ...inputEnvVars,
+      'export GITHUB_ACTION_PATH="$actionRoot"',
+      'cd $workingDirectory',
+      'node $actionRoot/$main',
+    ];
 
-    await logger.info('  ✅ All distribution cert secrets provisioned');
-    return updatedStep;
-  } finally {
-    authClient.close();
+    final fullCommand = commandParts.join('\n');
+    final encodedCommand = base64Encode(utf8.encode(fullCommand));
+    await execCommand(
+      "/bin/zsh -c 'echo $encodedCommand | base64 -D | /bin/zsh'",
+    );
+  } else {
+    throw Exception(
+      'Unsupported action type: $using (only composite and node actions are supported)',
+    );
   }
 }
