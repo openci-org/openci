@@ -18,11 +18,13 @@ class CreateWorkflowPage extends HookConsumerWidget {
     super.key,
     required this.repository,
     required this.branch,
+    required this.teamId,
     this.existingFile,
   });
 
   final String repository;
   final String branch;
+  final String teamId;
   final WorkflowFile? existingFile;
 
   bool get isEditing => existingFile != null;
@@ -145,6 +147,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
             triggerType: triggerType,
             triggerBranch: triggerBranch,
             steps: steps,
+            teamId: teamId,
             onChanged: syncEditorToYaml,
           ),
           _YamlTab(
@@ -228,6 +231,7 @@ class _EditorTab extends HookConsumerWidget {
     required this.triggerBranch,
     required this.steps,
     required this.onChanged,
+    required this.teamId,
   });
 
   final String repository;
@@ -236,6 +240,7 @@ class _EditorTab extends HookConsumerWidget {
   final ValueNotifier<String> triggerBranch;
   final ValueNotifier<List<WorkflowYamlStep>> steps;
   final VoidCallback onChanged;
+  final String teamId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -377,6 +382,7 @@ class _EditorTab extends HookConsumerWidget {
               _StepEditorCard(
                 step: step,
                 stepIndex: index,
+                teamId: teamId,
                 onUpdate: (updated) {
                   final newSteps = List<WorkflowYamlStep>.from(steps.value);
                   newSteps[index] = updated;
@@ -457,12 +463,14 @@ class _StepEditorCard extends StatelessWidget {
     required this.stepIndex,
     required this.onUpdate,
     required this.onDelete,
+    required this.teamId,
   });
 
   final WorkflowYamlStep step;
   final int stepIndex;
   final ValueChanged<WorkflowYamlStep> onUpdate;
   final VoidCallback onDelete;
+  final String teamId;
 
   @override
   Widget build(BuildContext context) {
@@ -562,6 +570,7 @@ class _StepEditorCard extends StatelessWidget {
       builder: (_) => _EditStepSheet(
         step: step,
         onSave: onUpdate,
+        teamId: teamId,
       ),
     );
   }
@@ -571,10 +580,12 @@ class _EditStepSheet extends HookConsumerWidget {
   const _EditStepSheet({
     required this.step,
     required this.onSave,
+    required this.teamId,
   });
 
   final WorkflowYamlStep step;
   final ValueChanged<WorkflowYamlStep> onSave;
+  final String teamId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -674,6 +685,7 @@ class _EditStepSheet extends HookConsumerWidget {
                         onTap: () async {
                           final usesRef = await SearchActionsSheet.show(
                             context,
+                            teamId: teamId,
                           );
                           if (usesRef != null) {
                             usesController.text = usesRef;
@@ -699,7 +711,10 @@ class _EditStepSheet extends HookConsumerWidget {
                             final fullName = parts.first;
                             final currentTag = parts.length > 1 ? parts[1] : '';
                             final tagsAsync = ref.watch(
-                              actionTagsProvider(fullName: fullName),
+                              actionTagsProvider(
+                                fullName: fullName,
+                                teamId: teamId,
+                              ),
                             );
                             return tagsAsync.when(
                               loading: () => const Text('Loading versions...'),

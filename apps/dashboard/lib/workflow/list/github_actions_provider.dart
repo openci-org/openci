@@ -1,5 +1,6 @@
-import 'dart:convert';
-
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:yaml/yaml.dart';
@@ -46,44 +47,37 @@ class ActionInput {
 Future<List<GitHubAction>> searchGitHubActions(
   Ref ref, {
   required String query,
+  required String teamId,
 }) async {
-  final searchQuery = query.trim().isEmpty
-      ? 'github+action'
-      : Uri.encodeComponent(query.trim());
+  try {
+    final functions = ref.read(functionsProvider);
+    final result = await functions.httpsCallable('searchGitHubActions').call({
+      'teamId': teamId,
+      'type': 'search',
+      'query': query,
+    });
 
-  final uri = Uri.parse(
-    'https://api.github.com/search/repositories'
-    '?q=$searchQuery'
-    '&sort=stars&order=desc&per_page=100',
-  );
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final items = data['actions'] as List<dynamic>;
 
-  final response = await http.get(
-    uri,
-    headers: {'Accept': 'application/vnd.github+json'},
-  );
-
-  if (response.statusCode != 200) {
-    throw Exception('GitHub API error: ${response.statusCode}');
+    return items.map((item) {
+      final map = Map<String, dynamic>.from(item as Map);
+      return GitHubAction(
+        fullName: map['fullName'] as String,
+        description: (map['description'] as String?) ?? '',
+        stars: map['stars'] as int,
+        owner: map['owner'] as String,
+        avatarUrl: map['avatarUrl'] as String,
+        htmlUrl: map['htmlUrl'] as String,
+        defaultBranch: (map['defaultBranch'] as String?) ?? 'main',
+        isOfficial: map['isOfficial'] as bool? ?? false,
+      );
+    }).toList();
+  } catch (e, st) {
+    debugPrint('searchGitHubActions error: $e');
+    debugPrint('stackTrace: $st');
+    rethrow;
   }
-
-  final data = jsonDecode(response.body) as Map<String, dynamic>;
-  final items = data['items'] as List<dynamic>;
-
-  return items.map((item) {
-    final map = item as Map<String, dynamic>;
-    final ownerMap = map['owner'] as Map<String, dynamic>;
-    final ownerLogin = ownerMap['login'] as String;
-    return GitHubAction(
-      fullName: map['full_name'] as String,
-      description: (map['description'] as String?) ?? '',
-      stars: map['stargazers_count'] as int,
-      owner: ownerLogin,
-      avatarUrl: ownerMap['avatar_url'] as String,
-      htmlUrl: map['html_url'] as String,
-      defaultBranch: (map['default_branch'] as String?) ?? 'main',
-      isOfficial: ownerLogin == 'actions',
-    );
-  }).toList();
 }
 
 @riverpod
@@ -91,18 +85,24 @@ Future<List<ActionInput>> actionInputs(
   Ref ref, {
   required String actionRef,
 }) async {
-  final parts = actionRef.split('@');
-  final fullName = parts.first;
+  try {
+    final parts = actionRef.split('@');
+    final fullName = parts.first;
 
-  for (final fileName in ['action.yml', 'action.yaml']) {
-    final url = 'https://raw.githubusercontent.com/$fullName/HEAD/$fileName';
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      return _parseInputs(response.body);
+    for (final fileName in ['action.yml', 'action.yaml']) {
+      final url = 'https://raw.githubusercontent.com/$fullName/HEAD/$fileName';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return _parseInputs(response.body);
+      }
     }
-  }
 
-  return [];
+    return [];
+  } catch (e, st) {
+    debugPrint('actionInputs error: $e');
+    debugPrint('stackTrace: $st');
+    rethrow;
+  }
 }
 
 List<ActionInput> _parseInputs(String yamlContent) {
@@ -128,7 +128,9 @@ List<ActionInput> _parseInputs(String yamlContent) {
         required_: isRequired,
       );
     }).toList();
-  } catch (_) {
+  } catch (e, st) {
+    debugPrint('_parseInputs error: $e');
+    debugPrint('stackTrace: $st');
     return [];
   }
 }
@@ -137,50 +139,43 @@ List<ActionInput> _parseInputs(String yamlContent) {
 Future<List<String>> actionTags(
   Ref ref, {
   required String fullName,
+  required String teamId,
 }) async {
-  final url = 'https://api.github.com/repos/$fullName/tags?per_page=100';
-  final response = await http.get(
-    Uri.parse(url),
-    headers: {'Accept': 'application/vnd.github+json'},
-  );
+  try {
+    final functions = ref.read(functionsProvider);
+    final result = await functions.httpsCallable('searchGitHubActions').call({
+      'teamId': teamId,
+      'type': 'tags',
+      'fullName': fullName,
+    });
 
-  if (response.statusCode != 200) return [];
-
-  final tags = jsonDecode(response.body) as List<dynamic>;
-  final majorTags = <String>[];
-  final allTags = <String>[];
-
-  for (final tag in tags) {
-    final name = (tag as Map<String, dynamic>)['name'] as String;
-    allTags.add(name);
-    if (RegExp(r'^v\d+$').hasMatch(name)) {
-      majorTags.add(name);
-    }
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final tags = (data['tags'] as List<dynamic>).cast<String>();
+    return tags;
+  } catch (e, st) {
+    debugPrint('actionTags error: $e');
+    debugPrint('stackTrace: $st');
+    rethrow;
   }
-
-  if (majorTags.isNotEmpty) return majorTags;
-  return allTags;
 }
 
-Future<String> fetchLatestTag(String fullName) async {
-  final url = 'https://api.github.com/repos/$fullName/tags?per_page=20';
-  final response = await http.get(
-    Uri.parse(url),
-    headers: {'Accept': 'application/vnd.github+json'},
-  );
+Future<String> fetchLatestTag({
+  required String fullName,
+  required String teamId,
+  required FirebaseFunctions functions,
+}) async {
+  try {
+    final result = await functions.httpsCallable('searchGitHubActions').call({
+      'teamId': teamId,
+      'type': 'tags',
+      'fullName': fullName,
+    });
 
-  if (response.statusCode == 200) {
-    final tags = jsonDecode(response.body) as List<dynamic>;
-    for (final tag in tags) {
-      final name = (tag as Map<String, dynamic>)['name'] as String;
-      if (RegExp(r'^v\d+$').hasMatch(name)) {
-        return name;
-      }
-    }
-    if (tags.isNotEmpty) {
-      return (tags.first as Map<String, dynamic>)['name'] as String;
-    }
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final tags = (data['tags'] as List<dynamic>).cast<String>();
+    if (tags.isNotEmpty) return tags.first;
+  } catch (e) {
+    debugPrint('fetchLatestTag error: $e');
   }
-
   return 'v1';
 }

@@ -46,6 +46,7 @@ class WorkflowListPage extends ConsumerWidget {
                         builder: (_) => CreateWorkflowPage(
                           repository: selectedRepo,
                           branch: selectedBranch,
+                          teamId: ref.read(teamStateProvider).requireValue.id,
                         ),
                       ),
                     );
@@ -345,6 +346,7 @@ class _WorkflowBody extends ConsumerWidget {
                         builder: (context) => CreateWorkflowPage(
                           repository: repo,
                           branch: branch,
+                          teamId: ref.read(teamStateProvider).requireValue.id,
                           existingFile: file,
                         ),
                       ),

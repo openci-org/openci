@@ -24,7 +24,7 @@ final class SearchGitHubActionsProvider
         $FutureProvider<List<GitHubAction>> {
   SearchGitHubActionsProvider._({
     required SearchGitHubActionsFamily super.from,
-    required String super.argument,
+    required ({String query, String teamId}) super.argument,
   }) : super(
          retry: null,
          name: r'searchGitHubActionsProvider',
@@ -40,7 +40,7 @@ final class SearchGitHubActionsProvider
   String toString() {
     return r'searchGitHubActionsProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -51,8 +51,12 @@ final class SearchGitHubActionsProvider
 
   @override
   FutureOr<List<GitHubAction>> create(Ref ref) {
-    final argument = this.argument as String;
-    return searchGitHubActions(ref, query: argument);
+    final argument = this.argument as ({String query, String teamId});
+    return searchGitHubActions(
+      ref,
+      query: argument.query,
+      teamId: argument.teamId,
+    );
   }
 
   @override
@@ -67,10 +71,14 @@ final class SearchGitHubActionsProvider
 }
 
 String _$searchGitHubActionsHash() =>
-    r'0ac9a3ad8c76e65e6b232fd9099dacc8d2428301';
+    r'0fe1593413a2bba2d81549544d59f46900bf3857';
 
 final class SearchGitHubActionsFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<GitHubAction>>, String> {
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<GitHubAction>>,
+          ({String query, String teamId})
+        > {
   SearchGitHubActionsFamily._()
     : super(
         retry: null,
@@ -80,8 +88,13 @@ final class SearchGitHubActionsFamily extends $Family
         isAutoDispose: true,
       );
 
-  SearchGitHubActionsProvider call({required String query}) =>
-      SearchGitHubActionsProvider._(argument: query, from: this);
+  SearchGitHubActionsProvider call({
+    required String query,
+    required String teamId,
+  }) => SearchGitHubActionsProvider._(
+    argument: (query: query, teamId: teamId),
+    from: this,
+  );
 
   @override
   String toString() => r'searchGitHubActionsProvider';
@@ -144,7 +157,7 @@ final class ActionInputsProvider
   }
 }
 
-String _$actionInputsHash() => r'5579697ff2d3e247e5590aeee63234a27e753556';
+String _$actionInputsHash() => r'92973ebbae426a49f2a2a68482fa84f5648b63c4';
 
 final class ActionInputsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<ActionInput>>, String> {
@@ -177,7 +190,7 @@ final class ActionTagsProvider
     with $FutureModifier<List<String>>, $FutureProvider<List<String>> {
   ActionTagsProvider._({
     required ActionTagsFamily super.from,
-    required String super.argument,
+    required ({String fullName, String teamId}) super.argument,
   }) : super(
          retry: null,
          name: r'actionTagsProvider',
@@ -193,7 +206,7 @@ final class ActionTagsProvider
   String toString() {
     return r'actionTagsProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -204,8 +217,12 @@ final class ActionTagsProvider
 
   @override
   FutureOr<List<String>> create(Ref ref) {
-    final argument = this.argument as String;
-    return actionTags(ref, fullName: argument);
+    final argument = this.argument as ({String fullName, String teamId});
+    return actionTags(
+      ref,
+      fullName: argument.fullName,
+      teamId: argument.teamId,
+    );
   }
 
   @override
@@ -219,10 +236,14 @@ final class ActionTagsProvider
   }
 }
 
-String _$actionTagsHash() => r'89cdbc70e6a97869358484647156f8ad1042ed18';
+String _$actionTagsHash() => r'd16a0849263d8b55eeca2bd899c60e60d6c23f22';
 
 final class ActionTagsFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<String>>, String> {
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<String>>,
+          ({String fullName, String teamId})
+        > {
   ActionTagsFamily._()
     : super(
         retry: null,
@@ -232,8 +253,11 @@ final class ActionTagsFamily extends $Family
         isAutoDispose: true,
       );
 
-  ActionTagsProvider call({required String fullName}) =>
-      ActionTagsProvider._(argument: fullName, from: this);
+  ActionTagsProvider call({required String fullName, required String teamId}) =>
+      ActionTagsProvider._(
+        argument: (fullName: fullName, teamId: teamId),
+        from: this,
+      );
 
   @override
   String toString() => r'actionTagsProvider';
