@@ -537,7 +537,7 @@ Future<bool> processJob(
     await execCommand('chmod +x /tmp/openci-act.sh');
 
     await execCommandStreaming(
-      '/bin/zsh /tmp/openci-act.sh',
+      ['/bin/zsh', '/tmp/openci-act.sh'],
       currentVmName,
       logger,
       token,
@@ -828,13 +828,13 @@ Future<void> writeFileToVm(
 }
 
 Future<void> execCommandStreaming(
-  String command,
+  List<String> command,
   String vmName,
   BuildLogger logger,
   String token, {
   required Future<bool> Function() isCancelled,
 }) async {
-  final process = await Process.start('tart', ['exec', vmName, command]);
+  final process = await Process.start('tart', ['exec', vmName, ...command]);
 
   final stdoutCompleter = Completer<void>();
   final stderrCompleter = Completer<void>();
