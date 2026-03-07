@@ -9,6 +9,70 @@ import { teamsCollectionPath } from "./firestore-collection-paths";
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
 
+export const REPOSITORIES_QUERY = `
+  query($cursor: String) {
+    viewer {
+      repositories(first: 100, after: $cursor) {
+        nodes {
+          nameWithOwner
+          name
+          owner {
+            login
+          }
+          isPrivate
+          defaultBranchRef {
+            name
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+`;
+
+export interface RepositoriesQueryResult {
+  viewer: {
+    repositories: {
+      nodes: Array<{
+        nameWithOwner: string;
+        name: string;
+        owner: {
+          login: string;
+        };
+        isPrivate: boolean;
+        defaultBranchRef: {
+          name: string;
+        } | null;
+      }>;
+      pageInfo: {
+        hasNextPage: boolean;
+        endCursor: string | null;
+      };
+    };
+  };
+}
+
+export interface Repository {
+  fullName: string;
+  name: string;
+  owner: string;
+  private: boolean;
+  defaultBranch: string;
+}
+
+export function parseRepositories(result: RepositoriesQueryResult): Repository[] {
+  return result.viewer.repositories.nodes.map((repo) => ({
+    fullName: repo.nameWithOwner,
+    name: repo.name,
+    owner: repo.owner.login,
+    private: repo.isPrivate,
+    defaultBranch: repo.defaultBranchRef?.name ?? "main",
+  }));
+}
+
 export const listRepositories = onCall(
   {
     region: "asia-northeast1",
@@ -51,24 +115,23 @@ export const listRepositories = onCall(
         privateKey: GITHUB_PRIVATE_KEY.value(),
       });
 
-      const allRepositories: any[] = [];
+      const allRepositories: Repository[] = [];
 
       for (const installationId of installationIds) {
         const octokit = await app.getInstallationOctokit(installationId);
 
-        const { data } = await octokit.request("GET /installation/repositories", {
-          per_page: 100,
-        });
+        let cursor: string | null = null;
+        while (true) {
+          const result: RepositoriesQueryResult = await octokit.graphql<RepositoriesQueryResult>(
+            REPOSITORIES_QUERY,
+            { cursor },
+          );
 
-        const repos = data.repositories.map((repo: any) => ({
-          fullName: repo.full_name,
-          name: repo.name,
-          owner: repo.owner.login,
-          private: repo.private,
-          defaultBranch: repo.default_branch,
-        }));
+          allRepositories.push(...parseRepositories(result));
 
-        allRepositories.push(...repos);
+          if (!result.viewer.repositories.pageInfo.hasNextPage) break;
+          cursor = result.viewer.repositories.pageInfo.endCursor;
+        }
       }
 
       return { repositories: allRepositories };
