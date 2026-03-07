@@ -1,19 +1,22 @@
 import 'dart:async';
 
+import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/workflow/list/github_actions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class SearchActionsSheet extends HookConsumerWidget {
-  const SearchActionsSheet({super.key});
+  const SearchActionsSheet({required this.teamId, super.key});
 
-  static Future<String?> show(BuildContext context) {
+  final String teamId;
+
+  static Future<String?> show(BuildContext context, {required String teamId}) {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => const SearchActionsSheet(),
+      builder: (_) => SearchActionsSheet(teamId: teamId),
     );
   }
 
@@ -24,7 +27,10 @@ class SearchActionsSheet extends HookConsumerWidget {
     final debounceTimer = useRef<Timer?>(null);
 
     final actionsAsync = ref.watch(
-      searchGitHubActionsProvider(query: query.value),
+      searchGitHubActionsProvider(
+        query: query.value,
+        teamId: teamId,
+      ),
     );
 
     return SizedBox(
@@ -148,7 +154,12 @@ class SearchActionsSheet extends HookConsumerWidget {
                             child: CircularProgressIndicator(),
                           ),
                         );
-                        final tag = await fetchLatestTag(action.fullName);
+                        final functions = ref.read(functionsProvider);
+                        final tag = await fetchLatestTag(
+                          fullName: action.fullName,
+                          teamId: teamId,
+                          functions: functions,
+                        );
                         if (context.mounted) {
                           Navigator.of(context).pop();
                           Navigator.of(context).pop(

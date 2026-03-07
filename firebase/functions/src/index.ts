@@ -10,5 +10,6 @@ export { listRepositories } from "./list-repositories";
 export { listWorkflowFiles } from "./list-workflow-files";
 export { onUserSignUp } from "./on-user-sign-up";
 export { retryBuildJob } from "./retry-build-job";
+export { searchGitHubActions } from "./search-github-actions";
 export { onBuildJobStatusChange } from "./send-build-notification";
 export { updateSecretV1 } from "./update-secret";
