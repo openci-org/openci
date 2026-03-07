@@ -9,6 +9,24 @@ import { teamsCollectionPath } from "./firestore-collection-paths";
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
 
+export const DEFAULT_BRANCH_QUERY = `
+  query($owner: String!, $repo: String!) {
+    repository(owner: $owner, name: $repo) {
+      defaultBranchRef {
+        name
+      }
+    }
+  }
+`;
+
+export interface DefaultBranchQueryResult {
+  repository: {
+    defaultBranchRef: {
+      name: string;
+    } | null;
+  };
+}
+
 export const listDirectories = onCall(
   {
     region: "asia-northeast1",
@@ -56,24 +74,26 @@ export const listDirectories = onCall(
         privateKey: GITHUB_PRIVATE_KEY.value(),
       });
 
-      // Try each installation to find the one that has access to this repo
       for (const installationId of installationIds) {
         try {
           const octokit = await app.getInstallationOctokit(installationId);
 
-          // Get default branch first
-          const { data: repoData } = await octokit.request("GET /repos/{owner}/{repo}", {
-            owner,
-            repo,
-          });
+          const branchResult = await octokit.graphql<DefaultBranchQueryResult>(
+            DEFAULT_BRANCH_QUERY,
+            { owner, repo },
+          );
 
-          // Get the full tree recursively
+          const defaultBranch = branchResult.repository.defaultBranchRef?.name;
+          if (!defaultBranch) {
+            throw new HttpsError("not-found", "Default branch not found");
+          }
+
           const { data: treeData } = await octokit.request(
             "GET /repos/{owner}/{repo}/git/trees/{tree_sha}",
             {
               owner,
               repo,
-              tree_sha: repoData.default_branch,
+              tree_sha: defaultBranch,
               recursive: "true",
             },
           );
@@ -88,7 +108,6 @@ export const listDirectories = onCall(
 
           return { directories };
         } catch {
-          // This installation doesn't have access, try the next one
           continue;
         }
       }
