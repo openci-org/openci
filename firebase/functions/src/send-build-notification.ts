@@ -37,8 +37,19 @@ export const onBuildJobStatusChange = onDocumentUpdated(
       return;
     }
 
-    // Get team members
-    const teamDoc = await db.collection(teamsCollectionPath).doc(teamId).get();
+    const owner = afterData.owner as string;
+    const repo = afterData.repo as string;
+    const branch = afterData.branch as string | undefined;
+    const workflowId = afterData.workflowId as string | undefined;
+
+    const teamRef = db.collection(teamsCollectionPath).doc(teamId);
+    const workflowRef = workflowId ? db.collection(workflowsCollectionPath).doc(workflowId) : null;
+
+    const [teamDoc, workflowDoc] = await Promise.all([
+      teamRef.get(),
+      workflowRef ? workflowRef.get() : Promise.resolve(null),
+    ]);
+
     if (!teamDoc.exists) {
       logger.warn(`Team ${teamId} not found`);
       return;
@@ -51,17 +62,9 @@ export const onBuildJobStatusChange = onDocumentUpdated(
       return;
     }
 
-    const owner = afterData.owner as string;
-    const repo = afterData.repo as string;
-    const branch = afterData.branch as string | undefined;
-    const workflowId = afterData.workflowId as string | undefined;
-
     let workflowName: string | undefined;
-    if (workflowId) {
-      const workflowDoc = await db.collection(workflowsCollectionPath).doc(workflowId).get();
-      if (workflowDoc.exists) {
-        workflowName = workflowDoc.data()?.name as string | undefined;
-      }
+    if (workflowDoc?.exists) {
+      workflowName = workflowDoc.data()?.name as string | undefined;
     }
 
     const isSuccess = currentStatus === "success";
@@ -92,10 +95,12 @@ export const onBuildJobStatusChange = onDocumentUpdated(
       }
     }
 
+    const memberRefs = members.map((memberId) => db.collection(usersCollectionPath).doc(memberId));
+    const memberDocs = await db.getAll(...memberRefs);
+
     const tokensToNotify: string[] = [];
 
-    for (const memberId of members) {
-      const userDoc = await db.collection(usersCollectionPath).doc(memberId).get();
+    for (const userDoc of memberDocs) {
       if (!userDoc.exists) continue;
 
       const userData = userDoc.data();
@@ -104,11 +109,9 @@ export const onBuildJobStatusChange = onDocumentUpdated(
 
       if (fcmTokens.length === 0) continue;
 
-      // Check notification preference
       if (preference === "none") continue;
       if (preference === "successOnly" && !isSuccess) continue;
       if (preference === "failureOnly" && isSuccess) continue;
-      // "all" sends for both
 
       tokensToNotify.push(...fcmTokens);
     }
@@ -165,8 +168,11 @@ export const onBuildJobStatusChange = onDocumentUpdated(
 
       if (invalidTokens.length > 0) {
         logger.info(`Removing ${invalidTokens.length} invalid FCM tokens`);
-        for (const memberId of members) {
-          const userDoc = await db.collection(usersCollectionPath).doc(memberId).get();
+        const refreshedMemberDocs = await db.getAll(...memberRefs);
+        const batch = db.batch();
+        let batchCount = 0;
+
+        for (const userDoc of refreshedMemberDocs) {
           if (!userDoc.exists) continue;
 
           const userData = userDoc.data();
@@ -174,11 +180,13 @@ export const onBuildJobStatusChange = onDocumentUpdated(
           const validTokens = userTokens.filter((t) => !invalidTokens.includes(t));
 
           if (validTokens.length !== userTokens.length) {
-            await db
-              .collection(usersCollectionPath)
-              .doc(memberId)
-              .update({ fcmTokens: validTokens });
+            batch.update(userDoc.ref, { fcmTokens: validTokens });
+            batchCount++;
           }
+        }
+
+        if (batchCount > 0) {
+          await batch.commit();
         }
       }
     } catch (error) {

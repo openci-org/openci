@@ -43,13 +43,18 @@ export const retryBuildJob = onCall(
 
     const originalJob = originalJobDoc.data()!;
 
-    // Verify team membership
     const teamId = originalJob.teamId;
-    if (teamId) {
-      const teamRef = db.collection(teamsCollectionPath).doc(teamId);
-      const teamDoc = await teamRef.get();
+    const workflowId = originalJob.workflowId;
 
-      if (!teamDoc.exists) {
+    const [teamDoc, workflowDoc] = await Promise.all([
+      teamId ? db.collection(teamsCollectionPath).doc(teamId).get() : Promise.resolve(null),
+      workflowId
+        ? db.collection(workflowsCollectionPath).doc(workflowId).get()
+        : Promise.resolve(null),
+    ]);
+
+    if (teamId) {
+      if (!teamDoc?.exists) {
         throw new HttpsError("not-found", "Team not found");
       }
 
@@ -61,15 +66,9 @@ export const retryBuildJob = onCall(
       }
     }
 
-    // Fetch the associated workflow to get the check run name
-    const workflowId = originalJob.workflowId;
     let checkRunName = "OpenCI Build";
-
-    if (workflowId) {
-      const workflowDoc = await db.collection(workflowsCollectionPath).doc(workflowId).get();
-      if (workflowDoc.exists) {
-        checkRunName = workflowDoc.data()!.name || checkRunName;
-      }
+    if (workflowDoc?.exists) {
+      checkRunName = workflowDoc.data()!.name || checkRunName;
     }
 
     // Get fresh GitHub installation token
