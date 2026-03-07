@@ -215,7 +215,7 @@ async function createBuildJobs(
 
           const workflowName = parsed.name || file.name.replace(/\.(yaml|yml)$/, "");
 
-          if (!matchesTrigger(parsed, triggerType, triggerBranch, tagName)) {
+          if (!matchesTrigger(parsed, triggerType, triggerBranch)) {
             logger.info(
               `Workflow ${file.name} does not match trigger ${triggerType}/${triggerBranch}`,
             );
@@ -266,10 +266,7 @@ async function createBuildJobs(
               status: "queued",
               id: documentId,
               teamId,
-              workflowId: null,
-              workflowSource: "yaml",
               workflowFileName: file.name,
-              workflowSteps: steps,
               installationId,
               commitSha,
               pullRequestNumber,
@@ -302,12 +299,7 @@ async function createBuildJobs(
   }
 }
 
-function matchesTrigger(
-  parsed: any,
-  triggerType: string,
-  triggerBranch: string | null,
-  tagName: string | null,
-): boolean {
+function matchesTrigger(parsed: any, triggerType: string, triggerBranch: string | null): boolean {
   const on = parsed.on;
   if (!on) return false;
 
