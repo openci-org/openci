@@ -12,7 +12,9 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^5.0.0",
@@ -32,7 +34,8 @@
     "firebase-functions-test": "^3.4.1",
     "oxfmt": "^0.26.0",
     "oxlint": "^1.43.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": "22"

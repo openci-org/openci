@@ -97,11 +97,14 @@ export const listBranches = onCall(
           let defaultBranchName: string | null = null;
 
           while (true) {
-            const result: BranchesQueryResult = await octokit.graphql<BranchesQueryResult>(BRANCHES_QUERY, {
-              owner,
-              repo,
-              cursor,
-            });
+            const result: BranchesQueryResult = await octokit.graphql<BranchesQueryResult>(
+              BRANCHES_QUERY,
+              {
+                owner,
+                repo,
+                cursor,
+              },
+            );
 
             if (!defaultBranchName) {
               defaultBranchName = result.repository.defaultBranchRef?.name ?? null;
@@ -117,7 +120,10 @@ export const listBranches = onCall(
             .sort((a, b) => {
               if (a.name === defaultBranchName) return -1;
               if (b.name === defaultBranchName) return 1;
-              return new Date(b.target.committedDate).getTime() - new Date(a.target.committedDate).getTime();
+              return (
+                new Date(b.target.committedDate).getTime() -
+                new Date(a.target.committedDate).getTime()
+              );
             })
             .map((b) => b.name);
 
@@ -135,4 +141,3 @@ export const listBranches = onCall(
     }
   },
 );
-
