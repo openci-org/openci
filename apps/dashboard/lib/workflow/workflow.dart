@@ -25,8 +25,7 @@ abstract class WorkflowConfig with _$WorkflowConfig {
   const factory WorkflowConfig({
     required String selectedRepository,
     required String selectedWorkingDirectory,
-    required TriggerType selectedTriggerType,
-    String? selectedTriggerBranch,
+    @Default({}) Map<String, String?> triggers,
   }) = _WorkflowConfig;
   factory WorkflowConfig.fromJson(Map<String, Object?> json) =>
       _$WorkflowConfigFromJson(json);

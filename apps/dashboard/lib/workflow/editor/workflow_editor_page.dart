@@ -128,29 +128,29 @@ class StepList extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            switch (workflowConfig.selectedTriggerType) {
-                              TriggerType.tag => Icons.label_outline,
-                              TriggerType.push => FontAwesomeIcons.codeCommit,
-                              TriggerType.pullRequest =>
-                                FontAwesomeIcons.codePullRequest,
-                              TriggerType.release =>
-                                Icons.new_releases_outlined,
-                            },
-                            size: 16,
-                            color: Theme.of(context).hintColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            workflowConfig.selectedTriggerType ==
-                                        TriggerType.tag ||
-                                    workflowConfig.selectedTriggerType ==
-                                        TriggerType.release
-                                ? workflowConfig.selectedTriggerType.toString()
-                                : (workflowConfig.selectedTriggerBranch ?? ''),
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(width: 12),
+                          for (final entry
+                              in workflowConfig.triggers.entries) ...[
+                            Icon(
+                              switch (entry.key) {
+                                'tag' => Icons.label_outline,
+                                'push' => FontAwesomeIcons.codeCommit,
+                                'pull_request' || 'pullRequest' =>
+                                  FontAwesomeIcons.codePullRequest,
+                                'release' => Icons.new_releases_outlined,
+                                _ => Icons.play_arrow,
+                              },
+                              size: 16,
+                              color: Theme.of(context).hintColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              entry.value != null && entry.value!.isNotEmpty
+                                  ? '${entry.key}:${entry.value}'
+                                  : entry.key,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(width: 12),
+                          ],
                           Icon(
                             FontAwesomeIcons.github,
                             size: 16,
@@ -236,10 +236,17 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
     final workingDirectoryController = useTextEditingController(
       text: workflowConfig.selectedWorkingDirectory,
     );
-    final triggerBranchController = useTextEditingController(
-      text: workflowConfig.selectedTriggerBranch ?? '',
+    final triggers = useState(
+      Map<String, String?>.from(workflowConfig.triggers),
     );
-    final selectedTriggerType = useState(workflowConfig.selectedTriggerType);
+
+    final pushBranchController = useTextEditingController(
+      text: workflowConfig.triggers['push'] ?? '',
+    );
+    final prBranchController = useTextEditingController(
+      text: workflowConfig.triggers['pull_request'] ?? '',
+    );
+
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -282,37 +289,75 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                       ),
                     ),
                     SizedBox(height: 16),
-                    DropdownMenu(
-                      expandedInsets: EdgeInsets.zero,
-                      controller: TextEditingController(
-                        text: selectedTriggerType.value.toString(),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Triggers',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
-                      label: const Text('Trigger Type'),
-                      dropdownMenuEntries: [
-                        DropdownMenuEntry(value: 'push', label: 'push'),
-                        DropdownMenuEntry(
-                          value: 'pullRequest',
-                          label: 'pullRequest',
-                        ),
-                        DropdownMenuEntry(value: 'tag', label: 'tag'),
-                        DropdownMenuEntry(value: 'release', label: 'release'),
-                      ],
-                      onSelected: (value) {
-                        if (value == null) return;
-                        selectedTriggerType.value = TriggerType.fromValue(
-                          value,
-                        );
-                      },
                     ),
-                    if (selectedTriggerType.value != TriggerType.tag &&
-                        selectedTriggerType.value != TriggerType.release) ...[
-                      SizedBox(height: 16),
+                    SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: TriggerType.values
+                          .map(
+                            (type) => FilterChip(
+                              label: Text(type.toString()),
+                              selected: triggers.value.containsKey(
+                                type.toString(),
+                              ),
+                              onSelected: (selected) {
+                                final current = Map<String, String?>.from(
+                                  triggers.value,
+                                );
+                                final key = type.toString();
+                                if (selected) {
+                                  final needsBranch =
+                                      type == TriggerType.push ||
+                                      type == TriggerType.pullRequest;
+                                  current[key] = needsBranch ? 'main' : null;
+                                } else {
+                                  current.remove(key);
+                                }
+                                if (current.isEmpty) return;
+                                triggers.value = current;
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    if (triggers.value.containsKey('push')) ...[
+                      SizedBox(height: 12),
                       TextFormField(
-                        controller: triggerBranchController,
+                        controller: pushBranchController,
                         decoration: InputDecoration(
-                          labelText: 'Trigger Branch',
+                          labelText: 'push branch',
                           border: OutlineInputBorder(),
                         ),
+                        onChanged: (value) {
+                          final current = Map<String, String?>.from(
+                            triggers.value,
+                          );
+                          current['push'] = value;
+                          triggers.value = current;
+                        },
+                      ),
+                    ],
+                    if (triggers.value.containsKey('pull_request')) ...[
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: prBranchController,
+                        decoration: InputDecoration(
+                          labelText: 'pull_request branch',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          final current = Map<String, String?>.from(
+                            triggers.value,
+                          );
+                          current['pull_request'] = value;
+                          triggers.value = current;
+                        },
                       ),
                     ],
                     SizedBox(height: 24),
@@ -327,19 +372,12 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
 
                         await notifier.updateName(nameController.text);
 
-                        final triggerBranch =
-                            selectedTriggerType.value == TriggerType.tag ||
-                                selectedTriggerType.value == TriggerType.release
-                            ? null
-                            : triggerBranchController.text;
-
                         await notifier.updateWorkflowConfig(
                           WorkflowConfig(
                             selectedRepository: repositoryController.text,
                             selectedWorkingDirectory:
                                 workingDirectoryController.text,
-                            selectedTriggerType: selectedTriggerType.value,
-                            selectedTriggerBranch: triggerBranch,
+                            triggers: triggers.value,
                           ),
                         );
 

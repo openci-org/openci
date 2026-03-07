@@ -21,14 +21,14 @@ class WorkflowYamlStep {
 class WorkflowYamlConfig {
   WorkflowYamlConfig({
     required this.name,
-    this.triggerType = 'push',
-    this.triggerBranches = const ['main'],
+    this.triggers = const {
+      'push': ['main'],
+    },
     this.steps = const [],
   });
 
   final String name;
-  final String triggerType;
-  final List<String> triggerBranches;
+  final Map<String, List<String>> triggers;
   final List<WorkflowYamlStep> steps;
 }
 
@@ -37,10 +37,17 @@ String stepsToYaml(WorkflowYamlConfig config) {
   buffer.writeln('name: ${config.name}');
   buffer.writeln();
   buffer.writeln('on:');
-  buffer.writeln('  ${config.triggerType}:');
-  buffer.writeln('    branches:');
-  for (final branch in config.triggerBranches) {
-    buffer.writeln('      - $branch');
+  for (final entry in config.triggers.entries) {
+    final triggerType = entry.key;
+    final branches = entry.value;
+    buffer.writeln('  $triggerType:');
+    final needsBranches = triggerType != 'tag' && triggerType != 'release';
+    if (needsBranches && branches.isNotEmpty) {
+      buffer.writeln('    branches:');
+      for (final branch in branches) {
+        buffer.writeln('      - $branch');
+      }
+    }
   }
   buffer.writeln();
   buffer.writeln('jobs:');
@@ -78,19 +85,24 @@ WorkflowYamlConfig? yamlToConfig(String yamlContent) {
 
     final name = doc['name']?.toString() ?? 'untitled';
 
-    var triggerType = 'push';
-    var triggerBranches = <String>['main'];
+    final triggers = <String, List<String>>{};
     final on = doc['on'];
     if (on is YamlMap) {
-      final trigger = on.keys.first?.toString() ?? 'push';
-      triggerType = trigger;
-      final triggerConfig = on[trigger];
-      if (triggerConfig is YamlMap) {
-        final branches = triggerConfig['branches'];
-        if (branches is YamlList) {
-          triggerBranches = branches.map((b) => b.toString()).toList();
+      for (final key in on.keys) {
+        final triggerType = key.toString();
+        final triggerConfig = on[key];
+        var branches = <String>[];
+        if (triggerConfig is YamlMap) {
+          final branchList = triggerConfig['branches'];
+          if (branchList is YamlList) {
+            branches = branchList.map((b) => b.toString()).toList();
+          }
         }
+        triggers[triggerType] = branches;
       }
+    }
+    if (triggers.isEmpty) {
+      triggers['push'] = ['main'];
     }
 
     final steps = <WorkflowYamlStep>[];
@@ -126,8 +138,7 @@ WorkflowYamlConfig? yamlToConfig(String yamlContent) {
 
     return WorkflowYamlConfig(
       name: name,
-      triggerType: triggerType,
-      triggerBranches: triggerBranches,
+      triggers: triggers,
       steps: steps,
     );
   } catch (_) {

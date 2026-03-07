@@ -13,11 +13,7 @@ _InitialWorkflowSetupState _$InitialWorkflowSetupStateFromJson(
   name: json['name'] as String,
   selectedRepository: json['selectedRepository'] as String,
   selectedWorkingDirectory: json['selectedWorkingDirectory'] as String,
-  selectedTriggerType: $enumDecode(
-    _$TriggerTypeEnumMap,
-    json['selectedTriggerType'],
-  ),
-  selectedTriggerBranch: json['selectedTriggerBranch'] as String,
+  triggers: Map<String, String?>.from(json['triggers'] as Map),
 );
 
 Map<String, dynamic> _$InitialWorkflowSetupStateToJson(
@@ -27,15 +23,7 @@ Map<String, dynamic> _$InitialWorkflowSetupStateToJson(
   'name': instance.name,
   'selectedRepository': instance.selectedRepository,
   'selectedWorkingDirectory': instance.selectedWorkingDirectory,
-  'selectedTriggerType': _$TriggerTypeEnumMap[instance.selectedTriggerType]!,
-  'selectedTriggerBranch': instance.selectedTriggerBranch,
-};
-
-const _$TriggerTypeEnumMap = {
-  TriggerType.pullRequest: 'pullRequest',
-  TriggerType.push: 'push',
-  TriggerType.tag: 'tag',
-  TriggerType.release: 'release',
+  'triggers': instance.triggers,
 };
 
 // **************************************************************************
@@ -78,7 +66,7 @@ final class InitialWorkflowSetupProvider
 }
 
 String _$initialWorkflowSetupHash() =>
-    r'919c0235c6ac9c882159f45f149068354a6f51e9';
+    r'a750a8f790b00b3b66277bb219bdeb2f7cc9e2b1';
 
 abstract class _$InitialWorkflowSetup
     extends $Notifier<InitialWorkflowSetupState> {

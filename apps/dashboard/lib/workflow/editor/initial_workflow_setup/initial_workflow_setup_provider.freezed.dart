@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$InitialWorkflowSetupState {
 
- bool get isCreated; String get name; String get selectedRepository; String get selectedWorkingDirectory; TriggerType get selectedTriggerType; String get selectedTriggerBranch;
+ bool get isCreated; String get name; String get selectedRepository; String get selectedWorkingDirectory; Map<String, String?> get triggers;
 /// Create a copy of InitialWorkflowSetupState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $InitialWorkflowSetupStateCopyWith<InitialWorkflowSetupState> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InitialWorkflowSetupState&&(identical(other.isCreated, isCreated) || other.isCreated == isCreated)&&(identical(other.name, name) || other.name == name)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&(identical(other.selectedTriggerType, selectedTriggerType) || other.selectedTriggerType == selectedTriggerType)&&(identical(other.selectedTriggerBranch, selectedTriggerBranch) || other.selectedTriggerBranch == selectedTriggerBranch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InitialWorkflowSetupState&&(identical(other.isCreated, isCreated) || other.isCreated == isCreated)&&(identical(other.name, name) || other.name == name)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&const DeepCollectionEquality().equals(other.triggers, triggers));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,isCreated,name,selectedRepository,selectedWorkingDirectory,selectedTriggerType,selectedTriggerBranch);
+int get hashCode => Object.hash(runtimeType,isCreated,name,selectedRepository,selectedWorkingDirectory,const DeepCollectionEquality().hash(triggers));
 
 @override
 String toString() {
-  return 'InitialWorkflowSetupState(isCreated: $isCreated, name: $name, selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, selectedTriggerType: $selectedTriggerType, selectedTriggerBranch: $selectedTriggerBranch)';
+  return 'InitialWorkflowSetupState(isCreated: $isCreated, name: $name, selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, triggers: $triggers)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $InitialWorkflowSetupStateCopyWith<$Res>  {
   factory $InitialWorkflowSetupStateCopyWith(InitialWorkflowSetupState value, $Res Function(InitialWorkflowSetupState) _then) = _$InitialWorkflowSetupStateCopyWithImpl;
 @useResult
 $Res call({
- bool isCreated, String name, String selectedRepository, String selectedWorkingDirectory, TriggerType selectedTriggerType, String selectedTriggerBranch
+ bool isCreated, String name, String selectedRepository, String selectedWorkingDirectory, Map<String, String?> triggers
 });
 
 
@@ -65,15 +65,14 @@ class _$InitialWorkflowSetupStateCopyWithImpl<$Res>
 
 /// Create a copy of InitialWorkflowSetupState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isCreated = null,Object? name = null,Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? selectedTriggerType = null,Object? selectedTriggerBranch = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isCreated = null,Object? name = null,Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? triggers = null,}) {
   return _then(_self.copyWith(
 isCreated: null == isCreated ? _self.isCreated : isCreated // ignore: cast_nullable_to_non_nullable
 as bool,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,selectedRepository: null == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
 as String,selectedWorkingDirectory: null == selectedWorkingDirectory ? _self.selectedWorkingDirectory : selectedWorkingDirectory // ignore: cast_nullable_to_non_nullable
-as String,selectedTriggerType: null == selectedTriggerType ? _self.selectedTriggerType : selectedTriggerType // ignore: cast_nullable_to_non_nullable
-as TriggerType,selectedTriggerBranch: null == selectedTriggerBranch ? _self.selectedTriggerBranch : selectedTriggerBranch // ignore: cast_nullable_to_non_nullable
-as String,
+as String,triggers: null == triggers ? _self.triggers : triggers // ignore: cast_nullable_to_non_nullable
+as Map<String, String?>,
   ));
 }
 
@@ -158,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isCreated,  String name,  String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String selectedTriggerBranch)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isCreated,  String name,  String selectedRepository,  String selectedWorkingDirectory,  Map<String, String?> triggers)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InitialWorkflowSetupState() when $default != null:
-return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch);case _:
+return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.selectedWorkingDirectory,_that.triggers);case _:
   return orElse();
 
 }
@@ -179,10 +178,10 @@ return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.select
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isCreated,  String name,  String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String selectedTriggerBranch)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isCreated,  String name,  String selectedRepository,  String selectedWorkingDirectory,  Map<String, String?> triggers)  $default,) {final _that = this;
 switch (_that) {
 case _InitialWorkflowSetupState():
-return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch);case _:
+return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.selectedWorkingDirectory,_that.triggers);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +198,10 @@ return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.select
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isCreated,  String name,  String selectedRepository,  String selectedWorkingDirectory,  TriggerType selectedTriggerType,  String selectedTriggerBranch)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isCreated,  String name,  String selectedRepository,  String selectedWorkingDirectory,  Map<String, String?> triggers)?  $default,) {final _that = this;
 switch (_that) {
 case _InitialWorkflowSetupState() when $default != null:
-return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.selectedWorkingDirectory,_that.selectedTriggerType,_that.selectedTriggerBranch);case _:
+return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.selectedWorkingDirectory,_that.triggers);case _:
   return null;
 
 }
@@ -214,15 +213,14 @@ return $default(_that.isCreated,_that.name,_that.selectedRepository,_that.select
 @JsonSerializable()
 
 class _InitialWorkflowSetupState implements InitialWorkflowSetupState {
-  const _InitialWorkflowSetupState({required this.isCreated, required this.name, required this.selectedRepository, required this.selectedWorkingDirectory, required this.selectedTriggerType, required this.selectedTriggerBranch});
+  const _InitialWorkflowSetupState({required this.isCreated, required this.name, required this.selectedRepository, required this.selectedWorkingDirectory, required this.triggers});
   factory _InitialWorkflowSetupState.fromJson(Map<String, dynamic> json) => _$InitialWorkflowSetupStateFromJson(json);
 
 @override final  bool isCreated;
 @override final  String name;
 @override final  String selectedRepository;
 @override final  String selectedWorkingDirectory;
-@override final  TriggerType selectedTriggerType;
-@override final  String selectedTriggerBranch;
+@override final  Map<String, String?> triggers;
 
 /// Create a copy of InitialWorkflowSetupState
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InitialWorkflowSetupState&&(identical(other.isCreated, isCreated) || other.isCreated == isCreated)&&(identical(other.name, name) || other.name == name)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&(identical(other.selectedTriggerType, selectedTriggerType) || other.selectedTriggerType == selectedTriggerType)&&(identical(other.selectedTriggerBranch, selectedTriggerBranch) || other.selectedTriggerBranch == selectedTriggerBranch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InitialWorkflowSetupState&&(identical(other.isCreated, isCreated) || other.isCreated == isCreated)&&(identical(other.name, name) || other.name == name)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedWorkingDirectory, selectedWorkingDirectory) || other.selectedWorkingDirectory == selectedWorkingDirectory)&&const DeepCollectionEquality().equals(other.triggers, triggers));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,isCreated,name,selectedRepository,selectedWorkingDirectory,selectedTriggerType,selectedTriggerBranch);
+int get hashCode => Object.hash(runtimeType,isCreated,name,selectedRepository,selectedWorkingDirectory,const DeepCollectionEquality().hash(triggers));
 
 @override
 String toString() {
-  return 'InitialWorkflowSetupState(isCreated: $isCreated, name: $name, selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, selectedTriggerType: $selectedTriggerType, selectedTriggerBranch: $selectedTriggerBranch)';
+  return 'InitialWorkflowSetupState(isCreated: $isCreated, name: $name, selectedRepository: $selectedRepository, selectedWorkingDirectory: $selectedWorkingDirectory, triggers: $triggers)';
 }
 
 
@@ -257,7 +255,7 @@ abstract mixin class _$InitialWorkflowSetupStateCopyWith<$Res> implements $Initi
   factory _$InitialWorkflowSetupStateCopyWith(_InitialWorkflowSetupState value, $Res Function(_InitialWorkflowSetupState) _then) = __$InitialWorkflowSetupStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isCreated, String name, String selectedRepository, String selectedWorkingDirectory, TriggerType selectedTriggerType, String selectedTriggerBranch
+ bool isCreated, String name, String selectedRepository, String selectedWorkingDirectory, Map<String, String?> triggers
 });
 
 
@@ -274,15 +272,14 @@ class __$InitialWorkflowSetupStateCopyWithImpl<$Res>
 
 /// Create a copy of InitialWorkflowSetupState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isCreated = null,Object? name = null,Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? selectedTriggerType = null,Object? selectedTriggerBranch = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isCreated = null,Object? name = null,Object? selectedRepository = null,Object? selectedWorkingDirectory = null,Object? triggers = null,}) {
   return _then(_InitialWorkflowSetupState(
 isCreated: null == isCreated ? _self.isCreated : isCreated // ignore: cast_nullable_to_non_nullable
 as bool,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,selectedRepository: null == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
 as String,selectedWorkingDirectory: null == selectedWorkingDirectory ? _self.selectedWorkingDirectory : selectedWorkingDirectory // ignore: cast_nullable_to_non_nullable
-as String,selectedTriggerType: null == selectedTriggerType ? _self.selectedTriggerType : selectedTriggerType // ignore: cast_nullable_to_non_nullable
-as TriggerType,selectedTriggerBranch: null == selectedTriggerBranch ? _self.selectedTriggerBranch : selectedTriggerBranch // ignore: cast_nullable_to_non_nullable
-as String,
+as String,triggers: null == triggers ? _self.triggers : triggers // ignore: cast_nullable_to_non_nullable
+as Map<String, String?>,
   ));
 }
 
