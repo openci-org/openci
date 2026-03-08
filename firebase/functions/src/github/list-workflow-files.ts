@@ -3,8 +3,9 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
 
-import { db } from "./firebase";
-import { teamsCollectionPath } from "./firestore-collection-paths";
+import { db } from "../firebase";
+import { teamsCollectionPath } from "../firestore-collection-paths";
+import { OPENCI_DIR_QUERY, OpenciDirEntry } from "./queries";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -67,57 +68,35 @@ export const listWorkflowFiles = onCall(
         try {
           const octokit = await app.getInstallationOctokit(installationId);
 
-          const ref =
-            branch ??
-            (await octokit.request("GET /repos/{owner}/{repo}", { owner, repo })).data
-              .default_branch;
+          const expression = `${branch ?? "HEAD"}:.openci`;
 
-          let contents: any[];
+          let entries: OpenciDirEntry[] = [];
           try {
-            const { data } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
+            const result = await octokit.graphql(OPENCI_DIR_QUERY, {
               owner,
               repo,
-              path: ".openci",
-              ref,
+              expression,
             });
-
-            if (!Array.isArray(data)) {
-              return { files: [] };
-            }
-            contents = data;
+            entries = (result as any).repository.object?.entries ?? [];
           } catch (e: any) {
-            if (e.status === 404) {
+            if (e.message?.includes("Could not resolve to an object")) {
               return { files: [] };
             }
             throw e;
           }
 
-          const yamlFiles = contents.filter(
-            (item: any) =>
-              item.type === "file" && (item.name.endsWith(".yaml") || item.name.endsWith(".yml")),
-          );
-
-          const files: WorkflowFile[] = await Promise.all(
-            yamlFiles.map(async (file: any) => {
-              const { data: fileData } = await octokit.request(
-                "GET /repos/{owner}/{repo}/contents/{path}",
-                {
-                  owner,
-                  repo,
-                  path: file.path,
-                  ref,
-                },
-              );
-
-              const content = Buffer.from((fileData as any).content, "base64").toString("utf-8");
-
-              return {
-                name: file.name,
-                path: file.path,
-                content,
-              };
-            }),
-          );
+          const files: WorkflowFile[] = entries
+            .filter(
+              (entry) =>
+                entry.type === "blob" &&
+                (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")) &&
+                entry.object?.text,
+            )
+            .map((entry) => ({
+              name: entry.name,
+              path: `.openci/${entry.name}`,
+              content: entry.object!.text,
+            }));
 
           return { files };
         } catch (e) {

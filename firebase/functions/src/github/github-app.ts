@@ -5,8 +5,9 @@ import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
 import { v4 as uuidv4 } from "uuid";
 
-import { db } from "./firebase";
-import { buildJobsCollectionPath } from "./firestore-collection-paths";
+import { db } from "../firebase";
+import { buildJobsCollectionPath } from "../firestore-collection-paths";
+import { OPENCI_DIR_QUERY, OpenciDirEntry } from "./queries";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -52,27 +53,29 @@ export const githubApp = onRequest(
         payload: body,
       };
 
+      let result: BuildJobsResult = { createdJobs: 0, errors: 0 };
+
       if (event === "pull_request") {
         if (body.action === "opened" || body.action === "synchronize") {
           logger.info(`PR ${body.action}`, { structuredData: true });
-          await createBuildJobs(app, eventData);
+          result = await createBuildJobs(app, eventData);
         }
       } else if (event === "push") {
         if (body.ref.startsWith("refs/tags/")) {
           logger.info(`Skipping push event for tag ${body.ref}`, { structuredData: true });
         } else {
           logger.info(`Push to ${body.ref}`, { structuredData: true });
-          await createBuildJobs(app, eventData);
+          result = await createBuildJobs(app, eventData);
         }
       } else if (event === "create") {
         if (body.ref_type === "tag") {
           logger.info(`Tag created: ${body.ref}`, { structuredData: true });
-          await createBuildJobs(app, eventData);
+          result = await createBuildJobs(app, eventData);
         }
       } else if (event === "release") {
         if (body.action === "published") {
           logger.info(`Release published: ${body.release?.tag_name}`, { structuredData: true });
-          await createBuildJobs(app, eventData);
+          result = await createBuildJobs(app, eventData);
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
@@ -80,13 +83,18 @@ export const githubApp = onRequest(
         }
       }
 
-      response.send("ok");
+      response.send({ status: "ok", ...result });
     } catch (error) {
       logger.error(error);
       response.status(500).send("Error");
     }
   },
 );
+
+interface BuildJobsResult {
+  createdJobs: number;
+  errors: number;
+}
 
 async function createBuildJobs(
   app: App,
@@ -97,7 +105,7 @@ async function createBuildJobs(
     sender: string;
     payload: any;
   },
-) {
+): Promise<BuildJobsResult> {
   const { payload, event } = params;
   const [owner, repo] = params.repository.split("/");
 
@@ -126,7 +134,7 @@ async function createBuildJobs(
 
   if (!triggerType || (!["tag", "release"].includes(triggerType) && !triggerBranch)) {
     logger.info(`Skipping event ${event}: unable to determine trigger type`);
-    return;
+    return { createdJobs: 0, errors: 0 };
   }
 
   const installationId = payload.installation?.id;
@@ -169,8 +177,9 @@ async function createBuildJobs(
 
   const pullRequestNumber = payload.pull_request?.number || null;
   let createdJobCount = 0;
+  let errorCount = 0;
 
-  // --- .openci/ YAML workflows ---
+  // --- .openci/ YAML workflows (GraphQL: single request) ---
   if (octokit) {
     try {
       const ref =
@@ -179,56 +188,49 @@ async function createBuildJobs(
           ? `heads/${triggerBranch}`
           : undefined);
 
-      let contents: any[] = [];
+      let entries: OpenciDirEntry[] = [];
       try {
-        const { data } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
+        const result = await octokit.graphql(OPENCI_DIR_QUERY, {
           owner,
           repo,
-          path: ".openci",
-          ref,
+          expression: `${ref}:.openci`,
         });
-        if (Array.isArray(data)) {
-          contents = data;
-        }
+        entries = result.repository.object?.entries ?? [];
       } catch (e: any) {
-        if (e.status !== 404) {
+        if (!e.message?.includes("Could not resolve to an object")) {
           logger.warn("Failed to list .openci/ directory", e);
         }
       }
 
-      const yamlFiles = contents.filter(
-        (item: any) =>
-          item.type === "file" && (item.name.endsWith(".yaml") || item.name.endsWith(".yml")),
+      const yamlEntries = entries.filter(
+        (entry) =>
+          entry.type === "blob" &&
+          (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")) &&
+          entry.object?.text,
       );
 
-      for (const file of yamlFiles) {
+      for (const entry of yamlEntries) {
         try {
-          const { data: fileData } = await octokit.request(
-            "GET /repos/{owner}/{repo}/contents/{path}",
-            { owner, repo, path: file.path, ref },
-          );
-
-          const content = Buffer.from((fileData as any).content, "base64").toString("utf-8");
           const yaml = await import("js-yaml");
-          const parsed = yaml.load(content) as any;
+          const parsed = yaml.load(entry.object!.text) as any;
           if (!parsed || typeof parsed !== "object") continue;
 
-          const workflowName = parsed.name || file.name.replace(/\.(yaml|yml)$/, "");
+          const workflowName = parsed.name || entry.name.replace(/\.(yaml|yml)$/, "");
 
           if (!matchesTrigger(parsed, triggerType, triggerBranch)) {
             logger.info(
-              `Workflow ${file.name} does not match trigger ${triggerType}/${triggerBranch}`,
+              `Workflow ${entry.name} does not match trigger ${triggerType}/${triggerBranch}`,
             );
             continue;
           }
 
           const steps = extractSteps(parsed);
           if (steps.length === 0) {
-            logger.info(`Workflow ${file.name} has no steps, skipping`);
+            logger.info(`Workflow ${entry.name} has no steps, skipping`);
             continue;
           }
 
-          logger.info(`Matched .openci/${file.name} with ${steps.length} steps`);
+          logger.info(`Matched .openci/${entry.name} with ${steps.length} steps`);
 
           let checkRunId: number | null = null;
           if (commitSha) {
@@ -246,7 +248,7 @@ async function createBuildJobs(
               );
               checkRunId = checkRun.id;
             } catch (error) {
-              logger.error(`Failed to create check run for ${file.name}`, error);
+              logger.error(`Failed to create check run for ${entry.name}`, error);
             }
           }
 
@@ -266,7 +268,7 @@ async function createBuildJobs(
               status: "queued",
               id: documentId,
               teamId,
-              workflowFileName: file.name,
+              workflowFileName: entry.name,
               installationId,
               commitSha,
               pullRequestNumber,
@@ -284,7 +286,8 @@ async function createBuildJobs(
 
           createdJobCount++;
         } catch (e) {
-          logger.error(`Failed to process .openci/${file.name}`, e);
+          logger.error(`Failed to process .openci/${entry.name}`, e);
+          errorCount++;
         }
       }
     } catch (error) {
@@ -297,6 +300,8 @@ async function createBuildJobs(
   } else {
     logger.info(`Created ${createdJobCount} build jobs for ${params.repository}`);
   }
+
+  return { createdJobs: createdJobCount, errors: errorCount };
 }
 
 function matchesTrigger(parsed: any, triggerType: string, triggerBranch: string | null): boolean {

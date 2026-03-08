@@ -3,43 +3,12 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
 
-import { db } from "./firebase";
-import { teamsCollectionPath } from "./firestore-collection-paths";
+import { db } from "../firebase";
+import { teamsCollectionPath } from "../firestore-collection-paths";
+import { BRANCHES_QUERY, BranchNode, BranchesQueryResult } from "./queries";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
-
-const BRANCHES_QUERY = `
-  query($owner: String!, $repo: String!, $cursor: String) {
-    repository(owner: $owner, name: $repo) {
-      defaultBranchRef { name }
-      refs(refPrefix: "refs/heads/", first: 100, after: $cursor, orderBy: {field: TAG_COMMIT_DATE, direction: DESC}) {
-        nodes {
-          name
-          target {
-            ... on Commit { committedDate }
-          }
-        }
-        pageInfo { hasNextPage endCursor }
-      }
-    }
-  }
-`;
-
-interface BranchNode {
-  name: string;
-  target: { committedDate: string };
-}
-
-interface BranchesQueryResult {
-  repository: {
-    defaultBranchRef: { name: string } | null;
-    refs: {
-      nodes: BranchNode[];
-      pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    };
-  };
-}
 
 export const listBranches = onCall(
   {
@@ -97,11 +66,14 @@ export const listBranches = onCall(
           let defaultBranchName: string | null = null;
 
           while (true) {
-            const result: BranchesQueryResult = await octokit.graphql<BranchesQueryResult>(BRANCHES_QUERY, {
-              owner,
-              repo,
-              cursor,
-            });
+            const result: BranchesQueryResult = await octokit.graphql<BranchesQueryResult>(
+              BRANCHES_QUERY,
+              {
+                owner,
+                repo,
+                cursor,
+              },
+            );
 
             if (!defaultBranchName) {
               defaultBranchName = result.repository.defaultBranchRef?.name ?? null;
@@ -117,7 +89,10 @@ export const listBranches = onCall(
             .sort((a, b) => {
               if (a.name === defaultBranchName) return -1;
               if (b.name === defaultBranchName) return 1;
-              return new Date(b.target.committedDate).getTime() - new Date(a.target.committedDate).getTime();
+              return (
+                new Date(b.target.committedDate).getTime() -
+                new Date(a.target.committedDate).getTime()
+              );
             })
             .map((b) => b.name);
 
@@ -135,4 +110,3 @@ export const listBranches = onCall(
     }
   },
 );
-
