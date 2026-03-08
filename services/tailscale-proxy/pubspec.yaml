@@ -1,0 +1,11 @@
+name: tailscale_proxy
+description: Cloud Run proxy service to access build machines via Tailscale.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  relic: ^1.1.1
+  socks5_proxy: ^2.1.1
