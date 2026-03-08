@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -13,6 +14,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final teamListStream = ref.watch(teamListProvider);
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    final teamT = t.team;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
@@ -29,8 +31,8 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                   key: formKey,
                   child: Column(
                     children: [
-                      const Text(
-                        'Select a team',
+                      Text(
+                        teamT.selectTeam,
                         style: TextStyle(
                           fontSize: 20,
                         ),
@@ -47,7 +49,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                                     .updateSelectedTeamId(team.id);
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
-                                  'Team selected successfully',
+                                  teamT.selectedSuccess,
                                 );
                                 Navigator.of(context).pop();
                               } catch (e) {

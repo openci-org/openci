@@ -1,4 +1,5 @@
 import 'package:dashboard/environment_variables/environment_variable_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +12,10 @@ class EnvironmentVariablesPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(environmentVariableManagerProvider);
+    final envT = t.envVars;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Environment Variables'),
+        title: Text(envT.title),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -28,26 +30,23 @@ class EnvironmentVariablesPage extends HookConsumerWidget {
       ),
       body: state.when(
         data: (envVars) {
-          // Separate built-in and custom env vars
           final builtIn = envVars.where((e) => e.autoIncrement).toList();
           final custom = envVars.where((e) => !e.autoIncrement).toList();
 
           if (envVars.isEmpty) {
-            return const Center(
-              child: Text('No environment variables found'),
+            return Center(
+              child: Text(envT.noEnvVars),
             );
           }
 
           return ListView(
             children: [
-              // Built-in env vars (OPENCI_RUN_NUMBER)
               ...builtIn.map((envVar) => _BuiltInEnvVarTile(envVar: envVar)),
-              // Custom env vars
               if (custom.isEmpty && builtIn.isNotEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(32),
                   child: Center(
-                    child: Text('No custom environment variables'),
+                    child: Text(envT.noCustomEnvVars),
                   ),
                 )
               else
@@ -74,12 +73,12 @@ class EnvironmentVariablesPage extends HookConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete'),
-        content: Text('Delete "${envVar.key}"?'),
+        title: Text(t.common.delete),
+        content: Text('${t.common.delete} "${envVar.key}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(t.common.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -89,13 +88,13 @@ class EnvironmentVariablesPage extends HookConsumerWidget {
                     .deleteEnvironmentVariable(envVar.id);
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
-                context.showSnackBarMessage('Deleted successfully');
+                context.showSnackBarMessage(t.envVars.deletedSuccess);
               } catch (e) {
                 if (!context.mounted) return;
                 context.showSnackBarMessage('$e');
               }
             },
-            child: const Text('Delete'),
+            child: Text(t.common.delete),
           ),
         ],
       ),
@@ -224,7 +223,6 @@ class _CustomEnvVarTile extends StatelessWidget {
   }
 }
 
-/// Bottom sheet for editing the built-in OPENCI_RUN_NUMBER (value only)
 class _EditBuiltInEnvVarBottomSheet extends HookConsumerWidget {
   const _EditBuiltInEnvVarBottomSheet({required this.envVar});
 
@@ -235,6 +233,7 @@ class _EditBuiltInEnvVarBottomSheet extends HookConsumerWidget {
     final valueController = useTextEditingController(text: envVar.value);
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
+    final envT = t.envVars;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -251,33 +250,33 @@ class _EditBuiltInEnvVarBottomSheet extends HookConsumerWidget {
                 key: formKey,
                 child: Column(
                   children: [
-                    const Text(
-                      'Edit Run Number',
+                    Text(
+                      envT.editRunNumber,
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       enabled: false,
                       initialValue: envVar.key,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'KEY_NAME',
+                        labelText: envT.keyName,
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: valueController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'Value',
+                        labelText: envT.value,
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
+                          return envT.enterValue;
                         }
                         if (int.tryParse(value) == null) {
-                          return 'Value must be a number';
+                          return envT.valueMustBeNumber;
                         }
                         return null;
                       },
@@ -302,7 +301,7 @@ class _EditBuiltInEnvVarBottomSheet extends HookConsumerWidget {
                                     );
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
-                                  'Run number updated',
+                                  envT.runNumberUpdated,
                                 );
                                 Navigator.of(context).pop();
                               } catch (e) {
@@ -317,7 +316,7 @@ class _EditBuiltInEnvVarBottomSheet extends HookConsumerWidget {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Save'),
+                          : Text(t.common.save),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -339,6 +338,7 @@ class _AddEnvVarBottomSheet extends HookConsumerWidget {
     final keyController = useTextEditingController();
     final valueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    final envT = t.envVars;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -355,27 +355,27 @@ class _AddEnvVarBottomSheet extends HookConsumerWidget {
                 key: formKey,
                 child: Column(
                   children: [
-                    const Text(
-                      'Add Environment Variable',
+                    Text(
+                      envT.addEnvVar,
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: keyController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'KEY_NAME',
-                        hintText: 'e.g. MY_VARIABLE',
+                        labelText: envT.keyName,
+                        hintText: envT.keyHint,
                       ),
                       textCapitalization: TextCapitalization.characters,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a key name';
+                          return envT.enterKeyName;
                         }
                         if (!RegExp(
                           r'^[A-Za-z_][A-Za-z0-9_]*$',
                         ).hasMatch(value.trim())) {
-                          return 'Use only letters, numbers, and underscores';
+                          return envT.invalidKey;
                         }
                         return null;
                       },
@@ -383,14 +383,14 @@ class _AddEnvVarBottomSheet extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: valueController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'Value',
-                        hintText: 'e.g. hello',
+                        labelText: envT.value,
+                        hintText: envT.valueHint,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
+                          return envT.enterValue;
                         }
                         return null;
                       },
@@ -409,16 +409,14 @@ class _AddEnvVarBottomSheet extends HookConsumerWidget {
                                 valueController.text,
                               );
                           if (!context.mounted) return;
-                          context.showSnackBarMessage(
-                            'Environment variable added',
-                          );
+                          context.showSnackBarMessage(envT.addedSuccess);
                           Navigator.of(context).pop();
                         } catch (e) {
                           if (!context.mounted) return;
                           context.showSnackBarMessage('$e');
                         }
                       },
-                      child: const Text('Add'),
+                      child: Text(t.common.add),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -443,6 +441,7 @@ class _EditEnvVarBottomSheet extends HookConsumerWidget {
     final valueController = useTextEditingController(text: envVar.value);
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
+    final envT = t.envVars;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -459,26 +458,26 @@ class _EditEnvVarBottomSheet extends HookConsumerWidget {
                 key: formKey,
                 child: Column(
                   children: [
-                    const Text(
-                      'Edit Environment Variable',
+                    Text(
+                      envT.editEnvVar,
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: keyController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'KEY_NAME',
+                        labelText: envT.keyName,
                       ),
                       textCapitalization: TextCapitalization.characters,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a key name';
+                          return envT.enterKeyName;
                         }
                         if (!RegExp(
                           r'^[A-Za-z_][A-Za-z0-9_]*$',
                         ).hasMatch(value.trim())) {
-                          return 'Use only letters, numbers, and underscores';
+                          return envT.invalidKey;
                         }
                         return null;
                       },
@@ -486,13 +485,13 @@ class _EditEnvVarBottomSheet extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: valueController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'Value',
+                        labelText: envT.value,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
+                          return envT.enterValue;
                         }
                         return null;
                       },
@@ -517,7 +516,7 @@ class _EditEnvVarBottomSheet extends HookConsumerWidget {
                                     );
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
-                                  'Environment variable updated',
+                                  envT.updatedSuccess,
                                 );
                                 Navigator.of(context).pop();
                               } catch (e) {
@@ -532,7 +531,7 @@ class _EditEnvVarBottomSheet extends HookConsumerWidget {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Save'),
+                          : Text(t.common.save),
                     ),
                     const SizedBox(height: 24),
                   ],

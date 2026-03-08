@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -14,6 +15,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
     final teamNameController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final selectedTeamId = useState<String?>(null);
+    final teamT = t.team;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
@@ -30,20 +32,20 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   key: formKey,
                   child: Column(
                     children: [
-                      const Text(
-                        'Edit Team',
+                      Text(
+                        teamT.editTeam,
                         style: TextStyle(fontSize: 16),
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Team',
+                          labelText: teamT.selectTeamLabel,
                         ),
                         initialValue: selectedTeamId.value,
                         validator: (value) {
                           if (value == null) {
-                            return 'Please select a team';
+                            return teamT.selectTeamValidation;
                           }
                           return null;
                         },
@@ -68,13 +70,13 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: teamNameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'New Team Name',
+                          labelText: teamT.newTeamName,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a team name';
+                            return teamT.enterTeamName;
                           }
                           return null;
                         },
@@ -95,14 +97,14 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                       );
                                   if (!context.mounted) return;
                                   context.showSnackBarMessage(
-                                    'Team name updated successfully',
+                                    teamT.updatedSuccess,
                                   );
                                 } catch (e) {
                                   if (!context.mounted) return;
                                   context.showSnackBarMessage(e.toString());
                                 }
                               },
-                        child: const Text('Update Team Name'),
+                        child: Text(teamT.editTeam),
                       ),
                       const SizedBox(height: 24),
                     ],

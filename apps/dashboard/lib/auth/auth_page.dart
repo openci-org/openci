@@ -1,5 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/gestures.dart';
@@ -22,6 +23,7 @@ class AuthPage extends HookConsumerWidget {
 
     final authNotifier = ref.watch(authProvider.notifier);
     final firestore = ref.watch(firestoreProvider);
+    final authT = t.auth;
 
     return Scaffold(
       body: Stack(
@@ -45,10 +47,10 @@ class AuthPage extends HookConsumerWidget {
                       SizedBox(height: 40),
                       TextFormField(
                         controller: emailController,
-                        decoration: InputDecoration(labelText: 'Email'),
+                        decoration: InputDecoration(labelText: authT.email),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
+                            return authT.enterEmail;
                           }
                           return null;
                         },
@@ -56,11 +58,11 @@ class AuthPage extends HookConsumerWidget {
                       SizedBox(height: 16),
                       TextFormField(
                         controller: passwordController,
-                        decoration: InputDecoration(labelText: 'Password'),
+                        decoration: InputDecoration(labelText: authT.password),
                         obscureText: true,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return authT.enterPassword;
                           }
                           return null;
                         },
@@ -81,11 +83,11 @@ class AuthPage extends HookConsumerWidget {
                           ),
                           Text.rich(
                             TextSpan(
-                              text: 'I agree to the ',
+                              text: authT.agreePrefix,
                               style: Theme.of(context).textTheme.bodyMedium,
                               children: [
                                 TextSpan(
-                                  text: 'Terms of Service',
+                                  text: authT.termsOfService,
                                   style: TextStyle(
                                     color: Theme.of(context).primaryColor,
                                     decoration: TextDecoration.underline,
@@ -124,14 +126,16 @@ class AuthPage extends HookConsumerWidget {
                                     ref.invalidate(firestoreProvider);
                                   } catch (e) {
                                     if (!context.mounted) return;
-                                    context.showSnackBarMessage('Error: $e');
+                                    context.showSnackBarMessage(
+                                      t.common.error(error: e.toString()),
+                                    );
                                   } finally {
                                     isLoading.value = false;
                                   }
                                 }
                               }
                             : null,
-                        child: Text('Log in'),
+                        child: Text(authT.login),
                       ),
                       SizedBox(
                         height: 8,
@@ -154,7 +158,9 @@ class AuthPage extends HookConsumerWidget {
                                         );
                                   } catch (e) {
                                     if (!context.mounted) return;
-                                    context.showSnackBarMessage('Error: $e');
+                                    context.showSnackBarMessage(
+                                      t.common.error(error: e.toString()),
+                                    );
                                   } finally {
                                     isLoading.value = false;
                                   }
@@ -162,7 +168,7 @@ class AuthPage extends HookConsumerWidget {
                               }
                             : null,
                         child: Text(
-                          'Create new account',
+                          authT.createAccount,
                           style: TextStyle(
                             color: Theme.of(context).secondaryHeaderColor,
                           ),
@@ -188,7 +194,7 @@ class AuthPage extends HookConsumerWidget {
                           );
                         },
                         child: Text(
-                          'Use your Firebase',
+                          authT.useYourFirebase,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
@@ -211,12 +217,10 @@ class AuthPage extends HookConsumerWidget {
                           ref.invalidate(authProvider);
                           ref.invalidate(firestoreProvider);
                           if (!context.mounted) return;
-                          context.showSnackBarMessage(
-                            'Firebase reset successfully. Please restart the app.',
-                          );
+                          context.showSnackBarMessage(authT.resetSuccess);
                         },
                         child: Text(
-                          'Reset Firebase',
+                          authT.resetFirebase,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
@@ -251,6 +255,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
+    final formT = t.auth.firebaseForm;
 
     return SizedBox(
       width: double.infinity,
@@ -262,7 +267,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                'Use your Firebase',
+                formT.title,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -271,27 +276,31 @@ class FirebaseFormSheet extends HookConsumerWidget {
             ),
             TextField(
               controller: nameController,
-              decoration: InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: formT.name),
             ),
             TextField(
               controller: apiKeyController,
-              decoration: InputDecoration(labelText: 'API Key'),
+              decoration: InputDecoration(labelText: formT.apiKey),
             ),
             TextField(
               controller: appIdController,
-              decoration: InputDecoration(labelText: 'App ID'),
+              decoration: InputDecoration(labelText: formT.appId),
             ),
             TextField(
               controller: messagingSenderIdController,
-              decoration: InputDecoration(labelText: 'Messaging Sender ID'),
+              decoration: InputDecoration(
+                labelText: formT.messagingSenderId,
+              ),
             ),
             TextField(
               controller: projectIdController,
-              decoration: InputDecoration(labelText: 'Project ID'),
+              decoration: InputDecoration(labelText: formT.projectId),
             ),
             TextField(
               controller: storageBucketController,
-              decoration: InputDecoration(labelText: 'Storage Bucket'),
+              decoration: InputDecoration(
+                labelText: formT.storageBucket,
+              ),
             ),
             SizedBox(
               height: 16,
@@ -319,14 +328,16 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   ref.invalidate(firestoreProvider);
                 } catch (e) {
                   if (!context.mounted) return;
-                  context.showSnackBarMessage('Error: $e');
+                  context.showSnackBarMessage(
+                    t.common.error(error: e.toString()),
+                  );
                 } finally {
                   if (context.mounted) {
                     Navigator.pop(context);
                   }
                 }
               },
-              child: Text('Pick Firebase config'),
+              child: Text(formT.pickConfig),
             ),
           ],
         ),

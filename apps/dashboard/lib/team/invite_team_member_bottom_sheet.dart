@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,8 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
     final teamListAsync = ref.watch(teamListProvider);
     final selectedTeamId = useState<String?>(null);
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    final teamT = t.team;
+
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
       child: Scaffold(
@@ -27,20 +30,20 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    "Invite Team Member",
+                    teamT.inviteTitle,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   SizedBox(height: 40),
                   teamListAsync.when(
                     data: (teams) => DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        labelText: 'Team',
+                        labelText: teamT.selectTeamLabel,
                       ),
                       initialValue: selectedTeamId.value,
                       validator: (value) {
                         if (value == null) {
-                          return 'Please select a team';
+                          return teamT.selectTeamValidation;
                         }
                         return null;
                       },
@@ -54,19 +57,19 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           )
                           .toList(),
                     ),
-                    error: (e, _) => Text('Error: $e'),
+                    error: (e, _) => Text(t.common.error(error: e.toString())),
                     loading: () => const CircularProgressIndicator.adaptive(),
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: emailController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: 'Email',
+                      labelText: teamT.inviteEmail,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter an email';
+                        return teamT.enterEmail;
                       }
                       return null;
                     },
@@ -90,7 +93,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                   });
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                'Team member invited successfully',
+                                teamT.invitedSuccess,
                               );
                               Navigator.of(context).pop();
                             } on FirebaseFunctionsException catch (e) {
@@ -99,7 +102,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                               );
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                e.message ?? 'An error occurred',
+                                e.message ?? t.common.error(error: e.code),
                               );
                             } catch (e, s) {
                               debugPrint(e.toString());
@@ -109,7 +112,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                               context.showSnackBarMessage(e.toString());
                             }
                           },
-                    child: Text("Invite"),
+                    child: Text(t.common.invite),
                   ),
                 ],
               ),

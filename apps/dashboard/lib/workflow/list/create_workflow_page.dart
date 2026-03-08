@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/list/create_workflow_file_provider.dart';
 import 'package:dashboard/workflow/list/github_actions_provider.dart';
@@ -98,7 +99,11 @@ class CreateWorkflowPage extends HookConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isEditing ? 'Edit Workflow' : 'Create Workflow'),
+            Text(
+              isEditing
+                  ? t.workflow.editor.editTitle
+                  : t.workflow.editor.createTitle,
+            ),
             Text(
               '$repository ($branch)',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -109,9 +114,12 @@ class CreateWorkflowPage extends HookConsumerWidget {
         ),
         bottom: TabBar(
           controller: tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.view_list), text: 'Editor'),
-            Tab(icon: Icon(Icons.code), text: 'YAML'),
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.view_list),
+              text: t.workflow.editor.editorTab,
+            ),
+            Tab(icon: const Icon(Icons.code), text: t.workflow.editor.yamlTab),
           ],
         ),
         actions: [
@@ -138,7 +146,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save, size: 18),
-              label: const Text('Save'),
+              label: Text(t.common.save),
             ),
           ),
         ],
@@ -267,7 +275,7 @@ class _EditorTab extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Basic Info',
+                  t.workflow.editor.basicInfo,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -275,8 +283,8 @@ class _EditorTab extends HookConsumerWidget {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Workflow Name',
+                  decoration: InputDecoration(
+                    labelText: t.workflow.editor.workflowName,
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
@@ -323,14 +331,16 @@ class _EditorTab extends HookConsumerWidget {
                       loading: () => TextFormField(
                         enabled: false,
                         decoration: InputDecoration(
-                          labelText: '$type branch (loading...)',
+                          labelText: t.workflow.triggerBranchLoading(
+                            type: type,
+                          ),
                           border: const OutlineInputBorder(),
                         ),
                       ),
                       error: (e, _) => TextFormField(
                         enabled: false,
                         decoration: InputDecoration(
-                          labelText: '$type branch',
+                          labelText: t.workflow.triggerBranch(type: type),
                           border: const OutlineInputBorder(),
                           suffixIcon: Icon(
                             Icons.error_outline,
@@ -363,7 +373,9 @@ class _EditorTab extends HookConsumerWidget {
                                 controller: controller,
                                 focusNode: focusNode,
                                 decoration: InputDecoration(
-                                  labelText: '$type branch',
+                                  labelText: t.workflow.triggerBranch(
+                                    type: type,
+                                  ),
                                   border: const OutlineInputBorder(),
                                   suffixIcon: const Icon(
                                     Icons.search,
@@ -558,21 +570,21 @@ class _StepEditorCard extends StatelessWidget {
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: const Text('Delete Step'),
-                content: const Text(
-                  'Are you sure you want to delete this step?',
+                title: Text(t.workflow.editor.deleteStep),
+                content: Text(
+                  t.workflow.editor.deleteStepConfirm,
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Cancel'),
+                    child: Text(t.common.cancel),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(ctx).pop(true),
                     style: FilledButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.error,
                     ),
-                    child: const Text('Delete'),
+                    child: Text(t.common.delete),
                   ),
                 ],
               ),
@@ -634,7 +646,7 @@ class _EditStepSheet extends HookConsumerWidget {
         child: Column(
           children: [
             Text(
-              'Edit Step',
+              t.workflow.editor.editStep,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -645,20 +657,20 @@ class _EditStepSheet extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Step Name',
+                      t.workflow.editor.stepName,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: nameController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Build iOS App',
+                      decoration: InputDecoration(
+                        hintText: t.workflow.editor.stepNameHint,
                         border: OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Type',
+                      t.workflow.editor.type,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
@@ -681,7 +693,7 @@ class _EditStepSheet extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     if (stepType.value == StepType.run) ...[
                       Text(
-                        'Command',
+                        t.workflow.editor.command,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
@@ -699,7 +711,7 @@ class _EditStepSheet extends HookConsumerWidget {
                       ),
                     ] else ...[
                       Text(
-                        'Action',
+                        t.workflow.editor.action,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
@@ -721,10 +733,10 @@ class _EditStepSheet extends HookConsumerWidget {
                           fontFamily: 'monospace',
                           fontSize: 14,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: 'Tap to search actions',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.search),
+                        decoration: InputDecoration(
+                          hintText: t.workflow.editor.actionHint,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: const Icon(Icons.search),
                         ),
                       ),
                       if (usesValue.value.contains('@')) ...[
@@ -741,7 +753,8 @@ class _EditStepSheet extends HookConsumerWidget {
                               ),
                             );
                             return tagsAsync.when(
-                              loading: () => const Text('Loading versions...'),
+                              loading: () =>
+                                  Text(t.workflow.editor.loadingVersions),
                               error: (_, _) => const SizedBox.shrink(),
                               data: (tags) {
                                 if (tags.isEmpty) {
@@ -753,9 +766,9 @@ class _EditStepSheet extends HookConsumerWidget {
                                 return DropdownButtonFormField<String>(
                                   initialValue: currentTag,
                                   isExpanded: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Version',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: t.workflow.editor.version,
+                                    border: const OutlineInputBorder(),
                                     isDense: true,
                                   ),
                                   items: effectiveTags
@@ -786,22 +799,22 @@ class _EditStepSheet extends HookConsumerWidget {
                       ],
                       const SizedBox(height: 16),
                       Text(
-                        'with',
+                        t.workflow.editor.kWith,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
                       if (inputsAsync != null)
                         inputsAsync.when(
-                          loading: () => const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
+                          loading: () => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Center(
-                              child: Text('Loading inputs...'),
+                              child: Text(t.workflow.editor.loadingInputs),
                             ),
                           ),
                           error: (e, _) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
-                              'Could not load inputs',
+                              t.workflow.editor.couldNotLoadInputs,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Theme.of(context).hintColor,
@@ -815,7 +828,7 @@ class _EditStepSheet extends HookConsumerWidget {
                                   vertical: 8,
                                 ),
                                 child: Text(
-                                  'No inputs defined for this action',
+                                  t.workflow.editor.noInputs,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: Theme.of(context).hintColor,
@@ -886,7 +899,7 @@ class _EditStepSheet extends HookConsumerWidget {
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                'required',
+                                                t.workflow.editor.required,
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .labelSmall
@@ -959,7 +972,7 @@ class _EditStepSheet extends HookConsumerWidget {
                         )
                       else
                         Text(
-                          'Enter an action to see available inputs',
+                          t.workflow.editor.enterAction,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: Theme.of(context).hintColor),
                         ),
@@ -987,7 +1000,7 @@ class _EditStepSheet extends HookConsumerWidget {
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.check),
-                label: const Text('Save'),
+                label: Text(t.common.save),
               ),
             ),
           ],
@@ -1081,7 +1094,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
         child: Column(
           children: [
             Text(
-              'Save to Repository',
+              t.workflow.editor.saveToRepo,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -1092,7 +1105,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'File Name',
+                      t.workflow.editor.fileName,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
@@ -1100,7 +1113,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
                       controller: fileNameController,
                       readOnly: isEditing,
                       decoration: InputDecoration(
-                        hintText: 'e.g. build.yaml',
+                        hintText: t.workflow.editor.fileNameHint,
                         border: const OutlineInputBorder(),
                         prefixText: '.openci/',
                         prefixStyle: Theme.of(context).textTheme.bodyMedium
@@ -1112,22 +1125,24 @@ class _CommitBottomSheet extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'How to save',
+                      t.workflow.editor.howToSave,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
                     _CommitModeCard(
                       icon: Icons.commit,
-                      title: 'Commit directly',
-                      subtitle: 'Commit to the $branch branch',
+                      title: t.workflow.editor.commitDirectly,
+                      subtitle: t.workflow.editor.commitToBranch(
+                        branch: branch,
+                      ),
                       isSelected: commitMode.value == CommitMode.direct,
                       onTap: () => commitMode.value = CommitMode.direct,
                     ),
                     const SizedBox(height: 8),
                     _CommitModeCard(
                       icon: Icons.call_merge,
-                      title: 'Create a Pull Request',
-                      subtitle: 'A new branch will be created and a PR opened',
+                      title: t.workflow.editor.createPR,
+                      subtitle: t.workflow.editor.createPRSubtitle,
                       isSelected: commitMode.value == CommitMode.pullRequest,
                       onTap: () => commitMode.value = CommitMode.pullRequest,
                     ),
@@ -1165,8 +1180,8 @@ class _CommitBottomSheet extends HookConsumerWidget {
                       ),
                 label: Text(
                   commitMode.value == CommitMode.direct
-                      ? 'Commit to $branch'
-                      : 'Create Pull Request',
+                      ? t.workflow.editor.commitToBranchButton(branch: branch)
+                      : t.workflow.editor.createPRButton,
                 ),
               ),
             ),
@@ -1183,11 +1198,11 @@ class _CommitBottomSheet extends HookConsumerWidget {
     required CommitMode commitMode,
   }) async {
     if (fileName.isEmpty) {
-      context.showSnackBarMessage('Please enter a file name');
+      context.showSnackBarMessage(t.workflow.editor.enterFileName);
       return;
     }
     if (!fileName.endsWith('.yaml') && !fileName.endsWith('.yml')) {
-      context.showSnackBarMessage('File name must end with .yaml or .yml');
+      context.showSnackBarMessage(t.workflow.editor.fileNameMustEndYaml);
       return;
     }
 
@@ -1218,21 +1233,25 @@ class _CommitBottomSheet extends HookConsumerWidget {
           await showDialog(
             context: parentNavigator.context,
             builder: (ctx) => AlertDialog(
-              title: const Text('Pull Request Created'),
-              content: Text('PR #${result['pullRequestNumber']} was created.'),
+              title: Text(t.workflow.editor.prCreated),
+              content: Text(
+                t.workflow.editor.prNumber(
+                  number: result['pullRequestNumber'].toString(),
+                ),
+              ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(ctx).pop();
                   },
-                  child: const Text('Close'),
+                  child: Text(t.workflow.editor.close),
                 ),
                 FilledButton(
                   onPressed: () {
                     url_launcher.launchUrl(Uri.parse(prUrl));
                     Navigator.of(ctx).pop();
                   },
-                  child: const Text('Open in GitHub'),
+                  child: Text(t.workflow.editor.openInGitHub),
                 ),
               ],
             ),
@@ -1246,8 +1265,8 @@ class _CommitBottomSheet extends HookConsumerWidget {
       if (!context.mounted) return;
       context.showSnackBarMessage(
         commitMode == CommitMode.direct
-            ? 'Workflow file committed to $branch'
-            : 'Pull request created',
+            ? t.workflow.editor.committedToBranch(branch: branch)
+            : t.workflow.editor.prCreatedSuccess,
       );
       Navigator.of(context).pop();
     } catch (e) {

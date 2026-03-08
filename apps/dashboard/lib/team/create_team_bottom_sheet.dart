@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -13,6 +14,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
     final teamListStream = ref.watch(teamListProvider);
     final teamNameController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    final teamT = t.team;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
@@ -29,20 +31,20 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                   key: formKey,
                   child: Column(
                     children: [
-                      const Text(
-                        'Create New Team',
+                      Text(
+                        teamT.createNewTeam,
                         style: TextStyle(fontSize: 16),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: teamNameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Team Name',
+                          labelText: teamT.teamName,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a team name';
+                            return teamT.enterTeamName;
                           }
                           return null;
                         },
@@ -57,7 +59,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                                 .createTeam(teamNameController.text);
                             if (!context.mounted) return;
                             context.showSnackBarMessage(
-                              'Team created successfully',
+                              teamT.createdSuccess,
                             );
                             Navigator.of(context).pop();
                           } catch (e) {
@@ -65,7 +67,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                             context.showSnackBarMessage(e.toString());
                           }
                         },
-                        child: const Text('Create Team'),
+                        child: Text(teamT.createTeam),
                       ),
                       const SizedBox(height: 24),
                     ],
