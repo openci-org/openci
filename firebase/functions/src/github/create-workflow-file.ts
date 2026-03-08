@@ -3,8 +3,8 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
 
-import { db } from "./firebase";
-import { teamsCollectionPath } from "./firestore-collection-paths";
+import { db } from "../firebase";
+import { teamsCollectionPath } from "../firestore-collection-paths";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");

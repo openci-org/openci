@@ -2,8 +2,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 
-import { db } from "./firebase";
-import { teamsCollectionPath } from "./firestore-collection-paths";
+import { db } from "../firebase";
+import { teamsCollectionPath } from "../firestore-collection-paths";
 
 export const githubSetup = onRequest(
   {

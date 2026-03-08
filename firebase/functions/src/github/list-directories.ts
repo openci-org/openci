@@ -3,13 +3,14 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { App } from "octokit";
 
-import { db } from "./firebase";
-import { teamsCollectionPath } from "./firestore-collection-paths";
+import { db } from "../firebase";
+import { teamsCollectionPath } from "../firestore-collection-paths";
+import { DIRECTORY_TREE_QUERY, TreeEntry, flattenTreeEntries } from "./queries";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
 
-export const listRepositories = onCall(
+export const listDirectories = onCall(
   {
     region: "asia-northeast1",
     secrets: [GITHUB_APP_ID, GITHUB_PRIVATE_KEY],
@@ -19,10 +20,13 @@ export const listRepositories = onCall(
       throw new HttpsError("unauthenticated", "Unauthenticated");
     }
 
-    const { teamId } = request.data as { teamId: string };
+    const { teamId, repository } = request.data as {
+      teamId: string;
+      repository: string;
+    };
 
-    if (!teamId) {
-      throw new HttpsError("invalid-argument", "Missing teamId");
+    if (!teamId || !repository) {
+      throw new HttpsError("invalid-argument", "Missing teamId or repository");
     }
 
     const teamRef = db.collection(teamsCollectionPath).doc(teamId);
@@ -45,36 +49,40 @@ export const listRepositories = onCall(
       throw new HttpsError("failed-precondition", "GitHub App is not installed for this team");
     }
 
+    const [owner, repo] = repository.split("/");
+
     try {
       const app = new App({
         appId: GITHUB_APP_ID.value(),
         privateKey: GITHUB_PRIVATE_KEY.value(),
       });
 
-      const allRepositories: any[] = [];
-
+      // Try each installation to find the one that has access to this repo
       for (const installationId of installationIds) {
-        const octokit = await app.getInstallationOctokit(installationId);
+        try {
+          const octokit = await app.getInstallationOctokit(installationId);
 
-        const { data } = await octokit.request("GET /installation/repositories", {
-          per_page: 100,
-        });
+          const result = await octokit.graphql(DIRECTORY_TREE_QUERY, {
+            owner,
+            repo,
+            expression: "HEAD:",
+          });
 
-        const repos = data.repositories.map((repo: any) => ({
-          fullName: repo.full_name,
-          name: repo.name,
-          owner: repo.owner.login,
-          private: repo.private,
-          defaultBranch: repo.default_branch,
-        }));
+          const entries: TreeEntry[] = (result as any).repository.object?.entries ?? [];
+          const directories = [".", ...flattenTreeEntries(entries).sort()];
 
-        allRepositories.push(...repos);
+          return { directories };
+        } catch {
+          // This installation doesn't have access, try the next one
+          continue;
+        }
       }
 
-      return { repositories: allRepositories };
+      throw new HttpsError("not-found", "Repository not found in any installation");
     } catch (error) {
-      logger.error("Failed to list repositories", error);
-      throw new HttpsError("internal", "Failed to list repositories");
+      if (error instanceof HttpsError) throw error;
+      logger.error("Failed to list directories", error);
+      throw new HttpsError("internal", "Failed to list directories");
     }
   },
 );
