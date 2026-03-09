@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.5.0';
+const String version = '0.6.0';
 
 enum LogLevel { info, warning, error }
 
@@ -140,7 +140,7 @@ ArgParser buildParser() {
 }
 
 void printUsage(ArgParser argParser) {
-  print('Usage: openci_worker <flags> [arguments]');
+  print('Usage: openci-worker <flags> [arguments]');
   print(argParser.usage);
 }
 
@@ -155,13 +155,13 @@ Future<void> main(List<String> arguments) async {
       return;
     }
     if (results.flag('version')) {
-      print('openci_worker version: $version');
+      print('openci-worker version: $version');
       return;
     }
     if (results.flag('update')) {
-      print('Updating openci_worker...');
+      print('Updating openci-worker...');
       final shell = Shell(verbose: true);
-      await shell.run('dart pub global activate openci_worker_cli');
+      await shell.run('brew upgrade openci-worker');
       print('Updated successfully!');
       return;
     }
@@ -198,7 +198,7 @@ Future<void> main(List<String> arguments) async {
     final firestore = Firestore(admin);
 
     print('Worker started. Worker ID: $workerId');
-    print('Cleaning up orphaned VMs from previous runs...');
+    print('Cleaning up orphaned VMs from previous runs (lume)...');
     await cleanupOrphanedVms(workerId);
     print('Polling for jobs...');
 
@@ -227,7 +227,7 @@ Future<void> main(List<String> arguments) async {
           final shouldRestart = await checkForUpdate(firestore);
           if (shouldRestart) {
             print('\n🔄 Update complete. Restarting worker...');
-            await Process.start('openci_worker', [
+            await Process.start('openci-worker', [
               '--service-account',
               serviceAccountPath,
               '--worker-id',
@@ -284,10 +284,14 @@ Future<bool> checkForUpdate(Firestore firestore) async {
   print('\n📦 New version available: $version → $latestVersion');
   print('Updating...');
 
-  final shell = Shell(verbose: true);
-  await shell.run('dart pub global activate openci_worker_cli');
-
-  return true;
+  try {
+    final shell = Shell(verbose: true);
+    await shell.run('brew upgrade openci-worker');
+    return true;
+  } catch (e) {
+    print('[WARN] Auto-update failed: $e');
+    return false;
+  }
 }
 
 Future<bool> processJob(
@@ -356,11 +360,13 @@ Future<bool> processJob(
 
   final currentVmName = 'openci-vm-$workerId-$buildJobId';
   await logger.info('Cloning VM $baseVmName to $currentVmName...');
-  await Shell().run('tart clone $baseVmName $currentVmName');
+  await Shell().run('lume clone $baseVmName $currentVmName');
 
   Future<void> execCommand(String command) async {
     var shell = Shell(verbose: true, throwOnError: false);
-    final results = await shell.run("tart exec $currentVmName $command");
+    final results = await shell.run(
+      "lume ssh $currentVmName --user $sshUser --password $sshPassword --timeout 0 -- $command",
+    );
 
     for (final result in results) {
       final stdout = result.stdout?.toString().trim();
@@ -406,7 +412,7 @@ Future<bool> processJob(
 
     Object? vmStartError;
     unawaited(
-      runTart(currentVmName).catchError((e) {
+      runVm(currentVmName).catchError((e) {
         vmStartError = e;
       }),
     );
@@ -616,12 +622,12 @@ Future<bool> processJob(
     rethrow;
   } finally {
     try {
-      await stopTart(currentVmName);
+      await stopVm(currentVmName);
     } catch (e) {
       await logger.warning('Error stopping VM: $e');
     }
     try {
-      await deleteTart(currentVmName);
+      await deleteVm(currentVmName);
     } catch (e) {
       await logger.warning('Error deleting VM: $e');
     }
@@ -631,7 +637,9 @@ Future<bool> processJob(
   return true;
 }
 
-const baseVmName = 'sequoia-base';
+const baseVmName = 'tahoe-base';
+const sshUser = 'admin';
+const sshPassword = 'admin';
 
 Future<void> updateCheckRun(
   String owner,
@@ -664,19 +672,19 @@ Future<void> updateCheckRun(
   }
 }
 
-Future<void> runTart(String vmName) async {
+Future<void> runVm(String vmName) async {
   var shell = Shell();
-  await shell.run('tart run $vmName');
+  await shell.run('lume run $vmName --no-display');
 }
 
-Future<void> stopTart(String vmName) async {
+Future<void> stopVm(String vmName) async {
   var shell = Shell();
-  await shell.run('tart stop $vmName');
+  await shell.run('lume stop $vmName');
 }
 
-Future<void> deleteTart(String vmName) async {
+Future<void> deleteVm(String vmName) async {
   var shell = Shell(throwOnError: false);
-  await shell.run('tart delete $vmName');
+  await shell.run('lume delete $vmName --force');
 }
 
 Future<void> waitForVmReady(
@@ -684,25 +692,26 @@ Future<void> waitForVmReady(
   Object? Function()? vmStartError,
 }) async {
   var shell = Shell(throwOnError: false);
-  print('Waiting for Guest Agent to respond...');
-  for (int i = 0; i < 60; i++) {
-    // Check if tart run has already failed
+  print('Waiting for VM to respond...');
+  for (int i = 0; i < 120; i++) {
     final error = vmStartError?.call();
     if (error != null) {
       throw Exception('VM failed to start: $error');
     }
 
-    var result = await shell.run('tart exec $name echo "ready"');
+    var result = await shell.run(
+      'lume ssh $name --user $sshUser --password $sshPassword --timeout 10 -- echo "ready"',
+    );
     print('exit code: ${result.first.exitCode}');
 
     if (result.first.exitCode == 0) {
       return;
     }
 
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 2));
   }
 
-  throw Exception('VM boot timeout: Guest Agent did not respond.');
+  throw Exception('VM boot timeout: VM did not respond.');
 }
 
 Future<String> fetchSecretValue(
@@ -745,7 +754,7 @@ Future<String> fetchSecretValue(
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     final shell = Shell(throwOnError: false, verbose: false);
-    final result = await shell.run('tart list');
+    final result = await shell.run('lume ls');
     if (result.isEmpty) return;
 
     final output = result.first.stdout.toString();
@@ -768,7 +777,7 @@ Future<void> cleanupOrphanedVms(String workerId) async {
       if (state == 'running') continue;
 
       print('Deleting orphaned VM: $vmName (State: $state)');
-      await shell.run('tart delete $vmName');
+      await shell.run('lume delete $vmName --force');
     }
   } catch (e) {
     print('Error cleaning up orphaned VMs: $e');
@@ -781,7 +790,7 @@ Future<void> pruneStaleVms(
 }) async {
   try {
     final shell = Shell(throwOnError: false, verbose: false);
-    final result = await shell.run('tart list');
+    final result = await shell.run('lume list');
     if (result.isEmpty) return;
 
     final output = result.first.stdout.toString();
@@ -804,7 +813,7 @@ Future<void> pruneStaleVms(
       if (state == 'running') continue;
 
       await logger.info('Deleting stale VM: $vmName (State: $state)');
-      await shell.run('tart delete $vmName');
+      await shell.run('lume delete $vmName --force');
     }
   } catch (e) {
     await logger.warning('Error pruning stale VMs: $e');
@@ -816,7 +825,6 @@ Future<void> writeFileToVm(
   String remotePath,
   String content,
 ) async {
-  final shell = Shell(throwOnError: false, verbose: false);
   final encoded = base64Encode(utf8.encode(content));
 
   const chunkSize = 4096;
@@ -828,22 +836,34 @@ Future<void> writeFileToVm(
     chunks.add(encoded.substring(i, end));
   }
 
-  await shell.run("tart exec $vmName /bin/zsh -c 'rm -f $remotePath'");
+  Future<ProcessResult> sshRun(String remoteCommand) async {
+    return Process.run('lume', [
+      'ssh',
+      vmName,
+      '--user',
+      sshUser,
+      '--password',
+      sshPassword,
+      remoteCommand,
+    ]);
+  }
+
+  await sshRun('rm -f $remotePath $remotePath.b64');
 
   for (final chunk in chunks) {
-    final result = await shell.run(
-      "tart exec $vmName /bin/zsh -c 'printf %s $chunk >> $remotePath.b64'",
-    );
-    if (result.first.exitCode != 0) {
-      throw Exception('Failed to write chunk to $remotePath');
+    final result = await sshRun('printf %s $chunk >> $remotePath.b64');
+    if (result.exitCode != 0) {
+      throw Exception('Failed to write chunk to $remotePath: ${result.stderr}');
     }
   }
 
-  final decodeResult = await shell.run(
-    "tart exec $vmName /bin/zsh -c 'base64 -D < $remotePath.b64 > $remotePath && rm $remotePath.b64'",
+  final decodeResult = await sshRun(
+    'base64 -D < $remotePath.b64 > $remotePath && rm $remotePath.b64',
   );
-  if (decodeResult.first.exitCode != 0) {
-    throw Exception('Failed to decode $remotePath in VM');
+  if (decodeResult.exitCode != 0) {
+    throw Exception(
+      'Failed to decode $remotePath in VM: ${decodeResult.stderr}',
+    );
   }
 }
 
@@ -854,7 +874,18 @@ Future<void> execCommandStreaming(
   String token, {
   required Future<bool> Function() isCancelled,
 }) async {
-  final process = await Process.start('tart', ['exec', vmName, ...command]);
+  final process = await Process.start('lume', [
+    'ssh',
+    vmName,
+    '--user',
+    sshUser,
+    '--password',
+    sshPassword,
+    '--timeout',
+    '0',
+    '--',
+    ...command,
+  ]);
 
   final stdoutCompleter = Completer<void>();
   final stderrCompleter = Completer<void>();
