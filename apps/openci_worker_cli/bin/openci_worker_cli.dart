@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.6.0';
+const String version = '0.6.4';
 
 enum LogLevel { info, warning, error }
 
@@ -161,6 +161,7 @@ Future<void> main(List<String> arguments) async {
     if (results.flag('update')) {
       print('Updating openci-worker...');
       final shell = Shell(verbose: true);
+      await shell.run('brew update');
       await shell.run('brew upgrade openci-worker');
       print('Updated successfully!');
       return;
@@ -285,8 +286,16 @@ Future<bool> checkForUpdate(Firestore firestore) async {
   print('Updating...');
 
   try {
-    final shell = Shell(verbose: true);
-    await shell.run('brew upgrade openci-worker');
+    final shell = Shell(verbose: true, throwOnError: false);
+    await shell.run('brew update');
+    final result = await shell.run('brew upgrade openci-worker');
+    final output = result.first.stdout?.toString() ?? '';
+
+    if (output.contains('already installed')) {
+      print('[INFO] Already on latest brew version. Skipping restart.');
+      return false;
+    }
+
     return true;
   } catch (e) {
     print('[WARN] Auto-update failed: $e');
