@@ -20,14 +20,16 @@ if [ ! -f "$SA_PATH" ]; then
   exit 1
 fi
 
+WORKER_CMD='while true; do openci-worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
+
 tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 
 tmux new-session -d -s "$SESSION_NAME" \
-  "openci-worker --service-account $SA_PATH --worker-id worker-1"
+  "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/worker-1/")"
 
 for ((i = 2; i <= NUM_WORKERS; i++)); do
   tmux split-window -t "$SESSION_NAME" \
-    "openci-worker --service-account $SA_PATH --worker-id worker-$i"
+    "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/worker-$i/")"
   tmux select-layout -t "$SESSION_NAME" tiled
 done
 

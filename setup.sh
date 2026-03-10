@@ -97,12 +97,18 @@ if [ -f "$SA_PATH_EXPANDED" ]; then
 
   tmux rename-session -t "$SESSION_NAME" "openci-workers" 2>/dev/null || true
 
+  WORKER_CMD='while true; do openci-worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
+
   for ((i = 2; i <= NUM_WORKERS; i++)); do
-    tmux split-window "openci-worker --service-account $SA_PATH --worker-id worker-$i"
+    tmux split-window "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/worker-$i/")"
     tmux select-layout tiled
   done
 
-  exec openci-worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
+  while true; do
+    openci-worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
+    echo "🔄 Worker exited. Restarting in 3s..."
+    sleep 3
+  done
 else
   echo "⚠️  Service account file not found: $SA_PATH"
   echo ""
@@ -113,4 +119,3 @@ else
   echo "Press any key to exit..."
   read -n 1
 fi
-
