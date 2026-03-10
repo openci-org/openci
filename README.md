@@ -2,33 +2,34 @@ WIP: CI/CD Made Easy
 
 # macOS Worker setup
 
-### 1. Install Homebrew & setup PATH
+### 1. Place service account JSON on the build machine
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
-echo 'export PATH="$PATH":"$HOME/.local/bin"' >> ~/.zshrc
-source ~/.zshrc
+scp ~/path/to/service-account.json admin@<ip>:~/service-account.json
 ```
 
-### 2. Install Lume & pull VM image
+### 2. SSH into the build machine and run setup
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/install.sh)"
-lume pull tahoe-base:v1.0.0 --organization open-ci-io
+curl -fsSL https://raw.githubusercontent.com/open-ci-io/openci/develop/setup.sh | bash
 ```
 
-### 3. Install Worker CLI
+This will install all dependencies, pull the VM image, and start workers automatically.
+Runs inside tmux so SSH disconnects won't interrupt the process.
+
+### Restart workers
 
 ```bash
-brew tap open-ci-io/openci
-brew install openci-worker
+~/.openci/start-workers.sh        # 2 workers (default)
+~/.openci/start-workers.sh 4      # 4 workers
 ```
 
-### 4. Setup service account & start worker
+### tmux controls
 
-Place your Firebase service account JSON file (e.g. `service-account.json`) in your home directory, then start the worker:
-
-```bash
-openci-worker --service-account ~/service-account.json --worker-id worker-1
-```
+| Action             | Key                             |
+| ------------------ | ------------------------------- |
+| Switch pane        | `Ctrl+b` → Arrow keys           |
+| Scroll             | `Ctrl+b` → `[` → Arrow/PgUp     |
+| Detach             | `Ctrl+b` → `d`                  |
+| Reattach (setup)   | `tmux attach -t openci-setup`   |
+| Reattach (workers) | `tmux attach -t openci-workers` |
