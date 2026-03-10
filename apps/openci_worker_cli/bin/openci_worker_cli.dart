@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.6.4';
+const String version = '0.6.5';
 
 enum LogLevel { info, warning, error }
 
@@ -646,7 +646,7 @@ Future<bool> processJob(
   return true;
 }
 
-const baseVmName = 'tahoe-base';
+const baseVmName = 'tahoe-base_v1.0.0';
 const sshUser = 'admin';
 const sshPassword = 'admin';
 
