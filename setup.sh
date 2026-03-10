@@ -56,11 +56,20 @@ fi
 # 4. Re-launch inside tmux if not already (survives SSH disconnect)
 if [ -z "$TMUX" ]; then
   echo ""
-  echo "🔄 Relaunching inside tmux session '$SESSION_NAME'..."
-  echo "   If disconnected, reconnect with: tmux attach -t $SESSION_NAME"
-  echo ""
   tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
-  exec tmux new-session -s "$SESSION_NAME" "$INSTALL_DIR/setup.sh $NUM_WORKERS $SA_PATH"
+  if [ -t 0 ]; then
+    echo "🔄 Relaunching inside tmux session '$SESSION_NAME'..."
+    echo "   If disconnected, reconnect with: tmux attach -t $SESSION_NAME"
+    echo ""
+    exec tmux new-session -s "$SESSION_NAME" "$INSTALL_DIR/setup.sh $NUM_WORKERS $SA_PATH"
+  else
+    echo "🔄 Starting tmux session '$SESSION_NAME' in background..."
+    tmux new-session -d -s "$SESSION_NAME" "$INSTALL_DIR/setup.sh $NUM_WORKERS $SA_PATH"
+    echo ""
+    echo "✅ Setup is running in the background."
+    echo "   Attach with: tmux attach -t $SESSION_NAME"
+    exit 0
+  fi
 fi
 
 # === From here, running inside tmux (safe from SSH disconnect) ===
