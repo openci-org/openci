@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRIPT_VERSION="1.0.0"
+
 NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-workers"

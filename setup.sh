@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+SCRIPT_VERSION="1.0.0"
+
 NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-setup"
@@ -14,7 +16,7 @@ curl -fsSL "$REPO_BASE/start-workers.sh" -o "$INSTALL_DIR/start-workers.sh"
 chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/start-workers.sh"
 
 echo "============================================"
-echo "  OpenCI Worker Setup"
+echo "  OpenCI Worker Setup v${SCRIPT_VERSION}"
 echo "============================================"
 echo ""
 
