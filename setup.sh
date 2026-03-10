@@ -50,8 +50,8 @@ if [ -z "$TMUX" ]; then
   echo ""
   tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
   tmux new-session -d -s "$SESSION_NAME" "$INSTALL_DIR/setup.sh $NUM_WORKERS $SA_PATH"
-  echo "✅ Setup is running in tmux session '$SESSION_NAME'."
-  echo "   Attach with: tmux attach -t $SESSION_NAME"
+  echo "✅ Setup is running in tmux session."
+  echo "   Attach with: tmux attach -t openci-workers"
   echo ""
   exit 0
 fi
