@@ -9,15 +9,9 @@ INSTALL_DIR="$HOME/.openci"
 
 # 0. Download scripts to ~/.openci (always fetch latest)
 mkdir -p "$INSTALL_DIR"
-echo "📥 Downloading OpenCI scripts..."
 curl -fsSL "$REPO_BASE/setup.sh" -o "$INSTALL_DIR/setup.sh"
 curl -fsSL "$REPO_BASE/start-workers.sh" -o "$INSTALL_DIR/start-workers.sh"
 chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/start-workers.sh"
-
-# If running from pipe (curl | bash), re-exec the downloaded copy
-if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "$INSTALL_DIR/setup.sh" 2>/dev/null)" ] 2>/dev/null; then
-  exec "$INSTALL_DIR/setup.sh" "$NUM_WORKERS" "$SA_PATH"
-fi
 
 echo "============================================"
 echo "  OpenCI Worker Setup"
@@ -51,16 +45,14 @@ else
   brew install tmux
 fi
 
-# 4. Re-launch inside tmux if not already (survives SSH disconnect)
+# 4. If not in tmux, start remaining work in detached tmux session
 if [ -z "$TMUX" ]; then
   echo ""
   tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
   tmux new-session -d -s "$SESSION_NAME" "$INSTALL_DIR/setup.sh $NUM_WORKERS $SA_PATH"
   echo "✅ Setup is running in tmux session '$SESSION_NAME'."
+  echo "   Attach with: tmux attach -t $SESSION_NAME"
   echo ""
-  tmux attach -t "$SESSION_NAME" 2>/dev/null || {
-    echo "   Attach with: tmux attach -t $SESSION_NAME"
-  }
   exit 0
 fi
 
