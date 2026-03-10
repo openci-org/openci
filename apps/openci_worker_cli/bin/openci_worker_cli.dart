@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.6.6';
+const String version = '0.6.7';
 
 enum LogLevel { info, warning, error }
 
@@ -428,20 +428,20 @@ Future<bool> processJob(
     final cloneUrl =
         'https://x-access-token:$token@github.com/$owner/$repo.git';
 
-    await execCommand('git clone --progress $cloneUrl');
+    await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
 
     final pullRequestNumber = buildJobData['pullRequestNumber'] as int?;
 
     await logger.info('Fetching commit $commitSha...');
     try {
-      await execCommand('git -C $repo fetch origin $commitSha');
+      await execCommand('git -C $repo fetch --depth 1 origin $commitSha');
     } catch (_) {
       if (pullRequestNumber != null) {
         await logger.info(
           'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
         );
         await execCommand(
-          'git -C $repo fetch origin pull/$pullRequestNumber/head',
+          'git -C $repo fetch --depth 1 origin pull/$pullRequestNumber/head',
         );
       } else {
         rethrow;
