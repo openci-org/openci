@@ -45,7 +45,13 @@ else
   brew install tmux
 fi
 
-# 4. If not in tmux, start remaining work in detached tmux session
+# 4. Enable tmux mouse mode for scrolling
+if [ ! -f "$HOME/.tmux.conf" ] || ! grep -q "set -g mouse on" "$HOME/.tmux.conf" 2>/dev/null; then
+  echo "set -g mouse on" >> "$HOME/.tmux.conf"
+  echo "set -g history-limit 50000" >> "$HOME/.tmux.conf"
+fi
+
+# 5. If not in tmux, start remaining work in detached tmux session
 if [ -z "$TMUX" ]; then
   echo ""
   tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
