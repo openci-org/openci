@@ -7,14 +7,12 @@ SESSION_NAME="openci-setup"
 REPO_BASE="https://raw.githubusercontent.com/open-ci-io/openci/develop"
 INSTALL_DIR="$HOME/.openci"
 
-# 0. Download scripts to ~/.openci
+# 0. Download scripts to ~/.openci (always fetch latest)
 mkdir -p "$INSTALL_DIR"
-if [ ! -f "$INSTALL_DIR/setup.sh" ] || [ ! -f "$INSTALL_DIR/start-workers.sh" ]; then
-  echo "📥 Downloading OpenCI scripts..."
-  curl -fsSL "$REPO_BASE/setup.sh" -o "$INSTALL_DIR/setup.sh"
-  curl -fsSL "$REPO_BASE/start-workers.sh" -o "$INSTALL_DIR/start-workers.sh"
-  chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/start-workers.sh"
-fi
+echo "📥 Downloading OpenCI scripts..."
+curl -fsSL "$REPO_BASE/setup.sh" -o "$INSTALL_DIR/setup.sh"
+curl -fsSL "$REPO_BASE/start-workers.sh" -o "$INSTALL_DIR/start-workers.sh"
+chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/start-workers.sh"
 
 # If running from pipe (curl | bash), re-exec the downloaded copy
 if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "$INSTALL_DIR/setup.sh" 2>/dev/null)" ] 2>/dev/null; then
