@@ -10,7 +10,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:process_run/process_run.dart';
 
-const String version = '0.6.8';
+const String version = '0.6.9';
 
 enum LogLevel { info, warning, error }
 
@@ -27,15 +27,33 @@ class BuildLogger {
   final String _buildJobId;
   final String _runId;
 
+  int _consecutiveFailures = 0;
+  DateTime? _circuitOpenUntil;
+  static const int _maxConsecutiveFailures = 5;
+  static const Duration _circuitOpenDuration = Duration(seconds: 60);
+
   BuildLogger(this._firestore, this._buildJobId, this._runId);
 
   String get runId => _runId;
+
+  bool get _isCircuitOpen {
+    if (_circuitOpenUntil == null) return false;
+    if (DateTime.now().isAfter(_circuitOpenUntil!)) {
+      _circuitOpenUntil = null;
+      _consecutiveFailures = 0;
+      print('[BuildLogger] Circuit breaker reset, retrying Firestore writes');
+      return false;
+    }
+    return true;
+  }
 
   Future<void> _writeToFirestore(
     String message,
     LogLevel level, {
     String? stackTrace,
   }) async {
+    if (_isCircuitOpen) return;
+
     try {
       final logRef = _firestore
           .collection('build_jobs_v0')
@@ -51,8 +69,17 @@ class BuildLogger {
         'timestamp': FieldValue.serverTimestamp,
         'stackTrace': ?stackTrace,
       });
+      _consecutiveFailures = 0;
     } catch (e) {
-      print('[BuildLogger] Failed to write log to Firestore: $e');
+      _consecutiveFailures++;
+      if (_consecutiveFailures >= _maxConsecutiveFailures) {
+        _circuitOpenUntil = DateTime.now().add(_circuitOpenDuration);
+        print(
+          '[BuildLogger] Firestore unreachable ($_consecutiveFailures failures), pausing writes for ${_circuitOpenDuration.inSeconds}s',
+        );
+      } else {
+        print('[BuildLogger] Failed to write log to Firestore: $e');
+      }
     }
   }
 
@@ -75,6 +102,8 @@ class BuildLogger {
   }
 
   Future<void> updateRunStatus(String status, {String? conclusion}) async {
+    if (_isCircuitOpen) return;
+
     try {
       await _firestore
           .collection('build_jobs_v0')
@@ -86,12 +115,23 @@ class BuildLogger {
             'updatedAt': FieldValue.serverTimestamp,
             'conclusion': ?conclusion,
           });
+      _consecutiveFailures = 0;
     } catch (e) {
-      print('[BuildLogger] Failed to update run status: $e');
+      _consecutiveFailures++;
+      if (_consecutiveFailures >= _maxConsecutiveFailures) {
+        _circuitOpenUntil = DateTime.now().add(_circuitOpenDuration);
+        print(
+          '[BuildLogger] Firestore unreachable, pausing writes for ${_circuitOpenDuration.inSeconds}s',
+        );
+      } else {
+        print('[BuildLogger] Failed to update run status: $e');
+      }
     }
   }
 
   Future<void> initializeRun() async {
+    if (_isCircuitOpen) return;
+
     try {
       await _firestore
           .collection('build_jobs_v0')
@@ -108,8 +148,17 @@ class BuildLogger {
         'latestRunId': _runId,
         'runCount': FieldValue.increment(1),
       });
+      _consecutiveFailures = 0;
     } catch (e) {
-      print('[BuildLogger] Failed to initialize run: $e');
+      _consecutiveFailures++;
+      if (_consecutiveFailures >= _maxConsecutiveFailures) {
+        _circuitOpenUntil = DateTime.now().add(_circuitOpenDuration);
+        print(
+          '[BuildLogger] Firestore unreachable, pausing writes for ${_circuitOpenDuration.inSeconds}s',
+        );
+      } else {
+        print('[BuildLogger] Failed to initialize run: $e');
+      }
     }
   }
 }
