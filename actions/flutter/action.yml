@@ -1,0 +1,85 @@
+name: "OpenCI Flutter Action"
+description: "Flutter CI/CD action — test and analyze. CD will be added soon."
+author: "OpenCI"
+
+branding:
+  icon: "zap"
+  color: "blue"
+
+inputs:
+  flutter-version:
+    description: 'Flutter SDK version (e.g., "3.29.0", "stable")'
+    required: false
+    default: "stable"
+  working-directory:
+    description: "Working directory of the Flutter project"
+    required: false
+    default: "."
+
+  analyze:
+    description: "Run flutter analyze"
+    required: false
+    default: "true"
+  test:
+    description: "Run flutter test (unit + widget tests)"
+    required: false
+    default: "true"
+
+  analyze-fatal-infos:
+    description: "Treat info level issues as fatal"
+    required: false
+    default: "false"
+  analyze-fatal-warnings:
+    description: "Treat warning level issues as fatal"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Flutter
+      shell: bash
+      run: |
+        if [ -d "$HOME/flutter" ]; then
+          echo "Flutter already installed"
+        else
+          FLUTTER_VERSION="${{ inputs.flutter-version }}"
+          if [ "$FLUTTER_VERSION" = "stable" ] || [ "$FLUTTER_VERSION" = "beta" ] || [ "$FLUTTER_VERSION" = "main" ]; then
+            git clone https://github.com/flutter/flutter.git -b "$FLUTTER_VERSION" --depth 1 "$HOME/flutter"
+          else
+            git clone https://github.com/flutter/flutter.git -b "$FLUTTER_VERSION" --depth 1 "$HOME/flutter"
+          fi
+        fi
+        echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/flutter/bin:$PATH"
+        flutter precache
+        flutter --version
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: flutter pub get
+
+    - name: Run flutter analyze
+      if: inputs.analyze == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ARGS=""
+        if [ "${{ inputs.analyze-fatal-infos }}" = "true" ]; then
+          ARGS="$ARGS --fatal-infos"
+        else
+          ARGS="$ARGS --no-fatal-infos"
+        fi
+        if [ "${{ inputs.analyze-fatal-warnings }}" = "true" ]; then
+          ARGS="$ARGS --fatal-warnings"
+        else
+          ARGS="$ARGS --no-fatal-warnings"
+        fi
+        flutter analyze $ARGS
+
+    - name: Run flutter test
+      if: inputs.test == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: flutter test

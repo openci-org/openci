@@ -14,5 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install dependencies
-        run: flutter pub get
+      - uses: ./actions/flutter
+        with:
+          working-directory: "apps/dashboard"
+          analyze: "true"
+          test: "true"
