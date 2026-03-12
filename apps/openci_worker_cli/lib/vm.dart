@@ -11,6 +11,58 @@ import 'package:sentry/sentry.dart';
 
 final _log = Logger('VM');
 
+Future<void> cloneVm({
+  required String baseVmName,
+  required String vmName,
+  required String buildJobId,
+  required String runId,
+  required Firestore firestore,
+}) async {
+  await logInfo(
+    firestore,
+    buildJobId,
+    runId,
+    'Cloning VM $baseVmName to $vmName...',
+  );
+  var shell = Shell();
+  await shell.run('lume clone $baseVmName $vmName');
+}
+
+String currentVmName({required String workerId, required String buildJobId}) =>
+    'openci-vm-$workerId-$buildJobId';
+
+Future<void> execVmCommand({
+  required String vmName,
+  required String command,
+  required Firestore firestore,
+  required String buildJobId,
+  required String runId,
+  required String token,
+}) async {
+  var shell = Shell(verbose: true, throwOnError: false);
+  final results = await shell.run(
+    "lume ssh $vmName --user $sshUser --password $sshPassword --timeout 0 -- $command",
+  );
+
+  for (final result in results) {
+    final stdout = result.stdout?.toString().trim();
+    final stderr = result.stderr?.toString().trim();
+
+    if (stdout != null && stdout.isNotEmpty) {
+      final maskedOutput = stdout.replaceAll(token, '***');
+      await logInfo(firestore, buildJobId, runId, maskedOutput);
+    }
+    if (stderr != null && stderr.isNotEmpty) {
+      final maskedOutput = stderr.replaceAll(token, '***');
+      await logInfo(firestore, buildJobId, runId, maskedOutput);
+    }
+
+    if (result.exitCode != 0) {
+      throw Exception('Command failed with exit code ${result.exitCode}');
+    }
+  }
+}
+
 Future<void> runVm(String vmName) async {
   var shell = Shell();
   await shell.run('lume run $vmName --no-display');

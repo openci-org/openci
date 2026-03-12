@@ -11,7 +11,6 @@ import {
   teamsCollectionPath,
   workflowsCollectionPath,
 } from "./firestore-collection-paths";
-import { publishBuildJobCreated } from "./pubsub";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -153,7 +152,7 @@ export const retryBuildJob = onCall(
     };
 
     await db.collection(buildJobsCollectionPath).doc(newDocumentId).set(newJobData);
-    await publishBuildJobCreated(newDocumentId);
+
 
     logger.info(`Build job retried: ${buildJobId} -> ${newDocumentId}`, {
       callerUid,

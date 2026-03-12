@@ -3,48 +3,65 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
 import 'package:openci_worker_cli/run_manager.dart';
 import 'package:openci_worker_cli/vm.dart';
-import 'package:process_run/process_run.dart';
+
+Future<BuildJob?> claimBuildJob(Firestore firestore) async {
+  final querySnapshot = await firestore
+      .collection(buildJobsCollection)
+      .where('status', WhereFilter.equal, 'queued')
+      .orderBy('createdAt')
+      .limit(1)
+      .get();
+
+  if (querySnapshot.docs.isEmpty) return null;
+
+  final buildJobId = querySnapshot.docs.first.id;
+  final jobRef = firestore.collection(buildJobsCollection).doc(buildJobId);
+
+  final claimedData = await firestore.runTransaction((transaction) async {
+    final snapshot = await transaction.get(jobRef);
+    if (!snapshot.exists) return null;
+
+    final data = snapshot.data();
+    if (data == null || data['status'] != 'queued') return null;
+
+    transaction.update(jobRef, {'status': 'in_progress'});
+    return data;
+  });
+
+  if (claimedData == null) return null;
+
+  final buildJob = BuildJob.fromJson({...claimedData, 'id': buildJobId});
+
+  if (buildJob.commitSha == null || buildJob.commitSha!.isEmpty) {
+    throw Exception('commitSha is missing in build job data');
+  }
+
+  return buildJob;
+}
 
 Future<bool> processJob(
   Firestore firestore,
   String projectId,
   String serviceAccountPath,
   String workerId,
-  String buildJobId,
 ) async {
-  final jobRef = firestore.collection('build_jobs_v0').doc(buildJobId);
-  final snapshot = await jobRef.get();
+  final buildJob = await claimBuildJob(firestore);
+  if (buildJob == null) return false;
 
-  if (!snapshot.exists) return false;
+  final buildJobId = buildJob.id;
+  final token = buildJob.installationToken!;
+  final owner = buildJob.owner;
+  final repo = buildJob.repo;
+  final commitSha = buildJob.commitSha!;
 
-  final data = snapshot.data();
-  if (data == null || data['status'] != 'queued') {
-    return false;
-  }
+  final runId = await initializeRun(firestore, buildJobId);
 
-  await jobRef.update({'status': 'in_progress'});
-
-  final token = data['installationToken'] as String;
-  final owner = data['owner'] as String;
-  final repo = data['repo'] as String;
-  final commitSha = data['commitSha'] as String?;
-
-  if (commitSha == null || commitSha.isEmpty) {
-    throw Exception('commitSha is missing in build job data');
-  }
-
-  final runDocRef = firestore
-      .collection('build_jobs_v0')
-      .doc(buildJobId)
-      .collection('runs')
-      .doc();
-  final runId = runDocRef.id;
-  final runManager = RunManager(firestore, buildJobId, runId);
-  await runManager.initialize();
+  final vmName = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
   await logInfo(
     firestore,
@@ -53,44 +70,27 @@ Future<bool> processJob(
     'Processing job: $buildJobId for $owner/$repo',
   );
 
-  final currentVmName = 'openci-vm-$workerId-$buildJobId';
-  await logInfo(
-    firestore,
-    buildJobId,
-    runId,
-    'Cloning VM $baseVmName to $currentVmName...',
+  await cloneVm(
+    baseVmName: baseVmName,
+    vmName: vmName,
+    buildJobId: buildJobId,
+    runId: runId,
+    firestore: firestore,
   );
-  await Shell().run('lume clone $baseVmName $currentVmName');
 
-  Future<void> execCommand(String command) async {
-    var shell = Shell(verbose: true, throwOnError: false);
-    final results = await shell.run(
-      "lume ssh $currentVmName --user $sshUser --password $sshPassword --timeout 0 -- $command",
-    );
-
-    for (final result in results) {
-      final stdout = result.stdout?.toString().trim();
-      final stderr = result.stderr?.toString().trim();
-
-      if (stdout != null && stdout.isNotEmpty) {
-        final maskedOutput = stdout.replaceAll(token, '***');
-        await logInfo(firestore, buildJobId, runId, maskedOutput);
-      }
-      if (stderr != null && stderr.isNotEmpty) {
-        final maskedOutput = stderr.replaceAll(token, '***');
-        await logInfo(firestore, buildJobId, runId, maskedOutput);
-      }
-
-      if (result.exitCode != 0) {
-        throw Exception('Command failed with exit code ${result.exitCode}');
-      }
-    }
-  }
+  Future<void> execCommand(String command) => execVmCommand(
+    vmName: vmName,
+    command: command,
+    firestore: firestore,
+    buildJobId: buildJobId,
+    runId: runId,
+    token: token,
+  );
 
   Future<bool> isCancelled() async {
     try {
       final doc = await firestore
-          .collection('build_jobs_v0')
+          .collection(buildJobsCollection)
           .doc(buildJobId)
           .get();
       if (!doc.exists) return false;
@@ -102,7 +102,7 @@ Future<bool> processJob(
   }
 
   try {
-    final workflowFileName = data['workflowFileName'] as String?;
+    final workflowFileName = buildJob.workflowFileName;
     if (workflowFileName == null || workflowFileName.isEmpty) {
       await logError(
         firestore,
@@ -117,7 +117,7 @@ Future<bool> processJob(
 
     Object? vmStartError;
     unawaited(
-      runVm(currentVmName).catchError((e) {
+      runVm(vmName).catchError((e) {
         vmStartError = e;
       }),
     );
@@ -128,7 +128,7 @@ Future<bool> processJob(
       runId,
       'Waiting for VM to be ready...',
     );
-    await waitForVmReady(currentVmName, vmStartError: () => vmStartError);
+    await waitForVmReady(vmName, vmStartError: () => vmStartError);
     await logInfo(firestore, buildJobId, runId, 'VM is ready!');
 
     await logInfo(
@@ -142,7 +142,7 @@ Future<bool> processJob(
 
     await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
 
-    final pullRequestNumber = data['pullRequestNumber'] as int?;
+    final pullRequestNumber = buildJob.pullRequestNumber;
 
     await logInfo(
       firestore,
@@ -183,88 +183,18 @@ Future<bool> processJob(
       'Repository cloned successfully',
     );
 
-    await logInfo(firestore, buildJobId, runId, 'Setting up environment...');
-
-    final tagName = data['tagName'] as String?;
-    final tagVersion = tagName != null && tagName.isNotEmpty
-        ? (tagName.startsWith('v') || tagName.startsWith('V')
-              ? tagName.substring(1)
-              : tagName)
-        : null;
-
-    final teamId = data['teamId'] as String?;
-
-    final envVars = <String, String>{
-      'LANG': 'en_US.UTF-8',
-      'OPENCI_PROJECT_ID': projectId,
-      if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
-      'OPENCI_TAG_VERSION': ?tagVersion,
-      'OPENCI_TEAM_ID': ?teamId,
-    };
-
-    final saJsonCompact = jsonEncode(
-      jsonDecode(File(serviceAccountPath).readAsStringSync()),
+    final envVars = await buildEnvVars(
+      firestore: firestore,
+      buildJob: buildJob,
+      projectId: projectId,
+      buildJobId: buildJobId,
+      runId: runId,
     );
 
-    final secretVars = <String, String>{
-      'OPENCI_GCP_SA_JSON': saJsonCompact,
-      'GITHUB_TOKEN': token,
-    };
-
-    if (teamId != null) {
-      final envVarsSnapshot = await firestore
-          .collection('environment_variables_v0')
-          .where('teamId', WhereFilter.equal, teamId)
-          .get();
-
-      for (final envVarDoc in envVarsSnapshot.docs) {
-        final envVarData = envVarDoc.data();
-        final key = envVarData['key'] as String;
-        var value = envVarData['value'] as String;
-        final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
-
-        if (autoIncrement) {
-          final docRef = firestore.doc(
-            'environment_variables_v0/${envVarDoc.id}',
-          );
-          await firestore.runTransaction((transaction) async {
-            final freshDoc = await transaction.get(docRef);
-            final currentValue = freshDoc.data()!['value'] as String;
-            value = currentValue;
-            final numValue = int.tryParse(currentValue);
-            if (numValue != null) {
-              transaction.update(docRef, {'value': '${numValue + 1}'});
-            }
-          });
-          await logInfo(
-            firestore,
-            buildJobId,
-            runId,
-            'Auto-incremented $key: $value → ${int.parse(value) + 1}',
-          );
-        }
-
-        envVars[key] = value;
-      }
-
-      if (envVarsSnapshot.docs.isNotEmpty) {
-        await logInfo(
-          firestore,
-          buildJobId,
-          runId,
-          'Loaded ${envVarsSnapshot.docs.length} environment variable(s)',
-        );
-      }
-    }
-
-    if (tagName != null && tagName.isNotEmpty) {
-      await logInfo(
-        firestore,
-        buildJobId,
-        runId,
-        'Tag: $tagName (available as \$OPENCI_TAG)',
-      );
-    }
+    final secretVars = buildSecretVars(
+      serviceAccountPath: serviceAccountPath,
+      token: token,
+    );
 
     final envFileLines = <String>[];
     final secretFileLines = <String>[];
@@ -279,12 +209,8 @@ Future<bool> processJob(
     final envFileContent = envFileLines.join('\n');
     final secretFileContent = secretFileLines.join('\n');
 
-    await writeFileToVm(currentVmName, '/tmp/openci-env', envFileContent);
-    await writeFileToVm(
-      currentVmName,
-      '/tmp/openci-secrets',
-      secretFileContent,
-    );
+    await writeFileToVm(vmName, '/tmp/openci-env', envFileContent);
+    await writeFileToVm(vmName, '/tmp/openci-secrets', secretFileContent);
     await logInfo(
       firestore,
       buildJobId,
@@ -308,12 +234,12 @@ Future<bool> processJob(
           '--detect-event',
     ].join('\n');
 
-    await writeFileToVm(currentVmName, '/tmp/openci-act.sh', actScript);
+    await writeFileToVm(vmName, '/tmp/openci-act.sh', actScript);
     await execCommand('chmod +x /tmp/openci-act.sh');
 
     await execCommandStreaming(
       ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
-      currentVmName,
+      vmName,
       firestore,
       buildJobId,
       runId,
@@ -324,9 +250,15 @@ Future<bool> processJob(
     await Future.delayed(const Duration(seconds: 5));
 
     await logInfo(firestore, buildJobId, runId, 'Build completed successfully');
-    await runManager.updateStatus('completed', conclusion: 'success');
+    await updateRunStatus(
+      firestore,
+      buildJobId,
+      runId,
+      'completed',
+      conclusion: 'success',
+    );
 
-    await firestore.collection('build_jobs_v0').doc(buildJobId).update({
+    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'status': 'success',
     });
   } catch (e, s) {
@@ -337,20 +269,26 @@ Future<bool> processJob(
       'Job failed: $e',
       stackTrace: s.toString(),
     );
-    await runManager.updateStatus('completed', conclusion: 'failure');
+    await updateRunStatus(
+      firestore,
+      buildJobId,
+      runId,
+      'completed',
+      conclusion: 'failure',
+    );
 
-    await firestore.collection('build_jobs_v0').doc(buildJobId).update({
+    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'status': 'failure',
     });
     rethrow;
   } finally {
     try {
-      await stopVm(currentVmName);
+      await stopVm(vmName);
     } catch (e) {
       await logWarning(firestore, buildJobId, runId, 'Error stopping VM: $e');
     }
     try {
-      await deleteVm(currentVmName);
+      await deleteVm(vmName);
     } catch (e) {
       await logWarning(firestore, buildJobId, runId, 'Error deleting VM: $e');
     }
@@ -358,4 +296,100 @@ Future<bool> processJob(
   }
 
   return true;
+}
+
+Future<Map<String, String>> buildEnvVars({
+  required Firestore firestore,
+  required BuildJob buildJob,
+  required String projectId,
+  required String buildJobId,
+  required String runId,
+}) async {
+  final tagName = buildJob.tagName;
+  final tagVersion = tagName != null && tagName.isNotEmpty
+      ? (tagName.startsWith('v') || tagName.startsWith('V')
+            ? tagName.substring(1)
+            : tagName)
+      : null;
+
+  final teamId = buildJob.teamId;
+
+  final envVars = <String, String>{
+    'LANG': 'en_US.UTF-8',
+    'OPENCI_PROJECT_ID': projectId,
+    if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
+    'OPENCI_TAG_VERSION': ?tagVersion,
+    'OPENCI_TEAM_ID': ?teamId,
+  };
+
+  if (teamId != null) {
+    final envVarsSnapshot = await firestore
+        .collection(environmentVariablesCollection)
+        .where('teamId', WhereFilter.equal, teamId)
+        .get();
+
+    for (final envVarDoc in envVarsSnapshot.docs) {
+      final envVarData = envVarDoc.data();
+      final key = envVarData['key'] as String;
+      var value = envVarData['value'] as String;
+      final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
+
+      if (autoIncrement) {
+        final docRef = firestore.doc(
+          'environment_variables_v0/${envVarDoc.id}',
+        );
+        await firestore.runTransaction((transaction) async {
+          final freshDoc = await transaction.get(docRef);
+          final currentValue = freshDoc.data()!['value'] as String;
+          value = currentValue;
+          final numValue = int.tryParse(currentValue);
+          if (numValue != null) {
+            transaction.update(docRef, {'value': '${numValue + 1}'});
+          }
+        });
+        await logInfo(
+          firestore,
+          buildJobId,
+          runId,
+          'Auto-incremented $key: $value → ${int.parse(value) + 1}',
+        );
+      }
+
+      envVars[key] = value;
+    }
+
+    if (envVarsSnapshot.docs.isNotEmpty) {
+      await logInfo(
+        firestore,
+        buildJobId,
+        runId,
+        'Loaded ${envVarsSnapshot.docs.length} environment variable(s)',
+      );
+    }
+  }
+
+  if (tagName != null && tagName.isNotEmpty) {
+    await logInfo(
+      firestore,
+      buildJobId,
+      runId,
+      'Tag: $tagName (available as \$OPENCI_TAG)',
+    );
+  }
+
+  return envVars;
+}
+
+Map<String, String> buildSecretVars({
+  required String serviceAccountPath,
+  required String token,
+}) {
+  final saJsonCompact = jsonEncode(
+    jsonDecode(File(serviceAccountPath).readAsStringSync()),
+  );
+
+  return {
+    'OPENCI_GCP_SA_JSON': saJsonCompact,
+    'GITHUB_TOKEN': token,
+  };
 }

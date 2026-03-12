@@ -1,5 +1,6 @@
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
+import 'package:openci_shared/firestore_paths.dart';
 
 final _log = Logger('BuildLog');
 
@@ -15,7 +16,7 @@ Future<void> writeLogsToFirestore(
 }) async {
   try {
     final logRef = firestore
-        .collection('build_jobs_v0')
+        .collection(buildJobsCollection)
         .doc(buildJobId)
         .collection('runs')
         .doc(runId)

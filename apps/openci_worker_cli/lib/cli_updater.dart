@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
+import 'package:openci_shared/firestore_paths.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:process_run/process_run.dart';
 import 'package:sentry/sentry.dart';
@@ -28,7 +29,7 @@ Future<void> checkForCLIUpdateIfNeeded(Firestore firestore) async {
 
 Future<bool> _checkForCLIUpdate(Firestore firestore) async {
   final configDoc = await firestore
-      .collection('worker_config_v0')
+      .collection(workerConfigCollection)
       .doc('latest_version')
       .get();
 
