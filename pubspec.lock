@@ -981,6 +981,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0+1"
+  sentry:
+    dependency: transitive
+    description:
+      name: sentry
+      sha256: "605ad1f6f1ae5b72018cbe8fc20f490fa3bd53e58882e5579566776030d8c8c1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "9.14.0"
   serial_csv:
     dependency: transitive
     description:
