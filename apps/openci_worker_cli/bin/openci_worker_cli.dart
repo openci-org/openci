@@ -23,7 +23,6 @@ Future<void> main(List<String> arguments) async {
     );
 
     print('Worker started. Worker ID: ${config.workerId}');
-    print('Cleaning up orphaned VMs from previous runs (lume)...');
     await cleanupOrphanedVms(config.workerId);
     print('Polling for jobs...');
 

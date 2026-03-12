@@ -52,6 +52,7 @@ Future<void> waitForVmReady(
 
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
+    print('Started cleaning orphaned VMs');
     final shell = Shell(throwOnError: false, verbose: false);
     final result = await shell.run('lume ls');
     if (result.isEmpty) return;
@@ -78,6 +79,7 @@ Future<void> cleanupOrphanedVms(String workerId) async {
       print('Deleting orphaned VM: $vmName (State: $state)');
       await shell.run('lume delete $vmName --force');
     }
+    print("Successfully deleted orphaned VMs");
   } catch (e, s) {
     print('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
