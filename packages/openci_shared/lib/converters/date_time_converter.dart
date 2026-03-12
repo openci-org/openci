@@ -10,7 +10,12 @@ class DateTimeConverter implements JsonConverter<DateTime, dynamic> {
     if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
     if (value != null && value is! bool) {
       try {
-        return (value as dynamic).toDate() as DateTime;
+        final seconds = (value as dynamic).seconds as int;
+        final nanoseconds = (value as dynamic).nanoseconds as int;
+        return DateTime.fromMicrosecondsSinceEpoch(
+          seconds * 1000000 + nanoseconds ~/ 1000,
+          isUtc: true,
+        );
       } catch (_) {}
     }
     throw ArgumentError(

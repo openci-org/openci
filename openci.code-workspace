@@ -213,9 +213,9 @@
         "problemMatcher": [],
       },
       {
-        "label": "Firebase: Reauth Login",
+        "label": "Firebase & gcloud: Reauth Login",
         "type": "shell",
-        "command": "firebase login --reauth",
+        "command": "firebase login --reauth && gcloud auth login",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },
