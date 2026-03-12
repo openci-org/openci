@@ -1,4 +1,4 @@
-const version = '0.6.9';
+const version = '0.7.0';
 
 const baseVmName = 'tahoe-base_v1.0.0';
 const sshUser = 'admin';
