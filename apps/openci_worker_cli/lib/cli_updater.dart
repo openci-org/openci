@@ -1,9 +1,32 @@
+import 'dart:io';
+
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:process_run/process_run.dart';
 import 'package:sentry/sentry.dart';
 
-Future<bool> checkForCLIUpdate(Firestore firestore) async {
+final _log = Logger('CLIUpdater');
+
+DateTime _lastCheck = DateTime.now();
+const _interval = Duration(minutes: 5);
+
+Future<void> checkForCLIUpdateIfNeeded(Firestore firestore) async {
+  if (DateTime.now().difference(_lastCheck) < _interval) return;
+  _lastCheck = DateTime.now();
+
+  try {
+    final shouldRestart = await _checkForCLIUpdate(firestore);
+    if (shouldRestart) {
+      _log.info('Update complete. Restarting worker...');
+      exit(0);
+    }
+  } catch (e) {
+    _log.warning('Update check failed: $e');
+  }
+}
+
+Future<bool> _checkForCLIUpdate(Firestore firestore) async {
   final configDoc = await firestore
       .collection('worker_config_v0')
       .doc('latest_version')
@@ -17,8 +40,7 @@ Future<bool> checkForCLIUpdate(Firestore firestore) async {
   final latestVersion = data['version'] as String?;
   if (latestVersion == null || latestVersion == version) return false;
 
-  print('\n📦 New version available: $version → $latestVersion');
-  print('Updating...');
+  _log.info('New version available: $version → $latestVersion');
 
   try {
     final shell = Shell(verbose: true, throwOnError: false);
@@ -27,13 +49,13 @@ Future<bool> checkForCLIUpdate(Firestore firestore) async {
     final output = result.first.stdout?.toString() ?? '';
 
     if (output.contains('already installed')) {
-      print('[INFO] Already on latest brew version. Skipping restart.');
+      _log.info('Already on latest brew version. Skipping restart.');
       return false;
     }
 
     return true;
   } catch (e, s) {
-    print('[WARN] Auto-update failed: $e');
+    _log.warning('Auto-update failed: $e');
     await Sentry.captureException(e, stackTrace: s);
     return false;
   }

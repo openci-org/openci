@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
 import 'package:process_run/process_run.dart';
 import 'package:process_run/stdio.dart';
 import 'package:sentry/sentry.dart';
+
+final _log = Logger('VM');
 
 Future<void> runVm(String vmName) async {
   var shell = Shell();
@@ -28,7 +31,7 @@ Future<void> waitForVmReady(
   Object? Function()? vmStartError,
 }) async {
   var shell = Shell(throwOnError: false);
-  print('Waiting for VM to respond...');
+  _log.info('Waiting for VM to respond...');
   for (var i = 0; i < 120; i++) {
     final error = vmStartError?.call();
     if (error != null) {
@@ -38,7 +41,7 @@ Future<void> waitForVmReady(
     var result = await shell.run(
       'lume ssh $name --user $sshUser --password $sshPassword --timeout 10 -- echo "ready"',
     );
-    print('exit code: ${result.first.exitCode}');
+    _log.fine('exit code: ${result.first.exitCode}');
 
     if (result.first.exitCode == 0) {
       return;
@@ -52,7 +55,7 @@ Future<void> waitForVmReady(
 
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
-    print('Started cleaning orphaned VMs');
+    _log.info('Cleaning orphaned VMs');
     final shell = Shell(throwOnError: false, verbose: false);
     final result = await shell.run('lume ls');
     if (result.isEmpty) return;
@@ -76,12 +79,12 @@ Future<void> cleanupOrphanedVms(String workerId) async {
 
       if (state == 'running') continue;
 
-      print('Deleting orphaned VM: $vmName (State: $state)');
+      _log.info('Deleting orphaned VM: $vmName (State: $state)');
       await shell.run('lume delete $vmName --force');
     }
-    print("Successfully deleted orphaned VMs");
+    _log.info('Successfully deleted orphaned VMs');
   } catch (e, s) {
-    print('Error cleaning up orphaned VMs: $e');
+    _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
   }
 }

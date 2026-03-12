@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { db } from "../firebase";
 import { buildJobsCollectionPath } from "../firestore-collection-paths";
+import { publishBuildJobCreated } from "../pubsub";
 import { OPENCI_DIR_QUERY, OpenciDirEntry } from "./queries";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
@@ -284,6 +285,7 @@ async function createBuildJobs(
               releaseName,
             });
 
+          await publishBuildJobCreated(documentId);
           createdJobCount++;
         } catch (e) {
           logger.error(`Failed to process .openci/${entry.name}`, e);

@@ -14,43 +14,24 @@ Future<bool> processJob(
   String projectId,
   String serviceAccountPath,
   String workerId,
+  String buildJobId,
 ) async {
-  final doc = await firestore
-      .collection('build_jobs_v0')
-      .where('status', WhereFilter.equal, 'queued')
-      .orderBy('createdAt', descending: false)
-      .limit(1)
-      .get();
+  final jobRef = firestore.collection('build_jobs_v0').doc(buildJobId);
+  final snapshot = await jobRef.get();
 
-  if (doc.docs.isEmpty) {
+  if (!snapshot.exists) return false;
+
+  final data = snapshot.data();
+  if (data == null || data['status'] != 'queued') {
     return false;
   }
 
-  final candidateRef = doc.docs.first.ref;
+  await jobRef.update({'status': 'in_progress'});
 
-  final claimedJob = await firestore.runTransaction((transaction) async {
-    final snapshot = await transaction.get(candidateRef);
-    if (!snapshot.exists) return null;
-
-    final data = snapshot.data();
-    if (data == null || data['status'] != 'queued') {
-      return null;
-    }
-
-    transaction.update(candidateRef, {'status': 'in_progress'});
-    return snapshot;
-  });
-
-  if (claimedJob == null) {
-    return false;
-  }
-
-  final buildJobId = claimedJob.id;
-  final buildJobData = claimedJob.data()!;
-  final token = buildJobData['installationToken'] as String;
-  final owner = buildJobData['owner'] as String;
-  final repo = buildJobData['repo'] as String;
-  final commitSha = buildJobData['commitSha'] as String?;
+  final token = data['installationToken'] as String;
+  final owner = data['owner'] as String;
+  final repo = data['repo'] as String;
+  final commitSha = data['commitSha'] as String?;
 
   if (commitSha == null || commitSha.isEmpty) {
     throw Exception('commitSha is missing in build job data');
@@ -121,7 +102,7 @@ Future<bool> processJob(
   }
 
   try {
-    final workflowFileName = buildJobData['workflowFileName'] as String?;
+    final workflowFileName = data['workflowFileName'] as String?;
     if (workflowFileName == null || workflowFileName.isEmpty) {
       await logError(
         firestore,
@@ -161,7 +142,7 @@ Future<bool> processJob(
 
     await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
 
-    final pullRequestNumber = buildJobData['pullRequestNumber'] as int?;
+    final pullRequestNumber = data['pullRequestNumber'] as int?;
 
     await logInfo(
       firestore,
@@ -204,14 +185,14 @@ Future<bool> processJob(
 
     await logInfo(firestore, buildJobId, runId, 'Setting up environment...');
 
-    final tagName = buildJobData['tagName'] as String?;
+    final tagName = data['tagName'] as String?;
     final tagVersion = tagName != null && tagName.isNotEmpty
         ? (tagName.startsWith('v') || tagName.startsWith('V')
               ? tagName.substring(1)
               : tagName)
         : null;
 
-    final teamId = buildJobData['teamId'] as String?;
+    final teamId = data['teamId'] as String?;
 
     final envVars = <String, String>{
       'LANG': 'en_US.UTF-8',

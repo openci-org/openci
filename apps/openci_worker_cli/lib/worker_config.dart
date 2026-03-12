@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/args.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:process_run/process_run.dart';
 import 'package:sentry/sentry.dart';
+
+final _log = Logger('Config');
 
 typedef WorkerConfig = ({
   String serviceAccountPath,
@@ -21,36 +24,36 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
   }
 
   if (results.flag('version')) {
-    print('openci-worker version: $version');
+    _log.info('openci-worker version: $version');
     return null;
   }
 
   if (results.flag('update')) {
-    print('Updating openci-worker...');
+    _log.info('Updating openci-worker...');
     final shell = Shell(verbose: true);
     await shell.run('brew update');
     await shell.run('brew upgrade openci-worker');
-    print('Updated successfully!');
+    _log.info('Updated successfully!');
     return null;
   }
 
   final serviceAccountPath = results['service-account'] as String?;
   if (serviceAccountPath == null) {
-    print('Error: --service-account is required.');
+    _log.severe('--service-account is required.');
     printArgsUsage();
     return null;
   }
 
   final workerId = results['worker-id'] as String?;
   if (workerId == null) {
-    print('Error: --worker-id is required.');
+    _log.severe('--worker-id is required.');
     printArgsUsage();
     return null;
   }
 
   final serviceAccountFile = File(serviceAccountPath);
   if (!serviceAccountFile.existsSync()) {
-    print('Error: Service account file not found: $serviceAccountPath');
+    _log.severe('Service account file not found: $serviceAccountPath');
     return null;
   }
 
@@ -58,12 +61,12 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
       jsonDecode(serviceAccountFile.readAsStringSync()) as Map<String, dynamic>;
   final projectId = serviceAccountJson['project_id'] as String?;
   if (projectId == null) {
-    print('Error: project_id not found in service account file.');
+    _log.severe('project_id not found in service account file.');
     return null;
   }
 
   if (projectId.isEmpty) {
-    print('Error: project_id is empty in service account file.');
+    _log.severe('project_id is empty in service account file.');
     return null;
   }
 

@@ -1,12 +1,11 @@
-import 'dart:io';
-
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/cli_updater.dart';
 import 'package:openci_worker_cli/job_executor.dart';
+import 'package:openci_worker_cli/pubsub.dart';
 import 'package:sentry/sentry.dart';
 
-const _spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-const _pollInterval = 10;
+final _log = Logger('Poller');
 
 Future<void> pollForJobs({
   required Firestore firestore,
@@ -14,53 +13,43 @@ Future<void> pollForJobs({
   required String projectId,
   required String serviceAccountPath,
 }) async {
-  print('Polling for jobs...');
-  var spinnerIndex = 0;
-  var waitingStartTime = DateTime.now();
-  var pollCounter = 0;
+  final pubsub = await initPubSub(serviceAccountPath);
+  final subscription = 'projects/$projectId/subscriptions/worker-jobs';
+
+  _log.info('Listening on $subscription');
 
   while (true) {
-    var jobFound = false;
+    try {
+      await checkForCLIUpdateIfNeeded(firestore);
 
-    if (pollCounter == 0) {
+      final msg = await pullMessage(pubsub, subscription);
+      if (msg == null) {
+        _log.fine('No messages, waiting...');
+        await Future.delayed(const Duration(seconds: 5));
+        continue;
+      }
+
+      _log.info('Received job: ${msg.buildJobId}');
+
       try {
-        jobFound = await processJob(
+        await processJob(
           firestore,
           projectId,
           serviceAccountPath,
           workerId,
+          msg.buildJobId,
         );
       } catch (e, s) {
-        print('\nError processing job: $e');
+        _log.severe('Error processing job ${msg.buildJobId}: $e');
         await Sentry.captureException(e, stackTrace: s);
       }
 
-      try {
-        final shouldRestart = await checkForCLIUpdate(firestore);
-        if (shouldRestart) {
-          print('\n🔄 Update complete. Restarting worker...');
-          exit(0);
-        }
-      } catch (e) {
-        print('\n[WARN] Update check failed: $e');
-      }
-    }
-
-    if (!jobFound) {
-      final elapsed = DateTime.now().difference(waitingStartTime);
-      final minutes = elapsed.inMinutes;
-      final seconds = elapsed.inSeconds % 60;
-      final timeStr = '${minutes}m ${seconds}s';
-      stdout.write(
-        '\r${_spinnerChars[spinnerIndex]} [$workerId] Waiting for jobs... ($timeStr)  ',
-      );
-      spinnerIndex = (spinnerIndex + 1) % _spinnerChars.length;
-      pollCounter = (pollCounter + 1) % _pollInterval;
-      await Future.delayed(const Duration(milliseconds: 100));
-    } else {
-      print('');
-      waitingStartTime = DateTime.now();
-      pollCounter = 0;
+      await acknowledge(pubsub, subscription, msg.ackId);
+      _log.info('Job ${msg.buildJobId} acknowledged');
+    } catch (e, s) {
+      _log.severe('Pub/Sub pull error: $e');
+      await Sentry.captureException(e, stackTrace: s);
+      await Future.delayed(const Duration(seconds: 10));
     }
   }
 }

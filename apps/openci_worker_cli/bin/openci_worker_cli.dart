@@ -1,12 +1,18 @@
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/firebase.dart';
+import 'package:openci_worker_cli/log.dart';
 import 'package:openci_worker_cli/poller.dart';
 import 'package:openci_worker_cli/vm.dart';
 import 'package:openci_worker_cli/worker_config.dart';
 import 'package:sentry/sentry.dart';
 
+final _log = Logger('Main');
+
 Future<void> main(List<String> arguments) async {
+  setupLogging();
+
   try {
     final config = await parseWorkerConfig(arguments);
     if (config == null) return;
@@ -16,7 +22,7 @@ Future<void> main(List<String> arguments) async {
       serviceAccountPath: config.serviceAccountPath,
     );
 
-    print('Worker started. Worker ID: ${config.workerId}');
+    _log.info('Worker started. Worker ID: ${config.workerId}');
     await cleanupOrphanedVms(config.workerId);
 
     await pollForJobs(
@@ -26,9 +32,9 @@ Future<void> main(List<String> arguments) async {
       serviceAccountPath: config.serviceAccountPath,
     );
   } on FormatException catch (e) {
-    print(e.message);
+    _log.severe(e.message);
   } catch (e, s) {
-    print('Unexpected error: $e');
+    _log.severe('Unexpected error: $e');
     await Sentry.captureException(e, stackTrace: s);
     exit(1);
   }

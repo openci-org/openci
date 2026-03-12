@@ -1,9 +1,12 @@
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:logging/logging.dart';
 
 class RunManager {
   final Firestore _firestore;
   final String _buildJobId;
   final String _runId;
+
+  static final _log = Logger('RunManager');
 
   RunManager(this._firestore, this._buildJobId, this._runId);
 
@@ -27,7 +30,7 @@ class RunManager {
         'runCount': FieldValue.increment(1),
       });
     } catch (e) {
-      print('[RunManager] Failed to initialize run: $e');
+      _log.severe('Failed to initialize run: $e');
     }
   }
 
@@ -44,7 +47,7 @@ class RunManager {
             'conclusion': ?conclusion,
           });
     } catch (e) {
-      print('[RunManager] Failed to update run status: $e');
+      _log.severe('Failed to update run status: $e');
     }
   }
 }

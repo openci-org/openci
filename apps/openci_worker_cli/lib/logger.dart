@@ -1,4 +1,7 @@
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('BuildLog');
 
 enum LogLevel { info, warning, error }
 
@@ -26,7 +29,7 @@ Future<void> writeLogsToFirestore(
       'stackTrace': ?stackTrace,
     });
   } catch (e) {
-    print('[Logger] Failed to write log to Firestore: $e');
+    _log.warning('Failed to write log to Firestore: $e');
   }
 }
 
@@ -36,7 +39,7 @@ Future<void> logInfo(
   String runId,
   String message,
 ) async {
-  print('[INFO] $message');
+  _log.info(message);
   await writeLogsToFirestore(
     firestore,
     buildJobId,
@@ -52,7 +55,7 @@ Future<void> logWarning(
   String runId,
   String message,
 ) async {
-  print('[WARNING] $message');
+  _log.warning(message);
   await writeLogsToFirestore(
     firestore,
     buildJobId,
@@ -69,9 +72,9 @@ Future<void> logError(
   String message, {
   String? stackTrace,
 }) async {
-  print('[ERROR] $message');
+  _log.severe(message);
   if (stackTrace != null) {
-    print('[ERROR] Stack trace: $stackTrace');
+    _log.severe('Stack trace: $stackTrace');
   }
   await writeLogsToFirestore(
     firestore,
