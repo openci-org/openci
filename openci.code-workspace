@@ -213,9 +213,9 @@
         "problemMatcher": [],
       },
       {
-        "label": "Firebase: Reauth Login",
+        "label": "Firebase & gcloud: Reauth Login",
         "type": "shell",
-        "command": "firebase login --reauth",
+        "command": "firebase login --reauth && gcloud auth login",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },
@@ -249,10 +249,10 @@
         "args": [
           "run",
           "bin/openci_worker_cli.dart",
-          "--project-id",
-          "openci-dev-da298",
           "--service-account",
           "firebase_service_account_dev.json",
+          "--worker-id",
+          "worker-1",
         ],
         "options": {
           "cwd": "${workspaceFolder:openci_worker_cli}",
@@ -266,10 +266,10 @@
         "args": [
           "run",
           "bin/openci_worker_cli.dart",
-          "--project-id",
-          "openci-b1b91",
           "--service-account",
           "firebase_service_account.json",
+          "--worker-id",
+          "worker-1",
         ],
         "options": {
           "cwd": "${workspaceFolder:openci_worker_cli}",

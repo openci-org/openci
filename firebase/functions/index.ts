@@ -13,3 +13,4 @@ export { onUserSignUp } from "./src/on-user-sign-up";
 export { retryBuildJob } from "./src/retry-build-job";
 export { onBuildJobStatusChange } from "./src/send-build-notification";
 export { updateSecretV1 } from "./src/update-secret";
+export { onRunCreated, onRunUpdated } from "./src/update-check-run";

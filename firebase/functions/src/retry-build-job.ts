@@ -153,6 +153,7 @@ export const retryBuildJob = onCall(
 
     await db.collection(buildJobsCollectionPath).doc(newDocumentId).set(newJobData);
 
+
     logger.info(`Build job retried: ${buildJobId} -> ${newDocumentId}`, {
       callerUid,
       teamId,
