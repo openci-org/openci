@@ -10,9 +10,8 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
     steps:
-      - name:
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Install dependencies
         run: flutter pub get
