@@ -157,6 +157,15 @@
         },
         "problemMatcher": [],
       },
+      {
+        "label": "Flutter Web: (Prod) Deploy to Firebase Hosting",
+        "type": "shell",
+        "command": "flutter clean && flutter pub get && flutter build web --release --dart-define-from-file=.env.local && rm -rf ../../firebase/public && cp -r build/web ../../firebase/public && cd ../../firebase && firebase use prod && firebase deploy --only hosting && firebase use default",
+        "options": {
+          "cwd": "${workspaceFolder:dashboard}",
+        },
+        "problemMatcher": [],
+      },
       // ── Firebase ─────────────────────────────────────
       {
         "label": "Firebase: (Dev) Deploy Functions",
