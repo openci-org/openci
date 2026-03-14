@@ -1229,7 +1229,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
         if (prUrl != null) {
           final parentNavigator = Navigator.of(context, rootNavigator: true);
           Navigator.of(context).pop();
-          if (!context.mounted) return;
+          if (!context.mounted || !parentNavigator.mounted) return;
           await showDialog(
             context: parentNavigator.context,
             builder: (ctx) => AlertDialog(

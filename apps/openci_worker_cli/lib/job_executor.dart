@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
+import 'package:googleapis/secretmanager/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
@@ -194,9 +196,13 @@ Future<bool> processJob(
       runId: runId,
     );
 
-    final secretVars = buildSecretVars(
+    final secretVars = await buildSecretVars(
+      firestore: firestore,
       serviceAccountPath: serviceAccountPath,
       token: token,
+      buildJobId: buildJobId,
+      runId: runId,
+      teamId: buildJob.teamId,
     );
 
     final envFileLines = <String>[];
@@ -385,16 +391,83 @@ Future<Map<String, String>> buildEnvVars({
   return envVars;
 }
 
-Map<String, String> buildSecretVars({
+Future<Map<String, String>> buildSecretVars({
+  required Firestore firestore,
   required String serviceAccountPath,
   required String token,
-}) {
+  required String buildJobId,
+  required String runId,
+  String? teamId,
+}) async {
   final saJsonCompact = jsonEncode(
     jsonDecode(File(serviceAccountPath).readAsStringSync()),
   );
 
-  return {
+  final secrets = <String, String>{
     'OPENCI_GCP_SA_JSON': saJsonCompact,
     'GITHUB_TOKEN': token,
   };
+
+  if (teamId == null) return secrets;
+
+  final secretsSnapshot = await firestore
+      .collection(secretsCollection)
+      .where('teamId', WhereFilter.equal, teamId)
+      .get();
+
+  if (secretsSnapshot.docs.isEmpty) return secrets;
+
+  await logInfo(
+    firestore,
+    buildJobId,
+    runId,
+    'Loading ${secretsSnapshot.docs.length} secret(s) from Secret Manager...',
+  );
+
+  final saJson = jsonDecode(File(serviceAccountPath).readAsStringSync())
+      as Map<String, dynamic>;
+  final credentials = ServiceAccountCredentials.fromJson(saJson);
+  final httpClient = await clientViaServiceAccount(
+    credentials,
+    [SecretManagerApi.cloudPlatformScope],
+  );
+
+  try {
+    final smApi = SecretManagerApi(httpClient);
+
+    for (final doc in secretsSnapshot.docs) {
+      final data = doc.data();
+      final name = data['name'] as String;
+      final pathToSecret = data['pathToSecret'] as String?;
+      if (pathToSecret == null) continue;
+
+      try {
+        final response = await smApi.projects.secrets.versions.access(
+          '$pathToSecret/versions/latest',
+        );
+        final payload = response.payload?.data;
+        if (payload != null) {
+          secrets[name] = utf8.decode(base64Decode(payload));
+        }
+      } catch (e) {
+        await logWarning(
+          firestore,
+          buildJobId,
+          runId,
+          'Failed to load secret "$name": $e',
+        );
+      }
+    }
+  } finally {
+    httpClient.close();
+  }
+
+  await logInfo(
+    firestore,
+    buildJobId,
+    runId,
+    'Loaded ${secretsSnapshot.docs.length} secret(s)',
+  );
+
+  return secrets;
 }
