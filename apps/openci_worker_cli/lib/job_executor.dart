@@ -48,10 +48,13 @@ Future<bool> processJob(
   Firestore firestore,
   String projectId,
   String serviceAccountPath,
-  String workerId,
-) async {
+  String workerId, {
+  void Function()? onJobFound,
+}) async {
   final buildJob = await claimBuildJob(firestore);
   if (buildJob == null) return false;
+
+  onJobFound?.call();
 
   final buildJobId = buildJob.id;
   final token = buildJob.installationToken!;
@@ -282,6 +285,7 @@ Future<bool> processJob(
     });
     rethrow;
   } finally {
+    await flushRemainingLogs();
     try {
       await stopVm(vmName);
     } catch (e) {
@@ -292,6 +296,7 @@ Future<bool> processJob(
     } catch (e) {
       await logWarning(firestore, buildJobId, runId, 'Error deleting VM: $e');
     }
+    await flushRemainingLogs();
     await pruneStaleVms(firestore, buildJobId, runId, workerId: workerId);
   }
 
