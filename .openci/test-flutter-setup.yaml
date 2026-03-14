@@ -16,7 +16,7 @@ jobs:
 
       - uses: ./actions/flutter-setup
         with:
-          flutter-version: "stable2"
+          flutter-version: "stable"
 
       - name: Verify Flutter
         run: flutter --version
