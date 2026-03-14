@@ -33,4 +33,4 @@ jobs:
           platform: "web"
           working-directory: "apps/dashboard"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channel: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || '' }}
+          preview: ${{ github.event_name == 'pull_request' }}
