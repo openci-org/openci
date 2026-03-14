@@ -126,6 +126,7 @@ class AuthPage extends HookConsumerWidget {
                                     ref.invalidate(firestoreProvider);
                                   } catch (e) {
                                     if (!context.mounted) return;
+                                    debugPrint(e.toString());
                                     context.showSnackBarMessage(
                                       t.common.error(error: e.toString()),
                                     );
@@ -158,6 +159,7 @@ class AuthPage extends HookConsumerWidget {
                                         );
                                   } catch (e) {
                                     if (!context.mounted) return;
+                                    debugPrint(e.toString());
                                     context.showSnackBarMessage(
                                       t.common.error(error: e.toString()),
                                     );
@@ -328,6 +330,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   ref.invalidate(firestoreProvider);
                 } catch (e) {
                   if (!context.mounted) return;
+                  debugPrint(e.toString());
                   context.showSnackBarMessage(
                     t.common.error(error: e.toString()),
                   );

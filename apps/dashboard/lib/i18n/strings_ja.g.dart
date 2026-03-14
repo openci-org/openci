@@ -47,6 +47,7 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsSettingsJa settings = _TranslationsSettingsJa._(_root);
 	@override late final _TranslationsNotificationsJa notifications = _TranslationsNotificationsJa._(_root);
 	@override late final _TranslationsTeamJa team = _TranslationsTeamJa._(_root);
+	@override late final _TranslationsGithubJa github = _TranslationsGithubJa._(_root);
 	@override late final _TranslationsSubscriptionJa subscription = _TranslationsSubscriptionJa._(_root);
 }
 
@@ -254,6 +255,18 @@ class _TranslationsTeamJa implements TranslationsTeamEn {
 	@override String get inviteEmail => 'メールアドレス';
 	@override String get enterEmail => 'メールアドレスを入力してください';
 	@override String get invitedSuccess => 'チームメンバーが招待されました';
+}
+
+// Path: github
+class _TranslationsGithubJa implements TranslationsGithubEn {
+	_TranslationsGithubJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get connectTitle => 'GitHubと連携';
+	@override String get connectDescription => 'GitHubアカウントを連携して\nリポジトリを自動的に選択できるようにします。';
+	@override String get connectButton => 'GitHubと連携する';
 }
 
 // Path: subscription
@@ -598,6 +611,9 @@ extension on TranslationsJa {
 			'team.inviteEmail' => 'メールアドレス',
 			'team.enterEmail' => 'メールアドレスを入力してください',
 			'team.invitedSuccess' => 'チームメンバーが招待されました',
+			'github.connectTitle' => 'GitHubと連携',
+			'github.connectDescription' => 'GitHubアカウントを連携して\nリポジトリを自動的に選択できるようにします。',
+			'github.connectButton' => 'GitHubと連携する',
 			'subscription.title' => 'サブスクリプション',
 			'subscription.noOfferings' => '利用可能なプランがありません',
 			'subscription.noPackages' => '利用可能なパッケージがありません',

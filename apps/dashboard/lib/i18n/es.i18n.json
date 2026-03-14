@@ -215,6 +215,11 @@
     "enterEmail": "Por favor, ingresa un correo electrónico",
     "invitedSuccess": "Miembro del equipo invitado exitosamente"
   },
+  "github": {
+    "connectTitle": "Conectar GitHub",
+    "connectDescription": "Conecta tu cuenta de GitHub para\nseleccionar repositorios automáticamente.",
+    "connectButton": "Conectar con GitHub"
+  },
   "subscription": {
     "title": "Suscripción",
     "noOfferings": "No hay ofertas disponibles",

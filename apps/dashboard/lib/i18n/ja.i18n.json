@@ -215,6 +215,11 @@
     "enterEmail": "メールアドレスを入力してください",
     "invitedSuccess": "チームメンバーが招待されました"
   },
+  "github": {
+    "connectTitle": "GitHubと連携",
+    "connectDescription": "GitHubアカウントを連携して\nリポジトリを自動的に選択できるようにします。",
+    "connectButton": "GitHubと連携する"
+  },
   "subscription": {
     "title": "サブスクリプション",
     "noOfferings": "利用可能なプランがありません",
