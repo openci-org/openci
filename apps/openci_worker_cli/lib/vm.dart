@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
@@ -28,8 +29,10 @@ Future<void> cloneVm({
   await shell.run('lume clone $baseVmName $vmName');
 }
 
-String currentVmName({required String workerId, required String buildJobId}) =>
-    'openci-vm-$workerId-$buildJobId';
+String currentVmName({required String workerId, required String buildJobId}) {
+  final shortId = buildJobId.length >= 8 ? buildJobId.substring(0, 8) : buildJobId;
+  return 'openci-vm-$workerId-$shortId';
+}
 
 Future<void> execVmCommand({
   required String vmName,
@@ -69,7 +72,7 @@ Future<void> runVm(String vmName) async {
 }
 
 Future<void> stopVm(String vmName) async {
-  var shell = Shell();
+  var shell = Shell(throwOnError: false);
   await shell.run('lume stop $vmName');
 }
 
@@ -105,36 +108,69 @@ Future<void> waitForVmReady(
   throw Exception('VM boot timeout: VM did not respond.');
 }
 
+const _sshKeyPath = '/tmp/openci-ssh-key';
+
+final _ipPattern = RegExp(r'\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b');
+
+Future<String> getVmIp(String vmName) async {
+  final result = await Process.run('lume', [
+    'ssh', vmName, '--user', sshUser, '--password', sshPassword,
+    '--timeout', '10', '--', 'ipconfig', 'getifaddr', 'en0',
+  ]);
+  final output = result.stdout.toString();
+  final lines = LineSplitter.split(output).toList();
+  for (final line in lines.reversed) {
+    final match = _ipPattern.firstMatch(line.trim());
+    if (match != null && !line.contains('DEBUG') && !line.contains('INFO')) {
+      final ip = match.group(1)!;
+      _log.info('VM IP: $ip');
+      return ip;
+    }
+  }
+  throw Exception('Failed to get VM IP for $vmName: $output');
+}
+
+Future<void> setupDirectSsh(String vmName) async {
+  final keyFile = File(_sshKeyPath);
+  if (!keyFile.existsSync()) {
+    await Process.run(
+      'ssh-keygen', ['-t', 'ed25519', '-f', _sshKeyPath, '-N', '', '-q'],
+    );
+    _log.info('Generated SSH key at $_sshKeyPath');
+  }
+  final pubKey = File('$_sshKeyPath.pub').readAsStringSync().trim();
+  final shell = Shell(throwOnError: false);
+  await shell.run(
+    'lume ssh $vmName --user $sshUser --password $sshPassword --timeout 10 '
+    '-- mkdir -p ~/.ssh '
+    '&& echo "$pubKey" >> ~/.ssh/authorized_keys '
+    '&& chmod 700 ~/.ssh '
+    '&& chmod 600 ~/.ssh/authorized_keys',
+  );
+  _log.info('SSH key installed on VM');
+}
+
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     _log.info('Cleaning orphaned VMs');
     final shell = Shell(throwOnError: false, verbose: false);
-    final result = await shell.run('lume ls');
-    if (result.isEmpty) return;
-
-    final output = result.first.stdout.toString();
-    final lines = LineSplitter.split(output);
     final prefix = 'openci-vm-$workerId-';
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) continue;
-      if (line.startsWith('Source') && line.contains('Name')) continue;
+    final lsResult = await Process.run('ls', ['-1', '${Platform.environment['HOME']}/.lume/']);
+    if (lsResult.exitCode != 0) return;
 
-      final parts = line.split(RegExp(r'\s+'));
+    final vmNames = LineSplitter.split(lsResult.stdout.toString())
+        .where((name) => name.startsWith(prefix))
+        .toList();
 
-      final vmNameIndex = parts.indexWhere((p) => p.startsWith(prefix));
-      if (vmNameIndex == -1) continue;
-
-      final vmName = parts[vmNameIndex];
-      final state = parts.last;
-
-      if (state == 'running') continue;
-
-      _log.info('Deleting orphaned VM: $vmName (State: $state)');
+    for (final vmName in vmNames) {
+      _log.info('Deleting orphaned VM: $vmName');
+      await shell.run('lume stop $vmName');
       await shell.run('lume delete $vmName --force');
     }
-    _log.info('Successfully deleted orphaned VMs');
+    if (vmNames.isNotEmpty) {
+      _log.info('Deleted ${vmNames.length} orphaned VM(s)');
+    }
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
@@ -149,34 +185,19 @@ Future<void> pruneStaleVms(
 }) async {
   try {
     final shell = Shell(throwOnError: false, verbose: false);
-    final result = await shell.run('lume list');
-    if (result.isEmpty) return;
-
-    final output = result.first.stdout.toString();
-    final lines = LineSplitter.split(output);
     final prefix = 'openci-vm-$workerId-';
+    final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) continue;
-      if (line.startsWith('Source') && line.contains('Name')) continue;
+    final lsResult = await Process.run('ls', ['-1', '${Platform.environment['HOME']}/.lume/']);
+    if (lsResult.exitCode != 0) return;
 
-      final parts = line.split(RegExp(r'\s+'));
+    final vmNames = LineSplitter.split(lsResult.stdout.toString())
+        .where((name) => name.startsWith(prefix) && name != currentVm)
+        .toList();
 
-      final vmNameIndex = parts.indexWhere((p) => p.startsWith(prefix));
-      if (vmNameIndex == -1) continue;
-
-      final vmName = parts[vmNameIndex];
-      final state = parts.last;
-
-      if (state == 'running') continue;
-
-      await logInfo(
-        firestore,
-        buildJobId,
-        runId,
-        'Deleting stale VM: $vmName (State: $state)',
-      );
+    for (final vmName in vmNames) {
+      await logInfo(firestore, buildJobId, runId, 'Deleting stale VM: $vmName');
+      await shell.run('lume stop $vmName');
       await shell.run('lume delete $vmName --force');
     }
   } catch (e) {
@@ -236,25 +257,32 @@ Future<void> writeFileToVm(
   }
 }
 
+final _gitProgressPattern = RegExp(
+  r'^(remote: )?(Counting|Compressing|Receiving|Resolving|Updating) objects?:',
+);
+
+bool _isNoisyLine(String line) {
+  if (_gitProgressPattern.hasMatch(line)) return true;
+  if (line.startsWith('remote: Enumerating objects:')) return true;
+  if (line.contains('NIO SSH connection failed')) return true;
+  return false;
+}
+
 Future<void> execCommandStreaming(
   List<String> command,
-  String vmName,
+  String vmIp,
   Firestore firestore,
   String buildJobId,
   String runId,
   String token, {
   required Future<bool> Function() isCancelled,
 }) async {
-  final process = await Process.start('lume', [
-    'ssh',
-    vmName,
-    '--user',
-    sshUser,
-    '--password',
-    sshPassword,
-    '--timeout',
-    '0',
-    '--',
+  final process = await Process.start('ssh', [
+    '-o', 'StrictHostKeyChecking=no',
+    '-o', 'UserKnownHostsFile=/dev/null',
+    '-o', 'LogLevel=ERROR',
+    '-i', _sshKeyPath,
+    '$sshUser@$vmIp',
     ...command,
   ]);
 
@@ -265,8 +293,9 @@ Future<void> execCommandStreaming(
     final masked = data.replaceAll(token, '***').trim();
     if (masked.isNotEmpty) {
       for (final line in LineSplitter.split(masked)) {
-        if (line.trim().isNotEmpty) {
-          logInfo(firestore, buildJobId, runId, line.trim());
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty && !_isNoisyLine(trimmed)) {
+          logInfo(firestore, buildJobId, runId, trimmed);
         }
       }
     }
@@ -276,8 +305,9 @@ Future<void> execCommandStreaming(
     final masked = data.replaceAll(token, '***').trim();
     if (masked.isNotEmpty) {
       for (final line in LineSplitter.split(masked)) {
-        if (line.trim().isNotEmpty) {
-          logInfo(firestore, buildJobId, runId, line.trim());
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty && !_isNoisyLine(trimmed)) {
+          logInfo(firestore, buildJobId, runId, trimmed);
         }
       }
     }

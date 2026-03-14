@@ -27,3 +27,9 @@ jobs:
         with:
           test: "false"
           working-directory: "apps/dashboard"
+
+      - uses: open-ci-io/flutter-cd@v1
+        with:
+          platform: "web"
+          working-directory: "apps/dashboard"
+          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
