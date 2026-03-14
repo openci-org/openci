@@ -1,10 +1,7 @@
-name: Test Flutter Setup
+name: Flutter Web CI/CD
 
 on:
   push:
-    branches:
-      - develop
-  pull_request:
     branches:
       - develop
 
