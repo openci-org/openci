@@ -108,6 +108,41 @@ Future<void> waitForVmReady(
   throw Exception('VM boot timeout: VM did not respond.');
 }
 
+const _sshKeyPath = '/tmp/openci-ssh-key';
+
+Future<String> getVmIp(String vmName) async {
+  final result = await Process.run('lume', [
+    'ssh', vmName, '--user', sshUser, '--password', sshPassword,
+    '--timeout', '10', '--', 'ipconfig', 'getifaddr', 'en0',
+  ]);
+  final ip = result.stdout.toString().trim();
+  if (ip.isEmpty || result.exitCode != 0) {
+    throw Exception('Failed to get VM IP for $vmName');
+  }
+  _log.info('VM IP: $ip');
+  return ip;
+}
+
+Future<void> setupDirectSsh(String vmName) async {
+  final keyFile = File(_sshKeyPath);
+  if (!keyFile.existsSync()) {
+    await Process.run(
+      'ssh-keygen', ['-t', 'ed25519', '-f', _sshKeyPath, '-N', '', '-q'],
+    );
+    _log.info('Generated SSH key at $_sshKeyPath');
+  }
+  final pubKey = File('$_sshKeyPath.pub').readAsStringSync().trim();
+  final shell = Shell(throwOnError: false);
+  await shell.run(
+    'lume ssh $vmName --user $sshUser --password $sshPassword --timeout 10 '
+    '-- mkdir -p ~/.ssh '
+    '&& echo "$pubKey" >> ~/.ssh/authorized_keys '
+    '&& chmod 700 ~/.ssh '
+    '&& chmod 600 ~/.ssh/authorized_keys',
+  );
+  _log.info('SSH key installed on VM');
+}
+
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     _log.info('Cleaning orphaned VMs');
@@ -215,25 +250,32 @@ Future<void> writeFileToVm(
   }
 }
 
+final _gitProgressPattern = RegExp(
+  r'^(remote: )?(Counting|Compressing|Receiving|Resolving|Updating) objects?:',
+);
+
+bool _isNoisyLine(String line) {
+  if (_gitProgressPattern.hasMatch(line)) return true;
+  if (line.startsWith('remote: Enumerating objects:')) return true;
+  if (line.contains('NIO SSH connection failed')) return true;
+  return false;
+}
+
 Future<void> execCommandStreaming(
   List<String> command,
-  String vmName,
+  String vmIp,
   Firestore firestore,
   String buildJobId,
   String runId,
   String token, {
   required Future<bool> Function() isCancelled,
 }) async {
-  final process = await Process.start('lume', [
-    'ssh',
-    vmName,
-    '--user',
-    sshUser,
-    '--password',
-    sshPassword,
-    '--timeout',
-    '0',
-    '--',
+  final process = await Process.start('ssh', [
+    '-o', 'StrictHostKeyChecking=no',
+    '-o', 'UserKnownHostsFile=/dev/null',
+    '-o', 'LogLevel=ERROR',
+    '-i', _sshKeyPath,
+    '$sshUser@$vmIp',
     ...command,
   ]);
 
@@ -244,8 +286,9 @@ Future<void> execCommandStreaming(
     final masked = data.replaceAll(token, '***').trim();
     if (masked.isNotEmpty) {
       for (final line in LineSplitter.split(masked)) {
-        if (line.trim().isNotEmpty) {
-          logInfo(firestore, buildJobId, runId, line.trim());
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty && !_isNoisyLine(trimmed)) {
+          logInfo(firestore, buildJobId, runId, trimmed);
         }
       }
     }
@@ -255,8 +298,9 @@ Future<void> execCommandStreaming(
     final masked = data.replaceAll(token, '***').trim();
     if (masked.isNotEmpty) {
       for (final line in LineSplitter.split(masked)) {
-        if (line.trim().isNotEmpty) {
-          logInfo(firestore, buildJobId, runId, line.trim());
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty && !_isNoisyLine(trimmed)) {
+          logInfo(firestore, buildJobId, runId, trimmed);
         }
       }
     }

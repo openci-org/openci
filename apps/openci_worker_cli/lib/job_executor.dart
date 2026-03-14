@@ -134,6 +134,8 @@ Future<bool> processJob(
       'Waiting for VM to be ready...',
     );
     await waitForVmReady(vmName, vmStartError: () => vmStartError);
+    await setupDirectSsh(vmName);
+    final vmIp = await getVmIp(vmName);
     await logInfo(firestore, buildJobId, runId, 'VM is ready!');
 
     await logInfo(
@@ -248,7 +250,7 @@ Future<bool> processJob(
 
     await execCommandStreaming(
       ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
-      vmName,
+      vmIp,
       firestore,
       buildJobId,
       runId,
