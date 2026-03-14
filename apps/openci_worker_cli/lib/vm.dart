@@ -110,17 +110,24 @@ Future<void> waitForVmReady(
 
 const _sshKeyPath = '/tmp/openci-ssh-key';
 
+final _ipPattern = RegExp(r'\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b');
+
 Future<String> getVmIp(String vmName) async {
   final result = await Process.run('lume', [
     'ssh', vmName, '--user', sshUser, '--password', sshPassword,
     '--timeout', '10', '--', 'ipconfig', 'getifaddr', 'en0',
   ]);
-  final ip = result.stdout.toString().trim();
-  if (ip.isEmpty || result.exitCode != 0) {
-    throw Exception('Failed to get VM IP for $vmName');
+  final output = result.stdout.toString();
+  final lines = LineSplitter.split(output).toList();
+  for (final line in lines.reversed) {
+    final match = _ipPattern.firstMatch(line.trim());
+    if (match != null && !line.contains('DEBUG') && !line.contains('INFO')) {
+      final ip = match.group(1)!;
+      _log.info('VM IP: $ip');
+      return ip;
+    }
   }
-  _log.info('VM IP: $ip');
-  return ip;
+  throw Exception('Failed to get VM IP for $vmName: $output');
 }
 
 Future<void> setupDirectSsh(String vmName) async {
