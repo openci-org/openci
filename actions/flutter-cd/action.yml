@@ -42,10 +42,8 @@ runs:
         cp -r "$WORKING_DIR/build/web" "$FIREBASE_DIR/public"
 
         if ! command -v firebase &> /dev/null; then
-          echo "-- Checking your machine type..."
-          MACHINE=$(uname -s | tr '[:upper:]' '[:lower:]')
           echo "-- Downloading firebase-tools binary..."
-          curl -sL "https://firebase.tools/bin/$MACHINE/latest" -o ./firebase
+          curl -sL "https://firebase.tools/bin/macos/latest" -o ./firebase
           chmod +x ./firebase
           FIREBASE_CMD="./firebase"
         else
