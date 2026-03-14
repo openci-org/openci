@@ -51,10 +51,10 @@ Future<void> pollForJobs({
         projectId,
         serviceAccountPath,
         workerId,
+        onJobFound: stopSpinner,
       );
 
       if (jobFound) {
-        stopSpinner();
         _log.info('Job completed, checking for next...');
       } else {
         if (spinnerTimer == null) startSpinner();
