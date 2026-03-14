@@ -282,6 +282,7 @@ Future<bool> processJob(
     });
     rethrow;
   } finally {
+    await flushRemainingLogs();
     try {
       await stopVm(vmName);
     } catch (e) {
@@ -292,6 +293,7 @@ Future<bool> processJob(
     } catch (e) {
       await logWarning(firestore, buildJobId, runId, 'Error deleting VM: $e');
     }
+    await flushRemainingLogs();
     await pruneStaleVms(firestore, buildJobId, runId, workerId: workerId);
   }
 

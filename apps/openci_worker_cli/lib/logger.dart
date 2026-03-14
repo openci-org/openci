@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_shared/firestore_paths.dart';
@@ -5,6 +7,49 @@ import 'package:openci_shared/firestore_paths.dart';
 final _log = Logger('BuildLog');
 
 enum LogLevel { info, warning, error }
+
+const _maxConcurrent = 5;
+int _activeWrites = 0;
+final _writeQueue = <Future<void> Function()>[];
+
+Future<void> _enqueue(Future<void> Function() task) async {
+  if (_activeWrites >= _maxConcurrent) {
+    final completer = Completer<void>();
+    _writeQueue.add(() async {
+      try {
+        await task();
+      } finally {
+        completer.complete();
+      }
+    });
+    return completer.future;
+  }
+
+  _activeWrites++;
+  try {
+    await task();
+  } finally {
+    _activeWrites--;
+    _drainQueue();
+  }
+}
+
+void _drainQueue() {
+  while (_writeQueue.isNotEmpty && _activeWrites < _maxConcurrent) {
+    final next = _writeQueue.removeAt(0);
+    _activeWrites++;
+    next().whenComplete(() {
+      _activeWrites--;
+      _drainQueue();
+    });
+  }
+}
+
+Future<void> flushRemainingLogs() async {
+  while (_activeWrites > 0 || _writeQueue.isNotEmpty) {
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+}
 
 Future<void> writeLogsToFirestore(
   Firestore firestore,
@@ -14,24 +59,25 @@ Future<void> writeLogsToFirestore(
   LogLevel level, {
   String? stackTrace,
 }) async {
-  try {
-    final logRef = firestore
-        .collection(buildJobsCollection)
-        .doc(buildJobId)
-        .collection('runs')
-        .doc(runId)
-        .collection('logs')
-        .doc();
-
-    await logRef.set({
-      'message': message,
-      'level': level.name,
-      'timestamp': FieldValue.serverTimestamp,
-      'stackTrace': ?stackTrace,
-    });
-  } catch (e) {
-    _log.warning('Failed to write log to Firestore: $e');
-  }
+  await _enqueue(() async {
+    try {
+      final logRef = firestore
+          .collection(buildJobsCollection)
+          .doc(buildJobId)
+          .collection('runs')
+          .doc(runId)
+          .collection('logs')
+          .doc();
+      await logRef.set({
+        'message': message,
+        'level': level.name,
+        'timestamp': DateTime.now().toIso8601String(),
+        'stackTrace': ?stackTrace,
+      });
+    } catch (e) {
+      _log.warning('Failed to write log to Firestore: $e');
+    }
+  });
 }
 
 Future<void> logInfo(
