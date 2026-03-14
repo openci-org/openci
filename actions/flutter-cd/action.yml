@@ -41,16 +41,20 @@ runs:
         rm -rf "$FIREBASE_DIR/public"
         cp -r "$WORKING_DIR/build/web" "$FIREBASE_DIR/public"
 
-        if ! command -v firebase &> /dev/null; then
-          echo "-- Installing firebase-tools via npm..."
-          npm i -g firebase-tools
+        if command -v firebase &> /dev/null; then
+          FIREBASE_CMD="firebase"
+        else
+          echo "-- Installing firebase-tools..."
+          curl -fSL "https://github.com/firebase/firebase-tools/releases/latest/download/firebase-tools-macos" -o /tmp/firebase-cli
+          chmod +x /tmp/firebase-cli
+          FIREBASE_CMD="/tmp/firebase-cli"
         fi
 
         echo "$SA_JSON" > /tmp/firebase-sa.json
         export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
         PROJECT_ID=$(echo "$SA_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['project_id'])")
         cd "$FIREBASE_DIR"
-        firebase deploy --only hosting --project "$PROJECT_ID" --non-interactive
+        $FIREBASE_CMD deploy --only hosting --project "$PROJECT_ID" --non-interactive
         rm -f /tmp/firebase-sa.json
       env:
         SA_JSON: ${{ inputs.firebase-service-account }}
