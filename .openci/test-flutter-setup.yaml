@@ -18,5 +18,6 @@ jobs:
         with:
           flutter-version: "stable"
 
-      - name: Verify Flutter
-        run: flutter --version
+      - uses: open-ci-io/flutter-ci@v1
+        with:
+          test: "false"
