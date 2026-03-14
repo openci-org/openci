@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./actions/flutter-setup
+      - uses: open-ci-io/flutter-setup@v1
         with:
-          flutter-version: "3.38.3"
+          flutter-version: "stable"
 
       - name: Verify Flutter
         run: flutter --version
