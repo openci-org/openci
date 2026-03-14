@@ -18,8 +18,10 @@ jobs:
         with:
           flutter-version: "stable"
 
-      - name: Save firebase_options.dart
-        run: echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 -D > apps/dashboard/lib/firebase_options.dart
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.FIREBASE_OPTIONS }}
+          path: "apps/dashboard/lib/firebase_options.dart"
 
       - uses: open-ci-io/flutter-ci@v1
         with:
