@@ -28,7 +28,7 @@ jobs:
           test: "false"
           working-directory: "apps/dashboard"
 
-      - uses: ./actions/flutter-cd
+      - uses: open-ci-io/flutter-cd@v1
         with:
           platform: "web"
           working-directory: "apps/dashboard"
