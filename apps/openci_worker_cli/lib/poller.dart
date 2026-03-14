@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
-import 'package:openci_worker_cli/cli_updater.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:sentry/sentry.dart';
 
@@ -47,8 +46,6 @@ Future<void> pollForJobs({
 
   while (true) {
     try {
-      await checkForCLIUpdateIfNeeded(firestore);
-
       final jobFound = await processJob(
         firestore,
         projectId,
