@@ -44,10 +44,22 @@ runs:
         if command -v firebase &> /dev/null; then
           FIREBASE_CMD="firebase"
         else
-          echo "-- Installing firebase-tools..."
-          curl -fSL "https://github.com/firebase/firebase-tools/releases/latest/download/firebase-tools-macos" -o /tmp/firebase-cli
-          chmod +x /tmp/firebase-cli
-          FIREBASE_CMD="/tmp/firebase-cli"
+          if ! command -v npm &> /dev/null; then
+            echo "-- Installing Node.js..."
+            NODE_VERSION="v20.18.3"
+            ARCH=$(uname -m)
+            if [ "$ARCH" = "arm64" ]; then
+              NODE_ARCH="arm64"
+            else
+              NODE_ARCH="x64"
+            fi
+            curl -fSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz" -o /tmp/node.tar.gz
+            tar -xzf /tmp/node.tar.gz -C /tmp
+            export PATH="/tmp/node-${NODE_VERSION}-darwin-${NODE_ARCH}/bin:$PATH"
+          fi
+          echo "-- Installing firebase-tools via npm..."
+          npm i -g firebase-tools
+          FIREBASE_CMD="firebase"
         fi
 
         echo "$SA_JSON" > /tmp/firebase-sa.json
