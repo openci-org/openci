@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
@@ -28,8 +29,10 @@ Future<void> cloneVm({
   await shell.run('lume clone $baseVmName $vmName');
 }
 
-String currentVmName({required String workerId, required String buildJobId}) =>
-    'openci-vm-$workerId-$buildJobId';
+String currentVmName({required String workerId, required String buildJobId}) {
+  final shortId = buildJobId.length >= 8 ? buildJobId.substring(0, 8) : buildJobId;
+  return 'openci-vm-$workerId-$shortId';
+}
 
 Future<void> execVmCommand({
   required String vmName,
@@ -69,7 +72,7 @@ Future<void> runVm(String vmName) async {
 }
 
 Future<void> stopVm(String vmName) async {
-  var shell = Shell();
+  var shell = Shell(throwOnError: false);
   await shell.run('lume stop $vmName');
 }
 
@@ -109,32 +112,23 @@ Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     _log.info('Cleaning orphaned VMs');
     final shell = Shell(throwOnError: false, verbose: false);
-    final result = await shell.run('lume ls');
-    if (result.isEmpty) return;
-
-    final output = result.first.stdout.toString();
-    final lines = LineSplitter.split(output);
     final prefix = 'openci-vm-$workerId-';
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) continue;
-      if (line.startsWith('Source') && line.contains('Name')) continue;
+    final lsResult = await Process.run('ls', ['-1', '${Platform.environment['HOME']}/.lume/']);
+    if (lsResult.exitCode != 0) return;
 
-      final parts = line.split(RegExp(r'\s+'));
+    final vmNames = LineSplitter.split(lsResult.stdout.toString())
+        .where((name) => name.startsWith(prefix))
+        .toList();
 
-      final vmNameIndex = parts.indexWhere((p) => p.startsWith(prefix));
-      if (vmNameIndex == -1) continue;
-
-      final vmName = parts[vmNameIndex];
-      final state = parts.last;
-
-      if (state == 'running') continue;
-
-      _log.info('Deleting orphaned VM: $vmName (State: $state)');
+    for (final vmName in vmNames) {
+      _log.info('Deleting orphaned VM: $vmName');
+      await shell.run('lume stop $vmName');
       await shell.run('lume delete $vmName --force');
     }
-    _log.info('Successfully deleted orphaned VMs');
+    if (vmNames.isNotEmpty) {
+      _log.info('Deleted ${vmNames.length} orphaned VM(s)');
+    }
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
@@ -149,34 +143,19 @@ Future<void> pruneStaleVms(
 }) async {
   try {
     final shell = Shell(throwOnError: false, verbose: false);
-    final result = await shell.run('lume list');
-    if (result.isEmpty) return;
-
-    final output = result.first.stdout.toString();
-    final lines = LineSplitter.split(output);
     final prefix = 'openci-vm-$workerId-';
+    final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) continue;
-      if (line.startsWith('Source') && line.contains('Name')) continue;
+    final lsResult = await Process.run('ls', ['-1', '${Platform.environment['HOME']}/.lume/']);
+    if (lsResult.exitCode != 0) return;
 
-      final parts = line.split(RegExp(r'\s+'));
+    final vmNames = LineSplitter.split(lsResult.stdout.toString())
+        .where((name) => name.startsWith(prefix) && name != currentVm)
+        .toList();
 
-      final vmNameIndex = parts.indexWhere((p) => p.startsWith(prefix));
-      if (vmNameIndex == -1) continue;
-
-      final vmName = parts[vmNameIndex];
-      final state = parts.last;
-
-      if (state == 'running') continue;
-
-      await logInfo(
-        firestore,
-        buildJobId,
-        runId,
-        'Deleting stale VM: $vmName (State: $state)',
-      );
+    for (final vmName in vmNames) {
+      await logInfo(firestore, buildJobId, runId, 'Deleting stale VM: $vmName');
+      await shell.run('lume stop $vmName');
       await shell.run('lume delete $vmName --force');
     }
   } catch (e) {
