@@ -15,6 +15,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./actions/flutter-setup
         with:
-          flutter-version: 'stable'
+          flutter-version: "stable"
       - name: Verify Flutter
         run: flutter --version
