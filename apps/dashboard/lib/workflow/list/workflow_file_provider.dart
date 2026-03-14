@@ -35,7 +35,7 @@ Future<List<WorkflowFile>> workflowFiles(Ref ref) async {
   final result = await functions.httpsCallable('listWorkflowFiles').call({
     'teamId': team.id,
     'repository': selectedRepo,
-    if (selectedBranch != null) 'branch': selectedBranch,
+    'branch': ?selectedBranch,
   });
 
   final data = result.data as Map<String, dynamic>;

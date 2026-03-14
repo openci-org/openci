@@ -147,7 +147,7 @@ class SearchActionsSheet extends HookConsumerWidget {
                     return _ActionCard(
                       action: action,
                       onTap: () async {
-                        showDialog(
+                        await showDialog(
                           context: context,
                           barrierDismissible: false,
                           builder: (_) => const Center(

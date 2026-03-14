@@ -22,7 +22,7 @@ class LocaleNotifier extends AsyncNotifier<String?> {
       await LocaleSettings.useDeviceLocale();
     } else {
       await prefs.setString(_localeKey, localeTag);
-      LocaleSettings.setLocaleRaw(localeTag);
+      await LocaleSettings.setLocaleRaw(localeTag);
     }
     state = AsyncValue.data(localeTag);
   }

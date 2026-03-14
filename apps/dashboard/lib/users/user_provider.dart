@@ -114,7 +114,6 @@ class User extends _$User {
   }
 
   Future<void> updateSelectedBranch(String branch) async {
-    print('updateSelectedBranch: $branch');
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
     final currentUserId = auth.requireValue?.uid;
