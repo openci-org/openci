@@ -20,7 +20,7 @@ jobs:
 
       - uses: open-ci-io/save-secret-file@v1
         with:
-          secret: ${{ secrets.FIREBASE_OPTIONS }}
+          secret: ${{ secrets.FIREBASE_OPTIONS_DART }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
       - uses: open-ci-io/flutter-ci@v1
