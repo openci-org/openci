@@ -47,6 +47,7 @@ class TranslationsEs with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsSettingsEs settings = _TranslationsSettingsEs._(_root);
 	@override late final _TranslationsNotificationsEs notifications = _TranslationsNotificationsEs._(_root);
 	@override late final _TranslationsTeamEs team = _TranslationsTeamEs._(_root);
+	@override late final _TranslationsGithubEs github = _TranslationsGithubEs._(_root);
 	@override late final _TranslationsSubscriptionEs subscription = _TranslationsSubscriptionEs._(_root);
 }
 
@@ -254,6 +255,18 @@ class _TranslationsTeamEs implements TranslationsTeamEn {
 	@override String get inviteEmail => 'Correo electrónico';
 	@override String get enterEmail => 'Por favor, ingresa un correo electrónico';
 	@override String get invitedSuccess => 'Miembro del equipo invitado exitosamente';
+}
+
+// Path: github
+class _TranslationsGithubEs implements TranslationsGithubEn {
+	_TranslationsGithubEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get connectTitle => 'Conectar GitHub';
+	@override String get connectDescription => 'Conecta tu cuenta de GitHub para\nseleccionar repositorios automáticamente.';
+	@override String get connectButton => 'Conectar con GitHub';
 }
 
 // Path: subscription
@@ -598,6 +611,9 @@ extension on TranslationsEs {
 			'team.inviteEmail' => 'Correo electrónico',
 			'team.enterEmail' => 'Por favor, ingresa un correo electrónico',
 			'team.invitedSuccess' => 'Miembro del equipo invitado exitosamente',
+			'github.connectTitle' => 'Conectar GitHub',
+			'github.connectDescription' => 'Conecta tu cuenta de GitHub para\nseleccionar repositorios automáticamente.',
+			'github.connectButton' => 'Conectar con GitHub',
 			'subscription.title' => 'Suscripción',
 			'subscription.noOfferings' => 'No hay ofertas disponibles',
 			'subscription.noPackages' => 'No hay paquetes disponibles',

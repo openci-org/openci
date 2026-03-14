@@ -50,6 +50,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final TranslationsSettingsEn settings = TranslationsSettingsEn._(_root);
 	late final TranslationsNotificationsEn notifications = TranslationsNotificationsEn._(_root);
 	late final TranslationsTeamEn team = TranslationsTeamEn._(_root);
+	late final TranslationsGithubEn github = TranslationsGithubEn._(_root);
 	late final TranslationsSubscriptionEn subscription = TranslationsSubscriptionEn._(_root);
 }
 
@@ -483,6 +484,24 @@ class TranslationsTeamEn {
 
 	/// en: 'Team member invited successfully'
 	String get invitedSuccess => 'Team member invited successfully';
+}
+
+// Path: github
+class TranslationsGithubEn {
+	TranslationsGithubEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Connect GitHub'
+	String get connectTitle => 'Connect GitHub';
+
+	/// en: 'Connect your GitHub account to select repositories automatically.'
+	String get connectDescription => 'Connect your GitHub account to\nselect repositories automatically.';
+
+	/// en: 'Connect with GitHub'
+	String get connectButton => 'Connect with GitHub';
 }
 
 // Path: subscription
@@ -1015,6 +1034,9 @@ extension on Translations {
 			'team.inviteEmail' => 'Email',
 			'team.enterEmail' => 'Please enter an email',
 			'team.invitedSuccess' => 'Team member invited successfully',
+			'github.connectTitle' => 'Connect GitHub',
+			'github.connectDescription' => 'Connect your GitHub account to\nselect repositories automatically.',
+			'github.connectButton' => 'Connect with GitHub',
 			'subscription.title' => 'Subscription',
 			'subscription.noOfferings' => 'No offerings available',
 			'subscription.noPackages' => 'No packages available',

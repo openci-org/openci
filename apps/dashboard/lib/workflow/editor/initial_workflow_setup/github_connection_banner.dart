@@ -1,3 +1,4 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -12,6 +13,7 @@ class GitHubConnectionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final githubT = t.github;
 
     return Container(
       width: double.infinity,
@@ -41,14 +43,14 @@ class GitHubConnectionBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Connect GitHub',
+            githubT.connectTitle,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Connect your GitHub account to\nselect repositories automatically.',
+            githubT.connectDescription,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
@@ -58,7 +60,7 @@ class GitHubConnectionBanner extends StatelessWidget {
           FilledButton.icon(
             onPressed: onConnectPressed,
             icon: const Icon(FontAwesomeIcons.github, size: 16),
-            label: const Text('Connect with GitHub'),
+            label: Text(githubT.connectButton),
             style: FilledButton.styleFrom(
               minimumSize: const Size(double.infinity, 44),
               shape: RoundedRectangleBorder(

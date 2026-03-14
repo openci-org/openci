@@ -61,6 +61,8 @@ class User extends _$User {
     }
     await firestore.collection(usersCollection).doc(currentUserId).update({
       'selectedTeamId': teamId,
+      'selectedRepository': null,
+      'selectedBranch': null,
     });
   }
 
