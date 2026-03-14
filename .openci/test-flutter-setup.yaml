@@ -1,0 +1,20 @@
+name: Test Flutter Setup
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  test-setup:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./actions/flutter-setup
+        with:
+          flutter-version: 'stable'
+      - name: Verify Flutter
+        run: flutter --version
