@@ -234,6 +234,7 @@ Future<bool> processJob(
     final actScript = [
       'set -e',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
+      'if ! command -v node &> /dev/null; then brew install node; fi',
       'cd $repo',
       'act -W .openci/$workflowFileName '
           '-P macos-latest=-self-hosted '
