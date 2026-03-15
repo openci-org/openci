@@ -6,9 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "oxlint",
-    "format": "oxfmt --write src/",
-    "format:check": "oxfmt --check src/",
+    "lint": "vp lint",
+    "format": "vp fmt --write src/",
+    "format:check": "vp fmt --check src/",
     "typegen": "sanity schema extract --path=src/sanity/extract.json && sanity typegen generate && rm ./src/sanity/extract.json"
   },
   "dependencies": {
@@ -38,11 +38,17 @@
     "@types/node": "^25.0.3",
     "@types/react": "^19",
     "@types/react-dom": "^19.2.3",
-    "oxfmt": "^0.34.0",
-    "oxlint": "^1.49.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
-    "wrangler": "^4.54.0"
+    "wrangler": "^4.54.0",
+    "vite-plus": "latest"
+  },
+  "packageManager": "pnpm@10.32.1",
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+    }
   }
 }

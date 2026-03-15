@@ -30,7 +30,7 @@
     },
   ],
   "settings": {
-    "npm.packageManager": "pnpm",
+    "npm.packageManager": "npm",
     "terminal.integrated.scrollback": 10000,
     "cSpell.words": [
       "bento",
@@ -68,8 +68,10 @@
     "editor.codeActionsOnSave": {
       "source.fixAll": "always",
       "source.organizeImports": "explicit",
+      "source.fixAll.oxc": "explicit",
     },
     "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
     "[jsonc]": {
       "editor.defaultFormatter": "oxc.oxc-vscode",
     },
@@ -121,9 +123,9 @@
     "recommendations": [
       "dart-code.dart-code",
       "dart-code.flutter",
-      "oxc.oxc-vscode",
       "bradlc.vscode-tailwindcss",
       "streetsidesoftware.code-spell-checker",
+      "VoidZero.vite-plus-extension-pack",
     ],
   },
   "tasks": {
