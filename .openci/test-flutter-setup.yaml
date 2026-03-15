@@ -32,5 +32,6 @@ jobs:
         with:
           platform: "web"
           working-directory: "apps/dashboard"
+          build-args: "--dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }}"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           preview: ${{ github.event_name == 'pull_request' }}
