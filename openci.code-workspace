@@ -5,6 +5,10 @@
       "path": "apps/dashboard",
     },
     {
+      "name": "./openci",
+      "path": ".openci",
+    },
+    {
       "name": "openci_worker_cli",
       "path": "apps/openci_worker_cli",
     },

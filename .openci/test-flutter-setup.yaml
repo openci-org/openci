@@ -1,4 +1,4 @@
-name: Flutter Web CI/CD
+name: Flutter for Web CI/CD
 
 on:
   push:
