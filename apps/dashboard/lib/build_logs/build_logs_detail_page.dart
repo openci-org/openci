@@ -9,6 +9,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+enum _ActionState { idle, loading, done }
+
 class BuildLogsDetailPage extends HookConsumerWidget {
   const BuildLogsDetailPage({super.key, required this.buildJob});
   final BuildJob buildJob;
@@ -19,7 +21,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       workflowNameProvider(buildJob.workflowId),
     );
     final detailT = t.buildLogs.detail;
-    final retryDone = useState(false);
+    final retryState = useState(_ActionState.idle);
 
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
@@ -128,22 +130,23 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               tooltip: t.common.cancel,
             ),
           IconButton(
-            onPressed: retryDone.value
+            onPressed: retryState.value != _ActionState.idle
                 ? null
                 : () async {
+                    retryState.value = _ActionState.loading;
                     try {
-                      context.showSnackBarMessage(detailT.retrying);
                       await ref
                           .read(buildJobsProvider.notifier)
                           .retryBuildJob(buildJob.id);
-                      retryDone.value = true;
+                      retryState.value = _ActionState.done;
                       Future.delayed(const Duration(milliseconds: 1500), () {
-                        if (context.mounted) retryDone.value = false;
+                        if (context.mounted) retryState.value = _ActionState.idle;
                       });
                       if (context.mounted) {
                         context.showSnackBarMessage(detailT.retrySuccess);
                       }
                     } catch (e) {
+                      retryState.value = _ActionState.idle;
                       if (context.mounted) {
                         context.showSnackBarMessage(
                           detailT.failedToRetry(error: e.toString()),
@@ -153,19 +156,29 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   },
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              child: retryDone.value
-                  ? Icon(
-                      Icons.check,
-                      key: const ValueKey('retry-check'),
-                      size: 20,
-                      color: Colors.green[300],
-                    )
-                  : Icon(
-                      Icons.replay,
-                      key: const ValueKey('retry-icon'),
-                      size: 20,
+              child: switch (retryState.value) {
+                _ActionState.loading => SizedBox(
+                    key: const ValueKey('retry-loading'),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
+                  ),
+                _ActionState.done => Icon(
+                    Icons.check,
+                    key: const ValueKey('retry-check'),
+                    size: 20,
+                    color: Colors.green[300],
+                  ),
+                _ActionState.idle => Icon(
+                    Icons.replay,
+                    key: const ValueKey('retry-icon'),
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+              },
             ),
             tooltip: 'Retry',
           ),
@@ -357,13 +370,17 @@ class _DetailLogsView extends HookConsumerWidget {
     final scrollController = useScrollController();
     final showScrollToBottom = useState(false);
     final copyDone = useState(false);
+    final isNearBottom = useRef(true);
+    final prevLogCount = useRef(0);
 
     useEffect(() {
       void listener() {
         if (!scrollController.hasClients) return;
         final maxScroll = scrollController.position.maxScrollExtent;
         final currentScroll = scrollController.position.pixels;
-        showScrollToBottom.value = (maxScroll - currentScroll) > 200;
+        final nearBottom = (maxScroll - currentScroll) <= 200;
+        showScrollToBottom.value = !nearBottom;
+        isNearBottom.value = nearBottom;
       }
 
       scrollController.addListener(listener);
@@ -372,6 +389,22 @@ class _DetailLogsView extends HookConsumerWidget {
 
     return logsAsync.when(
       data: (logs) {
+        if (logs.length != prevLogCount.value) {
+          final wasNearBottom = isNearBottom.value;
+          prevLogCount.value = logs.length;
+          if (wasNearBottom && scrollController.hasClients) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (scrollController.hasClients) {
+                scrollController.animateTo(
+                  scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          }
+        }
+
         if (logs.isEmpty) {
           return Center(
             child: Row(
