@@ -133,7 +133,9 @@
     "enterSecretName": "Por favor, ingresa un nombre de secreto",
     "enterSecretValue": "Por favor, ingresa un valor de secreto",
     "addedSuccess": "Secreto agregado exitosamente",
-    "updatedSuccess": "Secreto actualizado exitosamente"
+    "updatedSuccess": "Secreto actualizado exitosamente",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.",
+    "deletedSuccess": "Secreto eliminado exitosamente"
   },
   "envVars": {
     "title": "Variables de entorno",

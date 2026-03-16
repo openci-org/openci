@@ -1,5 +1,6 @@
 export { cancelBuildJob } from "./src/cancel-build-job";
 export { createSecretV1 } from "./src/create-secret";
+export { deleteSecretV1 } from "./src/delete-secret";
 export { generateCertificateKeyV1 } from "./src/generate-certificate-key";
 export { createWorkflowFile } from "./src/github/create-workflow-file";
 export { githubApp } from "./src/github/github-app";

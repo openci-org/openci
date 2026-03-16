@@ -254,6 +254,12 @@ class TranslationsSecretsEn {
 
 	/// en: 'Secret updated successfully'
 	String get updatedSuccess => 'Secret updated successfully';
+
+	/// en: 'Are you sure you want to delete this secret? This action cannot be undone.'
+	String get deleteConfirm => 'Are you sure you want to delete this secret? This action cannot be undone.';
+
+	/// en: 'Secret deleted successfully'
+	String get deletedSuccess => 'Secret deleted successfully';
 }
 
 // Path: envVars
@@ -964,6 +970,8 @@ extension on Translations {
 			'secrets.enterSecretValue' => 'Please enter a secret value',
 			'secrets.addedSuccess' => 'Secret added successfully',
 			'secrets.updatedSuccess' => 'Secret updated successfully',
+			'secrets.deleteConfirm' => 'Are you sure you want to delete this secret? This action cannot be undone.',
+			'secrets.deletedSuccess' => 'Secret deleted successfully',
 			'envVars.title' => 'Environment Variables',
 			'envVars.noEnvVars' => 'No environment variables found',
 			'envVars.noCustomEnvVars' => 'No custom environment variables',

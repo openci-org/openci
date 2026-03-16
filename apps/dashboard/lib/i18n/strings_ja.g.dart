@@ -154,6 +154,8 @@ class _TranslationsSecretsJa implements TranslationsSecretsEn {
 	@override String get enterSecretValue => 'シークレット値を入力してください';
 	@override String get addedSuccess => 'シークレットが追加されました';
 	@override String get updatedSuccess => 'シークレットが更新されました';
+	@override String get deleteConfirm => 'このシークレットを削除しますか？この操作は元に戻せません。';
+	@override String get deletedSuccess => 'シークレットが削除されました';
 }
 
 // Path: envVars
@@ -541,6 +543,8 @@ extension on TranslationsJa {
 			'secrets.enterSecretValue' => 'シークレット値を入力してください',
 			'secrets.addedSuccess' => 'シークレットが追加されました',
 			'secrets.updatedSuccess' => 'シークレットが更新されました',
+			'secrets.deleteConfirm' => 'このシークレットを削除しますか？この操作は元に戻せません。',
+			'secrets.deletedSuccess' => 'シークレットが削除されました',
 			'envVars.title' => '環境変数',
 			'envVars.noEnvVars' => '環境変数が見つかりません',
 			'envVars.noCustomEnvVars' => 'カスタム環境変数がありません',

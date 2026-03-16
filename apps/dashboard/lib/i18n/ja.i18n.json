@@ -133,7 +133,9 @@
     "enterSecretName": "シークレット名を入力してください",
     "enterSecretValue": "シークレット値を入力してください",
     "addedSuccess": "シークレットが追加されました",
-    "updatedSuccess": "シークレットが更新されました"
+    "updatedSuccess": "シークレットが更新されました",
+    "deleteConfirm": "このシークレットを削除しますか？この操作は元に戻せません。",
+    "deletedSuccess": "シークレットが削除されました"
   },
   "envVars": {
     "title": "環境変数",

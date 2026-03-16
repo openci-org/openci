@@ -81,17 +81,66 @@ class SecretManagerPage extends HookConsumerWidget {
                   child: Card(
                     child: ListTile(
                       title: Text(secret.name),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            showDragHandle: true,
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (context) =>
-                                _EditSecretBottomSheet(secret: secret),
-                          );
-                        },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (context) =>
+                                    _EditSecretBottomSheet(secret: secret),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text(t.common.delete),
+                                  content: Text(secretsT.deleteConfirm),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child: Text(t.common.cancel),
+                                    ),
+                                    FilledButton(
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            Theme.of(context).colorScheme.error,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(true),
+                                      child: Text(t.common.delete),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed != true || !context.mounted) return;
+                              try {
+                                await ref
+                                    .read(secretManagerProvider.notifier)
+                                    .deleteSecret(documentId: secret.id);
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage(
+                                  secretsT.deletedSuccess,
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage('$e');
+                              }
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),

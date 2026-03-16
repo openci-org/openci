@@ -55,6 +55,15 @@ class SecretManager extends _$SecretManager {
     });
   }
 
+  Future<void> deleteSecret({required String documentId}) async {
+    final functions = ref.read(functionsProvider);
+    final teamId = ref.read(teamStateProvider).requireValue.id;
+    await functions.httpsCallable(deleteSecretCallableFunctionPath).call({
+      'documentId': documentId,
+      'teamId': teamId,
+    });
+  }
+
   Future<void> generateCertificateKey() async {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).requireValue.id;
