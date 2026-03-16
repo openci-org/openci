@@ -113,21 +113,42 @@ const _sshKeyPath = '/tmp/openci-ssh-key';
 final _ipPattern = RegExp(r'\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b');
 
 Future<String> getVmIp(String vmName) async {
-  final result = await Process.run('lume', [
-    'ssh', vmName, '--user', sshUser, '--password', sshPassword,
-    '--timeout', '10', '--', 'ipconfig', 'getifaddr', 'en0',
-  ]);
-  final output = result.stdout.toString();
-  final lines = LineSplitter.split(output).toList();
-  for (final line in lines.reversed) {
-    final match = _ipPattern.firstMatch(line.trim());
-    if (match != null && !line.contains('DEBUG') && !line.contains('INFO')) {
-      final ip = match.group(1)!;
-      _log.info('VM IP: $ip');
-      return ip;
+  const maxRetries = 5;
+  const retryDelay = Duration(seconds: 2);
+  for (var attempt = 1; attempt <= maxRetries; attempt++) {
+    final result = await Process.run('lume', [
+      'ssh', vmName, '--user', sshUser, '--password', sshPassword,
+      '--timeout', '10', '--', 'ipconfig', 'getifaddr', 'en0',
+    ]);
+    final output = result.stdout.toString().trim();
+    final stderr = result.stderr.toString().trim();
+    if (output.isNotEmpty) {
+      final lines = LineSplitter.split(output).toList();
+      for (final line in lines.reversed) {
+        final match = _ipPattern.firstMatch(line.trim());
+        if (match != null &&
+            !line.contains('DEBUG') &&
+            !line.contains('INFO')) {
+          final ip = match.group(1)!;
+          _log.info('VM IP: $ip');
+          return ip;
+        }
+      }
+    }
+    if (attempt < maxRetries) {
+      _log.info(
+        'getVmIp attempt $attempt/$maxRetries failed '
+        '(stdout: "$output", stderr: "$stderr"). Retrying...',
+      );
+      await Future<void>.delayed(retryDelay);
+    } else {
+      throw Exception(
+        'Failed to get VM IP for $vmName after $maxRetries attempts: '
+        'stdout="$output", stderr="$stderr"',
+      );
     }
   }
-  throw Exception('Failed to get VM IP for $vmName: $output');
+  throw StateError('Unreachable');
 }
 
 Future<void> setupDirectSsh(String vmName) async {

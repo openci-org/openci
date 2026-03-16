@@ -19,6 +19,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       workflowNameProvider(buildJob.workflowId),
     );
     final detailT = t.buildLogs.detail;
+    final retryDone = useState(false);
 
     final statusColor = switch (buildJob.status) {
       'success' => Colors.green,
@@ -127,27 +128,44 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               tooltip: t.common.cancel,
             ),
           IconButton(
-            onPressed: () async {
-              try {
-                context.showSnackBarMessage(detailT.retrying);
-                await ref
-                    .read(buildJobsProvider.notifier)
-                    .retryBuildJob(buildJob.id);
-                if (context.mounted) {
-                  context.showSnackBarMessage(detailT.retrySuccess);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  context.showSnackBarMessage(
-                    detailT.failedToRetry(error: e.toString()),
-                  );
-                }
-              }
-            },
-            icon: Icon(
-              Icons.replay,
-              size: 20,
-              color: Theme.of(context).colorScheme.onPrimary,
+            onPressed: retryDone.value
+                ? null
+                : () async {
+                    try {
+                      context.showSnackBarMessage(detailT.retrying);
+                      await ref
+                          .read(buildJobsProvider.notifier)
+                          .retryBuildJob(buildJob.id);
+                      retryDone.value = true;
+                      Future.delayed(const Duration(milliseconds: 1500), () {
+                        if (context.mounted) retryDone.value = false;
+                      });
+                      if (context.mounted) {
+                        context.showSnackBarMessage(detailT.retrySuccess);
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        context.showSnackBarMessage(
+                          detailT.failedToRetry(error: e.toString()),
+                        );
+                      }
+                    }
+                  },
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: retryDone.value
+                  ? Icon(
+                      Icons.check,
+                      key: const ValueKey('retry-check'),
+                      size: 20,
+                      color: Colors.green[300],
+                    )
+                  : Icon(
+                      Icons.replay,
+                      key: const ValueKey('retry-icon'),
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
             ),
             tooltip: 'Retry',
           ),
@@ -323,7 +341,7 @@ class _DetailGitChip extends StatelessWidget {
   }
 }
 
-class _DetailLogsView extends ConsumerWidget {
+class _DetailLogsView extends HookConsumerWidget {
   const _DetailLogsView({
     required this.buildJobId,
     required this.runId,
@@ -336,6 +354,21 @@ class _DetailLogsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final logsAsync = ref.watch(buildLogsProvider(buildJobId, runId));
     final detailT = t.buildLogs.detail;
+    final scrollController = useScrollController();
+    final showScrollToBottom = useState(false);
+    final copyDone = useState(false);
+
+    useEffect(() {
+      void listener() {
+        if (!scrollController.hasClients) return;
+        final maxScroll = scrollController.position.maxScrollExtent;
+        final currentScroll = scrollController.position.pixels;
+        showScrollToBottom.value = (maxScroll - currentScroll) > 200;
+      }
+
+      scrollController.addListener(listener);
+      return () => scrollController.removeListener(listener);
+    }, [scrollController]);
 
     return logsAsync.when(
       data: (logs) {
@@ -359,70 +392,118 @@ class _DetailLogsView extends ConsumerWidget {
           );
         }
 
-        return Column(
+        return Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.06),
+            Column(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E1E),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.06),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.terminal,
+                        size: 16,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        detailT.logEntries(count: logs.length.toString()),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: copyDone.value
+                            ? null
+                            : () {
+                                final allLogs =
+                                    logs.map((l) => l.message).join('\n');
+                                Clipboard.setData(
+                                    ClipboardData(text: allLogs));
+                                copyDone.value = true;
+                                Future.delayed(
+                                    const Duration(milliseconds: 1500), () {
+                                  if (context.mounted) {
+                                    copyDone.value = false;
+                                  }
+                                });
+                                if (context.mounted) {
+                                  context
+                                      .showSnackBarMessage(detailT.logsCopied);
+                                }
+                              },
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: copyDone.value
+                              ? Icon(
+                                  Icons.check,
+                                  key: const ValueKey('copy-check'),
+                                  size: 18,
+                                  color: Colors.green[300],
+                                )
+                              : Icon(
+                                  Icons.copy_all,
+                                  key: const ValueKey('copy-icon'),
+                                  size: 18,
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                ),
+                        ),
+                        tooltip: detailT.copyAll,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.terminal,
-                    size: 16,
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    detailT.logEntries(count: logs.length.toString()),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.4),
-                      fontFamily: 'monospace',
+                Expanded(
+                  child: Scrollbar(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        final log = logs[index];
+                        return _DetailLogLine(
+                            log: log, lineNumber: index + 1);
+                      },
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () {
-                      final allLogs = logs.map((l) => l.message).join('\n');
-                      Clipboard.setData(ClipboardData(text: allLogs));
-                      if (context.mounted) {
-                        context.showSnackBarMessage(detailT.logsCopied);
-                      }
-                    },
-                    icon: Icon(
-                      Icons.copy_all,
-                      size: 18,
-                      color: Colors.white.withValues(alpha: 0.4),
-                    ),
-                    tooltip: detailT.copyAll,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Expanded(
-              child: Scrollbar(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: logs.length,
-                  itemBuilder: (context, index) {
-                    final log = logs[index];
-                    return _DetailLogLine(log: log, lineNumber: index + 1);
+            if (showScrollToBottom.value)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton.small(
+                  onPressed: () {
+                    scrollController.animateTo(
+                      scrollController.position.maxScrollExtent,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
                   },
+                  backgroundColor: const Color(0xFF2A2A2A),
+                  foregroundColor: Colors.white.withValues(alpha: 0.8),
+                  elevation: 4,
+                  child: const Icon(Icons.keyboard_double_arrow_down),
                 ),
               ),
-            ),
           ],
         );
       },
