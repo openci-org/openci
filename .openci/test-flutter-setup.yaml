@@ -1,37 +1,37 @@
-name: Flutter Web CI/CD
+# name: Flutter Web CI/CD
 
-on:
-  push:
-    branches:
-      - develop
-  pull_request:
-    branches:
-      - develop
+# on:
+#   push:
+#     branches:
+#       - develop
+#   pull_request:
+#     branches:
+#       - develop
 
-jobs:
-  test-setup:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
+# jobs:
+#   test-setup:
+#     runs-on: macos-latest
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - uses: open-ci-io/flutter-setup@v1
-        with:
-          flutter-version: "stable"
+#       - uses: open-ci-io/flutter-setup@v1
+#         with:
+#           flutter-version: "stable"
 
-      - uses: open-ci-io/save-secret-file@v1
-        with:
-          secret: ${{ secrets.FIREBASE_OPTIONS }}
-          path: "apps/dashboard/lib/firebase_options.dart"
+#       - uses: open-ci-io/save-secret-file@v1
+#         with:
+#           secret: ${{ secrets.FIREBASE_OPTIONS }}
+#           path: "apps/dashboard/lib/firebase_options.dart"
 
-      - uses: open-ci-io/flutter-ci@v1
-        with:
-          test: "false"
-          working-directory: "apps/dashboard"
+#       - uses: open-ci-io/flutter-ci@v1
+#         with:
+#           test: "false"
+#           working-directory: "apps/dashboard"
 
-      - uses: open-ci-io/flutter-cd@v1
-        with:
-          platform: "web"
-          working-directory: "apps/dashboard"
-          build-args: "--dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }}"
-          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          preview: ${{ github.event_name == 'pull_request' }}
+#       - uses: open-ci-io/flutter-cd@v1
+#         with:
+#           platform: "web"
+#           working-directory: "apps/dashboard"
+#           build-args: "--dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }}"
+#           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+#           preview: ${{ github.event_name == 'pull_request' }}
