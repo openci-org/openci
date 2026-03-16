@@ -54,6 +54,29 @@ class SecretManager extends _$SecretManager {
       'teamId': teamId,
     });
   }
+
+  Future<void> generateCertificateKey() async {
+    final functions = ref.read(functionsProvider);
+    final teamId = ref.read(teamStateProvider).requireValue.id;
+    await functions
+        .httpsCallable(generateCertificateKeyCallableFunctionPath)
+        .call({'teamId': teamId});
+  }
+
+  Future<void> setupAscApiKey({
+    required String issuerId,
+    required String keyId,
+    required String privateKey,
+  }) async {
+    final functions = ref.read(functionsProvider);
+    final teamId = ref.read(teamStateProvider).requireValue.id;
+    await functions.httpsCallable(setupAscApiKeyCallableFunctionPath).call({
+      'teamId': teamId,
+      'issuerId': issuerId,
+      'keyId': keyId,
+      'privateKey': privateKey,
+    });
+  }
 }
 
 @freezed

@@ -1,0 +1,38 @@
+name: Flutter iOS CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: open-ci-io/flutter-setup@v1
+        with:
+          flutter-version: "stable"
+
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.FIREBASE_OPTIONS }}
+          path: "apps/dashboard/lib/firebase_options.dart"
+
+      - uses: open-ci-io/flutter-ci@v1
+        with:
+          test: "false"
+          working-directory: "apps/dashboard"
+
+      - uses: open-ci-io/flutter-cd@v1
+        with:
+          platform: "ios"
+          working-directory: "apps/dashboard"
+          certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
+          asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
+          asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
+          asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}

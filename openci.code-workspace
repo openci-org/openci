@@ -204,7 +204,7 @@
       {
         "label": "Firebase: (Prod) Deploy Functions",
         "type": "shell",
-        "command": "rm -rf node_modules package-lock.json lib && npm i && gcloud functions list --project openci-b1b91 --format='value(name)' 2>/dev/null | xargs -I {} gcloud functions delete {} --project openci-b1b91 --region asia-northeast1 --gen2 --quiet 2>/dev/null; firebase use prod && firebase deploy --only functions && firebase use default",
+        "command": "firebase use prod && firebase deploy --only functions && firebase use default",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },
@@ -229,9 +229,9 @@
         "problemMatcher": [],
       },
       {
-        "label": "Firebase & gcloud: Reauth Login",
+        "label": "Firebase --reauth",
         "type": "shell",
-        "command": "firebase login --reauth && gcloud auth login",
+        "command": "firebase login --reauth",
         "options": {
           "cwd": "${workspaceFolder:firebase-functions}",
         },

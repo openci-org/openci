@@ -66,4 +66,4 @@ final class WorkflowFilesProvider
   }
 }
 
-String _$workflowFilesHash() => r'51eb2f72e6168d3ccb09d568cc0d00cdcdb72459';
+String _$workflowFilesHash() => r'36f5a5be1992712227289dc16c0887fe7b2833bc';

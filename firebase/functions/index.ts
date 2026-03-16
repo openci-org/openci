@@ -1,5 +1,6 @@
 export { cancelBuildJob } from "./src/cancel-build-job";
 export { createSecretV1 } from "./src/create-secret";
+export { generateCertificateKeyV1 } from "./src/generate-certificate-key";
 export { createWorkflowFile } from "./src/github/create-workflow-file";
 export { githubApp } from "./src/github/github-app";
 export { githubSetup } from "./src/github/github-setup";
@@ -12,5 +13,6 @@ export { inviteTeamMember } from "./src/invite-team-member";
 export { onUserSignUp } from "./src/on-user-sign-up";
 export { retryBuildJob } from "./src/retry-build-job";
 export { onBuildJobStatusChange } from "./src/send-build-notification";
+export { setupAscApiKeyV1 } from "./src/setup-asc-api-key";
 export { updateSecretV1 } from "./src/update-secret";
 export { onRunCreated, onRunUpdated } from "./src/update-check-run";
