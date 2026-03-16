@@ -211,10 +211,12 @@ Future<bool> processJob(
     final secretFileLines = <String>[];
 
     for (final entry in envVars.entries) {
-      envFileLines.add('${entry.key}=${entry.value}');
+      final escaped = entry.value.replaceAll('\n', '\\n');
+      envFileLines.add('${entry.key}=$escaped');
     }
     for (final entry in secretVars.entries) {
-      secretFileLines.add('${entry.key}=${entry.value}');
+      final escaped = entry.value.replaceAll('\n', '\\n');
+      secretFileLines.add('${entry.key}=$escaped');
     }
 
     final envFileContent = envFileLines.join('\n');
