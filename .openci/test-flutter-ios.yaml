@@ -23,6 +23,11 @@ jobs:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
+          path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
+
       - uses: open-ci-io/flutter-ci@v1
         with:
           test: "false"
