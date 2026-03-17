@@ -292,6 +292,7 @@ class _TranslationsSubscriptionEs implements TranslationsSubscriptionEn {
 	@override String get termsOfUse => 'Términos de uso';
 	@override String get privacyPolicy => 'Política de privacidad';
 	@override String get subscriptionTerms => 'Las suscripciones se renuevan automáticamente a menos que se cancelen al menos 24 horas antes del final del período actual. Se cobrará a tu cuenta de Apple ID la renovación dentro de las 24 horas anteriores al final del período actual. Puedes gestionar y cancelar tus suscripciones en la configuración de tu cuenta en la App Store después de la compra.';
+	@override String get subscriptionTermsWeb => 'Las suscripciones se renuevan automáticamente a menos que se cancelen antes del final del período de facturación actual. Puedes gestionar y cancelar tu suscripción desde la configuración de tu cuenta. Los pagos se procesan de forma segura a través de Stripe.';
 	@override String get perWeek => 'por semana';
 	@override String get perMonth => 'por mes';
 	@override String get per3Months => 'por 3 meses';
@@ -632,6 +633,7 @@ extension on TranslationsEs {
 			'subscription.termsOfUse' => 'Términos de uso',
 			'subscription.privacyPolicy' => 'Política de privacidad',
 			'subscription.subscriptionTerms' => 'Las suscripciones se renuevan automáticamente a menos que se cancelen al menos 24 horas antes del final del período actual. Se cobrará a tu cuenta de Apple ID la renovación dentro de las 24 horas anteriores al final del período actual. Puedes gestionar y cancelar tus suscripciones en la configuración de tu cuenta en la App Store después de la compra.',
+			'subscription.subscriptionTermsWeb' => 'Las suscripciones se renuevan automáticamente a menos que se cancelen antes del final del período de facturación actual. Puedes gestionar y cancelar tu suscripción desde la configuración de tu cuenta. Los pagos se procesan de forma segura a través de Stripe.',
 			'subscription.perWeek' => 'por semana',
 			'subscription.perMonth' => 'por mes',
 			'subscription.per3Months' => 'por 3 meses',

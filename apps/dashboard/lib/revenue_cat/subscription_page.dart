@@ -2,6 +2,7 @@ import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/revenue_cat/subscription_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -74,13 +75,15 @@ class SubscriptionPage extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => _restorePurchases(context, ref),
-                          child: Text(subT.restorePurchases),
+                      if (!kIsWeb) ...[
+                        const SizedBox(height: 24),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => _restorePurchases(context, ref),
+                            child: Text(subT.restorePurchases),
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 16),
                       const _SubscriptionTermsFooter(),
                     ],
@@ -138,12 +141,18 @@ class SubscriptionPage extends HookConsumerWidget {
           subT.purchaseFailed(error: e.message ?? ''),
         );
       }
+    } catch (e) {
+      if (!context.mounted) return;
+      context.showSnackBarMessage(
+        subT.purchaseFailed(error: e.toString()),
+      );
     } finally {
       isPurchasing.value = false;
     }
   }
 
   Future<void> _restorePurchases(BuildContext context, WidgetRef ref) async {
+    if (kIsWeb) return;
     final subT = t.subscription;
     try {
       await Purchases.restorePurchases();
@@ -154,6 +163,11 @@ class SubscriptionPage extends HookConsumerWidget {
       if (!context.mounted) return;
       context.showSnackBarMessage(
         subT.restoreFailed(error: e.message ?? ''),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      context.showSnackBarMessage(
+        subT.restoreFailed(error: e.toString()),
       );
     }
   }
@@ -170,7 +184,7 @@ class _SubscriptionTermsFooter extends StatelessWidget {
         const Divider(),
         const SizedBox(height: 8),
         Text(
-          subT.subscriptionTerms,
+          kIsWeb ? subT.subscriptionTermsWeb : subT.subscriptionTerms,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Colors.grey.shade600,
           ),

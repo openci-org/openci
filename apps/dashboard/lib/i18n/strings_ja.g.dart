@@ -292,6 +292,7 @@ class _TranslationsSubscriptionJa implements TranslationsSubscriptionEn {
 	@override String get termsOfUse => '利用規約';
 	@override String get privacyPolicy => 'プライバシーポリシー';
 	@override String get subscriptionTerms => 'サブスクリプションは、現在の期間の終了の少なくとも24時間前までにキャンセルしない限り、自動的に更新されます。Apple IDアカウントには、現在の期間の終了前24時間以内に更新料金が請求されます。購入後は、App Storeのアカウント設定からサブスクリプションの管理・キャンセルが可能です。';
+	@override String get subscriptionTermsWeb => 'サブスクリプションは、現在の請求期間の終了前にキャンセルしない限り、自動的に更新されます。アカウント設定からサブスクリプションの管理・キャンセルが可能です。お支払いはStripeにより安全に処理されます。';
 	@override String get perWeek => '週額';
 	@override String get perMonth => '月額';
 	@override String get per3Months => '3ヶ月ごと';
@@ -632,6 +633,7 @@ extension on TranslationsJa {
 			'subscription.termsOfUse' => '利用規約',
 			'subscription.privacyPolicy' => 'プライバシーポリシー',
 			'subscription.subscriptionTerms' => 'サブスクリプションは、現在の期間の終了の少なくとも24時間前までにキャンセルしない限り、自動的に更新されます。Apple IDアカウントには、現在の期間の終了前24時間以内に更新料金が請求されます。購入後は、App Storeのアカウント設定からサブスクリプションの管理・キャンセルが可能です。',
+			'subscription.subscriptionTermsWeb' => 'サブスクリプションは、現在の請求期間の終了前にキャンセルしない限り、自動的に更新されます。アカウント設定からサブスクリプションの管理・キャンセルが可能です。お支払いはStripeにより安全に処理されます。',
 			'subscription.perWeek' => '週額',
 			'subscription.perMonth' => '月額',
 			'subscription.per3Months' => '3ヶ月ごと',
