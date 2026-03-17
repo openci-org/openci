@@ -22,8 +22,18 @@ export const metadata: Metadata = {
   description:
     'OpenCI is an open-source CI/CD service that anyone can use. Simple, fast, and surprisingly affordable. Start free with 60 minutes per month on Apple Silicon Mac.',
   openGraph: {
+    title: 'OpenCI - CI/CD Made Easy.',
+    description:
+      'Simple, fast, and surprisingly affordable. Start free with 60 minutes per month on Apple Silicon Mac.',
     url: 'https://openci.org',
     siteName: 'OpenCI',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OpenCI - CI/CD Made Easy.',
+    description:
+      'Simple, fast, and surprisingly affordable. Start free with 60 minutes per month on Apple Silicon Mac.',
   },
 }
 
