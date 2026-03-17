@@ -19,10 +19,11 @@ export const metadata: Metadata = {
     default:
       'OpenCI - The Open Source CI/CD Service, Affordable for Everyone.',
   },
+  description:
+    'OpenCI is an open-source CI/CD service that anyone can use. Simple, fast, and surprisingly affordable. Start free with 60 minutes per month on Apple Silicon Mac.',
   openGraph: {
     url: 'https://openci.org',
     siteName: 'OpenCI',
-    images: [{ url: 'https://openci.org/screenshots/lp.png' }],
   },
 }
 
