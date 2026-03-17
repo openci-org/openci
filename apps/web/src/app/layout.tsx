@@ -5,11 +5,19 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 
+import { Noto_Sans_JP } from 'next/font/google'
+
+const notoSansJP = Noto_Sans_JP({
+  subsets: ['latin'],
+  variable: '--font-noto-sans-jp',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: {
     template: '%s - OpenCI',
     default:
-      'OpenCI - The Open Source GitHub Actions Runner, Affordable for Everyone, Written in Rust.',
+      'OpenCI - The Open Source CI/CD Service, Affordable for Everyone.',
   },
   openGraph: {
     url: 'https://openci.org',
@@ -24,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={notoSansJP.variable}>
       <head>
         <link
           rel="stylesheet"

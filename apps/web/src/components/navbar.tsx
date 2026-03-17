@@ -8,6 +8,7 @@ import {
 } from '@headlessui/react'
 import { Bars2Icon } from '@heroicons/react/24/solid'
 import { motion } from 'framer-motion'
+import { usePathname, useRouter } from 'next/navigation'
 import { Link } from './link'
 import { Logo } from './logo'
 import { PlusGrid, PlusGridItem, PlusGridRow } from './plus-grid'
@@ -22,6 +23,34 @@ const links = [
   },
 ]
 
+function LanguageSwitcher() {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const isJapanese = pathname.startsWith('/ja')
+  const switchPath = isJapanese
+    ? pathname.replace(/^\/ja/, '') || '/'
+    : `/ja${pathname === '/' ? '' : pathname}`
+
+  const handleSwitch = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const targetLocale = isJapanese ? 'en' : 'ja'
+    document.cookie = `preferred_locale=${targetLocale};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
+    router.push(switchPath)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleSwitch}
+      className="flex items-center px-3 py-2 text-sm font-medium text-gray-950 bg-blend-multiply data-hover:bg-black/2.5 cursor-pointer"
+      title={isJapanese ? 'Switch to English' : '日本語に切り替え'}
+    >
+      {isJapanese ? 'EN' : 'JA'}
+    </button>
+  )
+}
+
 function DesktopNav() {
   return (
     <nav className="relative hidden lg:flex">
@@ -35,6 +64,9 @@ function DesktopNav() {
           </Link>
         </PlusGridItem>
       ))}
+      <PlusGridItem className="relative flex">
+        <LanguageSwitcher />
+      </PlusGridItem>
     </nav>
   )
 }
@@ -70,6 +102,17 @@ function MobileNav() {
             </Link>
           </motion.div>
         ))}
+        <motion.div
+          initial={{ opacity: 0, rotateX: -90 }}
+          animate={{ opacity: 1, rotateX: 0 }}
+          transition={{
+            duration: 0.15,
+            ease: 'easeInOut',
+            rotateX: { duration: 0.3, delay: links.length * 0.1 },
+          }}
+        >
+          <LanguageSwitcher />
+        </motion.div>
       </div>
       <div className="absolute left-1/2 w-screen -translate-x-1/2">
         <div className="absolute inset-x-0 top-0 border-t border-black/5" />
