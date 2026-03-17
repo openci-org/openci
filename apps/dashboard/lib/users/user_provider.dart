@@ -49,6 +49,7 @@ class User extends _$User {
           toFirestore: (model, _) => model.toJson(),
         )
         .snapshots()
+        .where((qs) => qs.data() != null)
         .map((qs) => qs.data()!);
   }
 

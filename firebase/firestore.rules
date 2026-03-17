@@ -50,7 +50,8 @@ service cloud.firestore {
 
         match /users_v0/{userId} {
             allow read, update: if isAuthenticated() && userId == request.auth.uid;
-            allow create, delete: if false;
+            allow create: if isAuthenticated() && userId == request.auth.uid;
+            allow delete: if false;
         }
 
         match /{document=**} {
