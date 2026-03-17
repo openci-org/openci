@@ -560,6 +560,9 @@ class TranslationsSubscriptionEn {
 	/// en: 'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Your Apple ID account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.'
 	String get subscriptionTerms => 'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Your Apple ID account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.';
 
+	/// en: 'Subscriptions automatically renew unless canceled before the end of the current billing period. You can manage and cancel your subscription from your account settings. Payments are processed securely via Stripe.'
+	String get subscriptionTermsWeb => 'Subscriptions automatically renew unless canceled before the end of the current billing period. You can manage and cancel your subscription from your account settings. Payments are processed securely via Stripe.';
+
 	/// en: 'per week'
 	String get perWeek => 'per week';
 
@@ -1059,6 +1062,7 @@ extension on Translations {
 			'subscription.termsOfUse' => 'Terms of Use',
 			'subscription.privacyPolicy' => 'Privacy Policy',
 			'subscription.subscriptionTerms' => 'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Your Apple ID account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.',
+			'subscription.subscriptionTermsWeb' => 'Subscriptions automatically renew unless canceled before the end of the current billing period. You can manage and cancel your subscription from your account settings. Payments are processed securely via Stripe.',
 			'subscription.perWeek' => 'per week',
 			'subscription.perMonth' => 'per month',
 			'subscription.per3Months' => 'per 3 months',

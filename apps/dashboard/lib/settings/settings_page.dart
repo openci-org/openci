@@ -1,6 +1,7 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/settings/locale_provider.dart';
@@ -97,6 +98,7 @@ class SettingsPage extends HookConsumerWidget {
                         ),
                         onPressed: () async {
                           try {
+                            await logoutRevenueCat();
                             await auth.getFirebaseAuth().signOut();
                             ref.invalidate(authProvider);
                             ref.invalidate(firestoreProvider);

@@ -14,3 +14,11 @@ Future<void> initializeRevenueCat() async {
   }
   await Purchases.configure(PurchasesConfiguration(apiKey));
 }
+
+Future<void> loginRevenueCat(String uid) async {
+  await Purchases.logIn(uid);
+}
+
+Future<void> logoutRevenueCat() async {
+  await Purchases.logOut();
+}

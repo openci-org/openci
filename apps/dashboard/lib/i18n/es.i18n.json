@@ -237,6 +237,7 @@
     "termsOfUse": "Términos de uso",
     "privacyPolicy": "Política de privacidad",
     "subscriptionTerms": "Las suscripciones se renuevan automáticamente a menos que se cancelen al menos 24 horas antes del final del período actual. Se cobrará a tu cuenta de Apple ID la renovación dentro de las 24 horas anteriores al final del período actual. Puedes gestionar y cancelar tus suscripciones en la configuración de tu cuenta en la App Store después de la compra.",
+    "subscriptionTermsWeb": "Las suscripciones se renuevan automáticamente a menos que se cancelen antes del final del período de facturación actual. Puedes gestionar y cancelar tu suscripción desde la configuración de tu cuenta. Los pagos se procesan de forma segura a través de Stripe.",
     "perWeek": "por semana",
     "perMonth": "por mes",
     "per3Months": "por 3 meses",
