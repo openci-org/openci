@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -151,12 +153,42 @@ class AuthPage extends HookConsumerWidget {
                                 if (formKey.currentState!.validate()) {
                                   isLoading.value = true;
                                   try {
-                                    await authNotifier
+                                    final credential = await authNotifier
                                         .getFirebaseAuth()
                                         .createUserWithEmailAndPassword(
                                           email: emailController.text,
                                           password: passwordController.text,
                                         );
+                                    final userId = credential.user!.uid;
+                                    final db = firestore;
+                                    final teamsRef = db
+                                        .collection(teamsCollection)
+                                        .doc();
+                                    final teamId = teamsRef.id;
+                                    final batch = db.batch();
+                                    batch.set(teamsRef, {
+                                      'id': teamId,
+                                      'name': teamId,
+                                      'members': [userId],
+                                      'createdAt':
+                                          FieldValue.serverTimestamp(),
+                                      'updatedAt':
+                                          FieldValue.serverTimestamp(),
+                                    });
+                                    final userRef = db
+                                        .collection(usersCollection)
+                                        .doc(userId);
+                                    batch.set(userRef, {
+                                      'id': userId,
+                                      'selectedTeamId': teamId,
+                                      'createdAt':
+                                          FieldValue.serverTimestamp(),
+                                      'updatedAt':
+                                          FieldValue.serverTimestamp(),
+                                    });
+                                    await batch.commit();
+                                    ref.invalidate(authProvider);
+                                    ref.invalidate(firestoreProvider);
                                   } catch (e) {
                                     if (!context.mounted) return;
                                     debugPrint(e.toString());
@@ -164,7 +196,9 @@ class AuthPage extends HookConsumerWidget {
                                       t.common.error(error: e.toString()),
                                     );
                                   } finally {
-                                    isLoading.value = false;
+                                    if (context.mounted) {
+                                      isLoading.value = false;
+                                    }
                                   }
                                 }
                               }

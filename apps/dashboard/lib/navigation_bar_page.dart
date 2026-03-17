@@ -68,7 +68,10 @@ class NavigationBarPage extends HookConsumerWidget {
       body: teamState.when(
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),
-        error: (e, _) => Center(child: Text(e.toString())),
+        error: (e, _) {
+          debugPrint(e.toString());
+          return Center(child: Text(e.toString()));
+        },
         data: (team) {
           final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
           if (isGitHubConnected) {
