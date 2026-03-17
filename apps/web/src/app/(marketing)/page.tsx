@@ -1,18 +1,18 @@
-import { BentoCard } from '@/components/bento-card'
-import { Button } from '@/components/button'
-import { Container } from '@/components/container'
-import { Footer } from '@/components/footer'
-import { Gradient } from '@/components/gradient'
-import { Navbar } from '@/components/navbar'
-import { Heading, Lead, Subheading } from '@/components/text'
-import { slackInviteLink } from '@/constants'
-import type { Metadata } from 'next'
-import { PricingSectionForTop } from './pricing/page'
+import { BentoCard } from "@/components/bento-card";
+import { Button } from "@/components/button";
+import { Container } from "@/components/container";
+import { Footer } from "@/components/footer";
+import { Gradient } from "@/components/gradient";
+import { Navbar } from "@/components/navbar";
+import { Heading, Lead, Subheading } from "@/components/text";
+import { slackInviteLink } from "@/constants";
+import type { Metadata } from "next";
+import { PricingSectionForTop } from "./pricing/page";
 
 export const metadata: Metadata = {
   description:
-    'OpenCI Runner is an open-source GitHub Actions runner that anyone can use. We offer affordable, flat-rate monthly pricing so that anyone can use CI/CD.',
-}
+    "OpenCI Runner is an open-source GitHub Actions runner that anyone can use. We offer affordable, flat-rate monthly pricing so that anyone can use CI/CD.",
+};
 
 function Hero() {
   return (
@@ -46,7 +46,7 @@ function Hero() {
         </div>
       </Container>
     </div>
-  )
+  );
 }
 
 function Introduction() {
@@ -58,46 +58,35 @@ function Introduction() {
       <Heading as="h3" className="mt-2">
         Democratize CI/CD with affordable pricing.
       </Heading>
-      <Lead className="mt-6 max-w-3xl">
-        Today&apos;s CI/CD pricing is too expensive.
-      </Lead>
+      <Lead className="mt-6 max-w-3xl">Today&apos;s CI/CD pricing is too expensive.</Lead>
       <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2">
         <div className="max-w-lg">
           <p className="text-sm/6 text-gray-600">
-            CI/CD is an essential tool for software development. However, the
-            pricing for GitHub Actions&apos; standard runners is prohibitively
-            expensive for many software projects. While there is a free tier,
-            and OSS projects get unlimited usage, in most cases normal usage
-            exceeds the free tier, and not everyone develops open source
-            software.
+            CI/CD is an essential tool for software development. However, the pricing for GitHub
+            Actions&apos; standard runners is prohibitively expensive for many software projects.
+            While there is a free tier, and OSS projects get unlimited usage, in most cases normal
+            usage exceeds the free tier, and not everyone develops open source software.
           </p>
           <p className="mt-8 text-sm/6 text-gray-600">
-            Third-party runner services for GitHub Actions are trying to solve
-            this problem. Some offer machines at 1/10th the price of
-            GitHub&apos;s standard runners, while others provide faster
-            machines—each company has its own approach. However, almost all of
-            these services use pay-as-you-go pricing. This means you won&apos;t
-            know the actual cost until the end of each month. Rather than making
-            CI/CD accessible to everyone, these services seem more tailored to
-            enterprise companies.
+            Third-party runner services for GitHub Actions are trying to solve this problem. Some
+            offer machines at 1/10th the price of GitHub&apos;s standard runners, while others
+            provide faster machines—each company has its own approach. However, almost all of these
+            services use pay-as-you-go pricing. This means you won&apos;t know the actual cost until
+            the end of each month. Rather than making CI/CD accessible to everyone, these services
+            seem more tailored to enterprise companies.
           </p>
           <p className="mt-8 text-sm/6 text-gray-600">
-            That&apos;s why we offer affordable, flat-rate monthly pricing so
-            that anyone can use CI/CD. Start with our free plan—60 minutes of
-            build time per month at no cost. When you need more, upgrade to our
-            Basic plan at just ¥980/month for unlimited builds. Need parallel
-            execution? Add concurrent builds for ¥2,000/month each. If you find
-            a more affordable service than ours, please let us know—we&apos;re
-            always striving to provide a better service.
+            That&apos;s why we offer affordable, flat-rate monthly pricing so that anyone can use
+            CI/CD. Start with our free plan—60 minutes of build time per month at no cost. When you
+            need more, upgrade to our Basic plan at just ¥980/month for unlimited builds. Need
+            parallel execution? Add concurrent builds for ¥2,000/month each. If you find a more
+            affordable service than ours, please let us know—we&apos;re always striving to provide a
+            better service.
           </p>
         </div>
         <div className="max-lg:order-first max-lg:max-w-lg">
           <div className="aspect-3/2 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
-            <img
-              alt=""
-              src="/company/masahiro.JPG"
-              className="block size-full object-cover"
-            />
+            <img alt="" src="/company/masahiro.JPG" className="block size-full object-cover" />
           </div>
           <div className="mt-4">
             <p className="text-sm font-medium text-gray-900">Masahiro Aoki</p>
@@ -106,7 +95,7 @@ function Introduction() {
         </div>
       </div>
     </Container>
-  )
+  );
 }
 
 function BentoSection() {
@@ -134,8 +123,12 @@ function BentoSection() {
           title="Connect GitHub"
           description="Install the OpenCI GitHub App to link your repositories. Select which repos to build."
           graphic={
-            <div className="flex size-full items-center justify-center p-18">
-              <img src="install-github-app.png" alt="Install GitHub App" />
+            <div className="flex size-full items-center justify-center">
+              <img
+                src="/create_workflow_gui.png"
+                alt="Create workflow with GUI editor"
+                className="block size-full object-contain"
+              />
             </div>
           }
           className="lg:col-span-2"
@@ -147,8 +140,9 @@ function BentoSection() {
           graphic={
             <div className="flex size-full items-center justify-center">
               <img
-                src="/code-snippets/modify_yaml.png"
-                alt="Workflow file example"
+                src="/create_workflow_yaml.png"
+                alt="Create workflow with YAML editor"
+                className="block size-full object-contain"
               />
             </div>
           }
@@ -156,7 +150,7 @@ function BentoSection() {
         />
       </div>
     </Container>
-  )
+  );
 }
 
 export default function Home() {
@@ -174,5 +168,5 @@ export default function Home() {
       <PricingSectionForTop />
       <Footer />
     </div>
-  )
+  );
 }
