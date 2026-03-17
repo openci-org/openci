@@ -1,5 +1,8 @@
 import { PlusGrid, PlusGridItem, PlusGridRow } from '@/components/plus-grid'
 import { slackInviteLink } from '@/constants'
+import type { Dictionary } from '@/lib/dictionaries'
+import { getDictionary } from '@/lib/dictionaries'
+import type { Locale } from '@/lib/i18n'
 import { Button } from './button'
 import { Container } from './container'
 import { Gradient } from './gradient'
@@ -7,25 +10,25 @@ import { Link } from './link'
 import { Logo } from './logo'
 import { Subheading } from './text'
 
-function CallToAction() {
+function CallToAction({ dict }: { dict: Dictionary }) {
   return (
     <div className="relative pt-20 pb-16 text-center sm:py-24">
       <hgroup>
-        <Subheading>Get started</Subheading>
+        <Subheading>{dict.footer.ctaEyebrow}</Subheading>
         <p className="mt-6 text-3xl font-medium tracking-tight text-gray-950 sm:text-5xl">
-          Ready to dive in?
+          {dict.footer.ctaTitle1}
           <br />
-          Start your free trial today.
+          {dict.footer.ctaTitle2}
         </p>
       </hgroup>
       <p className="mx-auto mt-6 max-w-xs text-sm/6 text-gray-500">
-        Try OpenCI Runner for free for 14 days.
+        {dict.footer.ctaDescription1}
         <br />
-        No credit card required.
+        {dict.footer.ctaDescription2}
       </p>
       <div className="mt-6">
-        <Button className="w-full sm:w-auto" href={slackInviteLink}>
-          Get started
+        <Button className="w-full sm:w-auto" href="https://dashboard.openci.org">
+          {dict.footer.ctaButton}
         </Button>
       </div>
     </div>
@@ -51,37 +54,30 @@ function SitemapLink(props: React.ComponentPropsWithoutRef<typeof Link>) {
   )
 }
 
-function Sitemap() {
+function Sitemap({ dict }: { dict: Dictionary }) {
   return (
     <>
+      <div />
       <div>
-        {/* <SitemapHeading>Product</SitemapHeading>
+        <SitemapHeading>{dict.footer.company}</SitemapHeading>
         <SitemapLinks>
-          <SitemapLink href="/pricing">Pricing</SitemapLink>
-          <SitemapLink href="#">Analysis</SitemapLink>
-          <SitemapLink href="#">API</SitemapLink>
-        </SitemapLinks> */}
-      </div>
-      <div>
-        <SitemapHeading>Company</SitemapHeading>
-        <SitemapLinks>
-          <SitemapLink href="/blog">Blog</SitemapLink>
+          <SitemapLink href="/blog">{dict.footer.blog}</SitemapLink>
         </SitemapLinks>
       </div>
       <div>
-        <SitemapHeading>Support</SitemapHeading>
+        <SitemapHeading>{dict.footer.support}</SitemapHeading>
         <SitemapLinks>
           <SitemapLink href={slackInviteLink} target="_blank">
-            Help center - Slack
+            {dict.footer.helpCenter}
           </SitemapLink>
-          {/* <SitemapLink href="#">Community</SitemapLink> */}
         </SitemapLinks>
       </div>
       <div>
-        <SitemapHeading>Company</SitemapHeading>
+        <SitemapHeading>{dict.footer.legal}</SitemapHeading>
         <SitemapLinks>
-          <SitemapLink href="/terms-of-service">Terms of service</SitemapLink>
-          <SitemapLink href="/privacy-policy">Privacy policy</SitemapLink>
+          <SitemapLink href="/terms-of-service">{dict.footer.terms}</SitemapLink>
+          <SitemapLink href="/privacy-policy">{dict.footer.privacy}</SitemapLink>
+          <SitemapLink href="/commercial">{dict.footer.commercial}</SitemapLink>
         </SitemapLinks>
       </div>
     </>
@@ -151,13 +147,14 @@ function Copyright() {
   )
 }
 
-export function Footer() {
+export async function Footer({ lang, dict: dictProp }: { lang?: Locale; dict?: Dictionary } = {}) {
+  const dict = dictProp ?? await getDictionary(lang ?? 'en')
   return (
     <footer>
       <Gradient className="relative">
         <div className="absolute inset-2 rounded-4xl bg-white/80" />
         <Container>
-          <CallToAction />
+          <CallToAction dict={dict} />
           <PlusGrid className="pb-16">
             <PlusGridRow>
               <div className="grid grid-cols-2 gap-y-10 pb-6 lg:grid-cols-6 lg:gap-8">
@@ -167,7 +164,7 @@ export function Footer() {
                   </PlusGridItem>
                 </div>
                 <div className="col-span-2 grid grid-cols-2 gap-x-8 gap-y-12 lg:col-span-4 lg:grid-cols-subgrid lg:pt-6">
-                  <Sitemap />
+                  <Sitemap dict={dict} />
                 </div>
               </div>
             </PlusGridRow>
