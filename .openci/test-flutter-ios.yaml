@@ -38,6 +38,7 @@ jobs:
           platform: "ios"
           working-directory: "apps/dashboard"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}"
           certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
