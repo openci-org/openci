@@ -83,10 +83,12 @@ function Introduction() {
           </p>
           <p className="mt-8 text-sm/6 text-gray-600">
             That&apos;s why we offer affordable, flat-rate monthly pricing so
-            that anyone can use CI/CD. Our pricing starts at just $1 per month.
-            Of course, we also offer higher-spec machines. If you find a more
-            affordable service than ours, please let us know—we&apos;re always
-            striving to provide a better service.
+            that anyone can use CI/CD. Start with our free plan—60 minutes of
+            build time per month at no cost. When you need more, upgrade to our
+            Basic plan at just ¥980/month for unlimited builds. Need parallel
+            execution? Add concurrent builds for ¥2,000/month each. If you find
+            a more affordable service than ours, please let us know—we&apos;re
+            always striving to provide a better service.
           </p>
         </div>
         <div className="max-lg:order-first max-lg:max-w-lg">
@@ -112,15 +114,14 @@ function BentoSection() {
     <Container className="pb-32">
       <Subheading>How to</Subheading>
       <Heading as="h3" className="mt-2 max-w-3xl">
-        Reduce your GitHub Actions costs by up to 90%—3 easy steps, 5 minutes or
-        less.
+        Start running your builds in 5 minutes. Just 3 steps.
       </Heading>
 
       <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-16 lg:grid-cols-6">
         <BentoCard
-          eyebrow="Register"
+          eyebrow="Step 1"
           title="Create your account"
-          description="Sign up for an OpenCI account to get started with affordable CI/CD."
+          description="Sign up for free on the OpenCI dashboard. No credit card required."
           graphic={
             <div className="flex size-full items-center justify-center p-16">
               <img src="sign-up-form.png" alt="Sign up form" />
@@ -129,9 +130,9 @@ function BentoSection() {
           className="lg:col-span-2 lg:rounded-bl-4xl"
         />
         <BentoCard
-          eyebrow="Install"
-          title="Install GitHub App"
-          description="Install the GitHub App to the repositories where you want to use OpenCI runners."
+          eyebrow="Step 2"
+          title="Connect GitHub"
+          description="Install the OpenCI GitHub App to link your repositories. Select which repos to build."
           graphic={
             <div className="flex size-full items-center justify-center p-18">
               <img src="install-github-app.png" alt="Install GitHub App" />
@@ -140,9 +141,9 @@ function BentoSection() {
           className="lg:col-span-2"
         />
         <BentoCard
-          eyebrow="Modify"
-          title="Update your workflow file"
-          description="Modify your GitHub Actions workflow file to specify the use of OpenCI Runner."
+          eyebrow="Step 3"
+          title="Create a workflow"
+          description="Pick a template or write your own. OpenCI uses GitHub Actions syntax—your existing Actions just work."
           graphic={
             <div className="flex size-full items-center justify-center">
               <img
