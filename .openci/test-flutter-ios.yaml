@@ -37,6 +37,7 @@ jobs:
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
+          build-number: ${{ env.OPENCI_RUN_NUMBER }}
           certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
