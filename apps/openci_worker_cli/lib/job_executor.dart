@@ -233,18 +233,19 @@ Future<bool> processJob(
 
     await logInfo(firestore, buildJobId, runId, 'Running workflow with act...');
 
+    final eventType = pullRequestNumber != null ? 'pull_request' : 'push';
+
     final actScript = [
       'set -e',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
       'cd $repo',
-      'act -W .openci/$workflowFileName '
+      'act $eventType -W .openci/$workflowFileName '
           '-P macos-latest=-self-hosted '
           '-P macos-14=-self-hosted '
           '-P macos-15=-self-hosted '
           '-P ubuntu-latest=-self-hosted '
           '--env-file /tmp/openci-env '
-          '--secret-file /tmp/openci-secrets '
-          '--detect-event',
+          '--secret-file /tmp/openci-secrets',
     ].join('\n');
 
     await writeFileToVm(vmName, '/tmp/openci-act.sh', actScript);
