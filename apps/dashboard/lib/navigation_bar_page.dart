@@ -74,7 +74,7 @@ class NavigationBarPage extends HookConsumerWidget {
         },
         data: (team) {
           final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
-          if (isGitHubConnected) {
+          if (isGitHubConnected || currentPageIndex.value == 4) {
             return pages[currentPageIndex.value];
           }
           return Center(
