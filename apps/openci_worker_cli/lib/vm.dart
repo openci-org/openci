@@ -113,8 +113,8 @@ const _sshKeyPath = '/tmp/openci-ssh-key';
 final _ipPattern = RegExp(r'\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b');
 
 Future<String> getVmIp(String vmName) async {
-  const maxRetries = 5;
-  const retryDelay = Duration(seconds: 2);
+  const maxRetries = 15;
+  const retryDelay = Duration(seconds: 3);
   for (var attempt = 1; attempt <= maxRetries; attempt++) {
     final result = await Process.run('lume', [
       'ssh', vmName, '--user', sshUser, '--password', sshPassword,
