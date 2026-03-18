@@ -20,5 +20,9 @@ Future<void> loginRevenueCat(String uid) async {
 }
 
 Future<void> logoutRevenueCat() async {
+  final customerInfo = await Purchases.getCustomerInfo();
+  if (customerInfo.originalAppUserId.isEmpty) return;
+  final isAnonymous = await Purchases.isAnonymous;
+  if (isAnonymous) return;
   await Purchases.logOut();
 }
