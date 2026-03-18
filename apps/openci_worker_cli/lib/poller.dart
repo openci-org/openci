@@ -11,7 +11,7 @@ final _log = Logger('Poller');
 
 const _spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
-const _updateCheckInterval = Duration(minutes: 5);
+const _updateCheckInterval = Duration(seconds: 10);
 
 Future<void> pollForJobs({
   required Firestore firestore,
