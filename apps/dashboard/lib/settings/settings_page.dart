@@ -1,8 +1,8 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
-import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
+import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/settings/locale_provider.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
@@ -106,7 +106,9 @@ class SettingsPage extends HookConsumerWidget {
                             context.showSnackBarMessage(
                               settingsT.logoutSuccess,
                             );
-                          } catch (e) {
+                          } catch (e, s) {
+                            debugPrint(e.toString());
+                            debugPrint(s.toString());
                             context.showSnackBarMessage(
                               settingsT.logoutFailed(error: e.toString()),
                             );
