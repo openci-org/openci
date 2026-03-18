@@ -30,6 +30,7 @@ Future<void> main(List<String> arguments) async {
       workerId: config.workerId,
       projectId: config.projectId,
       serviceAccountPath: config.serviceAccountPath,
+      rawArguments: arguments,
     );
   } on FormatException catch (e) {
     _log.severe(e.message);

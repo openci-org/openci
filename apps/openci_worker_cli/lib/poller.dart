@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
+import 'package:openci_worker_cli/auto_updater.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:sentry/sentry.dart';
 
@@ -10,16 +11,20 @@ final _log = Logger('Poller');
 
 const _spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
+const _updateCheckInterval = Duration(minutes: 5);
+
 Future<void> pollForJobs({
   required Firestore firestore,
   required String workerId,
   required String projectId,
   required String serviceAccountPath,
+  required List<String> rawArguments,
 }) async {
   _log.info('Starting job poller...');
 
   Timer? spinnerTimer;
   var spinnerIndex = 0;
+  var lastUpdateCheck = DateTime.now();
 
   void startSpinner() {
     spinnerTimer?.cancel();
@@ -44,6 +49,21 @@ Future<void> pollForJobs({
     }
   }
 
+  Future<void> tryAutoUpdate() async {
+    lastUpdateCheck = DateTime.now();
+    final updated = await checkAndUpdate();
+    if (updated) {
+      _log.info('Restarting with updated binary...');
+      final executable = Platform.resolvedExecutable;
+      await Process.start(
+        executable,
+        rawArguments,
+        mode: ProcessStartMode.inheritStdio,
+      );
+      exit(0);
+    }
+  }
+
   while (true) {
     try {
       final jobFound = await processJob(
@@ -56,7 +76,13 @@ Future<void> pollForJobs({
 
       if (jobFound) {
         _log.info('Job completed, checking for next...');
+        await tryAutoUpdate();
       } else {
+        final now = DateTime.now();
+        if (now.difference(lastUpdateCheck) >= _updateCheckInterval) {
+          stopSpinner();
+          await tryAutoUpdate();
+        }
         if (spinnerTimer == null) startSpinner();
         await Future.delayed(const Duration(seconds: 10));
       }
