@@ -44,14 +44,25 @@ Future<String?> _fetchLatestVersion() async {
     '-s',
     '-H',
     'Accept: application/vnd.github.v3+json',
-    'https://api.github.com/repos/open-ci-io/openci/releases/latest',
+    'https://api.github.com/repos/open-ci-io/openci/releases?per_page=10',
   ]);
 
   if (result.exitCode != 0) return null;
 
-  final json = jsonDecode(result.stdout as String) as Map<String, dynamic>;
-  final tagName = json['tag_name'] as String?;
-  if (tagName == null) return null;
+  final releases = jsonDecode(result.stdout as String) as List<dynamic>;
 
-  return tagName.startsWith('v') ? tagName.substring(1) : tagName;
+  for (final release in releases) {
+    final assets = release['assets'] as List<dynamic>? ?? [];
+    final hasWorkerAsset = assets.any(
+      (a) => (a['name'] as String).startsWith('openci-worker-'),
+    );
+    if (!hasWorkerAsset) continue;
+
+    final tagName = release['tag_name'] as String?;
+    if (tagName == null) continue;
+
+    return tagName.startsWith('v') ? tagName.substring(1) : tagName;
+  }
+
+  return null;
 }
