@@ -11,8 +11,7 @@
   },
   "nav": {
     "workflows": "ワークフロー",
-    "secrets": "シークレット",
-    "envVars": "環境変数",
+    "variables": "変数",
     "logs": "ログ",
     "settings": "設定"
   },
@@ -121,6 +120,11 @@
       "logsCopied": "ログがクリップボードにコピーされました",
       "lines": "$count行"
     }
+  },
+  "variables": {
+    "title": "変数",
+    "envVarsTab": "環境変数",
+    "secretsTab": "シークレット"
   },
   "secrets": {
     "title": "シークレットマネージャー",

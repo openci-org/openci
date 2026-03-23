@@ -8,17 +8,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class SecretManagerPage extends HookConsumerWidget {
-  const SecretManagerPage({super.key});
+class SecretManagerTab extends HookConsumerWidget {
+  const SecretManagerTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(secretManagerProvider);
     final secretsT = t.secrets;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(secretsT.title),
-      ),
+      backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(
@@ -44,7 +42,7 @@ class SecretManagerPage extends HookConsumerWidget {
           ];
           if (secrets.isEmpty) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 360),
@@ -60,6 +58,7 @@ class SecretManagerPage extends HookConsumerWidget {
             );
           }
           return ListView.builder(
+            padding: const EdgeInsets.only(top: 16),
             itemCount: secrets.length + setupCards.length,
             itemBuilder: (context, index) {
               if (index < setupCards.length) {

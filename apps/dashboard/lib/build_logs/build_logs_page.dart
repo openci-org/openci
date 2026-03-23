@@ -37,14 +37,19 @@ class LogsPage extends HookConsumerWidget {
             );
           }
 
-          return Scrollbar(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: buildJobs.length,
-              itemBuilder: (_, index) {
-                final job = buildJobs[index];
-                return BuildJobCard(buildJob: job);
-              },
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Scrollbar(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                  itemCount: buildJobs.length,
+                  itemBuilder: (_, index) {
+                    final job = buildJobs[index];
+                    return BuildJobCard(buildJob: job);
+                  },
+                ),
+              ),
             ),
           );
         },

@@ -42,6 +42,7 @@ class TranslationsEs with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsAuthEs auth = _TranslationsAuthEs._(_root);
 	@override late final _TranslationsWorkflowEs workflow = _TranslationsWorkflowEs._(_root);
 	@override late final _TranslationsBuildLogsEs buildLogs = _TranslationsBuildLogsEs._(_root);
+	@override late final _TranslationsVariablesEs variables = _TranslationsVariablesEs._(_root);
 	@override late final _TranslationsSecretsEs secrets = _TranslationsSecretsEs._(_root);
 	@override late final _TranslationsEnvVarsEs envVars = _TranslationsEnvVarsEs._(_root);
 	@override late final _TranslationsSettingsEs settings = _TranslationsSettingsEs._(_root);
@@ -76,8 +77,7 @@ class _TranslationsNavEs implements TranslationsNavEn {
 
 	// Translations
 	@override String get workflows => 'Flujos de trabajo';
-	@override String get secrets => 'Secretos';
-	@override String get envVars => 'Var. de entorno';
+	@override String get variables => 'Variables';
 	@override String get logs => 'Registros';
 	@override String get settings => 'Configuración';
 }
@@ -134,6 +134,18 @@ class _TranslationsBuildLogsEs implements TranslationsBuildLogsEn {
 	@override String get noJobs => 'No se encontraron trabajos de compilación';
 	@override late final _TranslationsBuildLogsStatusEs status = _TranslationsBuildLogsStatusEs._(_root);
 	@override late final _TranslationsBuildLogsDetailEs detail = _TranslationsBuildLogsDetailEs._(_root);
+}
+
+// Path: variables
+class _TranslationsVariablesEs implements TranslationsVariablesEn {
+	_TranslationsVariablesEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Variables';
+	@override String get envVarsTab => 'Variables de entorno';
+	@override String get secretsTab => 'Secretos';
 }
 
 // Path: secrets
@@ -437,8 +449,7 @@ extension on TranslationsEs {
 			'common.loading' => 'Cargando...',
 			'common.invite' => 'Invitar',
 			'nav.workflows' => 'Flujos de trabajo',
-			'nav.secrets' => 'Secretos',
-			'nav.envVars' => 'Var. de entorno',
+			'nav.variables' => 'Variables',
 			'nav.logs' => 'Registros',
 			'nav.settings' => 'Configuración',
 			'auth.email' => 'Correo electrónico',
@@ -533,6 +544,9 @@ extension on TranslationsEs {
 			'buildLogs.detail.copyAll' => 'Copiar todos los registros',
 			'buildLogs.detail.logsCopied' => 'Registros copiados al portapapeles',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} líneas',
+			'variables.title' => 'Variables',
+			'variables.envVarsTab' => 'Variables de entorno',
+			'variables.secretsTab' => 'Secretos',
 			'secrets.title' => 'Gestor de secretos',
 			'secrets.noSecrets' => 'No se encontraron secretos',
 			'secrets.addSecret' => 'Agregar secreto',

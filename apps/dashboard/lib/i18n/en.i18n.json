@@ -11,8 +11,7 @@
   },
   "nav": {
     "workflows": "Workflows",
-    "secrets": "Secrets",
-    "envVars": "Env Vars",
+    "variables": "Variables",
     "logs": "Logs",
     "settings": "Settings"
   },
@@ -121,6 +120,11 @@
       "logsCopied": "Logs copied to clipboard",
       "lines": "$count lines"
     }
+  },
+  "variables": {
+    "title": "Variables",
+    "envVarsTab": "Environment Variables",
+    "secretsTab": "Secrets"
   },
   "secrets": {
     "title": "Secret Manager",

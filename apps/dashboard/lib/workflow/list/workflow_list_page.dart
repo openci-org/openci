@@ -320,64 +320,72 @@ class _WorkflowBody extends ConsumerWidget {
           );
         }
 
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: ListView.separated(
-            itemCount: files.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final file = files[index];
-              return Card(
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  onTap: () {
-                    final repo = ref
-                        .read(userProvider)
-                        .requireValue
-                        .selectedRepository;
-                    final branch = ref
-                        .read(userProvider)
-                        .requireValue
-                        .selectedBranch;
-                    if (repo == null || branch == null) return;
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => CreateWorkflowPage(
-                          repository: repo,
-                          branch: branch,
-                          teamId: ref.read(teamStateProvider).requireValue.id,
-                          existingFile: file,
-                        ),
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: ListView.separated(
+                itemCount: files.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final file = files[index];
+                  return Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                    );
-                  },
-                  leading: Icon(
-                    Icons.description_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(
-                    file.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      onTap: () {
+                        final repo = ref
+                            .read(userProvider)
+                            .requireValue
+                            .selectedRepository;
+                        final branch = ref
+                            .read(userProvider)
+                            .requireValue
+                            .selectedBranch;
+                        if (repo == null || branch == null) return;
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => CreateWorkflowPage(
+                              repository: repo,
+                              branch: branch,
+                              teamId:
+                                  ref.read(teamStateProvider).requireValue.id,
+                              existingFile: file,
+                            ),
+                          ),
+                        );
+                      },
+                      leading: Icon(
+                        Icons.description_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: Text(
+                        file.name,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      subtitle: Text(
+                        file.path,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            ),
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).disabledColor,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    file.path,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
-                  ),
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(context).disabledColor,
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
         );
       },

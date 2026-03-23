@@ -42,6 +42,7 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsAuthJa auth = _TranslationsAuthJa._(_root);
 	@override late final _TranslationsWorkflowJa workflow = _TranslationsWorkflowJa._(_root);
 	@override late final _TranslationsBuildLogsJa buildLogs = _TranslationsBuildLogsJa._(_root);
+	@override late final _TranslationsVariablesJa variables = _TranslationsVariablesJa._(_root);
 	@override late final _TranslationsSecretsJa secrets = _TranslationsSecretsJa._(_root);
 	@override late final _TranslationsEnvVarsJa envVars = _TranslationsEnvVarsJa._(_root);
 	@override late final _TranslationsSettingsJa settings = _TranslationsSettingsJa._(_root);
@@ -76,8 +77,7 @@ class _TranslationsNavJa implements TranslationsNavEn {
 
 	// Translations
 	@override String get workflows => 'ワークフロー';
-	@override String get secrets => 'シークレット';
-	@override String get envVars => '環境変数';
+	@override String get variables => '変数';
 	@override String get logs => 'ログ';
 	@override String get settings => '設定';
 }
@@ -134,6 +134,18 @@ class _TranslationsBuildLogsJa implements TranslationsBuildLogsEn {
 	@override String get noJobs => 'ビルドジョブが見つかりません';
 	@override late final _TranslationsBuildLogsStatusJa status = _TranslationsBuildLogsStatusJa._(_root);
 	@override late final _TranslationsBuildLogsDetailJa detail = _TranslationsBuildLogsDetailJa._(_root);
+}
+
+// Path: variables
+class _TranslationsVariablesJa implements TranslationsVariablesEn {
+	_TranslationsVariablesJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '変数';
+	@override String get envVarsTab => '環境変数';
+	@override String get secretsTab => 'シークレット';
 }
 
 // Path: secrets
@@ -437,8 +449,7 @@ extension on TranslationsJa {
 			'common.loading' => '読み込み中...',
 			'common.invite' => '招待',
 			'nav.workflows' => 'ワークフロー',
-			'nav.secrets' => 'シークレット',
-			'nav.envVars' => '環境変数',
+			'nav.variables' => '変数',
 			'nav.logs' => 'ログ',
 			'nav.settings' => '設定',
 			'auth.email' => 'メールアドレス',
@@ -533,6 +544,9 @@ extension on TranslationsJa {
 			'buildLogs.detail.copyAll' => 'すべてのログをコピー',
 			'buildLogs.detail.logsCopied' => 'ログがクリップボードにコピーされました',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count}行',
+			'variables.title' => '変数',
+			'variables.envVarsTab' => '環境変数',
+			'variables.secretsTab' => 'シークレット',
 			'secrets.title' => 'シークレットマネージャー',
 			'secrets.noSecrets' => 'シークレットが見つかりません',
 			'secrets.addSecret' => 'シークレット追加',

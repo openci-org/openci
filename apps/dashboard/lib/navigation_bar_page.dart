@@ -1,11 +1,10 @@
 import 'package:dashboard/build_logs/build_logs_page.dart';
-import 'package:dashboard/environment_variables/environment_variables_page.dart';
 import 'package:dashboard/i18n/strings.g.dart';
-import 'package:dashboard/secret_manager/secret_manager_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/breakpoint.dart';
+import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
@@ -27,27 +26,21 @@ class NavigationBarPage extends HookConsumerWidget {
 
     final pages = [
       WorkflowListPage(key: ValueKey('workflow_$locale')),
-      SecretManagerPage(key: ValueKey('secrets_$locale')),
-      EnvironmentVariablesPage(key: ValueKey('envVars_$locale')),
+      VariablesPage(key: ValueKey('variables_$locale')),
       LogsPage(key: ValueKey('logs_$locale')),
       SettingsPage(key: ValueKey('settings_$locale')),
     ];
 
     final navigationDestinations = [
       NavigationDestination(
-        selectedIcon: Icon(Icons.account_tree),
-        icon: Icon(Symbols.account_tree_rounded),
+        selectedIcon: Icon(Icons.bolt),
+        icon: Icon(Symbols.bolt_rounded),
         label: navT.workflows,
       ),
       NavigationDestination(
         selectedIcon: Icon(Icons.key),
         icon: Icon(Symbols.key_rounded),
-        label: navT.secrets,
-      ),
-      NavigationDestination(
-        selectedIcon: Icon(Icons.data_object),
-        icon: Icon(Symbols.data_object_rounded),
-        label: navT.envVars,
+        label: navT.variables,
       ),
       NavigationDestination(
         selectedIcon: Icon(Icons.article),
@@ -69,7 +62,7 @@ class NavigationBarPage extends HookConsumerWidget {
       },
       data: (team) {
         final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
-        if (isGitHubConnected || currentPageIndex.value == 4) {
+        if (isGitHubConnected || currentPageIndex.value == 3) {
           return pages[currentPageIndex.value];
         }
         return Center(
@@ -121,6 +114,7 @@ class NavigationBarPage extends HookConsumerWidget {
                   onDestinationSelected: (int index) =>
                       currentPageIndex.value = index,
                   labelType: NavigationRailLabelType.selected,
+                  leading: const SizedBox(height: 16),
                   destinations: navigationDestinations
                       .map(
                         (d) => NavigationRailDestination(
