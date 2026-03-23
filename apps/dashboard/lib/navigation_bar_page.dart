@@ -33,8 +33,8 @@ class NavigationBarPage extends HookConsumerWidget {
 
     final navigationDestinations = [
       NavigationDestination(
-        selectedIcon: Icon(Icons.account_tree),
-        icon: Icon(Symbols.account_tree_rounded),
+        selectedIcon: Icon(Icons.bolt),
+        icon: Icon(Symbols.bolt_rounded),
         label: navT.workflows,
       ),
       NavigationDestination(
@@ -114,6 +114,7 @@ class NavigationBarPage extends HookConsumerWidget {
                   onDestinationSelected: (int index) =>
                       currentPageIndex.value = index,
                   labelType: NavigationRailLabelType.selected,
+                  leading: const SizedBox(height: 16),
                   destinations: navigationDestinations
                       .map(
                         (d) => NavigationRailDestination(
