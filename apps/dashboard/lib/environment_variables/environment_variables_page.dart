@@ -6,17 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class EnvironmentVariablesPage extends HookConsumerWidget {
-  const EnvironmentVariablesPage({super.key});
+class EnvironmentVariablesTab extends HookConsumerWidget {
+  const EnvironmentVariablesTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(environmentVariableManagerProvider);
     final envT = t.envVars;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(envT.title),
-      ),
+      backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(

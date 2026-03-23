@@ -45,6 +45,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final TranslationsAuthEn auth = TranslationsAuthEn._(_root);
 	late final TranslationsWorkflowEn workflow = TranslationsWorkflowEn._(_root);
 	late final TranslationsBuildLogsEn buildLogs = TranslationsBuildLogsEn._(_root);
+	late final TranslationsVariablesEn variables = TranslationsVariablesEn._(_root);
 	late final TranslationsSecretsEn secrets = TranslationsSecretsEn._(_root);
 	late final TranslationsEnvVarsEn envVars = TranslationsEnvVarsEn._(_root);
 	late final TranslationsSettingsEn settings = TranslationsSettingsEn._(_root);
@@ -98,11 +99,8 @@ class TranslationsNavEn {
 	/// en: 'Workflows'
 	String get workflows => 'Workflows';
 
-	/// en: 'Secrets'
-	String get secrets => 'Secrets';
-
-	/// en: 'Env Vars'
-	String get envVars => 'Env Vars';
+	/// en: 'Variables'
+	String get variables => 'Variables';
 
 	/// en: 'Logs'
 	String get logs => 'Logs';
@@ -212,6 +210,24 @@ class TranslationsBuildLogsEn {
 
 	late final TranslationsBuildLogsStatusEn status = TranslationsBuildLogsStatusEn._(_root);
 	late final TranslationsBuildLogsDetailEn detail = TranslationsBuildLogsDetailEn._(_root);
+}
+
+// Path: variables
+class TranslationsVariablesEn {
+	TranslationsVariablesEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Variables'
+	String get title => 'Variables';
+
+	/// en: 'Environment Variables'
+	String get envVarsTab => 'Environment Variables';
+
+	/// en: 'Secrets'
+	String get secretsTab => 'Secrets';
 }
 
 // Path: secrets
@@ -866,8 +882,7 @@ extension on Translations {
 			'common.loading' => 'Loading...',
 			'common.invite' => 'Invite',
 			'nav.workflows' => 'Workflows',
-			'nav.secrets' => 'Secrets',
-			'nav.envVars' => 'Env Vars',
+			'nav.variables' => 'Variables',
 			'nav.logs' => 'Logs',
 			'nav.settings' => 'Settings',
 			'auth.email' => 'Email',
@@ -962,6 +977,9 @@ extension on Translations {
 			'buildLogs.detail.copyAll' => 'Copy all logs',
 			'buildLogs.detail.logsCopied' => 'Logs copied to clipboard',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} lines',
+			'variables.title' => 'Variables',
+			'variables.envVarsTab' => 'Environment Variables',
+			'variables.secretsTab' => 'Secrets',
 			'secrets.title' => 'Secret Manager',
 			'secrets.noSecrets' => 'No secrets found',
 			'secrets.addSecret' => 'Add Secret',

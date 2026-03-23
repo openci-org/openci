@@ -11,8 +11,7 @@
   },
   "nav": {
     "workflows": "Flujos de trabajo",
-    "secrets": "Secretos",
-    "envVars": "Var. de entorno",
+    "variables": "Variables",
     "logs": "Registros",
     "settings": "Configuración"
   },
@@ -121,6 +120,11 @@
       "logsCopied": "Registros copiados al portapapeles",
       "lines": "$count líneas"
     }
+  },
+  "variables": {
+    "title": "Variables",
+    "envVarsTab": "Variables de entorno",
+    "secretsTab": "Secretos"
   },
   "secrets": {
     "title": "Gestor de secretos",

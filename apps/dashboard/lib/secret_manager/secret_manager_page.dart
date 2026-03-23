@@ -8,17 +8,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class SecretManagerPage extends HookConsumerWidget {
-  const SecretManagerPage({super.key});
+class SecretManagerTab extends HookConsumerWidget {
+  const SecretManagerTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(secretManagerProvider);
     final secretsT = t.secrets;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(secretsT.title),
-      ),
+      backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(
