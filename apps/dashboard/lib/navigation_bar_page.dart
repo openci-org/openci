@@ -1,10 +1,10 @@
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/i18n/strings.g.dart';
-import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/breakpoint.dart';
+import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
@@ -146,4 +146,3 @@ class NavigationBarPage extends HookConsumerWidget {
     );
   }
 }
-

@@ -42,7 +42,7 @@ class SecretManagerTab extends HookConsumerWidget {
           ];
           if (secrets.isEmpty) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 360),
@@ -58,6 +58,7 @@ class SecretManagerTab extends HookConsumerWidget {
             );
           }
           return ListView.builder(
+            padding: const EdgeInsets.only(top: 16),
             itemCount: secrets.length + setupCards.length,
             itemBuilder: (context, index) {
               if (index < setupCards.length) {

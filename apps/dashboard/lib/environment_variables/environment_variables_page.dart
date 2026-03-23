@@ -38,6 +38,7 @@ class EnvironmentVariablesTab extends HookConsumerWidget {
           }
 
           return ListView(
+            padding: const EdgeInsets.only(top: 16),
             children: [
               ...builtIn.map((envVar) => _BuiltInEnvVarTile(envVar: envVar)),
               if (custom.isEmpty && builtIn.isNotEmpty)
