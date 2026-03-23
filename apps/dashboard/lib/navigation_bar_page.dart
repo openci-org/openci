@@ -4,6 +4,7 @@ import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/breakpoint.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
@@ -30,83 +31,118 @@ class NavigationBarPage extends HookConsumerWidget {
       SettingsPage(key: ValueKey('settings_$locale')),
     ];
 
-    return Scaffold(
-      bottomNavigationBar: NavigationBar(
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        selectedIndex: currentPageIndex.value,
-        onDestinationSelected: (int index) => currentPageIndex.value = index,
-        destinations: [
-          NavigationDestination(
-            selectedIcon: Icon(Icons.account_tree),
-            icon: Icon(Symbols.account_tree_rounded),
-            label: navT.workflows,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.key),
-            icon: Icon(Symbols.key_rounded),
-            label: navT.variables,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.article),
-            icon: Icon(Symbols.article_rounded),
-            label: navT.logs,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings_outlined),
-            label: navT.settings,
-          ),
-        ],
+    final navigationDestinations = [
+      NavigationDestination(
+        selectedIcon: Icon(Icons.account_tree),
+        icon: Icon(Symbols.account_tree_rounded),
+        label: navT.workflows,
       ),
-      body: teamState.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: (e, _) {
-          debugPrint(e.toString());
-          return Center(child: Text(e.toString()));
-        },
-        data: (team) {
-          final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
-          if (isGitHubConnected || currentPageIndex.value == 3) {
-            return pages[currentPageIndex.value];
-          }
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 320),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (_) => const SwitchTeamBottomSheet(),
-                        );
-                      },
-                      icon: const Icon(Icons.swap_horiz),
-                      label: Text(
-                        team.name,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.key),
+        icon: Icon(Symbols.key_rounded),
+        label: navT.variables,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.article),
+        icon: Icon(Symbols.article_rounded),
+        label: navT.logs,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.settings),
+        icon: Icon(Icons.settings_outlined),
+        label: navT.settings,
+      ),
+    ];
+
+    final body = teamState.when(
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (e, _) {
+        debugPrint(e.toString());
+        return Center(child: Text(e.toString()));
+      },
+      data: (team) {
+        final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
+        if (isGitHubConnected || currentPageIndex.value == 3) {
+          return pages[currentPageIndex.value];
+        }
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (_) => const SwitchTeamBottomSheet(),
+                      );
+                    },
+                    icon: const Icon(Icons.swap_horiz),
+                    label: Text(
+                      team.name,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 16),
-                    GitHubConnectionBanner(
-                      onConnectPressed: () async {
-                        final url = Uri.parse(
-                          'https://github.com/apps/openci-org/installations/new',
-                        ).replace(queryParameters: {'state': team.id});
-                        await url_launcher.launchUrl(url);
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  GitHubConnectionBanner(
+                    onConnectPressed: () async {
+                      final url = Uri.parse(
+                        'https://github.com/apps/openci-org/installations/new',
+                      ).replace(queryParameters: {'state': team.id});
+                      await url_launcher.launchUrl(url);
+                    },
+                  ),
+                ],
               ),
             ),
+          ),
+        );
+      },
+    );
+
+    return LayoutBuilder(
+      builder: (_, constraints) {
+        if (constraints.maxWidth >= Breakpoint.tablet.width) {
+          return Scaffold(
+            body: Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: currentPageIndex.value,
+                  onDestinationSelected: (int index) =>
+                      currentPageIndex.value = index,
+                  labelType: NavigationRailLabelType.selected,
+                  destinations: navigationDestinations
+                      .map(
+                        (d) => NavigationRailDestination(
+                          selectedIcon: d.selectedIcon,
+                          icon: d.icon,
+                          label: Text(d.label),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(child: body),
+              ],
+            ),
           );
-        },
-      ),
+        }
+
+        return Scaffold(
+          bottomNavigationBar: NavigationBar(
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            selectedIndex: currentPageIndex.value,
+            onDestinationSelected: (int index) =>
+                currentPageIndex.value = index,
+            destinations: navigationDestinations,
+          ),
+          body: body,
+        );
+      },
     );
   }
 }
+
