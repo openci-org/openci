@@ -37,7 +37,7 @@ class User extends _$User {
   Stream<OpenCIUser> fetchUser() {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -56,7 +56,7 @@ class User extends _$User {
   Future<void> updateSelectedTeamId(String teamId) async {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -72,7 +72,7 @@ class User extends _$User {
   ) async {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -84,7 +84,7 @@ class User extends _$User {
   Future<void> addFcmToken(String token) async {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -104,7 +104,7 @@ class User extends _$User {
   }) async {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -117,7 +117,7 @@ class User extends _$User {
   Future<void> updateSelectedBranch(String branch) async {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }

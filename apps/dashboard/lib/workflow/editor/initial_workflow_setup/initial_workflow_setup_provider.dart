@@ -45,7 +45,9 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     required String selectedWorkingDirectory,
   }) async {
     final documentId = Uuid().v4();
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
+    final team = ref.watch(teamStateProvider).value;
+    if (team == null) throw StateError('team is not loaded yet');
+    final teamId = team.id;
 
     await ref
         .read(firestoreProvider.notifier)

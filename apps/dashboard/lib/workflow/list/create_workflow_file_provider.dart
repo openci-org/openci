@@ -35,7 +35,8 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
   }) async {
     state = const AsyncLoading();
 
-    final team = ref.read(teamStateProvider).requireValue;
+    final team = ref.read(teamStateProvider).value;
+    if (team == null) throw StateError('team is not loaded yet');
     final functions = ref.read(functionsProvider);
 
     try {

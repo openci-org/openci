@@ -387,8 +387,9 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                                   final functions = ref.read(functionsProvider);
                                   final teamId = ref
                                       .read(teamStateProvider)
-                                      .requireValue
-                                      .id;
+                                      .value
+                                      ?.id;
+                                  if (teamId == null) return;
                                   final result = await functions
                                   .httpsCallable(createSecretFunction)
                                       .call({

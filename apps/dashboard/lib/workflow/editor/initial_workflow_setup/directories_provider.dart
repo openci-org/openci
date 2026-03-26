@@ -17,7 +17,8 @@ Future<List<String>> directories(Ref ref) async {
 
   if (selectedRepository.isEmpty) return [];
 
-  final team = ref.watch(teamStateProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  if (team == null) return [];
   final functions = ref.watch(functionsProvider);
 
   final result = await functions.httpsCallable(listDirectoriesFunction).call({

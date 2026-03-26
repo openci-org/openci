@@ -18,7 +18,8 @@ class SecretManager extends _$SecretManager {
 
   Stream<List<Secret>> secretsStream() {
     final firestore = ref.read(firestoreProvider.notifier).state;
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
+    final teamId = ref.watch(teamStateProvider).value?.id;
+    if (teamId == null) return Stream.value([]);
     return firestore
         .collection(secretsCollection)
         .withConverter(
@@ -32,7 +33,8 @@ class SecretManager extends _$SecretManager {
 
   Future<void> addSecret(String name, String value) async {
     final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
     await functions.httpsCallable(createSecretFunction).call({
       'name': name,
       'value': value,
@@ -46,7 +48,8 @@ class SecretManager extends _$SecretManager {
     String? value,
   }) async {
     final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
     await functions.httpsCallable(updateSecretFunction).call({
       'documentId': documentId,
       'name': name,
@@ -57,7 +60,8 @@ class SecretManager extends _$SecretManager {
 
   Future<void> deleteSecret({required String documentId}) async {
     final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
     await functions.httpsCallable(deleteSecretFunction).call({
       'documentId': documentId,
       'teamId': teamId,
@@ -66,7 +70,8 @@ class SecretManager extends _$SecretManager {
 
   Future<void> generateCertificateKey() async {
     final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
     await functions
         .httpsCallable(generateCertificateKeyFunction)
         .call({'teamId': teamId});
@@ -78,7 +83,8 @@ class SecretManager extends _$SecretManager {
     required String privateKey,
   }) async {
     final functions = ref.read(functionsProvider);
-    final teamId = ref.read(teamStateProvider).requireValue.id;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
     await functions.httpsCallable(setupAscApiKeyFunction).call({
       'teamId': teamId,
       'issuerId': issuerId,

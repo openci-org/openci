@@ -23,7 +23,8 @@ abstract class GitHubRepo with _$GitHubRepo {
 
 @riverpod
 Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
-  final team = ref.watch(teamStateProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  if (team == null) return [];
   final functions = ref.watch(functionsProvider);
 
   final result = await functions.httpsCallable(listRepositoriesFunction).call({
@@ -42,7 +43,8 @@ Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
 
 @riverpod
 Future<List<String>> gitHubBranches(Ref ref, String repoFullName) async {
-  final team = ref.watch(teamStateProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  if (team == null) return [];
   final functions = ref.watch(functionsProvider);
 
   final result = await functions.httpsCallable(listBranchesFunction).call({

@@ -14,7 +14,8 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   @override
   Stream<List<EnvironmentVariable>> build() {
     final firestore = ref.read(firestoreProvider.notifier).state;
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
+    final teamId = ref.watch(teamStateProvider).value?.id;
+    if (teamId == null) return Stream.value([]);
 
     return firestore
         .collection(environmentVariablesCollection)
@@ -34,7 +35,8 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     String value,
   ) async {
     final firestore = ref.read(firestoreProvider.notifier).state;
-    final teamId = ref.read(teamStateProvider).requireValue.id;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
     final docRef = firestore.collection(environmentVariablesCollection).doc();
     await docRef.set(
       EnvironmentVariable(

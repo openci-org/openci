@@ -10,7 +10,8 @@ part 'workflow_list_provider.g.dart';
 class WorkflowList extends _$WorkflowList {
   @override
   Stream<List<Workflow>> build() {
-    final team = ref.watch(teamStateProvider).requireValue;
+    final team = ref.watch(teamStateProvider).value;
+    if (team == null) return Stream.value([]);
     return ref
         .read(firestoreProvider)
         .collection(workflowsCollection)
