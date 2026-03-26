@@ -43,6 +43,11 @@ service cloud.firestore {
             allow read, update, delete: if isTeamMember(resource.data.teamId);
         }
 
+        match /workflow_files_v0/{fileId} {
+            allow read: if isTeamMember(resource.data.teamId);
+            allow write: if false;
+        }
+
         match /teams_v0/{teamId} {
             allow create: if isAuthenticated();
             allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;

@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -86,7 +87,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                             try {
                               await ref
                                   .read(functionsProvider)
-                                  .httpsCallable('inviteTeamMember')
+                                  .httpsCallable(inviteTeamMemberFunction)
                                   .call({
                                     'email': emailController.text.trim(),
                                     'teamId': selectedTeamId.value,

@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "../firebase";
 import { buildJobsCollectionPath } from "../firestore-collection-paths";
 import { OPENCI_DIR_QUERY, OpenciDirEntry } from "./queries";
+import { syncWorkflowFilesToFirestore } from "./sync-workflow-files";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -66,6 +67,27 @@ export const githubApp = onRequest(
         } else {
           logger.info(`Push to ${body.ref}`, { structuredData: true });
           result = await createBuildJobs(app, eventData);
+
+          // Sync .openci/ workflow files to Firestore
+          const pushBranch = body.ref.replace("refs/heads/", "");
+          const pushRepo = body.repository?.full_name;
+          const pushInstallationId = body.installation?.id;
+          if (pushRepo && pushInstallationId) {
+            try {
+              const pushTeamId = await findTeamIdForInstallation(pushInstallationId);
+              if (pushTeamId) {
+                const octokit = await app.getInstallationOctokit(pushInstallationId);
+                await syncWorkflowFilesToFirestore({
+                  teamId: pushTeamId,
+                  repository: pushRepo,
+                  branch: pushBranch,
+                  octokit,
+                });
+              }
+            } catch (syncError) {
+              logger.error("Failed to sync workflow files on push", syncError);
+            }
+          }
         }
       } else if (event === "create") {
         if (body.ref_type === "tag") {

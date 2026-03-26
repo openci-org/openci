@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -38,7 +39,7 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
     final functions = ref.read(functionsProvider);
 
     try {
-      final result = await functions.httpsCallable('createWorkflowFile').call({
+      final result = await functions.httpsCallable(createWorkflowFileFunction).call({
         'teamId': team.id,
         'repository': repository,
         'branch': branch,

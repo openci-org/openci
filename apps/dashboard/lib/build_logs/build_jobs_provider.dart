@@ -31,14 +31,14 @@ class BuildJobs extends _$BuildJobs {
 
   Future<void> retryBuildJob(String buildJobId) async {
     final functions = ref.watch(functionsProvider);
-    await functions.httpsCallable('retryBuildJob').call({
+    await functions.httpsCallable(retryBuildJobFunction).call({
       'buildJobId': buildJobId,
     });
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
     final functions = ref.watch(functionsProvider);
-    await functions.httpsCallable('cancelBuildJob').call({
+    await functions.httpsCallable(cancelBuildJobFunction).call({
       'buildJobId': buildJobId,
     });
   }

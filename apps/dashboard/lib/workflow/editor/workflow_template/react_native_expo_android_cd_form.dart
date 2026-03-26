@@ -234,7 +234,7 @@ class ReactNativeExpoAndroidCdForm extends HookConsumerWidget {
                             final teamId =
                                 ref.read(teamStateProvider).requireValue.id;
                             final createSecret = functions.httpsCallable(
-                              'createSecretV1',
+                              createSecretFunction,
                             );
 
                             // Create secrets
