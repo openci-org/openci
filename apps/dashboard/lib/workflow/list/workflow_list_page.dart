@@ -48,7 +48,7 @@ class WorkflowListPage extends ConsumerWidget {
                         builder: (_) => CreateWorkflowPage(
                           repository: selectedRepo,
                           branch: selectedBranch,
-                          teamId: ref.read(teamStateProvider).requireValue.id,
+                          teamId: ref.read(teamStateProvider).value?.id ?? '',
                         ),
                       ),
                     );
@@ -364,12 +364,12 @@ class _WorkflowBody extends ConsumerWidget {
                       onTap: () {
                         final repo = ref
                             .read(userProvider)
-                            .requireValue
-                            .selectedRepository;
+                            .value
+                            ?.selectedRepository;
                         final branch = ref
                             .read(userProvider)
-                            .requireValue
-                            .selectedBranch;
+                            .value
+                            ?.selectedBranch;
                         if (repo == null || branch == null) return;
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -377,7 +377,7 @@ class _WorkflowBody extends ConsumerWidget {
                               repository: repo,
                               branch: branch,
                               teamId:
-                                  ref.read(teamStateProvider).requireValue.id,
+                                  ref.read(teamStateProvider).value?.id ?? '',
                               existingFile: file,
                             ),
                           ),

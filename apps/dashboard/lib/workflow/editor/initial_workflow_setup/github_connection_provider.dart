@@ -5,6 +5,7 @@ part 'github_connection_provider.g.dart';
 
 @riverpod
 bool isGitHubConnected(Ref ref) {
-  final team = ref.watch(teamStateProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  if (team == null) return false;
   return team.installationIds.isNotEmpty;
 }

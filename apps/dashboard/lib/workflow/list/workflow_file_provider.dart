@@ -23,8 +23,12 @@ abstract class WorkflowFile with _$WorkflowFile {
 
 @riverpod
 Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
-  final team = ref.watch(teamStateProvider).requireValue;
-  final user = ref.watch(userProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  final user = ref.watch(userProvider).value;
+
+  if (team == null || user == null) {
+    return Stream.value([]);
+  }
 
   final selectedRepo = user.selectedRepository;
   final selectedBranch = user.selectedBranch;
@@ -55,8 +59,13 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
 
 @riverpod
 Future<void> syncWorkflowFiles(Ref ref) async {
-  final team = ref.watch(teamStateProvider).requireValue;
-  final user = ref.watch(userProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  final user = ref.watch(userProvider).value;
+
+  if (team == null || user == null) {
+    throw StateError('team or user is not loaded yet');
+  }
+
   final functions = ref.read(functionsProvider);
 
   final selectedRepo = user.selectedRepository;

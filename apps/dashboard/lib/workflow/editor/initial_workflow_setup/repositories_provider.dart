@@ -23,7 +23,8 @@ abstract class GitHubRepository with _$GitHubRepository {
 
 @riverpod
 Future<List<GitHubRepository>> repositories(Ref ref) async {
-  final team = ref.watch(teamStateProvider).requireValue;
+  final team = ref.watch(teamStateProvider).value;
+  if (team == null) return [];
   final functions = ref.watch(functionsProvider);
 
   final result = await functions.httpsCallable(listRepositoriesFunction).call({

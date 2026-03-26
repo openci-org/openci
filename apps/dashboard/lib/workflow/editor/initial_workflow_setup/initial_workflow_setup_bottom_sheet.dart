@@ -20,7 +20,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(initialWorkflowSetupProvider);
     final controller = ref.read(initialWorkflowSetupProvider.notifier);
-    final team = ref.watch(teamStateProvider).requireValue;
+    final team = ref.watch(teamStateProvider).value;
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
     final nameController = useTextEditingController();
@@ -72,7 +72,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                       onConnectPressed: () async {
                         final url = Uri.parse(
                           'https://github.com/apps/openci-org/installations/new',
-                        ).replace(queryParameters: {'state': team.id});
+                        ).replace(queryParameters: {'state': team?.id ?? ''});
                         await url_launcher.launchUrl(url);
                       },
                     ),

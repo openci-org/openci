@@ -14,7 +14,8 @@ class BuildJobs extends _$BuildJobs {
   @override
   Stream<List<BuildJob>> build() {
     final firestore = ref.watch(firestoreProvider);
-    final teamId = ref.watch(teamStateProvider).requireValue.id;
+    final teamId = ref.watch(teamStateProvider).value?.id;
+    if (teamId == null) return Stream.value([]);
 
     return firestore
         .collection(buildJobsCollection)

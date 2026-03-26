@@ -45,8 +45,11 @@ final teamList = [
 class TeamState extends _$TeamState {
   @override
   Stream<Team> build() {
-    final user = ref.watch(userProvider).requireValue;
-    final teamList = ref.watch(teamListProvider).requireValue;
+    final user = ref.watch(userProvider).value;
+    final teamList = ref.watch(teamListProvider).value;
+    if (user == null || teamList == null) {
+      return const Stream.empty();
+    }
     return Stream.value(
       teamList.firstWhere((team) => team.id == user.selectedTeamId),
     );
@@ -63,7 +66,7 @@ class TeamList extends _$TeamList {
   Stream<List<Team>> fetchTeamList() {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -81,7 +84,7 @@ class TeamList extends _$TeamList {
   Future<void> createTeam(String teamName) async {
     final firestore = ref.read(firestoreProvider);
     final auth = ref.read(authProvider);
-    final currentUserId = auth.requireValue?.uid;
+    final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
