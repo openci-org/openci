@@ -1,3 +1,5 @@
+import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
@@ -20,28 +22,53 @@ abstract class WorkflowFile with _$WorkflowFile {
 }
 
 @riverpod
-Future<List<WorkflowFile>> workflowFiles(Ref ref) async {
+Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
   final team = ref.watch(teamStateProvider).requireValue;
   final user = ref.watch(userProvider).requireValue;
-  final functions = ref.watch(functionsProvider);
+
+  final selectedRepo = user.selectedRepository;
+  final selectedBranch = user.selectedBranch;
+
+  if (selectedRepo == null || selectedBranch == null) {
+    return Stream.value([]);
+  }
+
+  return ref
+      .read(firestoreProvider)
+      .collection(workflowFilesCollection)
+      .where('teamId', isEqualTo: team.id)
+      .where('repository', isEqualTo: selectedRepo)
+      .where('branch', isEqualTo: selectedBranch)
+      .orderBy('fileName')
+      .snapshots()
+      .map(
+        (qs) => qs.docs.map((d) {
+          final data = d.data();
+          return WorkflowFile(
+            name: data['fileName'] as String,
+            path: data['filePath'] as String,
+            content: data['content'] as String,
+          );
+        }).toList(),
+      );
+}
+
+@riverpod
+Future<void> syncWorkflowFiles(Ref ref) async {
+  final team = ref.watch(teamStateProvider).requireValue;
+  final user = ref.watch(userProvider).requireValue;
+  final functions = ref.read(functionsProvider);
 
   final selectedRepo = user.selectedRepository;
   final selectedBranch = user.selectedBranch;
 
   if (selectedRepo == null) {
-    return [];
+    throw StateError('selectedRepository is null');
   }
 
-  final result = await functions.httpsCallable('listWorkflowFiles').call({
+  await functions.httpsCallable(syncWorkflowFilesFunction).call({
     'teamId': team.id,
     'repository': selectedRepo,
-    'branch': ?selectedBranch,
+    'branch': selectedBranch,
   });
-
-  final data = result.data as Map<String, dynamic>;
-  final files = (data['files'] as List<dynamic>)
-      .map((e) => WorkflowFile.fromJson(Map<String, Object?>.from(e as Map)))
-      .toList();
-
-  return files;
 }

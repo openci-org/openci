@@ -271,6 +271,9 @@ class WorkflowListPage extends ConsumerWidget {
                   onShowSetupSheet: () {
                     // TODO(mafreud): fix
                   },
+                  onSync: () {
+                    ref.invalidate(syncWorkflowFilesProvider);
+                  },
                 ),
         );
       },
@@ -279,9 +282,13 @@ class WorkflowListPage extends ConsumerWidget {
 }
 
 class _WorkflowBody extends ConsumerWidget {
-  const _WorkflowBody({required this.onShowSetupSheet});
+  const _WorkflowBody({
+    required this.onShowSetupSheet,
+    required this.onSync,
+  });
 
   final VoidCallback onShowSetupSheet;
+  final VoidCallback onSync;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -293,6 +300,16 @@ class _WorkflowBody extends ConsumerWidget {
       error: asyncErrorWidget,
       data: (files) {
         if (files.isEmpty) {
+          final syncState = ref.watch(syncWorkflowFilesProvider);
+
+          // sync中はローディングだけ表示
+          if (syncState.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator.adaptive(),
+            );
+          }
+
+          // sync完了後も空 → 本当にファイルがない
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -314,6 +331,12 @@ class _WorkflowBody extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).hintColor,
                   ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: onSync,
+                  icon: const Icon(Icons.sync),
+                  label: const Text('Sync from GitHub'),
                 ),
               ],
             ),

@@ -35,11 +35,11 @@ final class WorkflowFilesProvider
         $FunctionalProvider<
           AsyncValue<List<WorkflowFile>>,
           List<WorkflowFile>,
-          FutureOr<List<WorkflowFile>>
+          Stream<List<WorkflowFile>>
         >
     with
         $FutureModifier<List<WorkflowFile>>,
-        $FutureProvider<List<WorkflowFile>> {
+        $StreamProvider<List<WorkflowFile>> {
   WorkflowFilesProvider._()
     : super(
         from: null,
@@ -56,14 +56,47 @@ final class WorkflowFilesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<WorkflowFile>> $createElement(
+  $StreamProviderElement<List<WorkflowFile>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<WorkflowFile>> create(Ref ref) {
+  Stream<List<WorkflowFile>> create(Ref ref) {
     return workflowFiles(ref);
   }
 }
 
-String _$workflowFilesHash() => r'36f5a5be1992712227289dc16c0887fe7b2833bc';
+String _$workflowFilesHash() => r'b75ddd7cdd14578175c40a757cb27ed61ece5bcf';
+
+@ProviderFor(syncWorkflowFiles)
+final syncWorkflowFilesProvider = SyncWorkflowFilesProvider._();
+
+final class SyncWorkflowFilesProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  SyncWorkflowFilesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'syncWorkflowFilesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$syncWorkflowFilesHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    return syncWorkflowFiles(ref);
+  }
+}
+
+String _$syncWorkflowFilesHash() => r'ce76cf44efa5d06637c1e8677b1eeb509eaca2bb';

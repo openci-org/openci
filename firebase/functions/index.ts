@@ -10,6 +10,7 @@ export { listDirectories } from "./src/github/list-directories";
 export { listRepositories } from "./src/github/list-repositories";
 export { listWorkflowFiles } from "./src/github/list-workflow-files";
 export { searchGitHubActions } from "./src/github/search-github-actions";
+export { syncWorkflowFiles } from "./src/github/sync-workflow-files";
 export { inviteTeamMember } from "./src/invite-team-member";
 export { retryBuildJob } from "./src/retry-build-job";
 export { onBuildJobStatusChange } from "./src/send-build-notification";

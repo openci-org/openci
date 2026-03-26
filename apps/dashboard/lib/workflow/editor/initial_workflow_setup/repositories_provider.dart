@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -25,7 +26,7 @@ Future<List<GitHubRepository>> repositories(Ref ref) async {
   final team = ref.watch(teamStateProvider).requireValue;
   final functions = ref.watch(functionsProvider);
 
-  final result = await functions.httpsCallable('listRepositories').call({
+  final result = await functions.httpsCallable(listRepositoriesFunction).call({
     'teamId': team.id,
   });
 

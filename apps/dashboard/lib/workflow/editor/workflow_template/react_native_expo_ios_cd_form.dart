@@ -158,7 +158,7 @@ class ReactNativeExpoIosCdForm extends HookConsumerWidget {
                             final teamId =
                                 ref.read(teamStateProvider).requireValue.id;
                             final createSecret = functions.httpsCallable(
-                              'createSecretV1',
+                              createSecretFunction,
                             );
 
                             final issuerIdSecretDocumentId =

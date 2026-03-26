@@ -390,7 +390,7 @@ class SaveSecretFileTemplate extends HookConsumerWidget {
                                       .requireValue
                                       .id;
                                   final result = await functions
-                                      .httpsCallable(callableFunctionPath)
+                                  .httpsCallable(createSecretFunction)
                                       .call({
                                     'name': secretNameController.text,
                                     'value': uploadedBase64.value!,

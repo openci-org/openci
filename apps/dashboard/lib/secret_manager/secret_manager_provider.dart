@@ -33,7 +33,7 @@ class SecretManager extends _$SecretManager {
   Future<void> addSecret(String name, String value) async {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).requireValue.id;
-    await functions.httpsCallable(callableFunctionPath).call({
+    await functions.httpsCallable(createSecretFunction).call({
       'name': name,
       'value': value,
       'teamId': teamId,
@@ -47,7 +47,7 @@ class SecretManager extends _$SecretManager {
   }) async {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).requireValue.id;
-    await functions.httpsCallable(updateSecretCallableFunctionPath).call({
+    await functions.httpsCallable(updateSecretFunction).call({
       'documentId': documentId,
       'name': name,
       if (value != null && value.isNotEmpty) 'value': value,
@@ -58,7 +58,7 @@ class SecretManager extends _$SecretManager {
   Future<void> deleteSecret({required String documentId}) async {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).requireValue.id;
-    await functions.httpsCallable(deleteSecretCallableFunctionPath).call({
+    await functions.httpsCallable(deleteSecretFunction).call({
       'documentId': documentId,
       'teamId': teamId,
     });
@@ -68,7 +68,7 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).requireValue.id;
     await functions
-        .httpsCallable(generateCertificateKeyCallableFunctionPath)
+        .httpsCallable(generateCertificateKeyFunction)
         .call({'teamId': teamId});
   }
 
@@ -79,7 +79,7 @@ class SecretManager extends _$SecretManager {
   }) async {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).requireValue.id;
-    await functions.httpsCallable(setupAscApiKeyCallableFunctionPath).call({
+    await functions.httpsCallable(setupAscApiKeyFunction).call({
       'teamId': teamId,
       'issuerId': issuerId,
       'keyId': keyId,

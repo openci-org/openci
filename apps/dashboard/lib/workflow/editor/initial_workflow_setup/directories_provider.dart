@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
@@ -19,7 +20,7 @@ Future<List<String>> directories(Ref ref) async {
   final team = ref.watch(teamStateProvider).requireValue;
   final functions = ref.watch(functionsProvider);
 
-  final result = await functions.httpsCallable('listDirectories').call({
+  final result = await functions.httpsCallable(listDirectoriesFunction).call({
     'teamId': team.id,
     'repository': selectedRepository,
   });
