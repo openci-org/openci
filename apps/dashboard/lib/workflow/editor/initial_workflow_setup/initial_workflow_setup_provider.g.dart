@@ -66,7 +66,7 @@ final class InitialWorkflowSetupProvider
 }
 
 String _$initialWorkflowSetupHash() =>
-    r'a750a8f790b00b3b66277bb219bdeb2f7cc9e2b1';
+    r'08e6cb2947b173b9ead1b0650fccb26de001903d';
 
 abstract class _$InitialWorkflowSetup
     extends $Notifier<InitialWorkflowSetupState> {

@@ -792,6 +792,12 @@ class TranslationsBuildLogsDetailEn {
 
 	// Translations
 
+	/// en: 'View Details'
+	String get viewDetails => 'View Details';
+
+	/// en: 'Retry'
+	String get retry => 'Retry';
+
 	/// en: 'Cancel Build'
 	String get cancelBuild => 'Cancel Build';
 
@@ -962,6 +968,8 @@ extension on Translations {
 			'buildLogs.status.inProgress' => 'In Progress',
 			'buildLogs.status.queued' => 'Queued',
 			'buildLogs.status.cancelled' => 'Cancelled',
+			'buildLogs.detail.viewDetails' => 'View Details',
+			'buildLogs.detail.retry' => 'Retry',
 			'buildLogs.detail.cancelBuild' => 'Cancel Build',
 			'buildLogs.detail.cancelConfirm' => 'Are you sure you want to cancel this build?',
 			'buildLogs.detail.cancelNo' => 'No',

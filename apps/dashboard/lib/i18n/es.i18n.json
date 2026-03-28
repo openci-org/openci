@@ -104,6 +104,8 @@
       "cancelled": "Cancelado"
     },
     "detail": {
+      "viewDetails": "Ver detalles",
+      "retry": "Reintentar",
       "cancelBuild": "Cancelar compilación",
       "cancelConfirm": "¿Estás seguro de que quieres cancelar esta compilación?",
       "cancelNo": "No",

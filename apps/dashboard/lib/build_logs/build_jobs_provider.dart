@@ -5,6 +5,7 @@ import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:yaml/yaml.dart';
 
 part 'build_jobs_provider.freezed.dart';
 part 'build_jobs_provider.g.dart';
@@ -46,15 +47,32 @@ class BuildJobs extends _$BuildJobs {
 }
 
 @riverpod
-Future<String?> workflowName(Ref ref, String? workflowId) async {
-  if (workflowId == null) return null;
+Future<String?> workflowName(Ref ref, BuildJob buildJob) async {
+  final fileName = buildJob.workflowFileName;
+  if (fileName == null) return null;
+
+  final teamId = buildJob.teamId;
+  if (teamId == null) return null;
+
+  final repo = '${buildJob.owner}/${buildJob.repo}';
   final firestore = ref.read(firestoreProvider);
-  final doc = await firestore
-      .collection(workflowsCollection)
-      .doc(workflowId)
+
+  final qs = await firestore
+      .collection(workflowFilesCollection)
+      .where('teamId', isEqualTo: teamId)
+      .where('repository', isEqualTo: repo)
+      .where('fileName', isEqualTo: fileName)
+      .limit(1)
       .get();
-  if (!doc.exists) return null;
-  return doc.data()?['name'] as String?;
+
+  if (qs.docs.isEmpty) return null;
+
+  final content = qs.docs.first.data()['content'] as String?;
+  if (content == null) return null;
+
+  final parsed = loadYaml(content);
+  if (parsed is! Map) return null;
+  return parsed['name'] as String?;
 }
 
 @freezed
@@ -66,6 +84,8 @@ abstract class BuildJob with _$BuildJob {
     required String repo,
     String? teamId,
     String? workflowId,
+    String? workflowName,
+    String? workflowFileName,
     String? commitSha,
     int? pullRequestNumber,
     int? runCount,
@@ -74,6 +94,7 @@ abstract class BuildJob with _$BuildJob {
     String? branch,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
+    @DateTimeConverter() DateTime? completedAt,
   }) = _BuildJob;
 
   factory BuildJob.fromJson(Map<String, Object?> json) =>

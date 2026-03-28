@@ -400,6 +400,8 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
+	@override String get viewDetails => '詳細を表示';
+	@override String get retry => '再実行';
 	@override String get cancelBuild => 'ビルドをキャンセル';
 	@override String get cancelConfirm => '本当にこのビルドをキャンセルしますか？';
 	@override String get cancelNo => 'いいえ';
@@ -529,6 +531,8 @@ extension on TranslationsJa {
 			'buildLogs.status.inProgress' => '実行中',
 			'buildLogs.status.queued' => '待機中',
 			'buildLogs.status.cancelled' => 'キャンセル',
+			'buildLogs.detail.viewDetails' => '詳細を表示',
+			'buildLogs.detail.retry' => '再実行',
 			'buildLogs.detail.cancelBuild' => 'ビルドをキャンセル',
 			'buildLogs.detail.cancelConfirm' => '本当にこのビルドをキャンセルしますか？',
 			'buildLogs.detail.cancelNo' => 'いいえ',

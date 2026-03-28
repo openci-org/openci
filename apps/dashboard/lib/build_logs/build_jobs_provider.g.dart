@@ -13,14 +13,20 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   repo: json['repo'] as String,
   teamId: json['teamId'] as String?,
   workflowId: json['workflowId'] as String?,
+  workflowName: json['workflowName'] as String?,
+  workflowFileName: json['workflowFileName'] as String?,
   commitSha: json['commitSha'] as String?,
   pullRequestNumber: (json['pullRequestNumber'] as num?)?.toInt(),
   runCount: (json['runCount'] as num?)?.toInt(),
   latestRunId: json['latestRunId'] as String?,
   tagName: json['tagName'] as String?,
   branch: json['branch'] as String?,
-  createdAt: const DateTimeConverter().fromJson(json['createdAt']),
-  updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
+  createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
+  updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
+  completedAt: _$JsonConverterFromJson<Object, DateTime>(
+    json['completedAt'],
+    const DateTimeConverter().fromJson,
+  ),
 );
 
 Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
@@ -30,6 +36,8 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'repo': instance.repo,
   'teamId': instance.teamId,
   'workflowId': instance.workflowId,
+  'workflowName': instance.workflowName,
+  'workflowFileName': instance.workflowFileName,
   'commitSha': instance.commitSha,
   'pullRequestNumber': instance.pullRequestNumber,
   'runCount': instance.runCount,
@@ -38,7 +46,21 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'branch': instance.branch,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
+  'completedAt': _$JsonConverterToJson<Object, DateTime>(
+    instance.completedAt,
+    const DateTimeConverter().toJson,
+  ),
 };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);
 
 // **************************************************************************
 // RiverpodGenerator
@@ -71,7 +93,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'adea0d24378d76fe5114405aef774ca445d1574c';
+String _$buildJobsHash() => r'766ab61033585232aa31672083cc54b7e9a71cc8';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
@@ -99,7 +121,7 @@ final class WorkflowNameProvider
     with $FutureModifier<String?>, $FutureProvider<String?> {
   WorkflowNameProvider._({
     required WorkflowNameFamily super.from,
-    required String? super.argument,
+    required BuildJob super.argument,
   }) : super(
          retry: null,
          name: r'workflowNameProvider',
@@ -125,7 +147,7 @@ final class WorkflowNameProvider
 
   @override
   FutureOr<String?> create(Ref ref) {
-    final argument = this.argument as String?;
+    final argument = this.argument as BuildJob;
     return workflowName(ref, argument);
   }
 
@@ -140,10 +162,10 @@ final class WorkflowNameProvider
   }
 }
 
-String _$workflowNameHash() => r'47722d8f0bd7492ed7239a89e16ba50008cc6e8c';
+String _$workflowNameHash() => r'89cac88b703712ec91685bf0ccf7a7834bb6c1a2';
 
 final class WorkflowNameFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<String?>, String?> {
+    with $FunctionalFamilyOverride<FutureOr<String?>, BuildJob> {
   WorkflowNameFamily._()
     : super(
         retry: null,
@@ -153,8 +175,8 @@ final class WorkflowNameFamily extends $Family
         isAutoDispose: true,
       );
 
-  WorkflowNameProvider call(String? workflowId) =>
-      WorkflowNameProvider._(argument: workflowId, from: this);
+  WorkflowNameProvider call(BuildJob buildJob) =>
+      WorkflowNameProvider._(argument: buildJob, from: this);
 
   @override
   String toString() => r'workflowNameProvider';

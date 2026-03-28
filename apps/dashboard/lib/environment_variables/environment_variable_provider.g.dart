@@ -6,16 +6,17 @@ part of 'environment_variable_provider.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_EnvironmentVariable _$EnvironmentVariableFromJson(Map<String, dynamic> json) =>
-    _EnvironmentVariable(
-      id: json['id'] as String,
-      key: json['key'] as String,
-      value: json['value'] as String,
-      teamId: json['teamId'] as String,
-      autoIncrement: json['autoIncrement'] as bool? ?? false,
-      createdAt: const DateTimeConverter().fromJson(json['createdAt']),
-      updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
-    );
+_EnvironmentVariable _$EnvironmentVariableFromJson(
+  Map<String, dynamic> json,
+) => _EnvironmentVariable(
+  id: json['id'] as String,
+  key: json['key'] as String,
+  value: json['value'] as String,
+  teamId: json['teamId'] as String,
+  autoIncrement: json['autoIncrement'] as bool? ?? false,
+  createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
+  updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
+);
 
 Map<String, dynamic> _$EnvironmentVariableToJson(
   _EnvironmentVariable instance,
@@ -66,7 +67,7 @@ final class EnvironmentVariableManagerProvider
 }
 
 String _$environmentVariableManagerHash() =>
-    r'c628fac5b41bc9d35b2404dc4bc82d312b6e6da7';
+    r'dcd9e4306397ffa80bb79abce8a3822a640bebf2';
 
 abstract class _$EnvironmentVariableManager
     extends $StreamNotifier<List<EnvironmentVariable>> {

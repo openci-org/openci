@@ -16,8 +16,8 @@ _Team _$TeamFromJson(Map<String, dynamic> json) => _Team(
           .toList() ??
       const [],
   runNumber: (json['runNumber'] as num?)?.toInt() ?? 1,
-  createdAt: const DateTimeConverter().fromJson(json['createdAt']),
-  updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
+  createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
+  updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
 );
 
 Map<String, dynamic> _$TeamToJson(_Team instance) => <String, dynamic>{
@@ -60,7 +60,7 @@ final class TeamStateProvider extends $StreamNotifierProvider<TeamState, Team> {
   TeamState create() => TeamState();
 }
 
-String _$teamStateHash() => r'd2e0560c0a1a73211121226b44856ce2209646cb';
+String _$teamStateHash() => r'f1e564ca7dd3de351121fc8cca145879498bf8e9';
 
 abstract class _$TeamState extends $StreamNotifier<Team> {
   Stream<Team> build();
@@ -104,7 +104,7 @@ final class TeamListProvider
   TeamList create() => TeamList();
 }
 
-String _$teamListHash() => r'5c8b6af5512a36ede5c1697b930c5ccaf2f0756a';
+String _$teamListHash() => r'32d6dabf24a8dec75520ae9fd28c8fc94fab3a87';
 
 abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();

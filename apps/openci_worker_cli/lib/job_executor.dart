@@ -274,6 +274,7 @@ Future<bool> processJob(
 
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'status': 'success',
+      'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
   } catch (e, s) {
     await logError(
@@ -293,6 +294,7 @@ Future<bool> processJob(
 
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'status': 'failure',
+      'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
     rethrow;
   } finally {

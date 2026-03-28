@@ -104,6 +104,8 @@
       "cancelled": "キャンセル"
     },
     "detail": {
+      "viewDetails": "詳細を表示",
+      "retry": "再実行",
       "cancelBuild": "ビルドをキャンセル",
       "cancelConfirm": "本当にこのビルドをキャンセルしますか？",
       "cancelNo": "いいえ",

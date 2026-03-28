@@ -35,8 +35,7 @@ class ChooseWorkflowTemplate extends HookConsumerWidget {
         ),
         SizedBox(height: 12.0),
         Expanded(
-          child: Scrollbar(
-            child: Padding(
+          child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),
               child: GridView.builder(
                 itemCount: workflowTemplateList.length,
@@ -112,7 +111,6 @@ npx -y react-native-version --never-amend
                 },
               ),
             ),
-          ),
         ),
       ],
     );

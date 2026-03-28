@@ -400,6 +400,8 @@ class _TranslationsBuildLogsDetailEs implements TranslationsBuildLogsDetailEn {
 	final TranslationsEs _root; // ignore: unused_field
 
 	// Translations
+	@override String get viewDetails => 'Ver detalles';
+	@override String get retry => 'Reintentar';
 	@override String get cancelBuild => 'Cancelar compilación';
 	@override String get cancelConfirm => '¿Estás seguro de que quieres cancelar esta compilación?';
 	@override String get cancelNo => 'No';
@@ -529,6 +531,8 @@ extension on TranslationsEs {
 			'buildLogs.status.inProgress' => 'En progreso',
 			'buildLogs.status.queued' => 'En cola',
 			'buildLogs.status.cancelled' => 'Cancelado',
+			'buildLogs.detail.viewDetails' => 'Ver detalles',
+			'buildLogs.detail.retry' => 'Reintentar',
 			'buildLogs.detail.cancelBuild' => 'Cancelar compilación',
 			'buildLogs.detail.cancelConfirm' => '¿Estás seguro de que quieres cancelar esta compilación?',
 			'buildLogs.detail.cancelNo' => 'No',

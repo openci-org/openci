@@ -12,6 +12,7 @@ import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:yaml/yaml.dart';
 
 String getInitials(String name) {
   final words = name.trim().split(RegExp(r'\s+'));
@@ -19,6 +20,16 @@ String getInitials(String name) {
     return '${words[0][0]}${words[1][0]}'.toUpperCase();
   }
   return name.substring(0, name.length.clamp(0, 2)).toUpperCase();
+}
+
+String? _extractWorkflowName(String yamlContent) {
+  try {
+    final doc = loadYaml(yamlContent);
+    if (doc is YamlMap && doc['name'] is String) {
+      return doc['name'] as String;
+    }
+  } catch (_) {}
+  return null;
 }
 
 class WorkflowListPage extends ConsumerWidget {
@@ -58,117 +69,7 @@ class WorkflowListPage extends ConsumerWidget {
                 )
               : null,
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(wfT.title),
-                if (selectedRepo != null)
-                  Row(
-                    children: [
-                      Flexible(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              showDragHandle: true,
-                              builder: (_) =>
-                                  const SelectRepositoryBottomSheet(),
-                            );
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                FontAwesomeIcons.github,
-                                size: 12,
-                                color: Theme.of(context).hintColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  selectedRepo,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context).hintColor,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (selectedBranch != null)
-                        Flexible(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              showDragHandle: true,
-                              builder: (_) => SelectBranchBottomSheet(
-                                repoFullName: selectedRepo,
-                              ),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    FontAwesomeIcons.codeBranch,
-                                    size: 10,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      selectedBranch,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Icon(
-                                    Icons.arrow_drop_down,
-                                    size: 14,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-              ],
-            ),
+            title: Text(wfT.title),
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
@@ -181,9 +82,7 @@ class WorkflowListPage extends ConsumerWidget {
                           showDragHandle: true,
                           context: context,
                           isScrollControlled: true,
-                          builder: (_) {
-                            return const SwitchTeamBottomSheet();
-                          },
+                          builder: (_) => const SwitchTeamBottomSheet(),
                         );
                       },
                       child: Text(t.team.switchTeam),
@@ -195,9 +94,7 @@ class WorkflowListPage extends ConsumerWidget {
                           showDragHandle: true,
                           context: context,
                           isScrollControlled: true,
-                          builder: (_) {
-                            return const EditTeamBottomSheet();
-                          },
+                          builder: (_) => const EditTeamBottomSheet(),
                         );
                       },
                       child: Text(t.team.editTeam),
@@ -209,9 +106,7 @@ class WorkflowListPage extends ConsumerWidget {
                           showDragHandle: true,
                           context: context,
                           isScrollControlled: true,
-                          builder: (_) {
-                            return const CreateTeamBottomSheet();
-                          },
+                          builder: (_) => const CreateTeamBottomSheet(),
                         );
                       },
                       child: Text(t.team.createTeam),
@@ -264,10 +159,11 @@ class WorkflowListPage extends ConsumerWidget {
               ),
             ],
           ),
-
           body: selectedRepo == null
-              ? SelectRepository()
+              ? const SelectRepository()
               : _WorkflowBody(
+                  selectedRepo: selectedRepo,
+                  selectedBranch: selectedBranch,
                   onShowSetupSheet: () {
                     // TODO(mafreud): fix
                   },
@@ -283,10 +179,14 @@ class WorkflowListPage extends ConsumerWidget {
 
 class _WorkflowBody extends ConsumerWidget {
   const _WorkflowBody({
+    required this.selectedRepo,
+    required this.selectedBranch,
     required this.onShowSetupSheet,
     required this.onSync,
   });
 
+  final String selectedRepo;
+  final String? selectedBranch;
   final VoidCallback onShowSetupSheet;
   final VoidCallback onSync;
 
@@ -295,123 +195,162 @@ class _WorkflowBody extends ConsumerWidget {
     final workflowFilesAsync = ref.watch(workflowFilesProvider);
     final wfT = t.workflow;
 
-    return workflowFilesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-      error: asyncErrorWidget,
-      data: (files) {
-        if (files.isEmpty) {
-          final syncState = ref.watch(syncWorkflowFilesProvider);
-
-          // sync中はローディングだけ表示
-          if (syncState.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator.adaptive(),
-            );
-          }
-
-          // sync完了後も空 → 本当にファイルがない
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+    return Column(
+      children: [
+        // ── Chip row ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Icon(
-                  Icons.layers_outlined,
-                  size: 64,
-                  color: Theme.of(context).disabledColor,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  wfT.noWorkflowFiles,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  wfT.addYamlHint,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).hintColor,
+                ActionChip(
+                  avatar: const Icon(FontAwesomeIcons.github, size: 16),
+                  label: Text(
+                    selectedRepo.split('/').last,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    showDragHandle: true,
+                    builder: (_) => const SelectRepositoryBottomSheet(),
                   ),
                 ),
-                const SizedBox(height: 16),
-                FilledButton.tonalIcon(
-                  onPressed: onSync,
-                  icon: const Icon(Icons.sync),
-                  label: const Text('Sync from GitHub'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: ListView.separated(
-                itemCount: files.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final file = files[index];
-                  return Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      onTap: () {
-                        final repo = ref
-                            .read(userProvider)
-                            .value
-                            ?.selectedRepository;
-                        final branch = ref
-                            .read(userProvider)
-                            .value
-                            ?.selectedBranch;
-                        if (repo == null || branch == null) return;
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => CreateWorkflowPage(
-                              repository: repo,
-                              branch: branch,
-                              teamId:
-                                  ref.read(teamStateProvider).value?.id ?? '',
-                              existingFile: file,
-                            ),
-                          ),
-                        );
-                      },
-                      leading: Icon(
-                        Icons.description_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Text(
-                        file.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      subtitle: Text(
-                        file.path,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).hintColor,
-                            ),
-                      ),
-                      trailing: Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).disabledColor,
+                if (selectedBranch != null)
+                  ActionChip(
+                    avatar: const Icon(FontAwesomeIcons.codeBranch, size: 14),
+                    label: Text(
+                      selectedBranch!,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onPressed: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      showDragHandle: true,
+                      builder: (_) => SelectBranchBottomSheet(
+                        repoFullName: selectedRepo,
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+        // ── Content ──
+        Expanded(
+          child: workflowFilesAsync.when(
+            loading: () =>
+                const Center(child: CircularProgressIndicator.adaptive()),
+            error: asyncErrorWidget,
+            data: (files) {
+              if (files.isEmpty) {
+                final syncState = ref.watch(syncWorkflowFilesProvider);
+
+                if (syncState.isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator.adaptive(),
+                  );
+                }
+
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.layers_outlined,
+                        size: 64,
+                        color: Theme.of(context).disabledColor,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        wfT.noWorkflowFiles,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        wfT.addYamlHint,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).hintColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.tonalIcon(
+                        onPressed: onSync,
+                        icon: const Icon(Icons.sync),
+                        label: const Text('Sync from GitHub'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    itemCount: files.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final file = files[index];
+                      return Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          onTap: () {
+                            final branch = ref
+                                .read(userProvider)
+                                .value
+                                ?.selectedBranch;
+                            if (branch == null) return;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => CreateWorkflowPage(
+                                  repository: selectedRepo,
+                                  branch: branch,
+                                  teamId:
+                                      ref.read(teamStateProvider).value?.id ??
+                                      '',
+                                  existingFile: file,
+                                ),
+                              ),
+                            );
+                          },
+                          title: Text(
+                            _extractWorkflowName(file.content) ?? file.name,
+                          ),
+                          subtitle: Text(
+                            file.name,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

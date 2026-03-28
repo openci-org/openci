@@ -104,6 +104,8 @@
       "cancelled": "Cancelled"
     },
     "detail": {
+      "viewDetails": "View Details",
+      "retry": "Retry",
       "cancelBuild": "Cancel Build",
       "cancelConfirm": "Are you sure you want to cancel this build?",
       "cancelNo": "No",

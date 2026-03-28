@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-class DateTimeConverter implements JsonConverter<DateTime, dynamic> {
+class DateTimeConverter implements JsonConverter<DateTime, Object> {
   const DateTimeConverter();
 
   @override
-  DateTime fromJson(dynamic value) {
+  DateTime fromJson(Object value) {
     if (value is Timestamp) {
       return value.toDate();
     } else if (value is String) {
@@ -17,5 +17,5 @@ class DateTimeConverter implements JsonConverter<DateTime, dynamic> {
   }
 
   @override
-  dynamic toJson(DateTime date) => Timestamp.fromDate(date);
+  Object toJson(DateTime date) => Timestamp.fromDate(date);
 }

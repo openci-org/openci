@@ -66,7 +66,7 @@ final class WorkflowFilesProvider
   }
 }
 
-String _$workflowFilesHash() => r'b75ddd7cdd14578175c40a757cb27ed61ece5bcf';
+String _$workflowFilesHash() => r'df177559157941ff4ff6d7e89741e6af4cbd0005';
 
 @ProviderFor(syncWorkflowFiles)
 final syncWorkflowFilesProvider = SyncWorkflowFilesProvider._();
@@ -99,4 +99,4 @@ final class SyncWorkflowFilesProvider
   }
 }
 
-String _$syncWorkflowFilesHash() => r'ce76cf44efa5d06637c1e8677b1eeb509eaca2bb';
+String _$syncWorkflowFilesHash() => r'06374549a7c4d9036bb7267ad89dfeede6bc527a';
