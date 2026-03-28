@@ -168,6 +168,8 @@ class _TranslationsSecretsEs implements TranslationsSecretsEn {
 	@override String get updatedSuccess => 'Secreto actualizado exitosamente';
 	@override String get deleteConfirm => '¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.';
 	@override String get deletedSuccess => 'Secreto eliminado exitosamente';
+	@override String get unusedSecrets => 'Secretos no utilizados';
+	@override String get notUsedInWorkflows => 'No se usa en ningún flujo de trabajo';
 }
 
 // Path: envVars
@@ -564,6 +566,8 @@ extension on TranslationsEs {
 			'secrets.updatedSuccess' => 'Secreto actualizado exitosamente',
 			'secrets.deleteConfirm' => '¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.',
 			'secrets.deletedSuccess' => 'Secreto eliminado exitosamente',
+			'secrets.unusedSecrets' => 'Secretos no utilizados',
+			'secrets.notUsedInWorkflows' => 'No se usa en ningún flujo de trabajo',
 			'envVars.title' => 'Variables de entorno',
 			'envVars.noEnvVars' => 'No se encontraron variables de entorno',
 			'envVars.noCustomEnvVars' => 'Sin variables de entorno personalizadas',

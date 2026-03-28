@@ -278,7 +278,7 @@ class BuildJobCard extends HookConsumerWidget {
                 onSelected: (value) async {
                   switch (value) {
                     case 'details':
-                      Navigator.of(context).push(
+                      await Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) =>
                               BuildLogsDetailPage(buildJob: buildJob),

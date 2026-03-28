@@ -141,7 +141,9 @@
     "addedSuccess": "シークレットが追加されました",
     "updatedSuccess": "シークレットが更新されました",
     "deleteConfirm": "このシークレットを削除しますか？この操作は元に戻せません。",
-    "deletedSuccess": "シークレットが削除されました"
+    "deletedSuccess": "シークレットが削除されました",
+    "unusedSecrets": "未使用のシークレット",
+    "notUsedInWorkflows": "ワークフローで使用されていません"
   },
   "envVars": {
     "title": "環境変数",

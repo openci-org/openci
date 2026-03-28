@@ -141,7 +141,9 @@
     "addedSuccess": "Secreto agregado exitosamente",
     "updatedSuccess": "Secreto actualizado exitosamente",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.",
-    "deletedSuccess": "Secreto eliminado exitosamente"
+    "deletedSuccess": "Secreto eliminado exitosamente",
+    "unusedSecrets": "Secretos no utilizados",
+    "notUsedInWorkflows": "No se usa en ningún flujo de trabajo"
   },
   "envVars": {
     "title": "Variables de entorno",

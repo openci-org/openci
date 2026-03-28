@@ -168,6 +168,8 @@ class _TranslationsSecretsJa implements TranslationsSecretsEn {
 	@override String get updatedSuccess => 'シークレットが更新されました';
 	@override String get deleteConfirm => 'このシークレットを削除しますか？この操作は元に戻せません。';
 	@override String get deletedSuccess => 'シークレットが削除されました';
+	@override String get unusedSecrets => '未使用のシークレット';
+	@override String get notUsedInWorkflows => 'ワークフローで使用されていません';
 }
 
 // Path: envVars
@@ -564,6 +566,8 @@ extension on TranslationsJa {
 			'secrets.updatedSuccess' => 'シークレットが更新されました',
 			'secrets.deleteConfirm' => 'このシークレットを削除しますか？この操作は元に戻せません。',
 			'secrets.deletedSuccess' => 'シークレットが削除されました',
+			'secrets.unusedSecrets' => '未使用のシークレット',
+			'secrets.notUsedInWorkflows' => 'ワークフローで使用されていません',
 			'envVars.title' => '環境変数',
 			'envVars.noEnvVars' => '環境変数が見つかりません',
 			'envVars.noCustomEnvVars' => 'カスタム環境変数がありません',

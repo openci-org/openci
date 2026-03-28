@@ -276,6 +276,12 @@ class TranslationsSecretsEn {
 
 	/// en: 'Secret deleted successfully'
 	String get deletedSuccess => 'Secret deleted successfully';
+
+	/// en: 'Unused Secrets'
+	String get unusedSecrets => 'Unused Secrets';
+
+	/// en: 'Not used in any workflow'
+	String get notUsedInWorkflows => 'Not used in any workflow';
 }
 
 // Path: envVars
@@ -1001,6 +1007,8 @@ extension on Translations {
 			'secrets.updatedSuccess' => 'Secret updated successfully',
 			'secrets.deleteConfirm' => 'Are you sure you want to delete this secret? This action cannot be undone.',
 			'secrets.deletedSuccess' => 'Secret deleted successfully',
+			'secrets.unusedSecrets' => 'Unused Secrets',
+			'secrets.notUsedInWorkflows' => 'Not used in any workflow',
 			'envVars.title' => 'Environment Variables',
 			'envVars.noEnvVars' => 'No environment variables found',
 			'envVars.noCustomEnvVars' => 'No custom environment variables',
