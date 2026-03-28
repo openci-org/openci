@@ -299,7 +299,6 @@ class _WorkflowBody extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final file = files[index];
                       return Card(
-                        clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,

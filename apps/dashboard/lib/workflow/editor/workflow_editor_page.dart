@@ -97,7 +97,6 @@ class StepList extends ConsumerWidget {
         header: Column(
           children: [
             Card(
-              clipBehavior: Clip.antiAlias,
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -468,7 +467,6 @@ class StepCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,

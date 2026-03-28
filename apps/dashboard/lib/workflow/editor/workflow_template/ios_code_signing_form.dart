@@ -137,7 +137,6 @@ class IosCodeSigningForm extends HookConsumerWidget {
 
               // Info Card
               Card(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(

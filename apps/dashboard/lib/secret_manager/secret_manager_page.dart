@@ -21,7 +21,8 @@ Set<String> _extractSecretNames(String content) {
 ({
   List<({String workflowName, List<Secret> secrets})> groups,
   List<Secret> unused,
-}) _groupSecretsByWorkflow(
+})
+_groupSecretsByWorkflow(
   List<Secret> secrets,
   List<WorkflowFile> workflowFiles,
 ) {
@@ -40,8 +41,9 @@ Set<String> _extractSecretNames(String content) {
   // Build groups
   final groups = <({String workflowName, List<Secret> secrets})>[];
   for (final entry in workflowSecrets.entries) {
-    final matchedSecrets =
-        secrets.where((s) => entry.value.contains(s.name)).toList();
+    final matchedSecrets = secrets
+        .where((s) => entry.value.contains(s.name))
+        .toList();
     if (matchedSecrets.isNotEmpty) {
       groups.add((workflowName: entry.key, secrets: matchedSecrets));
     }
@@ -51,8 +53,9 @@ Set<String> _extractSecretNames(String content) {
   groups.sort((a, b) => a.workflowName.compareTo(b.workflowName));
 
   // Unused secrets
-  final unused =
-      secrets.where((s) => !usedSecretNames.contains(s.name)).toList();
+  final unused = secrets
+      .where((s) => !usedSecretNames.contains(s.name))
+      .toList();
 
   return (groups: groups, unused: unused);
 }
@@ -190,8 +193,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final color =
-        isWarning ? colorScheme.error : colorScheme.primary;
+    final color = isWarning ? colorScheme.error : colorScheme.primary;
 
     return Center(
       child: ConstrainedBox(
@@ -206,9 +208,9 @@ class _SectionHeader extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               Container(
@@ -223,9 +225,9 @@ class _SectionHeader extends StatelessWidget {
                 child: Text(
                   '$count',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -274,8 +276,8 @@ class _SecretListTile extends ConsumerWidget {
                 ? Text(
                     secretsT.notUsedInWorkflows,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.error.withValues(alpha: 0.7),
-                        ),
+                      color: colorScheme.error.withValues(alpha: 0.7),
+                    ),
                   )
                 : null,
             trailing: Row(
@@ -605,7 +607,9 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                       )
                     : const Icon(Icons.vpn_key),
                 label: Text(
-                  isLoading.value ? 'Generating...' : 'Generate Certificate Key',
+                  isLoading.value
+                      ? 'Generating...'
+                      : 'Generate Certificate Key',
                 ),
               ),
             ),
@@ -649,9 +653,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                     ),
                   ),
                   Icon(
-                    isExpanded.value
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    isExpanded.value ? Icons.expand_less : Icons.expand_more,
                   ),
                 ],
               ),
@@ -728,9 +730,10 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           'Download the .p8 file from App Store Connect',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                         ),
                       ),
                     const SizedBox(height: 16),
@@ -752,11 +755,10 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                                   await ref
                                       .read(secretManagerProvider.notifier)
                                       .setupAscApiKey(
-                                        issuerId:
-                                            issuerIdController.text.trim(),
+                                        issuerId: issuerIdController.text
+                                            .trim(),
                                         keyId: keyIdController.text.trim(),
-                                        privateKey:
-                                            privateKeyContent.value!,
+                                        privateKey: privateKeyContent.value!,
                                       );
                                   if (!context.mounted) return;
                                   context.showSnackBarMessage(
@@ -773,8 +775,9 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.save),
                         label: Text(

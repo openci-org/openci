@@ -18,6 +18,24 @@ class Root extends StatelessWidget {
       locale: TranslationProvider.of(context).flutterLocale,
       supportedLocales: AppLocaleUtils.supportedLocales,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      theme: ThemeData(
+        colorSchemeSeed: Colors.blue,
+        useMaterial3: true,
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: ColorScheme.fromSeed(seedColor: Colors.blue).surfaceContainerLow,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: ColorScheme.fromSeed(
+                seedColor: Colors.blue,
+              ).outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          margin: EdgeInsets.zero,
+        ),
+      ),
       home: HomePage(),
     );
   }
