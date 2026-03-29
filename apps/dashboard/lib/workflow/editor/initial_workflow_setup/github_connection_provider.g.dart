@@ -48,4 +48,4 @@ final class IsGitHubConnectedProvider
   }
 }
 
-String _$isGitHubConnectedHash() => r'217809588fde4c74d9159bc66f2ddb2e9f477cb7';
+String _$isGitHubConnectedHash() => r'c69ecdc28681a08e6033e8a158ff9b24fa891abf';

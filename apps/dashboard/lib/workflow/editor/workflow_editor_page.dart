@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
-import 'package:dashboard/workflow/editor/workflow_template/choose_workflow_template.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -31,7 +30,6 @@ class WorkflowEditorPage extends ConsumerWidget {
           return StepList(
             steps: workflow.workflowSteps,
             workflowConfig: workflow.workflowConfig,
-            documentId: workflow.documentId,
             workflowName: workflow.name,
             workflowId: workflowId,
           );
@@ -56,13 +54,11 @@ class StepList extends ConsumerWidget {
     super.key,
     required this.steps,
     required this.workflowConfig,
-    required this.documentId,
     required this.workflowName,
     required this.workflowId,
   });
   final List<WorkflowStep> steps;
   final WorkflowConfig workflowConfig;
-  final String documentId;
   final String workflowName;
   final String workflowId;
 
@@ -97,7 +93,6 @@ class StepList extends ConsumerWidget {
         header: Column(
           children: [
             Card(
-              clipBehavior: Clip.antiAlias,
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -169,22 +164,16 @@ class StepList extends ConsumerWidget {
               ),
             ),
             if (steps.isNotEmpty)
-              StepConnector(documentId: documentId, insertAt: 0),
+              StepConnector(workflowId: workflowId, insertAt: 0),
           ],
         ),
         footer: Column(
           children: [
             SizedBox(height: 8),
             IconButton.filled(
-              onPressed: () => showModalBottomSheet(
-                showDragHandle: true,
-                isScrollControlled: true,
-                context: context,
-                builder: (_) => SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.8,
-                  child: ChooseWorkflowTemplate(documentId: documentId),
-                ),
-              ),
+              onPressed: () => ref
+                  .read(workflowEditorProvider(workflowId).notifier)
+                  .addStep(),
               icon: const Icon(Icons.add),
             ),
           ],
@@ -200,7 +189,7 @@ class StepList extends ConsumerWidget {
                 stepIndex: index,
               ),
               if (index < steps.length - 1)
-                StepConnector(documentId: documentId, insertAt: index + 1),
+                StepConnector(workflowId: workflowId, insertAt: index + 1),
             ],
           );
         },
@@ -398,17 +387,17 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
   }
 }
 
-class StepConnector extends StatelessWidget {
+class StepConnector extends ConsumerWidget {
   const StepConnector({
-    required this.documentId,
+    required this.workflowId,
     required this.insertAt,
     super.key,
   });
-  final String documentId;
+  final String workflowId;
   final int insertAt;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       height: 60,
       child: Stack(
@@ -434,18 +423,9 @@ class StepConnector extends StatelessWidget {
                 Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            onPressed: () => showModalBottomSheet(
-              isScrollControlled: true,
-              showDragHandle: true,
-              context: context,
-              builder: (_) => SizedBox(
-                height: MediaQuery.of(context).size.height * 0.8,
-                child: ChooseWorkflowTemplate(
-                  documentId: documentId,
-                  insertAt: insertAt,
-                ),
-              ),
-            ),
+            onPressed: () => ref
+                .read(workflowEditorProvider(workflowId).notifier)
+                .addStep(insertAt: insertAt),
             icon: const Icon(Icons.add),
           ),
         ],
@@ -468,7 +448,6 @@ class StepCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,

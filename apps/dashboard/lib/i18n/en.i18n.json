@@ -9,6 +9,15 @@
     "loading": "Loading...",
     "invite": "Invite"
   },
+  "timeAgo": {
+    "secsAgo": "${count} sec ago",
+    "secsAgoPlural": "${count} secs ago",
+    "minsAgo": "${count} min ago",
+    "minsAgoPlural": "${count} mins ago",
+    "hoursAgo": "${count}h ago",
+    "daysAgo": "${count}d ago",
+    "monthsAgo": "${count}mo ago"
+  },
   "nav": {
     "workflows": "Workflows",
     "variables": "Variables",
@@ -104,6 +113,8 @@
       "cancelled": "Cancelled"
     },
     "detail": {
+      "viewDetails": "View Details",
+      "retry": "Retry",
       "cancelBuild": "Cancel Build",
       "cancelConfirm": "Are you sure you want to cancel this build?",
       "cancelNo": "No",
@@ -119,6 +130,12 @@
       "copyAll": "Copy all logs",
       "logsCopied": "Logs copied to clipboard",
       "lines": "$count lines"
+    },
+    "duration": {
+      "lessThanMinute": "<1m",
+      "minutes": "${count}m",
+      "hoursAndMinutes": "${hours}h ${minutes}m",
+      "hours": "${count}h"
     }
   },
   "variables": {
@@ -139,7 +156,9 @@
     "addedSuccess": "Secret added successfully",
     "updatedSuccess": "Secret updated successfully",
     "deleteConfirm": "Are you sure you want to delete this secret? This action cannot be undone.",
-    "deletedSuccess": "Secret deleted successfully"
+    "deletedSuccess": "Secret deleted successfully",
+    "unusedSecrets": "Unused Secrets",
+    "notUsedInWorkflows": "Not used in any workflow"
   },
   "envVars": {
     "title": "Environment Variables",

@@ -41,6 +41,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	// Translations
 	late final TranslationsCommonEn common = TranslationsCommonEn._(_root);
+	late final TranslationsTimeAgoEn timeAgo = TranslationsTimeAgoEn._(_root);
 	late final TranslationsNavEn nav = TranslationsNavEn._(_root);
 	late final TranslationsAuthEn auth = TranslationsAuthEn._(_root);
 	late final TranslationsWorkflowEn workflow = TranslationsWorkflowEn._(_root);
@@ -86,6 +87,36 @@ class TranslationsCommonEn {
 
 	/// en: 'Invite'
 	String get invite => 'Invite';
+}
+
+// Path: timeAgo
+class TranslationsTimeAgoEn {
+	TranslationsTimeAgoEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: '${count} sec ago'
+	String secsAgo({required Object count}) => '${count} sec ago';
+
+	/// en: '${count} secs ago'
+	String secsAgoPlural({required Object count}) => '${count} secs ago';
+
+	/// en: '${count} min ago'
+	String minsAgo({required Object count}) => '${count} min ago';
+
+	/// en: '${count} mins ago'
+	String minsAgoPlural({required Object count}) => '${count} mins ago';
+
+	/// en: '${count}h ago'
+	String hoursAgo({required Object count}) => '${count}h ago';
+
+	/// en: '${count}d ago'
+	String daysAgo({required Object count}) => '${count}d ago';
+
+	/// en: '${count}mo ago'
+	String monthsAgo({required Object count}) => '${count}mo ago';
 }
 
 // Path: nav
@@ -210,6 +241,7 @@ class TranslationsBuildLogsEn {
 
 	late final TranslationsBuildLogsStatusEn status = TranslationsBuildLogsStatusEn._(_root);
 	late final TranslationsBuildLogsDetailEn detail = TranslationsBuildLogsDetailEn._(_root);
+	late final TranslationsBuildLogsDurationEn duration = TranslationsBuildLogsDurationEn._(_root);
 }
 
 // Path: variables
@@ -276,6 +308,12 @@ class TranslationsSecretsEn {
 
 	/// en: 'Secret deleted successfully'
 	String get deletedSuccess => 'Secret deleted successfully';
+
+	/// en: 'Unused Secrets'
+	String get unusedSecrets => 'Unused Secrets';
+
+	/// en: 'Not used in any workflow'
+	String get notUsedInWorkflows => 'Not used in any workflow';
 }
 
 // Path: envVars
@@ -792,6 +830,12 @@ class TranslationsBuildLogsDetailEn {
 
 	// Translations
 
+	/// en: 'View Details'
+	String get viewDetails => 'View Details';
+
+	/// en: 'Retry'
+	String get retry => 'Retry';
+
 	/// en: 'Cancel Build'
 	String get cancelBuild => 'Cancel Build';
 
@@ -838,6 +882,27 @@ class TranslationsBuildLogsDetailEn {
 	String lines({required Object count}) => '${count} lines';
 }
 
+// Path: buildLogs.duration
+class TranslationsBuildLogsDurationEn {
+	TranslationsBuildLogsDurationEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: '<1m'
+	String get lessThanMinute => '<1m';
+
+	/// en: '${count}m'
+	String minutes({required Object count}) => '${count}m';
+
+	/// en: '${hours}h ${minutes}m'
+	String hoursAndMinutes({required Object hours, required Object minutes}) => '${hours}h ${minutes}m';
+
+	/// en: '${count}h'
+	String hours({required Object count}) => '${count}h';
+}
+
 // Path: settings.language
 class TranslationsSettingsLanguageEn {
 	TranslationsSettingsLanguageEn._(this._root);
@@ -881,6 +946,13 @@ extension on Translations {
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			'common.loading' => 'Loading...',
 			'common.invite' => 'Invite',
+			'timeAgo.secsAgo' => ({required Object count}) => '${count} sec ago',
+			'timeAgo.secsAgoPlural' => ({required Object count}) => '${count} secs ago',
+			'timeAgo.minsAgo' => ({required Object count}) => '${count} min ago',
+			'timeAgo.minsAgoPlural' => ({required Object count}) => '${count} mins ago',
+			'timeAgo.hoursAgo' => ({required Object count}) => '${count}h ago',
+			'timeAgo.daysAgo' => ({required Object count}) => '${count}d ago',
+			'timeAgo.monthsAgo' => ({required Object count}) => '${count}mo ago',
 			'nav.workflows' => 'Workflows',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Logs',
@@ -962,6 +1034,8 @@ extension on Translations {
 			'buildLogs.status.inProgress' => 'In Progress',
 			'buildLogs.status.queued' => 'Queued',
 			'buildLogs.status.cancelled' => 'Cancelled',
+			'buildLogs.detail.viewDetails' => 'View Details',
+			'buildLogs.detail.retry' => 'Retry',
 			'buildLogs.detail.cancelBuild' => 'Cancel Build',
 			'buildLogs.detail.cancelConfirm' => 'Are you sure you want to cancel this build?',
 			'buildLogs.detail.cancelNo' => 'No',
@@ -977,6 +1051,10 @@ extension on Translations {
 			'buildLogs.detail.copyAll' => 'Copy all logs',
 			'buildLogs.detail.logsCopied' => 'Logs copied to clipboard',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} lines',
+			'buildLogs.duration.lessThanMinute' => '<1m',
+			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
+			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',
+			'buildLogs.duration.hours' => ({required Object count}) => '${count}h',
 			'variables.title' => 'Variables',
 			'variables.envVarsTab' => 'Environment Variables',
 			'variables.secretsTab' => 'Secrets',
@@ -993,6 +1071,8 @@ extension on Translations {
 			'secrets.updatedSuccess' => 'Secret updated successfully',
 			'secrets.deleteConfirm' => 'Are you sure you want to delete this secret? This action cannot be undone.',
 			'secrets.deletedSuccess' => 'Secret deleted successfully',
+			'secrets.unusedSecrets' => 'Unused Secrets',
+			'secrets.notUsedInWorkflows' => 'Not used in any workflow',
 			'envVars.title' => 'Environment Variables',
 			'envVars.noEnvVars' => 'No environment variables found',
 			'envVars.noCustomEnvVars' => 'No custom environment variables',

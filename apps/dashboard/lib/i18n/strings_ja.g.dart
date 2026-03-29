@@ -38,6 +38,7 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 
 	// Translations
 	@override late final _TranslationsCommonJa common = _TranslationsCommonJa._(_root);
+	@override late final _TranslationsTimeAgoJa timeAgo = _TranslationsTimeAgoJa._(_root);
 	@override late final _TranslationsNavJa nav = _TranslationsNavJa._(_root);
 	@override late final _TranslationsAuthJa auth = _TranslationsAuthJa._(_root);
 	@override late final _TranslationsWorkflowJa workflow = _TranslationsWorkflowJa._(_root);
@@ -67,6 +68,22 @@ class _TranslationsCommonJa implements TranslationsCommonEn {
 	@override String error({required Object error}) => 'エラー: ${error}';
 	@override String get loading => '読み込み中...';
 	@override String get invite => '招待';
+}
+
+// Path: timeAgo
+class _TranslationsTimeAgoJa implements TranslationsTimeAgoEn {
+	_TranslationsTimeAgoJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String secsAgo({required Object count}) => '${count}秒前';
+	@override String secsAgoPlural({required Object count}) => '${count}秒前';
+	@override String minsAgo({required Object count}) => '${count}分前';
+	@override String minsAgoPlural({required Object count}) => '${count}分前';
+	@override String hoursAgo({required Object count}) => '${count}時間前';
+	@override String daysAgo({required Object count}) => '${count}日前';
+	@override String monthsAgo({required Object count}) => '${count}ヶ月前';
 }
 
 // Path: nav
@@ -134,6 +151,7 @@ class _TranslationsBuildLogsJa implements TranslationsBuildLogsEn {
 	@override String get noJobs => 'ビルドジョブが見つかりません';
 	@override late final _TranslationsBuildLogsStatusJa status = _TranslationsBuildLogsStatusJa._(_root);
 	@override late final _TranslationsBuildLogsDetailJa detail = _TranslationsBuildLogsDetailJa._(_root);
+	@override late final _TranslationsBuildLogsDurationJa duration = _TranslationsBuildLogsDurationJa._(_root);
 }
 
 // Path: variables
@@ -168,6 +186,8 @@ class _TranslationsSecretsJa implements TranslationsSecretsEn {
 	@override String get updatedSuccess => 'シークレットが更新されました';
 	@override String get deleteConfirm => 'このシークレットを削除しますか？この操作は元に戻せません。';
 	@override String get deletedSuccess => 'シークレットが削除されました';
+	@override String get unusedSecrets => '未使用のシークレット';
+	@override String get notUsedInWorkflows => 'ワークフローで使用されていません';
 }
 
 // Path: envVars
@@ -400,6 +420,8 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
+	@override String get viewDetails => '詳細を表示';
+	@override String get retry => '再実行';
 	@override String get cancelBuild => 'ビルドをキャンセル';
 	@override String get cancelConfirm => '本当にこのビルドをキャンセルしますか？';
 	@override String get cancelNo => 'いいえ';
@@ -415,6 +437,19 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	@override String get copyAll => 'すべてのログをコピー';
 	@override String get logsCopied => 'ログがクリップボードにコピーされました';
 	@override String lines({required Object count}) => '${count}行';
+}
+
+// Path: buildLogs.duration
+class _TranslationsBuildLogsDurationJa implements TranslationsBuildLogsDurationEn {
+	_TranslationsBuildLogsDurationJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get lessThanMinute => '<1分';
+	@override String minutes({required Object count}) => '${count}分';
+	@override String hoursAndMinutes({required Object hours, required Object minutes}) => '${hours}時間${minutes}分';
+	@override String hours({required Object count}) => '${count}時間';
 }
 
 // Path: settings.language
@@ -448,6 +483,13 @@ extension on TranslationsJa {
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			'common.loading' => '読み込み中...',
 			'common.invite' => '招待',
+			'timeAgo.secsAgo' => ({required Object count}) => '${count}秒前',
+			'timeAgo.secsAgoPlural' => ({required Object count}) => '${count}秒前',
+			'timeAgo.minsAgo' => ({required Object count}) => '${count}分前',
+			'timeAgo.minsAgoPlural' => ({required Object count}) => '${count}分前',
+			'timeAgo.hoursAgo' => ({required Object count}) => '${count}時間前',
+			'timeAgo.daysAgo' => ({required Object count}) => '${count}日前',
+			'timeAgo.monthsAgo' => ({required Object count}) => '${count}ヶ月前',
 			'nav.workflows' => 'ワークフロー',
 			'nav.variables' => '変数',
 			'nav.logs' => 'ログ',
@@ -529,6 +571,8 @@ extension on TranslationsJa {
 			'buildLogs.status.inProgress' => '実行中',
 			'buildLogs.status.queued' => '待機中',
 			'buildLogs.status.cancelled' => 'キャンセル',
+			'buildLogs.detail.viewDetails' => '詳細を表示',
+			'buildLogs.detail.retry' => '再実行',
 			'buildLogs.detail.cancelBuild' => 'ビルドをキャンセル',
 			'buildLogs.detail.cancelConfirm' => '本当にこのビルドをキャンセルしますか？',
 			'buildLogs.detail.cancelNo' => 'いいえ',
@@ -544,6 +588,10 @@ extension on TranslationsJa {
 			'buildLogs.detail.copyAll' => 'すべてのログをコピー',
 			'buildLogs.detail.logsCopied' => 'ログがクリップボードにコピーされました',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count}行',
+			'buildLogs.duration.lessThanMinute' => '<1分',
+			'buildLogs.duration.minutes' => ({required Object count}) => '${count}分',
+			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}時間${minutes}分',
+			'buildLogs.duration.hours' => ({required Object count}) => '${count}時間',
 			'variables.title' => '変数',
 			'variables.envVarsTab' => '環境変数',
 			'variables.secretsTab' => 'シークレット',
@@ -560,6 +608,8 @@ extension on TranslationsJa {
 			'secrets.updatedSuccess' => 'シークレットが更新されました',
 			'secrets.deleteConfirm' => 'このシークレットを削除しますか？この操作は元に戻せません。',
 			'secrets.deletedSuccess' => 'シークレットが削除されました',
+			'secrets.unusedSecrets' => '未使用のシークレット',
+			'secrets.notUsedInWorkflows' => 'ワークフローで使用されていません',
 			'envVars.title' => '環境変数',
 			'envVars.noEnvVars' => '環境変数が見つかりません',
 			'envVars.noCustomEnvVars' => 'カスタム環境変数がありません',

@@ -192,8 +192,6 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
         child: Padding(

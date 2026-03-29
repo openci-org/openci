@@ -40,57 +40,64 @@ class _NotificationSettingsContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notiT = t.notifications;
-    return ListView(
-      children: [
-        const SizedBox(height: 8),
-        _NotificationOptionTile(
-          title: notiT.all,
-          subtitle: notiT.allDesc,
-          icon: Symbols.notifications_active_rounded,
-          isSelected: currentPreference == NotificationPreference.all,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.all,
-          ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: ListView(
+          children: [
+            const SizedBox(height: 8),
+            _NotificationOptionTile(
+              title: notiT.all,
+              subtitle: notiT.allDesc,
+              icon: Symbols.notifications_active_rounded,
+              isSelected: currentPreference == NotificationPreference.all,
+              onTap: () => _updatePreference(
+                context,
+                ref,
+                NotificationPreference.all,
+              ),
+            ),
+            _NotificationOptionTile(
+              title: notiT.successOnly,
+              subtitle: notiT.successOnlyDesc,
+              icon: Symbols.check_circle_rounded,
+              iconColor: Colors.green,
+              isSelected:
+                  currentPreference == NotificationPreference.successOnly,
+              onTap: () => _updatePreference(
+                context,
+                ref,
+                NotificationPreference.successOnly,
+              ),
+            ),
+            _NotificationOptionTile(
+              title: notiT.failureOnly,
+              subtitle: notiT.failureOnlyDesc,
+              icon: Symbols.error_rounded,
+              iconColor: Colors.redAccent,
+              isSelected:
+                  currentPreference == NotificationPreference.failureOnly,
+              onTap: () => _updatePreference(
+                context,
+                ref,
+                NotificationPreference.failureOnly,
+              ),
+            ),
+            _NotificationOptionTile(
+              title: notiT.none,
+              subtitle: notiT.noneDesc,
+              icon: Symbols.notifications_off_rounded,
+              iconColor: Colors.grey,
+              isSelected: currentPreference == NotificationPreference.none,
+              onTap: () => _updatePreference(
+                context,
+                ref,
+                NotificationPreference.none,
+              ),
+            ),
+          ],
         ),
-        _NotificationOptionTile(
-          title: notiT.successOnly,
-          subtitle: notiT.successOnlyDesc,
-          icon: Symbols.check_circle_rounded,
-          iconColor: Colors.green,
-          isSelected: currentPreference == NotificationPreference.successOnly,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.successOnly,
-          ),
-        ),
-        _NotificationOptionTile(
-          title: notiT.failureOnly,
-          subtitle: notiT.failureOnlyDesc,
-          icon: Symbols.error_rounded,
-          iconColor: Colors.redAccent,
-          isSelected: currentPreference == NotificationPreference.failureOnly,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.failureOnly,
-          ),
-        ),
-        _NotificationOptionTile(
-          title: notiT.none,
-          subtitle: notiT.noneDesc,
-          icon: Symbols.notifications_off_rounded,
-          iconColor: Colors.grey,
-          isSelected: currentPreference == NotificationPreference.none,
-          onTap: () => _updatePreference(
-            context,
-            ref,
-            NotificationPreference.none,
-          ),
-        ),
-      ],
+      ),
     );
   }
 

@@ -18,6 +18,8 @@ class SettingsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDeleting = useState(false);
     final auth = ref.watch(authProvider.notifier);
     final settingsT = t.settings;
@@ -28,103 +30,144 @@ class SettingsPage extends HookConsumerWidget {
       ),
       body: Stack(
         children: [
-          ListView(
-            children: [
-              ListTile(
-                leading: Icon(Symbols.notifications_rounded),
-                title: Text(settingsT.buildNotifications),
-                subtitle: Text(settingsT.configureNotifications),
-                trailing: Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationSettingsPage(),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      Symbols.notifications_rounded,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  );
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: Icon(Symbols.credit_card_rounded),
-                title: Text(settingsT.subscription),
-                subtitle: Text(settingsT.manageSubscription),
-                trailing: Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const SubscriptionPage(),
-                    ),
-                  );
-                },
-              ),
-              const Divider(height: 1),
-              _LanguageTile(),
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        settingsT.firebaseAppName(
-                          name: auth.getFirebaseAuth().app.name,
-                        ),
+                    title: Text(settingsT.buildNotifications),
+                    subtitle: Text(
+                      settingsT.configureNotifications,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      SizedBox(height: 40),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationSettingsPage(),
                         ),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            showDragHandle: true,
-                            context: context,
-                            builder: (context) {
-                              return SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.6,
-                                child: InviteTeamMemberBottomSheet(),
+                      );
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: Icon(
+                      Symbols.credit_card_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    title: Text(settingsT.subscription),
+                    subtitle: Text(
+                      settingsT.manageSubscription,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SubscriptionPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(),
+                  _LanguageTile(),
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 24,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            settingsT.firebaseAppName(
+                              name: auth.getFirebaseAuth().app.name,
+                            ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 40),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              fixedSize: Size(200, 20),
+                            ),
+                            onPressed: () {
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                builder: (context) {
+                                  return SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.height *
+                                        0.6,
+                                    child: InviteTeamMemberBottomSheet(),
+                                  );
+                                },
                               );
                             },
-                          );
-                        },
-                        child: Text(settingsT.inviteTeamMember),
+                            child: Text(settingsT.inviteTeamMember),
+                          ),
+                          SizedBox(height: 8),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              fixedSize: Size(200, 20),
+                            ),
+                            onPressed: () async {
+                              try {
+                                await logoutRevenueCat();
+                                await auth.getFirebaseAuth().signOut();
+                                ref.invalidate(authProvider);
+                                ref.invalidate(firestoreProvider);
+                                if (!context.mounted) return;
+                                context.showSnackBarMessage(
+                                  settingsT.logoutSuccess,
+                                );
+                              } catch (e, s) {
+                                debugPrint(e.toString());
+                                debugPrint(s.toString());
+                                context.showSnackBarMessage(
+                                  settingsT.logoutFailed(error: e.toString()),
+                                );
+                              }
+                            },
+                            child: Text(settingsT.logout),
+                          ),
+                          SizedBox(height: 8),
+                          _DeleteAccountButton(
+                            isDeleting: isDeleting,
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
-                        ),
-                        onPressed: () async {
-                          try {
-                            await logoutRevenueCat();
-                            await auth.getFirebaseAuth().signOut();
-                            ref.invalidate(authProvider);
-                            ref.invalidate(firestoreProvider);
-                            if (!context.mounted) return;
-                            context.showSnackBarMessage(
-                              settingsT.logoutSuccess,
-                            );
-                          } catch (e, s) {
-                            debugPrint(e.toString());
-                            debugPrint(s.toString());
-                            context.showSnackBarMessage(
-                              settingsT.logoutFailed(error: e.toString()),
-                            );
-                          }
-                        },
-                        child: Text(settingsT.logout),
-                      ),
-                      SizedBox(height: 8),
-                      _DeleteAccountButton(
-                        isDeleting: isDeleting,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
           if (isDeleting.value) ...[
             const ModalBarrier(dismissible: false, color: Colors.black26),
@@ -141,6 +184,8 @@ class _LanguageTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final localeAsync = ref.watch(localeProvider);
     final langT = t.settings.language;
 
@@ -156,10 +201,21 @@ class _LanguageTile extends ConsumerWidget {
     );
 
     return ListTile(
-      leading: Icon(Symbols.language),
+      leading: Icon(
+        Symbols.language,
+        color: colorScheme.onSurfaceVariant,
+      ),
       title: Text(langT.title),
-      subtitle: Text(currentLabel),
-      trailing: Icon(Icons.chevron_right),
+      subtitle: Text(
+        currentLabel,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
       onTap: () {
         showModalBottomSheet(
           showDragHandle: true,

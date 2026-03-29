@@ -76,6 +76,38 @@ class WorkflowEditor extends _$WorkflowEditor {
         });
   }
 
+  Future<void> addStep({int? insertAt}) async {
+    final doc = await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .get();
+    final data = doc.data();
+    if (data == null) return;
+
+    final workflow = Workflow.fromJson(data);
+    final steps = List<WorkflowStep>.from(workflow.workflowSteps);
+    final newStep = WorkflowStep(
+      name: 'New Step',
+      command: 'echo "Hello, OpenCI!"',
+      isCompleted: true,
+    );
+
+    if (insertAt != null && insertAt >= 0 && insertAt <= steps.length) {
+      steps.insert(insertAt, newStep);
+    } else {
+      steps.add(newStep);
+    }
+
+    await ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc(workflowId)
+        .update({
+          'workflowSteps': steps.map((s) => s.toJson()).toList(),
+        });
+  }
+
   Future<void> deleteStep(int index) async {
     final doc = await ref
         .watch(firestoreProvider)

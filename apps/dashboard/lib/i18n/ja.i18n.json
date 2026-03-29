@@ -9,6 +9,15 @@
     "loading": "読み込み中...",
     "invite": "招待"
   },
+  "timeAgo": {
+    "secsAgo": "${count}秒前",
+    "secsAgoPlural": "${count}秒前",
+    "minsAgo": "${count}分前",
+    "minsAgoPlural": "${count}分前",
+    "hoursAgo": "${count}時間前",
+    "daysAgo": "${count}日前",
+    "monthsAgo": "${count}ヶ月前"
+  },
   "nav": {
     "workflows": "ワークフロー",
     "variables": "変数",
@@ -104,6 +113,8 @@
       "cancelled": "キャンセル"
     },
     "detail": {
+      "viewDetails": "詳細を表示",
+      "retry": "再実行",
       "cancelBuild": "ビルドをキャンセル",
       "cancelConfirm": "本当にこのビルドをキャンセルしますか？",
       "cancelNo": "いいえ",
@@ -119,6 +130,12 @@
       "copyAll": "すべてのログをコピー",
       "logsCopied": "ログがクリップボードにコピーされました",
       "lines": "$count行"
+    },
+    "duration": {
+      "lessThanMinute": "<1分",
+      "minutes": "${count}分",
+      "hoursAndMinutes": "${hours}時間${minutes}分",
+      "hours": "${count}時間"
     }
   },
   "variables": {
@@ -139,7 +156,9 @@
     "addedSuccess": "シークレットが追加されました",
     "updatedSuccess": "シークレットが更新されました",
     "deleteConfirm": "このシークレットを削除しますか？この操作は元に戻せません。",
-    "deletedSuccess": "シークレットが削除されました"
+    "deletedSuccess": "シークレットが削除されました",
+    "unusedSecrets": "未使用のシークレット",
+    "notUsedInWorkflows": "ワークフローで使用されていません"
   },
   "envVars": {
     "title": "環境変数",

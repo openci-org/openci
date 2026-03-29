@@ -22,7 +22,7 @@ Future<String> initializeRun(
         .doc(runId)
         .set({
           'id': runId,
-          'createdAt': FieldValue.serverTimestamp,
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
           'status': 'in_progress',
         });
 
@@ -51,7 +51,7 @@ Future<void> updateRunStatus(
         .doc(runId)
         .update({
           'status': status,
-          'updatedAt': FieldValue.serverTimestamp,
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
           'conclusion': ?conclusion,
         });
   } catch (e) {

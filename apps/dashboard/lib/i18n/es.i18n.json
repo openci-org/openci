@@ -9,6 +9,15 @@
     "loading": "Cargando...",
     "invite": "Invitar"
   },
+  "timeAgo": {
+    "secsAgo": "hace ${count} seg",
+    "secsAgoPlural": "hace ${count} segs",
+    "minsAgo": "hace ${count} min",
+    "minsAgoPlural": "hace ${count} mins",
+    "hoursAgo": "hace ${count}h",
+    "daysAgo": "hace ${count}d",
+    "monthsAgo": "hace ${count}m"
+  },
   "nav": {
     "workflows": "Flujos de trabajo",
     "variables": "Variables",
@@ -104,6 +113,8 @@
       "cancelled": "Cancelado"
     },
     "detail": {
+      "viewDetails": "Ver detalles",
+      "retry": "Reintentar",
       "cancelBuild": "Cancelar compilación",
       "cancelConfirm": "¿Estás seguro de que quieres cancelar esta compilación?",
       "cancelNo": "No",
@@ -119,6 +130,12 @@
       "copyAll": "Copiar todos los registros",
       "logsCopied": "Registros copiados al portapapeles",
       "lines": "$count líneas"
+    },
+    "duration": {
+      "lessThanMinute": "<1m",
+      "minutes": "${count}m",
+      "hoursAndMinutes": "${hours}h ${minutes}m",
+      "hours": "${count}h"
     }
   },
   "variables": {
@@ -139,7 +156,9 @@
     "addedSuccess": "Secreto agregado exitosamente",
     "updatedSuccess": "Secreto actualizado exitosamente",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.",
-    "deletedSuccess": "Secreto eliminado exitosamente"
+    "deletedSuccess": "Secreto eliminado exitosamente",
+    "unusedSecrets": "Secretos no utilizados",
+    "notUsedInWorkflows": "No se usa en ningún flujo de trabajo"
   },
   "envVars": {
     "title": "Variables de entorno",

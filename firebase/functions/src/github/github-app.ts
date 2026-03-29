@@ -98,6 +98,9 @@ export const githubApp = onRequest(
         if (body.action === "published") {
           logger.info(`Release published: ${body.release?.tag_name}`, { structuredData: true });
           result = await createBuildJobs(app, eventData);
+
+          // Auto-update Worker CLI version in Firestore
+          await updateWorkerCliVersion(body);
         }
       } else if (event === "issue_comment") {
         if (body.action === "created" && body.comment.body.includes("@openci rerun")) {
@@ -411,5 +414,36 @@ async function findTeamIdForInstallation(installationId: number): Promise<string
   } catch (e) {
     logger.error("Failed to find team for installation", e);
     return null;
+  }
+}
+
+async function updateWorkerCliVersion(body: any): Promise<void> {
+  try {
+    const repoFullName = body.repository?.full_name;
+    if (repoFullName !== "open-ci-io/openci") return;
+
+    const assets = body.release?.assets ?? [];
+    const hasWorkerAsset = assets.some(
+      (a: any) => (a.name as string).startsWith("openci-worker-"),
+    );
+    if (!hasWorkerAsset) return;
+
+    const tagName = body.release?.tag_name as string | undefined;
+    if (!tagName) return;
+
+    const version = tagName.startsWith("v") ? tagName.substring(1) : tagName;
+
+    await db.collection("config").doc("workerCli").set(
+      {
+        latestVersion: version,
+        updatedAt: FieldValue.serverTimestamp(),
+        releaseUrl: body.release?.html_url ?? null,
+      },
+      { merge: true },
+    );
+
+    logger.info(`Updated Worker CLI version to ${version}`);
+  } catch (e) {
+    logger.error("Failed to update Worker CLI version", e);
   }
 }

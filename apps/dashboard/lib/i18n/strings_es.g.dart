@@ -38,6 +38,7 @@ class TranslationsEs with BaseTranslations<AppLocale, Translations> implements T
 
 	// Translations
 	@override late final _TranslationsCommonEs common = _TranslationsCommonEs._(_root);
+	@override late final _TranslationsTimeAgoEs timeAgo = _TranslationsTimeAgoEs._(_root);
 	@override late final _TranslationsNavEs nav = _TranslationsNavEs._(_root);
 	@override late final _TranslationsAuthEs auth = _TranslationsAuthEs._(_root);
 	@override late final _TranslationsWorkflowEs workflow = _TranslationsWorkflowEs._(_root);
@@ -67,6 +68,22 @@ class _TranslationsCommonEs implements TranslationsCommonEn {
 	@override String error({required Object error}) => 'Error: ${error}';
 	@override String get loading => 'Cargando...';
 	@override String get invite => 'Invitar';
+}
+
+// Path: timeAgo
+class _TranslationsTimeAgoEs implements TranslationsTimeAgoEn {
+	_TranslationsTimeAgoEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String secsAgo({required Object count}) => 'hace ${count} seg';
+	@override String secsAgoPlural({required Object count}) => 'hace ${count} segs';
+	@override String minsAgo({required Object count}) => 'hace ${count} min';
+	@override String minsAgoPlural({required Object count}) => 'hace ${count} mins';
+	@override String hoursAgo({required Object count}) => 'hace ${count}h';
+	@override String daysAgo({required Object count}) => 'hace ${count}d';
+	@override String monthsAgo({required Object count}) => 'hace ${count}m';
 }
 
 // Path: nav
@@ -134,6 +151,7 @@ class _TranslationsBuildLogsEs implements TranslationsBuildLogsEn {
 	@override String get noJobs => 'No se encontraron trabajos de compilación';
 	@override late final _TranslationsBuildLogsStatusEs status = _TranslationsBuildLogsStatusEs._(_root);
 	@override late final _TranslationsBuildLogsDetailEs detail = _TranslationsBuildLogsDetailEs._(_root);
+	@override late final _TranslationsBuildLogsDurationEs duration = _TranslationsBuildLogsDurationEs._(_root);
 }
 
 // Path: variables
@@ -168,6 +186,8 @@ class _TranslationsSecretsEs implements TranslationsSecretsEn {
 	@override String get updatedSuccess => 'Secreto actualizado exitosamente';
 	@override String get deleteConfirm => '¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.';
 	@override String get deletedSuccess => 'Secreto eliminado exitosamente';
+	@override String get unusedSecrets => 'Secretos no utilizados';
+	@override String get notUsedInWorkflows => 'No se usa en ningún flujo de trabajo';
 }
 
 // Path: envVars
@@ -400,6 +420,8 @@ class _TranslationsBuildLogsDetailEs implements TranslationsBuildLogsDetailEn {
 	final TranslationsEs _root; // ignore: unused_field
 
 	// Translations
+	@override String get viewDetails => 'Ver detalles';
+	@override String get retry => 'Reintentar';
 	@override String get cancelBuild => 'Cancelar compilación';
 	@override String get cancelConfirm => '¿Estás seguro de que quieres cancelar esta compilación?';
 	@override String get cancelNo => 'No';
@@ -415,6 +437,19 @@ class _TranslationsBuildLogsDetailEs implements TranslationsBuildLogsDetailEn {
 	@override String get copyAll => 'Copiar todos los registros';
 	@override String get logsCopied => 'Registros copiados al portapapeles';
 	@override String lines({required Object count}) => '${count} líneas';
+}
+
+// Path: buildLogs.duration
+class _TranslationsBuildLogsDurationEs implements TranslationsBuildLogsDurationEn {
+	_TranslationsBuildLogsDurationEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get lessThanMinute => '<1m';
+	@override String minutes({required Object count}) => '${count}m';
+	@override String hoursAndMinutes({required Object hours, required Object minutes}) => '${hours}h ${minutes}m';
+	@override String hours({required Object count}) => '${count}h';
 }
 
 // Path: settings.language
@@ -448,6 +483,13 @@ extension on TranslationsEs {
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			'common.loading' => 'Cargando...',
 			'common.invite' => 'Invitar',
+			'timeAgo.secsAgo' => ({required Object count}) => 'hace ${count} seg',
+			'timeAgo.secsAgoPlural' => ({required Object count}) => 'hace ${count} segs',
+			'timeAgo.minsAgo' => ({required Object count}) => 'hace ${count} min',
+			'timeAgo.minsAgoPlural' => ({required Object count}) => 'hace ${count} mins',
+			'timeAgo.hoursAgo' => ({required Object count}) => 'hace ${count}h',
+			'timeAgo.daysAgo' => ({required Object count}) => 'hace ${count}d',
+			'timeAgo.monthsAgo' => ({required Object count}) => 'hace ${count}m',
 			'nav.workflows' => 'Flujos de trabajo',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Registros',
@@ -529,6 +571,8 @@ extension on TranslationsEs {
 			'buildLogs.status.inProgress' => 'En progreso',
 			'buildLogs.status.queued' => 'En cola',
 			'buildLogs.status.cancelled' => 'Cancelado',
+			'buildLogs.detail.viewDetails' => 'Ver detalles',
+			'buildLogs.detail.retry' => 'Reintentar',
 			'buildLogs.detail.cancelBuild' => 'Cancelar compilación',
 			'buildLogs.detail.cancelConfirm' => '¿Estás seguro de que quieres cancelar esta compilación?',
 			'buildLogs.detail.cancelNo' => 'No',
@@ -544,6 +588,10 @@ extension on TranslationsEs {
 			'buildLogs.detail.copyAll' => 'Copiar todos los registros',
 			'buildLogs.detail.logsCopied' => 'Registros copiados al portapapeles',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} líneas',
+			'buildLogs.duration.lessThanMinute' => '<1m',
+			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
+			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',
+			'buildLogs.duration.hours' => ({required Object count}) => '${count}h',
 			'variables.title' => 'Variables',
 			'variables.envVarsTab' => 'Variables de entorno',
 			'variables.secretsTab' => 'Secretos',
@@ -560,6 +608,8 @@ extension on TranslationsEs {
 			'secrets.updatedSuccess' => 'Secreto actualizado exitosamente',
 			'secrets.deleteConfirm' => '¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.',
 			'secrets.deletedSuccess' => 'Secreto eliminado exitosamente',
+			'secrets.unusedSecrets' => 'Secretos no utilizados',
+			'secrets.notUsedInWorkflows' => 'No se usa en ningún flujo de trabajo',
 			'envVars.title' => 'Variables de entorno',
 			'envVars.noEnvVars' => 'No se encontraron variables de entorno',
 			'envVars.noCustomEnvVars' => 'Sin variables de entorno personalizadas',

@@ -302,10 +302,16 @@ Future<void> execCommandStreaming(
     '-o', 'StrictHostKeyChecking=no',
     '-o', 'UserKnownHostsFile=/dev/null',
     '-o', 'LogLevel=ERROR',
+    '-o', 'RequestTTY=no',
+    '-o', 'ServerAliveInterval=30',
+    '-o', 'ServerAliveCountMax=5',
     '-i', _sshKeyPath,
     '$sshUser@$vmIp',
     ...command,
   ]);
+
+  // Close stdin immediately to prevent ^D/EOF from being sent to remote process
+  await process.stdin.close();
 
   final stdoutCompleter = Completer<void>();
   final stderrCompleter = Completer<void>();

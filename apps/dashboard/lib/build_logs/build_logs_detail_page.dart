@@ -18,7 +18,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workflowNameAsync = ref.watch(
-      workflowNameProvider(buildJob.workflowId),
+      workflowNameProvider(buildJob),
     );
     final detailT = t.buildLogs.detail;
     final retryState = useState(_ActionState.idle);
@@ -140,13 +140,17 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           .retryBuildJob(buildJob.id);
                       retryState.value = _ActionState.done;
                       Future.delayed(const Duration(milliseconds: 1500), () {
-                        if (context.mounted) retryState.value = _ActionState.idle;
+                        if (context.mounted) {
+                          retryState.value = _ActionState.idle;
+                        }
                       });
                       if (context.mounted) {
                         context.showSnackBarMessage(detailT.retrySuccess);
                       }
                     } catch (e) {
-                      retryState.value = _ActionState.idle;
+                      if (context.mounted) {
+                        retryState.value = _ActionState.idle;
+                      }
                       if (context.mounted) {
                         context.showSnackBarMessage(
                           detailT.failedToRetry(error: e.toString()),
@@ -158,26 +162,26 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               duration: const Duration(milliseconds: 200),
               child: switch (retryState.value) {
                 _ActionState.loading => SizedBox(
-                    key: const ValueKey('retry-loading'),
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                _ActionState.done => Icon(
-                    Icons.check,
-                    key: const ValueKey('retry-check'),
-                    size: 20,
-                    color: Colors.green[300],
-                  ),
-                _ActionState.idle => Icon(
-                    Icons.replay,
-                    key: const ValueKey('retry-icon'),
-                    size: 20,
+                  key: const ValueKey('retry-loading'),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
                     color: Theme.of(context).colorScheme.onPrimary,
                   ),
+                ),
+                _ActionState.done => Icon(
+                  Icons.check,
+                  key: const ValueKey('retry-check'),
+                  size: 20,
+                  color: Colors.green[300],
+                ),
+                _ActionState.idle => Icon(
+                  Icons.replay,
+                  key: const ValueKey('retry-icon'),
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
               },
             ),
             tooltip: 'Retry',
@@ -430,8 +434,10 @@ class _DetailLogsView extends HookConsumerWidget {
             Column(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
                     border: Border(
@@ -461,20 +467,23 @@ class _DetailLogsView extends HookConsumerWidget {
                         onPressed: copyDone.value
                             ? null
                             : () {
-                                final allLogs =
-                                    logs.map((l) => l.message).join('\n');
-                                Clipboard.setData(
-                                    ClipboardData(text: allLogs));
+                                final allLogs = logs
+                                    .map((l) => l.message)
+                                    .join('\n');
+                                Clipboard.setData(ClipboardData(text: allLogs));
                                 copyDone.value = true;
                                 Future.delayed(
-                                    const Duration(milliseconds: 1500), () {
-                                  if (context.mounted) {
-                                    copyDone.value = false;
-                                  }
-                                });
+                                  const Duration(milliseconds: 1500),
+                                  () {
+                                    if (context.mounted) {
+                                      copyDone.value = false;
+                                    }
+                                  },
+                                );
                                 if (context.mounted) {
-                                  context
-                                      .showSnackBarMessage(detailT.logsCopied);
+                                  context.showSnackBarMessage(
+                                    detailT.logsCopied,
+                                  );
                                 }
                               },
                         icon: AnimatedSwitcher(
@@ -505,14 +514,14 @@ class _DetailLogsView extends HookConsumerWidget {
                 ),
                 Expanded(
                   child: Scrollbar(
+                    controller: scrollController,
                     child: ListView.builder(
                       controller: scrollController,
                       padding: const EdgeInsets.all(16),
                       itemCount: logs.length,
                       itemBuilder: (context, index) {
                         final log = logs[index];
-                        return _DetailLogLine(
-                            log: log, lineNumber: index + 1);
+                        return _DetailLogLine(log: log, lineNumber: index + 1);
                       },
                     ),
                   ),
