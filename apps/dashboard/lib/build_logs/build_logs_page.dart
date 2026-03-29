@@ -388,8 +388,9 @@ String _formatDuration(Duration duration) {
   final durationT = t.buildLogs.duration;
   final totalMinutes = duration.inMinutes;
   if (totalMinutes < 1) return durationT.lessThanMinute;
-  if (totalMinutes < 60)
+  if (totalMinutes < 60) {
     return durationT.minutes(count: totalMinutes.toString());
+  }
   final hours = totalMinutes ~/ 60;
   final minutes = totalMinutes % 60;
   return minutes > 0
