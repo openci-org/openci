@@ -54,7 +54,14 @@ Future<void> pollForJobs({
     final updated = await checkAndUpdate(firestore);
     if (updated) {
       _log.info('Restarting with updated binary...');
-      final executable = Platform.resolvedExecutable;
+
+      // Use `which` to resolve the brew symlink, not Platform.resolvedExecutable
+      // which resolves to the old Cellar binary path after brew upgrade.
+      final whichResult = await Process.run('which', ['openci-worker']);
+      final executable = whichResult.exitCode == 0
+          ? (whichResult.stdout as String).trim()
+          : Platform.resolvedExecutable;
+
       await Process.start(
         executable,
         rawArguments,
