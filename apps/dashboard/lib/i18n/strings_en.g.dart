@@ -241,6 +241,7 @@ class TranslationsBuildLogsEn {
 
 	late final TranslationsBuildLogsStatusEn status = TranslationsBuildLogsStatusEn._(_root);
 	late final TranslationsBuildLogsDetailEn detail = TranslationsBuildLogsDetailEn._(_root);
+	late final TranslationsBuildLogsDurationEn duration = TranslationsBuildLogsDurationEn._(_root);
 }
 
 // Path: variables
@@ -881,6 +882,27 @@ class TranslationsBuildLogsDetailEn {
 	String lines({required Object count}) => '${count} lines';
 }
 
+// Path: buildLogs.duration
+class TranslationsBuildLogsDurationEn {
+	TranslationsBuildLogsDurationEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: '<1m'
+	String get lessThanMinute => '<1m';
+
+	/// en: '${count}m'
+	String minutes({required Object count}) => '${count}m';
+
+	/// en: '${hours}h ${minutes}m'
+	String hoursAndMinutes({required Object hours, required Object minutes}) => '${hours}h ${minutes}m';
+
+	/// en: '${count}h'
+	String hours({required Object count}) => '${count}h';
+}
+
 // Path: settings.language
 class TranslationsSettingsLanguageEn {
 	TranslationsSettingsLanguageEn._(this._root);
@@ -1029,6 +1051,10 @@ extension on Translations {
 			'buildLogs.detail.copyAll' => 'Copy all logs',
 			'buildLogs.detail.logsCopied' => 'Logs copied to clipboard',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} lines',
+			'buildLogs.duration.lessThanMinute' => '<1m',
+			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
+			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',
+			'buildLogs.duration.hours' => ({required Object count}) => '${count}h',
 			'variables.title' => 'Variables',
 			'variables.envVarsTab' => 'Environment Variables',
 			'variables.secretsTab' => 'Secrets',

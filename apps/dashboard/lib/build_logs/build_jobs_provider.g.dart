@@ -181,3 +181,73 @@ final class WorkflowNameFamily extends $Family
   @override
   String toString() => r'workflowNameProvider';
 }
+
+@ProviderFor(runDuration)
+final runDurationProvider = RunDurationFamily._();
+
+final class RunDurationProvider
+    extends
+        $FunctionalProvider<AsyncValue<Duration?>, Duration?, Stream<Duration?>>
+    with $FutureModifier<Duration?>, $StreamProvider<Duration?> {
+  RunDurationProvider._({
+    required RunDurationFamily super.from,
+    required BuildJob super.argument,
+  }) : super(
+         retry: null,
+         name: r'runDurationProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$runDurationHash();
+
+  @override
+  String toString() {
+    return r'runDurationProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Duration?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<Duration?> create(Ref ref) {
+    final argument = this.argument as BuildJob;
+    return runDuration(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RunDurationProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$runDurationHash() => r'31cac367ccc60f3aa8ed243a17da20e03e27e4b5';
+
+final class RunDurationFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<Duration?>, BuildJob> {
+  RunDurationFamily._()
+    : super(
+        retry: null,
+        name: r'runDurationProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  RunDurationProvider call(BuildJob buildJob) =>
+      RunDurationProvider._(argument: buildJob, from: this);
+
+  @override
+  String toString() => r'runDurationProvider';
+}

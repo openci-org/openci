@@ -35,6 +35,13 @@ class Root extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           margin: EdgeInsets.zero,
         ),
+        dividerTheme: DividerThemeData(
+          color: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+          ).outlineVariant.withValues(alpha: 0.5),
+          space: 1,
+          thickness: 1,
+        ),
       ),
       home: HomePage(),
     );

@@ -151,6 +151,7 @@ class _TranslationsBuildLogsEs implements TranslationsBuildLogsEn {
 	@override String get noJobs => 'No se encontraron trabajos de compilación';
 	@override late final _TranslationsBuildLogsStatusEs status = _TranslationsBuildLogsStatusEs._(_root);
 	@override late final _TranslationsBuildLogsDetailEs detail = _TranslationsBuildLogsDetailEs._(_root);
+	@override late final _TranslationsBuildLogsDurationEs duration = _TranslationsBuildLogsDurationEs._(_root);
 }
 
 // Path: variables
@@ -438,6 +439,19 @@ class _TranslationsBuildLogsDetailEs implements TranslationsBuildLogsDetailEn {
 	@override String lines({required Object count}) => '${count} líneas';
 }
 
+// Path: buildLogs.duration
+class _TranslationsBuildLogsDurationEs implements TranslationsBuildLogsDurationEn {
+	_TranslationsBuildLogsDurationEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get lessThanMinute => '<1m';
+	@override String minutes({required Object count}) => '${count}m';
+	@override String hoursAndMinutes({required Object hours, required Object minutes}) => '${hours}h ${minutes}m';
+	@override String hours({required Object count}) => '${count}h';
+}
+
 // Path: settings.language
 class _TranslationsSettingsLanguageEs implements TranslationsSettingsLanguageEn {
 	_TranslationsSettingsLanguageEs._(this._root);
@@ -574,6 +588,10 @@ extension on TranslationsEs {
 			'buildLogs.detail.copyAll' => 'Copiar todos los registros',
 			'buildLogs.detail.logsCopied' => 'Registros copiados al portapapeles',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} líneas',
+			'buildLogs.duration.lessThanMinute' => '<1m',
+			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
+			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',
+			'buildLogs.duration.hours' => ({required Object count}) => '${count}h',
 			'variables.title' => 'Variables',
 			'variables.envVarsTab' => 'Variables de entorno',
 			'variables.secretsTab' => 'Secretos',

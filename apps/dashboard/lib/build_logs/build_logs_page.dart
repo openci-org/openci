@@ -218,6 +218,7 @@ class BuildJobCard extends HookConsumerWidget {
                           label: statusLabel,
                           color: statusColor,
                         ),
+                        _RunDurationBadge(buildJob: buildJob),
                         if (buildJob.pullRequestNumber != null)
                           _InfoBadge(
                             icon: FaIcon(
@@ -238,15 +239,6 @@ class BuildJobCard extends HookConsumerWidget {
                               size: 10,
                             ),
                             label: buildJob.commitSha!.substring(0, 7),
-                          ),
-                        if (buildJob.completedAt != null)
-                          _InfoBadge(
-                            icon: const Icon(Icons.timer_outlined, size: 11),
-                            label: _formatDuration(
-                              buildJob.completedAt!.difference(
-                                buildJob.createdAt,
-                              ),
-                            ),
                           ),
                       ],
                     ),
@@ -393,12 +385,19 @@ class BuildJobCard extends HookConsumerWidget {
 }
 
 String _formatDuration(Duration duration) {
+  final durationT = t.buildLogs.duration;
   final totalMinutes = duration.inMinutes;
-  if (totalMinutes < 1) return '<1m';
-  if (totalMinutes < 60) return '${totalMinutes}m';
+  if (totalMinutes < 1) return durationT.lessThanMinute;
+  if (totalMinutes < 60)
+    return durationT.minutes(count: totalMinutes.toString());
   final hours = totalMinutes ~/ 60;
   final minutes = totalMinutes % 60;
-  return minutes > 0 ? '${hours}h ${minutes}m' : '${hours}h';
+  return minutes > 0
+      ? durationT.hoursAndMinutes(
+          hours: hours.toString(),
+          minutes: minutes.toString(),
+        )
+      : durationT.hours(count: hours.toString());
 }
 
 class _InfoBadge extends StatelessWidget {
@@ -438,6 +437,31 @@ class _InfoBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RunDurationBadge extends ConsumerWidget {
+  const _RunDurationBadge({required this.buildJob});
+  final BuildJob buildJob;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final durationAsync = ref.watch(runDurationProvider(buildJob));
+    return durationAsync.when(
+      data: (duration) {
+        if (duration == null) return const SizedBox.shrink();
+        return _InfoBadge(
+          icon: const Icon(Icons.timer_outlined, size: 11),
+          label: _formatDuration(duration),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (e, s) {
+        debugPrint('error: $e');
+        debugPrint('stackTrace: $s');
+        throw Exception('Failed to load run duration: $e');
+      },
     );
   }
 }

@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 
 final _log = Logger('AutoUpdater');
 
-Future<bool> checkAndUpdate() async {
+Future<bool> checkAndUpdate(Firestore firestore) async {
   try {
-    final latestVersion = await _fetchLatestVersion();
+    final latestVersion = await _fetchLatestVersion(firestore);
     if (latestVersion == null) return false;
 
     if (latestVersion == version) {
@@ -39,30 +39,15 @@ Future<bool> checkAndUpdate() async {
   }
 }
 
-Future<String?> _fetchLatestVersion() async {
-  final result = await Process.run('curl', [
-    '-s',
-    '-H',
-    'Accept: application/vnd.github.v3+json',
-    'https://api.github.com/repos/open-ci-io/openci/releases?per_page=10',
-  ]);
-
-  if (result.exitCode != 0) return null;
-
-  final releases = jsonDecode(result.stdout as String) as List<dynamic>;
-
-  for (final release in releases) {
-    final assets = release['assets'] as List<dynamic>? ?? [];
-    final hasWorkerAsset = assets.any(
-      (a) => (a['name'] as String).startsWith('openci-worker-'),
-    );
-    if (!hasWorkerAsset) continue;
-
-    final tagName = release['tag_name'] as String?;
-    if (tagName == null) continue;
-
-    return tagName.startsWith('v') ? tagName.substring(1) : tagName;
+Future<String?> _fetchLatestVersion(Firestore firestore) async {
+  final doc = await firestore.collection('config').doc('workerCli').get();
+  if (!doc.exists) {
+    _log.fine('config/workerCli document not found');
+    return null;
   }
 
-  return null;
+  final data = doc.data();
+  if (data == null) return null;
+
+  return data['latestVersion'] as String?;
 }

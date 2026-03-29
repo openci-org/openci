@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
@@ -99,4 +100,41 @@ abstract class BuildJob with _$BuildJob {
 
   factory BuildJob.fromJson(Map<String, Object?> json) =>
       _$BuildJobFromJson(json);
+}
+
+@riverpod
+Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
+  final runId = buildJob.latestRunId;
+  if (runId == null) return Stream.value(null);
+
+  final firestore = ref.read(firestoreProvider);
+  return firestore
+      .collection(buildJobsCollection)
+      .doc(buildJob.id)
+      .collection('runs')
+      .doc(runId)
+      .snapshots()
+      .map((snapshot) {
+        final data = snapshot.data();
+        if (data == null) return null;
+
+        final status = data['status'] as String?;
+        if (status != 'completed') return null;
+
+        final createdAtRaw = data['createdAt'];
+        final updatedAtRaw = data['updatedAt'];
+        if (createdAtRaw == null || updatedAtRaw == null) return null;
+
+        final createdAt = _parseDateTime(createdAtRaw);
+        final updatedAt = _parseDateTime(updatedAtRaw);
+        if (createdAt == null || updatedAt == null) return null;
+
+        return updatedAt.difference(createdAt);
+      });
+}
+
+DateTime? _parseDateTime(Object? value) {
+  if (value is Timestamp) return value.toDate();
+  if (value is String) return DateTime.tryParse(value);
+  return null;
 }

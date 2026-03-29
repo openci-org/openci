@@ -11,7 +11,7 @@ final _log = Logger('Poller');
 
 const _spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
-const _updateCheckInterval = Duration(seconds: 10);
+const _updateCheckInterval = Duration(minutes: 1);
 
 Future<void> pollForJobs({
   required Firestore firestore,
@@ -51,7 +51,7 @@ Future<void> pollForJobs({
 
   Future<void> tryAutoUpdate() async {
     lastUpdateCheck = DateTime.now();
-    final updated = await checkAndUpdate();
+    final updated = await checkAndUpdate(firestore);
     if (updated) {
       _log.info('Restarting with updated binary...');
       final executable = Platform.resolvedExecutable;

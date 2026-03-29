@@ -130,6 +130,12 @@
       "copyAll": "Copiar todos los registros",
       "logsCopied": "Registros copiados al portapapeles",
       "lines": "$count líneas"
+    },
+    "duration": {
+      "lessThanMinute": "<1m",
+      "minutes": "${count}m",
+      "hoursAndMinutes": "${hours}h ${minutes}m",
+      "hours": "${count}h"
     }
   },
   "variables": {

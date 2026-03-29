@@ -130,6 +130,12 @@
       "copyAll": "すべてのログをコピー",
       "logsCopied": "ログがクリップボードにコピーされました",
       "lines": "$count行"
+    },
+    "duration": {
+      "lessThanMinute": "<1分",
+      "minutes": "${count}分",
+      "hoursAndMinutes": "${hours}時間${minutes}分",
+      "hours": "${count}時間"
     }
   },
   "variables": {

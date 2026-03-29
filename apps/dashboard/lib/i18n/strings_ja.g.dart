@@ -151,6 +151,7 @@ class _TranslationsBuildLogsJa implements TranslationsBuildLogsEn {
 	@override String get noJobs => 'ビルドジョブが見つかりません';
 	@override late final _TranslationsBuildLogsStatusJa status = _TranslationsBuildLogsStatusJa._(_root);
 	@override late final _TranslationsBuildLogsDetailJa detail = _TranslationsBuildLogsDetailJa._(_root);
+	@override late final _TranslationsBuildLogsDurationJa duration = _TranslationsBuildLogsDurationJa._(_root);
 }
 
 // Path: variables
@@ -438,6 +439,19 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	@override String lines({required Object count}) => '${count}行';
 }
 
+// Path: buildLogs.duration
+class _TranslationsBuildLogsDurationJa implements TranslationsBuildLogsDurationEn {
+	_TranslationsBuildLogsDurationJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get lessThanMinute => '<1分';
+	@override String minutes({required Object count}) => '${count}分';
+	@override String hoursAndMinutes({required Object hours, required Object minutes}) => '${hours}時間${minutes}分';
+	@override String hours({required Object count}) => '${count}時間';
+}
+
 // Path: settings.language
 class _TranslationsSettingsLanguageJa implements TranslationsSettingsLanguageEn {
 	_TranslationsSettingsLanguageJa._(this._root);
@@ -574,6 +588,10 @@ extension on TranslationsJa {
 			'buildLogs.detail.copyAll' => 'すべてのログをコピー',
 			'buildLogs.detail.logsCopied' => 'ログがクリップボードにコピーされました',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count}行',
+			'buildLogs.duration.lessThanMinute' => '<1分',
+			'buildLogs.duration.minutes' => ({required Object count}) => '${count}分',
+			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}時間${minutes}分',
+			'buildLogs.duration.hours' => ({required Object count}) => '${count}時間',
 			'variables.title' => '変数',
 			'variables.envVarsTab' => '環境変数',
 			'variables.secretsTab' => 'シークレット',

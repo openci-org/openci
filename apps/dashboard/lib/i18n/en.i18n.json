@@ -130,6 +130,12 @@
       "copyAll": "Copy all logs",
       "logsCopied": "Logs copied to clipboard",
       "lines": "$count lines"
+    },
+    "duration": {
+      "lessThanMinute": "<1m",
+      "minutes": "${count}m",
+      "hoursAndMinutes": "${hours}h ${minutes}m",
+      "hours": "${count}h"
     }
   },
   "variables": {
