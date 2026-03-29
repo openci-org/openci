@@ -38,6 +38,7 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 
 	// Translations
 	@override late final _TranslationsCommonJa common = _TranslationsCommonJa._(_root);
+	@override late final _TranslationsTimeAgoJa timeAgo = _TranslationsTimeAgoJa._(_root);
 	@override late final _TranslationsNavJa nav = _TranslationsNavJa._(_root);
 	@override late final _TranslationsAuthJa auth = _TranslationsAuthJa._(_root);
 	@override late final _TranslationsWorkflowJa workflow = _TranslationsWorkflowJa._(_root);
@@ -67,6 +68,22 @@ class _TranslationsCommonJa implements TranslationsCommonEn {
 	@override String error({required Object error}) => 'エラー: ${error}';
 	@override String get loading => '読み込み中...';
 	@override String get invite => '招待';
+}
+
+// Path: timeAgo
+class _TranslationsTimeAgoJa implements TranslationsTimeAgoEn {
+	_TranslationsTimeAgoJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String secsAgo({required Object count}) => '${count}秒前';
+	@override String secsAgoPlural({required Object count}) => '${count}秒前';
+	@override String minsAgo({required Object count}) => '${count}分前';
+	@override String minsAgoPlural({required Object count}) => '${count}分前';
+	@override String hoursAgo({required Object count}) => '${count}時間前';
+	@override String daysAgo({required Object count}) => '${count}日前';
+	@override String monthsAgo({required Object count}) => '${count}ヶ月前';
 }
 
 // Path: nav
@@ -452,6 +469,13 @@ extension on TranslationsJa {
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			'common.loading' => '読み込み中...',
 			'common.invite' => '招待',
+			'timeAgo.secsAgo' => ({required Object count}) => '${count}秒前',
+			'timeAgo.secsAgoPlural' => ({required Object count}) => '${count}秒前',
+			'timeAgo.minsAgo' => ({required Object count}) => '${count}分前',
+			'timeAgo.minsAgoPlural' => ({required Object count}) => '${count}分前',
+			'timeAgo.hoursAgo' => ({required Object count}) => '${count}時間前',
+			'timeAgo.daysAgo' => ({required Object count}) => '${count}日前',
+			'timeAgo.monthsAgo' => ({required Object count}) => '${count}ヶ月前',
 			'nav.workflows' => 'ワークフロー',
 			'nav.variables' => '変数',
 			'nav.logs' => 'ログ',

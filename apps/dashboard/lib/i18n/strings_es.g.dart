@@ -38,6 +38,7 @@ class TranslationsEs with BaseTranslations<AppLocale, Translations> implements T
 
 	// Translations
 	@override late final _TranslationsCommonEs common = _TranslationsCommonEs._(_root);
+	@override late final _TranslationsTimeAgoEs timeAgo = _TranslationsTimeAgoEs._(_root);
 	@override late final _TranslationsNavEs nav = _TranslationsNavEs._(_root);
 	@override late final _TranslationsAuthEs auth = _TranslationsAuthEs._(_root);
 	@override late final _TranslationsWorkflowEs workflow = _TranslationsWorkflowEs._(_root);
@@ -67,6 +68,22 @@ class _TranslationsCommonEs implements TranslationsCommonEn {
 	@override String error({required Object error}) => 'Error: ${error}';
 	@override String get loading => 'Cargando...';
 	@override String get invite => 'Invitar';
+}
+
+// Path: timeAgo
+class _TranslationsTimeAgoEs implements TranslationsTimeAgoEn {
+	_TranslationsTimeAgoEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String secsAgo({required Object count}) => 'hace ${count} seg';
+	@override String secsAgoPlural({required Object count}) => 'hace ${count} segs';
+	@override String minsAgo({required Object count}) => 'hace ${count} min';
+	@override String minsAgoPlural({required Object count}) => 'hace ${count} mins';
+	@override String hoursAgo({required Object count}) => 'hace ${count}h';
+	@override String daysAgo({required Object count}) => 'hace ${count}d';
+	@override String monthsAgo({required Object count}) => 'hace ${count}m';
 }
 
 // Path: nav
@@ -452,6 +469,13 @@ extension on TranslationsEs {
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			'common.loading' => 'Cargando...',
 			'common.invite' => 'Invitar',
+			'timeAgo.secsAgo' => ({required Object count}) => 'hace ${count} seg',
+			'timeAgo.secsAgoPlural' => ({required Object count}) => 'hace ${count} segs',
+			'timeAgo.minsAgo' => ({required Object count}) => 'hace ${count} min',
+			'timeAgo.minsAgoPlural' => ({required Object count}) => 'hace ${count} mins',
+			'timeAgo.hoursAgo' => ({required Object count}) => 'hace ${count}h',
+			'timeAgo.daysAgo' => ({required Object count}) => 'hace ${count}d',
+			'timeAgo.monthsAgo' => ({required Object count}) => 'hace ${count}m',
 			'nav.workflows' => 'Flujos de trabajo',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Registros',

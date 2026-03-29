@@ -1,41 +1,34 @@
+import 'package:dashboard/i18n/strings.g.dart';
 import 'package:intl/intl.dart';
 
 extension DateTimeExtensions on DateTime {
   String toFormattedDate() {
-    final month = DateFormat('MMMM').format(this);
-    final day = this.day;
-    return '$month $day${ordinalSuffix(day)}';
+    return DateFormat.MMMd().format(this);
   }
 
-  String toTimeAgoEn() {
+  String toTimeAgo() {
     final now = DateTime.now();
     final difference = now.difference(this);
 
     if (difference.inSeconds < 60) {
       final s = difference.inSeconds;
-      return '$s${s == 1 ? 'sec' : 'secs'} ago';
+      return s == 1
+          ? t.timeAgo.secsAgo(count: s)
+          : t.timeAgo.secsAgoPlural(count: s);
     } else if (difference.inMinutes < 60) {
       final m = difference.inMinutes;
-      return '$m${m == 1 ? 'min' : 'mins'} ago';
+      return m == 1
+          ? t.timeAgo.minsAgo(count: m)
+          : t.timeAgo.minsAgoPlural(count: m);
     } else if (difference.inHours < 24) {
       final h = difference.inHours;
-      return '$h${h == 1 ? 'h' : 'h'} ago';
+      return t.timeAgo.hoursAgo(count: h);
     } else if (difference.inDays < 30) {
       final d = difference.inDays;
-      return '$d${d == 1 ? 'd' : 'd'} ago';
+      return t.timeAgo.daysAgo(count: d);
     } else {
       final months = (difference.inDays / 30).floor();
-      return '$months${months == 1 ? 'm' : 'm'} ago';
+      return t.timeAgo.monthsAgo(count: months);
     }
   }
-}
-
-String ordinalSuffix(int day) {
-  if (day >= 11 && day <= 13) return 'th';
-  return switch (day % 10) {
-    1 => 'st',
-    2 => 'nd',
-    3 => 'rd',
-    _ => 'th',
-  };
 }

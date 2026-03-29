@@ -9,6 +9,15 @@
     "loading": "Loading...",
     "invite": "Invite"
   },
+  "timeAgo": {
+    "secsAgo": "${count} sec ago",
+    "secsAgoPlural": "${count} secs ago",
+    "minsAgo": "${count} min ago",
+    "minsAgoPlural": "${count} mins ago",
+    "hoursAgo": "${count}h ago",
+    "daysAgo": "${count}d ago",
+    "monthsAgo": "${count}mo ago"
+  },
   "nav": {
     "workflows": "Workflows",
     "variables": "Variables",

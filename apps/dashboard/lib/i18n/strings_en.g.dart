@@ -41,6 +41,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	// Translations
 	late final TranslationsCommonEn common = TranslationsCommonEn._(_root);
+	late final TranslationsTimeAgoEn timeAgo = TranslationsTimeAgoEn._(_root);
 	late final TranslationsNavEn nav = TranslationsNavEn._(_root);
 	late final TranslationsAuthEn auth = TranslationsAuthEn._(_root);
 	late final TranslationsWorkflowEn workflow = TranslationsWorkflowEn._(_root);
@@ -86,6 +87,36 @@ class TranslationsCommonEn {
 
 	/// en: 'Invite'
 	String get invite => 'Invite';
+}
+
+// Path: timeAgo
+class TranslationsTimeAgoEn {
+	TranslationsTimeAgoEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: '${count} sec ago'
+	String secsAgo({required Object count}) => '${count} sec ago';
+
+	/// en: '${count} secs ago'
+	String secsAgoPlural({required Object count}) => '${count} secs ago';
+
+	/// en: '${count} min ago'
+	String minsAgo({required Object count}) => '${count} min ago';
+
+	/// en: '${count} mins ago'
+	String minsAgoPlural({required Object count}) => '${count} mins ago';
+
+	/// en: '${count}h ago'
+	String hoursAgo({required Object count}) => '${count}h ago';
+
+	/// en: '${count}d ago'
+	String daysAgo({required Object count}) => '${count}d ago';
+
+	/// en: '${count}mo ago'
+	String monthsAgo({required Object count}) => '${count}mo ago';
 }
 
 // Path: nav
@@ -893,6 +924,13 @@ extension on Translations {
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			'common.loading' => 'Loading...',
 			'common.invite' => 'Invite',
+			'timeAgo.secsAgo' => ({required Object count}) => '${count} sec ago',
+			'timeAgo.secsAgoPlural' => ({required Object count}) => '${count} secs ago',
+			'timeAgo.minsAgo' => ({required Object count}) => '${count} min ago',
+			'timeAgo.minsAgoPlural' => ({required Object count}) => '${count} mins ago',
+			'timeAgo.hoursAgo' => ({required Object count}) => '${count}h ago',
+			'timeAgo.daysAgo' => ({required Object count}) => '${count}d ago',
+			'timeAgo.monthsAgo' => ({required Object count}) => '${count}mo ago',
 			'nav.workflows' => 'Workflows',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Logs',

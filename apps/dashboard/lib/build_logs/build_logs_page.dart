@@ -185,7 +185,7 @@ class BuildJobCard extends HookConsumerWidget {
                           ),
                         ),
                         Text(
-                          buildJob.createdAt.toTimeAgoEn(),
+                          buildJob.createdAt.toTimeAgo(),
                           style: TextStyle(
                             fontSize: 12,
                             color: Theme.of(
