@@ -35,7 +35,7 @@ class LogsPage extends HookConsumerWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: ActionChip(
-                        avatar: const Icon(FontAwesomeIcons.github, size: 16),
+                        avatar: FaIcon(FontAwesomeIcons.github, size: 16),
                         label: Text(
                           selectedRepo.split('/').last,
                           overflow: TextOverflow.ellipsis,

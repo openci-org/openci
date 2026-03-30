@@ -35,7 +35,7 @@ class GitHubConnectionBanner extends StatelessWidget {
               color: colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: FaIcon(
               FontAwesomeIcons.github,
               size: 24,
               color: colorScheme.onSurface,
@@ -59,7 +59,7 @@ class GitHubConnectionBanner extends StatelessWidget {
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: onConnectPressed,
-            icon: const Icon(FontAwesomeIcons.github, size: 16),
+            icon: FaIcon(FontAwesomeIcons.github, size: 16),
             label: Text(githubT.connectButton),
             style: FilledButton.styleFrom(
               minimumSize: const Size(double.infinity, 44),
