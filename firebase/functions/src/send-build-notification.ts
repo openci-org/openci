@@ -66,14 +66,36 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     }
 
     // Calculate build duration
-    const createdAt = afterData.createdAt as string | undefined;
-    const completedAt = afterData.completedAt as string | undefined;
+    // createdAt may be a Firestore Timestamp (from FieldValue.serverTimestamp())
+    // or an ISO string. completedAt is always an ISO string from the worker.
+    const createdAtRaw = afterData.createdAt;
+    const completedAtRaw = afterData.completedAt;
     let durationText = "";
-    if (createdAt && completedAt) {
-      const startTime = new Date(createdAt).getTime();
-      const endTime = new Date(completedAt).getTime();
+    if (createdAtRaw && completedAtRaw) {
+      let startTime: number;
+      if (typeof createdAtRaw === "string") {
+        startTime = new Date(createdAtRaw).getTime();
+      } else if (createdAtRaw._seconds !== undefined) {
+        startTime = createdAtRaw._seconds * 1000;
+      } else if (createdAtRaw.toDate) {
+        startTime = createdAtRaw.toDate().getTime();
+      } else {
+        startTime = NaN;
+      }
+
+      let endTime: number;
+      if (typeof completedAtRaw === "string") {
+        endTime = new Date(completedAtRaw).getTime();
+      } else if (completedAtRaw._seconds !== undefined) {
+        endTime = completedAtRaw._seconds * 1000;
+      } else if (completedAtRaw.toDate) {
+        endTime = completedAtRaw.toDate().getTime();
+      } else {
+        endTime = NaN;
+      }
+
       const durationMs = endTime - startTime;
-      if (durationMs > 0) {
+      if (!isNaN(durationMs) && durationMs > 0) {
         const totalSeconds = Math.floor(durationMs / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
@@ -97,7 +119,7 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     }
 
     // Line 2: repo and branch
-    const repoInfo = `${owner}/${repo}${branch ? ` (${branch})` : ""}`;
+    const repoInfo = `${repo}${branch ? ` (${branch})` : ""}`;
     bodyLines.push(repoInfo);
 
     // Line 3: duration (if available)
