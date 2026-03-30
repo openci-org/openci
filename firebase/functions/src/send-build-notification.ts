@@ -56,20 +56,78 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     const branch = afterData.branch as string | undefined;
     const workflowId = afterData.workflowId as string | undefined;
 
-    let workflowName: string | undefined;
-    if (workflowId) {
+    // Get workflow name from the build job document first, fallback to workflows collection
+    let workflowName = afterData.workflowName as string | undefined;
+    if (!workflowName && workflowId) {
       const workflowDoc = await db.collection(workflowsCollectionPath).doc(workflowId).get();
       if (workflowDoc.exists) {
         workflowName = workflowDoc.data()?.name as string | undefined;
       }
     }
 
+    // Calculate build duration
+    // createdAt may be a Firestore Timestamp (from FieldValue.serverTimestamp())
+    // or an ISO string. completedAt is always an ISO string from the worker.
+    const createdAtRaw = afterData.createdAt;
+    const completedAtRaw = afterData.completedAt;
+    let durationText = "";
+    if (createdAtRaw && completedAtRaw) {
+      let startTime: number;
+      if (typeof createdAtRaw === "string") {
+        startTime = new Date(createdAtRaw).getTime();
+      } else if (createdAtRaw._seconds !== undefined) {
+        startTime = createdAtRaw._seconds * 1000;
+      } else if (createdAtRaw.toDate) {
+        startTime = createdAtRaw.toDate().getTime();
+      } else {
+        startTime = NaN;
+      }
+
+      let endTime: number;
+      if (typeof completedAtRaw === "string") {
+        endTime = new Date(completedAtRaw).getTime();
+      } else if (completedAtRaw._seconds !== undefined) {
+        endTime = completedAtRaw._seconds * 1000;
+      } else if (completedAtRaw.toDate) {
+        endTime = completedAtRaw.toDate().getTime();
+      } else {
+        endTime = NaN;
+      }
+
+      const durationMs = endTime - startTime;
+      if (!isNaN(durationMs) && durationMs > 0) {
+        const totalSeconds = Math.floor(durationMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        if (minutes > 0) {
+          durationText = `${minutes}m ${seconds}s`;
+        } else {
+          durationText = `${seconds}s`;
+        }
+      }
+    }
+
     const isSuccess = currentStatus === "success";
     const title = isSuccess ? "✅ Build Succeeded" : "❌ Build Failed";
-    const displayName = workflowName ?? `${owner}/${repo}`;
-    const bodyHeader = `${displayName}${branch ? ` (${branch})` : ""}`;
 
-    let body = bodyHeader;
+    // Build body lines
+    const bodyLines: string[] = [];
+
+    // Line 1: workflow name (if available)
+    if (workflowName) {
+      bodyLines.push(workflowName);
+    }
+
+    // Line 2: repo and branch
+    const repoInfo = `${repo}${branch ? ` (${branch})` : ""}`;
+    bodyLines.push(repoInfo);
+
+    // Line 3: duration (if available)
+    if (durationText) {
+      bodyLines.push(`⏱ ${durationText}`);
+    }
+
+    // For failures, add error message
     if (!isSuccess) {
       const latestRunId = afterData.latestRunId as string | undefined;
       if (latestRunId) {
@@ -85,12 +143,14 @@ export const onBuildJobStatusChange = onDocumentUpdated(
 
         if (logsSnapshot.docs.length >= 2) {
           const failureLog = logsSnapshot.docs[1].data();
-          body = `${bodyHeader}\n${failureLog.message ?? "Unknown error"}`;
+          bodyLines.push(failureLog.message ?? "Unknown error");
         } else {
-          body = `${bodyHeader}\nUnknown error`;
+          bodyLines.push("Unknown error");
         }
       }
     }
+
+    const body = bodyLines.join("\n");
 
     const tokensToNotify: string[] = [];
 
@@ -134,6 +194,8 @@ export const onBuildJobStatusChange = onDocumentUpdated(
           owner,
           repo,
           ...(branch ? { branch } : {}),
+          ...(workflowName ? { workflowName } : {}),
+          ...(durationText ? { duration: durationText } : {}),
         },
         apns: {
           payload: {
