@@ -19,16 +19,40 @@ Future<bool> checkAndUpdate(Firestore firestore) async {
     _log.info('New version available: $version → $latestVersion');
     _log.info('Updating via brew...');
 
-    final updateResult = await Process.run(
+    // Must run `brew update` first to fetch the latest tap info,
+    // otherwise `brew upgrade` won't know about the new version.
+    final updateTapResult = await Process.run('brew', ['update']);
+    if (updateTapResult.exitCode != 0) {
+      _log.warning('brew update failed: ${updateTapResult.stderr}');
+      return false;
+    }
+
+    final upgradeResult = await Process.run(
       'brew',
       ['upgrade', 'openci-worker'],
     );
 
-    if (updateResult.exitCode != 0) {
-      _log.warning(
-        'brew upgrade failed: ${updateResult.stderr}',
-      );
+    if (upgradeResult.exitCode != 0) {
+      _log.warning('brew upgrade failed: ${upgradeResult.stderr}');
       return false;
+    }
+
+    // Verify the upgrade actually installed the new version.
+    // `brew upgrade` returns exit code 0 even if "already installed".
+    final infoResult = await Process.run(
+      'brew',
+      ['info', '--json=v2', 'openci-worker'],
+    );
+
+    if (infoResult.exitCode == 0) {
+      final output = infoResult.stdout as String;
+      if (!output.contains(latestVersion)) {
+        _log.warning(
+          'brew upgrade succeeded but version $latestVersion not found. '
+          'Skipping restart.',
+        );
+        return false;
+      }
     }
 
     _log.info('Updated to $latestVersion. Restarting...');
