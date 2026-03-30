@@ -213,6 +213,12 @@ class TranslationsWorkflowEn {
 	/// en: 'Select Repository'
 	String get selectRepoButton => 'Select Repository';
 
+	/// en: 'Enabled'
+	String get enabled => 'Enabled';
+
+	/// en: 'Disabled'
+	String get disabled => 'Disabled';
+
 	/// en: 'Triggers'
 	String get triggers => 'Triggers';
 
@@ -983,6 +989,8 @@ extension on Translations {
 			'workflow.selectRepo' => 'Select a repository',
 			'workflow.selectRepoHint' => 'Choose a GitHub repository to manage workflows.',
 			'workflow.selectRepoButton' => 'Select Repository',
+			'workflow.enabled' => 'Enabled',
+			'workflow.disabled' => 'Disabled',
 			'workflow.triggers' => 'Triggers',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} branch',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} branch (loading...)',

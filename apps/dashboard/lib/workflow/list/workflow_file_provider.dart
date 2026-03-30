@@ -15,6 +15,7 @@ abstract class WorkflowFile with _$WorkflowFile {
     required String name,
     required String path,
     required String content,
+    @Default(true) bool enabled,
   }) = _WorkflowFile;
 
   factory WorkflowFile.fromJson(Map<String, Object?> json) =>
@@ -52,6 +53,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
             name: data['fileName'] as String,
             path: data['filePath'] as String,
             content: data['content'] as String,
+            enabled: data['enabled'] as bool? ?? true,
           );
         }).toList(),
       );
@@ -80,4 +82,42 @@ Future<void> syncWorkflowFiles(Ref ref) async {
     'repository': selectedRepo,
     'branch': selectedBranch,
   });
+}
+
+/// Generate a stable document ID matching the Firebase Functions logic.
+String _workflowFileDocId(
+  String teamId,
+  String repository,
+  String branch,
+  String fileName,
+) {
+  return '${teamId}_${repository.replaceAll('/', '_')}_${branch}_$fileName';
+}
+
+@riverpod
+Future<void> toggleWorkflowEnabled(
+  Ref ref, {
+  required String fileName,
+  required bool enabled,
+}) async {
+  final team = ref.watch(teamStateProvider).value;
+  final user = ref.watch(userProvider).value;
+  if (team == null || user == null) return;
+
+  final selectedRepo = user.selectedRepository;
+  final selectedBranch = user.selectedBranch;
+  if (selectedRepo == null || selectedBranch == null) return;
+
+  final docId = _workflowFileDocId(
+    team.id,
+    selectedRepo,
+    selectedBranch,
+    fileName,
+  );
+
+  await ref
+      .read(firestoreProvider)
+      .collection(workflowFilesCollection)
+      .doc(docId)
+      .update({'enabled': enabled});
 }

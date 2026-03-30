@@ -45,7 +45,9 @@ service cloud.firestore {
 
         match /workflow_files_v0/{fileId} {
             allow read: if isTeamMember(resource.data.teamId);
-            allow write: if false;
+            allow update: if isTeamMember(resource.data.teamId)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enabled']);
+            allow create, delete: if false;
         }
 
         match /teams_v0/{teamId} {

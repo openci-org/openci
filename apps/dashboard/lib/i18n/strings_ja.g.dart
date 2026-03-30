@@ -134,6 +134,8 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 	@override String get selectRepo => 'リポジトリを選択';
 	@override String get selectRepoHint => 'ワークフローを管理するGitHubリポジトリを選択してください。';
 	@override String get selectRepoButton => 'リポジトリを選択';
+	@override String get enabled => '有効';
+	@override String get disabled => '無効';
 	@override String get triggers => 'トリガー';
 	@override String triggerBranch({required Object type}) => '${type} ブランチ';
 	@override String triggerBranchLoading({required Object type}) => '${type} ブランチ (読み込み中...)';
@@ -520,6 +522,8 @@ extension on TranslationsJa {
 			'workflow.selectRepo' => 'リポジトリを選択',
 			'workflow.selectRepoHint' => 'ワークフローを管理するGitHubリポジトリを選択してください。',
 			'workflow.selectRepoButton' => 'リポジトリを選択',
+			'workflow.enabled' => '有効',
+			'workflow.disabled' => '無効',
 			'workflow.triggers' => 'トリガー',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} ブランチ',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} ブランチ (読み込み中...)',

@@ -55,6 +55,8 @@
     "selectRepo": "Select a repository",
     "selectRepoHint": "Choose a GitHub repository to manage workflows.",
     "selectRepoButton": "Select Repository",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
     "triggers": "Triggers",
     "triggerBranch": "$type branch",
     "triggerBranchLoading": "$type branch (loading...)",
