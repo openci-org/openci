@@ -52,7 +52,7 @@ class SelectBranchBottomSheet extends ConsumerWidget {
                         final branch = branchList[index];
                         final isSelected = currentBranch == branch;
                         return ListTile(
-                          leading: Icon(
+                          leading: FaIcon(
                             FontAwesomeIcons.codeBranch,
                             size: 16,
                             color: isSelected

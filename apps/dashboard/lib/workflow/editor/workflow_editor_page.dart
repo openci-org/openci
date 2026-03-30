@@ -125,17 +125,19 @@ class StepList extends ConsumerWidget {
                         children: [
                           for (final entry
                               in workflowConfig.triggers.entries) ...[
-                            Icon(
-                              switch (entry.key) {
-                                'tag' => Icons.label_outline,
-                                'push' => FontAwesomeIcons.codeCommit,
-                                'pull_request' || 'pullRequest' =>
-                                  FontAwesomeIcons.codePullRequest,
-                                'release' => Icons.new_releases_outlined,
-                                _ => Icons.play_arrow,
+                            Builder(
+                              builder: (context) {
+                                final color = Theme.of(context).hintColor;
+                                const size = 16.0;
+                                return switch (entry.key) {
+                                  'tag' => Icon(Icons.label_outline, size: size, color: color),
+                                  'push' => FaIcon(FontAwesomeIcons.codeCommit, size: size, color: color),
+                                  'pull_request' || 'pullRequest' =>
+                                    FaIcon(FontAwesomeIcons.codePullRequest, size: size, color: color),
+                                  'release' => Icon(Icons.new_releases_outlined, size: size, color: color),
+                                  _ => Icon(Icons.play_arrow, size: size, color: color),
+                                };
                               },
-                              size: 16,
-                              color: Theme.of(context).hintColor,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -146,7 +148,7 @@ class StepList extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
                           ],
-                          Icon(
+                          FaIcon(
                             FontAwesomeIcons.github,
                             size: 16,
                             color: Theme.of(context).hintColor,
@@ -470,7 +472,7 @@ class StepCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(
+              icon: FaIcon(
                 FontAwesomeIcons.trashCan,
                 color: Theme.of(context).colorScheme.error,
                 size: 20,
@@ -515,7 +517,7 @@ class StepCard extends ConsumerWidget {
           padding: const EdgeInsets.only(top: 8.0),
           child: Row(
             children: [
-              Icon(
+              FaIcon(
                 FontAwesomeIcons.code,
                 size: 16,
                 color: Theme.of(context).hintColor,

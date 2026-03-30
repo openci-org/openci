@@ -327,7 +327,7 @@ class _DetailGitChip extends StatelessWidget {
     required this.color,
   });
 
-  final IconData icon;
+  final FaIconData icon;
   final String label;
   final Color color;
 

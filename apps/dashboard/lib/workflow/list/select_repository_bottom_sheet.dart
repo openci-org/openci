@@ -91,7 +91,7 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                   itemBuilder: (context, index) {
                     final repo = filtered[index];
                     return ListTile(
-                      leading: Icon(
+                      leading: FaIcon(
                         repo.private
                             ? FontAwesomeIcons.lock
                             : FontAwesomeIcons.globe,

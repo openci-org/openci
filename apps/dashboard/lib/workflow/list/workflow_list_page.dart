@@ -207,7 +207,7 @@ class _WorkflowBody extends ConsumerWidget {
               runSpacing: 8,
               children: [
                 ActionChip(
-                  avatar: const Icon(FontAwesomeIcons.github, size: 16),
+                  avatar: FaIcon(FontAwesomeIcons.github, size: 16),
                   label: Text(
                     selectedRepo.split('/').last,
                     overflow: TextOverflow.ellipsis,
@@ -221,7 +221,7 @@ class _WorkflowBody extends ConsumerWidget {
                 ),
                 if (selectedBranch != null)
                   ActionChip(
-                    avatar: const Icon(FontAwesomeIcons.codeBranch, size: 14),
+                    avatar: FaIcon(FontAwesomeIcons.codeBranch, size: 14),
                     label: Text(
                       selectedBranch!,
                       overflow: TextOverflow.ellipsis,
@@ -366,7 +366,7 @@ class SelectRepository extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            FaIcon(
               FontAwesomeIcons.github,
               size: 64,
               color: Theme.of(context).disabledColor,
@@ -392,7 +392,7 @@ class SelectRepository extends StatelessWidget {
                 showDragHandle: true,
                 builder: (_) => const SelectRepositoryBottomSheet(),
               ),
-              icon: const Icon(FontAwesomeIcons.github, size: 18),
+              icon: FaIcon(FontAwesomeIcons.github, size: 18),
               label: Text(wfT.selectRepoButton),
             ),
           ],
