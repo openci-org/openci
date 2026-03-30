@@ -57,6 +57,8 @@
     "selectRepoButton": "Seleccionar repositorio",
     "enabled": "Activo",
     "disabled": "Inactivo",
+    "enable": "Activar flujo de trabajo",
+    "disable": "Desactivar flujo de trabajo",
     "triggers": "Disparadores",
     "triggerBranch": "Rama de $type",
     "triggerBranchLoading": "Rama de $type (cargando...)",
