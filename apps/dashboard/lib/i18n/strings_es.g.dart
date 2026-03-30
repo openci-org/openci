@@ -136,6 +136,8 @@ class _TranslationsWorkflowEs implements TranslationsWorkflowEn {
 	@override String get selectRepoButton => 'Seleccionar repositorio';
 	@override String get enabled => 'Activo';
 	@override String get disabled => 'Inactivo';
+	@override String get enable => 'Activar flujo de trabajo';
+	@override String get disable => 'Desactivar flujo de trabajo';
 	@override String get triggers => 'Disparadores';
 	@override String triggerBranch({required Object type}) => 'Rama de ${type}';
 	@override String triggerBranchLoading({required Object type}) => 'Rama de ${type} (cargando...)';
@@ -524,6 +526,8 @@ extension on TranslationsEs {
 			'workflow.selectRepoButton' => 'Seleccionar repositorio',
 			'workflow.enabled' => 'Activo',
 			'workflow.disabled' => 'Inactivo',
+			'workflow.enable' => 'Activar flujo de trabajo',
+			'workflow.disable' => 'Desactivar flujo de trabajo',
 			'workflow.triggers' => 'Disparadores',
 			'workflow.triggerBranch' => ({required Object type}) => 'Rama de ${type}',
 			'workflow.triggerBranchLoading' => ({required Object type}) => 'Rama de ${type} (cargando...)',

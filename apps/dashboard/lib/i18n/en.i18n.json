@@ -57,6 +57,8 @@
     "selectRepoButton": "Select Repository",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "enable": "Enable workflow",
+    "disable": "Disable workflow",
     "triggers": "Triggers",
     "triggerBranch": "$type branch",
     "triggerBranchLoading": "$type branch (loading...)",

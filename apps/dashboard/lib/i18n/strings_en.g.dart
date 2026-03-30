@@ -219,6 +219,12 @@ class TranslationsWorkflowEn {
 	/// en: 'Disabled'
 	String get disabled => 'Disabled';
 
+	/// en: 'Enable workflow'
+	String get enable => 'Enable workflow';
+
+	/// en: 'Disable workflow'
+	String get disable => 'Disable workflow';
+
 	/// en: 'Triggers'
 	String get triggers => 'Triggers';
 
@@ -991,6 +997,8 @@ extension on Translations {
 			'workflow.selectRepoButton' => 'Select Repository',
 			'workflow.enabled' => 'Enabled',
 			'workflow.disabled' => 'Disabled',
+			'workflow.enable' => 'Enable workflow',
+			'workflow.disable' => 'Disable workflow',
 			'workflow.triggers' => 'Triggers',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} branch',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} branch (loading...)',
