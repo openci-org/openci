@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dashboard/users/user_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -7,8 +9,17 @@ part 'notification_provider.g.dart';
 
 @Riverpod(keepAlive: true)
 class NotificationService extends _$NotificationService {
+  StreamSubscription<String>? _tokenRefreshSubscription;
+  StreamSubscription<RemoteMessage>? _onMessageSubscription;
+
   @override
-  Future<void> build() async => initializeNotifications();
+  Future<void> build() async {
+    ref.onDispose(() {
+      _tokenRefreshSubscription?.cancel();
+      _onMessageSubscription?.cancel();
+    });
+    await initializeNotifications();
+  }
 
   Future<bool> requestPermission() async {
     final messaging = FirebaseMessaging.instance;
@@ -47,7 +58,8 @@ class NotificationService extends _$NotificationService {
         debugPrint('[FCM] FCM token is null');
       }
 
-      messaging.onTokenRefresh.listen((newToken) async {
+      _tokenRefreshSubscription =
+          messaging.onTokenRefresh.listen((newToken) async {
         if (!ref.mounted) return;
         final userNotifier = ref.read(userProvider.notifier);
         await userNotifier.addFcmToken(newToken);
@@ -75,7 +87,7 @@ class NotificationService extends _$NotificationService {
       await registerFcmToken();
     }
 
-    FirebaseMessaging.onMessage.listen((message) {
+    _onMessageSubscription = FirebaseMessaging.onMessage.listen((message) {
       debugPrint(
         '[FCM] Foreground message: ${message.notification?.title}',
       );
