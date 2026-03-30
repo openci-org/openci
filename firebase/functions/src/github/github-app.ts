@@ -6,9 +6,9 @@ import { App } from "octokit";
 import { v4 as uuidv4 } from "uuid";
 
 import { db } from "../firebase";
-import { buildJobsCollectionPath } from "../firestore-collection-paths";
+import { buildJobsCollectionPath, workflowFilesCollectionPath } from "../firestore-collection-paths";
 import { OPENCI_DIR_QUERY, OpenciDirEntry } from "./queries";
-import { syncWorkflowFilesToFirestore } from "./sync-workflow-files";
+import { syncWorkflowFilesToFirestore, workflowFileDocId } from "./sync-workflow-files";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -255,6 +255,19 @@ async function createBuildJobs(
             continue;
           }
 
+          const teamId = await findTeamIdForInstallation(installationId);
+
+          // Check if workflow is disabled in Firestore
+          if (teamId) {
+            const wfBranch = triggerBranch ?? "HEAD";
+            const docId = workflowFileDocId(teamId, params.repository, wfBranch, entry.name);
+            const wfDoc = await db.collection(workflowFilesCollectionPath).doc(docId).get();
+            if (wfDoc.exists && wfDoc.data()?.enabled === false) {
+              logger.info(`Workflow ${entry.name} is disabled, skipping`);
+              continue;
+            }
+          }
+
           logger.info(`Matched .openci/${entry.name} with ${steps.length} steps`);
 
           let checkRunId: number | null = null;
@@ -276,8 +289,6 @@ async function createBuildJobs(
               logger.error(`Failed to create check run for ${entry.name}`, error);
             }
           }
-
-          const teamId = await findTeamIdForInstallation(installationId);
 
           const documentId = uuidv4();
           const jobData = { ...params };

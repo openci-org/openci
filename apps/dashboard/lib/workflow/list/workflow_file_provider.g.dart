@@ -11,6 +11,7 @@ _WorkflowFile _$WorkflowFileFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       path: json['path'] as String,
       content: json['content'] as String,
+      enabled: json['enabled'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$WorkflowFileToJson(_WorkflowFile instance) =>
@@ -18,6 +19,7 @@ Map<String, dynamic> _$WorkflowFileToJson(_WorkflowFile instance) =>
       'name': instance.name,
       'path': instance.path,
       'content': instance.content,
+      'enabled': instance.enabled,
     };
 
 // **************************************************************************
@@ -66,7 +68,7 @@ final class WorkflowFilesProvider
   }
 }
 
-String _$workflowFilesHash() => r'df177559157941ff4ff6d7e89741e6af4cbd0005';
+String _$workflowFilesHash() => r'e552ff1ed188a0602de6df77ca42de01c7c10b47';
 
 @ProviderFor(syncWorkflowFiles)
 final syncWorkflowFilesProvider = SyncWorkflowFilesProvider._();
@@ -100,3 +102,86 @@ final class SyncWorkflowFilesProvider
 }
 
 String _$syncWorkflowFilesHash() => r'06374549a7c4d9036bb7267ad89dfeede6bc527a';
+
+@ProviderFor(toggleWorkflowEnabled)
+final toggleWorkflowEnabledProvider = ToggleWorkflowEnabledFamily._();
+
+final class ToggleWorkflowEnabledProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  ToggleWorkflowEnabledProvider._({
+    required ToggleWorkflowEnabledFamily super.from,
+    required ({String fileName, bool enabled}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'toggleWorkflowEnabledProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$toggleWorkflowEnabledHash();
+
+  @override
+  String toString() {
+    return r'toggleWorkflowEnabledProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    final argument = this.argument as ({String fileName, bool enabled});
+    return toggleWorkflowEnabled(
+      ref,
+      fileName: argument.fileName,
+      enabled: argument.enabled,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ToggleWorkflowEnabledProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$toggleWorkflowEnabledHash() =>
+    r'94c794bdb661c25342d1fced29711befdd520b75';
+
+final class ToggleWorkflowEnabledFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<void>,
+          ({String fileName, bool enabled})
+        > {
+  ToggleWorkflowEnabledFamily._()
+    : super(
+        retry: null,
+        name: r'toggleWorkflowEnabledProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ToggleWorkflowEnabledProvider call({
+    required String fileName,
+    required bool enabled,
+  }) => ToggleWorkflowEnabledProvider._(
+    argument: (fileName: fileName, enabled: enabled),
+    from: this,
+  );
+
+  @override
+  String toString() => r'toggleWorkflowEnabledProvider';
+}

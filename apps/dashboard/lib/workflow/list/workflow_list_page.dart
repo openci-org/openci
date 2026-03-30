@@ -326,12 +326,51 @@ class _WorkflowBody extends ConsumerWidget {
                           title: Text(
                             _extractWorkflowName(file.content) ?? file.name,
                           ),
-                          subtitle: Text(
-                            file.name,
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(
+                              children: [
+                                Text(
+                                  file.name,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilterChip(
+                                  selected: file.enabled,
+                                  showCheckmark: false,
+                                  avatar: file.enabled
+                                      ? const Icon(Icons.check, size: 14)
+                                      : null,
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding: EdgeInsets.only(
+                                    left: file.enabled ? 2 : 8,
+                                    right: 8,
+                                  ),
+                                  labelStyle: Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall,
+                                  label: Text(
+                                    file.enabled
+                                        ? t.workflow.enabled
+                                        : t.workflow.disabled,
+                                  ),
+                                  onSelected: (value) {
+                                    ref.read(
+                                      toggleWorkflowEnabledProvider(
+                                        fileName: file.name,
+                                        enabled: value,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                           trailing: Icon(

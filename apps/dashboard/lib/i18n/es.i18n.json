@@ -55,6 +55,8 @@
     "selectRepo": "Seleccionar un repositorio",
     "selectRepoHint": "Elige un repositorio de GitHub para gestionar flujos de trabajo.",
     "selectRepoButton": "Seleccionar repositorio",
+    "enabled": "Activo",
+    "disabled": "Inactivo",
     "triggers": "Disparadores",
     "triggerBranch": "Rama de $type",
     "triggerBranchLoading": "Rama de $type (cargando...)",
