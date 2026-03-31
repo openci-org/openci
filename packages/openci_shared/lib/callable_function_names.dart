@@ -1,3 +1,7 @@
+const ascListAppsFunction = 'ascListApps';
+const ascListBuildsFunction = 'ascListBuilds';
+const ascSubmitToTestFlightFunction = 'ascSubmitToTestFlight';
+const ascSubmitForReviewFunction = 'ascSubmitForReview';
 const cancelBuildJobFunction = 'cancelBuildJob';
 const createSecretFunction = 'createSecretV1';
 const createWorkflowFileFunction = 'createWorkflowFile';

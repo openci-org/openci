@@ -1,6 +1,7 @@
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/settings/settings_page.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/breakpoint.dart';
@@ -28,6 +29,7 @@ class NavigationBarPage extends HookConsumerWidget {
       WorkflowListPage(key: ValueKey('workflow_$locale')),
       VariablesPage(key: ValueKey('variables_$locale')),
       LogsPage(key: ValueKey('logs_$locale')),
+      StoreReleasePage(key: ValueKey('release_$locale')),
       SettingsPage(key: ValueKey('settings_$locale')),
     ];
 
@@ -48,6 +50,11 @@ class NavigationBarPage extends HookConsumerWidget {
         label: navT.logs,
       ),
       NavigationDestination(
+        selectedIcon: Icon(Icons.rocket_launch),
+        icon: Icon(Symbols.rocket_launch_rounded),
+        label: navT.release,
+      ),
+      NavigationDestination(
         selectedIcon: Icon(Icons.settings),
         icon: Icon(Icons.settings_outlined),
         label: navT.settings,
@@ -62,7 +69,7 @@ class NavigationBarPage extends HookConsumerWidget {
       },
       data: (team) {
         final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
-        if (isGitHubConnected || currentPageIndex.value == 3) {
+        if (isGitHubConnected || currentPageIndex.value == 4) {
           return pages[currentPageIndex.value];
         }
         return Center(

@@ -37,232 +37,238 @@ class AuthPage extends HookConsumerWidget {
                 key: formKey,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'OpenCI',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      SizedBox(height: 16),
-                      Text('Firebase: ${firestore.app.name}'),
-                      SizedBox(height: 40),
-                      TextFormField(
-                        controller: emailController,
-                        decoration: InputDecoration(labelText: authT.email),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return authT.enterEmail;
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        controller: passwordController,
-                        decoration: InputDecoration(labelText: authT.password),
-                        obscureText: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return authT.enterPassword;
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 40),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: 8.0,
-                        children: [
-                          Checkbox(
-                            value: isAgreed.value,
-                            onChanged: (value) {
-                              isAgreed.value = value!;
-                            },
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'OpenCI',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        SizedBox(height: 16),
+                        Text('Firebase: ${firestore.app.name}'),
+                        SizedBox(height: 40),
+                        TextFormField(
+                          controller: emailController,
+                          decoration: InputDecoration(labelText: authT.email),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return authT.enterEmail;
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 16),
+                        TextFormField(
+                          controller: passwordController,
+                          decoration: InputDecoration(
+                            labelText: authT.password,
                           ),
-                          Text.rich(
-                            TextSpan(
-                              text: authT.agreePrefix,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              children: [
-                                TextSpan(
-                                  text: authT.termsOfService,
-                                  style: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                  recognizer: tapGestureRecognizer
-                                    ..onTap = () {
-                                      launchUrl(
-                                        Uri.parse(
-                                          'https://openci.org/terms-of-service',
-                                        ),
-                                      );
-                                    },
-                                ),
-                              ],
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return authT.enterPassword;
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 40),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 8.0,
+                          children: [
+                            Checkbox(
+                              value: isAgreed.value,
+                              onChanged: (value) {
+                                isAgreed.value = value!;
+                              },
+                              visualDensity: VisualDensity.compact,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
                             ),
+                            Text.rich(
+                              TextSpan(
+                                text: authT.agreePrefix,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                                children: [
+                                  TextSpan(
+                                    text: authT.termsOfService,
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    recognizer: tapGestureRecognizer
+                                      ..onTap = () {
+                                        launchUrl(
+                                          Uri.parse(
+                                            'https://openci.org/terms-of-service',
+                                          ),
+                                        );
+                                      },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            fixedSize: Size(200, 20),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
-                        ),
-                        onPressed: (isAgreed.value && !isLoading.value)
-                            ? () async {
-                                if (formKey.currentState!.validate()) {
-                                  isLoading.value = true;
-                                  try {
-                                    await authNotifier
-                                        .getFirebaseAuth()
-                                        .signInWithEmailAndPassword(
-                                          email: emailController.text,
-                                          password: passwordController.text,
-                                        );
-                                    ref.invalidate(authProvider);
-                                    ref.invalidate(firestoreProvider);
-                                  } catch (e) {
-                                    if (!context.mounted) return;
-                                    debugPrint(e.toString());
-                                    context.showSnackBarMessage(
-                                      t.common.error(error: e.toString()),
-                                    );
-                                  } finally {
-                                    isLoading.value = false;
-                                  }
-                                }
-                              }
-                            : null,
-                        child: Text(authT.login),
-                      ),
-                      SizedBox(
-                        height: 8,
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
-                          backgroundColor: Theme.of(context).primaryColor,
-                        ),
-                        onPressed: (isAgreed.value && !isLoading.value)
-                            ? () async {
-                                if (formKey.currentState!.validate()) {
-                                  isLoading.value = true;
-                                  try {
-                                    final credential = await authNotifier
-                                        .getFirebaseAuth()
-                                        .createUserWithEmailAndPassword(
-                                          email: emailController.text,
-                                          password: passwordController.text,
-                                        );
-                                    final userId = credential.user!.uid;
-                                    final db = firestore;
-                                    final teamsRef = db
-                                        .collection(teamsCollection)
-                                        .doc();
-                                    final teamId = teamsRef.id;
-                                    final batch = db.batch();
-                                    batch.set(teamsRef, {
-                                      'id': teamId,
-                                      'name': teamId,
-                                      'members': [userId],
-                                      'createdAt':
-                                          FieldValue.serverTimestamp(),
-                                      'updatedAt':
-                                          FieldValue.serverTimestamp(),
-                                    });
-                                    final userRef = db
-                                        .collection(usersCollection)
-                                        .doc(userId);
-                                    batch.set(userRef, {
-                                      'id': userId,
-                                      'selectedTeamId': teamId,
-                                      'createdAt':
-                                          FieldValue.serverTimestamp(),
-                                      'updatedAt':
-                                          FieldValue.serverTimestamp(),
-                                    });
-                                    await batch.commit();
-                                    ref.invalidate(authProvider);
-                                    ref.invalidate(firestoreProvider);
-                                  } catch (e) {
-                                    if (!context.mounted) return;
-                                    debugPrint(e.toString());
-                                    context.showSnackBarMessage(
-                                      t.common.error(error: e.toString()),
-                                    );
-                                  } finally {
-                                    if (context.mounted) {
+                          onPressed: (isAgreed.value && !isLoading.value)
+                              ? () async {
+                                  if (formKey.currentState!.validate()) {
+                                    isLoading.value = true;
+                                    try {
+                                      await authNotifier
+                                          .getFirebaseAuth()
+                                          .signInWithEmailAndPassword(
+                                            email: emailController.text,
+                                            password: passwordController.text,
+                                          );
+                                      ref.invalidate(authProvider);
+                                      ref.invalidate(firestoreProvider);
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      debugPrint(e.toString());
+                                      context.showSnackBarMessage(
+                                        t.common.error(error: e.toString()),
+                                      );
+                                    } finally {
                                       isLoading.value = false;
                                     }
                                   }
                                 }
-                              }
-                            : null,
-                        child: Text(
-                          authT.createAccount,
-                          style: TextStyle(
-                            color: Theme.of(context).secondaryHeaderColor,
+                              : null,
+                          child: Text(authT.login),
+                        ),
+                        SizedBox(
+                          height: 8,
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            fixedSize: Size(200, 20),
+                            backgroundColor: Theme.of(context).primaryColor,
+                          ),
+                          onPressed: (isAgreed.value && !isLoading.value)
+                              ? () async {
+                                  if (formKey.currentState!.validate()) {
+                                    isLoading.value = true;
+                                    try {
+                                      final credential = await authNotifier
+                                          .getFirebaseAuth()
+                                          .createUserWithEmailAndPassword(
+                                            email: emailController.text,
+                                            password: passwordController.text,
+                                          );
+                                      final userId = credential.user!.uid;
+                                      final db = firestore;
+                                      final teamsRef = db
+                                          .collection(teamsCollection)
+                                          .doc();
+                                      final teamId = teamsRef.id;
+                                      final batch = db.batch();
+                                      batch.set(teamsRef, {
+                                        'id': teamId,
+                                        'name': teamId,
+                                        'members': [userId],
+                                        'createdAt':
+                                            FieldValue.serverTimestamp(),
+                                        'updatedAt':
+                                            FieldValue.serverTimestamp(),
+                                      });
+                                      final userRef = db
+                                          .collection(usersCollection)
+                                          .doc(userId);
+                                      batch.set(userRef, {
+                                        'id': userId,
+                                        'selectedTeamId': teamId,
+                                        'createdAt':
+                                            FieldValue.serverTimestamp(),
+                                        'updatedAt':
+                                            FieldValue.serverTimestamp(),
+                                      });
+                                      await batch.commit();
+                                      ref.invalidate(authProvider);
+                                      ref.invalidate(firestoreProvider);
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      debugPrint(e.toString());
+                                      context.showSnackBarMessage(
+                                        t.common.error(error: e.toString()),
+                                      );
+                                    } finally {
+                                      if (context.mounted) {
+                                        isLoading.value = false;
+                                      }
+                                    }
+                                  }
+                                }
+                              : null,
+                          child: Text(
+                            authT.createAccount,
+                            style: TextStyle(
+                              color: Theme.of(context).secondaryHeaderColor,
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 8,
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.tertiary,
+                        SizedBox(
+                          height: 8,
                         ),
-                        onPressed: () async {
-                          await showModalBottomSheet(
-                            isScrollControlled: true,
-                            context: context,
-                            builder: (context) {
-                              return FirebaseFormSheet();
-                            },
-                          );
-                        },
-                        child: Text(
-                          authT.useYourFirebase,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            fixedSize: Size(200, 20),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.tertiary,
+                          ),
+                          onPressed: () async {
+                            await showModalBottomSheet(
+                              isScrollControlled: true,
+                              context: context,
+                              builder: (context) {
+                                return FirebaseFormSheet();
+                              },
+                            );
+                          },
+                          child: Text(
+                            authT.useYourFirebase,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 8,
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(200, 20),
-                          backgroundColor: Theme.of(context).colorScheme.error,
+                        SizedBox(
+                          height: 8,
                         ),
-                        onPressed: () async {
-                          for (final app in Firebase.apps) {
-                            if (app.name == '[DEFAULT]') continue;
-                            await app.delete();
-                          }
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            fixedSize: Size(200, 20),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                          ),
+                          onPressed: () async {
+                            for (final app in Firebase.apps) {
+                              if (app.name == '[DEFAULT]') continue;
+                              await app.delete();
+                            }
 
-                          ref.invalidate(authProvider);
-                          ref.invalidate(firestoreProvider);
-                          if (!context.mounted) return;
-                          context.showSnackBarMessage(authT.resetSuccess);
-                        },
-                        child: Text(
-                          authT.resetFirebase,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
+                            ref.invalidate(authProvider);
+                            ref.invalidate(firestoreProvider);
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage(authT.resetSuccess);
+                          },
+                          child: Text(
+                            authT.resetFirebase,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
