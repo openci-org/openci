@@ -51,6 +51,7 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsTeamJa team = _TranslationsTeamJa._(_root);
 	@override late final _TranslationsGithubJa github = _TranslationsGithubJa._(_root);
 	@override late final _TranslationsSubscriptionJa subscription = _TranslationsSubscriptionJa._(_root);
+	@override late final _TranslationsStoreReleaseJa storeRelease = _TranslationsStoreReleaseJa._(_root);
 }
 
 // Path: common
@@ -96,6 +97,7 @@ class _TranslationsNavJa implements TranslationsNavEn {
 	@override String get workflows => 'ワークフロー';
 	@override String get variables => '変数';
 	@override String get logs => 'ログ';
+	@override String get release => 'リリース';
 	@override String get settings => '設定';
 }
 
@@ -336,6 +338,71 @@ class _TranslationsSubscriptionJa implements TranslationsSubscriptionEn {
 	@override String get perYear => '年額';
 }
 
+// Path: storeRelease
+class _TranslationsStoreReleaseJa implements TranslationsStoreReleaseEn {
+	_TranslationsStoreReleaseJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'ストアリリース';
+	@override String get setupTitle => 'App Store Connectを接続';
+	@override String get setupDescription => 'App Store Connect APIの認証情報を入力して、OpenCIから直接リリースを管理しましょう。';
+	@override String get issuerId => 'Issuer ID';
+	@override String get keyId => 'Key ID';
+	@override String get privateKey => '秘密鍵 (.p8)';
+	@override String get privateKeyHint => '.p8ファイルの内容を貼り付けてください';
+	@override String get connect => '接続';
+	@override String get connecting => '接続中...';
+	@override String get setupSuccess => 'App Store Connectが正常に接続されました';
+	@override String setupFailed({required Object error}) => '接続に失敗: ${error}';
+	@override String get enterIssuerId => 'Issuer IDを入力してください';
+	@override String get enterKeyId => 'Key IDを入力してください';
+	@override String get enterPrivateKey => '秘密鍵を入力してください';
+	@override String get selectApp => 'アプリを選択';
+	@override String get selectAppHint => 'リリースを管理するアプリを選択してください';
+	@override String get noApps => 'アプリが見つかりません';
+	@override String get noAppsHint => 'App Store Connectアカウントにアプリが見つかりませんでした。';
+	@override String get loadingApps => 'アプリを読み込み中...';
+	@override String get builds => 'ビルド';
+	@override String get noBuilds => 'ビルドが見つかりません';
+	@override String get noBuildsHint => 'App Store Connectにビルドをアップロードしてください。';
+	@override String version({required Object version}) => 'v${version}';
+	@override String buildNumber({required Object number}) => 'ビルド ${number}';
+	@override String get processing => '処理中';
+	@override String get readyForSale => '販売準備完了';
+	@override String get valid => '準備完了';
+	@override String get invalid => '無効';
+	@override String get testFlight => 'TestFlight';
+	@override String get submitToTestFlight => 'TestFlightに送信';
+	@override String get submitToTestFlightConfirm => 'このビルドをTestFlightの外部テスターに送信しますか？';
+	@override String testFlightSuccess({required Object group}) => 'TestFlightグループにビルドが送信されました: ${group}';
+	@override String testFlightFailed({required Object error}) => 'TestFlightへの送信に失敗: ${error}';
+	@override String get appStoreReview => 'App Storeレビュー';
+	@override String get submitForReview => 'レビューに提出';
+	@override String submitForReviewConfirm({required Object version}) => 'このビルドをApp Storeレビューに提出しますか？\n\nバージョン: ${version}';
+	@override String get reviewSuccess => 'App Storeレビューにビルドが提出されました';
+	@override String reviewFailed({required Object error}) => 'レビューへの提出に失敗: ${error}';
+	@override String get versionString => 'バージョン文字列';
+	@override String get enterVersionString => '例: 1.0.0';
+	@override String get versionRequired => 'バージョン文字列を入力してください';
+	@override String get whatsNew => '新機能';
+	@override String get whatsNewHint => 'このバージョンの新機能を説明してください';
+	@override String get whatsNewRequired => 'リリースノートを入力してください';
+	@override String get changeApp => 'アプリを変更';
+	@override String get reconfigure => '再設定';
+	@override String get howToGetCredentials => '認証情報の取得方法';
+	@override String get credentialsHelp => 'App Store Connect > ユーザーとアクセス > 統合 > App Store Connect API でAPIキーを生成してください。';
+	@override String get waitingForReview => '審査待ち';
+	@override String get inReview => '審査中';
+	@override String get pendingRelease => 'リリース待ち';
+	@override String get readyForDistribution => '配信準備完了';
+	@override String get developerRejected => 'デベロッパが却下';
+	@override String get rejected => '却下';
+	@override String get prepareForSubmission => '提出準備中';
+	@override String get submitted => '提出済み';
+}
+
 // Path: auth.firebaseForm
 class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn {
 	_TranslationsAuthFirebaseFormJa._(this._root);
@@ -497,6 +564,7 @@ extension on TranslationsJa {
 			'nav.workflows' => 'ワークフロー',
 			'nav.variables' => '変数',
 			'nav.logs' => 'ログ',
+			'nav.release' => 'リリース',
 			'nav.settings' => '設定',
 			'auth.email' => 'メールアドレス',
 			'auth.password' => 'パスワード',
@@ -711,6 +779,62 @@ extension on TranslationsJa {
 			'subscription.per3Months' => '3ヶ月ごと',
 			'subscription.per6Months' => '6ヶ月ごと',
 			'subscription.perYear' => '年額',
+			'storeRelease.title' => 'ストアリリース',
+			'storeRelease.setupTitle' => 'App Store Connectを接続',
+			'storeRelease.setupDescription' => 'App Store Connect APIの認証情報を入力して、OpenCIから直接リリースを管理しましょう。',
+			'storeRelease.issuerId' => 'Issuer ID',
+			'storeRelease.keyId' => 'Key ID',
+			'storeRelease.privateKey' => '秘密鍵 (.p8)',
+			'storeRelease.privateKeyHint' => '.p8ファイルの内容を貼り付けてください',
+			'storeRelease.connect' => '接続',
+			'storeRelease.connecting' => '接続中...',
+			'storeRelease.setupSuccess' => 'App Store Connectが正常に接続されました',
+			'storeRelease.setupFailed' => ({required Object error}) => '接続に失敗: ${error}',
+			'storeRelease.enterIssuerId' => 'Issuer IDを入力してください',
+			'storeRelease.enterKeyId' => 'Key IDを入力してください',
+			'storeRelease.enterPrivateKey' => '秘密鍵を入力してください',
+			'storeRelease.selectApp' => 'アプリを選択',
+			'storeRelease.selectAppHint' => 'リリースを管理するアプリを選択してください',
+			'storeRelease.noApps' => 'アプリが見つかりません',
+			'storeRelease.noAppsHint' => 'App Store Connectアカウントにアプリが見つかりませんでした。',
+			'storeRelease.loadingApps' => 'アプリを読み込み中...',
+			'storeRelease.builds' => 'ビルド',
+			'storeRelease.noBuilds' => 'ビルドが見つかりません',
+			'storeRelease.noBuildsHint' => 'App Store Connectにビルドをアップロードしてください。',
+			'storeRelease.version' => ({required Object version}) => 'v${version}',
+			'storeRelease.buildNumber' => ({required Object number}) => 'ビルド ${number}',
+			'storeRelease.processing' => '処理中',
+			'storeRelease.readyForSale' => '販売準備完了',
+			'storeRelease.valid' => '準備完了',
+			'storeRelease.invalid' => '無効',
+			'storeRelease.testFlight' => 'TestFlight',
+			'storeRelease.submitToTestFlight' => 'TestFlightに送信',
+			'storeRelease.submitToTestFlightConfirm' => 'このビルドをTestFlightの外部テスターに送信しますか？',
+			'storeRelease.testFlightSuccess' => ({required Object group}) => 'TestFlightグループにビルドが送信されました: ${group}',
+			'storeRelease.testFlightFailed' => ({required Object error}) => 'TestFlightへの送信に失敗: ${error}',
+			'storeRelease.appStoreReview' => 'App Storeレビュー',
+			'storeRelease.submitForReview' => 'レビューに提出',
+			'storeRelease.submitForReviewConfirm' => ({required Object version}) => 'このビルドをApp Storeレビューに提出しますか？\n\nバージョン: ${version}',
+			'storeRelease.reviewSuccess' => 'App Storeレビューにビルドが提出されました',
+			'storeRelease.reviewFailed' => ({required Object error}) => 'レビューへの提出に失敗: ${error}',
+			'storeRelease.versionString' => 'バージョン文字列',
+			'storeRelease.enterVersionString' => '例: 1.0.0',
+			'storeRelease.versionRequired' => 'バージョン文字列を入力してください',
+			'storeRelease.whatsNew' => '新機能',
+			'storeRelease.whatsNewHint' => 'このバージョンの新機能を説明してください',
+			'storeRelease.whatsNewRequired' => 'リリースノートを入力してください',
+			'storeRelease.changeApp' => 'アプリを変更',
+			'storeRelease.reconfigure' => '再設定',
+			'storeRelease.howToGetCredentials' => '認証情報の取得方法',
+			'storeRelease.credentialsHelp' => 'App Store Connect > ユーザーとアクセス > 統合 > App Store Connect API でAPIキーを生成してください。',
+			'storeRelease.waitingForReview' => '審査待ち',
+			'storeRelease.inReview' => '審査中',
+			'storeRelease.pendingRelease' => 'リリース待ち',
+			'storeRelease.readyForDistribution' => '配信準備完了',
+			'storeRelease.developerRejected' => 'デベロッパが却下',
+			'storeRelease.rejected' => '却下',
+			'storeRelease.prepareForSubmission' => '提出準備中',
+			'storeRelease.submitted' => '提出済み',
 			_ => null,
 		};
 	}

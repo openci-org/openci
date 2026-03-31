@@ -54,6 +54,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final TranslationsTeamEn team = TranslationsTeamEn._(_root);
 	late final TranslationsGithubEn github = TranslationsGithubEn._(_root);
 	late final TranslationsSubscriptionEn subscription = TranslationsSubscriptionEn._(_root);
+	late final TranslationsStoreReleaseEn storeRelease = TranslationsStoreReleaseEn._(_root);
 }
 
 // Path: common
@@ -135,6 +136,9 @@ class TranslationsNavEn {
 
 	/// en: 'Logs'
 	String get logs => 'Logs';
+
+	/// en: 'Release'
+	String get release => 'Release';
 
 	/// en: 'Settings'
 	String get settings => 'Settings';
@@ -645,6 +649,183 @@ class TranslationsSubscriptionEn {
 	String get perYear => 'per year';
 }
 
+// Path: storeRelease
+class TranslationsStoreReleaseEn {
+	TranslationsStoreReleaseEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Store Release'
+	String get title => 'Store Release';
+
+	/// en: 'Connect App Store Connect'
+	String get setupTitle => 'Connect App Store Connect';
+
+	/// en: 'Enter your App Store Connect API credentials to manage releases directly from OpenCI.'
+	String get setupDescription => 'Enter your App Store Connect API credentials to manage releases directly from OpenCI.';
+
+	/// en: 'Issuer ID'
+	String get issuerId => 'Issuer ID';
+
+	/// en: 'Key ID'
+	String get keyId => 'Key ID';
+
+	/// en: 'Private Key (.p8)'
+	String get privateKey => 'Private Key (.p8)';
+
+	/// en: 'Paste the contents of your .p8 file'
+	String get privateKeyHint => 'Paste the contents of your .p8 file';
+
+	/// en: 'Connect'
+	String get connect => 'Connect';
+
+	/// en: 'Connecting...'
+	String get connecting => 'Connecting...';
+
+	/// en: 'App Store Connect connected successfully'
+	String get setupSuccess => 'App Store Connect connected successfully';
+
+	/// en: 'Failed to connect: $error'
+	String setupFailed({required Object error}) => 'Failed to connect: ${error}';
+
+	/// en: 'Please enter the Issuer ID'
+	String get enterIssuerId => 'Please enter the Issuer ID';
+
+	/// en: 'Please enter the Key ID'
+	String get enterKeyId => 'Please enter the Key ID';
+
+	/// en: 'Please enter the private key'
+	String get enterPrivateKey => 'Please enter the private key';
+
+	/// en: 'Select App'
+	String get selectApp => 'Select App';
+
+	/// en: 'Choose an app to manage releases'
+	String get selectAppHint => 'Choose an app to manage releases';
+
+	/// en: 'No apps found'
+	String get noApps => 'No apps found';
+
+	/// en: 'No apps were found in your App Store Connect account.'
+	String get noAppsHint => 'No apps were found in your App Store Connect account.';
+
+	/// en: 'Loading apps...'
+	String get loadingApps => 'Loading apps...';
+
+	/// en: 'Builds'
+	String get builds => 'Builds';
+
+	/// en: 'No builds found'
+	String get noBuilds => 'No builds found';
+
+	/// en: 'Upload a build to App Store Connect to get started.'
+	String get noBuildsHint => 'Upload a build to App Store Connect to get started.';
+
+	/// en: 'v$version'
+	String version({required Object version}) => 'v${version}';
+
+	/// en: 'Build $number'
+	String buildNumber({required Object number}) => 'Build ${number}';
+
+	/// en: 'Processing'
+	String get processing => 'Processing';
+
+	/// en: 'Ready for Sale'
+	String get readyForSale => 'Ready for Sale';
+
+	/// en: 'Ready'
+	String get valid => 'Ready';
+
+	/// en: 'Invalid'
+	String get invalid => 'Invalid';
+
+	/// en: 'TestFlight'
+	String get testFlight => 'TestFlight';
+
+	/// en: 'Submit to TestFlight'
+	String get submitToTestFlight => 'Submit to TestFlight';
+
+	/// en: 'Submit this build to external testers via TestFlight?'
+	String get submitToTestFlightConfirm => 'Submit this build to external testers via TestFlight?';
+
+	/// en: 'Build submitted to TestFlight group: $group'
+	String testFlightSuccess({required Object group}) => 'Build submitted to TestFlight group: ${group}';
+
+	/// en: 'Failed to submit to TestFlight: $error'
+	String testFlightFailed({required Object error}) => 'Failed to submit to TestFlight: ${error}';
+
+	/// en: 'App Store Review'
+	String get appStoreReview => 'App Store Review';
+
+	/// en: 'Submit for Review'
+	String get submitForReview => 'Submit for Review';
+
+	/// en: 'Submit this build for App Store Review? Version: $version'
+	String submitForReviewConfirm({required Object version}) => 'Submit this build for App Store Review?\n\nVersion: ${version}';
+
+	/// en: 'Build submitted for App Store Review'
+	String get reviewSuccess => 'Build submitted for App Store Review';
+
+	/// en: 'Failed to submit for review: $error'
+	String reviewFailed({required Object error}) => 'Failed to submit for review: ${error}';
+
+	/// en: 'Version String'
+	String get versionString => 'Version String';
+
+	/// en: 'e.g. 1.0.0'
+	String get enterVersionString => 'e.g. 1.0.0';
+
+	/// en: 'Please enter a version string'
+	String get versionRequired => 'Please enter a version string';
+
+	/// en: 'What's New'
+	String get whatsNew => 'What\'s New';
+
+	/// en: 'Describe what's new in this version'
+	String get whatsNewHint => 'Describe what\'s new in this version';
+
+	/// en: 'Please enter release notes'
+	String get whatsNewRequired => 'Please enter release notes';
+
+	/// en: 'Change App'
+	String get changeApp => 'Change App';
+
+	/// en: 'Reconfigure'
+	String get reconfigure => 'Reconfigure';
+
+	/// en: 'How to get credentials'
+	String get howToGetCredentials => 'How to get credentials';
+
+	/// en: 'Go to App Store Connect > Users and Access > Integrations > App Store Connect API to generate an API key.'
+	String get credentialsHelp => 'Go to App Store Connect > Users and Access > Integrations > App Store Connect API to generate an API key.';
+
+	/// en: 'Waiting for Review'
+	String get waitingForReview => 'Waiting for Review';
+
+	/// en: 'In Review'
+	String get inReview => 'In Review';
+
+	/// en: 'Pending Release'
+	String get pendingRelease => 'Pending Release';
+
+	/// en: 'Ready for Distribution'
+	String get readyForDistribution => 'Ready for Distribution';
+
+	/// en: 'Developer Rejected'
+	String get developerRejected => 'Developer Rejected';
+
+	/// en: 'Rejected'
+	String get rejected => 'Rejected';
+
+	/// en: 'Prepare for Submission'
+	String get prepareForSubmission => 'Prepare for Submission';
+
+	/// en: 'Submitted'
+	String get submitted => 'Submitted';
+}
+
 // Path: auth.firebaseForm
 class TranslationsAuthFirebaseFormEn {
 	TranslationsAuthFirebaseFormEn._(this._root);
@@ -968,6 +1149,7 @@ extension on Translations {
 			'nav.workflows' => 'Workflows',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Logs',
+			'nav.release' => 'Release',
 			'nav.settings' => 'Settings',
 			'auth.email' => 'Email',
 			'auth.password' => 'Password',
@@ -1182,6 +1364,62 @@ extension on Translations {
 			'subscription.per3Months' => 'per 3 months',
 			'subscription.per6Months' => 'per 6 months',
 			'subscription.perYear' => 'per year',
+			'storeRelease.title' => 'Store Release',
+			'storeRelease.setupTitle' => 'Connect App Store Connect',
+			'storeRelease.setupDescription' => 'Enter your App Store Connect API credentials to manage releases directly from OpenCI.',
+			'storeRelease.issuerId' => 'Issuer ID',
+			'storeRelease.keyId' => 'Key ID',
+			'storeRelease.privateKey' => 'Private Key (.p8)',
+			'storeRelease.privateKeyHint' => 'Paste the contents of your .p8 file',
+			'storeRelease.connect' => 'Connect',
+			'storeRelease.connecting' => 'Connecting...',
+			'storeRelease.setupSuccess' => 'App Store Connect connected successfully',
+			'storeRelease.setupFailed' => ({required Object error}) => 'Failed to connect: ${error}',
+			'storeRelease.enterIssuerId' => 'Please enter the Issuer ID',
+			'storeRelease.enterKeyId' => 'Please enter the Key ID',
+			'storeRelease.enterPrivateKey' => 'Please enter the private key',
+			'storeRelease.selectApp' => 'Select App',
+			'storeRelease.selectAppHint' => 'Choose an app to manage releases',
+			'storeRelease.noApps' => 'No apps found',
+			'storeRelease.noAppsHint' => 'No apps were found in your App Store Connect account.',
+			'storeRelease.loadingApps' => 'Loading apps...',
+			'storeRelease.builds' => 'Builds',
+			'storeRelease.noBuilds' => 'No builds found',
+			'storeRelease.noBuildsHint' => 'Upload a build to App Store Connect to get started.',
+			'storeRelease.version' => ({required Object version}) => 'v${version}',
+			'storeRelease.buildNumber' => ({required Object number}) => 'Build ${number}',
+			'storeRelease.processing' => 'Processing',
+			'storeRelease.readyForSale' => 'Ready for Sale',
+			'storeRelease.valid' => 'Ready',
+			'storeRelease.invalid' => 'Invalid',
+			'storeRelease.testFlight' => 'TestFlight',
+			'storeRelease.submitToTestFlight' => 'Submit to TestFlight',
+			'storeRelease.submitToTestFlightConfirm' => 'Submit this build to external testers via TestFlight?',
+			'storeRelease.testFlightSuccess' => ({required Object group}) => 'Build submitted to TestFlight group: ${group}',
+			'storeRelease.testFlightFailed' => ({required Object error}) => 'Failed to submit to TestFlight: ${error}',
+			'storeRelease.appStoreReview' => 'App Store Review',
+			'storeRelease.submitForReview' => 'Submit for Review',
+			'storeRelease.submitForReviewConfirm' => ({required Object version}) => 'Submit this build for App Store Review?\n\nVersion: ${version}',
+			'storeRelease.reviewSuccess' => 'Build submitted for App Store Review',
+			'storeRelease.reviewFailed' => ({required Object error}) => 'Failed to submit for review: ${error}',
+			'storeRelease.versionString' => 'Version String',
+			'storeRelease.enterVersionString' => 'e.g. 1.0.0',
+			'storeRelease.versionRequired' => 'Please enter a version string',
+			'storeRelease.whatsNew' => 'What\'s New',
+			'storeRelease.whatsNewHint' => 'Describe what\'s new in this version',
+			'storeRelease.whatsNewRequired' => 'Please enter release notes',
+			'storeRelease.changeApp' => 'Change App',
+			'storeRelease.reconfigure' => 'Reconfigure',
+			'storeRelease.howToGetCredentials' => 'How to get credentials',
+			'storeRelease.credentialsHelp' => 'Go to App Store Connect > Users and Access > Integrations > App Store Connect API to generate an API key.',
+			'storeRelease.waitingForReview' => 'Waiting for Review',
+			'storeRelease.inReview' => 'In Review',
+			'storeRelease.pendingRelease' => 'Pending Release',
+			'storeRelease.readyForDistribution' => 'Ready for Distribution',
+			'storeRelease.developerRejected' => 'Developer Rejected',
+			'storeRelease.rejected' => 'Rejected',
+			'storeRelease.prepareForSubmission' => 'Prepare for Submission',
+			'storeRelease.submitted' => 'Submitted',
 			_ => null,
 		};
 	}

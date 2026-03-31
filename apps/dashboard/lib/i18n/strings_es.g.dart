@@ -51,6 +51,7 @@ class TranslationsEs with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsTeamEs team = _TranslationsTeamEs._(_root);
 	@override late final _TranslationsGithubEs github = _TranslationsGithubEs._(_root);
 	@override late final _TranslationsSubscriptionEs subscription = _TranslationsSubscriptionEs._(_root);
+	@override late final _TranslationsStoreReleaseEs storeRelease = _TranslationsStoreReleaseEs._(_root);
 }
 
 // Path: common
@@ -96,6 +97,7 @@ class _TranslationsNavEs implements TranslationsNavEn {
 	@override String get workflows => 'Flujos de trabajo';
 	@override String get variables => 'Variables';
 	@override String get logs => 'Registros';
+	@override String get release => 'Lanzamiento';
 	@override String get settings => 'Configuración';
 }
 
@@ -336,6 +338,71 @@ class _TranslationsSubscriptionEs implements TranslationsSubscriptionEn {
 	@override String get perYear => 'por año';
 }
 
+// Path: storeRelease
+class _TranslationsStoreReleaseEs implements TranslationsStoreReleaseEn {
+	_TranslationsStoreReleaseEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Lanzamiento en tienda';
+	@override String get setupTitle => 'Conectar App Store Connect';
+	@override String get setupDescription => 'Ingresa tus credenciales de la API de App Store Connect para gestionar lanzamientos directamente desde OpenCI.';
+	@override String get issuerId => 'Issuer ID';
+	@override String get keyId => 'Key ID';
+	@override String get privateKey => 'Clave privada (.p8)';
+	@override String get privateKeyHint => 'Pega el contenido de tu archivo .p8';
+	@override String get connect => 'Conectar';
+	@override String get connecting => 'Conectando...';
+	@override String get setupSuccess => 'App Store Connect conectado exitosamente';
+	@override String setupFailed({required Object error}) => 'Error al conectar: ${error}';
+	@override String get enterIssuerId => 'Por favor ingresa el Issuer ID';
+	@override String get enterKeyId => 'Por favor ingresa el Key ID';
+	@override String get enterPrivateKey => 'Por favor ingresa la clave privada';
+	@override String get selectApp => 'Seleccionar app';
+	@override String get selectAppHint => 'Elige una app para gestionar sus lanzamientos';
+	@override String get noApps => 'No se encontraron apps';
+	@override String get noAppsHint => 'No se encontraron apps en tu cuenta de App Store Connect.';
+	@override String get loadingApps => 'Cargando apps...';
+	@override String get builds => 'Compilaciones';
+	@override String get noBuilds => 'No se encontraron compilaciones';
+	@override String get noBuildsHint => 'Sube una compilación a App Store Connect para comenzar.';
+	@override String version({required Object version}) => 'v${version}';
+	@override String buildNumber({required Object number}) => 'Compilación ${number}';
+	@override String get processing => 'Procesando';
+	@override String get readyForSale => 'Listo para la venta';
+	@override String get valid => 'Listo';
+	@override String get invalid => 'Inválido';
+	@override String get testFlight => 'TestFlight';
+	@override String get submitToTestFlight => 'Enviar a TestFlight';
+	@override String get submitToTestFlightConfirm => '¿Enviar esta compilación a los testers externos a través de TestFlight?';
+	@override String testFlightSuccess({required Object group}) => 'Compilación enviada al grupo TestFlight: ${group}';
+	@override String testFlightFailed({required Object error}) => 'Error al enviar a TestFlight: ${error}';
+	@override String get appStoreReview => 'Revisión de App Store';
+	@override String get submitForReview => 'Enviar para revisión';
+	@override String submitForReviewConfirm({required Object version}) => '¿Enviar esta compilación para revisión en App Store?\n\nVersión: ${version}';
+	@override String get reviewSuccess => 'Compilación enviada para revisión en App Store';
+	@override String reviewFailed({required Object error}) => 'Error al enviar para revisión: ${error}';
+	@override String get versionString => 'Cadena de versión';
+	@override String get enterVersionString => 'ej. 1.0.0';
+	@override String get versionRequired => 'Por favor ingresa una cadena de versión';
+	@override String get whatsNew => 'Novedades';
+	@override String get whatsNewHint => 'Describe las novedades de esta versión';
+	@override String get whatsNewRequired => 'Por favor ingresa las notas de la versión';
+	@override String get changeApp => 'Cambiar app';
+	@override String get reconfigure => 'Reconfigurar';
+	@override String get howToGetCredentials => 'Cómo obtener credenciales';
+	@override String get credentialsHelp => 'Ve a App Store Connect > Usuarios y acceso > Integraciones > API de App Store Connect para generar una clave API.';
+	@override String get waitingForReview => 'Esperando revisión';
+	@override String get inReview => 'En revisión';
+	@override String get pendingRelease => 'Pendiente de lanzamiento';
+	@override String get readyForDistribution => 'Listo para distribución';
+	@override String get developerRejected => 'Rechazado por el desarrollador';
+	@override String get rejected => 'Rechazado';
+	@override String get prepareForSubmission => 'Preparar para envío';
+	@override String get submitted => 'Enviado';
+}
+
 // Path: auth.firebaseForm
 class _TranslationsAuthFirebaseFormEs implements TranslationsAuthFirebaseFormEn {
 	_TranslationsAuthFirebaseFormEs._(this._root);
@@ -497,6 +564,7 @@ extension on TranslationsEs {
 			'nav.workflows' => 'Flujos de trabajo',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Registros',
+			'nav.release' => 'Lanzamiento',
 			'nav.settings' => 'Configuración',
 			'auth.email' => 'Correo electrónico',
 			'auth.password' => 'Contraseña',
@@ -711,6 +779,62 @@ extension on TranslationsEs {
 			'subscription.per3Months' => 'por 3 meses',
 			'subscription.per6Months' => 'por 6 meses',
 			'subscription.perYear' => 'por año',
+			'storeRelease.title' => 'Lanzamiento en tienda',
+			'storeRelease.setupTitle' => 'Conectar App Store Connect',
+			'storeRelease.setupDescription' => 'Ingresa tus credenciales de la API de App Store Connect para gestionar lanzamientos directamente desde OpenCI.',
+			'storeRelease.issuerId' => 'Issuer ID',
+			'storeRelease.keyId' => 'Key ID',
+			'storeRelease.privateKey' => 'Clave privada (.p8)',
+			'storeRelease.privateKeyHint' => 'Pega el contenido de tu archivo .p8',
+			'storeRelease.connect' => 'Conectar',
+			'storeRelease.connecting' => 'Conectando...',
+			'storeRelease.setupSuccess' => 'App Store Connect conectado exitosamente',
+			'storeRelease.setupFailed' => ({required Object error}) => 'Error al conectar: ${error}',
+			'storeRelease.enterIssuerId' => 'Por favor ingresa el Issuer ID',
+			'storeRelease.enterKeyId' => 'Por favor ingresa el Key ID',
+			'storeRelease.enterPrivateKey' => 'Por favor ingresa la clave privada',
+			'storeRelease.selectApp' => 'Seleccionar app',
+			'storeRelease.selectAppHint' => 'Elige una app para gestionar sus lanzamientos',
+			'storeRelease.noApps' => 'No se encontraron apps',
+			'storeRelease.noAppsHint' => 'No se encontraron apps en tu cuenta de App Store Connect.',
+			'storeRelease.loadingApps' => 'Cargando apps...',
+			'storeRelease.builds' => 'Compilaciones',
+			'storeRelease.noBuilds' => 'No se encontraron compilaciones',
+			'storeRelease.noBuildsHint' => 'Sube una compilación a App Store Connect para comenzar.',
+			'storeRelease.version' => ({required Object version}) => 'v${version}',
+			'storeRelease.buildNumber' => ({required Object number}) => 'Compilación ${number}',
+			'storeRelease.processing' => 'Procesando',
+			'storeRelease.readyForSale' => 'Listo para la venta',
+			'storeRelease.valid' => 'Listo',
+			'storeRelease.invalid' => 'Inválido',
+			'storeRelease.testFlight' => 'TestFlight',
+			'storeRelease.submitToTestFlight' => 'Enviar a TestFlight',
+			'storeRelease.submitToTestFlightConfirm' => '¿Enviar esta compilación a los testers externos a través de TestFlight?',
+			'storeRelease.testFlightSuccess' => ({required Object group}) => 'Compilación enviada al grupo TestFlight: ${group}',
+			'storeRelease.testFlightFailed' => ({required Object error}) => 'Error al enviar a TestFlight: ${error}',
+			'storeRelease.appStoreReview' => 'Revisión de App Store',
+			'storeRelease.submitForReview' => 'Enviar para revisión',
+			'storeRelease.submitForReviewConfirm' => ({required Object version}) => '¿Enviar esta compilación para revisión en App Store?\n\nVersión: ${version}',
+			'storeRelease.reviewSuccess' => 'Compilación enviada para revisión en App Store',
+			'storeRelease.reviewFailed' => ({required Object error}) => 'Error al enviar para revisión: ${error}',
+			'storeRelease.versionString' => 'Cadena de versión',
+			'storeRelease.enterVersionString' => 'ej. 1.0.0',
+			'storeRelease.versionRequired' => 'Por favor ingresa una cadena de versión',
+			'storeRelease.whatsNew' => 'Novedades',
+			'storeRelease.whatsNewHint' => 'Describe las novedades de esta versión',
+			'storeRelease.whatsNewRequired' => 'Por favor ingresa las notas de la versión',
+			'storeRelease.changeApp' => 'Cambiar app',
+			'storeRelease.reconfigure' => 'Reconfigurar',
+			'storeRelease.howToGetCredentials' => 'Cómo obtener credenciales',
+			'storeRelease.credentialsHelp' => 'Ve a App Store Connect > Usuarios y acceso > Integraciones > API de App Store Connect para generar una clave API.',
+			'storeRelease.waitingForReview' => 'Esperando revisión',
+			'storeRelease.inReview' => 'En revisión',
+			'storeRelease.pendingRelease' => 'Pendiente de lanzamiento',
+			'storeRelease.readyForDistribution' => 'Listo para distribución',
+			'storeRelease.developerRejected' => 'Rechazado por el desarrollador',
+			'storeRelease.rejected' => 'Rechazado',
+			'storeRelease.prepareForSubmission' => 'Preparar para envío',
+			'storeRelease.submitted' => 'Enviado',
 			_ => null,
 		};
 	}
