@@ -1,7 +1,7 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
-import 'package:dashboard/navigation_bar_page.dart';
+import 'package:dashboard/workflow/list/workflow_list_page.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
@@ -72,7 +72,7 @@ class HomePage extends HookConsumerWidget {
           return AuthPage();
         }
 
-        return NavigationBarPage();
+        return WorkflowListPage();
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),

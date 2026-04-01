@@ -1,3 +1,8 @@
+---
+globs:
+alwaysApply: true
+---
+
 ## OpenCI Dashboard Design Guidelines
 
 OpenCI prioritizes UX above all else. The UI must balance **premium feel** and **clarity**, taking inspiration from polished developer tools like Linear, Vercel, and GitHub Actions.

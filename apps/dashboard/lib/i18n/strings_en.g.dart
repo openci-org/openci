@@ -199,6 +199,12 @@ class TranslationsWorkflowEn {
 	/// en: 'Workflows'
 	String get title => 'Workflows';
 
+	/// en: 'Workflows'
+	String get tabWorkflows => 'Workflows';
+
+	/// en: 'Runs'
+	String get tabRuns => 'Runs';
+
 	/// en: 'Add Workflow'
 	String get addWorkflow => 'Add Workflow';
 
@@ -824,6 +830,102 @@ class TranslationsStoreReleaseEn {
 
 	/// en: 'Submitted'
 	String get submitted => 'Submitted';
+
+	/// en: 'Build'
+	String get stepBuild => 'Build';
+
+	/// en: 'Details'
+	String get stepDetails => 'Details';
+
+	/// en: 'Review'
+	String get stepReview => 'Review';
+
+	/// en: 'Select a Build'
+	String get selectBuildTitle => 'Select a Build';
+
+	/// en: 'Choose a build to submit for App Store Review'
+	String get selectBuildHint => 'Choose a build to submit for App Store Review';
+
+	/// en: 'Release Details'
+	String get releaseDetailsTitle => 'Release Details';
+
+	/// en: 'Configure version and release notes'
+	String get releaseDetailsHint => 'Configure version and release notes';
+
+	/// en: 'Review & Submit'
+	String get reviewTitle => 'Review & Submit';
+
+	/// en: 'Confirm all details before submitting'
+	String get reviewHint => 'Confirm all details before submitting';
+
+	/// en: 'Next'
+	String get next => 'Next';
+
+	/// en: 'Back'
+	String get back => 'Back';
+
+	/// en: 'Submit for Review'
+	String get confirmSubmit => 'Submit for Review';
+
+	/// en: 'Submitting...'
+	String get submittingReview => 'Submitting...';
+
+	/// en: 'Selected Build'
+	String get selectedBuildLabel => 'Selected Build';
+
+	/// en: 'Screenshots'
+	String get screenshotsTitle => 'Screenshots';
+
+	/// en: 'No screenshots available'
+	String get noScreenshots => 'No screenshots available';
+
+	/// en: 'Manage screenshots in App Store Connect'
+	String get screenshotsHint => 'Manage screenshots in App Store Connect';
+
+	/// en: '$count screenshots'
+	String screenshotCount({required Object count}) => '${count} screenshots';
+
+	/// en: 'Description'
+	String get appDescription => 'Description';
+
+	/// en: 'Keywords'
+	String get keywordsLabel => 'Keywords';
+
+	/// en: 'No existing version info found'
+	String get noVersionInfo => 'No existing version info found';
+
+	/// en: 'Current App Store Info'
+	String get existingInfo => 'Current App Store Info';
+
+	/// en: 'Submission Summary'
+	String get summarySection => 'Submission Summary';
+
+	/// en: 'Under Review'
+	String get underReview => 'Under Review';
+
+	/// en: 'Your app is currently being reviewed by Apple. No changes can be made until the review is complete.'
+	String get underReviewDescription => 'Your app is currently being reviewed by Apple. No changes can be made until the review is complete.';
+
+	/// en: 'Your app has been submitted and is waiting for Apple to begin the review.'
+	String get waitingForReviewDescription => 'Your app has been submitted and is waiting for Apple to begin the review.';
+
+	/// en: 'Approved'
+	String get pendingReleaseTitle => 'Approved';
+
+	/// en: 'Your app has been approved! It is pending release to the App Store.'
+	String get pendingReleaseDescription => 'Your app has been approved! It is pending release to the App Store.';
+
+	/// en: 'Submitted Build'
+	String get submittedBuild => 'Submitted Build';
+
+	/// en: 'Submitted'
+	String get submittedOn => 'Submitted';
+
+	/// en: 'Reviews typically take 24-48 hours'
+	String get estimatedWait => 'Reviews typically take 24-48 hours';
+
+	/// en: 'View in App Store Connect'
+	String get viewInAsc => 'View in App Store Connect';
 }
 
 // Path: auth.firebaseForm
@@ -1171,6 +1273,8 @@ extension on Translations {
 			'auth.firebaseForm.storageBucket' => 'Storage Bucket',
 			'auth.firebaseForm.pickConfig' => 'Pick Firebase config',
 			'workflow.title' => 'Workflows',
+			'workflow.tabWorkflows' => 'Workflows',
+			'workflow.tabRuns' => 'Runs',
 			'workflow.addWorkflow' => 'Add Workflow',
 			'workflow.noWorkflowFiles' => 'No workflow files found',
 			'workflow.addYamlHint' => 'Add YAML files to .openci/ in your repository.',
@@ -1420,6 +1524,38 @@ extension on Translations {
 			'storeRelease.rejected' => 'Rejected',
 			'storeRelease.prepareForSubmission' => 'Prepare for Submission',
 			'storeRelease.submitted' => 'Submitted',
+			'storeRelease.stepBuild' => 'Build',
+			'storeRelease.stepDetails' => 'Details',
+			'storeRelease.stepReview' => 'Review',
+			'storeRelease.selectBuildTitle' => 'Select a Build',
+			'storeRelease.selectBuildHint' => 'Choose a build to submit for App Store Review',
+			'storeRelease.releaseDetailsTitle' => 'Release Details',
+			'storeRelease.releaseDetailsHint' => 'Configure version and release notes',
+			'storeRelease.reviewTitle' => 'Review & Submit',
+			'storeRelease.reviewHint' => 'Confirm all details before submitting',
+			'storeRelease.next' => 'Next',
+			'storeRelease.back' => 'Back',
+			'storeRelease.confirmSubmit' => 'Submit for Review',
+			'storeRelease.submittingReview' => 'Submitting...',
+			'storeRelease.selectedBuildLabel' => 'Selected Build',
+			'storeRelease.screenshotsTitle' => 'Screenshots',
+			'storeRelease.noScreenshots' => 'No screenshots available',
+			'storeRelease.screenshotsHint' => 'Manage screenshots in App Store Connect',
+			'storeRelease.screenshotCount' => ({required Object count}) => '${count} screenshots',
+			'storeRelease.appDescription' => 'Description',
+			'storeRelease.keywordsLabel' => 'Keywords',
+			'storeRelease.noVersionInfo' => 'No existing version info found',
+			'storeRelease.existingInfo' => 'Current App Store Info',
+			'storeRelease.summarySection' => 'Submission Summary',
+			'storeRelease.underReview' => 'Under Review',
+			'storeRelease.underReviewDescription' => 'Your app is currently being reviewed by Apple. No changes can be made until the review is complete.',
+			'storeRelease.waitingForReviewDescription' => 'Your app has been submitted and is waiting for Apple to begin the review.',
+			'storeRelease.pendingReleaseTitle' => 'Approved',
+			'storeRelease.pendingReleaseDescription' => 'Your app has been approved! It is pending release to the App Store.',
+			'storeRelease.submittedBuild' => 'Submitted Build',
+			'storeRelease.submittedOn' => 'Submitted',
+			'storeRelease.estimatedWait' => 'Reviews typically take 24-48 hours',
+			'storeRelease.viewInAsc' => 'View in App Store Connect',
 			_ => null,
 		};
 	}
