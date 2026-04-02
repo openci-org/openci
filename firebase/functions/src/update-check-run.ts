@@ -3,6 +3,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/firesto
 
 import { db } from "./firebase";
 import { buildJobsCollectionPath, runsSubcollectionPath } from "./firestore-collection-paths";
+import { buildDashboardRunUrl } from "./github/check-run-link";
 
 async function patchCheckRun(
   owner: string,
@@ -11,12 +12,16 @@ async function patchCheckRun(
   installationToken: string,
   status: string,
   conclusion?: string,
+  detailsUrl?: string,
 ) {
   const url = `https://api.github.com/repos/${owner}/${repo}/check-runs/${checkRunId}`;
 
   const body: Record<string, string> = { status };
   if (conclusion) {
     body.conclusion = conclusion;
+  }
+  if (detailsUrl) {
+    body.details_url = detailsUrl;
   }
 
   const response = await fetch(url, {
@@ -59,6 +64,8 @@ export const onRunCreated = onDocumentCreated(
         checkRunId,
         buildJobData.installationToken,
         "in_progress",
+        undefined,
+        buildDashboardRunUrl(buildJobId),
       );
     } catch (e) {
       logger.error(`Error updating check run to in_progress`, e);
@@ -99,6 +106,7 @@ export const onRunUpdated = onDocumentUpdated(
         buildJobData.installationToken,
         "completed",
         after.conclusion,
+        buildDashboardRunUrl(buildJobId),
       );
     } catch (e) {
       logger.error(`Error updating check run to completed`, e);

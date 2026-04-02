@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { db } from "../firebase";
 import { buildJobsCollectionPath, workflowFilesCollectionPath } from "../firestore-collection-paths";
+import { buildDashboardRunUrl } from "./check-run-link";
 import { OPENCI_DIR_QUERY, OpenciDirEntry } from "./queries";
 import { syncWorkflowFilesToFirestore, workflowFileDocId } from "./sync-workflow-files";
 
@@ -270,6 +271,9 @@ async function createBuildJobs(
 
           logger.info(`Matched .openci/${entry.name} with ${steps.length} steps`);
 
+          const documentId = uuidv4();
+          const checkRunDetailsUrl = buildDashboardRunUrl(documentId);
+
           let checkRunId: number | null = null;
           if (commitSha) {
             try {
@@ -282,6 +286,7 @@ async function createBuildJobs(
                   head_sha: commitSha,
                   status: "queued",
                   started_at: new Date().toISOString(),
+                  details_url: checkRunDetailsUrl,
                 },
               );
               checkRunId = checkRun.id;
@@ -290,7 +295,6 @@ async function createBuildJobs(
             }
           }
 
-          const documentId = uuidv4();
           const jobData = { ...params };
           delete jobData.payload;
 

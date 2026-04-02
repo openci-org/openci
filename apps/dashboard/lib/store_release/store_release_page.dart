@@ -5,6 +5,7 @@ import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class StoreReleaseBody extends HookConsumerWidget {
   const StoreReleaseBody({super.key});
@@ -20,8 +21,7 @@ class StoreReleaseBody extends HookConsumerWidget {
         }
         return _AppSelectionView();
       },
-      loading: () =>
-          const Center(child: CircularProgressIndicator.adaptive()),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: asyncErrorWidget,
     );
   }
@@ -306,7 +306,7 @@ class _AppSelectionView extends ConsumerWidget {
                           ),
                           onTap: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(
+                              SwipeablePageRoute(
                                 builder: (_) => _SubmissionWizardPage(app: app),
                               ),
                             );
@@ -1640,8 +1640,7 @@ class _StatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null)
-            Icon(icon, size: 12, color: color),
+          if (icon != null) Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           Text(
             label,

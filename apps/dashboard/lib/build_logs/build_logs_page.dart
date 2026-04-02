@@ -1,10 +1,10 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class LogsBody extends HookConsumerWidget {
@@ -49,8 +49,7 @@ class LogsBody extends HookConsumerWidget {
           ),
         );
       },
-      loading: () =>
-          const Center(child: CircularProgressIndicator.adaptive()),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: asyncErrorWidget,
     );
   }
@@ -99,11 +98,7 @@ class BuildJobCard extends HookConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => BuildLogsDetailPage(buildJob: buildJob),
-            ),
-          );
+          context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -211,11 +206,8 @@ class BuildJobCard extends HookConsumerWidget {
                 onSelected: (value) async {
                   switch (value) {
                     case 'details':
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              BuildLogsDetailPage(buildJob: buildJob),
-                        ),
+                      await context.push(
+                        '/runs/${Uri.encodeComponent(buildJob.id)}',
                       );
                     case 'retry':
                       try {

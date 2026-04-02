@@ -18,6 +18,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:yaml/yaml.dart';
 
 String getInitials(String name) {
@@ -133,7 +134,7 @@ class WorkflowListPage extends HookConsumerWidget {
               ? FloatingActionButton.extended(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
+                      SwipeablePageRoute(
                         fullscreenDialog: true,
                         builder: (_) => CreateWorkflowPage(
                           repository: selectedRepo,
@@ -149,23 +150,23 @@ class WorkflowListPage extends HookConsumerWidget {
               : null,
           appBar: AppBar(
             title: Text('OpenCI'),
-          bottom: TabBar(
-            controller: tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              Tab(text: wfT.tabWorkflows),
-              Tab(text: wfT.tabRuns),
-              Tab(text: t.storeRelease.title),
-            ],
-          ),
+            bottom: TabBar(
+              controller: tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              tabs: [
+                Tab(text: wfT.tabWorkflows),
+                Tab(text: wfT.tabRuns),
+                Tab(text: t.storeRelease.title),
+              ],
+            ),
             actions: [
               TextButton.icon(
                 icon: Icon(Symbols.key_rounded),
                 label: Text(t.variables.title),
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
+                    SwipeablePageRoute(
                       builder: (_) => const VariablesPage(),
                     ),
                   );
@@ -215,7 +216,7 @@ class WorkflowListPage extends HookConsumerWidget {
                       leadingIcon: const Icon(Icons.settings),
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(
+                          SwipeablePageRoute(
                             builder: (_) => const SettingsPage(),
                           ),
                         );
@@ -371,7 +372,7 @@ class _WorkflowBody extends ConsumerWidget {
                           ?.selectedBranch;
                       if (branch == null) return;
                       Navigator.of(context).push(
-                        MaterialPageRoute(
+                        SwipeablePageRoute(
                           builder: (context) => CreateWorkflowPage(
                             repository: selectedRepo,
                             branch: branch,

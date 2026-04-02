@@ -17,7 +17,7 @@
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
     "firebase-admin": "^13.6.1",
-    "firebase-functions": "^7.0.5",
+    "firebase-functions": "^7.2.2",
     "graphql": "^16.12.0",
     "jose": "^6.2.2",
     "js-yaml": "^4.1.1",
@@ -35,5 +35,6 @@
   },
   "engines": {
     "node": "24"
-  }
+  },
+  "packageManager": "npm@11.12.1"
 }

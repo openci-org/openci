@@ -48,6 +48,21 @@ class BuildJobs extends _$BuildJobs {
 }
 
 @riverpod
+Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
+  final firestore = ref.watch(firestoreProvider);
+
+  return firestore
+      .collection(buildJobsCollection)
+      .doc(buildJobId)
+      .withConverter(
+        fromFirestore: (snapshot, _) => BuildJob.fromJson(snapshot.data()!),
+        toFirestore: (buildJob, _) => buildJob.toJson(),
+      )
+      .snapshots()
+      .map((snapshot) => snapshot.data());
+}
+
+@riverpod
 Future<String?> workflowName(Ref ref, BuildJob buildJob) async {
   final fileName = buildJob.workflowFileName;
   if (fileName == null) return null;
