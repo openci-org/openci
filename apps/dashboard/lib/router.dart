@@ -55,9 +55,19 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isAuthed = authState.asData?.value != null;
       final onAuthRoute = state.matchedLocation == '/auth';
+      final requestedLocation = state.uri.toString();
+      final redirectTarget = state.uri.queryParameters['from'];
 
-      if (!isAuthed && !onAuthRoute) return '/auth';
-      if (isAuthed && onAuthRoute) return '/';
+      if (!isAuthed && !onAuthRoute) {
+        final encodedLocation = Uri.encodeComponent(requestedLocation);
+        return '/auth?from=$encodedLocation';
+      }
+      if (isAuthed && onAuthRoute) {
+        if (redirectTarget != null && redirectTarget.isNotEmpty) {
+          return redirectTarget;
+        }
+        return '/';
+      }
       return null;
     },
   );
@@ -79,7 +89,12 @@ class HomeRoutePage extends HookConsumerWidget {
     }, [user?.uid]);
 
     return authState.when(
-      data: (_) => const WorkflowListPage(),
+      data: (user) {
+        if (user == null) {
+          return const AuthPage();
+        }
+        return const WorkflowListPage();
+      },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
@@ -98,21 +113,35 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final buildJobAsync = ref.watch(buildJobByIdProvider(buildJobId));
-    return buildJobAsync.when(
+    final authState = ref.watch(authProvider);
+
+    return authState.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
       error: asyncErrorWidget,
-      data: (buildJob) {
-        if (buildJob == null) {
-          return const Scaffold(
-            body: Center(
-              child: Text('Build job not found'),
-            ),
-          );
+      data: (user) {
+        if (user == null) {
+          return const AuthPage();
         }
-        return BuildLogsDetailPage(buildJob: buildJob);
+
+        final buildJobAsync = ref.watch(buildJobByIdProvider(buildJobId));
+        return buildJobAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          ),
+          error: asyncErrorWidget,
+          data: (buildJob) {
+            if (buildJob == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('Build job not found'),
+                ),
+              );
+            }
+            return BuildLogsDetailPage(buildJob: buildJob);
+          },
+        );
       },
     );
   }

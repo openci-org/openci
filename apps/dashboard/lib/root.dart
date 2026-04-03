@@ -1,3 +1,4 @@
+import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ class Root extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(deepLinkListenerProvider);
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       locale: TranslationProvider.of(context).flutterLocale,
