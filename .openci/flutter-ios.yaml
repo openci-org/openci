@@ -33,7 +33,7 @@ jobs:
           test: "false"
           working-directory: "apps/dashboard"
 
-      - uses: open-ci-io/flutter-cd@v1
+      - uses: open-ci-io/flutter-cd@v2
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
