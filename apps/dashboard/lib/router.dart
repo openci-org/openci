@@ -36,17 +36,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           builder: (context) => const HomeRoutePage(),
         ),
-      ),
-      GoRoute(
-        path: '/runs/:buildJobId',
-        pageBuilder: (context, state) {
-          final buildJobId = state.pathParameters['buildJobId']!;
-          return SwipeablePage(
-            key: state.pageKey,
-            builder: (context) =>
-                BuildLogsDetailRoutePage(buildJobId: buildJobId),
-          );
-        },
+        routes: [
+          GoRoute(
+            path: 'runs/:buildJobId',
+            pageBuilder: (context, state) {
+              final buildJobId = state.pathParameters['buildJobId']!;
+              return SwipeablePage(
+                key: state.pageKey,
+                builder: (context) =>
+                    BuildLogsDetailRoutePage(buildJobId: buildJobId),
+              );
+            },
+          ),
+        ],
       ),
     ],
     redirect: (context, state) {
