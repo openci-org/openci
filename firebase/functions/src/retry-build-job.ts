@@ -103,46 +103,27 @@ export const retryBuildJob = onCall(
         tokenExpiresAt = expires_at;
 
         if (originalJob.commitSha) {
-          if (checkRunId) {
-            // Update the existing check run to queued
-            try {
-              await octokit.request(
-                "PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}",
-                {
-                  owner: originalJob.owner,
-                  repo: originalJob.repo,
-                  check_run_id: checkRunId,
-                  status: "queued",
-                  started_at: new Date().toISOString(),
-                  details_url: checkRunDetailsUrl,
-                },
-              );
-              logger.info(`Updated existing check run ${checkRunId} to queued for retry`);
-            } catch (error) {
-              logger.error(`Failed to update existing check run ${checkRunId}, creating new one`, error);
-              checkRunId = null;
-            }
-          }
-
-          // Fall back to creating a new check run if no existing one
-          if (!checkRunId) {
-            try {
-              const { data: checkRun } = await octokit.request(
-                "POST /repos/{owner}/{repo}/check-runs",
-                {
-                  owner: originalJob.owner,
-                  repo: originalJob.repo,
-                  name: checkRunName,
-                  head_sha: originalJob.commitSha,
-                  status: "queued",
-                  started_at: new Date().toISOString(),
-                  details_url: checkRunDetailsUrl,
-                },
-              );
-              checkRunId = checkRun.id;
-            } catch (error) {
-              logger.error("Failed to create check run for retry", error);
-            }
+          // Always create a fresh check run for retries.
+          // PATCHing a completed check run back to queued is unreliable
+          // across different GitHub API versions, so we always POST a new one.
+          checkRunId = null;
+          try {
+            const { data: checkRun } = await octokit.request(
+              "POST /repos/{owner}/{repo}/check-runs",
+              {
+                owner: originalJob.owner,
+                repo: originalJob.repo,
+                name: checkRunName,
+                head_sha: originalJob.commitSha,
+                status: "in_progress",
+                started_at: new Date().toISOString(),
+                details_url: checkRunDetailsUrl,
+              },
+            );
+            checkRunId = checkRun.id;
+            logger.info(`Created new check run ${checkRunId} for retry`);
+          } catch (error) {
+            logger.error("Failed to create check run for retry", error);
           }
         }
       } catch (error) {
