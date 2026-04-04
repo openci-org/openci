@@ -130,6 +130,8 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 
 	// Translations
 	@override String get title => 'ワークフロー';
+	@override String get tabWorkflows => 'ワークフロー';
+	@override String get tabRuns => '実行履歴';
 	@override String get addWorkflow => 'ワークフロー追加';
 	@override String get noWorkflowFiles => 'ワークフローファイルが見つかりません';
 	@override String get addYamlHint => 'リポジトリの .openci/ にYAMLファイルを追加してください。';
@@ -401,6 +403,38 @@ class _TranslationsStoreReleaseJa implements TranslationsStoreReleaseEn {
 	@override String get rejected => '却下';
 	@override String get prepareForSubmission => '提出準備中';
 	@override String get submitted => '提出済み';
+	@override String get stepBuild => 'ビルド';
+	@override String get stepDetails => '詳細';
+	@override String get stepReview => '確認';
+	@override String get selectBuildTitle => 'ビルドを選択';
+	@override String get selectBuildHint => 'App Storeレビューに提出するビルドを選択してください';
+	@override String get releaseDetailsTitle => 'リリース情報';
+	@override String get releaseDetailsHint => 'バージョンとリリースノートを設定';
+	@override String get reviewTitle => '確認 & 提出';
+	@override String get reviewHint => '提出前にすべての情報を確認してください';
+	@override String get next => '次へ';
+	@override String get back => '戻る';
+	@override String get confirmSubmit => 'レビューに提出';
+	@override String get submittingReview => '提出中...';
+	@override String get selectedBuildLabel => '選択されたビルド';
+	@override String get screenshotsTitle => 'スクリーンショット';
+	@override String get noScreenshots => 'スクリーンショットがありません';
+	@override String get screenshotsHint => 'App Store Connectでスクリーンショットを管理してください';
+	@override String screenshotCount({required Object count}) => '${count}枚のスクリーンショット';
+	@override String get appDescription => '説明';
+	@override String get keywordsLabel => 'キーワード';
+	@override String get noVersionInfo => '既存のバージョン情報が見つかりません';
+	@override String get existingInfo => '現在のApp Store情報';
+	@override String get summarySection => '提出サマリー';
+	@override String get underReview => '審査中';
+	@override String get underReviewDescription => 'アプリは現在Appleによる審査中です。審査が完了するまで変更を行うことはできません。';
+	@override String get waitingForReviewDescription => 'アプリは提出済みで、Appleの審査開始を待っています。';
+	@override String get pendingReleaseTitle => '承認済み';
+	@override String get pendingReleaseDescription => 'アプリが承認されました！App Storeへのリリースを待っています。';
+	@override String get submittedBuild => '提出されたビルド';
+	@override String get submittedOn => '提出日';
+	@override String get estimatedWait => '審査は通常24〜48時間かかります';
+	@override String get viewInAsc => 'App Store Connectで確認';
 }
 
 // Path: auth.firebaseForm
@@ -586,6 +620,8 @@ extension on TranslationsJa {
 			'auth.firebaseForm.storageBucket' => 'ストレージバケット',
 			'auth.firebaseForm.pickConfig' => 'Firebase設定を選択',
 			'workflow.title' => 'ワークフロー',
+			'workflow.tabWorkflows' => 'ワークフロー',
+			'workflow.tabRuns' => '実行履歴',
 			'workflow.addWorkflow' => 'ワークフロー追加',
 			'workflow.noWorkflowFiles' => 'ワークフローファイルが見つかりません',
 			'workflow.addYamlHint' => 'リポジトリの .openci/ にYAMLファイルを追加してください。',
@@ -835,6 +871,38 @@ extension on TranslationsJa {
 			'storeRelease.rejected' => '却下',
 			'storeRelease.prepareForSubmission' => '提出準備中',
 			'storeRelease.submitted' => '提出済み',
+			'storeRelease.stepBuild' => 'ビルド',
+			'storeRelease.stepDetails' => '詳細',
+			'storeRelease.stepReview' => '確認',
+			'storeRelease.selectBuildTitle' => 'ビルドを選択',
+			'storeRelease.selectBuildHint' => 'App Storeレビューに提出するビルドを選択してください',
+			'storeRelease.releaseDetailsTitle' => 'リリース情報',
+			'storeRelease.releaseDetailsHint' => 'バージョンとリリースノートを設定',
+			'storeRelease.reviewTitle' => '確認 & 提出',
+			'storeRelease.reviewHint' => '提出前にすべての情報を確認してください',
+			'storeRelease.next' => '次へ',
+			'storeRelease.back' => '戻る',
+			'storeRelease.confirmSubmit' => 'レビューに提出',
+			'storeRelease.submittingReview' => '提出中...',
+			'storeRelease.selectedBuildLabel' => '選択されたビルド',
+			'storeRelease.screenshotsTitle' => 'スクリーンショット',
+			'storeRelease.noScreenshots' => 'スクリーンショットがありません',
+			'storeRelease.screenshotsHint' => 'App Store Connectでスクリーンショットを管理してください',
+			'storeRelease.screenshotCount' => ({required Object count}) => '${count}枚のスクリーンショット',
+			'storeRelease.appDescription' => '説明',
+			'storeRelease.keywordsLabel' => 'キーワード',
+			'storeRelease.noVersionInfo' => '既存のバージョン情報が見つかりません',
+			'storeRelease.existingInfo' => '現在のApp Store情報',
+			'storeRelease.summarySection' => '提出サマリー',
+			'storeRelease.underReview' => '審査中',
+			'storeRelease.underReviewDescription' => 'アプリは現在Appleによる審査中です。審査が完了するまで変更を行うことはできません。',
+			'storeRelease.waitingForReviewDescription' => 'アプリは提出済みで、Appleの審査開始を待っています。',
+			'storeRelease.pendingReleaseTitle' => '承認済み',
+			'storeRelease.pendingReleaseDescription' => 'アプリが承認されました！App Storeへのリリースを待っています。',
+			'storeRelease.submittedBuild' => '提出されたビルド',
+			'storeRelease.submittedOn' => '提出日',
+			'storeRelease.estimatedWait' => '審査は通常24〜48時間かかります',
+			'storeRelease.viewInAsc' => 'App Store Connectで確認',
 			_ => null,
 		};
 	}

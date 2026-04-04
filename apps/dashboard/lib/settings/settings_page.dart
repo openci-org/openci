@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
@@ -57,7 +58,7 @@ class SettingsPage extends HookConsumerWidget {
                     ),
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
+                        SwipeablePageRoute(
                           builder: (_) => const NotificationSettingsPage(),
                         ),
                       );
@@ -84,7 +85,7 @@ class SettingsPage extends HookConsumerWidget {
                     ),
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
+                        SwipeablePageRoute(
                           builder: (_) => const SubscriptionPage(),
                         ),
                       );

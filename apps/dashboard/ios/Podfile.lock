@@ -1,4 +1,6 @@
 PODS:
+  - app_links (7.0.0):
+    - Flutter
   - cloud_firestore (6.2.0):
     - Firebase/Firestore (= 12.9.0)
     - firebase_core
@@ -184,6 +186,7 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
+  - app_links (from `.symlinks/plugins/app_links/ios`)
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
   - cloud_functions (from `.symlinks/plugins/cloud_functions/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
@@ -231,6 +234,8 @@ SPEC REPOS:
     - SwiftyGif
 
 EXTERNAL SOURCES:
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
   cloud_firestore:
     :path: ".symlinks/plugins/cloud_firestore/ios"
   cloud_functions:
@@ -261,6 +266,7 @@ CHECKOUT OPTIONS:
     :tag: 12.9.0
 
 SPEC CHECKSUMS:
+  app_links: a754cbec3c255bd4bbb4d236ecc06f28cd9a7ce8
   cloud_firestore: 698d4d849c58da2ef2b3b8b9db27d2cd56614e7e
   cloud_functions: 8cfd7ba062db83be645823b41f2b42aa234bcfe3
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c

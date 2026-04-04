@@ -1,24 +1,23 @@
-import 'package:dashboard/auth/auth_page.dart';
-import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/i18n/strings.g.dart';
-import 'package:dashboard/navigation_bar_page.dart';
-import 'package:dashboard/notifications/notification_provider.dart';
-import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/router.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Root extends StatelessWidget {
+class Root extends ConsumerWidget {
   const Root({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(deepLinkListenerProvider);
+
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       locale: TranslationProvider.of(context).flutterLocale,
       supportedLocales: AppLocaleUtils.supportedLocales,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      routerConfig: ref.watch(routerProvider),
       theme: ThemeData(
         colorSchemeSeed: Colors.blue,
         useMaterial3: true,
@@ -45,39 +44,60 @@ class Root extends StatelessWidget {
           space: 1,
           thickness: 1,
         ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: ResponsivePageTransitionsBuilder(),
+            TargetPlatform.iOS: ResponsivePageTransitionsBuilder(),
+            TargetPlatform.macOS: ResponsivePageTransitionsBuilder(),
+            TargetPlatform.windows: ResponsivePageTransitionsBuilder(),
+            TargetPlatform.linux: ResponsivePageTransitionsBuilder(),
+          },
+        ),
       ),
-      home: HomePage(),
     );
   }
 }
 
-class HomePage extends HookConsumerWidget {
-  const HomePage({super.key});
+class ResponsivePageTransitionsBuilder extends PageTransitionsBuilder {
+  const ResponsivePageTransitionsBuilder();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final user = authState.value;
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // 画面幅が800pxを超える（デスクトップサイズ）場合は、素早いフェードアニメーション
+    if (MediaQuery.sizeOf(context).width > 800) {
+      return FadeTransition(
+        opacity: CurvedAnimation(
+          parent: animation,
+          // MaterialPageRouteのデフォルト遷移時間(300ms)のうち、最初の約100msでフェードインを完了させる
+          curve: const Interval(0.0, 0.33, curve: Curves.easeOut),
+        ),
+        child: child,
+      );
+    }
 
-    useEffect(() {
-      if (user != null) {
-        ref.read(notificationServiceProvider);
-      }
-      return null;
-    }, [user?.uid]);
-
-    return authState.when(
-      data: (user) {
-        if (user == null) {
-          return AuthPage();
-        }
-
-        return NavigationBarPage();
-      },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator.adaptive()),
-      ),
-      error: asyncErrorWidget,
+    // モバイルサイズの場合はプラットフォーム標準のアニメーション
+    final platform = Theme.of(context).platform;
+    if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+      return const CupertinoPageTransitionsBuilder().buildTransitions(
+        route,
+        context,
+        animation,
+        secondaryAnimation,
+        child,
+      );
+    }
+    return const ZoomPageTransitionsBuilder().buildTransitions(
+      route,
+      context,
+      animation,
+      secondaryAnimation,
+      child,
     );
   }
 }

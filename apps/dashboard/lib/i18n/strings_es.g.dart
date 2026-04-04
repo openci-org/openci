@@ -130,6 +130,8 @@ class _TranslationsWorkflowEs implements TranslationsWorkflowEn {
 
 	// Translations
 	@override String get title => 'Flujos de trabajo';
+	@override String get tabWorkflows => 'Flujos de trabajo';
+	@override String get tabRuns => 'Ejecuciones';
 	@override String get addWorkflow => 'Agregar flujo de trabajo';
 	@override String get noWorkflowFiles => 'No se encontraron archivos de flujo de trabajo';
 	@override String get addYamlHint => 'Agrega archivos YAML a .openci/ en tu repositorio.';
@@ -401,6 +403,38 @@ class _TranslationsStoreReleaseEs implements TranslationsStoreReleaseEn {
 	@override String get rejected => 'Rechazado';
 	@override String get prepareForSubmission => 'Preparar para envío';
 	@override String get submitted => 'Enviado';
+	@override String get stepBuild => 'Compilación';
+	@override String get stepDetails => 'Detalles';
+	@override String get stepReview => 'Revisión';
+	@override String get selectBuildTitle => 'Seleccionar compilación';
+	@override String get selectBuildHint => 'Elige una compilación para enviar a revisión en App Store';
+	@override String get releaseDetailsTitle => 'Detalles del lanzamiento';
+	@override String get releaseDetailsHint => 'Configurar versión y notas de lanzamiento';
+	@override String get reviewTitle => 'Revisar y enviar';
+	@override String get reviewHint => 'Confirma todos los detalles antes de enviar';
+	@override String get next => 'Siguiente';
+	@override String get back => 'Atrás';
+	@override String get confirmSubmit => 'Enviar para revisión';
+	@override String get submittingReview => 'Enviando...';
+	@override String get selectedBuildLabel => 'Compilación seleccionada';
+	@override String get screenshotsTitle => 'Capturas de pantalla';
+	@override String get noScreenshots => 'No hay capturas disponibles';
+	@override String get screenshotsHint => 'Gestiona las capturas en App Store Connect';
+	@override String screenshotCount({required Object count}) => '${count} capturas';
+	@override String get appDescription => 'Descripción';
+	@override String get keywordsLabel => 'Palabras clave';
+	@override String get noVersionInfo => 'No se encontró información de versión existente';
+	@override String get existingInfo => 'Información actual del App Store';
+	@override String get summarySection => 'Resumen del envío';
+	@override String get underReview => 'En revisión';
+	@override String get underReviewDescription => 'Tu app está siendo revisada por Apple. No se pueden hacer cambios hasta que se complete la revisión.';
+	@override String get waitingForReviewDescription => 'Tu app ha sido enviada y está esperando a que Apple inicie la revisión.';
+	@override String get pendingReleaseTitle => 'Aprobada';
+	@override String get pendingReleaseDescription => '¡Tu app ha sido aprobada! Está pendiente de lanzamiento en el App Store.';
+	@override String get submittedBuild => 'Compilación enviada';
+	@override String get submittedOn => 'Enviado';
+	@override String get estimatedWait => 'Las revisiones suelen tardar entre 24 y 48 horas';
+	@override String get viewInAsc => 'Ver en App Store Connect';
 }
 
 // Path: auth.firebaseForm
@@ -586,6 +620,8 @@ extension on TranslationsEs {
 			'auth.firebaseForm.storageBucket' => 'Depósito de almacenamiento',
 			'auth.firebaseForm.pickConfig' => 'Seleccionar configuración de Firebase',
 			'workflow.title' => 'Flujos de trabajo',
+			'workflow.tabWorkflows' => 'Flujos de trabajo',
+			'workflow.tabRuns' => 'Ejecuciones',
 			'workflow.addWorkflow' => 'Agregar flujo de trabajo',
 			'workflow.noWorkflowFiles' => 'No se encontraron archivos de flujo de trabajo',
 			'workflow.addYamlHint' => 'Agrega archivos YAML a .openci/ en tu repositorio.',
@@ -835,6 +871,38 @@ extension on TranslationsEs {
 			'storeRelease.rejected' => 'Rechazado',
 			'storeRelease.prepareForSubmission' => 'Preparar para envío',
 			'storeRelease.submitted' => 'Enviado',
+			'storeRelease.stepBuild' => 'Compilación',
+			'storeRelease.stepDetails' => 'Detalles',
+			'storeRelease.stepReview' => 'Revisión',
+			'storeRelease.selectBuildTitle' => 'Seleccionar compilación',
+			'storeRelease.selectBuildHint' => 'Elige una compilación para enviar a revisión en App Store',
+			'storeRelease.releaseDetailsTitle' => 'Detalles del lanzamiento',
+			'storeRelease.releaseDetailsHint' => 'Configurar versión y notas de lanzamiento',
+			'storeRelease.reviewTitle' => 'Revisar y enviar',
+			'storeRelease.reviewHint' => 'Confirma todos los detalles antes de enviar',
+			'storeRelease.next' => 'Siguiente',
+			'storeRelease.back' => 'Atrás',
+			'storeRelease.confirmSubmit' => 'Enviar para revisión',
+			'storeRelease.submittingReview' => 'Enviando...',
+			'storeRelease.selectedBuildLabel' => 'Compilación seleccionada',
+			'storeRelease.screenshotsTitle' => 'Capturas de pantalla',
+			'storeRelease.noScreenshots' => 'No hay capturas disponibles',
+			'storeRelease.screenshotsHint' => 'Gestiona las capturas en App Store Connect',
+			'storeRelease.screenshotCount' => ({required Object count}) => '${count} capturas',
+			'storeRelease.appDescription' => 'Descripción',
+			'storeRelease.keywordsLabel' => 'Palabras clave',
+			'storeRelease.noVersionInfo' => 'No se encontró información de versión existente',
+			'storeRelease.existingInfo' => 'Información actual del App Store',
+			'storeRelease.summarySection' => 'Resumen del envío',
+			'storeRelease.underReview' => 'En revisión',
+			'storeRelease.underReviewDescription' => 'Tu app está siendo revisada por Apple. No se pueden hacer cambios hasta que se complete la revisión.',
+			'storeRelease.waitingForReviewDescription' => 'Tu app ha sido enviada y está esperando a que Apple inicie la revisión.',
+			'storeRelease.pendingReleaseTitle' => 'Aprobada',
+			'storeRelease.pendingReleaseDescription' => '¡Tu app ha sido aprobada! Está pendiente de lanzamiento en el App Store.',
+			'storeRelease.submittedBuild' => 'Compilación enviada',
+			'storeRelease.submittedOn' => 'Enviado',
+			'storeRelease.estimatedWait' => 'Las revisiones suelen tardar entre 24 y 48 horas',
+			'storeRelease.viewInAsc' => 'Ver en App Store Connect',
 			_ => null,
 		};
 	}

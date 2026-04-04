@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "T4W85DPBVX.org.openci.dashboard.prod",
+          "T4W85DPBVX.org.openci.dashboard"
+        ],
+        "components": [
+          {
+            "/": "/runs/*"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -11,6 +11,7 @@ import {
   teamsCollectionPath,
   workflowsCollectionPath,
 } from "./firestore-collection-paths";
+import { buildDashboardRunUrl } from "./github/check-run-link";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
 const GITHUB_PRIVATE_KEY = defineSecret("GITHUB_PRIVATE_KEY");
@@ -72,6 +73,10 @@ export const retryBuildJob = onCall(
       }
     }
 
+    // Prepare the retried build ID early so GitHub check-runs can point to it.
+    const newDocumentId = uuidv4();
+    const checkRunDetailsUrl = buildDashboardRunUrl(newDocumentId);
+
     // Get fresh GitHub installation token
     const installationId = originalJob.installationId;
     let installationToken: string | null = null;
@@ -109,6 +114,7 @@ export const retryBuildJob = onCall(
                   check_run_id: checkRunId,
                   status: "queued",
                   started_at: new Date().toISOString(),
+                  details_url: checkRunDetailsUrl,
                 },
               );
               logger.info(`Updated existing check run ${checkRunId} to queued for retry`);
@@ -130,6 +136,7 @@ export const retryBuildJob = onCall(
                   head_sha: originalJob.commitSha,
                   status: "queued",
                   started_at: new Date().toISOString(),
+                  details_url: checkRunDetailsUrl,
                 },
               );
               checkRunId = checkRun.id;
@@ -143,9 +150,6 @@ export const retryBuildJob = onCall(
         throw new HttpsError("internal", "Failed to authenticate with GitHub");
       }
     }
-
-    // Create a new build job
-    const newDocumentId = uuidv4();
 
     const newJobData: Record<string, any> = {
       id: newDocumentId,
