@@ -5,7 +5,7 @@ import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class StoreReleaseBody extends HookConsumerWidget {
   const StoreReleaseBody({super.key});
@@ -19,7 +19,25 @@ class StoreReleaseBody extends HookConsumerWidget {
         if (!isConfigured) {
           return _AscSetupView();
         }
-        return _AppSelectionView();
+        return _AppSelectionView(
+          onAppSelected: (app) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
+              builder: (context) {
+                return FractionallySizedBox(
+                  heightFactor: 0.9,
+                  child: _SubmissionWizardPage(
+                    app: app,
+                    onBack: () => Navigator.of(context).pop(),
+                  ),
+                );
+              },
+            );
+          },
+        );
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: asyncErrorWidget,
@@ -190,6 +208,10 @@ class _AscSetupView extends HookConsumerWidget {
 // App Selection View
 // ═══════════════════════════════════════════════════════════════════
 class _AppSelectionView extends ConsumerWidget {
+  const _AppSelectionView({required this.onAppSelected});
+
+  final ValueChanged<AscApp> onAppSelected;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final releaseT = t.storeRelease;
@@ -305,11 +327,7 @@ class _AppSelectionView extends ConsumerWidget {
                             ).colorScheme.onSurfaceVariant,
                           ),
                           onTap: () {
-                            Navigator.of(context).push(
-                              SwipeablePageRoute(
-                                builder: (_) => _SubmissionWizardPage(app: app),
-                              ),
-                            );
+                            onAppSelected(app);
                           },
                         ),
                       );
@@ -321,7 +339,94 @@ class _AppSelectionView extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      loading: () {
+        final dummyApps = List.generate(
+          3,
+          (index) => AscApp(
+            id: 'dummy_$index',
+            name: 'Loading App Name',
+            bundleId: 'com.example.loading.bundleid',
+          ),
+        );
+        return Skeletonizer(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.rocket_launch,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          releaseT.selectApp,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      releaseT.selectAppHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).hintColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: dummyApps.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (_, index) {
+                        final app = dummyApps[index];
+                        return Card(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              child: Icon(
+                                Icons.apps,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            title: Text(
+                              app.name,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(
+                              app.bundleId,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
       error: asyncErrorWidget,
     );
   }
@@ -331,70 +436,94 @@ class _AppSelectionView extends ConsumerWidget {
 // Submission Wizard Page (full page with Scaffold)
 // ═══════════════════════════════════════════════════════════════════
 class _SubmissionWizardPage extends HookConsumerWidget {
-  const _SubmissionWizardPage({required this.app});
+  const _SubmissionWizardPage({
+    required this.app,
+    required this.onBack,
+  });
 
   final AscApp app;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final buildsAsync = ref.watch(ascBuildsProvider(app.id));
     final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: cs.primaryContainer,
-              child: Icon(Icons.apps, size: 16, color: cs.onPrimaryContainer),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    app.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: onBack,
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: cs.primaryContainer,
+                child: Icon(Icons.apps, size: 16, color: cs.onPrimaryContainer),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      app.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  Text(
-                    app.bundleId,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: cs.onSurfaceVariant,
+                    Text(
+                      app.bundleId,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: buildsAsync.when(
+            data: (builds) {
+              final activeReviewBuild = builds.where(
+                (b) =>
+                    b.isInReview ||
+                    b.appStoreState == 'PENDING_DEVELOPER_RELEASE',
+              );
+
+              if (activeReviewBuild.isNotEmpty) {
+                return _InReviewView(
+                  app: app,
+                  reviewBuild: activeReviewBuild.first,
+                );
+              }
+
+              return _WizardSteps(
+                app: app,
+                onBack: onBack,
+              );
+            },
+            loading: () => Skeletonizer(
+              child: _WizardSteps(
+                app: app,
+                onBack: onBack,
               ),
             ),
-          ],
+            error: asyncErrorWidget,
+          ),
         ),
-      ),
-      body: buildsAsync.when(
-        data: (builds) {
-          final activeReviewBuild = builds.where(
-            (b) =>
-                b.isInReview || b.appStoreState == 'PENDING_DEVELOPER_RELEASE',
-          );
-
-          if (activeReviewBuild.isNotEmpty) {
-            return _InReviewView(
-              app: app,
-              reviewBuild: activeReviewBuild.first,
-            );
-          }
-
-          return _WizardSteps(app: app);
-        },
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: asyncErrorWidget,
-      ),
+      ],
     );
   }
 }
@@ -665,9 +794,13 @@ class _PulsingStatusIcon extends HookWidget {
 // Wizard Steps (the actual 3-step flow)
 // ═══════════════════════════════════════════════════════════════════
 class _WizardSteps extends HookConsumerWidget {
-  const _WizardSteps({required this.app});
+  const _WizardSteps({
+    required this.app,
+    required this.onBack,
+  });
 
   final AscApp app;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -723,7 +856,7 @@ class _WizardSteps extends HookConsumerWidget {
       if (currentStep.value > 0) {
         currentStep.value--;
       } else {
-        Navigator.of(context).pop();
+        onBack();
       }
     }
 
@@ -743,7 +876,7 @@ class _WizardSteps extends HookConsumerWidget {
         if (context.mounted) {
           context.showSnackBarMessage(releaseT.reviewSuccess);
           ref.invalidate(ascBuildsProvider(app.id));
-          Navigator.of(context).pop();
+          onBack();
         }
       } catch (e, s) {
         debugPrint(e.toString());
@@ -1065,8 +1198,33 @@ class _BuildPickerStep extends HookConsumerWidget {
                 ),
               );
             },
-            loading: () =>
-                const Center(child: CircularProgressIndicator.adaptive()),
+            loading: () {
+              final dummyBuilds = List.generate(
+                3,
+                (index) => AscBuild(
+                  id: 'dummy_$index',
+                  version: '1.0.$index',
+                  buildNumber: '10$index',
+                  platform: 'IOS',
+                  appStoreState: 'READY_FOR_TESTING',
+                ),
+              );
+              return Skeletonizer(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: dummyBuilds.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, index) {
+                    return _SelectableBuildCard(
+                      ascBuild: dummyBuilds[index],
+                      isSelected: false,
+                      isDisabled: false,
+                      onTap: null,
+                    );
+                  },
+                ),
+              );
+            },
             error: asyncErrorWidget,
           ),
         ),

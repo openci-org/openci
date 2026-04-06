@@ -6,6 +6,7 @@ import 'package:dashboard/workflow/list/github_repository_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SelectBranchBottomSheet extends ConsumerWidget {
   const SelectBranchBottomSheet({super.key, required this.repoFullName});
@@ -20,7 +21,31 @@ class SelectBranchBottomSheet extends ConsumerWidget {
     return userAsync.when(
       loading: () => SizedBox(
         height: MediaQuery.of(context).size.height * 0.6,
-        child: const Center(child: CircularProgressIndicator.adaptive()),
+        child: Skeletonizer(
+          child: Column(
+            children: [
+              Text(
+                'Select Branch',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: 5,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: FaIcon(
+                        FontAwesomeIcons.codeBranch,
+                        size: 16,
+                      ),
+                      title: Text('branch-name-$index'),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       error: asyncErrorWidget,
       data: (user) {
@@ -86,8 +111,19 @@ class SelectBranchBottomSheet extends ConsumerWidget {
                     );
                   },
                   error: asyncErrorWidget,
-                  loading: () => const Center(
-                    child: CircularProgressIndicator.adaptive(),
+                  loading: () => Skeletonizer(
+                    child: ListView.builder(
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          leading: FaIcon(
+                            FontAwesomeIcons.codeBranch,
+                            size: 16,
+                          ),
+                          title: Text('branch-name-$index'),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

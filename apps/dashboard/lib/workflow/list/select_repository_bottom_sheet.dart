@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SelectRepositoryBottomSheet extends HookConsumerWidget {
   const SelectRepositoryBottomSheet({super.key});
@@ -115,8 +116,21 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                 );
               },
               error: asyncErrorWidget,
-              loading: () =>
-                  const Center(child: CircularProgressIndicator.adaptive()),
+              loading: () => Skeletonizer(
+                child: ListView.builder(
+                  itemCount: 6,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: FaIcon(
+                        FontAwesomeIcons.globe,
+                        size: 16,
+                      ),
+                      title: Text('owner/repository-name-$index'),
+                      subtitle: Text('default: main'),
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ],

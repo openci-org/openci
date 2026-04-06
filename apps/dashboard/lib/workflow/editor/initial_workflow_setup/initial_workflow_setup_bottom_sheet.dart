@@ -247,6 +247,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                   width: _width,
                   child: Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: TriggerType.values
                         .map(
                           (type) => FilterChip(

@@ -230,6 +230,12 @@ class TranslationsWorkflowEn {
 	/// en: 'Disabled'
 	String get disabled => 'Disabled';
 
+	/// en: 'This workflow will run when triggered.'
+	String get enabledDescription => 'This workflow will run when triggered.';
+
+	/// en: 'This workflow is paused and will not run.'
+	String get disabledDescription => 'This workflow is paused and will not run.';
+
 	/// en: 'Enable workflow'
 	String get enable => 'Enable workflow';
 
@@ -1482,6 +1488,8 @@ extension on Translations {
 			'workflow.selectRepoButton' => 'Select Repository',
 			'workflow.enabled' => 'Enabled',
 			'workflow.disabled' => 'Disabled',
+			'workflow.enabledDescription' => 'This workflow will run when triggered.',
+			'workflow.disabledDescription' => 'This workflow is paused and will not run.',
 			'workflow.enable' => 'Enable workflow',
 			'workflow.disable' => 'Disable workflow',
 			'workflow.triggers' => 'Triggers',

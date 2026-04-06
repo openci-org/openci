@@ -84,123 +84,152 @@ class StepList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      // TODO(someone): Use ReorderableListView.separated once the issue is resolved
-      // https://github.com/flutter/flutter/issues/76706
-      child: ReorderableListView.builder(
-        proxyDecorator: proxyDecorator,
-        header: Column(
-          children: [
-            Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    showDragHandle: true,
-                    builder: (_) => EditBasicInfoBottomSheet(
-                      workflowName: workflowName,
-                      workflowConfig: workflowConfig,
-                      workflowId: workflowId,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          // TODO(someone): Use ReorderableListView.separated once the issue is resolved
+          // https://github.com/flutter/flutter/issues/76706
+          child: ReorderableListView.builder(
+            proxyDecorator: proxyDecorator,
+            header: Column(
+              children: [
+                Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                  );
-                },
-                title: Text(
-                  workflowName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        showDragHandle: true,
+                        builder: (_) => EditBasicInfoBottomSheet(
+                          workflowName: workflowName,
+                          workflowConfig: workflowConfig,
+                          workflowId: workflowId,
+                        ),
+                      );
+                    },
+                    title: Text(
+                      workflowName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          for (final entry
-                              in workflowConfig.triggers.entries) ...[
-                            Builder(
-                              builder: (context) {
-                                final color = Theme.of(context).hintColor;
-                                const size = 16.0;
-                                return switch (entry.key) {
-                                  'tag' => Icon(Icons.label_outline, size: size, color: color),
-                                  'push' => FaIcon(FontAwesomeIcons.codeCommit, size: size, color: color),
-                                  'pull_request' || 'pullRequest' =>
-                                    FaIcon(FontAwesomeIcons.codePullRequest, size: size, color: color),
-                                  'release' => Icon(Icons.new_releases_outlined, size: size, color: color),
-                                  _ => Icon(Icons.play_arrow, size: size, color: color),
-                                };
-                              },
+                          for (final entry in workflowConfig.triggers.entries)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Builder(
+                                  builder: (context) {
+                                    final color = Theme.of(context).hintColor;
+                                    const size = 16.0;
+                                    return switch (entry.key) {
+                                      'tag' => Icon(
+                                        Icons.label_outline,
+                                        size: size,
+                                        color: color,
+                                      ),
+                                      'push' => FaIcon(
+                                        FontAwesomeIcons.codeCommit,
+                                        size: size,
+                                        color: color,
+                                      ),
+                                      'pull_request' || 'pullRequest' => FaIcon(
+                                        FontAwesomeIcons.codePullRequest,
+                                        size: size,
+                                        color: color,
+                                      ),
+                                      'release' => Icon(
+                                        Icons.new_releases_outlined,
+                                        size: size,
+                                        color: color,
+                                      ),
+                                      _ => Icon(
+                                        Icons.play_arrow,
+                                        size: size,
+                                        color: color,
+                                      ),
+                                    };
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  entry.value != null && entry.value!.isNotEmpty
+                                      ? '${entry.key}:${entry.value}'
+                                      : entry.key,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              entry.value != null && entry.value!.isNotEmpty
-                                  ? '${entry.key}:${entry.value}'
-                                  : entry.key,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(width: 12),
-                          ],
-                          FaIcon(
-                            FontAwesomeIcons.github,
-                            size: 16,
-                            color: Theme.of(context).hintColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            workflowConfig.selectedRepository,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FaIcon(
+                                FontAwesomeIcons.github,
+                                size: 16,
+                                color: Theme.of(context).hintColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                workflowConfig.selectedRepository,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                if (steps.isNotEmpty)
+                  StepConnector(workflowId: workflowId, insertAt: 0),
+              ],
             ),
-            if (steps.isNotEmpty)
-              StepConnector(workflowId: workflowId, insertAt: 0),
-          ],
-        ),
-        footer: Column(
-          children: [
-            SizedBox(height: 8),
-            IconButton.filled(
-              onPressed: () => ref
+            footer: Column(
+              children: [
+                SizedBox(height: 8),
+                IconButton.filled(
+                  onPressed: () => ref
+                      .read(workflowEditorProvider(workflowId).notifier)
+                      .addStep(),
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            itemBuilder: (context, index) {
+              final step = steps[index];
+              return Column(
+                key: ValueKey('step_$index'),
+                children: [
+                  StepCard(
+                    step: step,
+                    workflowId: workflowId,
+                    stepIndex: index,
+                  ),
+                  if (index < steps.length - 1)
+                    StepConnector(workflowId: workflowId, insertAt: index + 1),
+                ],
+              );
+            },
+            itemCount: steps.length,
+            onReorder: (oldIndex, newIndex) {
+              ref
                   .read(workflowEditorProvider(workflowId).notifier)
-                  .addStep(),
-              icon: const Icon(Icons.add),
-            ),
-          ],
+                  .reorderSteps(oldIndex, newIndex);
+            },
+          ),
         ),
-        itemBuilder: (context, index) {
-          final step = steps[index];
-          return Column(
-            key: ValueKey('step_$index'),
-            children: [
-              StepCard(
-                step: step,
-                workflowId: workflowId,
-                stepIndex: index,
-              ),
-              if (index < steps.length - 1)
-                StepConnector(workflowId: workflowId, insertAt: index + 1),
-            ],
-          );
-        },
-        itemCount: steps.length,
-        onReorder: (oldIndex, newIndex) {
-          ref
-              .read(workflowEditorProvider(workflowId).notifier)
-              .reorderSteps(oldIndex, newIndex);
-        },
       ),
     );
   }
@@ -290,6 +319,7 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                     SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: TriggerType.values
                           .map(
                             (type) => FilterChip(
