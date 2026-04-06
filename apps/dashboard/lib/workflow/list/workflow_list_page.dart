@@ -390,12 +390,16 @@ class _WorkflowBody extends ConsumerWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Row(
                         children: [
-                          Text(
-                            file.name,
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
+                          Flexible(
+                            child: Text(
+                              file.name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
