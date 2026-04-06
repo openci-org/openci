@@ -1,0 +1,21 @@
+name: firebase-functions-ci
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: cd firebase/functions && npm ci
+      - name: Lint
+        run: cd firebase/functions && npm run lint
+      - name: Build
+        run: cd firebase/functions && npm run build
