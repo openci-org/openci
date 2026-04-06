@@ -65,7 +65,9 @@ export const createSecretV1 = onCall(
         secretId,
         secret: {
           replication: {
-            automatic: {},
+            userManaged: {
+              replicas: [{ location: "asia-northeast1" }],
+            },
           },
         },
       });

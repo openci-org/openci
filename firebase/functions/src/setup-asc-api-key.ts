@@ -29,7 +29,9 @@ async function createSecretInManager(
     secretId,
     secret: {
       replication: {
-        automatic: {},
+        userManaged: {
+          replicas: [{ location: "asia-northeast1" }],
+        },
       },
     },
   });

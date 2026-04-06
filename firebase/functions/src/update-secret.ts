@@ -84,15 +84,28 @@ export const updateSecretV1 = onCall(
     }
 
     try {
-      // Update secret value in Secret Manager if a new value is provided
       if (value) {
         const pathToSecret = secretData.pathToSecret as string;
+
+        const existingVersions = await secretManagerClient.listSecretVersions({
+          parent: pathToSecret,
+          filter: 'state:ENABLED',
+        });
+        const oldVersionNames = (existingVersions[0] || []).map((v: any) => v.name as string);
+
         await secretManagerClient.addSecretVersion({
           parent: pathToSecret,
           payload: {
             data: Buffer.from(value, "utf8"),
           },
         });
+
+        for (const oldVersionName of oldVersionNames) {
+          await secretManagerClient.destroySecretVersion({ name: oldVersionName }).catch((err: any) => {
+            logger.warn(`Failed to destroy old secret version: ${err.message}`, { oldVersionName });
+          });
+        }
+
         logger.info(`Secret value updated for: ${documentId}`, { teamId, name });
       }
 
