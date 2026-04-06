@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    runs-on: macos-latest
     steps:
       - name: Install dependencies
         run: cd firebase/functions && npm ci
