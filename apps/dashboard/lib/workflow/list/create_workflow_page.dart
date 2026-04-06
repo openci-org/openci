@@ -21,12 +21,14 @@ class CreateWorkflowPage extends HookConsumerWidget {
     required this.branch,
     required this.teamId,
     this.existingFile,
+    this.initialYaml,
   });
 
   final String repository;
   final String branch;
   final String teamId;
   final WorkflowFile? existingFile;
+  final String? initialYaml;
 
   bool get isEditing => existingFile != null;
 
@@ -34,9 +36,8 @@ class CreateWorkflowPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tabController = useTabController(initialLength: 2);
 
-    final initialConfig = existingFile != null
-        ? yamlToConfig(existingFile!.content)
-        : null;
+    final sourceYaml = existingFile?.content ?? initialYaml;
+    final initialConfig = sourceYaml != null ? yamlToConfig(sourceYaml) : null;
 
     final workflowName = useState(initialConfig?.name ?? 'my-workflow');
     final triggers = useState<Map<String, String?>>(() {
@@ -53,7 +54,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
     );
     final yamlController = useState(
       CodeLineEditingController.fromText(
-        existingFile?.content ??
+        sourceYaml ??
             stepsToYaml(
               WorkflowYamlConfig(
                 name: 'my-workflow',

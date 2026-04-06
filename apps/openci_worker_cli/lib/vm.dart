@@ -310,20 +310,33 @@ Future<void> execCommandStreaming(
     ...command,
   ]);
 
-  // Close stdin immediately to prevent ^D/EOF from being sent to remote process
   await process.stdin.close();
 
   final stdoutCompleter = Completer<void>();
   final stderrCompleter = Completer<void>();
+  final outputErrors = <String>[];
+  var hasSuccessfulStep = false;
+
+  void processLine(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty || _isNoisyLine(trimmed)) return;
+
+    if (trimmed.contains('✅') || trimmed.contains('Job succeeded')) {
+      hasSuccessfulStep = true;
+    }
+
+    if (_isActError(trimmed)) {
+      outputErrors.add(trimmed);
+    }
+
+    logInfo(firestore, buildJobId, runId, trimmed);
+  }
 
   process.stdout.transform(utf8.decoder).listen((data) {
     final masked = data.replaceAll(token, '***').trim();
     if (masked.isNotEmpty) {
       for (final line in LineSplitter.split(masked)) {
-        final trimmed = line.trim();
-        if (trimmed.isNotEmpty && !_isNoisyLine(trimmed)) {
-          logInfo(firestore, buildJobId, runId, trimmed);
-        }
+        processLine(line);
       }
     }
   }, onDone: () => stdoutCompleter.complete());
@@ -332,10 +345,7 @@ Future<void> execCommandStreaming(
     final masked = data.replaceAll(token, '***').trim();
     if (masked.isNotEmpty) {
       for (final line in LineSplitter.split(masked)) {
-        final trimmed = line.trim();
-        if (trimmed.isNotEmpty && !_isNoisyLine(trimmed)) {
-          logInfo(firestore, buildJobId, runId, trimmed);
-        }
+        processLine(line);
       }
     }
   }, onDone: () => stderrCompleter.complete());
@@ -354,4 +364,35 @@ Future<void> execCommandStreaming(
   if (exitCode != 0) {
     throw Exception('act exited with code $exitCode');
   }
+
+  if (outputErrors.isNotEmpty) {
+    throw Exception(
+      'act reported errors:\n${outputErrors.join('\n')}',
+    );
+  }
+
+  if (!hasSuccessfulStep) {
+    throw Exception(
+      'act exited with code 0 but no steps were executed. '
+      'Check that your workflow has a valid runs-on key.',
+    );
+  }
+}
+
+bool _isActError(String line) {
+  final lower = line.toLowerCase();
+  if (lower.contains("'runs-on' key not defined")) {
+    return true;
+  }
+  if (lower.contains('no docker_host') &&
+      lower.contains('invalid container socket')) {
+    return true;
+  }
+  if (lower.contains('level=error') && !lower.contains('cve-')) {
+    return true;
+  }
+  if (lower.contains('❌')) {
+    return true;
+  }
+  return false;
 }

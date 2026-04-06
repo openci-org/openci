@@ -52,7 +52,9 @@ String stepsToYaml(WorkflowYamlConfig config) {
   buffer.writeln();
   buffer.writeln('jobs:');
   buffer.writeln('  build:');
+  buffer.writeln('    runs-on: macos-latest');
   buffer.writeln('    steps:');
+  buffer.writeln('      - uses: actions/checkout@v4');
   for (final step in config.steps) {
     buffer.writeln('      - name: ${step.name}');
     if (step.type == StepType.uses) {
@@ -113,6 +115,9 @@ WorkflowYamlConfig? yamlToConfig(String yamlContent) {
         if (job is YamlMap && job['steps'] is YamlList) {
           for (final step in job['steps'] as YamlList) {
             if (step is YamlMap) {
+              final usesValue = step['uses']?.toString() ?? '';
+              if (usesValue.startsWith('actions/checkout')) continue;
+
               final hasUses = step.containsKey('uses');
               final withParams = <String, String>{};
               if (hasUses && step['with'] is YamlMap) {

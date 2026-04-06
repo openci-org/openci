@@ -274,6 +274,64 @@
     "per6Months": "por 6 meses",
     "perYear": "por año"
   },
+  "aiWorkflow": {
+    "title": "Constructor de flujo de trabajo con IA",
+    "inputHint": "Describe tu flujo de trabajo...",
+    "generatedWorkflow": "Flujo de trabajo generado",
+    "useThisWorkflow": "Usar este flujo de trabajo",
+    "chat": {
+      "greeting": "¿Qué tipo de flujo de trabajo te gustaría crear? Cuéntame sobre tu proyecto y te ayudaré a configurarlo.",
+      "projectSelected": "¡Entendido! Un proyecto $project. ¿Qué te gustaría que haga el flujo de trabajo?",
+      "triggerQuestion": "¿Cuándo debería ejecutarse este flujo de trabajo?",
+      "workflowGenerated": "¡He generado tu flujo de trabajo! Esto es lo que incluye:\n\n$plan\n\nPuedes usarlo tal cual o decirme qué te gustaría cambiar.",
+      "stepAdded": "He agregado un paso de ejemplo. Puedes personalizarlo en el editor después de aplicar este flujo de trabajo.",
+      "changeTriggerPrompt": "¡Claro! ¿Cuándo debería ejecutarse este flujo de trabajo?",
+      "followUp": "Puedes usar el flujo generado tocando 'Usar este flujo de trabajo', o dime qué cambios deseas.",
+      "planFormat": "- Proyecto: $project\n- Pasos: $steps\n- Disparador: $trigger",
+      "errorMessage": "Lo siento, algo salió mal. Inténtalo de nuevo o empieza de nuevo."
+    },
+    "suggestion": {
+      "flutterCiCd": "CI/CD de app Flutter",
+      "iosBuildTest": "Compilar y probar app iOS",
+      "androidBuild": "Compilar app Android",
+      "testOnPr": "Ejecutar pruebas en PR",
+      "customWorkflow": "Flujo personalizado",
+      "buildAndTest": "Compilar y probar",
+      "testOnly": "Solo pruebas",
+      "lintAnalyze": "Lint y análisis",
+      "buildDeploy": "Compilar y desplegar",
+      "unitTests": "Pruebas unitarias",
+      "swiftlint": "Lint con SwiftLint",
+      "buildArchive": "Compilar archivo",
+      "lintCheck": "Verificación de Lint",
+      "buildApk": "Compilar APK",
+      "pushToMain": "Al hacer push a main",
+      "onPullRequest": "En pull request",
+      "pushToDevelop": "Al hacer push a develop",
+      "tagCreation": "Al crear un tag",
+      "everyPush": "En cada push",
+      "looksGood": "¡Se ve bien, usar esto!",
+      "addSteps": "Agregar más pasos",
+      "changeTrigger": "Cambiar el disparador",
+      "startOver": "Empezar de nuevo"
+    },
+    "projectLabel": {
+      "flutter": "Flutter",
+      "ios": "iOS (Nativo)",
+      "android": "Android (Nativo)",
+      "node": "Node.js",
+      "custom": "Personalizado"
+    },
+    "goalLabel": {
+      "test": "Ejecutar pruebas",
+      "buildAndTest": "Compilar y probar",
+      "deploy": "Compilar y desplegar",
+      "lint": "Lint / Análisis"
+    },
+    "triggerLabel": {
+      "pullRequest": "Pull Request"
+    }
+  },
   "storeRelease": {
     "title": "Lanzamiento en tienda",
     "setupTitle": "Conectar App Store Connect",

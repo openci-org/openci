@@ -51,6 +51,7 @@ class TranslationsEs with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsTeamEs team = _TranslationsTeamEs._(_root);
 	@override late final _TranslationsGithubEs github = _TranslationsGithubEs._(_root);
 	@override late final _TranslationsSubscriptionEs subscription = _TranslationsSubscriptionEs._(_root);
+	@override late final _TranslationsAiWorkflowEs aiWorkflow = _TranslationsAiWorkflowEs._(_root);
 	@override late final _TranslationsStoreReleaseEs storeRelease = _TranslationsStoreReleaseEs._(_root);
 }
 
@@ -340,6 +341,24 @@ class _TranslationsSubscriptionEs implements TranslationsSubscriptionEn {
 	@override String get perYear => 'por año';
 }
 
+// Path: aiWorkflow
+class _TranslationsAiWorkflowEs implements TranslationsAiWorkflowEn {
+	_TranslationsAiWorkflowEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Constructor de flujo de trabajo con IA';
+	@override String get inputHint => 'Describe tu flujo de trabajo...';
+	@override String get generatedWorkflow => 'Flujo de trabajo generado';
+	@override String get useThisWorkflow => 'Usar este flujo de trabajo';
+	@override late final _TranslationsAiWorkflowChatEs chat = _TranslationsAiWorkflowChatEs._(_root);
+	@override late final _TranslationsAiWorkflowSuggestionEs suggestion = _TranslationsAiWorkflowSuggestionEs._(_root);
+	@override late final _TranslationsAiWorkflowProjectLabelEs projectLabel = _TranslationsAiWorkflowProjectLabelEs._(_root);
+	@override late final _TranslationsAiWorkflowGoalLabelEs goalLabel = _TranslationsAiWorkflowGoalLabelEs._(_root);
+	@override late final _TranslationsAiWorkflowTriggerLabelEs triggerLabel = _TranslationsAiWorkflowTriggerLabelEs._(_root);
+}
+
 // Path: storeRelease
 class _TranslationsStoreReleaseEs implements TranslationsStoreReleaseEn {
 	_TranslationsStoreReleaseEs._(this._root);
@@ -570,6 +589,93 @@ class _TranslationsSettingsLanguageEs implements TranslationsSettingsLanguageEn 
 	@override String get english => 'English';
 	@override String get japanese => '日本語';
 	@override String get spanish => 'Español';
+}
+
+// Path: aiWorkflow.chat
+class _TranslationsAiWorkflowChatEs implements TranslationsAiWorkflowChatEn {
+	_TranslationsAiWorkflowChatEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get greeting => '¿Qué tipo de flujo de trabajo te gustaría crear? Cuéntame sobre tu proyecto y te ayudaré a configurarlo.';
+	@override String projectSelected({required Object project}) => '¡Entendido! Un proyecto ${project}. ¿Qué te gustaría que haga el flujo de trabajo?';
+	@override String get triggerQuestion => '¿Cuándo debería ejecutarse este flujo de trabajo?';
+	@override String workflowGenerated({required Object plan}) => '¡He generado tu flujo de trabajo! Esto es lo que incluye:\n\n${plan}\n\nPuedes usarlo tal cual o decirme qué te gustaría cambiar.';
+	@override String get stepAdded => 'He agregado un paso de ejemplo. Puedes personalizarlo en el editor después de aplicar este flujo de trabajo.';
+	@override String get changeTriggerPrompt => '¡Claro! ¿Cuándo debería ejecutarse este flujo de trabajo?';
+	@override String get followUp => 'Puedes usar el flujo generado tocando \'Usar este flujo de trabajo\', o dime qué cambios deseas.';
+	@override String planFormat({required Object project, required Object steps, required Object trigger}) => '- Proyecto: ${project}\n- Pasos: ${steps}\n- Disparador: ${trigger}';
+	@override String get errorMessage => 'Lo siento, algo salió mal. Inténtalo de nuevo o empieza de nuevo.';
+}
+
+// Path: aiWorkflow.suggestion
+class _TranslationsAiWorkflowSuggestionEs implements TranslationsAiWorkflowSuggestionEn {
+	_TranslationsAiWorkflowSuggestionEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get flutterCiCd => 'CI/CD de app Flutter';
+	@override String get iosBuildTest => 'Compilar y probar app iOS';
+	@override String get androidBuild => 'Compilar app Android';
+	@override String get testOnPr => 'Ejecutar pruebas en PR';
+	@override String get customWorkflow => 'Flujo personalizado';
+	@override String get buildAndTest => 'Compilar y probar';
+	@override String get testOnly => 'Solo pruebas';
+	@override String get lintAnalyze => 'Lint y análisis';
+	@override String get buildDeploy => 'Compilar y desplegar';
+	@override String get unitTests => 'Pruebas unitarias';
+	@override String get swiftlint => 'Lint con SwiftLint';
+	@override String get buildArchive => 'Compilar archivo';
+	@override String get lintCheck => 'Verificación de Lint';
+	@override String get buildApk => 'Compilar APK';
+	@override String get pushToMain => 'Al hacer push a main';
+	@override String get onPullRequest => 'En pull request';
+	@override String get pushToDevelop => 'Al hacer push a develop';
+	@override String get tagCreation => 'Al crear un tag';
+	@override String get everyPush => 'En cada push';
+	@override String get looksGood => '¡Se ve bien, usar esto!';
+	@override String get addSteps => 'Agregar más pasos';
+	@override String get changeTrigger => 'Cambiar el disparador';
+	@override String get startOver => 'Empezar de nuevo';
+}
+
+// Path: aiWorkflow.projectLabel
+class _TranslationsAiWorkflowProjectLabelEs implements TranslationsAiWorkflowProjectLabelEn {
+	_TranslationsAiWorkflowProjectLabelEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get flutter => 'Flutter';
+	@override String get ios => 'iOS (Nativo)';
+	@override String get android => 'Android (Nativo)';
+	@override String get node => 'Node.js';
+	@override String get custom => 'Personalizado';
+}
+
+// Path: aiWorkflow.goalLabel
+class _TranslationsAiWorkflowGoalLabelEs implements TranslationsAiWorkflowGoalLabelEn {
+	_TranslationsAiWorkflowGoalLabelEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get test => 'Ejecutar pruebas';
+	@override String get buildAndTest => 'Compilar y probar';
+	@override String get deploy => 'Compilar y desplegar';
+	@override String get lint => 'Lint / Análisis';
+}
+
+// Path: aiWorkflow.triggerLabel
+class _TranslationsAiWorkflowTriggerLabelEs implements TranslationsAiWorkflowTriggerLabelEn {
+	_TranslationsAiWorkflowTriggerLabelEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get pullRequest => 'Pull Request';
 }
 
 /// The flat map containing all translations for locale <es>.
@@ -815,6 +921,52 @@ extension on TranslationsEs {
 			'subscription.per3Months' => 'por 3 meses',
 			'subscription.per6Months' => 'por 6 meses',
 			'subscription.perYear' => 'por año',
+			'aiWorkflow.title' => 'Constructor de flujo de trabajo con IA',
+			'aiWorkflow.inputHint' => 'Describe tu flujo de trabajo...',
+			'aiWorkflow.generatedWorkflow' => 'Flujo de trabajo generado',
+			'aiWorkflow.useThisWorkflow' => 'Usar este flujo de trabajo',
+			'aiWorkflow.chat.greeting' => '¿Qué tipo de flujo de trabajo te gustaría crear? Cuéntame sobre tu proyecto y te ayudaré a configurarlo.',
+			'aiWorkflow.chat.projectSelected' => ({required Object project}) => '¡Entendido! Un proyecto ${project}. ¿Qué te gustaría que haga el flujo de trabajo?',
+			'aiWorkflow.chat.triggerQuestion' => '¿Cuándo debería ejecutarse este flujo de trabajo?',
+			'aiWorkflow.chat.workflowGenerated' => ({required Object plan}) => '¡He generado tu flujo de trabajo! Esto es lo que incluye:\n\n${plan}\n\nPuedes usarlo tal cual o decirme qué te gustaría cambiar.',
+			'aiWorkflow.chat.stepAdded' => 'He agregado un paso de ejemplo. Puedes personalizarlo en el editor después de aplicar este flujo de trabajo.',
+			'aiWorkflow.chat.changeTriggerPrompt' => '¡Claro! ¿Cuándo debería ejecutarse este flujo de trabajo?',
+			'aiWorkflow.chat.followUp' => 'Puedes usar el flujo generado tocando \'Usar este flujo de trabajo\', o dime qué cambios deseas.',
+			'aiWorkflow.chat.planFormat' => ({required Object project, required Object steps, required Object trigger}) => '- Proyecto: ${project}\n- Pasos: ${steps}\n- Disparador: ${trigger}',
+			'aiWorkflow.chat.errorMessage' => 'Lo siento, algo salió mal. Inténtalo de nuevo o empieza de nuevo.',
+			'aiWorkflow.suggestion.flutterCiCd' => 'CI/CD de app Flutter',
+			'aiWorkflow.suggestion.iosBuildTest' => 'Compilar y probar app iOS',
+			'aiWorkflow.suggestion.androidBuild' => 'Compilar app Android',
+			'aiWorkflow.suggestion.testOnPr' => 'Ejecutar pruebas en PR',
+			'aiWorkflow.suggestion.customWorkflow' => 'Flujo personalizado',
+			'aiWorkflow.suggestion.buildAndTest' => 'Compilar y probar',
+			'aiWorkflow.suggestion.testOnly' => 'Solo pruebas',
+			'aiWorkflow.suggestion.lintAnalyze' => 'Lint y análisis',
+			'aiWorkflow.suggestion.buildDeploy' => 'Compilar y desplegar',
+			'aiWorkflow.suggestion.unitTests' => 'Pruebas unitarias',
+			'aiWorkflow.suggestion.swiftlint' => 'Lint con SwiftLint',
+			'aiWorkflow.suggestion.buildArchive' => 'Compilar archivo',
+			'aiWorkflow.suggestion.lintCheck' => 'Verificación de Lint',
+			'aiWorkflow.suggestion.buildApk' => 'Compilar APK',
+			'aiWorkflow.suggestion.pushToMain' => 'Al hacer push a main',
+			'aiWorkflow.suggestion.onPullRequest' => 'En pull request',
+			'aiWorkflow.suggestion.pushToDevelop' => 'Al hacer push a develop',
+			'aiWorkflow.suggestion.tagCreation' => 'Al crear un tag',
+			'aiWorkflow.suggestion.everyPush' => 'En cada push',
+			'aiWorkflow.suggestion.looksGood' => '¡Se ve bien, usar esto!',
+			'aiWorkflow.suggestion.addSteps' => 'Agregar más pasos',
+			'aiWorkflow.suggestion.changeTrigger' => 'Cambiar el disparador',
+			'aiWorkflow.suggestion.startOver' => 'Empezar de nuevo',
+			'aiWorkflow.projectLabel.flutter' => 'Flutter',
+			'aiWorkflow.projectLabel.ios' => 'iOS (Nativo)',
+			'aiWorkflow.projectLabel.android' => 'Android (Nativo)',
+			'aiWorkflow.projectLabel.node' => 'Node.js',
+			'aiWorkflow.projectLabel.custom' => 'Personalizado',
+			'aiWorkflow.goalLabel.test' => 'Ejecutar pruebas',
+			'aiWorkflow.goalLabel.buildAndTest' => 'Compilar y probar',
+			'aiWorkflow.goalLabel.deploy' => 'Compilar y desplegar',
+			'aiWorkflow.goalLabel.lint' => 'Lint / Análisis',
+			'aiWorkflow.triggerLabel.pullRequest' => 'Pull Request',
 			'storeRelease.title' => 'Lanzamiento en tienda',
 			'storeRelease.setupTitle' => 'Conectar App Store Connect',
 			'storeRelease.setupDescription' => 'Ingresa tus credenciales de la API de App Store Connect para gestionar lanzamientos directamente desde OpenCI.',

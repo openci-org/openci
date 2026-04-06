@@ -5,6 +5,7 @@ const ascSubmitForReviewFunction = 'ascSubmitForReview';
 const cancelBuildJobFunction = 'cancelBuildJob';
 const createSecretFunction = 'createSecretV1';
 const createWorkflowFileFunction = 'createWorkflowFile';
+const generateAiWorkflowResponseFunction = 'generateAiWorkflowResponse';
 const deleteSecretFunction = 'deleteSecretV1';
 const generateCertificateKeyFunction = 'generateCertificateKeyV1';
 const inviteTeamMemberFunction = 'inviteTeamMember';
