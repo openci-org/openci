@@ -14,6 +14,7 @@ export { listWorkflowFiles } from "./src/github/list-workflow-files";
 export { searchGitHubActions } from "./src/github/search-github-actions";
 export { syncWorkflowFiles } from "./src/github/sync-workflow-files";
 export { inviteTeamMember } from "./src/invite-team-member";
+export { migrateSecretsReplicationV1 } from "./src/migrate-secrets-replication";
 export { retryBuildJob } from "./src/retry-build-job";
 export { onBuildJobStatusChange } from "./src/send-build-notification";
 export { setupAscApiKeyV1 } from "./src/setup-asc-api-key";
