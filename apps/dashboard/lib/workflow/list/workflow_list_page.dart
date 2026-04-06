@@ -9,6 +9,7 @@ import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/variables/variables_page.dart';
+import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
 import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
@@ -136,7 +137,7 @@ class WorkflowListPage extends HookConsumerWidget {
                     Navigator.of(context).push(
                       SwipeablePageRoute(
                         fullscreenDialog: true,
-                        builder: (_) => CreateWorkflowPage(
+                        builder: (_) => AiWorkflowPage(
                           repository: selectedRepo,
                           branch: selectedBranch,
                           teamId: ref.read(teamStateProvider).value?.id ?? '',
@@ -145,7 +146,7 @@ class WorkflowListPage extends HookConsumerWidget {
                     );
                   },
                   label: Text(wfT.addWorkflow),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.auto_awesome),
                 )
               : null,
           appBar: AppBar(

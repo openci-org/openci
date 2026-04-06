@@ -274,6 +274,64 @@
     "per6Months": "per 6 months",
     "perYear": "per year"
   },
+  "aiWorkflow": {
+    "title": "AI Workflow Builder",
+    "inputHint": "Describe your workflow...",
+    "generatedWorkflow": "Generated Workflow",
+    "useThisWorkflow": "Use this workflow",
+    "chat": {
+      "greeting": "What kind of workflow would you like to create? Tell me about your project and I'll help you set it up.",
+      "projectSelected": "Got it! A $project project. What would you like the workflow to do?",
+      "triggerQuestion": "When should this workflow run?",
+      "workflowGenerated": "I've generated your workflow! Here's what it includes:\n\n$plan\n\nYou can use this workflow as-is, or tell me what you'd like to change.",
+      "stepAdded": "I've added a placeholder step. You can customize it in the editor after applying this workflow.",
+      "changeTriggerPrompt": "Sure! When should this workflow run?",
+      "followUp": "You can use the generated workflow by tapping 'Use this workflow', or tell me what changes you'd like.",
+      "planFormat": "- Project: $project\n- Steps: $steps\n- Trigger: $trigger",
+      "errorMessage": "Sorry, something went wrong. Please try again or start over."
+    },
+    "suggestion": {
+      "flutterCiCd": "Flutter app CI/CD",
+      "iosBuildTest": "iOS app build & test",
+      "androidBuild": "Android app build",
+      "testOnPr": "Run tests on PR",
+      "customWorkflow": "Custom workflow",
+      "buildAndTest": "Build & test",
+      "testOnly": "Run tests only",
+      "lintAnalyze": "Lint & analyze",
+      "buildDeploy": "Build & deploy",
+      "unitTests": "Run unit tests",
+      "swiftlint": "Lint with SwiftLint",
+      "buildArchive": "Build archive",
+      "lintCheck": "Lint check",
+      "buildApk": "Build APK",
+      "pushToMain": "On push to main",
+      "onPullRequest": "On pull request",
+      "pushToDevelop": "On push to develop",
+      "tagCreation": "On tag creation",
+      "everyPush": "On every push",
+      "looksGood": "Looks good, use this!",
+      "addSteps": "Add more steps",
+      "changeTrigger": "Change the trigger",
+      "startOver": "Start over"
+    },
+    "projectLabel": {
+      "flutter": "Flutter",
+      "ios": "iOS (Native)",
+      "android": "Android (Native)",
+      "node": "Node.js",
+      "custom": "Custom"
+    },
+    "goalLabel": {
+      "test": "Run tests",
+      "buildAndTest": "Build & Test",
+      "deploy": "Build & Deploy",
+      "lint": "Lint / Analyze"
+    },
+    "triggerLabel": {
+      "pullRequest": "Pull Request"
+    }
+  },
   "storeRelease": {
     "title": "Store Release",
     "setupTitle": "Connect App Store Connect",
