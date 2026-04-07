@@ -384,10 +384,6 @@ bool _isActError(String line) {
   if (lower.contains("'runs-on' key not defined")) {
     return true;
   }
-  if (lower.contains('no docker_host') &&
-      lower.contains('invalid container socket')) {
-    return true;
-  }
   if (lower.contains('level=error') && !lower.contains('cve-')) {
     return true;
   }
