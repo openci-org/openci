@@ -10,6 +10,7 @@ import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
+import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
 import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
@@ -20,6 +21,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:yaml/yaml.dart';
 
 import 'status_dot.dart';
@@ -63,6 +65,8 @@ class WorkflowListPage extends HookConsumerWidget {
     useListenable(tabController);
     final isWorkflowsTab = tabController.index == 0;
 
+    final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
+
     return userAsync.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),
@@ -73,6 +77,7 @@ class WorkflowListPage extends HookConsumerWidget {
         final selectedBranch = user.selectedBranch;
 
         Widget buildRepoRequiredTab(Widget child) {
+          if (!isGitHubConnected) return const ConnectGitHub();
           if (selectedRepo == null) return const SelectRepository();
           return Column(
             children: [
@@ -508,6 +513,69 @@ class _WorkflowBody extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class ConnectGitHub extends ConsumerWidget {
+  const ConnectGitHub({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final githubT = t.github;
+    final team = ref.watch(teamStateProvider).value;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: FaIcon(
+                  FontAwesomeIcons.github,
+                  size: 40,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              githubT.connectTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              githubT.connectDescription,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).hintColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () async {
+                final url = Uri.parse(
+                  'https://github.com/apps/openci-org/installations/new',
+                ).replace(
+                  queryParameters: {'state': team?.id ?? ''},
+                );
+                await url_launcher.launchUrl(url);
+              },
+              icon: FaIcon(FontAwesomeIcons.github, size: 18),
+              label: Text(githubT.connectButton),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
