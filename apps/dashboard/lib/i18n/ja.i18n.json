@@ -60,6 +60,8 @@
     "selectRepoButton": "リポジトリを選択",
     "enabled": "有効",
     "disabled": "無効",
+    "enabledDescription": "トリガーされるとワークフローが実行されます。",
+    "disabledDescription": "ワークフローは一時停止中で実行されません。",
     "enable": "ワークフローを有効にする",
     "disable": "ワークフローを無効にする",
     "triggers": "トリガー",

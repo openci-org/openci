@@ -14,6 +14,8 @@ import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/monokai.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
+import 'status_dot.dart';
+
 class CreateWorkflowPage extends HookConsumerWidget {
   const CreateWorkflowPage({
     super.key,
@@ -161,6 +163,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
             triggers: triggers,
             steps: steps,
             teamId: teamId,
+            existingFile: existingFile,
             onChanged: syncEditorToYaml,
           ),
           _YamlTab(
@@ -252,6 +255,7 @@ class _EditorTab extends HookConsumerWidget {
     required this.steps,
     required this.onChanged,
     required this.teamId,
+    this.existingFile,
   });
 
   final String repository;
@@ -260,198 +264,282 @@ class _EditorTab extends HookConsumerWidget {
   final ValueNotifier<List<WorkflowYamlStep>> steps;
   final VoidCallback onChanged;
   final String teamId;
+  final WorkflowFile? existingFile;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nameController = useTextEditingController(text: workflowName.value);
     final branchesAsync = ref.watch(gitHubBranchesProvider(repository));
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.workflow.editor.basicInfo,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: t.workflow.editor.workflowName,
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    workflowName.value = value;
-                    onChanged();
-                  },
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Triggers',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ['push', 'pull_request', 'release', 'tag']
-                      .map(
-                        (type) => FilterChip(
-                          label: Text(type),
-                          selected: triggers.value.containsKey(type),
-                          onSelected: (selected) {
-                            final current = Map<String, String?>.from(
-                              triggers.value,
-                            );
-                            if (selected) {
-                              final needsBranch =
-                                  type == 'push' || type == 'pull_request';
-                              current[type] = needsBranch ? 'main' : null;
-                            } else {
-                              current.remove(type);
-                            }
-                            if (current.isEmpty) return;
-                            triggers.value = current;
-                            onChanged();
-                          },
-                        ),
-                      )
-                      .toList(),
-                ),
-                for (final type in ['push', 'pull_request'])
-                  if (triggers.value.containsKey(type)) ...[
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.workflow.editor.basicInfo,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    branchesAsync.when(
-                      loading: () => TextFormField(
-                        enabled: false,
-                        decoration: InputDecoration(
-                          labelText: t.workflow.triggerBranchLoading(
-                            type: type,
-                          ),
-                          border: const OutlineInputBorder(),
-                        ),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: t.workflow.editor.workflowName,
+                        border: const OutlineInputBorder(),
                       ),
-                      error: (e, _) => TextFormField(
-                        enabled: false,
-                        decoration: InputDecoration(
-                          labelText: t.workflow.triggerBranch(type: type),
-                          border: const OutlineInputBorder(),
-                          suffixIcon: Icon(
-                            Icons.error_outline,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ),
-                      data: (branches) => Autocomplete<String>(
-                        initialValue: TextEditingValue(
-                          text: triggers.value[type] ?? '',
-                        ),
-                        optionsBuilder: (textEditingValue) {
-                          if (textEditingValue.text.isEmpty) {
-                            return branches;
+                      onChanged: (value) {
+                        workflowName.value = value;
+                        onChanged();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Triggers',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ['push', 'pull_request', 'release', 'tag'].map(
+                        (type) {
+                          IconData icon;
+                          switch (type) {
+                            case 'push':
+                              icon = Icons.publish_rounded;
+                              break;
+                            case 'pull_request':
+                              icon = Icons.merge_type_rounded;
+                              break;
+                            case 'release':
+                              icon = Icons.new_releases_rounded;
+                              break;
+                            case 'tag':
+                              icon = Icons.local_offer_rounded;
+                              break;
+                            default:
+                              icon = Icons.bolt_rounded;
                           }
-                          return branches.where(
-                            (b) => b.toLowerCase().contains(
-                              textEditingValue.text.toLowerCase(),
+
+                          final isSelected = triggers.value.containsKey(type);
+
+                          return FilterChip(
+                            label: Text(type),
+                            avatar: Icon(
+                              icon,
+                              size: 18,
+                              color: isSelected
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.onSecondaryContainer
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                             ),
+                            selected: isSelected,
+                            showCheckmark: false,
+                            onSelected: (selected) {
+                              final current = Map<String, String?>.from(
+                                triggers.value,
+                              );
+                              if (selected) {
+                                final needsBranch =
+                                    type == 'push' || type == 'pull_request';
+                                current[type] = needsBranch ? 'main' : null;
+                              } else {
+                                current.remove(type);
+                              }
+                              if (current.isEmpty) return;
+                              triggers.value = current;
+                              onChanged();
+                            },
                           );
                         },
-                        fieldViewBuilder:
-                            (
-                              context,
-                              controller,
-                              focusNode,
-                              onFieldSubmitted,
-                            ) {
-                              return TextFormField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                decoration: InputDecoration(
-                                  labelText: t.workflow.triggerBranch(
-                                    type: type,
-                                  ),
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: const Icon(
-                                    Icons.search,
-                                    size: 20,
-                                  ),
+                      ).toList(),
+                    ),
+                    for (final type in ['push', 'pull_request'])
+                      if (triggers.value.containsKey(type)) ...[
+                        const SizedBox(height: 12),
+                        branchesAsync.when(
+                          loading: () => TextFormField(
+                            enabled: false,
+                            decoration: InputDecoration(
+                              labelText: t.workflow.triggerBranchLoading(
+                                type: type,
+                              ),
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          error: (e, _) => TextFormField(
+                            enabled: false,
+                            decoration: InputDecoration(
+                              labelText: t.workflow.triggerBranch(type: type),
+                              border: const OutlineInputBorder(),
+                              suffixIcon: Icon(
+                                Icons.error_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                          data: (branches) => Autocomplete<String>(
+                            initialValue: TextEditingValue(
+                              text: triggers.value[type] ?? '',
+                            ),
+                            optionsBuilder: (textEditingValue) {
+                              if (textEditingValue.text.isEmpty) {
+                                return branches;
+                              }
+                              return branches.where(
+                                (b) => b.toLowerCase().contains(
+                                  textEditingValue.text.toLowerCase(),
                                 ),
                               );
                             },
-                        onSelected: (value) {
-                          final current = Map<String, String?>.from(
-                            triggers.value,
-                          );
-                          current[type] = value;
-                          triggers.value = current;
-                          onChanged();
-                        },
-                      ),
-                    ),
+                            fieldViewBuilder:
+                                (
+                                  context,
+                                  controller,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  return TextFormField(
+                                    controller: controller,
+                                    focusNode: focusNode,
+                                    decoration: InputDecoration(
+                                      labelText: t.workflow.triggerBranch(
+                                        type: type,
+                                      ),
+                                      border: const OutlineInputBorder(),
+                                      suffixIcon: const Icon(
+                                        Icons.search,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  );
+                                },
+                            onSelected: (value) {
+                              final current = Map<String, String?>.from(
+                                triggers.value,
+                              );
+                              current[type] = value;
+                              triggers.value = current;
+                              onChanged();
+                            },
+                          ),
+                        ),
+                      ],
                   ],
-              ],
+                ),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...List.generate(steps.value.length, (index) {
-          final step = steps.value[index];
-          return Column(
-            children: [
-              _StepConnectorLine(
-                onInsert: () {
+            const SizedBox(height: 8),
+            if (existingFile != null)
+              HookConsumer(
+                builder: (context, ref, child) {
+                  final isEnabled = useState(existingFile!.enabled);
+                  return Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      secondary: StatusDot(
+                        active: isEnabled.value,
+                        size: 10,
+                      ),
+                      title: Text(
+                        isEnabled.value
+                            ? t.workflow.enabled
+                            : t.workflow.disabled,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        isEnabled.value
+                            ? t.workflow.enabledDescription
+                            : t.workflow.disabledDescription,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      value: isEnabled.value,
+                      onChanged: (value) {
+                        isEnabled.value = value;
+                        ref.read(
+                          toggleWorkflowEnabledProvider(
+                            fileName: existingFile!.name,
+                            enabled: value,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ...List.generate(steps.value.length, (index) {
+              final step = steps.value[index];
+              return Column(
+                children: [
+                  _StepConnectorLine(
+                    onInsert: () {
+                      final newSteps = List<WorkflowYamlStep>.from(steps.value);
+                      newSteps.insert(
+                        index,
+                        WorkflowYamlStep(name: 'New Step', run: 'echo "hello"'),
+                      );
+                      steps.value = newSteps;
+                      onChanged();
+                    },
+                  ),
+                  _StepEditorCard(
+                    step: step,
+                    stepIndex: index,
+                    teamId: teamId,
+                    onUpdate: (updated) {
+                      final newSteps = List<WorkflowYamlStep>.from(steps.value);
+                      newSteps[index] = updated;
+                      steps.value = newSteps;
+                      onChanged();
+                    },
+                    onDelete: () {
+                      final newSteps = List<WorkflowYamlStep>.from(steps.value);
+                      newSteps.removeAt(index);
+                      steps.value = newSteps;
+                      onChanged();
+                    },
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 8),
+            Center(
+              child: IconButton.filled(
+                onPressed: () {
                   final newSteps = List<WorkflowYamlStep>.from(steps.value);
-                  newSteps.insert(
-                    index,
+                  newSteps.add(
                     WorkflowYamlStep(name: 'New Step', run: 'echo "hello"'),
                   );
                   steps.value = newSteps;
                   onChanged();
                 },
+                icon: const Icon(Icons.add),
               ),
-              _StepEditorCard(
-                step: step,
-                stepIndex: index,
-                teamId: teamId,
-                onUpdate: (updated) {
-                  final newSteps = List<WorkflowYamlStep>.from(steps.value);
-                  newSteps[index] = updated;
-                  steps.value = newSteps;
-                  onChanged();
-                },
-                onDelete: () {
-                  final newSteps = List<WorkflowYamlStep>.from(steps.value);
-                  newSteps.removeAt(index);
-                  steps.value = newSteps;
-                  onChanged();
-                },
-              ),
-            ],
-          );
-        }),
-        const SizedBox(height: 8),
-        Center(
-          child: IconButton.filled(
-            onPressed: () {
-              final newSteps = List<WorkflowYamlStep>.from(steps.value);
-              newSteps.add(
-                WorkflowYamlStep(name: 'New Step', run: 'echo "hello"'),
-              );
-              steps.value = newSteps;
-              onChanged();
-            },
-            icon: const Icon(Icons.add),
-          ),
+            ),
+            const SizedBox(height: 80),
+          ],
         ),
-        const SizedBox(height: 80),
-      ],
+      ),
     );
   }
 }
@@ -1021,43 +1109,48 @@ class _YamlTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: CodeEditor(
-          padding: const EdgeInsets.all(12),
-          controller: yamlController.value,
-          wordWrap: true,
-          borderRadius: BorderRadius.circular(12),
-          onChanged: (_) => onChanged(),
-          style: CodeEditorStyle(
-            fontSize: 14,
-            backgroundColor: const Color(0xFF1E1E1E),
-            textColor: Colors.white,
-            codeTheme: CodeHighlightTheme(
-              languages: {
-                'yaml': CodeHighlightThemeMode(mode: langYaml),
-              },
-              theme: monokaiTheme,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CodeEditor(
+              padding: const EdgeInsets.all(12),
+              controller: yamlController.value,
+              wordWrap: true,
+              borderRadius: BorderRadius.circular(12),
+              onChanged: (_) => onChanged(),
+              style: CodeEditorStyle(
+                fontSize: 14,
+                backgroundColor: const Color(0xFF1E1E1E),
+                textColor: Colors.white,
+                codeTheme: CodeHighlightTheme(
+                  languages: {
+                    'yaml': CodeHighlightThemeMode(mode: langYaml),
+                  },
+                  theme: monokaiTheme,
+                ),
+              ),
+              indicatorBuilder:
+                  (
+                    context,
+                    editingController,
+                    chunkController,
+                    notifier,
+                  ) {
+                    return Row(
+                      children: [
+                        DefaultCodeLineNumber(
+                          controller: editingController,
+                          notifier: notifier,
+                        ),
+                      ],
+                    );
+                  },
             ),
           ),
-          indicatorBuilder:
-              (
-                context,
-                editingController,
-                chunkController,
-                notifier,
-              ) {
-                return Row(
-                  children: [
-                    DefaultCodeLineNumber(
-                      controller: editingController,
-                      notifier: notifier,
-                    ),
-                  ],
-                );
-              },
         ),
       ),
     );

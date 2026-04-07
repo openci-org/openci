@@ -60,6 +60,8 @@
     "selectRepoButton": "Select Repository",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "enabledDescription": "This workflow will run when triggered.",
+    "disabledDescription": "This workflow is paused and will not run.",
     "enable": "Enable workflow",
     "disable": "Disable workflow",
     "triggers": "Triggers",

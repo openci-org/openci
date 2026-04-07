@@ -60,6 +60,8 @@
     "selectRepoButton": "Seleccionar repositorio",
     "enabled": "Activo",
     "disabled": "Inactivo",
+    "enabledDescription": "Este flujo de trabajo se ejecutará cuando se active.",
+    "disabledDescription": "Este flujo de trabajo está pausado y no se ejecutará.",
     "enable": "Activar flujo de trabajo",
     "disable": "Desactivar flujo de trabajo",
     "triggers": "Disparadores",

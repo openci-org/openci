@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class LogsBody extends HookConsumerWidget {
   const LogsBody({super.key});
@@ -121,11 +122,14 @@ class BuildJobCard extends HookConsumerWidget {
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                            loading: () => const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator.adaptive(
-                                strokeWidth: 2,
+                            loading: () => Skeletonizer(
+                              child: Text(
+                                '${buildJob.owner}/${buildJob.repo}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             error: asyncErrorWidget,

@@ -22,6 +22,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:yaml/yaml.dart';
 
+import 'status_dot.dart';
+
 String getInitials(String name) {
   final words = name.trim().split(RegExp(r'\s+'));
   if (words.length >= 2) {
@@ -38,6 +40,16 @@ String? _extractWorkflowName(String yamlContent) {
     }
   } catch (_) {}
   return null;
+}
+
+List<String> _extractTriggerKeys(String yamlContent) {
+  try {
+    final doc = loadYaml(yamlContent);
+    if (doc is YamlMap && doc['on'] is YamlMap) {
+      return (doc['on'] as YamlMap).keys.cast<String>().toList();
+    }
+  } catch (_) {}
+  return [];
 }
 
 class WorkflowListPage extends HookConsumerWidget {
@@ -360,88 +372,134 @@ class _WorkflowBody extends ConsumerWidget {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final file = files[index];
-                return Card(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    onTap: () {
-                      final branch = ref
-                          .read(userProvider)
-                          .value
-                          ?.selectedBranch;
-                      if (branch == null) return;
-                      Navigator.of(context).push(
-                        SwipeablePageRoute(
-                          builder: (context) => CreateWorkflowPage(
-                            repository: selectedRepo,
-                            branch: branch,
-                            teamId: ref.read(teamStateProvider).value?.id ?? '',
-                            existingFile: file,
+                final colorScheme = Theme.of(context).colorScheme;
+                final workflowName =
+                    _extractWorkflowName(file.content) ?? file.name;
+                final triggers = _extractTriggerKeys(file.content);
+
+                return Opacity(
+                  opacity: file.enabled ? 1.0 : 0.55,
+                  child: Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () {
+                        final branch = ref
+                            .read(userProvider)
+                            .value
+                            ?.selectedBranch;
+                        if (branch == null) return;
+                        Navigator.of(context).push(
+                          SwipeablePageRoute(
+                            builder: (context) => CreateWorkflowPage(
+                              repository: selectedRepo,
+                              branch: branch,
+                              teamId:
+                                  ref.read(teamStateProvider).value?.id ?? '',
+                              existingFile: file,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    title: Text(
-                      _extractWorkflowName(file.content) ?? file.name,
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              file.name,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ── Title row ──
+                            Row(
+                              children: [
+                                StatusDot(active: file.enabled),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    workflowName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: colorScheme.onSurfaceVariant,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // ── File name ──
+                            Padding(
+                              padding: const EdgeInsets.only(left: 18),
+                              child: Text(
+                                '.openci/${file.name}',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      fontFamily: 'monospace',
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilterChip(
-                            selected: file.enabled,
-                            showCheckmark: false,
-                            avatar: file.enabled
-                                ? const Icon(Icons.check, size: 14)
-                                : null,
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            padding: EdgeInsets.zero,
-                            labelPadding: EdgeInsets.only(
-                              left: file.enabled ? 2 : 8,
-                              right: 8,
-                            ),
-                            labelStyle: Theme.of(
-                              context,
-                            ).textTheme.labelSmall,
-                            label: Text(
-                              file.enabled
-                                  ? t.workflow.enabled
-                                  : t.workflow.disabled,
-                            ),
-                            onSelected: (value) {
-                              ref.read(
-                                toggleWorkflowEnabledProvider(
-                                  fileName: file.name,
-                                  enabled: value,
+                            // ── Trigger chips ──
+                            if (triggers.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 18),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: triggers.map((trigger) {
+                                    final IconData icon = switch (trigger) {
+                                      'push' => Icons.commit,
+                                      'pull_request' => Icons.call_merge,
+                                      'release' => Icons.new_releases_outlined,
+                                      'tag' => Icons.label_outline,
+                                      _ => Icons.play_arrow,
+                                    };
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            icon,
+                                            size: 12,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            trigger,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 );

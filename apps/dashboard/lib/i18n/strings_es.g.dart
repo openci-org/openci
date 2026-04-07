@@ -141,6 +141,8 @@ class _TranslationsWorkflowEs implements TranslationsWorkflowEn {
 	@override String get selectRepoButton => 'Seleccionar repositorio';
 	@override String get enabled => 'Activo';
 	@override String get disabled => 'Inactivo';
+	@override String get enabledDescription => 'Este flujo de trabajo se ejecutará cuando se active.';
+	@override String get disabledDescription => 'Este flujo de trabajo está pausado y no se ejecutará.';
 	@override String get enable => 'Activar flujo de trabajo';
 	@override String get disable => 'Desactivar flujo de trabajo';
 	@override String get triggers => 'Disparadores';
@@ -736,6 +738,8 @@ extension on TranslationsEs {
 			'workflow.selectRepoButton' => 'Seleccionar repositorio',
 			'workflow.enabled' => 'Activo',
 			'workflow.disabled' => 'Inactivo',
+			'workflow.enabledDescription' => 'Este flujo de trabajo se ejecutará cuando se active.',
+			'workflow.disabledDescription' => 'Este flujo de trabajo está pausado y no se ejecutará.',
 			'workflow.enable' => 'Activar flujo de trabajo',
 			'workflow.disable' => 'Desactivar flujo de trabajo',
 			'workflow.triggers' => 'Disparadores',

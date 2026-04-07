@@ -141,6 +141,8 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 	@override String get selectRepoButton => 'リポジトリを選択';
 	@override String get enabled => '有効';
 	@override String get disabled => '無効';
+	@override String get enabledDescription => 'トリガーされるとワークフローが実行されます。';
+	@override String get disabledDescription => 'ワークフローは一時停止中で実行されません。';
 	@override String get enable => 'ワークフローを有効にする';
 	@override String get disable => 'ワークフローを無効にする';
 	@override String get triggers => 'トリガー';
@@ -736,6 +738,8 @@ extension on TranslationsJa {
 			'workflow.selectRepoButton' => 'リポジトリを選択',
 			'workflow.enabled' => '有効',
 			'workflow.disabled' => '無効',
+			'workflow.enabledDescription' => 'トリガーされるとワークフローが実行されます。',
+			'workflow.disabledDescription' => 'ワークフローは一時停止中で実行されません。',
 			'workflow.enable' => 'ワークフローを有効にする',
 			'workflow.disable' => 'ワークフローを無効にする',
 			'workflow.triggers' => 'トリガー',
