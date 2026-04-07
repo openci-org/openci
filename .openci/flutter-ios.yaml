@@ -9,30 +9,38 @@ on:
       - develop
 
 jobs:
-  build-ios:
+  ci:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: open-ci-io/flutter-setup@v1
         with:
           flutter-version: "stable"
-
       - uses: open-ci-io/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
-
-      - uses: open-ci-io/save-secret-file@v1
-        with:
-          secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
-          path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
-
       - uses: open-ci-io/flutter-ci@v1
         with:
           test: "false"
           working-directory: "apps/dashboard"
 
+  deploy-ios:
+    needs: [ci]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: open-ci-io/flutter-setup@v1
+        with:
+          flutter-version: "stable"
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.FIREBASE_OPTIONS }}
+          path: "apps/dashboard/lib/firebase_options.dart"
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
+          path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
       - uses: open-ci-io/flutter-cd@v2
         with:
           platform: "ios"
@@ -43,3 +51,22 @@ jobs:
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+
+  deploy-web:
+    needs: [ci]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: open-ci-io/flutter-setup@v1
+        with:
+          flutter-version: "stable"
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.FIREBASE_OPTIONS }}
+          path: "apps/dashboard/lib/firebase_options.dart"
+      - uses: open-ci-io/flutter-cd@v2
+        with:
+          platform: "web"
+          working-directory: "apps/dashboard"
+          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}"
