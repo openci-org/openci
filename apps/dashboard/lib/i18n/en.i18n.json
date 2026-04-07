@@ -247,7 +247,20 @@
     "inviteTitle": "Invite Team Member",
     "inviteEmail": "Email",
     "enterEmail": "Please enter an email",
-    "invitedSuccess": "Team member invited successfully"
+    "invitedSuccess": "Team member invited successfully",
+    "addedSuccess": "Member added to team",
+    "invitationSent": "Invitation email sent 📧",
+    "processingInvitation": "Processing invitation...",
+    "invitationFailed": "Invitation Failed",
+    "invitationAccepted": "You're in! 🎉",
+    "alreadyMemberTitle": "Already a Member",
+    "alreadyMemberMessage": "You're already a member of \"$teamName\".",
+    "joinedTeamMessage": "You've joined the \"$teamName\" team.",
+    "goToDashboard": "Go to Dashboard",
+    "members": "Members",
+    "membersCount": "$count members",
+    "you": "You",
+    "noEmail": "No email"
   },
   "github": {
     "connectTitle": "Connect GitHub",

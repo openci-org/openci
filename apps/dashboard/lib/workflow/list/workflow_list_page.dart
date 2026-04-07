@@ -1,10 +1,13 @@
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/create_team_bottom_sheet.dart';
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
+import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
+import 'package:dashboard/team/team_members_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -187,95 +190,25 @@ class WorkflowListPage extends HookConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
-                child: MenuAnchor(
-                  menuChildren: [
-                    MenuItemButton(
-                      leadingIcon: const Icon(Icons.swap_horiz),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          showDragHandle: true,
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (_) => const SwitchTeamBottomSheet(),
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final team = ref.watch(teamStateProvider);
+                    final authUser = ref.watch(authProvider).value;
+                    return team.when(
+                      data: (teamData) {
+                        return _TeamMenuButton(
+                          teamName: teamData.name,
+                          email: authUser?.email,
+                          initials: getInitials(teamData.name),
+                          membersCount: teamData.members.length,
                         );
                       },
-                      child: Text(t.team.switchTeam),
-                    ),
-                    MenuItemButton(
-                      leadingIcon: const Icon(Icons.edit),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          showDragHandle: true,
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (_) => const EditTeamBottomSheet(),
-                        );
-                      },
-                      child: Text(t.team.editTeam),
-                    ),
-                    MenuItemButton(
-                      leadingIcon: const Icon(Icons.add),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          showDragHandle: true,
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (_) => const CreateTeamBottomSheet(),
-                        );
-                      },
-                      child: Text(t.team.createTeam),
-                    ),
-                    MenuItemButton(
-                      leadingIcon: const Icon(Icons.settings),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          SwipeablePageRoute(
-                            builder: (_) => const SettingsPage(),
-                          ),
-                        );
-                      },
-                      child: Text(t.nav.settings),
-                    ),
-                  ],
-                  builder: (context, controller, child) {
-                    return InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () {
-                        if (controller.isOpen) {
-                          controller.close();
-                        } else {
-                          controller.open();
-                        }
-                      },
-                      child: Ink(
+                      error: asyncErrorWidget,
+                      loading: () => const SizedBox(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).primaryColorLight,
-                        ),
                         child: Center(
-                          child: Consumer(
-                            builder: (context, ref, child) {
-                              final team = ref.watch(teamStateProvider);
-                              return team.when(
-                                data: (team) {
-                                  return Text(
-                                    getInitials(team.name),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).primaryColor,
-                                    ),
-                                  );
-                                },
-                                error: asyncErrorWidget,
-                                loading: () => const Center(
-                                  child: CircularProgressIndicator.adaptive(),
-                                ),
-                              );
-                            },
-                          ),
+                          child: CircularProgressIndicator.adaptive(),
                         ),
                       ),
                     );
@@ -552,6 +485,325 @@ class SelectRepository extends StatelessWidget {
               ),
               icon: FaIcon(FontAwesomeIcons.github, size: 18),
               label: Text(wfT.selectRepoButton),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamMenuButton extends StatelessWidget {
+  const _TeamMenuButton({
+    required this.teamName,
+    required this.email,
+    required this.initials,
+    required this.membersCount,
+  });
+
+  final String teamName;
+  final String? email;
+  final String initials;
+  final int membersCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      customBorder: const CircleBorder(),
+      onTap: () => _showTeamMenu(context),
+      child: Ink(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(alpha: 0.15),
+              colorScheme.tertiary.withValues(alpha: 0.15),
+            ],
+          ),
+          border: Border.all(
+            color: colorScheme.primary.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            initials,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.primary,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTeamMenu(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (dialogContext) => Stack(
+        children: [
+          // Dismiss barrier
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => Navigator.of(dialogContext).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          // Menu popup
+          Positioned(
+            top: kToolbarHeight + MediaQuery.of(context).padding.top + 4,
+            right: 8,
+            child: Material(
+              elevation: 8,
+              shadowColor: colorScheme.shadow.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              color: colorScheme.surfaceContainerHigh,
+              child: SizedBox(
+                width: 260,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── Header ──
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            colorScheme.primary.withValues(alpha: 0.08),
+                            colorScheme.tertiary.withValues(alpha: 0.05),
+                          ],
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  colorScheme.primary.withValues(alpha: 0.2),
+                                  colorScheme.tertiary.withValues(alpha: 0.2),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                initials,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  teamName,
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (email != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    email!,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Team section ──
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _MenuItem(
+                            icon: Icons.group_rounded,
+                            label: t.team.members,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                builder: (_) =>
+                                    const TeamMembersBottomSheet(),
+                              );
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.swap_horiz_rounded,
+                            label: t.team.switchTeam,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    const SwitchTeamBottomSheet(),
+                              );
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.edit_rounded,
+                            label: t.team.editTeam,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    const EditTeamBottomSheet(),
+                              );
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.person_add_rounded,
+                            label: t.settings.inviteTeamMember,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                builder: (_) => SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height *
+                                          0.6,
+                                  child:
+                                      const InviteTeamMemberBottomSheet(),
+                                ),
+                              );
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.group_add_rounded,
+                            label: t.team.createTeam,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    const CreateTeamBottomSheet(),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Divider ──
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+
+                    // ── Settings section ──
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: _MenuItem(
+                        icon: Icons.settings_rounded,
+                        label: t.nav.settings,
+                        onTap: () {
+                          Navigator.of(dialogContext).pop();
+                          showModalBottomSheet(
+                            showDragHandle: true,
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (_) => SizedBox(
+                              height:
+                                  MediaQuery.of(context).size.height * 0.85,
+                              child: const SettingsPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+              ),
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
+import 'package:dashboard/team/accept_invitation_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                 key: state.pageKey,
                 builder: (context) =>
                     BuildLogsDetailRoutePage(buildJobId: buildJobId),
+              );
+            },
+          ),
+          GoRoute(
+            path: 'invite/:token',
+            pageBuilder: (context, state) {
+              final token = state.pathParameters['token']!;
+              return SwipeablePage(
+                key: state.pageKey,
+                builder: (context) =>
+                    AcceptInvitationPage(token: token),
               );
             },
           ),

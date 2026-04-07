@@ -300,6 +300,19 @@ class _TranslationsTeamEs implements TranslationsTeamEn {
 	@override String get inviteEmail => 'Correo electrónico';
 	@override String get enterEmail => 'Por favor, ingresa un correo electrónico';
 	@override String get invitedSuccess => 'Miembro del equipo invitado exitosamente';
+	@override String get addedSuccess => 'Miembro agregado al equipo';
+	@override String get invitationSent => 'Correo de invitación enviado 📧';
+	@override String get processingInvitation => 'Procesando invitación...';
+	@override String get invitationFailed => 'Error en la invitación';
+	@override String get invitationAccepted => '¡Te has unido! 🎉';
+	@override String get alreadyMemberTitle => 'Ya eres miembro';
+	@override String alreadyMemberMessage({required Object teamName}) => 'Ya eres miembro de "${teamName}".';
+	@override String joinedTeamMessage({required Object teamName}) => 'Te has unido al equipo "${teamName}".';
+	@override String get goToDashboard => 'Ir al panel';
+	@override String get members => 'Miembros';
+	@override String membersCount({required Object count}) => '${count} miembros';
+	@override String get you => 'Tú';
+	@override String get noEmail => 'Sin correo';
 }
 
 // Path: github
@@ -902,6 +915,19 @@ extension on TranslationsEs {
 			'team.inviteEmail' => 'Correo electrónico',
 			'team.enterEmail' => 'Por favor, ingresa un correo electrónico',
 			'team.invitedSuccess' => 'Miembro del equipo invitado exitosamente',
+			'team.addedSuccess' => 'Miembro agregado al equipo',
+			'team.invitationSent' => 'Correo de invitación enviado 📧',
+			'team.processingInvitation' => 'Procesando invitación...',
+			'team.invitationFailed' => 'Error en la invitación',
+			'team.invitationAccepted' => '¡Te has unido! 🎉',
+			'team.alreadyMemberTitle' => 'Ya eres miembro',
+			'team.alreadyMemberMessage' => ({required Object teamName}) => 'Ya eres miembro de "${teamName}".',
+			'team.joinedTeamMessage' => ({required Object teamName}) => 'Te has unido al equipo "${teamName}".',
+			'team.goToDashboard' => 'Ir al panel',
+			'team.members' => 'Miembros',
+			'team.membersCount' => ({required Object count}) => '${count} miembros',
+			'team.you' => 'Tú',
+			'team.noEmail' => 'Sin correo',
 			'github.connectTitle' => 'Conectar GitHub',
 			'github.connectDescription' => 'Conecta tu cuenta de GitHub para\nseleccionar repositorios automáticamente.',
 			'github.connectButton' => 'Conectar con GitHub',

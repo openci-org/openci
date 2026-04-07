@@ -247,7 +247,20 @@
     "inviteTitle": "Invitar miembro al equipo",
     "inviteEmail": "Correo electrónico",
     "enterEmail": "Por favor, ingresa un correo electrónico",
-    "invitedSuccess": "Miembro del equipo invitado exitosamente"
+    "invitedSuccess": "Miembro del equipo invitado exitosamente",
+    "addedSuccess": "Miembro agregado al equipo",
+    "invitationSent": "Correo de invitación enviado 📧",
+    "processingInvitation": "Procesando invitación...",
+    "invitationFailed": "Error en la invitación",
+    "invitationAccepted": "¡Te has unido! 🎉",
+    "alreadyMemberTitle": "Ya eres miembro",
+    "alreadyMemberMessage": "Ya eres miembro de \"$teamName\".",
+    "joinedTeamMessage": "Te has unido al equipo \"$teamName\".",
+    "goToDashboard": "Ir al panel",
+    "members": "Miembros",
+    "membersCount": "$count miembros",
+    "you": "Tú",
+    "noEmail": "Sin correo"
   },
   "github": {
     "connectTitle": "Conectar GitHub",
