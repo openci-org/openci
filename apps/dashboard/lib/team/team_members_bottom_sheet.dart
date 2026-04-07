@@ -130,7 +130,8 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                 ),
                 data: (members) {
                   // Put current user first
-                  final sorted = [...members]..sort((a, b) {
+                  final sorted = [...members]
+                    ..sort((a, b) {
                       if (a.uid == currentUid) return -1;
                       if (b.uid == currentUid) return 1;
                       return 0;
@@ -139,11 +140,10 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                   return ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: sorted.length,
-                    separatorBuilder: (_, __) => Divider(
+                    separatorBuilder: (_, _) => Divider(
                       height: 1,
                       indent: 72,
-                      color:
-                          colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                     ),
                     itemBuilder: (context, index) {
                       final member = sorted[index];
@@ -157,10 +157,10 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                           backgroundImage: member.photoURL != null
                               ? NetworkImage(member.photoURL!)
                               : null,
-                          backgroundColor:
-                              colorScheme.primaryContainer.withValues(
-                            alpha: 0.6,
-                          ),
+                          backgroundColor: colorScheme.primaryContainer
+                              .withValues(
+                                alpha: 0.6,
+                              ),
                           child: member.photoURL == null
                               ? Text(
                                   _getInitials(displayName ?? email),
