@@ -85,7 +85,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         : () async {
                             if (!formKey.currentState!.validate()) return;
                             try {
-                              await ref
+                              final result = await ref
                                   .read(functionsProvider)
                                   .httpsCallable(inviteTeamMemberFunction)
                                   .call({
@@ -93,9 +93,17 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                     'teamId': selectedTeamId.value,
                                   });
                               if (!context.mounted) return;
-                              context.showSnackBarMessage(
-                                teamT.invitedSuccess,
-                              );
+                              final status =
+                                  (result.data as Map)['status'] as String?;
+                              if (status == 'added') {
+                                context.showSnackBarMessage(
+                                  teamT.addedSuccess,
+                                );
+                              } else {
+                                context.showSnackBarMessage(
+                                  teamT.invitationSent,
+                                );
+                              }
                               Navigator.of(context).pop();
                             } on FirebaseFunctionsException catch (e) {
                               debugPrint(

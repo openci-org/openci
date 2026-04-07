@@ -573,6 +573,45 @@ class TranslationsTeamEn {
 
 	/// en: 'Team member invited successfully'
 	String get invitedSuccess => 'Team member invited successfully';
+
+	/// en: 'Member added to team'
+	String get addedSuccess => 'Member added to team';
+
+	/// en: 'Invitation email sent 📧'
+	String get invitationSent => 'Invitation email sent 📧';
+
+	/// en: 'Processing invitation...'
+	String get processingInvitation => 'Processing invitation...';
+
+	/// en: 'Invitation Failed'
+	String get invitationFailed => 'Invitation Failed';
+
+	/// en: 'You're in! 🎉'
+	String get invitationAccepted => 'You\'re in! 🎉';
+
+	/// en: 'Already a Member'
+	String get alreadyMemberTitle => 'Already a Member';
+
+	/// en: 'You're already a member of "$teamName".'
+	String alreadyMemberMessage({required Object teamName}) => 'You\'re already a member of "${teamName}".';
+
+	/// en: 'You've joined the "$teamName" team.'
+	String joinedTeamMessage({required Object teamName}) => 'You\'ve joined the "${teamName}" team.';
+
+	/// en: 'Go to Dashboard'
+	String get goToDashboard => 'Go to Dashboard';
+
+	/// en: 'Members'
+	String get members => 'Members';
+
+	/// en: '$count members'
+	String membersCount({required Object count}) => '${count} members';
+
+	/// en: 'You'
+	String get you => 'You';
+
+	/// en: 'No email'
+	String get noEmail => 'No email';
 }
 
 // Path: github
@@ -1652,6 +1691,19 @@ extension on Translations {
 			'team.inviteEmail' => 'Email',
 			'team.enterEmail' => 'Please enter an email',
 			'team.invitedSuccess' => 'Team member invited successfully',
+			'team.addedSuccess' => 'Member added to team',
+			'team.invitationSent' => 'Invitation email sent 📧',
+			'team.processingInvitation' => 'Processing invitation...',
+			'team.invitationFailed' => 'Invitation Failed',
+			'team.invitationAccepted' => 'You\'re in! 🎉',
+			'team.alreadyMemberTitle' => 'Already a Member',
+			'team.alreadyMemberMessage' => ({required Object teamName}) => 'You\'re already a member of "${teamName}".',
+			'team.joinedTeamMessage' => ({required Object teamName}) => 'You\'ve joined the "${teamName}" team.',
+			'team.goToDashboard' => 'Go to Dashboard',
+			'team.members' => 'Members',
+			'team.membersCount' => ({required Object count}) => '${count} members',
+			'team.you' => 'You',
+			'team.noEmail' => 'No email',
 			'github.connectTitle' => 'Connect GitHub',
 			'github.connectDescription' => 'Connect your GitHub account to\nselect repositories automatically.',
 			'github.connectButton' => 'Connect with GitHub',

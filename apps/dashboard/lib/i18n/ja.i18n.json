@@ -247,7 +247,20 @@
     "inviteTitle": "チームメンバーを招待",
     "inviteEmail": "メールアドレス",
     "enterEmail": "メールアドレスを入力してください",
-    "invitedSuccess": "チームメンバーが招待されました"
+    "invitedSuccess": "チームメンバーが招待されました",
+    "addedSuccess": "メンバーをチームに追加しました",
+    "invitationSent": "招待メールを送信しました 📧",
+    "processingInvitation": "招待を処理中...",
+    "invitationFailed": "招待の処理に失敗しました",
+    "invitationAccepted": "参加しました！🎉",
+    "alreadyMemberTitle": "すでにメンバーです",
+    "alreadyMemberMessage": "すでに「$teamName」のメンバーです。",
+    "joinedTeamMessage": "「$teamName」チームに参加しました。",
+    "goToDashboard": "ダッシュボードへ",
+    "members": "メンバー",
+    "membersCount": "$count人のメンバー",
+    "you": "あなた",
+    "noEmail": "メールなし"
   },
   "github": {
     "connectTitle": "GitHubと連携",

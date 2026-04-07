@@ -300,6 +300,19 @@ class _TranslationsTeamJa implements TranslationsTeamEn {
 	@override String get inviteEmail => 'メールアドレス';
 	@override String get enterEmail => 'メールアドレスを入力してください';
 	@override String get invitedSuccess => 'チームメンバーが招待されました';
+	@override String get addedSuccess => 'メンバーをチームに追加しました';
+	@override String get invitationSent => '招待メールを送信しました 📧';
+	@override String get processingInvitation => '招待を処理中...';
+	@override String get invitationFailed => '招待の処理に失敗しました';
+	@override String get invitationAccepted => '参加しました！🎉';
+	@override String get alreadyMemberTitle => 'すでにメンバーです';
+	@override String alreadyMemberMessage({required Object teamName}) => 'すでに「${teamName}」のメンバーです。';
+	@override String joinedTeamMessage({required Object teamName}) => '「${teamName}」チームに参加しました。';
+	@override String get goToDashboard => 'ダッシュボードへ';
+	@override String get members => 'メンバー';
+	@override String membersCount({required Object count}) => '${count}人のメンバー';
+	@override String get you => 'あなた';
+	@override String get noEmail => 'メールなし';
 }
 
 // Path: github
@@ -902,6 +915,19 @@ extension on TranslationsJa {
 			'team.inviteEmail' => 'メールアドレス',
 			'team.enterEmail' => 'メールアドレスを入力してください',
 			'team.invitedSuccess' => 'チームメンバーが招待されました',
+			'team.addedSuccess' => 'メンバーをチームに追加しました',
+			'team.invitationSent' => '招待メールを送信しました 📧',
+			'team.processingInvitation' => '招待を処理中...',
+			'team.invitationFailed' => '招待の処理に失敗しました',
+			'team.invitationAccepted' => '参加しました！🎉',
+			'team.alreadyMemberTitle' => 'すでにメンバーです',
+			'team.alreadyMemberMessage' => ({required Object teamName}) => 'すでに「${teamName}」のメンバーです。',
+			'team.joinedTeamMessage' => ({required Object teamName}) => '「${teamName}」チームに参加しました。',
+			'team.goToDashboard' => 'ダッシュボードへ',
+			'team.members' => 'メンバー',
+			'team.membersCount' => ({required Object count}) => '${count}人のメンバー',
+			'team.you' => 'あなた',
+			'team.noEmail' => 'メールなし',
 			'github.connectTitle' => 'GitHubと連携',
 			'github.connectDescription' => 'GitHubアカウントを連携して\nリポジトリを自動的に選択できるようにします。',
 			'github.connectButton' => 'GitHubと連携する',

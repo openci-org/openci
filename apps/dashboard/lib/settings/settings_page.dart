@@ -1,12 +1,11 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/settings/locale_provider.dart';
-import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +26,7 @@ class SettingsPage extends HookConsumerWidget {
     final settingsT = t.settings;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(settingsT.title),
-      ),
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Center(
@@ -114,26 +111,6 @@ class SettingsPage extends HookConsumerWidget {
                             ),
                           ),
                           SizedBox(height: 40),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              fixedSize: Size(200, 20),
-                            ),
-                            onPressed: () {
-                              showModalBottomSheet(
-                                showDragHandle: true,
-                                context: context,
-                                builder: (context) {
-                                  return SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.height *
-                                        0.6,
-                                    child: InviteTeamMemberBottomSheet(),
-                                  );
-                                },
-                              );
-                            },
-                            child: Text(settingsT.inviteTeamMember),
-                          ),
                           SizedBox(height: 8),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
