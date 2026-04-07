@@ -235,11 +235,15 @@ Future<bool> processJob(
 
     final eventType = pullRequestNumber != null ? 'pull_request' : 'push';
 
+    final jobKey = buildJob.jobKey;
+    final jobFlag = jobKey != null ? '-j $jobKey ' : '';
+
     final actScript = [
       'set -e',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
       'cd $repo',
       'act $eventType -W .openci/$workflowFileName '
+          '$jobFlag'
           '-P macos-latest=-self-hosted '
           '-P macos-14=-self-hosted '
           '-P macos-15=-self-hosted '

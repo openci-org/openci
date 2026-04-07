@@ -21,6 +21,9 @@ abstract class BuildJob with _$BuildJob {
     String? latestRunId,
     String? tagName,
     String? branch,
+    String? jobKey,
+    String? workflowRunId,
+    List<String>? needs,
     @DateTimeConverter() DateTime? createdAt,
     @DateTimeConverter() DateTime? updatedAt,
   }) = _BuildJob;

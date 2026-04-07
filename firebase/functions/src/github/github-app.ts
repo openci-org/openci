@@ -250,9 +250,9 @@ async function createBuildJobs(
             continue;
           }
 
-          const steps = extractSteps(parsed);
-          if (steps.length === 0) {
-            logger.info(`Workflow ${entry.name} has no steps, skipping`);
+          const jobInfos = extractJobs(parsed);
+          if (jobInfos.length === 0) {
+            logger.info(`Workflow ${entry.name} has no jobs, skipping`);
             continue;
           }
 
@@ -269,62 +269,100 @@ async function createBuildJobs(
             }
           }
 
-          logger.info(`Matched .openci/${entry.name} with ${steps.length} steps`);
+          const totalSteps = jobInfos.reduce((sum, j) => sum + j.steps.length, 0);
+          logger.info(
+            `Matched .openci/${entry.name} with ${jobInfos.length} job(s), ${totalSteps} step(s)`,
+          );
 
-          const documentId = uuidv4();
-          const checkRunDetailsUrl = buildDashboardRunUrl(documentId);
-
-          let checkRunId: number | null = null;
-          if (commitSha) {
-            try {
-              const { data: checkRun } = await octokit.request(
-                "POST /repos/{owner}/{repo}/check-runs",
-                {
-                  owner,
-                  repo,
-                  name: workflowName,
-                  head_sha: commitSha,
-                  status: "queued",
-                  started_at: new Date().toISOString(),
-                  details_url: checkRunDetailsUrl,
-                },
-              );
-              checkRunId = checkRun.id;
-            } catch (error) {
-              logger.error(`Failed to create check run for ${entry.name}`, error);
-            }
-          }
-
+          const workflowRunId = uuidv4();
           const jobData = { ...params };
           delete jobData.payload;
 
-          await db
-            .collection(buildJobsCollectionPath)
-            .doc(documentId)
-            .set({
-              ...jobData,
-              updatedAt: FieldValue.serverTimestamp(),
-              createdAt: FieldValue.serverTimestamp(),
-              status: "queued",
-              id: documentId,
-              teamId,
-              workflowFileName: entry.name,
-              installationId,
-              commitSha,
-              pullRequestNumber,
-              owner,
-              repo,
-              installationToken,
-              tokenExpiresAt,
-              checkRunId,
-              runCount: 0,
-              latestRunId: null,
-              tagName,
-              branch,
-              releaseName,
-            });
+          // First pass: assign document IDs for each job
+          const jobDocIds: Record<string, string> = {};
+          for (const jobInfo of jobInfos) {
+            jobDocIds[jobInfo.jobKey] = uuidv4();
+          }
 
-          createdJobCount++;
+          // Second pass: create build_jobs
+          for (const jobInfo of jobInfos) {
+            const documentId = jobDocIds[jobInfo.jobKey];
+            const hasNeeds = jobInfo.needs.length > 0;
+            const checkRunDetailsUrl = buildDashboardRunUrl(documentId);
+
+            // Build resolvedNeeds mapping
+            const resolvedNeeds: Record<string, string> = {};
+            if (hasNeeds) {
+              for (const needKey of jobInfo.needs) {
+                if (jobDocIds[needKey]) {
+                  resolvedNeeds[needKey] = jobDocIds[needKey];
+                } else {
+                  logger.warn(
+                    `Job "${jobInfo.jobKey}" needs "${needKey}" which doesn't exist in workflow`,
+                  );
+                }
+              }
+            }
+
+            let checkRunId: number | null = null;
+            if (commitSha) {
+              try {
+                const checkRunName =
+                  jobInfos.length > 1 ? `${workflowName} / ${jobInfo.jobKey}` : workflowName;
+                const { data: checkRun } = await octokit.request(
+                  "POST /repos/{owner}/{repo}/check-runs",
+                  {
+                    owner,
+                    repo,
+                    name: checkRunName,
+                    head_sha: commitSha,
+                    status: "queued",
+                    started_at: new Date().toISOString(),
+                    details_url: checkRunDetailsUrl,
+                  },
+                );
+                checkRunId = checkRun.id;
+              } catch (error) {
+                logger.error(
+                  `Failed to create check run for ${entry.name}/${jobInfo.jobKey}`,
+                  error,
+                );
+              }
+            }
+
+            await db
+              .collection(buildJobsCollectionPath)
+              .doc(documentId)
+              .set({
+                ...jobData,
+                updatedAt: FieldValue.serverTimestamp(),
+                createdAt: FieldValue.serverTimestamp(),
+                status: hasNeeds ? "waiting" : "queued",
+                id: documentId,
+                jobKey: jobInfo.jobKey,
+                workflowRunId,
+                needs: jobInfo.needs.length > 0 ? jobInfo.needs : null,
+                resolvedNeeds: hasNeeds ? resolvedNeeds : null,
+                teamId,
+                workflowFileName: entry.name,
+                workflowName,
+                installationId,
+                commitSha,
+                pullRequestNumber,
+                owner,
+                repo,
+                installationToken,
+                tokenExpiresAt,
+                checkRunId,
+                runCount: 0,
+                latestRunId: null,
+                tagName,
+                branch,
+                releaseName,
+              });
+
+            createdJobCount++;
+          }
         } catch (e) {
           logger.error(`Failed to process .openci/${entry.name}`, e);
           errorCount++;
@@ -378,18 +416,23 @@ function matchesTrigger(parsed: any, triggerType: string, triggerBranch: string 
   return false;
 }
 
-function extractSteps(
-  parsed: any,
-): Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }> {
-  const steps: Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }> =
-    [];
+interface JobInfo {
+  jobKey: string;
+  needs: string[];
+  steps: Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }>;
+}
+
+function extractJobs(parsed: any): JobInfo[] {
+  const jobInfos: JobInfo[] = [];
   const jobs = parsed.jobs;
-  if (!jobs || typeof jobs !== "object") return steps;
+  if (!jobs || typeof jobs !== "object") return jobInfos;
 
   for (const jobKey of Object.keys(jobs)) {
     const job = jobs[jobKey];
     if (!job || !Array.isArray(job.steps)) continue;
 
+    const steps: Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }> =
+      [];
     for (const step of job.steps) {
       if (!step || typeof step !== "object") continue;
 
@@ -411,9 +454,23 @@ function extractSteps(
 
       steps.push(entry);
     }
+
+    if (steps.length === 0) continue;
+
+    // Parse needs
+    const needs: string[] = [];
+    if (job.needs) {
+      if (Array.isArray(job.needs)) {
+        needs.push(...job.needs);
+      } else if (typeof job.needs === "string") {
+        needs.push(job.needs);
+      }
+    }
+
+    jobInfos.push({ jobKey, needs, steps });
   }
 
-  return steps;
+  return jobInfos;
 }
 
 async function findTeamIdForInstallation(installationId: number): Promise<string | null> {

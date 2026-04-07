@@ -72,6 +72,8 @@ class BuildJobCard extends HookConsumerWidget {
       'in_progress' => Theme.of(context).colorScheme.primary,
       'queued' => Colors.blue,
       'cancelled' => Colors.orange,
+      'waiting' => Colors.amber,
+      'skipped' => Colors.grey,
       _ => Colors.grey,
     };
 
@@ -80,6 +82,8 @@ class BuildJobCard extends HookConsumerWidget {
       'failure' => Icons.cancel,
       'queued' => Icons.schedule,
       'cancelled' => Icons.block,
+      'waiting' => Icons.hourglass_empty,
+      'skipped' => Icons.skip_next,
       _ => Icons.help_outline,
     };
 
@@ -89,6 +93,8 @@ class BuildJobCard extends HookConsumerWidget {
       'in_progress' => t.buildLogs.status.inProgress,
       'queued' => t.buildLogs.status.queued,
       'cancelled' => t.buildLogs.status.cancelled,
+      'waiting' => 'Waiting',
+      'skipped' => 'Skipped',
       _ => buildJob.status,
     };
 

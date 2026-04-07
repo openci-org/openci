@@ -1,3 +1,4 @@
+import { FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import * as logger from "firebase-functions/logger";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
@@ -27,8 +28,16 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     const previousStatus = beforeData.status as string;
     const currentStatus = afterData.status as string;
 
-    // Only send notifications when status changes to success or failure
+    // Only process when status actually changes
     if (previousStatus === currentStatus) return;
+
+    // Resolve job dependencies for any terminal status
+    const terminalStatuses = ["success", "failure", "cancelled", "timed_out", "skipped"];
+    if (terminalStatuses.includes(currentStatus)) {
+      await resolveDependencies(afterData, currentStatus);
+    }
+
+    // Only send notifications when status changes to success or failure
     if (currentStatus !== "success" && currentStatus !== "failure") return;
 
     const teamId = afterData.teamId as string | undefined;
@@ -248,3 +257,57 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     }
   },
 );
+
+async function resolveDependencies(completedJobData: any, completedStatus: string) {
+  const workflowRunId = completedJobData.workflowRunId as string | undefined;
+  const jobKey = completedJobData.jobKey as string | undefined;
+
+  if (!workflowRunId || !jobKey) return;
+
+  const waitingJobs = await db
+    .collection(buildJobsCollectionPath)
+    .where("workflowRunId", "==", workflowRunId)
+    .where("status", "==", "waiting")
+    .get();
+
+  if (waitingJobs.empty) return;
+
+  const isSuccess = completedStatus === "success";
+
+  for (const doc of waitingJobs.docs) {
+    const jobData = doc.data();
+    const needs = jobData.needs as string[] | undefined;
+    if (!needs || !needs.includes(jobKey)) continue;
+
+    if (!isSuccess) {
+      // Dependency failed/cancelled/timed_out/skipped → skip this job
+      await doc.ref.update({
+        status: "skipped",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      logger.info(`Skipped job ${jobData.jobKey} because dependency ${jobKey} ${completedStatus}`);
+      continue;
+    }
+
+    // Dependency succeeded, check if ALL dependencies are now satisfied
+    const resolvedNeeds = jobData.resolvedNeeds as Record<string, string> | undefined;
+    if (!resolvedNeeds) continue;
+
+    let allSatisfied = true;
+    for (const [, needBuildJobId] of Object.entries(resolvedNeeds)) {
+      const needDoc = await db.collection(buildJobsCollectionPath).doc(needBuildJobId).get();
+      if (!needDoc.exists || needDoc.data()?.status !== "success") {
+        allSatisfied = false;
+        break;
+      }
+    }
+
+    if (allSatisfied) {
+      await doc.ref.update({
+        status: "queued",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      logger.info(`Queued job ${jobData.jobKey} - all dependencies satisfied`);
+    }
+  }
+}
