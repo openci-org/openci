@@ -242,6 +242,7 @@ class _TranslationsSettingsEs implements TranslationsSettingsEn {
 	@override String get manageSubscription => 'Gestionar tu plan de suscripción';
 	@override String firebaseAppName({required Object name}) => 'Nombre de la app Firebase: ${name}';
 	@override String get inviteTeamMember => 'Invitar miembro al equipo';
+	@override String get appVersion => 'Versión de la app';
 	@override String get logout => 'Cerrar sesión';
 	@override String get logoutSuccess => 'Sesión cerrada exitosamente';
 	@override String logoutFailed({required Object error}) => 'Error al cerrar sesión: ${error}';
@@ -870,6 +871,7 @@ extension on TranslationsEs {
 			'settings.manageSubscription' => 'Gestionar tu plan de suscripción',
 			'settings.firebaseAppName' => ({required Object name}) => 'Nombre de la app Firebase: ${name}',
 			'settings.inviteTeamMember' => 'Invitar miembro al equipo',
+			'settings.appVersion' => 'Versión de la app',
 			'settings.logout' => 'Cerrar sesión',
 			'settings.logoutSuccess' => 'Sesión cerrada exitosamente',
 			'settings.logoutFailed' => ({required Object error}) => 'Error al cerrar sesión: ${error}',

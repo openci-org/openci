@@ -16,6 +16,7 @@ const listDirectoriesFunction = 'listDirectories';
 const listRepositoriesFunction = 'listRepositories';
 const listWorkflowFilesFunction = 'listWorkflowFiles';
 const retryBuildJobFunction = 'retryBuildJob';
+const retryWorkflowRunFunction = 'retryWorkflowRun';
 const searchGitHubActionsFunction = 'searchGitHubActions';
 const setupAscApiKeyFunction = 'setupAscApiKeyV1';
 const syncWorkflowFilesFunction = 'syncWorkflowFiles';

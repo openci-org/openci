@@ -197,6 +197,7 @@
     "manageSubscription": "Gestionar tu plan de suscripción",
     "firebaseAppName": "Nombre de la app Firebase: $name",
     "inviteTeamMember": "Invitar miembro al equipo",
+    "appVersion": "Versión de la app",
     "logout": "Cerrar sesión",
     "logoutSuccess": "Sesión cerrada exitosamente",
     "logoutFailed": "Error al cerrar sesión: $error",

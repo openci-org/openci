@@ -197,6 +197,7 @@
     "manageSubscription": "サブスクリプションプランを管理",
     "firebaseAppName": "Firebaseアプリ名: $name",
     "inviteTeamMember": "チームメンバーを招待",
+    "appVersion": "アプリバージョン",
     "logout": "ログアウト",
     "logoutSuccess": "ログアウトしました",
     "logoutFailed": "ログアウトに失敗: $error",
