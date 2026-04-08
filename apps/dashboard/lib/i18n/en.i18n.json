@@ -197,6 +197,7 @@
     "manageSubscription": "Manage your subscription plan",
     "firebaseAppName": "Firebase App Name: $name",
     "inviteTeamMember": "Invite Team Member",
+    "appVersion": "App Version",
     "logout": "Logout",
     "logoutSuccess": "Logged out successfully",
     "logoutFailed": "Failed to log out: $error",

@@ -437,6 +437,9 @@ class TranslationsSettingsEn {
 	/// en: 'Invite Team Member'
 	String get inviteTeamMember => 'Invite Team Member';
 
+	/// en: 'App Version'
+	String get appVersion => 'App Version';
+
 	/// en: 'Logout'
 	String get logout => 'Logout';
 
@@ -1646,6 +1649,7 @@ extension on Translations {
 			'settings.manageSubscription' => 'Manage your subscription plan',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebase App Name: ${name}',
 			'settings.inviteTeamMember' => 'Invite Team Member',
+			'settings.appVersion' => 'App Version',
 			'settings.logout' => 'Logout',
 			'settings.logoutSuccess' => 'Logged out successfully',
 			'settings.logoutFailed' => ({required Object error}) => 'Failed to log out: ${error}',

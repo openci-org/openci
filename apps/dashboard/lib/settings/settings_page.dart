@@ -1,4 +1,5 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class SettingsPage extends HookConsumerWidget {
@@ -90,6 +92,8 @@ class SettingsPage extends HookConsumerWidget {
                   ),
                   const Divider(),
                   _LanguageTile(),
+                  const Divider(),
+                  _AppVersionTile(),
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -289,6 +293,41 @@ class _LanguageBottomSheet extends ConsumerWidget {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+}
+
+class _AppVersionTile extends HookWidget {
+  const _AppVersionTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final snapshot = useFuture(
+      useMemoized(() => PackageInfo.fromPlatform()),
+    );
+
+    final info = snapshot.data;
+
+    return ListTile(
+      leading: Icon(
+        Symbols.info_rounded,
+        color: colorScheme.onSurfaceVariant,
+      ),
+      title: Text(t.settings.appVersion),
+      subtitle: info != null
+          ? Text(
+              'v${info.version} (${info.buildNumber})  •  $buildDate',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            )
+          : const SizedBox(
+              height: 12,
+              width: 12,
+              child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+            ),
     );
   }
 }

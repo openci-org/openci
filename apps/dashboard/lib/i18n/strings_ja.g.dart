@@ -242,6 +242,7 @@ class _TranslationsSettingsJa implements TranslationsSettingsEn {
 	@override String get manageSubscription => 'サブスクリプションプランを管理';
 	@override String firebaseAppName({required Object name}) => 'Firebaseアプリ名: ${name}';
 	@override String get inviteTeamMember => 'チームメンバーを招待';
+	@override String get appVersion => 'アプリバージョン';
 	@override String get logout => 'ログアウト';
 	@override String get logoutSuccess => 'ログアウトしました';
 	@override String logoutFailed({required Object error}) => 'ログアウトに失敗: ${error}';
@@ -870,6 +871,7 @@ extension on TranslationsJa {
 			'settings.manageSubscription' => 'サブスクリプションプランを管理',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebaseアプリ名: ${name}',
 			'settings.inviteTeamMember' => 'チームメンバーを招待',
+			'settings.appVersion' => 'アプリバージョン',
 			'settings.logout' => 'ログアウト',
 			'settings.logoutSuccess' => 'ログアウトしました',
 			'settings.logoutFailed' => ({required Object error}) => 'ログアウトに失敗: ${error}',

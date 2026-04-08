@@ -19,7 +19,6 @@ import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -69,9 +68,6 @@ class WorkflowListPage extends HookConsumerWidget {
     useListenable(tabController);
     final isWorkflowsTab = tabController.index == 0;
 
-    final packageInfoSnapshot = useFuture(
-      useMemoized(() => PackageInfo.fromPlatform()),
-    );
 
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
@@ -175,19 +171,7 @@ class WorkflowListPage extends HookConsumerWidget {
                 )
               : null,
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('OpenCI'),
-                if (packageInfoSnapshot.hasData)
-                  Text(
-                    'v${packageInfoSnapshot.data!.version} (${packageInfoSnapshot.data!.buildNumber})',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-              ],
-            ),
+            title: const Text('OpenCI'),
             bottom: TabBar(
               controller: tabController,
               isScrollable: true,
