@@ -12,6 +12,7 @@ export const listDirectoriesFunctionName = "listDirectories";
 export const listRepositoriesFunctionName = "listRepositories";
 export const listWorkflowFilesFunctionName = "listWorkflowFiles";
 export const retryBuildJobFunctionName = "retryBuildJob";
+export const retryWorkflowRunFunctionName = "retryWorkflowRun";
 export const searchGitHubActionsFunctionName = "searchGitHubActions";
 export const setupAscApiKeyFunctionName = "setupAscApiKeyV1";
 export const syncWorkflowFilesFunctionName = "syncWorkflowFiles";

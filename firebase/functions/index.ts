@@ -16,6 +16,7 @@ export { syncWorkflowFiles } from "./src/github/sync-workflow-files";
 export { inviteTeamMember } from "./src/invite-team-member";
 export { processInvitationsOnSignUp, acceptInvitation } from "./src/process-invitation";
 export { retryBuildJob } from "./src/retry-build-job";
+export { retryWorkflowRun } from "./src/retry-workflow-run";
 export { getTeamMembers } from "./src/get-team-members";
 export { onBuildJobStatusChange } from "./src/send-build-notification";
 export { setupAscApiKeyV1 } from "./src/setup-asc-api-key";

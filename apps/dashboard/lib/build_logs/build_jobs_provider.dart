@@ -45,6 +45,13 @@ class BuildJobs extends _$BuildJobs {
       'buildJobId': buildJobId,
     });
   }
+
+  Future<void> retryWorkflowRun(String workflowRunId) async {
+    final functions = ref.watch(functionsProvider);
+    await functions.httpsCallable(retryWorkflowRunFunction).call({
+      'workflowRunId': workflowRunId,
+    });
+  }
 }
 
 @riverpod

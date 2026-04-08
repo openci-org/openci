@@ -1,4 +1,4 @@
-name: Flutter iOS CI/CD
+name: Flutter Dashboard CI/CD (iOS & Web)
 
 on:
   push:
