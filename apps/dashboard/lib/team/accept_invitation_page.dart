@@ -53,8 +53,12 @@ class AcceptInvitationPage extends HookConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 400),
           child: Padding(
             padding: const EdgeInsets.all(32.0),
-            child: _buildContent(context, isProcessing.value, result.value,
-                error.value),
+            child: _buildContent(
+              context,
+              isProcessing.value,
+              result.value,
+              error.value,
+            ),
           ),
         ),
       ),
@@ -99,8 +103,8 @@ class AcceptInvitationPage extends HookConsumerWidget {
           Text(
             error,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -135,8 +139,8 @@ class AcceptInvitationPage extends HookConsumerWidget {
                 ? t.team.alreadyMemberMessage(teamName: result.teamName)
                 : t.team.joinedTeamMessage(teamName: result.teamName),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),

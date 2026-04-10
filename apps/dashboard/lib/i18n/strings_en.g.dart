@@ -616,6 +616,18 @@ class TranslationsTeamEn {
 
 	/// en: 'No email'
 	String get noEmail => 'No email';
+
+	/// en: 'Delete Team'
+	String get deleteTeam => 'Delete Team';
+
+	/// en: 'Are you sure you want to delete "$teamName"? This action cannot be undone. All workflows, secrets, and environment variables associated with this team will be permanently deleted.'
+	String deleteTeamConfirm({required Object teamName}) => 'Are you sure you want to delete "${teamName}"? This action cannot be undone. All workflows, secrets, and environment variables associated with this team will be permanently deleted.';
+
+	/// en: 'Team deleted successfully'
+	String get deletedSuccess => 'Team deleted successfully';
+
+	/// en: 'You cannot delete your last team. Please create another team first.'
+	String get cannotDeleteLastTeam => 'You cannot delete your last team. Please create another team first.';
 }
 
 // Path: github
@@ -1746,6 +1758,10 @@ extension on Translations {
 			'team.membersCount' => ({required Object count}) => '${count} members',
 			'team.you' => 'You',
 			'team.noEmail' => 'No email',
+			'team.deleteTeam' => 'Delete Team',
+			'team.deleteTeamConfirm' => ({required Object teamName}) => 'Are you sure you want to delete "${teamName}"? This action cannot be undone. All workflows, secrets, and environment variables associated with this team will be permanently deleted.',
+			'team.deletedSuccess' => 'Team deleted successfully',
+			'team.cannotDeleteLastTeam' => 'You cannot delete your last team. Please create another team first.',
 			'github.connectTitle' => 'Connect GitHub',
 			'github.connectDescription' => 'Connect your GitHub account to\nselect repositories automatically.',
 			'github.connectButton' => 'Connect with GitHub',

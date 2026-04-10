@@ -270,7 +270,11 @@
     "members": "メンバー",
     "membersCount": "$count人のメンバー",
     "you": "あなた",
-    "noEmail": "メールなし"
+    "noEmail": "メールなし",
+    "deleteTeam": "チーム削除",
+    "deleteTeamConfirm": "本当に「$teamName」を削除しますか？この操作は元に戻せません。このチームに関連するすべてのワークフロー、シークレット、環境変数が完全に削除されます。",
+    "deletedSuccess": "チームが削除されました",
+    "cannotDeleteLastTeam": "最後のチームは削除できません。先に別のチームを作成してください。"
   },
   "github": {
     "connectTitle": "GitHubと連携",

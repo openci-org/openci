@@ -315,6 +315,10 @@ class _TranslationsTeamEs implements TranslationsTeamEn {
 	@override String membersCount({required Object count}) => '${count} miembros';
 	@override String get you => 'Tú';
 	@override String get noEmail => 'Sin correo';
+	@override String get deleteTeam => 'Eliminar equipo';
+	@override String deleteTeamConfirm({required Object teamName}) => '¿Estás seguro de que quieres eliminar "${teamName}"? Esta acción no se puede deshacer. Todos los flujos de trabajo, secretos y variables de entorno asociados con este equipo serán eliminados permanentemente.';
+	@override String get deletedSuccess => 'Equipo eliminado exitosamente';
+	@override String get cannotDeleteLastTeam => 'No puedes eliminar tu último equipo. Primero crea otro equipo.';
 }
 
 // Path: github
@@ -954,6 +958,10 @@ extension on TranslationsEs {
 			'team.membersCount' => ({required Object count}) => '${count} miembros',
 			'team.you' => 'Tú',
 			'team.noEmail' => 'Sin correo',
+			'team.deleteTeam' => 'Eliminar equipo',
+			'team.deleteTeamConfirm' => ({required Object teamName}) => '¿Estás seguro de que quieres eliminar "${teamName}"? Esta acción no se puede deshacer. Todos los flujos de trabajo, secretos y variables de entorno asociados con este equipo serán eliminados permanentemente.',
+			'team.deletedSuccess' => 'Equipo eliminado exitosamente',
+			'team.cannotDeleteLastTeam' => 'No puedes eliminar tu último equipo. Primero crea otro equipo.',
 			'github.connectTitle' => 'Conectar GitHub',
 			'github.connectDescription' => 'Conecta tu cuenta de GitHub para\nseleccionar repositorios automáticamente.',
 			'github.connectButton' => 'Conectar con GitHub',

@@ -270,7 +270,11 @@
     "members": "Miembros",
     "membersCount": "$count miembros",
     "you": "Tú",
-    "noEmail": "Sin correo"
+    "noEmail": "Sin correo",
+    "deleteTeam": "Eliminar equipo",
+    "deleteTeamConfirm": "¿Estás seguro de que quieres eliminar \"$teamName\"? Esta acción no se puede deshacer. Todos los flujos de trabajo, secretos y variables de entorno asociados con este equipo serán eliminados permanentemente.",
+    "deletedSuccess": "Equipo eliminado exitosamente",
+    "cannotDeleteLastTeam": "No puedes eliminar tu último equipo. Primero crea otro equipo."
   },
   "github": {
     "connectTitle": "Conectar GitHub",
