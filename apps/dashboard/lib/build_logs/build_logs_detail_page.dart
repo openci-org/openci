@@ -11,6 +11,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 enum _ActionState { idle, loading, done }
 
+// ── Terminal colour palette ─────────────────────────────────────────────────
+// GitHub-inspired dark terminal colours
+const _kBg = Color(0xFF0D1117);
+const _kSurface = Color(0xFF161B22);
+const _kBorder = Color(0xFF30363D);
+const _kMuted = Color(0xFF8B949E);
+const _kText = Color(0xFFE6EDF3);
+
 class BuildLogsDetailPage extends HookConsumerWidget {
   const BuildLogsDetailPage({super.key, required this.buildJob});
   final BuildJob buildJob;
@@ -24,20 +32,24 @@ class BuildLogsDetailPage extends HookConsumerWidget {
     final retryState = useState(_ActionState.idle);
 
     final statusColor = switch (buildJob.status) {
-      'success' => Colors.green,
-      'failure' => Colors.red,
-      'in_progress' => Theme.of(context).colorScheme.primary,
-      'queued' => Colors.blue,
-      'cancelled' => Colors.orange,
-      _ => Colors.grey,
+      'success' => const Color(0xFF3FB950),
+      'failure' => const Color(0xFFF85149),
+      'in_progress' => const Color(0xFF58A6FF),
+      'queued' => const Color(0xFFBC8CFF),
+      'cancelled' => const Color(0xFFD29922),
+      'waiting' => const Color(0xFFD29922),
+      'skipped' => _kMuted,
+      _ => _kMuted,
     };
 
     final statusIcon = switch (buildJob.status) {
-      'success' => Icons.check_circle,
-      'failure' => Icons.cancel,
-      'queued' => Icons.schedule,
-      'cancelled' => Icons.block,
-      _ => Icons.help_outline,
+      'success' => Icons.check_circle_rounded,
+      'failure' => Icons.cancel_rounded,
+      'queued' => Icons.schedule_rounded,
+      'cancelled' => Icons.block_rounded,
+      'waiting' => Icons.hourglass_top_rounded,
+      'skipped' => Icons.skip_next_rounded,
+      _ => Icons.help_outline_rounded,
     };
 
     final statusLabel = switch (buildJob.status) {
@@ -46,6 +58,8 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       'in_progress' => t.buildLogs.status.inProgress,
       'queued' => t.buildLogs.status.queued,
       'cancelled' => t.buildLogs.status.cancelled,
+      'waiting' => 'Waiting',
+      'skipped' => 'Skipped',
       _ => buildJob.status,
     };
 
@@ -53,30 +67,33 @@ class BuildLogsDetailPage extends HookConsumerWidget {
         buildJob.status == 'queued' || buildJob.status == 'in_progress';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: _kSurface,
         surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          color: _kText,
           onPressed: () => Navigator.pop(context),
         ),
         title: workflowNameAsync.when(
           data: (name) => Text(
             name ?? '${buildJob.owner}/${buildJob.repo}',
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: _kText,
+              letterSpacing: -0.3,
             ),
           ),
           loading: () => const SizedBox(
             width: 14,
             height: 14,
-            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: _kMuted,
+            ),
           ),
           error: asyncErrorWidget,
         ),
@@ -125,7 +142,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               icon: Icon(
                 Icons.cancel_outlined,
                 size: 20,
-                color: Colors.orange[300],
+                color: const Color(0xFFD29922),
               ),
               tooltip: t.common.cancel,
             ),
@@ -161,26 +178,26 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: switch (retryState.value) {
-                _ActionState.loading => SizedBox(
-                  key: const ValueKey('retry-loading'),
+                _ActionState.loading => const SizedBox(
+                  key: ValueKey('retry-loading'),
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: _kText,
                   ),
                 ),
-                _ActionState.done => Icon(
-                  Icons.check,
-                  key: const ValueKey('retry-check'),
+                _ActionState.done => const Icon(
+                  Icons.check_rounded,
+                  key: ValueKey('retry-check'),
                   size: 20,
-                  color: Colors.green[300],
+                  color: Color(0xFF3FB950),
                 ),
-                _ActionState.idle => Icon(
-                  Icons.replay,
-                  key: const ValueKey('retry-icon'),
+                _ActionState.idle => const Icon(
+                  Icons.replay_rounded,
+                  key: ValueKey('retry-icon'),
                   size: 20,
-                  color: Theme.of(context).colorScheme.onPrimary,
+                  color: _kText,
                 ),
               },
             ),
@@ -188,36 +205,38 @@ class BuildLogsDetailPage extends HookConsumerWidget {
           ),
           const SizedBox(width: 8),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: _kBorder),
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Status bar ────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: const BoxDecoration(
+              color: _kSurface,
+              border: Border(bottom: BorderSide(color: _kBorder)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
+                    // Status pill
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 4,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.15),
+                        color: statusColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: statusColor.withValues(alpha: 0.3),
+                          color: statusColor.withValues(alpha: 0.25),
                         ),
                       ),
                       child: Row(
@@ -241,6 +260,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                               color: statusColor,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
                             ),
                           ),
                         ],
@@ -249,47 +269,49 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     const Spacer(),
                     Text(
                       '${buildJob.owner}/${buildJob.repo}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: _kMuted,
+                        fontFamily: 'monospace',
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     if (buildJob.branch != null)
                       _DetailGitChip(
                         icon: FontAwesomeIcons.codeBranch,
                         label: buildJob.branch!,
-                        color: Colors.purple[300]!,
+                        color: const Color(0xFFBC8CFF),
                       ),
                     if (buildJob.pullRequestNumber != null)
                       _DetailGitChip(
                         icon: FontAwesomeIcons.codePullRequest,
                         label: '#${buildJob.pullRequestNumber}',
-                        color: Colors.green[300]!,
+                        color: const Color(0xFF3FB950),
                       ),
                     if (buildJob.tagName != null)
                       _DetailGitChip(
                         icon: FontAwesomeIcons.tag,
                         label: buildJob.tagName!,
-                        color: Colors.amber[300]!,
+                        color: const Color(0xFFD29922),
                       ),
                     if (buildJob.commitSha != null)
                       _DetailGitChip(
                         icon: FontAwesomeIcons.codeCommit,
                         label: buildJob.commitSha!.substring(0, 7),
-                        color: Colors.blueGrey[300]!,
+                        color: const Color(0xFF8B949E),
                       ),
                   ],
                 ),
               ],
             ),
           ),
+          // ── Log content ───────────────────────────────────────────────
           Expanded(
             child: buildJob.latestRunId != null
                 ? _DetailLogsView(
@@ -300,15 +322,27 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.hourglass_empty,
-                          size: 48,
-                          color: Colors.grey,
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: _kBorder.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.hourglass_empty_rounded,
+                            size: 32,
+                            color: _kMuted,
+                          ),
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         Text(
                           detailT.noRuns,
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                          style: const TextStyle(
+                            color: _kMuted,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -334,16 +368,17 @@ class _DetailGitChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FaIcon(icon, size: 11, color: color),
-          const SizedBox(width: 4),
+          FaIcon(icon, size: 11, color: color.withValues(alpha: 0.9)),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               label,
@@ -351,7 +386,8 @@ class _DetailGitChip extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 fontSize: 12,
-                color: color,
+                fontFamily: 'monospace',
+                color: color.withValues(alpha: 0.9),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -415,18 +451,25 @@ class _DetailLogsView extends HookConsumerWidget {
 
         if (logs.isEmpty) {
           return Center(
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _kMuted.withValues(alpha: 0.6),
+                  ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(height: 16),
                 Text(
                   detailT.waitingForLogs,
-                  style: TextStyle(color: Colors.grey),
+                  style: const TextStyle(
+                    color: _kMuted,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
@@ -437,37 +480,44 @@ class _DetailLogsView extends HookConsumerWidget {
           children: [
             Column(
               children: [
+                // ── Toolbar ──────────────────────────────────────────
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 8,
+                    vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
+                  decoration: const BoxDecoration(
+                    color: _kSurface,
                     border: Border(
-                      bottom: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
+                      bottom: BorderSide(color: _kBorder),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.terminal,
+                      const Icon(
+                        Icons.terminal_rounded,
                         size: 16,
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: _kMuted,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         detailT.logEntries(count: logs.length.toString()),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: _kMuted,
                           fontFamily: 'monospace',
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const Spacer(),
-                      IconButton(
+                      _ToolbarButton(
+                        icon: copyDone.value
+                            ? Icons.check_rounded
+                            : Icons.copy_all_rounded,
+                        iconColor: copyDone.value
+                            ? const Color(0xFF3FB950)
+                            : _kMuted,
+                        tooltip: detailT.copyAll,
                         onPressed: copyDone.value
                             ? null
                             : () {
@@ -490,48 +540,34 @@ class _DetailLogsView extends HookConsumerWidget {
                                   );
                                 }
                               },
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: copyDone.value
-                              ? Icon(
-                                  Icons.check,
-                                  key: const ValueKey('copy-check'),
-                                  size: 18,
-                                  color: Colors.green[300],
-                                )
-                              : Icon(
-                                  Icons.copy_all,
-                                  key: const ValueKey('copy-icon'),
-                                  size: 18,
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                ),
-                        ),
-                        tooltip: detailT.copyAll,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
-                        ),
                       ),
                     ],
                   ),
                 ),
+                // ── Log list ─────────────────────────────────────────
                 Expanded(
                   child: Scrollbar(
                     controller: scrollController,
                     child: ListView.builder(
                       controller: scrollController,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 8,
+                      ),
                       itemCount: logs.length,
                       itemBuilder: (context, index) {
                         final log = logs[index];
-                        return _DetailLogLine(log: log, lineNumber: index + 1);
+                        return _DetailLogLine(
+                          log: log,
+                          lineNumber: index + 1,
+                        );
                       },
                     ),
                   ),
                 ),
               ],
             ),
+            // ── Scroll-to-bottom FAB ─────────────────────────────────
             if (showScrollToBottom.value)
               Positioned(
                 right: 16,
@@ -544,30 +580,97 @@ class _DetailLogsView extends HookConsumerWidget {
                       curve: Curves.easeOut,
                     );
                   },
-                  backgroundColor: const Color(0xFF2A2A2A),
-                  foregroundColor: Colors.white.withValues(alpha: 0.8),
-                  elevation: 4,
-                  child: const Icon(Icons.keyboard_double_arrow_down),
+                  backgroundColor: _kSurface,
+                  foregroundColor: _kText,
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: _kBorder),
+                  ),
+                  child: const Icon(
+                    Icons.keyboard_double_arrow_down_rounded,
+                    size: 20,
+                  ),
                 ),
               ),
           ],
         );
       },
       loading: () => const Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(color: _kMuted),
       ),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 12),
-            Text(
-              t.common.error(error: error.toString()),
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF85149).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 32,
+                color: Color(0xFFF85149),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                t.common.error(error: error.toString()),
+                style: const TextStyle(
+                  color: Color(0xFFF85149),
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarButton extends StatelessWidget {
+  const _ToolbarButton({
+    required this.icon,
+    required this.iconColor,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Icon(
+            icon,
+            key: ValueKey(icon),
+            size: 16,
+            color: iconColor,
+          ),
+        ),
+        tooltip: tooltip,
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          backgroundColor: Colors.transparent,
         ),
       ),
     );
@@ -586,24 +689,24 @@ class _DetailLogLine extends HookWidget {
     final isMultiLine = lines.length > 1;
 
     final levelColor = switch (log.level) {
-      'error' => Colors.red[300],
-      'warning' => Colors.orange[300],
-      'success' => Colors.green[300],
-      _ => Colors.grey[300],
+      'error' => const Color(0xFFF85149),
+      'warning' => const Color(0xFFD29922),
+      'success' => const Color(0xFF3FB950),
+      _ => _kText.withValues(alpha: 0.8),
     };
 
     final levelIcon = switch (log.level) {
-      'error' => Icons.error_outline,
-      'warning' => Icons.warning_amber,
-      'success' => Icons.check_circle_outline,
+      'error' => Icons.error_outline_rounded,
+      'warning' => Icons.warning_amber_rounded,
+      'success' => Icons.check_circle_outline_rounded,
       _ => Icons.circle,
     };
 
+    // ── Single-line log ────────────────────────────────────────────────────
     if (!isMultiLine) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
+      return _logLineHoverWrapper(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -618,7 +721,7 @@ class _DetailLogLine extends HookWidget {
                     fontFamily: 'monospace',
                     fontSize: 13,
                     color: levelColor,
-                    height: 1.4,
+                    height: 1.5,
                   ),
                 ),
               ),
@@ -628,14 +731,17 @@ class _DetailLogLine extends HookWidget {
       );
     }
 
+    // ── Multi-line log (collapsible) ───────────────────────────────────────
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: levelColor!.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(8),
+          color: levelColor.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: levelColor.withValues(alpha: isExpanded.value ? 0.2 : 0.1),
+            color: levelColor.withValues(
+              alpha: isExpanded.value ? 0.2 : 0.08,
+            ),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -648,8 +754,8 @@ class _DetailLogLine extends HookWidget {
                 onTap: () => isExpanded.value = !isExpanded.value,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
+                    horizontal: 12,
+                    vertical: 10,
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,7 +771,7 @@ class _DetailLogLine extends HookWidget {
                             fontFamily: 'monospace',
                             fontSize: 13,
                             color: levelColor,
-                            height: 1.4,
+                            height: 1.5,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -678,7 +784,7 @@ class _DetailLogLine extends HookWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: levelColor.withValues(alpha: 0.15),
+                          color: levelColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -686,10 +792,10 @@ class _DetailLogLine extends HookWidget {
                           children: [
                             Icon(
                               isExpanded.value
-                                  ? Icons.unfold_less
-                                  : Icons.unfold_more,
+                                  ? Icons.unfold_less_rounded
+                                  : Icons.unfold_more_rounded,
                               size: 14,
-                              color: levelColor,
+                              color: levelColor.withValues(alpha: 0.8),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -698,7 +804,7 @@ class _DetailLogLine extends HookWidget {
                               ),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: levelColor,
+                                color: levelColor.withValues(alpha: 0.8),
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'monospace',
                               ),
@@ -711,31 +817,45 @@ class _DetailLogLine extends HookWidget {
                 ),
               ),
             ),
-            if (isExpanded.value) ...[
-              Container(
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 200),
+              crossFadeState: isExpanded.value
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: const SizedBox.shrink(),
+              secondChild: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: _kBg,
                   border: Border(
                     top: BorderSide(
-                      color: levelColor.withValues(alpha: 0.15),
+                      color: levelColor.withValues(alpha: 0.12),
                     ),
                   ),
                 ),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 child: SelectableText(
                   log.message,
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 13,
-                    color: levelColor,
-                    height: 1.5,
+                    color: levelColor.withValues(alpha: 0.9),
+                    height: 1.6,
                   ),
                 ),
               ),
-            ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _logLineHoverWrapper({required Widget child}) {
+    return _HoverHighlight(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: child,
       ),
     );
   }
@@ -748,24 +868,56 @@ class _DetailLogLine extends HookWidget {
         style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 12,
-          color: Colors.white.withValues(alpha: 0.2),
-          height: 1.4,
+          color: _kMuted.withValues(alpha: 0.4),
+          height: 1.5,
         ),
         textAlign: TextAlign.right,
       ),
     );
   }
 
-  Widget _levelIconWidget(IconData icon, Color? color) {
+  Widget _levelIconWidget(IconData icon, Color color) {
     return SizedBox(
       width: 16,
-      height: 16,
+      height: 20,
       child: Center(
         child: Icon(
           icon,
           size: log.level == 'info' ? 6 : 14,
-          color: color,
+          color: color.withValues(alpha: 0.7),
         ),
+      ),
+    );
+  }
+}
+
+// ── Hover highlight for log lines ───────────────────────────────────────────
+
+class _HoverHighlight extends StatefulWidget {
+  const _HoverHighlight({required this.child});
+  final Widget child;
+
+  @override
+  State<_HoverHighlight> createState() => _HoverHighlightState();
+}
+
+class _HoverHighlightState extends State<_HoverHighlight> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        decoration: BoxDecoration(
+          color: _hovering
+              ? _kText.withValues(alpha: 0.03)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: widget.child,
       ),
     );
   }

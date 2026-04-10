@@ -8,6 +8,42 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+// ── Curated status palette ──────────────────────────────────────────────────
+
+Color _statusColor(String status, ColorScheme scheme) => switch (status) {
+  'success' => const Color(0xFF2DA44E),
+  'failure' => const Color(0xFFCF222E),
+  'in_progress' => const Color(0xFF1F6FEB),
+  'queued' => const Color(0xFF6E40C9),
+  'cancelled' => const Color(0xFFBF8700),
+  'waiting' => const Color(0xFFBF8700),
+  'skipped' => scheme.onSurfaceVariant.withValues(alpha: 0.6),
+  _ => scheme.onSurfaceVariant.withValues(alpha: 0.6),
+};
+
+IconData _statusIcon(String status) => switch (status) {
+  'success' => Icons.check_circle_rounded,
+  'failure' => Icons.cancel_rounded,
+  'queued' => Icons.schedule_rounded,
+  'cancelled' => Icons.block_rounded,
+  'waiting' => Icons.hourglass_top_rounded,
+  'skipped' => Icons.skip_next_rounded,
+  _ => Icons.help_outline_rounded,
+};
+
+String _statusLabel(String status) => switch (status) {
+  'success' => t.buildLogs.status.success,
+  'failure' => t.buildLogs.status.failed,
+  'in_progress' => t.buildLogs.status.inProgress,
+  'queued' => t.buildLogs.status.queued,
+  'cancelled' => t.buildLogs.status.cancelled,
+  'waiting' => 'Waiting',
+  'skipped' => 'Skipped',
+  _ => status,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 class LogsBody extends HookConsumerWidget {
   const LogsBody({super.key});
 
@@ -21,15 +57,31 @@ class LogsBody extends HookConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 64,
-                  color: Colors.grey,
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.inbox_rounded,
+                    size: 40,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.5),
+                  ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Text(
                   t.buildLogs.noJobs,
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -54,7 +106,7 @@ class LogsBody extends HookConsumerWidget {
 
         return Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(maxWidth: 520),
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               itemCount: orderedDisplayList.length,
@@ -81,42 +133,11 @@ class BuildJobCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync = ref.watch(
-      workflowNameProvider(buildJob),
-    );
+    final scheme = Theme.of(context).colorScheme;
+    final workflowNameAsync = ref.watch(workflowNameProvider(buildJob));
 
-    final statusColor = switch (buildJob.status) {
-      'success' => Colors.green,
-      'failure' => Colors.red,
-      'in_progress' => Theme.of(context).colorScheme.primary,
-      'queued' => Colors.blue,
-      'cancelled' => Colors.orange,
-      'waiting' => Colors.amber,
-      'skipped' => Colors.grey,
-      _ => Colors.grey,
-    };
-
-    final statusIcon = switch (buildJob.status) {
-      'success' => Icons.check_circle,
-      'failure' => Icons.cancel,
-      'queued' => Icons.schedule,
-      'cancelled' => Icons.block,
-      'waiting' => Icons.hourglass_empty,
-      'skipped' => Icons.skip_next,
-      _ => Icons.help_outline,
-    };
-
-    final statusLabel = switch (buildJob.status) {
-      'success' => t.buildLogs.status.success,
-      'failure' => t.buildLogs.status.failed,
-      'in_progress' => t.buildLogs.status.inProgress,
-      'queued' => t.buildLogs.status.queued,
-      'cancelled' => t.buildLogs.status.cancelled,
-      'waiting' => 'Waiting',
-      'skipped' => 'Skipped',
-      _ => buildJob.status,
-    };
-
+    final color = _statusColor(buildJob.status, scheme);
+    final statusLabel = _statusLabel(buildJob.status);
     final isRunning =
         buildJob.status == 'in_progress' || buildJob.status == 'queued';
 
@@ -140,22 +161,11 @@ class BuildJobCard extends HookConsumerWidget {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(top: 2, right: 12),
-                          child: Tooltip(
-                            message: statusLabel,
-                            child: buildJob.status == 'in_progress'
-                                ? SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: statusColor,
-                                    ),
-                                  )
-                                : Icon(
-                                    statusIcon,
-                                    color: statusColor,
-                                    size: 18,
-                                  ),
+                          child: _StatusIndicator(
+                            status: buildJob.status,
+                            color: color,
+                            tooltip: statusLabel,
+                            size: 18,
                           ),
                         ),
                         Expanded(
@@ -168,10 +178,10 @@ class BuildJobCard extends HookConsumerWidget {
                                   : title;
                               return Text(
                                 displayTitle,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                                 overflow: TextOverflow.ellipsis,
                               );
                             },
@@ -180,31 +190,34 @@ class BuildJobCard extends HookConsumerWidget {
                                 buildJob.jobKey != null
                                     ? '${buildJob.owner}/${buildJob.repo} (${buildJob.jobKey})'
                                     : '${buildJob.owner}/${buildJob.repo}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             error: asyncErrorWidget,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           buildJob.createdAt.toTimeAgo(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(
+                                color: scheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 6,
-                      runSpacing: 4,
+                      runSpacing: 6,
                       children: [
                         _RunDurationBadge(buildJob: buildJob),
                         if (buildJob.needs != null &&
@@ -239,7 +252,7 @@ class BuildJobCard extends HookConsumerWidget {
               PopupMenuButton<String>(
                 icon: Icon(
                   Icons.more_vert,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: scheme.onSurfaceVariant,
                   size: 20,
                 ),
                 padding: EdgeInsets.zero,
@@ -422,7 +435,7 @@ class WorkflowRunCard extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (jobs.isEmpty) return const SizedBox.shrink();
 
-    // Use the first job for general repository/workflow info
+    final scheme = Theme.of(context).colorScheme;
     final mainJob = jobs.first;
     final workflowNameAsync = ref.watch(workflowNameProvider(mainJob));
 
@@ -445,37 +458,8 @@ class WorkflowRunCard extends HookConsumerWidget {
       overallStatus = 'success';
     }
 
-    final statusColor = switch (overallStatus) {
-      'success' => Colors.green,
-      'failure' => Colors.red,
-      'in_progress' => Theme.of(context).colorScheme.primary,
-      'queued' => Colors.blue,
-      'cancelled' => Colors.orange,
-      'waiting' => Colors.amber,
-      'skipped' => Colors.grey,
-      _ => Colors.grey,
-    };
-
-    final statusIcon = switch (overallStatus) {
-      'success' => Icons.check_circle,
-      'failure' => Icons.cancel,
-      'queued' => Icons.schedule,
-      'cancelled' => Icons.block,
-      'waiting' => Icons.hourglass_empty,
-      'skipped' => Icons.skip_next,
-      _ => Icons.help_outline,
-    };
-
-    final statusLabel = switch (overallStatus) {
-      'success' => t.buildLogs.status.success,
-      'failure' => t.buildLogs.status.failed,
-      'in_progress' => t.buildLogs.status.inProgress,
-      'queued' => t.buildLogs.status.queued,
-      'cancelled' => t.buildLogs.status.cancelled,
-      'waiting' => 'Waiting',
-      'skipped' => 'Skipped',
-      _ => overallStatus,
-    };
+    final color = _statusColor(overallStatus, scheme);
+    final statusLabel = _statusLabel(overallStatus);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -483,15 +467,13 @@ class WorkflowRunCard extends HookConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: scheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header section
+          // ── Header ───────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Column(
@@ -502,41 +484,30 @@ class WorkflowRunCard extends HookConsumerWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(top: 2, right: 12),
-                      child: Tooltip(
-                        message: statusLabel,
-                        child: overallStatus == 'in_progress'
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: statusColor,
-                                ),
-                              )
-                            : Icon(
-                                statusIcon,
-                                color: statusColor,
-                                size: 18,
-                              ),
+                      child: _StatusIndicator(
+                        status: overallStatus,
+                        color: color,
+                        tooltip: statusLabel,
+                        size: 18,
                       ),
                     ),
                     Expanded(
                       child: workflowNameAsync.when(
                         data: (name) => Text(
                           name ?? '${mainJob.owner}/${mainJob.repo}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
                         loading: () => Skeletonizer(
                           child: Text(
                             '${mainJob.owner}/${mainJob.repo}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -545,9 +516,8 @@ class WorkflowRunCard extends HookConsumerWidget {
                     ),
                     Text(
                       mainJob.createdAt.toTimeAgo(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -603,10 +573,10 @@ class WorkflowRunCard extends HookConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 6,
-                  runSpacing: 4,
+                  runSpacing: 6,
                   children: [
                     if (mainJob.pullRequestNumber != null)
                       _InfoBadge(
@@ -634,20 +604,15 @@ class WorkflowRunCard extends HookConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 4),
-          // Jobs list wrapped in an inner container for visual nesting
+          // ── Jobs list ────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: scheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: Column(
@@ -659,37 +624,8 @@ class WorkflowRunCard extends HookConsumerWidget {
                   final isRunning =
                       job.status == 'in_progress' || job.status == 'queued';
 
-                  final statusColor = switch (job.status) {
-                    'success' => Colors.green,
-                    'failure' => Colors.red,
-                    'in_progress' => Theme.of(context).colorScheme.primary,
-                    'queued' => Colors.blue,
-                    'cancelled' => Colors.orange,
-                    'waiting' => Colors.amber,
-                    'skipped' => Colors.grey,
-                    _ => Colors.grey,
-                  };
-
-                  final statusIcon = switch (job.status) {
-                    'success' => Icons.check_circle,
-                    'failure' => Icons.cancel,
-                    'queued' => Icons.schedule,
-                    'cancelled' => Icons.block,
-                    'waiting' => Icons.hourglass_empty,
-                    'skipped' => Icons.skip_next,
-                    _ => Icons.help_outline,
-                  };
-
-                  final statusLabel = switch (job.status) {
-                    'success' => t.buildLogs.status.success,
-                    'failure' => t.buildLogs.status.failed,
-                    'in_progress' => t.buildLogs.status.inProgress,
-                    'queued' => t.buildLogs.status.queued,
-                    'cancelled' => t.buildLogs.status.cancelled,
-                    'waiting' => 'Waiting',
-                    'skipped' => 'Skipped',
-                    _ => job.status,
-                  };
+                  final jobColor = _statusColor(job.status, scheme);
+                  final jobLabel = _statusLabel(job.status);
 
                   return Column(
                     children: [
@@ -713,22 +649,11 @@ class WorkflowRunCard extends HookConsumerWidget {
                           ),
                           child: Row(
                             children: [
-                              Tooltip(
-                                message: statusLabel,
-                                child: job.status == 'in_progress'
-                                    ? SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: statusColor,
-                                        ),
-                                      )
-                                    : Icon(
-                                        statusIcon,
-                                        color: statusColor,
-                                        size: 16,
-                                      ),
+                              _StatusIndicator(
+                                status: job.status,
+                                color: jobColor,
+                                tooltip: jobLabel,
+                                size: 16,
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -737,10 +662,12 @@ class WorkflowRunCard extends HookConsumerWidget {
                                   children: [
                                     Text(
                                       job.jobKey ?? 'Unnamed Job',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                     const SizedBox(height: 6),
                                     Wrap(
@@ -812,9 +739,7 @@ class WorkflowRunCard extends HookConsumerWidget {
                         Divider(
                           height: 1,
                           indent: 48,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                          color: scheme.outlineVariant.withValues(alpha: 0.3),
                         ),
                     ],
                   );
@@ -827,6 +752,109 @@ class WorkflowRunCard extends HookConsumerWidget {
     );
   }
 }
+
+// ── Status indicator widget ─────────────────────────────────────────────────
+
+class _StatusIndicator extends StatefulWidget {
+  const _StatusIndicator({
+    required this.status,
+    required this.color,
+    required this.tooltip,
+    this.size = 18,
+  });
+
+  final String status;
+  final Color color;
+  final String tooltip;
+  final double size;
+
+  @override
+  State<_StatusIndicator> createState() => _StatusIndicatorState();
+}
+
+class _StatusIndicatorState extends State<_StatusIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _pulseAnimation;
+
+  bool get _isAnimated =>
+      widget.status == 'in_progress' ||
+      widget.status == 'queued' ||
+      widget.status == 'waiting';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    if (_isAnimated && widget.status != 'in_progress') {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _StatusIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isAnimated && widget.status != 'in_progress') {
+      if (!_controller.isAnimating) _controller.repeat(reverse: true);
+    } else {
+      _controller.stop();
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.status == 'in_progress') {
+      return Tooltip(
+        message: widget.tooltip,
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: widget.color,
+          ),
+        ),
+      );
+    }
+
+    final icon = Icon(
+      _statusIcon(widget.status),
+      color: widget.color,
+      size: widget.size,
+    );
+
+    if (_isAnimated) {
+      return Tooltip(
+        message: widget.tooltip,
+        child: AnimatedBuilder(
+          animation: _pulseAnimation,
+          builder: (context, child) => Opacity(
+            opacity: _pulseAnimation.value,
+            child: child,
+          ),
+          child: icon,
+        ),
+      );
+    }
+
+    return Tooltip(message: widget.tooltip, child: icon);
+  }
+}
+
+// ── Shared utility widgets ──────────────────────────────────────────────────
 
 String _formatDuration(Duration duration) {
   final durationT = t.buildLogs.duration;
@@ -856,27 +884,33 @@ class _InfoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).colorScheme;
-    final textColor = theme.onSurfaceVariant;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(6),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon is! SizedBox) ...[
-            icon,
-            const SizedBox(width: 3),
+            IconTheme(
+              data: IconThemeData(
+                size: 10,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+              child: icon,
+            ),
+            const SizedBox(width: 4),
           ],
           Text(
             label,
             style: TextStyle(
               fontSize: 11,
-              color: textColor,
+              fontFamily: 'monospace',
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -893,19 +927,19 @@ class _NeedsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     final children = <Widget>[
       Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.segment, size: 14, color: theme.onSurfaceVariant),
+          Icon(Icons.segment, size: 14, color: scheme.onSurfaceVariant),
           const SizedBox(width: 4),
           Text(
             'Needs',
             style: TextStyle(
               fontSize: 11,
-              color: theme.onSurfaceVariant,
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -918,10 +952,10 @@ class _NeedsBadge extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: theme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(4),
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: theme.outlineVariant.withValues(alpha: 0.5),
+              color: scheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
           child: Text(
@@ -930,7 +964,7 @@ class _NeedsBadge extends StatelessWidget {
               fontSize: 10,
               fontFamily: 'monospace',
               fontWeight: FontWeight.w600,
-              color: theme.onSurfaceVariant,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ),
