@@ -470,6 +470,7 @@ class TranslationsSettingsEn {
 	/// en: 'Failed to delete account: $error'
 	String deleteFailed({required Object error}) => 'Failed to delete account: ${error}';
 
+	late final TranslationsSettingsAiFeaturesEn aiFeatures = TranslationsSettingsAiFeaturesEn._(_root);
 	late final TranslationsSettingsLanguageEn language = TranslationsSettingsLanguageEn._(_root);
 }
 
@@ -1292,6 +1293,30 @@ class TranslationsBuildLogsDurationEn {
 	String hours({required Object count}) => '${count}h';
 }
 
+// Path: settings.aiFeatures
+class TranslationsSettingsAiFeaturesEn {
+	TranslationsSettingsAiFeaturesEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'AI Features'
+	String get title => 'AI Features';
+
+	/// en: 'Enable AI-powered features like workflow builder and failure summaries'
+	String get subtitle => 'Enable AI-powered features like workflow builder and failure summaries';
+
+	/// en: 'AI features are enabled'
+	String get enabled => 'AI features are enabled';
+
+	/// en: 'AI features are disabled'
+	String get disabled => 'AI features are disabled';
+
+	/// en: 'AI features setting updated'
+	String get updated => 'AI features setting updated';
+}
+
 // Path: settings.language
 class TranslationsSettingsLanguageEn {
 	TranslationsSettingsLanguageEn._(this._root);
@@ -1680,6 +1705,11 @@ extension on Translations {
 			'settings.noUserSignedIn' => 'No user is currently signed in',
 			'settings.requiresRecentLogin' => 'Please sign out and sign in again before deleting your account',
 			'settings.deleteFailed' => ({required Object error}) => 'Failed to delete account: ${error}',
+			'settings.aiFeatures.title' => 'AI Features',
+			'settings.aiFeatures.subtitle' => 'Enable AI-powered features like workflow builder and failure summaries',
+			'settings.aiFeatures.enabled' => 'AI features are enabled',
+			'settings.aiFeatures.disabled' => 'AI features are disabled',
+			'settings.aiFeatures.updated' => 'AI features setting updated',
 			'settings.language.title' => 'Language',
 			'settings.language.subtitle' => 'Change the display language',
 			'settings.language.system' => 'System Default',

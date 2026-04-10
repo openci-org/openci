@@ -17,6 +17,7 @@ abstract class Team with _$Team {
     required List<String> members,
     @Default([]) List<int> installationIds,
     @Default(1) int runNumber,
+    @Default(true) bool aiEnabled,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Team;
@@ -104,6 +105,14 @@ class TeamList extends _$TeamList {
     final firestore = ref.read(firestoreProvider);
     await firestore.collection(teamsCollection).doc(teamId).update({
       'name': newName,
+      'updatedAt': DateTime.now(),
+    });
+  }
+
+  Future<void> updateAiEnabled(String teamId, bool enabled) async {
+    final firestore = ref.read(firestoreProvider);
+    await firestore.collection(teamsCollection).doc(teamId).update({
+      'aiEnabled': enabled,
       'updatedAt': DateTime.now(),
     });
   }

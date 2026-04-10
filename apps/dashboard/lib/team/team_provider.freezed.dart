@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Team {
 
- String get id; String get name; List<String> get members; List<int> get installationIds; int get runNumber;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;
+ String get id; String get name; List<String> get members; List<int> get installationIds; int get runNumber; bool get aiEnabled;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;
 /// Create a copy of Team
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TeamCopyWith<Team> get copyWith => _$TeamCopyWithImpl<Team>(this as Team, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Team&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.members, members)&&const DeepCollectionEquality().equals(other.installationIds, installationIds)&&(identical(other.runNumber, runNumber) || other.runNumber == runNumber)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Team&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.members, members)&&const DeepCollectionEquality().equals(other.installationIds, installationIds)&&(identical(other.runNumber, runNumber) || other.runNumber == runNumber)&&(identical(other.aiEnabled, aiEnabled) || other.aiEnabled == aiEnabled)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,const DeepCollectionEquality().hash(members),const DeepCollectionEquality().hash(installationIds),runNumber,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,name,const DeepCollectionEquality().hash(members),const DeepCollectionEquality().hash(installationIds),runNumber,aiEnabled,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'Team(id: $id, name: $name, members: $members, installationIds: $installationIds, runNumber: $runNumber, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Team(id: $id, name: $name, members: $members, installationIds: $installationIds, runNumber: $runNumber, aiEnabled: $aiEnabled, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TeamCopyWith<$Res>  {
   factory $TeamCopyWith(Team value, $Res Function(Team) _then) = _$TeamCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, List<String> members, List<int> installationIds, int runNumber,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
+ String id, String name, List<String> members, List<int> installationIds, int runNumber, bool aiEnabled,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -65,14 +65,15 @@ class _$TeamCopyWithImpl<$Res>
 
 /// Create a copy of Team
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? members = null,Object? installationIds = null,Object? runNumber = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? members = null,Object? installationIds = null,Object? runNumber = null,Object? aiEnabled = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,members: null == members ? _self.members : members // ignore: cast_nullable_to_non_nullable
 as List<String>,installationIds: null == installationIds ? _self.installationIds : installationIds // ignore: cast_nullable_to_non_nullable
 as List<int>,runNumber: null == runNumber ? _self.runNumber : runNumber // ignore: cast_nullable_to_non_nullable
-as int,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as int,aiEnabled: null == aiEnabled ? _self.aiEnabled : aiEnabled // ignore: cast_nullable_to_non_nullable
+as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -159,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  List<String> members,  List<int> installationIds,  int runNumber, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  List<String> members,  List<int> installationIds,  int runNumber,  bool aiEnabled, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Team() when $default != null:
-return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.runNumber,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.runNumber,_that.aiEnabled,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -180,10 +181,10 @@ return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.ru
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  List<String> members,  List<int> installationIds,  int runNumber, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  List<String> members,  List<int> installationIds,  int runNumber,  bool aiEnabled, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Team():
-return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.runNumber,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.runNumber,_that.aiEnabled,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +201,10 @@ return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.ru
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  List<String> members,  List<int> installationIds,  int runNumber, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  List<String> members,  List<int> installationIds,  int runNumber,  bool aiEnabled, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Team() when $default != null:
-return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.runNumber,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.runNumber,_that.aiEnabled,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -215,7 +216,7 @@ return $default(_that.id,_that.name,_that.members,_that.installationIds,_that.ru
 @JsonSerializable()
 
 class _Team implements Team {
-  const _Team({required this.id, required this.name, required final  List<String> members, final  List<int> installationIds = const [], this.runNumber = 1, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt}): _members = members,_installationIds = installationIds;
+  const _Team({required this.id, required this.name, required final  List<String> members, final  List<int> installationIds = const [], this.runNumber = 1, this.aiEnabled = true, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt}): _members = members,_installationIds = installationIds;
   factory _Team.fromJson(Map<String, dynamic> json) => _$TeamFromJson(json);
 
 @override final  String id;
@@ -235,6 +236,7 @@ class _Team implements Team {
 }
 
 @override@JsonKey() final  int runNumber;
+@override@JsonKey() final  bool aiEnabled;
 @override@DateTimeConverter() final  DateTime createdAt;
 @override@DateTimeConverter() final  DateTime updatedAt;
 
@@ -251,16 +253,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Team&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other._members, _members)&&const DeepCollectionEquality().equals(other._installationIds, _installationIds)&&(identical(other.runNumber, runNumber) || other.runNumber == runNumber)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Team&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other._members, _members)&&const DeepCollectionEquality().equals(other._installationIds, _installationIds)&&(identical(other.runNumber, runNumber) || other.runNumber == runNumber)&&(identical(other.aiEnabled, aiEnabled) || other.aiEnabled == aiEnabled)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,const DeepCollectionEquality().hash(_members),const DeepCollectionEquality().hash(_installationIds),runNumber,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,name,const DeepCollectionEquality().hash(_members),const DeepCollectionEquality().hash(_installationIds),runNumber,aiEnabled,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'Team(id: $id, name: $name, members: $members, installationIds: $installationIds, runNumber: $runNumber, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Team(id: $id, name: $name, members: $members, installationIds: $installationIds, runNumber: $runNumber, aiEnabled: $aiEnabled, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -271,7 +273,7 @@ abstract mixin class _$TeamCopyWith<$Res> implements $TeamCopyWith<$Res> {
   factory _$TeamCopyWith(_Team value, $Res Function(_Team) _then) = __$TeamCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, List<String> members, List<int> installationIds, int runNumber,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
+ String id, String name, List<String> members, List<int> installationIds, int runNumber, bool aiEnabled,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt
 });
 
 
@@ -288,14 +290,15 @@ class __$TeamCopyWithImpl<$Res>
 
 /// Create a copy of Team
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? members = null,Object? installationIds = null,Object? runNumber = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? members = null,Object? installationIds = null,Object? runNumber = null,Object? aiEnabled = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_Team(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,members: null == members ? _self._members : members // ignore: cast_nullable_to_non_nullable
 as List<String>,installationIds: null == installationIds ? _self._installationIds : installationIds // ignore: cast_nullable_to_non_nullable
 as List<int>,runNumber: null == runNumber ? _self.runNumber : runNumber // ignore: cast_nullable_to_non_nullable
-as int,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as int,aiEnabled: null == aiEnabled ? _self.aiEnabled : aiEnabled // ignore: cast_nullable_to_non_nullable
+as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

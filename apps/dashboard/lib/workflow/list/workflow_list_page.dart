@@ -154,21 +154,45 @@ class WorkflowListPage extends HookConsumerWidget {
         return Scaffold(
           floatingActionButton:
               isWorkflowsTab && selectedRepo != null && selectedBranch != null
-              ? FloatingActionButton.extended(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      SwipeablePageRoute(
-                        fullscreenDialog: true,
-                        builder: (_) => AiWorkflowPage(
-                          repository: selectedRepo,
-                          branch: selectedBranch,
-                          teamId: ref.read(teamStateProvider).value?.id ?? '',
-                        ),
-                      ),
+              ? Consumer(
+                  builder: (context, ref, _) {
+                    final team = ref.watch(teamStateProvider).value;
+                    final aiEnabled = team?.aiEnabled ?? true;
+                    if (aiEnabled) {
+                      return FloatingActionButton.extended(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            SwipeablePageRoute(
+                              fullscreenDialog: true,
+                              builder: (_) => AiWorkflowPage(
+                                repository: selectedRepo,
+                                branch: selectedBranch,
+                                teamId: team?.id ?? '',
+                              ),
+                            ),
+                          );
+                        },
+                        label: Text(wfT.addWorkflow),
+                        icon: const Icon(Icons.auto_awesome),
+                      );
+                    }
+                    return FloatingActionButton.extended(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          SwipeablePageRoute(
+                            fullscreenDialog: true,
+                            builder: (_) => CreateWorkflowPage(
+                              repository: selectedRepo,
+                              branch: selectedBranch,
+                              teamId: team?.id ?? '',
+                            ),
+                          ),
+                        );
+                      },
+                      label: Text(wfT.addWorkflow),
+                      icon: const Icon(Icons.add),
                     );
                   },
-                  label: Text(wfT.addWorkflow),
-                  icon: const Icon(Icons.auto_awesome),
                 )
               : null,
           appBar: AppBar(

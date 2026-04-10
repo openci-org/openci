@@ -43,9 +43,23 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     if (currentStatus === "failure") {
       const latestRunId = afterData.latestRunId as string | undefined;
       if (latestRunId) {
-        generateFailureSummary(event.data!.after.id, latestRunId).catch((err) =>
-          logger.error("Background failure summary generation failed:", err),
-        );
+        // Check if the team has AI features enabled
+        const teamId = afterData.teamId as string | undefined;
+        let aiEnabled = true;
+        if (teamId) {
+          const teamDoc = await db.collection(teamsCollectionPath).doc(teamId).get();
+          if (teamDoc.exists) {
+            aiEnabled = teamDoc.data()?.aiEnabled !== false;
+          }
+        }
+
+        if (aiEnabled) {
+          generateFailureSummary(event.data!.after.id, latestRunId).catch((err) =>
+            logger.error("Background failure summary generation failed:", err),
+          );
+        } else {
+          logger.info(`AI features disabled for team ${teamId}, skipping failure summary`);
+        }
       }
     }
 

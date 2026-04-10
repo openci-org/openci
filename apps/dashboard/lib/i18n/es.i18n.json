@@ -210,6 +210,13 @@
     "noUserSignedIn": "No hay ningún usuario con sesión iniciada actualmente",
     "requiresRecentLogin": "Por favor, cierra sesión e inicia sesión de nuevo antes de eliminar tu cuenta",
     "deleteFailed": "Error al eliminar la cuenta: $error",
+    "aiFeatures": {
+      "title": "Funciones de IA",
+      "subtitle": "Habilitar funciones impulsadas por IA como el constructor de flujos de trabajo y los resúmenes de fallos",
+      "enabled": "Las funciones de IA están habilitadas",
+      "disabled": "Las funciones de IA están deshabilitadas",
+      "updated": "Configuración de funciones de IA actualizada"
+    },
     "language": {
       "title": "Idioma",
       "subtitle": "Cambiar el idioma de visualización",
