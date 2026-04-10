@@ -107,4 +107,9 @@ class TeamList extends _$TeamList {
       'updatedAt': DateTime.now(),
     });
   }
+
+  Future<void> deleteTeam(String teamId) async {
+    final firestore = ref.read(firestoreProvider);
+    await firestore.collection(teamsCollection).doc(teamId).delete();
+  }
 }

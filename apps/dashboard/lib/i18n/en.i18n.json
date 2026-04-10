@@ -263,7 +263,11 @@
     "members": "Members",
     "membersCount": "$count members",
     "you": "You",
-    "noEmail": "No email"
+    "noEmail": "No email",
+    "deleteTeam": "Delete Team",
+    "deleteTeamConfirm": "Are you sure you want to delete \"$teamName\"? This action cannot be undone. All workflows, secrets, and environment variables associated with this team will be permanently deleted.",
+    "deletedSuccess": "Team deleted successfully",
+    "cannotDeleteLastTeam": "You cannot delete your last team. Please create another team first."
   },
   "github": {
     "connectTitle": "Connect GitHub",

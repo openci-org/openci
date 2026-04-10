@@ -4,6 +4,7 @@ import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/create_team_bottom_sheet.dart';
+import 'package:dashboard/team/delete_team_bottom_sheet.dart';
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
@@ -793,6 +794,20 @@ class _TeamMenuButton extends StatelessWidget {
                                 isScrollControlled: true,
                                 builder: (_) =>
                                     const CreateTeamBottomSheet(),
+                              );
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.delete_outline_rounded,
+                            label: t.team.deleteTeam,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    const DeleteTeamBottomSheet(),
                               );
                             },
                           ),

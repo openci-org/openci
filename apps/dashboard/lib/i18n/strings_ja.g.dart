@@ -314,6 +314,10 @@ class _TranslationsTeamJa implements TranslationsTeamEn {
 	@override String membersCount({required Object count}) => '${count}人のメンバー';
 	@override String get you => 'あなた';
 	@override String get noEmail => 'メールなし';
+	@override String get deleteTeam => 'チーム削除';
+	@override String deleteTeamConfirm({required Object teamName}) => '本当に「${teamName}」を削除しますか？この操作は元に戻せません。このチームに関連するすべてのワークフロー、シークレット、環境変数が完全に削除されます。';
+	@override String get deletedSuccess => 'チームが削除されました';
+	@override String get cannotDeleteLastTeam => '最後のチームは削除できません。先に別のチームを作成してください。';
 }
 
 // Path: github
@@ -934,6 +938,10 @@ extension on TranslationsJa {
 			'team.membersCount' => ({required Object count}) => '${count}人のメンバー',
 			'team.you' => 'あなた',
 			'team.noEmail' => 'メールなし',
+			'team.deleteTeam' => 'チーム削除',
+			'team.deleteTeamConfirm' => ({required Object teamName}) => '本当に「${teamName}」を削除しますか？この操作は元に戻せません。このチームに関連するすべてのワークフロー、シークレット、環境変数が完全に削除されます。',
+			'team.deletedSuccess' => 'チームが削除されました',
+			'team.cannotDeleteLastTeam' => '最後のチームは削除できません。先に別のチームを作成してください。',
 			'github.connectTitle' => 'GitHubと連携',
 			'github.connectDescription' => 'GitHubアカウントを連携して\nリポジトリを自動的に選択できるようにします。',
 			'github.connectButton' => 'GitHubと連携する',
