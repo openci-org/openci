@@ -19,76 +19,73 @@ Rules:
 3. Suggest a likely FIX if the cause is clear.
 4. Keep the summary under 200 words.
 5. Use markdown formatting for readability (bold for key terms, code blocks for file paths/commands).
-6. Always respond in the same language as the log content. If the logs are in English, respond in English. If mixed, default to English.
+6. Always respond in Japanese (日本語).
 7. Do NOT include generic advice. Be specific to the actual error.
 
 Output format:
-**Root Cause**: (one-line summary)
+**原因**: (一行の要約)
 
-**Details**: (2-3 sentences with specific error info)
+**詳細**: (具体的なエラー情報を2〜3文で)
 
-**Suggested Fix**: (actionable suggestion)`;
+**修正案**: (具体的な修正方法)`;
 
-// Models to compare (temporary, for evaluation)
-const MODELS_TO_COMPARE = [
-	"gemini-2.5-flash-lite",
-	"gemini-2.5-flash",
-	"gemini-2.5-pro",
-	"gemini-3-flash-preview",
-	"gemini-3.1-flash-lite-preview",
-	"gemini-3.1-pro-preview",
-];
+const MODEL = "gemini-2.5-flash-lite";
 
 /**
- * Fetches logs for a build job run.
+ * Generates a failure summary for a build job using Gemini API.
+ * Writes a "generating" status immediately so the UI can show a loading state,
+ * then updates with the actual summary when complete.
  */
-async function fetchLogs(buildJobId: string, latestRunId: string): Promise<string | null> {
-	const logsSnapshot = await db
-		.collection(buildJobsCollectionPath)
-		.doc(buildJobId)
-		.collection(runsSubcollectionPath)
-		.doc(latestRunId)
-		.collection(logsSubcollectionPath)
-		.orderBy("timestamp", "asc")
-		.get();
+export async function generateFailureSummary(
+	buildJobId: string,
+	latestRunId: string,
+): Promise<void> {
+	const jobRef = db.collection(buildJobsCollectionPath).doc(buildJobId);
 
-	if (logsSnapshot.empty) {
-		logger.warn(`No logs found for build job ${buildJobId}, run ${latestRunId}`);
-		return null;
-	}
-
-	const logLines = logsSnapshot.docs.map((doc) => {
-		const data = doc.data();
-		const level = data.level as string;
-		const message = data.message as string;
-		return `[${level}] ${message}`;
-	});
-
-	// Truncate if logs are too long (keep last 500 lines for context)
-	const maxLines = 500;
-	const truncatedLogs =
-		logLines.length > maxLines
-			? [
-					`... (${logLines.length - maxLines} earlier lines omitted)`,
-					...logLines.slice(-maxLines),
-				]
-			: logLines;
-
-	return truncatedLogs.join("\n");
-}
-
-/**
- * Calls a single Gemini model to generate a summary.
- */
-async function callModel(
-	ai: GoogleGenAI,
-	model: string,
-	logContent: string,
-): Promise<{ model: string; summary: string | null; durationMs: number }> {
-	const start = Date.now();
 	try {
+		// Immediately mark as generating so the UI can show a loading state
+		await jobRef.update({
+			failureSummaryStatus: "generating",
+		});
+
+		// Fetch all logs for the latest run
+		const logsSnapshot = await jobRef
+			.collection(runsSubcollectionPath)
+			.doc(latestRunId)
+			.collection(logsSubcollectionPath)
+			.orderBy("timestamp", "asc")
+			.get();
+
+		if (logsSnapshot.empty) {
+			logger.warn(`No logs found for build job ${buildJobId}, run ${latestRunId}`);
+			await jobRef.update({ failureSummaryStatus: "no_logs" });
+			return;
+		}
+
+		const logLines = logsSnapshot.docs.map((doc) => {
+			const data = doc.data();
+			const level = data.level as string;
+			const message = data.message as string;
+			return `[${level}] ${message}`;
+		});
+
+		// Truncate if logs are too long (keep last 500 lines for context)
+		const maxLines = 500;
+		const truncatedLogs =
+			logLines.length > maxLines
+				? [
+						`... (${logLines.length - maxLines} earlier lines omitted)`,
+						...logLines.slice(-maxLines),
+					]
+				: logLines;
+
+		const logContent = truncatedLogs.join("\n");
+
+		const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY.value() });
+
+		const start = Date.now();
 		const response = await ai.models.generateContent({
-			model: model,
+			model: MODEL,
 			contents: [
 				{
 					role: "user",
@@ -105,71 +102,33 @@ async function callModel(
 				temperature: 0.2,
 			},
 		});
-
-		const summary = response.text?.trim() || null;
 		const durationMs = Date.now() - start;
-		logger.info(`Model ${model} completed in ${durationMs}ms`);
-		return { model, summary, durationMs };
-	} catch (error) {
-		const durationMs = Date.now() - start;
-		logger.error(`Model ${model} failed after ${durationMs}ms:`, String(error));
-		return { model, summary: null, durationMs };
-	}
-}
 
-/**
- * Generates failure summaries using ALL comparison models in parallel.
- * Saves results as a map: failureSummaries: { "model-name": { summary, durationMs } }
- * Also picks the first successful result as the primary failureSummary.
- */
-export async function generateFailureSummary(
-	buildJobId: string,
-	latestRunId: string,
-): Promise<void> {
-	try {
-		const logContent = await fetchLogs(buildJobId, latestRunId);
-		if (!logContent) return;
-
-		const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY.value() });
-
-		// Run all models in parallel
-		const results = await Promise.all(
-			MODELS_TO_COMPARE.map((model) => callModel(ai, model, logContent)),
-		);
-
-		// Build the comparison map
-		const failureSummaries: Record<string, { summary: string | null; durationMs: number }> = {};
-		let primarySummary: string | null = null;
-		let primaryModel: string | null = null;
-
-		for (const result of results) {
-			failureSummaries[result.model] = {
-				summary: result.summary,
-				durationMs: result.durationMs,
-			};
-			// Use the first successful result as primary
-			if (!primarySummary && result.summary) {
-				primarySummary = result.summary;
-				primaryModel = result.model;
-			}
+		const summary = response.text?.trim();
+		if (!summary) {
+			logger.warn("Gemini returned empty response for failure summary");
+			await jobRef.update({ failureSummaryStatus: "error" });
+			return;
 		}
 
-		// Save all results to Firestore
-		await db.collection(buildJobsCollectionPath).doc(buildJobId).update({
-			failureSummary: primarySummary,
-			failureSummaryModel: primaryModel,
-			failureSummaries: failureSummaries,
+		// Save result to Firestore
+		await jobRef.update({
+			failureSummary: summary,
+			failureSummaryModel: MODEL,
+			failureSummaryStatus: "done",
+			failureSummaryDurationMs: durationMs,
 		});
 
 		logger.info(
-			`Generated ${results.filter((r) => r.summary).length}/${MODELS_TO_COMPARE.length} failure summaries for build job ${buildJobId}`,
+			`Generated failure summary for build job ${buildJobId} using ${MODEL} in ${durationMs}ms`,
 		);
 	} catch (error) {
-		logger.error("Failed to generate failure summaries:", {
+		logger.error("Failed to generate failure summary:", {
 			error: String(error),
 			stack: (error as Error)?.stack,
 			buildJobId,
 		});
+		await jobRef.update({ failureSummaryStatus: "error" }).catch(() => {});
 	}
 }
 

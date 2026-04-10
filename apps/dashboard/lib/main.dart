@@ -28,8 +28,6 @@ Future<void> main() async {
 
   await initializeRevenueCat();
 
-  A
-
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(
     TranslationProvider(
