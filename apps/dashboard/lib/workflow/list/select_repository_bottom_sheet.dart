@@ -100,16 +100,14 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                       ),
                       title: Text(repo.fullName),
                       subtitle: Text('default: ${repo.defaultBranch}'),
-                      onTap: () async {
-                        isLoading.value = true;
-                        await ref
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        ref
                             .read(userProvider.notifier)
                             .updateSelectedRepository(
                               repository: repo.fullName,
                               defaultBranch: repo.defaultBranch,
                             );
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop();
                       },
                     );
                   },
