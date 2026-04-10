@@ -311,6 +311,11 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               ],
             ),
           ),
+          // ── AI Failure Summary ─────────────────────────────────────────
+          if (buildJob.status == 'failure')
+            _FailureSummaryCard(
+              summaries: buildJob.failureSummaries,
+            ),
           // ── Log content ───────────────────────────────────────────────
           Expanded(
             child: buildJob.latestRunId != null
@@ -918,6 +923,320 @@ class _HoverHighlightState extends State<_HoverHighlight> {
           borderRadius: BorderRadius.circular(4),
         ),
         child: widget.child,
+      ),
+    );
+  }
+}
+
+// ── AI Failure Summary Card (Multi-model comparison) ────────────────────────
+
+class _FailureSummaryCard extends HookWidget {
+  const _FailureSummaryCard({required this.summaries});
+
+  final Map<String, dynamic>? summaries;
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpanded = useState(true);
+    final selectedIndex = useState(0);
+
+    // No summaries yet — either an old job or still generating.
+    // The Firestore real-time listener will update the UI once data arrives.
+    if (summaries == null || summaries!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final models = summaries!.keys.toList();
+    if (selectedIndex.value >= models.length) {
+      selectedIndex.value = 0;
+    }
+
+    final currentModel = models[selectedIndex.value];
+    final currentData = summaries![currentModel] as Map<String, dynamic>?;
+    final currentSummary = currentData?['summary'] as String?;
+
+    const accentColor = Color(0xFFF85149);
+
+    // Model colors for tab distinction
+    const modelColors = [
+      Color(0xFF3FB950), // 2.5 Flash Lite - green
+      Color(0xFF58A6FF), // 2.5 Flash - blue
+      Color(0xFFBC8CFF), // 2.5 Pro - purple
+      Color(0xFFD29922), // 3.0 Flash - amber
+      Color(0xFFF778BA), // 3.1 Flash Lite - pink
+      Color(0xFFFF7B72), // 3.1 Pro - coral
+    ];
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kSurface,
+        border: Border(bottom: BorderSide(color: _kBorder)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => isExpanded.value = !isExpanded.value,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 16,
+                      color: accentColor.withValues(alpha: 0.8),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      t.buildLogs.detail.failureSummaryTitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _kText.withValues(alpha: 0.9),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _kBorder.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${models.length} models',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                          color: _kMuted.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      isExpanded.value
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 20,
+                      color: _kMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // ── Body (collapsible) ──
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: isExpanded.value
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              children: [
+                // ── Model tabs ──
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (int i = 0; i < models.length; i++)
+                        SizedBox(
+                          width: (MediaQuery.of(context).size.width - 32 - 12) / 3,
+                          child: _ModelTab(
+                            model: models[i],
+                            color: modelColors[i % modelColors.length],
+                            isSelected: selectedIndex.value == i,
+                            duration:
+                                (summaries![models[i]]
+                                        as Map<String, dynamic>?)?['durationMs']
+                                    as int?,
+                            onTap: () => selectedIndex.value = i,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // ── Summary content ──
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    key: ValueKey(currentModel),
+                    width: double.infinity,
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    decoration: BoxDecoration(
+                      color:
+                          (modelColors[selectedIndex.value %
+                                  modelColors.length])
+                              .withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color:
+                            (modelColors[selectedIndex.value %
+                                    modelColors.length])
+                                .withValues(alpha: 0.12),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left accent bar
+                        Container(
+                          width: 3,
+                          constraints: const BoxConstraints(minHeight: 60),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                (modelColors[selectedIndex.value %
+                                        modelColors.length])
+                                    .withValues(alpha: 0.8),
+                                (modelColors[selectedIndex.value %
+                                        modelColors.length])
+                                    .withValues(alpha: 0.3),
+                              ],
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(10),
+                              bottomLeft: Radius.circular(10),
+                            ),
+                          ),
+                        ),
+                        // Summary text
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: currentSummary != null
+                                ? SelectableText(
+                                    currentSummary,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: _kText.withValues(alpha: 0.85),
+                                      height: 1.6,
+                                    ),
+                                  )
+                                : Text(
+                                    'No summary generated',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: _kMuted.withValues(alpha: 0.5),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModelTab extends StatelessWidget {
+  const _ModelTab({
+    required this.model,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+    this.duration,
+  });
+
+  final String model;
+  final Color color;
+  final bool isSelected;
+  final int? duration;
+  final VoidCallback onTap;
+
+  String get _shortName {
+    // "gemini-2.5-flash-lite" → "2.5 Flash Lite"
+    // "gemini-2.5-flash" → "2.5 Flash"
+    // "gemini-2.5-pro" → "2.5 Pro"
+    // "gemini-3-flash-preview" → "3 Flash"
+    // "gemini-3.1-flash-lite-preview" → "3.1 Flash Lite"
+    // "gemini-3.1-pro-preview" → "3.1 Pro"
+    final stripped = model
+        .replaceFirst('gemini-', '')
+        .replaceAll('-preview', '');
+    final parts = stripped.split('-');
+    if (parts.isEmpty) return model;
+    final version = parts[0]; // "2.5", "3", "3.1"
+    final rest = parts.skip(1).map(_capitalize).join(' '); // "Flash Lite", "Pro"
+    return '$version $rest';
+  }
+
+  String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
+
+  String get _durationLabel {
+    if (duration == null) return '';
+    if (duration! < 1000) return '${duration}ms';
+    return '${(duration! / 1000).toStringAsFixed(1)}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? color.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? color.withValues(alpha: 0.3)
+                  : _kBorder.withValues(alpha: 0.5),
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                _shortName,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? color : _kMuted.withValues(alpha: 0.7),
+                ),
+              ),
+              if (duration != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  _durationLabel,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontFamily: 'monospace',
+                    color: isSelected
+                        ? color.withValues(alpha: 0.7)
+                        : _kMuted.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -138,7 +138,9 @@
       "logEntries": "$count entradas de registro",
       "copyAll": "Copiar todos los registros",
       "logsCopied": "Registros copiados al portapapeles",
-      "lines": "$count líneas"
+      "lines": "$count líneas",
+      "generatingSummary": "Generando resumen con IA...",
+      "failureSummaryTitle": "Resumen de fallo con IA"
     },
     "duration": {
       "lessThanMinute": "<1m",

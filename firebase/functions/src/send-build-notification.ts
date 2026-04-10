@@ -10,11 +10,13 @@ import {
   usersCollectionPath,
   workflowsCollectionPath,
 } from "./firestore-collection-paths";
+import { generateFailureSummary, getGeminiSecrets } from "./generate-failure-summary";
 
 export const onBuildJobStatusChange = onDocumentUpdated(
   {
     document: `${buildJobsCollectionPath}/{buildJobId}`,
     region: "asia-northeast1",
+    secrets: [...getGeminiSecrets()],
   },
   async (event) => {
     const beforeData = event.data?.before.data();
@@ -35,6 +37,16 @@ export const onBuildJobStatusChange = onDocumentUpdated(
     const terminalStatuses = ["success", "failure", "cancelled", "timed_out", "skipped"];
     if (terminalStatuses.includes(currentStatus)) {
       await resolveDependencies(afterData, currentStatus);
+    }
+
+    // Generate AI failure summary (fire-and-forget, runs in parallel with notifications)
+    if (currentStatus === "failure") {
+      const latestRunId = afterData.latestRunId as string | undefined;
+      if (latestRunId) {
+        generateFailureSummary(event.data!.after.id, latestRunId).catch((err) =>
+          logger.error("Background failure summary generation failed:", err),
+        );
+      }
     }
 
     // Only send notifications when status changes to success or failure

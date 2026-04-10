@@ -577,6 +577,8 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	@override String get copyAll => 'すべてのログをコピー';
 	@override String get logsCopied => 'ログがクリップボードにコピーされました';
 	@override String lines({required Object count}) => '${count}行';
+	@override String get generatingSummary => 'AI要約を生成中...';
+	@override String get failureSummaryTitle => 'AI 失敗要約';
 }
 
 // Path: buildLogs.duration
@@ -824,6 +826,8 @@ extension on TranslationsJa {
 			'buildLogs.detail.copyAll' => 'すべてのログをコピー',
 			'buildLogs.detail.logsCopied' => 'ログがクリップボードにコピーされました',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count}行',
+			'buildLogs.detail.generatingSummary' => 'AI要約を生成中...',
+			'buildLogs.detail.failureSummaryTitle' => 'AI 失敗要約',
 			'buildLogs.duration.lessThanMinute' => '<1分',
 			'buildLogs.duration.minutes' => ({required Object count}) => '${count}分',
 			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}時間${minutes}分',

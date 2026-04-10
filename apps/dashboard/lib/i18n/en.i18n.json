@@ -138,7 +138,9 @@
       "logEntries": "$count log entries",
       "copyAll": "Copy all logs",
       "logsCopied": "Logs copied to clipboard",
-      "lines": "$count lines"
+      "lines": "$count lines",
+      "generatingSummary": "Generating AI summary...",
+      "failureSummaryTitle": "AI Failure Summary"
     },
     "duration": {
       "lessThanMinute": "<1m",
