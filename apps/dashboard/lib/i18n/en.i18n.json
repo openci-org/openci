@@ -210,6 +210,13 @@
     "noUserSignedIn": "No user is currently signed in",
     "requiresRecentLogin": "Please sign out and sign in again before deleting your account",
     "deleteFailed": "Failed to delete account: $error",
+    "aiFeatures": {
+      "title": "AI Features",
+      "subtitle": "Enable AI-powered features like workflow builder and failure summaries",
+      "enabled": "AI features are enabled",
+      "disabled": "AI features are disabled",
+      "updated": "AI features setting updated"
+    },
     "language": {
       "title": "Language",
       "subtitle": "Change the display language",

@@ -7,6 +7,7 @@ import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/settings/locale_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +64,8 @@ class SettingsPage extends HookConsumerWidget {
                       );
                     },
                   ),
+                  const Divider(),
+                  const _AiFeaturesTile(),
                   const Divider(),
                   ListTile(
                     leading: Icon(
@@ -159,6 +162,72 @@ class SettingsPage extends HookConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+class _AiFeaturesTile extends ConsumerWidget {
+  const _AiFeaturesTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final teamAsync = ref.watch(teamStateProvider);
+    final aiT = t.settings.aiFeatures;
+
+    return teamAsync.when(
+      data: (team) {
+        final isEnabled = team.aiEnabled;
+        return SwitchListTile(
+          secondary: Icon(
+            Icons.auto_awesome,
+            color: isEnabled
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+          ),
+          title: Text(aiT.title),
+          subtitle: Text(
+            isEnabled ? aiT.enabled : aiT.disabled,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          value: isEnabled,
+          onChanged: (value) async {
+            try {
+              await ref
+                  .read(teamListProvider.notifier)
+                  .updateAiEnabled(team.id, value);
+              if (!context.mounted) return;
+              context.showSnackBarMessage(aiT.updated);
+            } catch (e) {
+              if (!context.mounted) return;
+              context.showSnackBarMessage(
+                t.common.error(error: e.toString()),
+              );
+            }
+          },
+        );
+      },
+      loading: () => ListTile(
+        leading: Icon(
+          Icons.auto_awesome,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        title: Text(aiT.title),
+        subtitle: Text(
+          aiT.subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+        ),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

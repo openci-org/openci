@@ -1,6 +1,7 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -313,19 +314,28 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             ),
           ),
           // ── AI Failure Summary ─────────────────────────────────────────
-          if (buildJob.status == 'failure' &&
-              buildJob.failureSummaryStatus != null)
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.4,
-              ),
-              child: _FailureSummaryCard(
-                status: buildJob.failureSummaryStatus!,
-                summary: buildJob.failureSummary,
-                model: buildJob.failureSummaryModel,
-                durationMs: buildJob.failureSummaryDurationMs,
-              ),
-            ),
+          Consumer(
+            builder: (context, ref, _) {
+              final aiEnabled =
+                  ref.watch(teamStateProvider).value?.aiEnabled ?? true;
+              if (!aiEnabled) return const SizedBox.shrink();
+              if (buildJob.status != 'failure' ||
+                  buildJob.failureSummaryStatus == null) {
+                return const SizedBox.shrink();
+              }
+              return ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: _FailureSummaryCard(
+                  status: buildJob.failureSummaryStatus!,
+                  summary: buildJob.failureSummary,
+                  model: buildJob.failureSummaryModel,
+                  durationMs: buildJob.failureSummaryDurationMs,
+                ),
+              );
+            },
+          ),
           // ── Log content ───────────────────────────────────────────────
           Expanded(
             child: buildJob.latestRunId != null

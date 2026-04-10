@@ -210,6 +210,13 @@
     "noUserSignedIn": "現在サインインしているユーザーがいません",
     "requiresRecentLogin": "アカウンを削除する前に、一度ログアウトしてから再度ログインしてください",
     "deleteFailed": "アカウントの削除に失敗: $error",
+    "aiFeatures": {
+      "title": "AI機能",
+      "subtitle": "AIワークフロービルダーや失敗要約などのAI機能を有効にする",
+      "enabled": "AI機能が有効です",
+      "disabled": "AI機能が無効です",
+      "updated": "AI機能の設定が更新されました"
+    },
     "language": {
       "title": "言語",
       "subtitle": "表示言語を変更",

@@ -253,6 +253,7 @@ class _TranslationsSettingsJa implements TranslationsSettingsEn {
 	@override String get noUserSignedIn => '現在サインインしているユーザーがいません';
 	@override String get requiresRecentLogin => 'アカウンを削除する前に、一度ログアウトしてから再度ログインしてください';
 	@override String deleteFailed({required Object error}) => 'アカウントの削除に失敗: ${error}';
+	@override late final _TranslationsSettingsAiFeaturesJa aiFeatures = _TranslationsSettingsAiFeaturesJa._(_root);
 	@override late final _TranslationsSettingsLanguageJa language = _TranslationsSettingsLanguageJa._(_root);
 }
 
@@ -594,6 +595,20 @@ class _TranslationsBuildLogsDurationJa implements TranslationsBuildLogsDurationE
 	@override String hours({required Object count}) => '${count}時間';
 }
 
+// Path: settings.aiFeatures
+class _TranslationsSettingsAiFeaturesJa implements TranslationsSettingsAiFeaturesEn {
+	_TranslationsSettingsAiFeaturesJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'AI機能';
+	@override String get subtitle => 'AIワークフロービルダーや失敗要約などのAI機能を有効にする';
+	@override String get enabled => 'AI機能が有効です';
+	@override String get disabled => 'AI機能が無効です';
+	@override String get updated => 'AI機能の設定が更新されました';
+}
+
 // Path: settings.language
 class _TranslationsSettingsLanguageJa implements TranslationsSettingsLanguageEn {
 	_TranslationsSettingsLanguageJa._(this._root);
@@ -886,6 +901,11 @@ extension on TranslationsJa {
 			'settings.noUserSignedIn' => '現在サインインしているユーザーがいません',
 			'settings.requiresRecentLogin' => 'アカウンを削除する前に、一度ログアウトしてから再度ログインしてください',
 			'settings.deleteFailed' => ({required Object error}) => 'アカウントの削除に失敗: ${error}',
+			'settings.aiFeatures.title' => 'AI機能',
+			'settings.aiFeatures.subtitle' => 'AIワークフロービルダーや失敗要約などのAI機能を有効にする',
+			'settings.aiFeatures.enabled' => 'AI機能が有効です',
+			'settings.aiFeatures.disabled' => 'AI機能が無効です',
+			'settings.aiFeatures.updated' => 'AI機能の設定が更新されました',
 			'settings.language.title' => '言語',
 			'settings.language.subtitle' => '表示言語を変更',
 			'settings.language.system' => 'システムのデフォルト',

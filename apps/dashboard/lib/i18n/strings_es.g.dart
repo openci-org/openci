@@ -253,6 +253,7 @@ class _TranslationsSettingsEs implements TranslationsSettingsEn {
 	@override String get noUserSignedIn => 'No hay ningún usuario con sesión iniciada actualmente';
 	@override String get requiresRecentLogin => 'Por favor, cierra sesión e inicia sesión de nuevo antes de eliminar tu cuenta';
 	@override String deleteFailed({required Object error}) => 'Error al eliminar la cuenta: ${error}';
+	@override late final _TranslationsSettingsAiFeaturesEs aiFeatures = _TranslationsSettingsAiFeaturesEs._(_root);
 	@override late final _TranslationsSettingsLanguageEs language = _TranslationsSettingsLanguageEs._(_root);
 }
 
@@ -594,6 +595,20 @@ class _TranslationsBuildLogsDurationEs implements TranslationsBuildLogsDurationE
 	@override String hours({required Object count}) => '${count}h';
 }
 
+// Path: settings.aiFeatures
+class _TranslationsSettingsAiFeaturesEs implements TranslationsSettingsAiFeaturesEn {
+	_TranslationsSettingsAiFeaturesEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Funciones de IA';
+	@override String get subtitle => 'Habilitar funciones impulsadas por IA como el constructor de flujos de trabajo y los resúmenes de fallos';
+	@override String get enabled => 'Las funciones de IA están habilitadas';
+	@override String get disabled => 'Las funciones de IA están deshabilitadas';
+	@override String get updated => 'Configuración de funciones de IA actualizada';
+}
+
 // Path: settings.language
 class _TranslationsSettingsLanguageEs implements TranslationsSettingsLanguageEn {
 	_TranslationsSettingsLanguageEs._(this._root);
@@ -886,6 +901,11 @@ extension on TranslationsEs {
 			'settings.noUserSignedIn' => 'No hay ningún usuario con sesión iniciada actualmente',
 			'settings.requiresRecentLogin' => 'Por favor, cierra sesión e inicia sesión de nuevo antes de eliminar tu cuenta',
 			'settings.deleteFailed' => ({required Object error}) => 'Error al eliminar la cuenta: ${error}',
+			'settings.aiFeatures.title' => 'Funciones de IA',
+			'settings.aiFeatures.subtitle' => 'Habilitar funciones impulsadas por IA como el constructor de flujos de trabajo y los resúmenes de fallos',
+			'settings.aiFeatures.enabled' => 'Las funciones de IA están habilitadas',
+			'settings.aiFeatures.disabled' => 'Las funciones de IA están deshabilitadas',
+			'settings.aiFeatures.updated' => 'Configuración de funciones de IA actualizada',
 			'settings.language.title' => 'Idioma',
 			'settings.language.subtitle' => 'Cambiar el idioma de visualización',
 			'settings.language.system' => 'Predeterminado del sistema',
