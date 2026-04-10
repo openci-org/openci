@@ -17,6 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
     "@google-cloud/secret-manager": "^6.1.1",
+    "@google/genai": "^1.49.0",
     "firebase-admin": "^13.7.0",
     "firebase-functions": "^7.2.3",
     "graphql": "^16.13.2",

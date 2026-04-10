@@ -1263,6 +1263,12 @@ class TranslationsBuildLogsDetailEn {
 
 	/// en: '$count lines'
 	String lines({required Object count}) => '${count} lines';
+
+	/// en: 'Generating AI summary...'
+	String get generatingSummary => 'Generating AI summary...';
+
+	/// en: 'AI Failure Summary'
+	String get failureSummaryTitle => 'AI Failure Summary';
 }
 
 // Path: buildLogs.duration
@@ -1614,6 +1620,8 @@ extension on Translations {
 			'buildLogs.detail.copyAll' => 'Copy all logs',
 			'buildLogs.detail.logsCopied' => 'Logs copied to clipboard',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} lines',
+			'buildLogs.detail.generatingSummary' => 'Generating AI summary...',
+			'buildLogs.detail.failureSummaryTitle' => 'AI Failure Summary',
 			'buildLogs.duration.lessThanMinute' => '<1m',
 			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
 			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',

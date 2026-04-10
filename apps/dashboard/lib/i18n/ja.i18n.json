@@ -138,7 +138,9 @@
       "logEntries": "$count件のログ",
       "copyAll": "すべてのログをコピー",
       "logsCopied": "ログがクリップボードにコピーされました",
-      "lines": "$count行"
+      "lines": "$count行",
+      "generatingSummary": "AI要約を生成中...",
+      "failureSummaryTitle": "AI 失敗要約"
     },
     "duration": {
       "lessThanMinute": "<1分",

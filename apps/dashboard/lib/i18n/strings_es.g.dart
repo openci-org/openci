@@ -581,6 +581,8 @@ class _TranslationsBuildLogsDetailEs implements TranslationsBuildLogsDetailEn {
 	@override String get copyAll => 'Copiar todos los registros';
 	@override String get logsCopied => 'Registros copiados al portapapeles';
 	@override String lines({required Object count}) => '${count} líneas';
+	@override String get generatingSummary => 'Generando resumen con IA...';
+	@override String get failureSummaryTitle => 'Resumen de fallo con IA';
 }
 
 // Path: buildLogs.duration
@@ -828,6 +830,8 @@ extension on TranslationsEs {
 			'buildLogs.detail.copyAll' => 'Copiar todos los registros',
 			'buildLogs.detail.logsCopied' => 'Registros copiados al portapapeles',
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} líneas',
+			'buildLogs.detail.generatingSummary' => 'Generando resumen con IA...',
+			'buildLogs.detail.failureSummaryTitle' => 'Resumen de fallo con IA',
 			'buildLogs.duration.lessThanMinute' => '<1m',
 			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
 			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',

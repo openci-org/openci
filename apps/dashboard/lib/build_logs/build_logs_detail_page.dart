@@ -6,6 +6,7 @@ import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -311,6 +312,20 @@ class BuildLogsDetailPage extends HookConsumerWidget {
               ],
             ),
           ),
+          // ── AI Failure Summary ─────────────────────────────────────────
+          if (buildJob.status == 'failure' &&
+              buildJob.failureSummaryStatus != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              ),
+              child: _FailureSummaryCard(
+                status: buildJob.failureSummaryStatus!,
+                summary: buildJob.failureSummary,
+                model: buildJob.failureSummaryModel,
+                durationMs: buildJob.failureSummaryDurationMs,
+              ),
+            ),
           // ── Log content ───────────────────────────────────────────────
           Expanded(
             child: buildJob.latestRunId != null
@@ -918,6 +933,258 @@ class _HoverHighlightState extends State<_HoverHighlight> {
           borderRadius: BorderRadius.circular(4),
         ),
         child: widget.child,
+      ),
+    );
+  }
+}
+
+// ── AI Failure Summary Card ─────────────────────────────────────────────────
+
+class _FailureSummaryCard extends HookWidget {
+  const _FailureSummaryCard({
+    required this.status,
+    this.summary,
+    this.model,
+    this.durationMs,
+  });
+
+  final String status;
+  final String? summary;
+  final String? model;
+  final int? durationMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpanded = useState(true);
+
+    // Loading state: generating
+    if (status == 'generating') {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: const BoxDecoration(
+          color: _kSurface,
+          border: Border(bottom: BorderSide(color: _kBorder)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: const Color(0xFFD29922).withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: 14,
+              color: const Color(0xFFD29922).withValues(alpha: 0.7),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              t.buildLogs.detail.generatingSummary,
+              style: TextStyle(
+                fontSize: 12,
+                color: const Color(0xFFD29922).withValues(alpha: 0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // No summary available (error or no_logs)
+    if (status != 'done' || summary == null) {
+      return const SizedBox.shrink();
+    }
+
+    const accentColor = Color(0xFFF85149);
+
+    String durationLabel = '';
+    if (durationMs != null) {
+      durationLabel = durationMs! < 1000
+          ? '${durationMs}ms'
+          : '${(durationMs! / 1000).toStringAsFixed(1)}s';
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kSurface,
+        border: Border(bottom: BorderSide(color: _kBorder)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Header ──
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => isExpanded.value = !isExpanded.value,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 16,
+                      color: accentColor.withValues(alpha: 0.8),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      t.buildLogs.detail.failureSummaryTitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _kText.withValues(alpha: 0.9),
+                      ),
+                    ),
+                    if (model != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _kBorder.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          model!,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            color: _kMuted.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (durationLabel.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        durationLabel,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                          color: _kMuted.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    Icon(
+                      isExpanded.value
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 20,
+                      color: _kMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // ── Body (collapsible) ──
+          Flexible(
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 200),
+              crossFadeState: isExpanded.value
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: const SizedBox.shrink(),
+              secondChild: SingleChildScrollView(
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left accent bar
+                      Container(
+                        width: 3,
+                        constraints: const BoxConstraints(minHeight: 60),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              accentColor.withValues(alpha: 0.8),
+                              accentColor.withValues(alpha: 0.3),
+                            ],
+                          ),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(10),
+                            bottomLeft: Radius.circular(10),
+                          ),
+                        ),
+                      ),
+                      // Summary content
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: MarkdownBody(
+                            data: summary!,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                fontSize: 13,
+                                color: _kText.withValues(alpha: 0.85),
+                                height: 1.6,
+                              ),
+                              strong: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _kText.withValues(alpha: 0.95),
+                              ),
+                              code: TextStyle(
+                                fontFamily: 'monospace',
+                                backgroundColor: _kBorder.withValues(alpha: 0.5),
+                                color: const Color(0xFF58A6FF), // blue for code
+                                fontSize: 12,
+                              ),
+                              codeblockDecoration: BoxDecoration(
+                                color: _kSurface,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _kBorder),
+                              ),
+                              blockquote: TextStyle(
+                                color: _kMuted,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              blockquoteDecoration: BoxDecoration(
+                                border: Border(
+                                  left: BorderSide(
+                                      color: _kBorder, width: 4),
+                                ),
+                              ),
+                              listBullet: TextStyle(
+                                color: _kMuted,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

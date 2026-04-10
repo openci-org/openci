@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BuildJob {
 
- String get id; String get status; String get owner; String get repo; String? get teamId; String? get workflowId; String? get workflowName; String? get workflowFileName; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId; String? get tagName; String? get branch; String? get jobKey; String? get workflowRunId; List<String>? get needs;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;@DateTimeConverter() DateTime? get completedAt;
+ String get id; String get status; String get owner; String get repo; String? get teamId; String? get workflowId; String? get workflowName; String? get workflowFileName; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId; String? get tagName; String? get branch; String? get jobKey; String? get workflowRunId; List<String>? get needs; String? get failureSummary; String? get failureSummaryModel; String? get failureSummaryStatus; int? get failureSummaryDurationMs;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;@DateTimeConverter() DateTime? get completedAt;
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $BuildJobCopyWith<BuildJob> get copyWith => _$BuildJobCopyWithImpl<BuildJob>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId)&&const DeepCollectionEquality().equals(other.needs, needs)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId)&&const DeepCollectionEquality().equals(other.needs, needs)&&(identical(other.failureSummary, failureSummary) || other.failureSummary == failureSummary)&&(identical(other.failureSummaryModel, failureSummaryModel) || other.failureSummaryModel == failureSummaryModel)&&(identical(other.failureSummaryStatus, failureSummaryStatus) || other.failureSummaryStatus == failureSummaryStatus)&&(identical(other.failureSummaryDurationMs, failureSummaryDurationMs) || other.failureSummaryDurationMs == failureSummaryDurationMs)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,teamId,workflowId,workflowName,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowRunId,const DeepCollectionEquality().hash(needs),createdAt,updatedAt,completedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,teamId,workflowId,workflowName,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowRunId,const DeepCollectionEquality().hash(needs),failureSummary,failureSummaryModel,failureSummaryStatus,failureSummaryDurationMs,createdAt,updatedAt,completedAt]);
 
 @override
 String toString() {
-  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, workflowName: $workflowName, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowRunId: $workflowRunId, needs: $needs, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
+  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, workflowName: $workflowName, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowRunId: $workflowRunId, needs: $needs, failureSummary: $failureSummary, failureSummaryModel: $failureSummaryModel, failureSummaryStatus: $failureSummaryStatus, failureSummaryDurationMs: $failureSummaryDurationMs, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $BuildJobCopyWith<$Res>  {
   factory $BuildJobCopyWith(BuildJob value, $Res Function(BuildJob) _then) = _$BuildJobCopyWithImpl;
 @useResult
 $Res call({
- String id, String status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
+ String id, String status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs, String? failureSummary, String? failureSummaryModel, String? failureSummaryStatus, int? failureSummaryDurationMs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$BuildJobCopyWithImpl<$Res>
 
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? teamId = freezed,Object? workflowId = freezed,Object? workflowName = freezed,Object? workflowFileName = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? tagName = freezed,Object? branch = freezed,Object? jobKey = freezed,Object? workflowRunId = freezed,Object? needs = freezed,Object? createdAt = null,Object? updatedAt = null,Object? completedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? teamId = freezed,Object? workflowId = freezed,Object? workflowName = freezed,Object? workflowFileName = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? tagName = freezed,Object? branch = freezed,Object? jobKey = freezed,Object? workflowRunId = freezed,Object? needs = freezed,Object? failureSummary = freezed,Object? failureSummaryModel = freezed,Object? failureSummaryStatus = freezed,Object? failureSummaryDurationMs = freezed,Object? createdAt = null,Object? updatedAt = null,Object? completedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -84,7 +84,11 @@ as String?,branch: freezed == branch ? _self.branch : branch // ignore: cast_nul
 as String?,jobKey: freezed == jobKey ? _self.jobKey : jobKey // ignore: cast_nullable_to_non_nullable
 as String?,workflowRunId: freezed == workflowRunId ? _self.workflowRunId : workflowRunId // ignore: cast_nullable_to_non_nullable
 as String?,needs: freezed == needs ? _self.needs : needs // ignore: cast_nullable_to_non_nullable
-as List<String>?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as List<String>?,failureSummary: freezed == failureSummary ? _self.failureSummary : failureSummary // ignore: cast_nullable_to_non_nullable
+as String?,failureSummaryModel: freezed == failureSummaryModel ? _self.failureSummaryModel : failureSummaryModel // ignore: cast_nullable_to_non_nullable
+as String?,failureSummaryStatus: freezed == failureSummaryStatus ? _self.failureSummaryStatus : failureSummaryStatus // ignore: cast_nullable_to_non_nullable
+as String?,failureSummaryDurationMs: freezed == failureSummaryDurationMs ? _self.failureSummaryDurationMs : failureSummaryDurationMs // ignore: cast_nullable_to_non_nullable
+as int?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
@@ -172,10 +176,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
-return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
+return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.failureSummary,_that.failureSummaryModel,_that.failureSummaryStatus,_that.failureSummaryDurationMs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
   return orElse();
 
 }
@@ -193,10 +197,10 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob():
-return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
+return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.failureSummary,_that.failureSummaryModel,_that.failureSummaryStatus,_that.failureSummaryDurationMs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -213,10 +217,10 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
-return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
+return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.failureSummary,_that.failureSummaryModel,_that.failureSummaryStatus,_that.failureSummaryDurationMs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
   return null;
 
 }
@@ -228,7 +232,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.
 @JsonSerializable()
 
 class _BuildJob implements BuildJob {
-  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.teamId, this.workflowId, this.workflowName, this.workflowFileName, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, this.tagName, this.branch, this.jobKey, this.workflowRunId, final  List<String>? needs, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt, @DateTimeConverter() this.completedAt}): _needs = needs;
+  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.teamId, this.workflowId, this.workflowName, this.workflowFileName, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, this.tagName, this.branch, this.jobKey, this.workflowRunId, final  List<String>? needs, this.failureSummary, this.failureSummaryModel, this.failureSummaryStatus, this.failureSummaryDurationMs, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt, @DateTimeConverter() this.completedAt}): _needs = needs;
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
 @override final  String id;
@@ -256,6 +260,10 @@ class _BuildJob implements BuildJob {
   return EqualUnmodifiableListView(value);
 }
 
+@override final  String? failureSummary;
+@override final  String? failureSummaryModel;
+@override final  String? failureSummaryStatus;
+@override final  int? failureSummaryDurationMs;
 @override@DateTimeConverter() final  DateTime createdAt;
 @override@DateTimeConverter() final  DateTime updatedAt;
 @override@DateTimeConverter() final  DateTime? completedAt;
@@ -273,16 +281,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId)&&const DeepCollectionEquality().equals(other._needs, _needs)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJob&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.runCount, runCount) || other.runCount == runCount)&&(identical(other.latestRunId, latestRunId) || other.latestRunId == latestRunId)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId)&&const DeepCollectionEquality().equals(other._needs, _needs)&&(identical(other.failureSummary, failureSummary) || other.failureSummary == failureSummary)&&(identical(other.failureSummaryModel, failureSummaryModel) || other.failureSummaryModel == failureSummaryModel)&&(identical(other.failureSummaryStatus, failureSummaryStatus) || other.failureSummaryStatus == failureSummaryStatus)&&(identical(other.failureSummaryDurationMs, failureSummaryDurationMs) || other.failureSummaryDurationMs == failureSummaryDurationMs)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,teamId,workflowId,workflowName,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowRunId,const DeepCollectionEquality().hash(_needs),createdAt,updatedAt,completedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,teamId,workflowId,workflowName,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowRunId,const DeepCollectionEquality().hash(_needs),failureSummary,failureSummaryModel,failureSummaryStatus,failureSummaryDurationMs,createdAt,updatedAt,completedAt]);
 
 @override
 String toString() {
-  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, workflowName: $workflowName, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowRunId: $workflowRunId, needs: $needs, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
+  return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, workflowName: $workflowName, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowRunId: $workflowRunId, needs: $needs, failureSummary: $failureSummary, failureSummaryModel: $failureSummaryModel, failureSummaryStatus: $failureSummaryStatus, failureSummaryDurationMs: $failureSummaryDurationMs, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
 }
 
 
@@ -293,7 +301,7 @@ abstract mixin class _$BuildJobCopyWith<$Res> implements $BuildJobCopyWith<$Res>
   factory _$BuildJobCopyWith(_BuildJob value, $Res Function(_BuildJob) _then) = __$BuildJobCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
+ String id, String status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs, String? failureSummary, String? failureSummaryModel, String? failureSummaryStatus, int? failureSummaryDurationMs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
 });
 
 
@@ -310,7 +318,7 @@ class __$BuildJobCopyWithImpl<$Res>
 
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? teamId = freezed,Object? workflowId = freezed,Object? workflowName = freezed,Object? workflowFileName = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? tagName = freezed,Object? branch = freezed,Object? jobKey = freezed,Object? workflowRunId = freezed,Object? needs = freezed,Object? createdAt = null,Object? updatedAt = null,Object? completedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? owner = null,Object? repo = null,Object? teamId = freezed,Object? workflowId = freezed,Object? workflowName = freezed,Object? workflowFileName = freezed,Object? commitSha = freezed,Object? pullRequestNumber = freezed,Object? runCount = freezed,Object? latestRunId = freezed,Object? tagName = freezed,Object? branch = freezed,Object? jobKey = freezed,Object? workflowRunId = freezed,Object? needs = freezed,Object? failureSummary = freezed,Object? failureSummaryModel = freezed,Object? failureSummaryStatus = freezed,Object? failureSummaryDurationMs = freezed,Object? createdAt = null,Object? updatedAt = null,Object? completedAt = freezed,}) {
   return _then(_BuildJob(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -329,7 +337,11 @@ as String?,branch: freezed == branch ? _self.branch : branch // ignore: cast_nul
 as String?,jobKey: freezed == jobKey ? _self.jobKey : jobKey // ignore: cast_nullable_to_non_nullable
 as String?,workflowRunId: freezed == workflowRunId ? _self.workflowRunId : workflowRunId // ignore: cast_nullable_to_non_nullable
 as String?,needs: freezed == needs ? _self._needs : needs // ignore: cast_nullable_to_non_nullable
-as List<String>?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as List<String>?,failureSummary: freezed == failureSummary ? _self.failureSummary : failureSummary // ignore: cast_nullable_to_non_nullable
+as String?,failureSummaryModel: freezed == failureSummaryModel ? _self.failureSummaryModel : failureSummaryModel // ignore: cast_nullable_to_non_nullable
+as String?,failureSummaryStatus: freezed == failureSummaryStatus ? _self.failureSummaryStatus : failureSummaryStatus // ignore: cast_nullable_to_non_nullable
+as String?,failureSummaryDurationMs: freezed == failureSummaryDurationMs ? _self.failureSummaryDurationMs : failureSummaryDurationMs // ignore: cast_nullable_to_non_nullable
+as int?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
