@@ -809,6 +809,9 @@ class TranslationsStoreReleaseEn {
 	/// en: 'Loading apps...'
 	String get loadingApps => 'Loading apps...';
 
+	/// en: 'App Store Connect API may take a moment to respond'
+	String get ascLoadingHint => 'App Store Connect API may take a moment to respond';
+
 	/// en: 'Builds'
 	String get builds => 'Builds';
 
@@ -1850,6 +1853,7 @@ extension on Translations {
 			'storeRelease.noApps' => 'No apps found',
 			'storeRelease.noAppsHint' => 'No apps were found in your App Store Connect account.',
 			'storeRelease.loadingApps' => 'Loading apps...',
+			'storeRelease.ascLoadingHint' => 'App Store Connect API may take a moment to respond',
 			'storeRelease.builds' => 'Builds',
 			'storeRelease.noBuilds' => 'No builds found',
 			'storeRelease.noBuildsHint' => 'Upload a build to App Store Connect to get started.',

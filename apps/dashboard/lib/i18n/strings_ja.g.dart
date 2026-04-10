@@ -406,6 +406,7 @@ class _TranslationsStoreReleaseJa implements TranslationsStoreReleaseEn {
 	@override String get noApps => 'アプリが見つかりません';
 	@override String get noAppsHint => 'App Store Connectアカウントにアプリが見つかりませんでした。';
 	@override String get loadingApps => 'アプリを読み込み中...';
+	@override String get ascLoadingHint => 'App Store Connect APIの応答に少し時間がかかる場合があります';
 	@override String get builds => 'ビルド';
 	@override String get noBuilds => 'ビルドが見つかりません';
 	@override String get noBuildsHint => 'App Store Connectにビルドをアップロードしてください。';
@@ -1050,6 +1051,7 @@ extension on TranslationsJa {
 			'storeRelease.noApps' => 'アプリが見つかりません',
 			'storeRelease.noAppsHint' => 'App Store Connectアカウントにアプリが見つかりませんでした。',
 			'storeRelease.loadingApps' => 'アプリを読み込み中...',
+			'storeRelease.ascLoadingHint' => 'App Store Connect APIの応答に少し時間がかかる場合があります',
 			'storeRelease.builds' => 'ビルド',
 			'storeRelease.noBuilds' => 'ビルドが見つかりません',
 			'storeRelease.noBuildsHint' => 'App Store Connectにビルドをアップロードしてください。',

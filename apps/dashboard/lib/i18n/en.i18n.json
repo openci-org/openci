@@ -381,6 +381,7 @@
     "noApps": "No apps found",
     "noAppsHint": "No apps were found in your App Store Connect account.",
     "loadingApps": "Loading apps...",
+    "ascLoadingHint": "App Store Connect API may take a moment to respond",
     "builds": "Builds",
     "noBuilds": "No builds found",
     "noBuildsHint": "Upload a build to App Store Connect to get started.",

@@ -348,40 +348,62 @@ class _AppSelectionView extends ConsumerWidget {
             bundleId: 'com.example.loading.bundleid',
           ),
         );
-        return Skeletonizer(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.rocket_launch,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          releaseT.selectApp,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      releaseT.selectAppHint,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).hintColor,
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.rocket_launch,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
+                      const SizedBox(width: 8),
+                      Text(
+                        releaseT.selectApp,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    releaseT.selectAppHint,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).hintColor,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Expanded(
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: Theme.of(context).hintColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        releaseT.ascLoadingHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).hintColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Skeletonizer(
                     child: ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: dummyApps.length,
@@ -395,34 +417,44 @@ class _AppSelectionView extends ConsumerWidget {
                               vertical: 8,
                             ),
                             leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
                               child: Icon(
                                 Icons.apps,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
                               ),
                             ),
                             title: Text(
                               app.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             subtitle: Text(
                               app.bundleId,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             trailing: Icon(
                               Icons.chevron_right,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         );
                       },
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -514,10 +546,23 @@ class _SubmissionWizardPage extends HookConsumerWidget {
                 onBack: onBack,
               );
             },
-            loading: () => Skeletonizer(
-              child: _WizardSteps(
-                app: app,
-                onBack: onBack,
+            loading: () => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator.adaptive(),
+                    const SizedBox(height: 16),
+                    Text(
+                      t.storeRelease.ascLoadingHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).hintColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
             error: asyncErrorWidget,

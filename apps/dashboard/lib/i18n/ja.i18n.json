@@ -381,6 +381,7 @@
     "noApps": "アプリが見つかりません",
     "noAppsHint": "App Store Connectアカウントにアプリが見つかりませんでした。",
     "loadingApps": "アプリを読み込み中...",
+    "ascLoadingHint": "App Store Connect APIの応答に少し時間がかかる場合があります",
     "builds": "ビルド",
     "noBuilds": "ビルドが見つかりません",
     "noBuildsHint": "App Store Connectにビルドをアップロードしてください。",

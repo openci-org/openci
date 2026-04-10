@@ -381,6 +381,7 @@
     "noApps": "No se encontraron apps",
     "noAppsHint": "No se encontraron apps en tu cuenta de App Store Connect.",
     "loadingApps": "Cargando apps...",
+    "ascLoadingHint": "La API de App Store Connect puede tardar un momento en responder",
     "builds": "Compilaciones",
     "noBuilds": "No se encontraron compilaciones",
     "noBuildsHint": "Sube una compilaci\u00f3n a App Store Connect para comenzar.",
