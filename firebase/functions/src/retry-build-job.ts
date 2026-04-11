@@ -6,10 +6,7 @@ import { App } from "octokit";
 import { v4 as uuidv4 } from "uuid";
 
 import { db } from "./firebase";
-import {
-  buildJobsCollectionPath,
-  teamsCollectionPath,
-} from "./firestore-collection-paths";
+import { buildJobsCollectionPath, teamsCollectionPath } from "./firestore-collection-paths";
 import { buildDashboardRunUrl } from "./github/check-run-link";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
@@ -60,8 +57,6 @@ export const retryBuildJob = onCall(
         throw new HttpsError("permission-denied", "You are not a member of this team");
       }
     }
-
-
 
     // Prepare the retried build ID early so GitHub check-runs can point to it.
     const newDocumentId = uuidv4();
@@ -159,7 +154,6 @@ export const retryBuildJob = onCall(
     };
 
     await db.collection(buildJobsCollectionPath).doc(newDocumentId).set(newJobData);
-
 
     logger.info(`Build job retried: ${buildJobId} -> ${newDocumentId}`, {
       callerUid,
