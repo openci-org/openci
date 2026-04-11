@@ -13,11 +13,27 @@ void main() {
     expect(resolveProjectId('test'), 'test');
   });
 
+  test('resolveProjectId throws when empty string', () {
+    expect(() => resolveProjectId(''), throwsException);
+  });
+
+  test('resolveProjectId throws when whitespace only', () {
+    expect(() => resolveProjectId('  '), throwsException);
+  });
+
   test('buildSecretPath returns correct path', () {
     expect(
       buildSecretPath('test', 'secret'),
       'projects/test/secrets/secret/versions/latest',
     );
+  });
+
+  test('buildSecretPath throws when secretId is empty', () {
+    expect(() => buildSecretPath('test', ''), throwsException);
+  });
+
+  test('buildSecretPath throws when secretId is whitespace', () {
+    expect(() => buildSecretPath('test', '  '), throwsException);
   });
 
   test('extractSecretData returns data', () {

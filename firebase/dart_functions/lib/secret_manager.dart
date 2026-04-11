@@ -6,14 +6,18 @@ import 'package:googleapis_auth/auth_io.dart';
 
 String resolveProjectId([String? override]) {
   final projectId = override ?? Platform.environment['GCLOUD_PROJECT'];
-  if (projectId == null) {
+  if (projectId == null || projectId.trim().isEmpty) {
     throw Exception('GCLOUD_PROJECT environment variable is not set.');
   }
   return projectId;
 }
 
-String buildSecretPath(String projectId, String secretId) =>
-    'projects/$projectId/secrets/$secretId/versions/latest';
+String buildSecretPath(String projectId, String secretId) {
+  if (secretId.trim().isEmpty) {
+    throw Exception('secretId must not be empty.');
+  }
+  return 'projects/$projectId/secrets/$secretId/versions/latest';
+}
 
 String extractSecretData(
   AccessSecretVersionResponse response,
