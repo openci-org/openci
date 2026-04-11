@@ -406,6 +406,7 @@ class _TranslationsStoreReleaseEs implements TranslationsStoreReleaseEn {
 	@override String get noApps => 'No se encontraron apps';
 	@override String get noAppsHint => 'No se encontraron apps en tu cuenta de App Store Connect.';
 	@override String get loadingApps => 'Cargando apps...';
+	@override String get ascLoadingHint => 'La API de App Store Connect puede tardar un momento en responder';
 	@override String get builds => 'Compilaciones';
 	@override String get noBuilds => 'No se encontraron compilaciones';
 	@override String get noBuildsHint => 'Sube una compilación a App Store Connect para comenzar.';
@@ -1050,6 +1051,7 @@ extension on TranslationsEs {
 			'storeRelease.noApps' => 'No se encontraron apps',
 			'storeRelease.noAppsHint' => 'No se encontraron apps en tu cuenta de App Store Connect.',
 			'storeRelease.loadingApps' => 'Cargando apps...',
+			'storeRelease.ascLoadingHint' => 'La API de App Store Connect puede tardar un momento en responder',
 			'storeRelease.builds' => 'Compilaciones',
 			'storeRelease.noBuilds' => 'No se encontraron compilaciones',
 			'storeRelease.noBuildsHint' => 'Sube una compilación a App Store Connect para comenzar.',
