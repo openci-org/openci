@@ -19,6 +19,7 @@ void main(List<String> args) {
       name: 'healthCheck',
       options: HttpsOptions(
         cors: Cors(['*']),
+        region: DeployOption(SupportedRegion.asiaNortheast1),
       ),
       (request) async {
         try {
