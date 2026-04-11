@@ -1,0 +1,28 @@
+name: dart_functions
+description: An app using Firebase Functions for Dart
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  firebase_functions:
+    git:
+      url: https://github.com/firebase/firebase-functions-dart.git
+      ref: main
+  google_cloud_secretmanager_v1: ^0.5.0
+  googleapis_auth: ^2.3.0
+
+dev_dependencies:
+  build_runner: ^2.4.0
+  test: ^1.25.0
+
+dependency_overrides:
+  # this override is required because some dependencies of `firebase_functions`
+  # depend on `google_cloud_firestore: any` and others depend on the git version
+  google_cloud_firestore:
+    git:
+      url: https://github.com/firebase/firebase-admin-dart.git
+      ref: main
+      path: packages/google_cloud_firestore

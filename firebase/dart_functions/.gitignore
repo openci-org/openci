@@ -9,3 +9,5 @@ build/
 firebase-debug.log
 firebase-debug.*.log
 *.local
+bin/server
+functions.yaml

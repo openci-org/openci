@@ -1,25 +1,15 @@
 {
   "functions": [
     {
-      "source": "functions",
       "codebase": "default",
-      "disallowLegacyRuntimeConfig": true,
+      "source": "dart_functions",
+      "runtime": "dart3",
       "ignore": [
-        "node_modules",
+        ".dart_tool",
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
-        "*.local",
-        "*.ts",
-        "*.js.map",
-        "tsconfig.json",
-        "package-lock.json",
-        "*.log",
-        ".gitignore"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint",
-        "npm --prefix \"$RESOURCE_DIR\" run build"
+        "*.local"
       ]
     }
   ],
@@ -29,7 +19,10 @@
   },
   "hosting": {
     "public": "public",
-    "ignore": ["firebase.json", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/node_modules/**"
+    ],
     "headers": [
       {
         "source": "/.well-known/apple-app-site-association",

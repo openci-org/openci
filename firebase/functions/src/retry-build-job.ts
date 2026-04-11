@@ -6,11 +6,7 @@ import { App } from "octokit";
 import { v4 as uuidv4 } from "uuid";
 
 import { db } from "./firebase";
-import {
-  buildJobsCollectionPath,
-  teamsCollectionPath,
-  workflowsCollectionPath,
-} from "./firestore-collection-paths";
+import { buildJobsCollectionPath, teamsCollectionPath } from "./firestore-collection-paths";
 import { buildDashboardRunUrl } from "./github/check-run-link";
 
 const GITHUB_APP_ID = defineSecret("GITHUB_APP_ID");
@@ -62,17 +58,6 @@ export const retryBuildJob = onCall(
       }
     }
 
-    // Fetch the associated workflow to get the check run name
-    const workflowId = originalJob.workflowId;
-    let checkRunName = "OpenCI Build";
-
-    if (workflowId) {
-      const workflowDoc = await db.collection(workflowsCollectionPath).doc(workflowId).get();
-      if (workflowDoc.exists) {
-        checkRunName = workflowDoc.data()!.name || checkRunName;
-      }
-    }
-
     // Prepare the retried build ID early so GitHub check-runs can point to it.
     const newDocumentId = uuidv4();
     const checkRunDetailsUrl = buildDashboardRunUrl(newDocumentId);
@@ -103,9 +88,14 @@ export const retryBuildJob = onCall(
         tokenExpiresAt = expires_at;
 
         if (originalJob.commitSha) {
-          // Always create a fresh check run for retries.
-          // PATCHing a completed check run back to queued is unreliable
-          // across different GitHub API versions, so we always POST a new one.
+          // GitHub API does not support reverting a completed check run back to
+          // in_progress (PATCH returns 200 but silently ignores the status change).
+          // We create a new check run with the same name so GitHub supersedes the
+          // old one in merge-protection status.
+          const checkRunName = originalJob.workflowName;
+          if (!checkRunName) {
+            throw new Error(`workflowName is missing on job ${buildJobId}`);
+          }
           checkRunId = null;
           try {
             const { data: checkRun } = await octokit.request(
@@ -164,7 +154,6 @@ export const retryBuildJob = onCall(
     };
 
     await db.collection(buildJobsCollectionPath).doc(newDocumentId).set(newJobData);
-
 
     logger.info(`Build job retried: ${buildJobId} -> ${newDocumentId}`, {
       callerUid,

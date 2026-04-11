@@ -9,7 +9,6 @@ import { db } from "./firebase";
 import {
   buildJobsCollectionPath,
   teamsCollectionPath,
-  workflowsCollectionPath,
 } from "./firestore-collection-paths";
 import { buildDashboardRunUrl } from "./github/check-run-link";
 
@@ -64,16 +63,7 @@ export const retryWorkflowRun = onCall(
       }
     }
 
-    // Fetch the workflow name for check runs
-    const workflowId = originalJobs[0].workflowId;
-    let workflowName = "OpenCI Build";
 
-    if (workflowId) {
-      const workflowDoc = await db.collection(workflowsCollectionPath).doc(workflowId).get();
-      if (workflowDoc.exists) {
-        workflowName = workflowDoc.data()!.name || workflowName;
-      }
-    }
 
     // Get fresh GitHub installation token
     const installationId = originalJobs[0].installationId;
@@ -117,7 +107,7 @@ export const retryWorkflowRun = onCall(
       }
     }
 
-    const multipleJobs = originalJobs.length > 1;
+
     const createdJobIds: string[] = [];
 
     // Second pass: create new build_jobs
@@ -142,10 +132,19 @@ export const retryWorkflowRun = onCall(
         }
       }
 
-      // Create check run for each job
+      // Create new check run for each job.
+      // GitHub API does not support reverting a completed check run back to
+      // in_progress (PATCH returns 200 but silently ignores the status change).
+      // We create a new check run with the same name so GitHub supersedes the
+      // old one in merge-protection status.
       let checkRunId: number | null = null;
       if (octokit && originalJob.commitSha) {
         try {
+          const workflowName = originalJob.workflowName;
+          if (!workflowName) {
+            throw new Error(`workflowName is missing on job ${jobKey}`);
+          }
+          const multipleJobs = originalJobs.length > 1;
           const checkRunName = multipleJobs
             ? `${workflowName} / ${jobKey}`
             : workflowName;
@@ -163,6 +162,7 @@ export const retryWorkflowRun = onCall(
             },
           );
           checkRunId = checkRun.id;
+          logger.info(`Created new check run ${checkRunId} for retry ${jobKey}`);
         } catch (error) {
           logger.error(`Failed to create check run for retry ${jobKey}`, error);
         }
