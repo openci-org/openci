@@ -1,0 +1,28 @@
+name: Dart Functions CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  ci:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: open-ci-io/dart-setup@v1
+        with:
+          dart-version: "stable"
+
+      - name: Install dependencies
+        run: cd firebase/dart_functions && dart pub get
+
+      - name: Analyze
+        run: cd firebase/dart_functions && dart analyze
+
+      - name: Test
+        run: cd firebase/dart_functions && dart test
