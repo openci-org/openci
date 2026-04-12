@@ -485,15 +485,19 @@ class _WorkflowBody extends ConsumerWidget {
                                             color: colorScheme.onSurfaceVariant,
                                           ),
                                           const SizedBox(width: 4),
-                                          Text(
-                                            trigger,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
+                                          Flexible(
+                                            child: Text(
+                                              trigger,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
                                           ),
                                         ],
                                       ),

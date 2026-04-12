@@ -392,10 +392,13 @@ class _AppSelectionView extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        releaseT.ascLoadingHint,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).hintColor,
+                      Flexible(
+                        child: Text(
+                          releaseT.ascLoadingHint,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).hintColor,
+                              ),
                         ),
                       ),
                     ],
