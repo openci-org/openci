@@ -354,6 +354,7 @@ async function createBuildJobs(
                 installationToken,
                 tokenExpiresAt,
                 checkRunId,
+                runsOn: jobInfo.runsOn,
                 runCount: 0,
                 latestRunId: null,
                 tagName,
@@ -419,6 +420,7 @@ function matchesTrigger(parsed: any, triggerType: string, triggerBranch: string 
 interface JobInfo {
   jobKey: string;
   needs: string[];
+  runsOn: string | null;
   steps: Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }>;
 }
 
@@ -430,6 +432,9 @@ function extractJobs(parsed: any): JobInfo[] {
   for (const jobKey of Object.keys(jobs)) {
     const job = jobs[jobKey];
     if (!job || !Array.isArray(job.steps)) continue;
+
+    const runsOn: string | null =
+      typeof job["runs-on"] === "string" ? job["runs-on"] : null;
 
     const steps: Array<{ name: string; run?: string; uses?: string; with?: Record<string, string> }> =
       [];
@@ -467,7 +472,7 @@ function extractJobs(parsed: any): JobInfo[] {
       }
     }
 
-    jobInfos.push({ jobKey, needs, steps });
+    jobInfos.push({ jobKey, needs, runsOn, steps });
   }
 
   return jobInfos;

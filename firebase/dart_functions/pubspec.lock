@@ -162,24 +162,15 @@ packages:
     source: hosted
     version: "1.15.0"
   crypto:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
-  dart_firebase_admin:
-    dependency: transitive
-    description:
-      path: "packages/dart_firebase_admin"
-      ref: main
-      resolved-ref: "75199436204113766d085e068c7e9bb9de20aec2"
-      url: "https://github.com/firebase/firebase-admin-dart.git"
-    source: git
-    version: "0.5.0"
   dart_jsonwebtoken:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: dart_jsonwebtoken
       sha256: cb79ed79baa02b4f59a597bf365873cbd83f9bb15273d63f7803802d21717c7d
@@ -194,6 +185,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.8"
+  dio:
+    dependency: "direct main"
+    description:
+      name: dio
+      sha256: aff32c08f92787a557dd5c0145ac91536481831a01b4648136373cddb0e64f8c
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.9.2"
+  dio_web_adapter:
+    dependency: transitive
+    description:
+      name: dio_web_adapter
+      sha256: "2f9e64323a7c3c7ef69567d5c800424a11f8337b8b228bad02524c9fb3c1f340"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.2"
   equatable:
     dependency: transitive
     description:
@@ -218,15 +225,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  firebase_admin_sdk:
+    dependency: transitive
+    description:
+      name: firebase_admin_sdk
+      sha256: d298d24778b7d5b7d44e4bc417db39e5a9457601bdddb366478fa99fa71656cf
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   firebase_functions:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: "3ab39e1ebb0e7db42d159c6ef8f4bcd2a458fe4c"
-      url: "https://github.com/firebase/firebase-functions-dart.git"
-    source: git
-    version: "0.1.0"
+      name: firebase_functions
+      sha256: "25a4b65a09242a5ea61ad517cf53d8510e32861deb7d5dde6b78a519d148192d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   fixnum:
     dependency: transitive
     description:
@@ -235,6 +249,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  freezed_annotation:
+    dependency: transitive
+    description:
+      name: freezed_annotation
+      sha256: "7294967ff0a6d98638e7acb774aac3af2550777accd8149c90af5b014e6d44d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   frontend_server_client:
     dependency: transitive
     description:
@@ -243,6 +265,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  github_client:
+    dependency: "direct main"
+    description:
+      path: "../../packages/github_client"
+      relative: true
+    source: path
+    version: "0.1.0"
   glob:
     dependency: transitive
     description:
@@ -260,14 +289,13 @@ packages:
     source: hosted
     version: "0.4.0"
   google_cloud_firestore:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "packages/google_cloud_firestore"
-      ref: main
-      resolved-ref: "75199436204113766d085e068c7e9bb9de20aec2"
-      url: "https://github.com/firebase/firebase-admin-dart.git"
-    source: git
-    version: "0.1.0"
+      name: google_cloud_firestore
+      sha256: d60ae84a6e8c9bbdac12afe49e1bc5d8501263ecabcf0796fc43a35bb814486b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   google_cloud_iam_v1:
     dependency: transitive
     description:
@@ -524,8 +552,32 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
-  shelf:
+  retrofit:
     dependency: transitive
+    description:
+      name: retrofit
+      sha256: "0f629ed26b2c48c66fe54bd548313c6fdf7955be18bff37e08a46dd3f97f8eaf"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.9.2"
+  sentry:
+    dependency: "direct main"
+    description:
+      name: sentry
+      sha256: "9f9a35c2e74ed79e16373268e0c79bc00988412d4b30b63eb369d2fa32e6814e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "9.17.0"
+  sentry_dio:
+    dependency: "direct main"
+    description:
+      name: sentry_dio
+      sha256: "905a0f93256ce694a66b00f442ae227b1edc1973e5a326a5328050cb01a7ccae"
+      url: "https://pub.dev"
+    source: hosted
+    version: "9.17.0"
+  shelf:
+    dependency: "direct main"
     description:
       name: shelf
       sha256: e7dd780a7ffb623c57850b33f43309312fc863fb6aa3d276a754bb299839ef12
@@ -660,6 +712,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  uuid:
+    dependency: transitive
+    description:
+      name: uuid
+      sha256: "1fef9e8e11e2991bb773070d4656b7bd5d850967a2456cfc83cf47925ba79489"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.5.3"
   vm_service:
     dependency: transitive
     description:

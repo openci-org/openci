@@ -1,0 +1,45 @@
+---
+trigger: always_on
+---
+
+# GitHub Release Rules
+
+## Release Title Format
+
+All GitHub releases MUST follow a consistent naming convention:
+
+<Component Name> v<version>
+
+Examples:
+
+- Worker CLI v0.7.16
+- Dashboard v1.5.0
+- Web v0.4.0
+- Firebase Functions v1.0.0
+
+Do NOT use bare version tags like v0.7.16 as the release title.
+
+## Release Notes Format
+
+Release notes MUST include a ## What's New section with a bulleted list of changes.
+
+## Tag Naming
+
+- Worker CLI: v<version> (e.g., v0.7.16)
+- Dashboard: dashboard/v<version> (e.g., dashboard/v1.5.0)
+- Web: web/v<version> (e.g., web/v0.4.0)
+- Firebase Functions: functions/v<version> (e.g., functions/v1.0.0)
+
+## Worker CLI Release Checklist
+
+1. Update version in apps/openci_worker_cli/pubspec.yaml
+2. Update version constant in apps/openci_worker_cli/lib/constants.dart
+3. Run flutter analyze on the worker CLI
+4. Commit and push to develop
+5. Build binary: dart compile exe bin/openci_worker_cli.dart -o /tmp/openci-worker
+6. Archive: tar czf /tmp/openci-worker-v<version>-darwin-arm64.tar.gz -C /tmp openci-worker
+7. Get sha256: shasum -a 256 /tmp/openci-worker-v<version>-darwin-arm64.tar.gz
+8. Create GitHub release with the binary attached
+9. Update homebrew-tap/Formula/openci-worker.rb (version, url, sha256)
+10. Commit and push homebrew-tap to main
+11. Update Firestore config/workerCli document: set latestVersion to the new version

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:logging/logging.dart';
+import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/firebase.dart';
 import 'package:openci_worker_cli/log.dart';
 import 'package:openci_worker_cli/poller.dart';
@@ -23,7 +24,13 @@ Future<void> main(List<String> arguments) async {
     );
 
     _log.info('Worker started. Worker ID: ${config.workerId}');
-    await cleanupOrphanedVms(config.workerId);
+    _log.info('Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (Lume)'}');
+
+    if (Platform.isLinux) {
+      await cleanupOrphanedContainers(config.workerId);
+    } else {
+      await cleanupOrphanedVms(config.workerId);
+    }
 
     await pollForJobs(
       firestore: firestore,
@@ -40,3 +47,4 @@ Future<void> main(List<String> arguments) async {
     exit(1);
   }
 }
+

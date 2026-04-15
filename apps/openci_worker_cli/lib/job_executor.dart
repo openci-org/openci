@@ -16,12 +16,27 @@ Future<BuildJob?> claimBuildJob(Firestore firestore) async {
       .collection(buildJobsCollection)
       .where('status', WhereFilter.equal, 'queued')
       .orderBy('createdAt')
-      .limit(1)
+      .limit(10)
       .get();
 
   if (querySnapshot.docs.isEmpty) return null;
 
-  final buildJobId = querySnapshot.docs.first.id;
+  // Filter by platform: macOS claims macos-* jobs (or null for backward compat),
+  // Linux claims ubuntu-* jobs.
+  final isLinux = Platform.isLinux;
+  final candidates = querySnapshot.docs.where((doc) {
+    final runsOn = doc.data()['runsOn'] as String?;
+    if (isLinux) {
+      return runsOn != null && runsOn.contains('ubuntu');
+    } else {
+      // macOS: claim macos-* jobs, or jobs without runsOn (legacy)
+      return runsOn == null || runsOn.contains('macos');
+    }
+  }).toList();
+
+  if (candidates.isEmpty) return null;
+
+  final buildJobId = candidates.first.id;
   final jobRef = firestore.collection(buildJobsCollection).doc(buildJobId);
 
   final claimedData = await firestore.runTransaction((transaction) async {
