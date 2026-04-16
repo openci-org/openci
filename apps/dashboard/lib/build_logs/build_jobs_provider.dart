@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
@@ -41,7 +42,9 @@ class BuildJobs extends _$BuildJobs {
 
   Future<void> cancelBuildJob(String buildJobId) async {
     final functions = ref.watch(functionsProvider);
-    await functions.httpsCallable(cancelBuildJobFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('cancel-build-job'))
+        .call({
       'buildJobId': buildJobId,
     });
   }

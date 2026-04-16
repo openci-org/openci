@@ -292,10 +292,10 @@ packages:
     dependency: "direct main"
     description:
       name: google_cloud_firestore
-      sha256: d60ae84a6e8c9bbdac12afe49e1bc5d8501263ecabcf0796fc43a35bb814486b
+      sha256: e9a788301ee25cef6ffa86046cb0e80b4974b4a72d23a25231e161587fd84c8c
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.0"
+    version: "0.5.1"
   google_cloud_iam_v1:
     dependency: transitive
     description:

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_shared/firestore_paths.dart';
+import 'package:openci_worker_cli/cloud_function_caller.dart';
 
 final _log = Logger('RunManager');
 
@@ -33,6 +36,10 @@ Future<String> initializeRun(
   } catch (e) {
     _log.severe('Failed to initialize run: $e');
   }
+
+  // Notify check run update (replaces onRunCreated Firestore trigger)
+  unawaited(notifyCheckRunUpdate(buildJobId, 'in_progress'));
+
   return runId;
 }
 

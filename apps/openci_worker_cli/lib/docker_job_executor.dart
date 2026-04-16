@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:openci_worker_cli/logger.dart';
@@ -228,6 +229,10 @@ Future<bool> processDockerJob(
       'status': 'success',
       'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
+
+    // Notify cloud functions (replaces Firestore triggers)
+    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'));
+    unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
   } catch (e, s) {
     await logError(
       firestore,
@@ -248,6 +253,10 @@ Future<bool> processDockerJob(
       'status': 'failure',
       'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
+
+    // Notify cloud functions (replaces Firestore triggers)
+    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'));
+    unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
     rethrow;
   } finally {
     await flushRemainingLogs();

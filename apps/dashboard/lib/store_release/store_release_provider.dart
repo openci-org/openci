@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
@@ -114,7 +115,7 @@ class AscApps extends _$AscApps {
     final teamId = _requireTeamId(ref);
 
     final result =
-        await functions.httpsCallable(ascListAppsFunction).call({
+        await functions.httpsCallableFromUrl(dartFunctionUrl('asc-list-apps')).call({
       'teamId': teamId,
     });
 
@@ -135,7 +136,7 @@ class AscBuilds extends _$AscBuilds {
     final teamId = _requireTeamId(ref);
 
     final result =
-        await functions.httpsCallable(ascListBuildsFunction).call({
+        await functions.httpsCallableFromUrl(dartFunctionUrl('asc-list-builds')).call({
       'teamId': teamId,
       'appId': appId,
     });
@@ -159,7 +160,7 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
     final teamId = _requireTeamId(ref);
 
     final result =
-        await functions.httpsCallable(ascSubmitToTestFlightFunction).call({
+        await functions.httpsCallableFromUrl(dartFunctionUrl('asc-submit-to-test-flight')).call({
       'teamId': teamId,
       'buildId': buildId,
     });
@@ -185,7 +186,7 @@ class SubmitForReview extends _$SubmitForReview {
     final functions = ref.read(functionsProvider);
     final teamId = _requireTeamId(ref);
 
-    await functions.httpsCallable(ascSubmitForReviewFunction).call({
+    await functions.httpsCallableFromUrl(dartFunctionUrl('asc-submit-for-review')).call({
       'teamId': teamId,
       'appId': appId,
       'buildId': buildId,

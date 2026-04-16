@@ -6,6 +6,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
 import 'package:openci_worker_cli/run_manager.dart';
@@ -295,6 +296,10 @@ Future<bool> processJob(
       'status': 'success',
       'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
+
+    // Notify cloud functions (replaces Firestore triggers)
+    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'));
+    unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
   } catch (e, s) {
     await logError(
       firestore,
@@ -315,6 +320,10 @@ Future<bool> processJob(
       'status': 'failure',
       'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
+
+    // Notify cloud functions (replaces Firestore triggers)
+    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'));
+    unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
     rethrow;
   } finally {
     await flushRemainingLogs();
