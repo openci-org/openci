@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
@@ -11,8 +11,9 @@ import 'package:sentry/sentry.dart';
 final _log = Logger('Docker');
 
 String containerName({required String workerId, required String buildJobId}) {
-  final shortId =
-      buildJobId.length >= 8 ? buildJobId.substring(0, 8) : buildJobId;
+  final shortId = buildJobId.length >= 8
+      ? buildJobId.substring(0, 8)
+      : buildJobId;
   return 'openci-$workerId-$shortId';
 }
 
@@ -45,10 +46,13 @@ Future<void> execInContainer({
   required String runId,
   required String token,
 }) async {
-  final result = await Process.run(
-    'docker',
-    ['exec', name, 'bash', '-c', command],
-  );
+  final result = await Process.run('docker', [
+    'exec',
+    name,
+    'bash',
+    '-c',
+    command,
+  ]);
 
   final stdout = result.stdout?.toString().trim();
   final stderr = result.stderr?.toString().trim();
@@ -67,7 +71,11 @@ Future<void> execInContainer({
   }
 }
 
-Future<void> copyToContainer(String name, String localPath, String remotePath) async {
+Future<void> copyToContainer(
+  String name,
+  String localPath,
+  String remotePath,
+) async {
   final result = await Process.run('docker', [
     'cp',
     localPath,
@@ -86,7 +94,9 @@ Future<void> writeFileToContainer(
   String content,
 ) async {
   // Write to a temp file, then docker cp
-  final tmpFile = File('/tmp/openci-tmp-${DateTime.now().millisecondsSinceEpoch}');
+  final tmpFile = File(
+    '/tmp/openci-tmp-${DateTime.now().millisecondsSinceEpoch}',
+  );
   await tmpFile.writeAsString(content);
   try {
     await copyToContainer(name, tmpFile.path, remotePath);
@@ -122,11 +132,7 @@ Future<void> execStreamingInContainer(
   String token, {
   required Future<bool> Function() isCancelled,
 }) async {
-  final process = await Process.start('docker', [
-    'exec',
-    name,
-    ...command,
-  ]);
+  final process = await Process.start('docker', ['exec', name, ...command]);
 
   await process.stdin.close();
 
@@ -184,9 +190,7 @@ Future<void> execStreamingInContainer(
   }
 
   if (outputErrors.isNotEmpty) {
-    throw Exception(
-      'act reported errors:\n${outputErrors.join('\n')}',
-    );
+    throw Exception('act reported errors:\n${outputErrors.join('\n')}');
   }
 
   if (!hasSuccessfulStep) {
@@ -220,9 +224,9 @@ Future<void> cleanupOrphanedContainers(String workerId) async {
 
     if (result.exitCode != 0) return;
 
-    final containers = LineSplitter.split(result.stdout.toString())
-        .where((name) => name.isNotEmpty)
-        .toList();
+    final containers = LineSplitter.split(
+      result.stdout.toString(),
+    ).where((name) => name.isNotEmpty).toList();
 
     for (final container in containers) {
       _log.info('Removing orphaned container: $container');
@@ -259,9 +263,9 @@ Future<void> pruneStaleContainers(
 
     if (result.exitCode != 0) return;
 
-    final containers = LineSplitter.split(result.stdout.toString())
-        .where((name) => name.isNotEmpty && name != current)
-        .toList();
+    final containers = LineSplitter.split(
+      result.stdout.toString(),
+    ).where((name) => name.isNotEmpty && name != current).toList();
 
     for (final container in containers) {
       await logInfo(

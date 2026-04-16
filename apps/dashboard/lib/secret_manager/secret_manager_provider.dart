@@ -72,9 +72,9 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions
-        .httpsCallable(generateCertificateKeyFunction)
-        .call({'teamId': teamId});
+    await functions.httpsCallable(generateCertificateKeyFunction).call({
+      'teamId': teamId,
+    });
   }
 
   Future<void> setupAscApiKey({

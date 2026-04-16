@@ -60,8 +60,8 @@ class AiWorkflowState {
 
 final aiWorkflowProvider =
     NotifierProvider<AiWorkflowNotifier, AiWorkflowState>(
-  AiWorkflowNotifier.new,
-);
+      AiWorkflowNotifier.new,
+    );
 
 class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
   String _repository = '';
@@ -93,16 +93,20 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
       if (team == null) return;
 
       final functions = ref.read(functionsProvider);
-      final result = await functions.httpsCallable(listDirectoriesFunction).call({
-        'teamId': team.id,
-        'repository': _repository,
-      });
+      final result = await functions
+          .httpsCallable(listDirectoriesFunction)
+          .call({
+            'teamId': team.id,
+            'repository': _repository,
+          });
 
       final data = result.data as Map<String, dynamic>;
-      final directories =
-          (data['directories'] as List<dynamic>).map((e) => e as String).toList();
+      final directories = (data['directories'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList();
 
-      final contextString = 'Repository: $_repository\n'
+      final contextString =
+          'Repository: $_repository\n'
           'Branch: $_branch\n'
           'Directory structure:\n${directories.join('\n')}';
 
@@ -125,10 +129,12 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
       final functions = ref.read(functionsProvider);
 
       final messagesPayload = state.messages
-          .map((m) => <String, String>{
-            'role': m.role == ChatRole.user ? 'user' : 'assistant',
-            'content': m.content,
-          })
+          .map(
+            (m) => <String, String>{
+              'role': m.role == ChatRole.user ? 'user' : 'assistant',
+              'content': m.content,
+            },
+          )
           .toList();
 
       final result = await functions

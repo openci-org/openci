@@ -6,16 +6,16 @@ publish_to: none
 environment:
   sdk: ^3.11.0
 
+resolution: workspace
+
 dependencies:
   crypto: ^3.0.6
   dart_jsonwebtoken: ^3.4.0
   dio: ^5.9.0
   firebase_functions: ^0.5.1
   github_client:
-    path: ../../packages/github_client
   google_cloud_firestore: ^0.5.1
   openci_shared:
-    path: ../../packages/openci_shared
   google_cloud_secretmanager_v1: ^0.5.0
   googleapis_auth: ^2.3.0
   sentry: ^9.1.0
@@ -26,4 +26,5 @@ dependencies:
 
 dev_dependencies:
   build_runner: ^2.4.0
+  lints: ^6.0.0
   test: ^1.25.0

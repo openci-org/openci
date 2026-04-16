@@ -28,10 +28,7 @@ class BuildJobStatusChangeRequest {
     if (status == null || status.isEmpty) {
       throw InvalidArgumentError('Missing status');
     }
-    return BuildJobStatusChangeRequest(
-      buildJobId: buildJobId,
-      status: status,
-    );
+    return BuildJobStatusChangeRequest(buildJobId: buildJobId, status: status);
   }
 
   final String buildJobId;
@@ -56,8 +53,10 @@ Future<Map<String, dynamic>> handleBuildJobStatusChange(
   final buildJobId = request.data.buildJobId;
   final currentStatus = request.data.status;
 
-  final buildJobDoc =
-      await firestore.collection(buildJobsCollection).doc(buildJobId).get();
+  final buildJobDoc = await firestore
+      .collection(buildJobsCollection)
+      .doc(buildJobId)
+      .get();
 
   if (!buildJobDoc.exists) {
     throw NotFoundError('Build job not found');
@@ -84,15 +83,19 @@ Future<Map<String, dynamic>> handleBuildJobStatusChange(
     if (latestRunId != null) {
       var aiEnabled = true;
       if (teamId != null) {
-        final teamDoc =
-            await firestore.collection(teamsCollection).doc(teamId).get();
+        final teamDoc = await firestore
+            .collection(teamsCollection)
+            .doc(teamId)
+            .get();
         if (teamDoc.exists) {
           aiEnabled = teamDoc.data()?['aiEnabled'] != false;
         }
       }
       if (aiEnabled) {
         unawaited(
-          _generateFailureSummary(buildJobId, latestRunId).catchError((Object e) {
+          _generateFailureSummary(buildJobId, latestRunId).catchError((
+            Object e,
+          ) {
             logError('Background failure summary generation failed', null, e);
           }),
         );
@@ -141,10 +144,7 @@ Future<void> _resolveDependencies(
 
     if (!isSuccess) {
       // Dependency failed → skip this job
-      await doc.ref.update({
-        'status': 'skipped',
-        'updatedAt': now,
-      });
+      await doc.ref.update({'status': 'skipped', 'updatedAt': now});
       logInfo(
         'Skipped job ${jobData['jobKey']} because dependency $jobKey $completedStatus',
       );
@@ -152,8 +152,8 @@ Future<void> _resolveDependencies(
     }
 
     // Dependency succeeded, check if ALL dependencies are now satisfied
-    final resolvedNeeds =
-        (jobData['resolvedNeeds'] as Map<String, dynamic>?)?.cast<String, String>();
+    final resolvedNeeds = (jobData['resolvedNeeds'] as Map<String, dynamic>?)
+        ?.cast<String, String>();
     if (resolvedNeeds == null) continue;
 
     var allSatisfied = true;
@@ -169,13 +169,8 @@ Future<void> _resolveDependencies(
     }
 
     if (allSatisfied) {
-      await doc.ref.update({
-        'status': 'queued',
-        'updatedAt': now,
-      });
-      logInfo(
-        'Queued job ${jobData['jobKey']} - all dependencies satisfied',
-      );
+      await doc.ref.update({'status': 'queued', 'updatedAt': now});
+      logInfo('Queued job ${jobData['jobKey']} - all dependencies satisfied');
     }
   }
 }
@@ -244,8 +239,10 @@ Future<void> _generateFailureSummary(
       );
 
       final candidates = resp.data?['candidates'] as List<dynamic>?;
-      final text = (candidates?.firstOrNull as Map<String, dynamic>?)?['content']
-              ?['parts']?[0]?['text'] as String? ??
+      final text =
+          (candidates?.firstOrNull
+                  as Map<String, dynamic>?)?['content']?['parts']?[0]?['text']
+              as String? ??
           'No summary generated';
 
       await firestore.collection(buildJobsCollection).doc(buildJobId).update({
@@ -282,8 +279,7 @@ Future<void> _sendBuildNotifications(
   final teamId = jobData['teamId'] as String?;
   if (teamId == null) return;
 
-  final teamDoc =
-      await firestore.collection(teamsCollection).doc(teamId).get();
+  final teamDoc = await firestore.collection(teamsCollection).doc(teamId).get();
   if (!teamDoc.exists) return;
 
   final members =
@@ -308,8 +304,7 @@ Future<void> _sendBuildNotifications(
         final totalSeconds = durationMs ~/ 1000;
         final minutes = totalSeconds ~/ 60;
         final seconds = totalSeconds % 60;
-        durationText =
-            minutes > 0 ? '${minutes}m ${seconds}s' : '${seconds}s';
+        durationText = minutes > 0 ? '${minutes}m ${seconds}s' : '${seconds}s';
       }
     } catch (_) {}
   }
@@ -350,13 +345,14 @@ Future<void> _sendBuildNotifications(
   // Collect FCM tokens
   final tokensToNotify = <String>[];
   for (final memberId in members) {
-    final userDoc =
-        await firestore.collection(usersCollection).doc(memberId).get();
+    final userDoc = await firestore
+        .collection(usersCollection)
+        .doc(memberId)
+        .get();
     if (!userDoc.exists) continue;
 
     final userData = userDoc.data()!;
-    final preference =
-        userData['notificationPreference'] as String? ?? 'all';
+    final preference = userData['notificationPreference'] as String? ?? 'all';
     final fcmTokens =
         (userData['fcmTokens'] as List<dynamic>?)?.cast<String>() ?? [];
     if (fcmTokens.isEmpty) continue;
@@ -392,8 +388,8 @@ Future<void> _sendBuildNotifications(
                   'status': currentStatus,
                   'owner': owner,
                   'repo': repo,
-                  if (branch != null) 'branch': branch,
-                  if (workflowName != null) 'workflowName': workflowName,
+                  'branch': ?branch,
+                  'workflowName': ?workflowName,
                   if (durationText.isNotEmpty) 'duration': durationText,
                 },
                 'apns': {
@@ -403,9 +399,7 @@ Future<void> _sendBuildNotifications(
                 },
               },
             },
-            options: Options(
-              headers: {'Authorization': 'Bearer $accessToken'},
-            ),
+            options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
           );
         } on DioException catch (e) {
           final errorMsg = e.response?.data?.toString() ?? '';
@@ -434,8 +428,9 @@ Future<void> _sendBuildNotifications(
           final userData = userDoc.data()!;
           final userTokens =
               (userData['fcmTokens'] as List<dynamic>?)?.cast<String>() ?? [];
-          final validTokens =
-              userTokens.where((t) => !invalidTokens.contains(t)).toList();
+          final validTokens = userTokens
+              .where((t) => !invalidTokens.contains(t))
+              .toList();
 
           if (validTokens.length != userTokens.length) {
             await userDoc.ref.update({'fcmTokens': validTokens});

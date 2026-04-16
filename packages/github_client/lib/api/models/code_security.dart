@@ -11,9 +11,9 @@ part 'code_security.g.dart';
 abstract class CodeSecurity with _$CodeSecurity {
   const factory CodeSecurity({
     /// Can be `enabled` or `disabled`.
-    @JsonKey(name: 'Status')
-    String? status,
+    @JsonKey(name: 'Status') String? status,
   }) = _CodeSecurity;
-  
-  factory CodeSecurity.fromJson(Map<String, Object?> json) => _$CodeSecurityFromJson(json);
+
+  factory CodeSecurity.fromJson(Map<String, Object?> json) =>
+      _$CodeSecurityFromJson(json);
 }

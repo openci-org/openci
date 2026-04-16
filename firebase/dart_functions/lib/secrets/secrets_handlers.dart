@@ -42,10 +42,7 @@ class CreateSecretRequest {
 }
 
 class DeleteSecretRequest {
-  const DeleteSecretRequest({
-    required this.documentId,
-    required this.teamId,
-  });
+  const DeleteSecretRequest({required this.documentId, required this.teamId});
 
   factory DeleteSecretRequest.fromJson(Map<String, dynamic> json) {
     final documentId = json['documentId'] as String?;
@@ -175,7 +172,10 @@ Future<Map<String, dynamic>> handleCreateSecret(
 
   try {
     final secretId = const Uuid().v4();
-    final pathToSecret = await createSecretWithValue(secretId, request.data.value);
+    final pathToSecret = await createSecretWithValue(
+      secretId,
+      request.data.value,
+    );
 
     final documentId = const Uuid().v4();
     final now = DateTime.now().toUtc().toIso8601String();
@@ -224,14 +224,17 @@ Future<Map<String, dynamic>> handleDeleteSecret(
       try {
         await deleteSecretByPath(pathToSecret);
       } catch (e) {
-        logWarning('Failed to delete from Secret Manager: $e',
-            {'pathToSecret': pathToSecret});
+        logWarning('Failed to delete from Secret Manager: $e', {
+          'pathToSecret': pathToSecret,
+        });
       }
     }
 
     await secretRef.delete();
-    logInfo('Secret deleted: $documentId',
-        {'teamId': teamId, 'name': secretData['name']});
+    logInfo('Secret deleted: $documentId', {
+      'teamId': teamId,
+      'name': secretData['name'],
+    });
     return <String, dynamic>{'success': true};
   } catch (e) {
     if (e is HttpsError) rethrow;
@@ -283,8 +286,10 @@ Future<Map<String, dynamic>> handleUpdateSecret(
     if (request.data.value != null) {
       final pathToSecret = secretData['pathToSecret'] as String;
       await addSecretVersionByPath(pathToSecret, request.data.value!);
-      logInfo('Secret value updated for: $documentId',
-          {'teamId': teamId, 'name': name});
+      logInfo('Secret value updated for: $documentId', {
+        'teamId': teamId,
+        'name': name,
+      });
     }
 
     // Update Firestore document
@@ -319,8 +324,7 @@ Future<Map<String, dynamic>> handleUpdateSecret(
         }).toList();
 
         if (hasChanges) {
-          await workflowDoc.ref
-              .update({'workflowSteps': updatedSteps});
+          await workflowDoc.ref.update({'workflowSteps': updatedSteps});
         }
       }
     }
@@ -375,8 +379,10 @@ Future<Map<String, dynamic>> handleGenerateCertificateKey(
       'updatedAt': now,
     });
 
-    logInfo('Certificate key generated: $secretId',
-        {'teamId': teamId, 'secretName': secretName});
+    logInfo('Certificate key generated: $secretId', {
+      'teamId': teamId,
+      'secretName': secretName,
+    });
     return <String, dynamic>{'success': true, 'documentId': documentId};
   } catch (e) {
     if (e is HttpsError) rethrow;
@@ -405,8 +411,9 @@ Future<Map<String, dynamic>> handleSetupAscApiKey(
       .get();
 
   if (existingSecrets.docs.isNotEmpty) {
-    final existingNames =
-        existingSecrets.docs.map((doc) => doc.data()['name']).toList();
+    final existingNames = existingSecrets.docs
+        .map((doc) => doc.data()['name'])
+        .toList();
     throw AlreadyExistsError(
       'ASC API Key secrets already exist: ${existingNames.join(", ")}. Delete them first to reconfigure.',
     );
@@ -440,8 +447,10 @@ Future<Map<String, dynamic>> handleSetupAscApiKey(
       results[entry.key] = documentId;
     }
 
-    logInfo('ASC API Key setup complete',
-        {'teamId': teamId, 'secrets': results.keys.toList()});
+    logInfo('ASC API Key setup complete', {
+      'teamId': teamId,
+      'secrets': results.keys.toList(),
+    });
     return <String, dynamic>{'success': true, 'documentIds': results};
   } catch (e) {
     if (e is HttpsError) rethrow;
@@ -461,8 +470,7 @@ Future<String> _generateRsaPrivateKey() async {
   ]);
 
   if (result.exitCode != 0) {
-    throw InternalError(
-        'openssl failed: ${result.stderr}');
+    throw InternalError('openssl failed: ${result.stderr}');
   }
 
   return result.stdout as String;

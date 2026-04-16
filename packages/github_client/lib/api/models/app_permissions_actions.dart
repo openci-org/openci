@@ -11,20 +11,21 @@ enum AppPermissionsActions {
   read('read'),
   @JsonValue('write')
   write('write'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const AppPermissionsActions(this.json);
 
-  factory AppPermissionsActions.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory AppPermissionsActions.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<AppPermissionsActions> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<AppPermissionsActions> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

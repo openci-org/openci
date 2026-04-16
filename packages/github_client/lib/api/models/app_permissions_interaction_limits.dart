@@ -11,20 +11,21 @@ enum AppPermissionsInteractionLimits {
   read('read'),
   @JsonValue('write')
   write('write'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const AppPermissionsInteractionLimits(this.json);
 
-  factory AppPermissionsInteractionLimits.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory AppPermissionsInteractionLimits.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<AppPermissionsInteractionLimits> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<AppPermissionsInteractionLimits> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

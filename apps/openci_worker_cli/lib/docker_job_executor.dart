@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
@@ -231,7 +231,9 @@ Future<bool> processDockerJob(
     });
 
     // Notify cloud functions (replaces Firestore triggers)
-    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'));
+    unawaited(
+      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'),
+    );
     unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
   } catch (e, s) {
     await logError(
@@ -255,7 +257,9 @@ Future<bool> processDockerJob(
     });
 
     // Notify cloud functions (replaces Firestore triggers)
-    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'));
+    unawaited(
+      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'),
+    );
     unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
     rethrow;
   } finally {

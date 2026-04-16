@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
@@ -29,10 +28,7 @@ class GetTeamMembersRequest {
 }
 
 class InviteTeamMemberRequest {
-  const InviteTeamMemberRequest({
-    required this.email,
-    required this.teamId,
-  });
+  const InviteTeamMemberRequest({required this.email, required this.teamId});
 
   factory InviteTeamMemberRequest.fromJson(Map<String, dynamic> json) {
     final email = json['email'] as String?;
@@ -75,7 +71,9 @@ Future<Map<String, dynamic>?> _getUserByUid(
   try {
     final response = await dio.post<Map<String, dynamic>>(
       'https://identitytoolkit.googleapis.com/v1/projects/$projectId/accounts:lookup',
-      data: {'localId': [uid]},
+      data: {
+        'localId': [uid],
+      },
       options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
     );
     final users = response.data?['users'] as List<dynamic>?;
@@ -98,7 +96,9 @@ Future<Map<String, dynamic>?> _getUserByEmail(
   try {
     final response = await dio.post<Map<String, dynamic>>(
       'https://identitytoolkit.googleapis.com/v1/projects/$projectId/accounts:lookup',
-      data: {'email': [email]},
+      data: {
+        'email': [email],
+      },
       options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
     );
     final users = response.data?['users'] as List<dynamic>?;
@@ -179,7 +179,8 @@ Future<void> _sendInvitationEmail({
   await _sendEmail(
     to: to,
     subject: '[OpenCI] You\'ve been invited to join "$teamName"',
-    html: '''
+    html:
+        '''
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px;">
           Welcome to OpenCI 🚀
@@ -216,7 +217,8 @@ Future<void> _sendTeamAddedEmail({
     await _sendEmail(
       to: to,
       subject: '[OpenCI] You\'ve been added to "$teamName"',
-      html: '''
+      html:
+          '''
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           <h1 style="font-size: 24px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px;">
             You're now a member of "$teamName" 🎉
@@ -302,16 +304,14 @@ Future<Map<String, dynamic>> handleInviteTeamMember(
   final callerUid = auth.uid;
   final email = request.data.email;
   final teamId = request.data.teamId;
-  final members =
-      (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
+  final members = (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
 
   final accessToken = await _getAccessToken();
   final projectId = await _getProjectId();
 
   // Get caller's email
   final callerUser = await _getUserByUid(callerUid, accessToken, projectId);
-  final inviterEmail =
-      (callerUser?['email'] as String?) ?? 'A team member';
+  final inviterEmail = (callerUser?['email'] as String?) ?? 'A team member';
 
   // Check if user already has an OpenCI account
   final existingUser = await _getUserByEmail(email, accessToken, projectId);
@@ -329,10 +329,7 @@ Future<Map<String, dynamic>> handleInviteTeamMember(
     // Read current members and append
     final currentMembers = List<String>.from(members);
     currentMembers.add(inviteeUid);
-    await teamRef.update({
-      'members': currentMembers,
-      'updatedAt': now,
-    });
+    await teamRef.update({'members': currentMembers, 'updatedAt': now});
 
     logInfo('User $inviteeUid added to team $teamId by $callerUid');
 
@@ -451,8 +448,7 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
   }
 
   final teamData = teamDoc.data()!;
-  final members =
-      (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
+  final members = (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
 
   final now = DateTime.now().toUtc().toIso8601String();
 
@@ -472,10 +468,7 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
   // Add user to team
   final currentMembers = List<String>.from(members);
   currentMembers.add(uid);
-  await teamRef.update({
-    'members': currentMembers,
-    'updatedAt': now,
-  });
+  await teamRef.update({'members': currentMembers, 'updatedAt': now});
 
   // Mark invitation as accepted
   await invitationDoc.ref.update({

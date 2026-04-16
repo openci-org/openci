@@ -22,8 +22,8 @@ void _processInvitations() {
       .call<void>()
       .then((_) {})
       .catchError((Object e) {
-    debugPrint('processInvitationsOnSignUp failed: $e');
-  });
+        debugPrint('processInvitationsOnSignUp failed: $e');
+      });
 }
 
 class AuthPage extends HookConsumerWidget {

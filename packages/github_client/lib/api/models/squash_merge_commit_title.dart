@@ -16,20 +16,21 @@ enum SquashMergeCommitTitle {
   prTitle('PR_TITLE'),
   @JsonValue('COMMIT_OR_PR_TITLE')
   commitOrPrTitle('COMMIT_OR_PR_TITLE'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const SquashMergeCommitTitle(this.json);
 
-  factory SquashMergeCommitTitle.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory SquashMergeCommitTitle.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<SquashMergeCommitTitle> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<SquashMergeCommitTitle> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

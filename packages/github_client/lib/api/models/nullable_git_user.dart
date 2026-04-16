@@ -12,10 +12,10 @@ part 'nullable_git_user.g.dart';
 abstract class NullableGitUser with _$NullableGitUser {
   const factory NullableGitUser({
     String? name,
-    @JsonKey(name: 'Email')
-    String? email,
+    @JsonKey(name: 'Email') String? email,
     DateTime? date,
   }) = _NullableGitUser;
-  
-  factory NullableGitUser.fromJson(Map<String, Object?> json) => _$NullableGitUserFromJson(json);
+
+  factory NullableGitUser.fromJson(Map<String, Object?> json) =>
+      _$NullableGitUserFromJson(json);
 }

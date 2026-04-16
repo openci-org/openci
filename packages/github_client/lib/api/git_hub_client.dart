@@ -12,11 +12,7 @@ import 'checks/checks_client.dart';
 ///
 /// GitHub's v3 REST API.
 class GitHubClient {
-  GitHubClient(
-    Dio dio, {
-    String? baseUrl,
-  })  : _dio = dio,
-        _baseUrl = baseUrl;
+  GitHubClient(Dio dio, {String? baseUrl}) : _dio = dio, _baseUrl = baseUrl;
 
   final Dio _dio;
   final String? _baseUrl;

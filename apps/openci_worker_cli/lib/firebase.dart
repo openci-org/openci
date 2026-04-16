@@ -1,15 +1,15 @@
 import 'dart:io';
 
-import 'package:dart_firebase_admin/dart_firebase_admin.dart';
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 
-Firestore initFirestore({
+Future<Firestore> initFirestore({
   required String projectId,
   required String serviceAccountPath,
-}) {
-  final admin = FirebaseAdminApp.initializeApp(
-    projectId,
-    Credential.fromServiceAccount(File(serviceAccountPath)),
+}) async {
+  return Firestore(
+    settings: Settings(
+      projectId: projectId,
+      credential: Credential.fromServiceAccount(File(serviceAccountPath)),
+    ),
   );
-  return Firestore(admin);
 }

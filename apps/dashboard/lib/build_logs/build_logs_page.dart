@@ -61,19 +61,16 @@ class LogsBody extends HookConsumerWidget {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.6),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.inbox_rounded,
                     size: 40,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withValues(alpha: 0.5),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -178,9 +175,7 @@ class BuildJobCard extends HookConsumerWidget {
                                   : title;
                               return Text(
                                 displayTitle,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
+                                style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(fontWeight: FontWeight.w600),
                                 overflow: TextOverflow.ellipsis,
                               );
@@ -190,9 +185,7 @@ class BuildJobCard extends HookConsumerWidget {
                                 buildJob.jobKey != null
                                     ? '${buildJob.owner}/${buildJob.repo} (${buildJob.jobKey})'
                                     : '${buildJob.owner}/${buildJob.repo}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
+                                style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(fontWeight: FontWeight.w600),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -203,9 +196,7 @@ class BuildJobCard extends HookConsumerWidget {
                         const SizedBox(width: 8),
                         Text(
                           buildJob.createdAt.toTimeAgo(),
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
+                          style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 color: scheme.onSurfaceVariant.withValues(
                                   alpha: 0.7,
@@ -495,18 +486,14 @@ class WorkflowRunCard extends HookConsumerWidget {
                       child: workflowNameAsync.when(
                         data: (name) => Text(
                           name ?? '${mainJob.owner}/${mainJob.repo}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
+                          style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
                         loading: () => Skeletonizer(
                           child: Text(
                             '${mainJob.owner}/${mainJob.repo}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
                           ),

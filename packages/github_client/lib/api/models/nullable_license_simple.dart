@@ -11,17 +11,14 @@ part 'nullable_license_simple.g.dart';
 @Freezed()
 abstract class NullableLicenseSimple with _$NullableLicenseSimple {
   const factory NullableLicenseSimple({
-    @JsonKey(name: 'Key')
-    required String key,
+    @JsonKey(name: 'Key') required String key,
     required String name,
     required String? url,
-    @JsonKey(name: 'spdx_id')
-    required String? spdxId,
-    @JsonKey(name: 'node_id')
-    required String nodeId,
-    @JsonKey(name: 'html_url')
-    String? htmlUrl,
+    @JsonKey(name: 'spdx_id') required String? spdxId,
+    @JsonKey(name: 'node_id') required String nodeId,
+    @JsonKey(name: 'html_url') String? htmlUrl,
   }) = _NullableLicenseSimple;
-  
-  factory NullableLicenseSimple.fromJson(Map<String, Object?> json) => _$NullableLicenseSimpleFromJson(json);
+
+  factory NullableLicenseSimple.fromJson(Map<String, Object?> json) =>
+      _$NullableLicenseSimpleFromJson(json);
 }

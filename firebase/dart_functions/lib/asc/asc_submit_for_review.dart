@@ -62,9 +62,7 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
         'data': {
           'type': 'builds',
           'id': req.buildId,
-          'attributes': {
-            'usesNonExemptEncryption': false,
-          },
+          'attributes': {'usesNonExemptEncryption': false},
         },
       },
     );
@@ -109,16 +107,10 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
         'type': 'reviewSubmissionItems',
         'relationships': {
           'reviewSubmission': {
-            'data': {
-              'type': 'reviewSubmissions',
-              'id': reviewSubmissionId,
-            },
+            'data': {'type': 'reviewSubmissions', 'id': reviewSubmissionId},
           },
           'appStoreVersion': {
-            'data': {
-              'type': 'appStoreVersions',
-              'id': appStoreVersionId,
-            },
+            'data': {'type': 'appStoreVersions', 'id': appStoreVersionId},
           },
         },
       },
@@ -134,9 +126,7 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
       'data': {
         'type': 'reviewSubmissions',
         'id': reviewSubmissionId,
-        'attributes': {
-          'submitted': true,
-        },
+        'attributes': {'submitted': true},
       },
     },
   );
@@ -167,7 +157,8 @@ Future<String> _resolveAppStoreVersion({
 }) async {
   final existingVersions = await ascApiFetch(
     token: token,
-    path: '/apps/$appId/appStoreVersions'
+    path:
+        '/apps/$appId/appStoreVersions'
         '?filter[versionString]=$versionString'
         '&filter[platform]=$platform',
   );
@@ -202,10 +193,7 @@ Future<String> _resolveAppStoreVersion({
     body: {
       'data': {
         'type': 'appStoreVersions',
-        'attributes': {
-          'versionString': versionString,
-          'platform': platform,
-        },
+        'attributes': {'versionString': versionString, 'platform': platform},
         'relationships': {
           'app': {
             'data': {'type': 'apps', 'id': appId},
@@ -226,7 +214,8 @@ Future<void> _setWhatsNew({
 }) async {
   final locResponse = await ascApiFetch(
     token: token,
-    path: '/appStoreVersions/$appStoreVersionId'
+    path:
+        '/appStoreVersions/$appStoreVersionId'
         '/appStoreVersionLocalizations',
   );
 
@@ -244,9 +233,7 @@ Future<void> _setWhatsNew({
           'data': {
             'type': 'appStoreVersionLocalizations',
             'id': locId,
-            'attributes': {
-              'whatsNew': whatsNew,
-            },
+            'attributes': {'whatsNew': whatsNew},
           },
         },
       );
@@ -260,16 +247,10 @@ Future<void> _setWhatsNew({
       body: {
         'data': {
           'type': 'appStoreVersionLocalizations',
-          'attributes': {
-            'locale': 'en-US',
-            'whatsNew': whatsNew,
-          },
+          'attributes': {'locale': 'en-US', 'whatsNew': whatsNew},
           'relationships': {
             'appStoreVersion': {
-              'data': {
-                'type': 'appStoreVersions',
-                'id': appStoreVersionId,
-              },
+              'data': {'type': 'appStoreVersions', 'id': appStoreVersionId},
             },
           },
         },

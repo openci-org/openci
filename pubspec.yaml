@@ -5,7 +5,9 @@ environment:
   sdk: ^3.11.0
 
 workspace:
+  - apps/dashboard
   - apps/openci_vm_cli
   - apps/openci_worker_cli
-  - apps/dashboard
+  - firebase/dart_functions
+  - packages/github_client
   - packages/openci_shared

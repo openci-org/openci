@@ -10,11 +10,12 @@ part 'secret_scanning_push_protection2.freezed.dart';
 part 'secret_scanning_push_protection2.g.dart';
 
 @Freezed()
-abstract class SecretScanningPushProtection2 with _$SecretScanningPushProtection2 {
+abstract class SecretScanningPushProtection2
+    with _$SecretScanningPushProtection2 {
   const factory SecretScanningPushProtection2({
-    @JsonKey(name: 'Status')
-    Status2? status,
+    @JsonKey(name: 'Status') Status2? status,
   }) = _SecretScanningPushProtection2;
-  
-  factory SecretScanningPushProtection2.fromJson(Map<String, Object?> json) => _$SecretScanningPushProtection2FromJson(json);
+
+  factory SecretScanningPushProtection2.fromJson(Map<String, Object?> json) =>
+      _$SecretScanningPushProtection2FromJson(json);
 }

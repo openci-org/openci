@@ -17,20 +17,21 @@ enum Status7 {
   waiting('waiting'),
   @JsonValue('pending')
   pending('pending'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const Status7(this.json);
 
-  factory Status7.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory Status7.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<Status7> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<Status7> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

@@ -16,6 +16,7 @@ abstract class Permissions11 with _$Permissions11 {
     bool? maintain,
     bool? triage,
   }) = _Permissions11;
-  
-  factory Permissions11.fromJson(Map<String, Object?> json) => _$Permissions11FromJson(json);
+
+  factory Permissions11.fromJson(Map<String, Object?> json) =>
+      _$Permissions11FromJson(json);
 }

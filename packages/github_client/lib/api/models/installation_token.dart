@@ -16,19 +16,16 @@ part 'installation_token.g.dart';
 abstract class InstallationToken with _$InstallationToken {
   const factory InstallationToken({
     required String token,
-    @JsonKey(name: 'expires_at')
-    required String expiresAt,
+    @JsonKey(name: 'expires_at') required String expiresAt,
     AppPermissions? permissions,
     @JsonKey(name: 'repository_selection')
     InstallationTokenRepositorySelection? repositorySelection,
     List<Repository>? repositories,
-    @JsonKey(name: 'single_file')
-    String? singleFile,
-    @JsonKey(name: 'has_multiple_single_files')
-    bool? hasMultipleSingleFiles,
-    @JsonKey(name: 'single_file_paths')
-    List<String>? singleFilePaths,
+    @JsonKey(name: 'single_file') String? singleFile,
+    @JsonKey(name: 'has_multiple_single_files') bool? hasMultipleSingleFiles,
+    @JsonKey(name: 'single_file_paths') List<String>? singleFilePaths,
   }) = _InstallationToken;
-  
-  factory InstallationToken.fromJson(Map<String, Object?> json) => _$InstallationTokenFromJson(json);
+
+  factory InstallationToken.fromJson(Map<String, Object?> json) =>
+      _$InstallationTokenFromJson(json);
 }

@@ -10,16 +10,18 @@ part 'app_installations_installation_id_access_tokens_request_body.freezed.dart'
 part 'app_installations_installation_id_access_tokens_request_body.g.dart';
 
 @Freezed()
-abstract class AppInstallationsInstallationIdAccessTokensRequestBody with _$AppInstallationsInstallationIdAccessTokensRequestBody {
+abstract class AppInstallationsInstallationIdAccessTokensRequestBody
+    with _$AppInstallationsInstallationIdAccessTokensRequestBody {
   const factory AppInstallationsInstallationIdAccessTokensRequestBody({
     /// List of Repository names that the token should have access to
     List<String>? repositories,
 
     /// List of Repository IDs that the token should have access to
-    @JsonKey(name: 'repository_ids')
-    List<int>? repositoryIds,
+    @JsonKey(name: 'repository_ids') List<int>? repositoryIds,
     AppPermissions? permissions,
   }) = _AppInstallationsInstallationIdAccessTokensRequestBody;
-  
-  factory AppInstallationsInstallationIdAccessTokensRequestBody.fromJson(Map<String, Object?> json) => _$AppInstallationsInstallationIdAccessTokensRequestBodyFromJson(json);
+
+  factory AppInstallationsInstallationIdAccessTokensRequestBody.fromJson(
+    Map<String, Object?> json,
+  ) => _$AppInstallationsInstallationIdAccessTokensRequestBodyFromJson(json);
 }

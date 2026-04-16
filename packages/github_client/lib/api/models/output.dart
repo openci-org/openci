@@ -28,6 +28,6 @@ abstract class Output with _$Output {
     /// Adds images to the output displayed in the GitHub pull request UI.
     List<Images>? images,
   }) = _Output;
-  
+
   factory Output.fromJson(Map<String, Object?> json) => _$OutputFromJson(json);
 }

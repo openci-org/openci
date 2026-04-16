@@ -1,16 +1,13 @@
 import 'dart:async';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_shared/firestore_paths.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 
 final _log = Logger('RunManager');
 
-Future<String> initializeRun(
-  Firestore firestore,
-  String buildJobId,
-) async {
+Future<String> initializeRun(Firestore firestore, String buildJobId) async {
   final runId = firestore
       .collection(buildJobsCollection)
       .doc(buildJobId)

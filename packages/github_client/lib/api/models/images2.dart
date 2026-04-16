@@ -14,12 +14,12 @@ abstract class Images2 with _$Images2 {
     required String alt,
 
     /// The full URL of the image.
-    @JsonKey(name: 'image_url')
-    required String imageUrl,
+    @JsonKey(name: 'image_url') required String imageUrl,
 
     /// A short image description.
     String? caption,
   }) = _Images2;
-  
-  factory Images2.fromJson(Map<String, Object?> json) => _$Images2FromJson(json);
+
+  factory Images2.fromJson(Map<String, Object?> json) =>
+      _$Images2FromJson(json);
 }

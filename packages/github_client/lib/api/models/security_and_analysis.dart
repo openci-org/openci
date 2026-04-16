@@ -25,16 +25,13 @@ abstract class SecurityAndAnalysis with _$SecurityAndAnalysis {
     /// Security](/github/getting-started-with-github/learning-about-github/about-github-advanced-security).".
     ///
     /// For standalone Code Scanning or Secret Protection products, this parameter cannot be used.
-    @JsonKey(name: 'advanced_security')
-    AdvancedSecurity? advancedSecurity,
+    @JsonKey(name: 'advanced_security') AdvancedSecurity? advancedSecurity,
 
     /// Use the `status` property to enable or disable GitHub Code Security for this repository.
-    @JsonKey(name: 'code_security')
-    CodeSecurity? codeSecurity,
+    @JsonKey(name: 'code_security') CodeSecurity? codeSecurity,
 
     /// Use the `status` property to enable or disable secret scanning for this repository. For more information, see "[About secret scanning](/code-security/secret-security/about-secret-scanning)."
-    @JsonKey(name: 'secret_scanning')
-    SecretScanning? secretScanning,
+    @JsonKey(name: 'secret_scanning') SecretScanning? secretScanning,
 
     /// Use the `status` property to enable or disable secret scanning push protection for this repository. For more information, see "[Protecting pushes with secret scanning](/code-security/secret-scanning/protecting-pushes-with-secret-scanning)."
     @JsonKey(name: 'secret_scanning_push_protection')
@@ -50,7 +47,8 @@ abstract class SecurityAndAnalysis with _$SecurityAndAnalysis {
 
     /// Use the `status` property to enable or disable secret scanning delegated alert dismissal for this repository.
     @JsonKey(name: 'secret_scanning_delegated_alert_dismissal')
-    SecretScanningDelegatedAlertDismissal? secretScanningDelegatedAlertDismissal,
+    SecretScanningDelegatedAlertDismissal?
+    secretScanningDelegatedAlertDismissal,
 
     /// Use the `status` property to enable or disable secret scanning delegated bypass for this repository.
     @JsonKey(name: 'secret_scanning_delegated_bypass')
@@ -62,6 +60,7 @@ abstract class SecurityAndAnalysis with _$SecurityAndAnalysis {
     @JsonKey(name: 'secret_scanning_delegated_bypass_options')
     SecretScanningDelegatedBypassOptions? secretScanningDelegatedBypassOptions,
   }) = _SecurityAndAnalysis;
-  
-  factory SecurityAndAnalysis.fromJson(Map<String, Object?> json) => _$SecurityAndAnalysisFromJson(json);
+
+  factory SecurityAndAnalysis.fromJson(Map<String, Object?> json) =>
+      _$SecurityAndAnalysisFromJson(json);
 }

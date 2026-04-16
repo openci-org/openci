@@ -395,8 +395,8 @@ class _AppSelectionView extends ConsumerWidget {
                       Flexible(
                         child: Text(
                           releaseT.ascLoadingHint,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: Theme.of(context).hintColor,
                               ),
                         ),

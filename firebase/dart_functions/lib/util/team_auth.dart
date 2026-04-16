@@ -21,8 +21,7 @@ Future<Map<String, dynamic>> verifyTeamMembership({
   }
 
   final teamData = teamDoc.data()!;
-  final members =
-      (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
+  final members = (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
 
   if (!members.contains(auth.uid)) {
     throw PermissionDeniedError('You are not a member of this team');

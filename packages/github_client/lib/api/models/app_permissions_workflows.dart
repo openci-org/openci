@@ -9,20 +9,21 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 enum AppPermissionsWorkflows {
   @JsonValue('write')
   write('write'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const AppPermissionsWorkflows(this.json);
 
-  factory AppPermissionsWorkflows.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory AppPermissionsWorkflows.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<AppPermissionsWorkflows> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<AppPermissionsWorkflows> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

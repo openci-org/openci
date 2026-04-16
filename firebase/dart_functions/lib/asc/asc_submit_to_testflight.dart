@@ -67,8 +67,5 @@ Future<Map<String, dynamic>> handleAscSubmitToTestFlight(
     'groupId': group.id,
   });
 
-  return <String, dynamic>{
-    'success': true,
-    'betaGroupName': group.name,
-  };
+  return <String, dynamic>{'success': true, 'betaGroupName': group.name};
 }

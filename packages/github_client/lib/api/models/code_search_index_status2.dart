@@ -10,11 +10,10 @@ part 'code_search_index_status2.g.dart';
 @Freezed()
 abstract class CodeSearchIndexStatus2 with _$CodeSearchIndexStatus2 {
   const factory CodeSearchIndexStatus2({
-    @JsonKey(name: 'lexical_search_ok')
-    bool? lexicalSearchOk,
-    @JsonKey(name: 'lexical_commit_sha')
-    String? lexicalCommitSha,
+    @JsonKey(name: 'lexical_search_ok') bool? lexicalSearchOk,
+    @JsonKey(name: 'lexical_commit_sha') String? lexicalCommitSha,
   }) = _CodeSearchIndexStatus2;
-  
-  factory CodeSearchIndexStatus2.fromJson(Map<String, Object?> json) => _$CodeSearchIndexStatus2FromJson(json);
+
+  factory CodeSearchIndexStatus2.fromJson(Map<String, Object?> json) =>
+      _$CodeSearchIndexStatus2FromJson(json);
 }

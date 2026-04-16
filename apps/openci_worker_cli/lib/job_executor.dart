@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -298,7 +298,9 @@ Future<bool> processJob(
     });
 
     // Notify cloud functions (replaces Firestore triggers)
-    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'));
+    unawaited(
+      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'),
+    );
     unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
   } catch (e, s) {
     await logError(
@@ -322,7 +324,9 @@ Future<bool> processJob(
     });
 
     // Notify cloud functions (replaces Firestore triggers)
-    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'));
+    unawaited(
+      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'),
+    );
     unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
     rethrow;
   } finally {
@@ -459,13 +463,13 @@ Future<Map<String, String>> buildSecretVars({
     'Loading ${secretsSnapshot.docs.length} secret(s) from Secret Manager...',
   );
 
-  final saJson = jsonDecode(File(serviceAccountPath).readAsStringSync())
-      as Map<String, dynamic>;
+  final saJson =
+      jsonDecode(File(serviceAccountPath).readAsStringSync())
+          as Map<String, dynamic>;
   final credentials = ServiceAccountCredentials.fromJson(saJson);
-  final httpClient = await clientViaServiceAccount(
-    credentials,
-    [SecretManagerApi.cloudPlatformScope],
-  );
+  final httpClient = await clientViaServiceAccount(credentials, [
+    SecretManagerApi.cloudPlatformScope,
+  ]);
 
   try {
     final smApi = SecretManagerApi(httpClient);

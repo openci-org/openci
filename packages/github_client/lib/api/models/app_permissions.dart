@@ -106,12 +106,10 @@ abstract class AppPermissions with _$AppPermissions {
     AppPermissionsIssues? issues,
 
     /// The level of permission to grant the access token to manage the merge queues for a repository.
-    @JsonKey(name: 'merge_queues')
-    AppPermissionsMergeQueues? mergeQueues,
+    @JsonKey(name: 'merge_queues') AppPermissionsMergeQueues? mergeQueues,
 
     /// The level of permission to grant the access token to search repositories, list collaborators, and access Repository metadata.
-    @JsonKey(name: 'Metadata')
-    AppPermissionsMetadata? metadata,
+    @JsonKey(name: 'Metadata') AppPermissionsMetadata? metadata,
 
     /// The level of permission to grant the access token for packages published to GitHub Packages.
     AppPermissionsPackages? packages,
@@ -120,8 +118,7 @@ abstract class AppPermissions with _$AppPermissions {
     AppPermissionsPages? pages,
 
     /// The level of permission to grant the access token for pull requests and related comments, assignees, labels, milestones, and merges.
-    @JsonKey(name: 'pull_requests')
-    AppPermissionsPullRequests? pullRequests,
+    @JsonKey(name: 'pull_requests') AppPermissionsPullRequests? pullRequests,
 
     /// The level of permission to grant the access token for GitHub Actions workflows, Workflow runs, and artifacts.
     AppPermissionsActions? actions,
@@ -146,8 +143,7 @@ abstract class AppPermissions with _$AppPermissions {
     AppPermissionsSecurityEvents? securityEvents,
 
     /// The level of permission to grant the access token to manage just a single file.
-    @JsonKey(name: 'single_file')
-    AppPermissionsSingleFile? singleFile,
+    @JsonKey(name: 'single_file') AppPermissionsSingleFile? singleFile,
 
     /// The level of permission to grant the access token for Commit statuses.
     AppPermissionsStatuses? statuses,
@@ -161,7 +157,8 @@ abstract class AppPermissions with _$AppPermissions {
 
     /// The level of permission to grant the access token to view and edit custom properties for an organization, when allowed by the property.
     @JsonKey(name: 'custom_properties_for_organizations')
-    AppPermissionsCustomPropertiesForOrganizations? customPropertiesForOrganizations,
+    AppPermissionsCustomPropertiesForOrganizations?
+    customPropertiesForOrganizations,
 
     /// The level of permission to grant the access token for organization teams and members.
     AppPermissionsMembers? members,
@@ -184,15 +181,18 @@ abstract class AppPermissions with _$AppPermissions {
 
     /// The level of permission to grant the access token for managing access to GitHub Copilot for members of an organization with a Copilot Business subscription. This property is in public preview and is subject to change.
     @JsonKey(name: 'organization_copilot_seat_management')
-    AppPermissionsOrganizationCopilotSeatManagement? organizationCopilotSeatManagement,
+    AppPermissionsOrganizationCopilotSeatManagement?
+    organizationCopilotSeatManagement,
 
     /// The level of permission to grant the access token to view and manage Copilot coding agent settings for an organization.
     @JsonKey(name: 'organization_copilot_agent_settings')
-    AppPermissionsOrganizationCopilotAgentSettings? organizationCopilotAgentSettings,
+    AppPermissionsOrganizationCopilotAgentSettings?
+    organizationCopilotAgentSettings,
 
     /// The level of permission to grant the access token for organization custom properties management at the Enterprise level.
     @JsonKey(name: 'enterprise_custom_properties_for_organizations')
-    AppPermissionsEnterpriseCustomPropertiesForOrganizations? enterpriseCustomPropertiesForOrganizations,
+    AppPermissionsEnterpriseCustomPropertiesForOrganizations?
+    enterpriseCustomPropertiesForOrganizations,
 
     /// The level of permission to grant the access token to view events triggered by an Activity in an organization.
     @JsonKey(name: 'organization_events')
@@ -204,11 +204,13 @@ abstract class AppPermissions with _$AppPermissions {
 
     /// The level of permission to grant the access token for viewing and managing fine-grained personal access token requests to an organization.
     @JsonKey(name: 'organization_personal_access_tokens')
-    AppPermissionsOrganizationPersonalAccessTokens? organizationPersonalAccessTokens,
+    AppPermissionsOrganizationPersonalAccessTokens?
+    organizationPersonalAccessTokens,
 
     /// The level of permission to grant the access token for viewing and managing fine-grained personal access tokens that have been approved by an organization.
     @JsonKey(name: 'organization_personal_access_token_requests')
-    AppPermissionsOrganizationPersonalAccessTokenRequests? organizationPersonalAccessTokenRequests,
+    AppPermissionsOrganizationPersonalAccessTokenRequests?
+    organizationPersonalAccessTokenRequests,
 
     /// The level of permission to grant the access token for viewing an organization's plan.
     @JsonKey(name: 'organization_plan')
@@ -242,12 +244,10 @@ abstract class AppPermissions with _$AppPermissions {
     AppPermissionsFollowers? followers,
 
     /// The level of permission to grant the access token to manage git SSH keys.
-    @JsonKey(name: 'git_ssh_keys')
-    AppPermissionsGitSshKeys? gitSshKeys,
+    @JsonKey(name: 'git_ssh_keys') AppPermissionsGitSshKeys? gitSshKeys,
 
     /// The level of permission to grant the access token to view and manage GPG keys belonging to a user.
-    @JsonKey(name: 'gpg_keys')
-    AppPermissionsGpgKeys? gpgKeys,
+    @JsonKey(name: 'gpg_keys') AppPermissionsGpgKeys? gpgKeys,
 
     /// The level of permission to grant the access token to view and manage interaction limits on a repository.
     @JsonKey(name: 'interaction_limits')
@@ -261,8 +261,10 @@ abstract class AppPermissions with _$AppPermissions {
 
     /// The level of permission to grant the access token to view and manage announcement banners for an organization.
     @JsonKey(name: 'organization_announcement_banners')
-    AppPermissionsOrganizationAnnouncementBanners? organizationAnnouncementBanners,
+    AppPermissionsOrganizationAnnouncementBanners?
+    organizationAnnouncementBanners,
   }) = _AppPermissions;
-  
-  factory AppPermissions.fromJson(Map<String, Object?> json) => _$AppPermissionsFromJson(json);
+
+  factory AppPermissions.fromJson(Map<String, Object?> json) =>
+      _$AppPermissionsFromJson(json);
 }

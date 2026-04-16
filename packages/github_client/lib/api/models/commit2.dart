@@ -18,12 +18,11 @@ abstract class Commit2 with _$Commit2 {
     required NullableGitUser? author,
     required NullableGitUser? committer,
     required String message,
-    @JsonKey(name: 'comment_count')
-    required int commentCount,
+    @JsonKey(name: 'comment_count') required int commentCount,
     required Tree tree,
-    @JsonKey(name: 'Verification')
-    Verification? verification,
+    @JsonKey(name: 'Verification') Verification? verification,
   }) = _Commit2;
-  
-  factory Commit2.fromJson(Map<String, Object?> json) => _$Commit2FromJson(json);
+
+  factory Commit2.fromJson(Map<String, Object?> json) =>
+      _$Commit2FromJson(json);
 }

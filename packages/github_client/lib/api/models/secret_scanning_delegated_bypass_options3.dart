@@ -10,11 +10,14 @@ part 'secret_scanning_delegated_bypass_options3.freezed.dart';
 part 'secret_scanning_delegated_bypass_options3.g.dart';
 
 @Freezed()
-abstract class SecretScanningDelegatedBypassOptions3 with _$SecretScanningDelegatedBypassOptions3 {
+abstract class SecretScanningDelegatedBypassOptions3
+    with _$SecretScanningDelegatedBypassOptions3 {
   const factory SecretScanningDelegatedBypassOptions3({
     /// The bypass reviewers for secret scanning delegated bypass
     List<Reviewers3>? reviewers,
   }) = _SecretScanningDelegatedBypassOptions3;
-  
-  factory SecretScanningDelegatedBypassOptions3.fromJson(Map<String, Object?> json) => _$SecretScanningDelegatedBypassOptions3FromJson(json);
+
+  factory SecretScanningDelegatedBypassOptions3.fromJson(
+    Map<String, Object?> json,
+  ) => _$SecretScanningDelegatedBypassOptions3FromJson(json);
 }

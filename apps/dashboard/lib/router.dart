@@ -55,8 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               final token = state.pathParameters['token']!;
               return SwipeablePage(
                 key: state.pageKey,
-                builder: (context) =>
-                    AcceptInvitationPage(token: token),
+                builder: (context) => AcceptInvitationPage(token: token),
               );
             },
           ),

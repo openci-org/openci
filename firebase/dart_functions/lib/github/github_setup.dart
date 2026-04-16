@@ -41,10 +41,7 @@ Future<Response> handleGitHubSetup(Request request) async {
     }
 
     final now = DateTime.now().toUtc().toIso8601String();
-    await teamRef.update({
-      'installationIds': currentIds,
-      'updatedAt': now,
-    });
+    await teamRef.update({'installationIds': currentIds, 'updatedAt': now});
 
     logInfo('Linked installationId $installationId to team $teamId');
 

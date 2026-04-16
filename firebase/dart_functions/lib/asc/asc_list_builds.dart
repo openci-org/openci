@@ -30,7 +30,8 @@ Future<Map<String, dynamic>> handleAscListBuilds(
 
   final result = await ascApiFetch(
     token: token,
-    path: '/builds'
+    path:
+        '/builds'
         '?filter[app]=$appId'
         '&sort=-uploadedDate'
         '&limit=20'

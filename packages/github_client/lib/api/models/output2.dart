@@ -28,6 +28,7 @@ abstract class Output2 with _$Output2 {
     /// Adds images to the output displayed in the GitHub pull request UI.
     List<Images2>? images,
   }) = _Output2;
-  
-  factory Output2.fromJson(Map<String, Object?> json) => _$Output2FromJson(json);
+
+  factory Output2.fromJson(Map<String, Object?> json) =>
+      _$Output2FromJson(json);
 }

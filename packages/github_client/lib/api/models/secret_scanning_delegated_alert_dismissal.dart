@@ -8,12 +8,14 @@ part 'secret_scanning_delegated_alert_dismissal.freezed.dart';
 part 'secret_scanning_delegated_alert_dismissal.g.dart';
 
 @Freezed()
-abstract class SecretScanningDelegatedAlertDismissal with _$SecretScanningDelegatedAlertDismissal {
+abstract class SecretScanningDelegatedAlertDismissal
+    with _$SecretScanningDelegatedAlertDismissal {
   const factory SecretScanningDelegatedAlertDismissal({
     /// Can be `enabled` or `disabled`.
-    @JsonKey(name: 'Status')
-    String? status,
+    @JsonKey(name: 'Status') String? status,
   }) = _SecretScanningDelegatedAlertDismissal;
-  
-  factory SecretScanningDelegatedAlertDismissal.fromJson(Map<String, Object?> json) => _$SecretScanningDelegatedAlertDismissalFromJson(json);
+
+  factory SecretScanningDelegatedAlertDismissal.fromJson(
+    Map<String, Object?> json,
+  ) => _$SecretScanningDelegatedAlertDismissalFromJson(json);
 }

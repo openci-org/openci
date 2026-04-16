@@ -27,8 +27,9 @@ Future<List<String>> directories(Ref ref) async {
   });
 
   final data = result.data as Map<String, dynamic>;
-  final directories =
-      (data['directories'] as List<dynamic>).map((e) => e as String).toList();
+  final directories = (data['directories'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList();
 
   return directories;
 }

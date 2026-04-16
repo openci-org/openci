@@ -3,9 +3,11 @@ import 'dart:io';
 
 void main() {
   final now = DateTime.now();
-  final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final dateStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-  final content = '''// This file is auto-generated before each build.
+  final content =
+      '''// This file is auto-generated before each build.
 // Run: dart run tool/update_build_info.dart
 
 const buildDate = '$dateStr';

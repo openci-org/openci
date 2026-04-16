@@ -12,9 +12,9 @@ part 'secret_scanning_ai_detection2.g.dart';
 @Freezed()
 abstract class SecretScanningAiDetection2 with _$SecretScanningAiDetection2 {
   const factory SecretScanningAiDetection2({
-    @JsonKey(name: 'Status')
-    Status2? status,
+    @JsonKey(name: 'Status') Status2? status,
   }) = _SecretScanningAiDetection2;
-  
-  factory SecretScanningAiDetection2.fromJson(Map<String, Object?> json) => _$SecretScanningAiDetection2FromJson(json);
+
+  factory SecretScanningAiDetection2.fromJson(Map<String, Object?> json) =>
+      _$SecretScanningAiDetection2FromJson(json);
 }

@@ -21,25 +21,27 @@ enum Conclusion3 {
   actionRequired('action_required'),
   @JsonValue('stale')
   stale('stale'),
+
   /// The name has been replaced because it contains a keyword. Original name: `null`.
   @JsonValue('null')
   valueNull('null'),
   @JsonValue('skipped')
   skipped('skipped'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const Conclusion3(this.json);
 
-  factory Conclusion3.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory Conclusion3.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<Conclusion3> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<Conclusion3> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

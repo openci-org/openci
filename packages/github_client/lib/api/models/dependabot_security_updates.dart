@@ -13,9 +13,9 @@ part 'dependabot_security_updates.g.dart';
 abstract class DependabotSecurityUpdates with _$DependabotSecurityUpdates {
   const factory DependabotSecurityUpdates({
     /// The enablement Status of Dependabot security updates for the repository.
-    @JsonKey(name: 'Status')
-    Status2? status,
+    @JsonKey(name: 'Status') Status2? status,
   }) = _DependabotSecurityUpdates;
-  
-  factory DependabotSecurityUpdates.fromJson(Map<String, Object?> json) => _$DependabotSecurityUpdatesFromJson(json);
+
+  factory DependabotSecurityUpdates.fromJson(Map<String, Object?> json) =>
+      _$DependabotSecurityUpdatesFromJson(json);
 }

@@ -20,20 +20,21 @@ enum CheckRunConclusion {
   timedOut('timed_out'),
   @JsonValue('action_required')
   actionRequired('action_required'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const CheckRunConclusion(this.json);
 
-  factory CheckRunConclusion.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory CheckRunConclusion.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<CheckRunConclusion> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<CheckRunConclusion> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

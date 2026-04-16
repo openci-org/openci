@@ -30,11 +30,11 @@ Future<AscCredentials> getAscCredentials(String teamId) async {
   final snapshot = await firestore
       .collection(secretsCollection)
       .where('teamId', WhereFilter.equal, teamId)
-      .where(
-        'name',
-        WhereFilter.isIn,
-        ['OPENCI_ASC_ISSUER_ID', 'OPENCI_ASC_KEY_ID', 'OPENCI_ASC_PRIVATE_KEY'],
-      )
+      .where('name', WhereFilter.isIn, [
+        'OPENCI_ASC_ISSUER_ID',
+        'OPENCI_ASC_KEY_ID',
+        'OPENCI_ASC_PRIVATE_KEY',
+      ])
       .get();
 
   if (snapshot.empty || snapshot.size < 3) {
@@ -125,9 +125,7 @@ Future<Map<String, dynamic>> ascApiFetch({
   } on DioException catch (e) {
     final status = e.response?.statusCode ?? 0;
     final errorBody = e.response?.data?.toString() ?? e.message ?? 'Unknown';
-    throw AscException(
-      'App Store Connect API error ($status): $errorBody',
-    );
+    throw AscException('App Store Connect API error ($status): $errorBody');
   }
 }
 
@@ -136,8 +134,7 @@ Future<Map<String, dynamic>> verifyAndGetTeam(
   String teamId,
   String callerUid,
 ) async {
-  final teamDoc =
-      await firestore.collection(teamsCollection).doc(teamId).get();
+  final teamDoc = await firestore.collection(teamsCollection).doc(teamId).get();
   if (!teamDoc.exists) {
     throw AscException('Team not found');
   }

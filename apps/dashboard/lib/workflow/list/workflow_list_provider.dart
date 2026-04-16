@@ -27,8 +27,10 @@ class WorkflowList extends _$WorkflowList {
 
   Future<String> duplicateWorkflow(Workflow workflow) async {
     final now = DateTime.now();
-    final newDoc =
-        ref.watch(firestoreProvider).collection(workflowsCollection).doc();
+    final newDoc = ref
+        .watch(firestoreProvider)
+        .collection(workflowsCollection)
+        .doc();
 
     final duplicated = workflow.copyWith(
       documentId: newDoc.id,

@@ -57,8 +57,10 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
   final runStatus = request.data.runStatus;
   final conclusion = request.data.conclusion;
 
-  final buildJobDoc =
-      await firestore.collection(buildJobsCollection).doc(buildJobId).get();
+  final buildJobDoc = await firestore
+      .collection(buildJobsCollection)
+      .doc(buildJobId)
+      .get();
 
   if (!buildJobDoc.exists) {
     throw NotFoundError('Build job not found');
@@ -99,7 +101,7 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
           'https://api.github.com/repos/$owner/$repo/check-runs/$checkRunId';
       final body = <String, dynamic>{
         'status': ghStatus,
-        if (ghConclusion != null) 'conclusion': ghConclusion,
+        'conclusion': ?ghConclusion,
         'details_url': detailsUrl,
       };
 

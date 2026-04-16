@@ -19,48 +19,31 @@ abstract class ReposOwnerRepoRequestBody with _$ReposOwnerRepoRequestBody {
   const factory ReposOwnerRepoRequestBody({
     /// Either `true` to make the Repository private or `false` to make it public. Default: `false`.  .
     /// **Note**: You will get a `422` error if the organization restricts [changing Repository visibility](https://docs.github.com/articles/repository-permission-levels-for-an-organization#changing-the-visibility-of-repositories) to organization owners and a non-owner tries to change the value of private.
-    @Default(false)
-    bool private,
+    @Default(false) bool private,
 
     /// Either `true` to enable issues for this Repository or `false` to disable them.
-    @JsonKey(name: 'has_issues')
-    @Default(true)
-    bool hasIssues,
+    @JsonKey(name: 'has_issues') @Default(true) bool hasIssues,
 
     /// Either `true` to enable projects for this Repository or `false` to disable them. **Note:** If you're creating a Repository in an organization that has disabled Repository projects, the default is `false`, and if you pass `true`, the API returns an error.
-    @JsonKey(name: 'has_projects')
-    @Default(true)
-    bool hasProjects,
+    @JsonKey(name: 'has_projects') @Default(true) bool hasProjects,
 
     /// Either `true` to enable the wiki for this Repository or `false` to disable it.
-    @JsonKey(name: 'has_wiki')
-    @Default(true)
-    bool hasWiki,
+    @JsonKey(name: 'has_wiki') @Default(true) bool hasWiki,
 
     /// Either `true` to make this repo available as a template Repository or `false` to prevent it.
-    @JsonKey(name: 'is_template')
-    @Default(false)
-    bool isTemplate,
+    @JsonKey(name: 'is_template') @Default(false) bool isTemplate,
 
     /// Either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.
-    @JsonKey(name: 'allow_squash_merge')
-    @Default(true)
-    bool allowSquashMerge,
+    @JsonKey(name: 'allow_squash_merge') @Default(true) bool allowSquashMerge,
 
     /// Either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.
-    @JsonKey(name: 'allow_merge_commit')
-    @Default(true)
-    bool allowMergeCommit,
+    @JsonKey(name: 'allow_merge_commit') @Default(true) bool allowMergeCommit,
 
     /// Either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.
-    @JsonKey(name: 'allow_rebase_merge')
-    @Default(true)
-    bool allowRebaseMerge,
+    @JsonKey(name: 'allow_rebase_merge') @Default(true) bool allowRebaseMerge,
 
     /// Either `true` to allow AutoMerge on pull requests, or `false` to disallow auto-merge.
-    @JsonKey(name: 'allow_auto_merge')
-    @Default(false)
-    bool allowAutoMerge,
+    @JsonKey(name: 'allow_auto_merge') @Default(false) bool allowAutoMerge,
 
     /// Either `true` to allow automatically deleting head branches when pull requests are merged, or `false` to prevent automatic deletion.
     @JsonKey(name: 'delete_branch_on_merge')
@@ -79,13 +62,10 @@ abstract class ReposOwnerRepoRequestBody with _$ReposOwnerRepoRequestBody {
     bool useSquashPrTitleAsDefault,
 
     /// Whether to archive this repository. `false` will unarchive a previously archived repository.
-    @Default(false)
-    bool archived,
+    @Default(false) bool archived,
 
     /// Either `true` to allow private forks, or `false` to prevent private forks.
-    @JsonKey(name: 'allow_forking')
-    @Default(false)
-    bool allowForking,
+    @JsonKey(name: 'allow_forking') @Default(false) bool allowForking,
 
     /// Either `true` to require contributors to sign off on web-based commits, or `false` to not require contributors to sign off on web-based commits.
     @JsonKey(name: 'web_commit_signoff_required')
@@ -116,8 +96,7 @@ abstract class ReposOwnerRepoRequestBody with _$ReposOwnerRepoRequestBody {
     SecurityAndAnalysis? securityAndAnalysis,
 
     /// Updates the default branch for this repository.
-    @JsonKey(name: 'default_branch')
-    String? defaultBranch,
+    @JsonKey(name: 'default_branch') String? defaultBranch,
 
     /// Required when using `squash_merge_commit_message`.
     ///
@@ -142,8 +121,7 @@ abstract class ReposOwnerRepoRequestBody with _$ReposOwnerRepoRequestBody {
     ///
     /// - `PR_TITLE` - default to the pull request's title.
     /// - `MERGE_MESSAGE` - default to the classic title for a merge message (e.g., Merge pull request #123 from branch-name).
-    @JsonKey(name: 'merge_commit_title')
-    MergeCommitTitle? mergeCommitTitle,
+    @JsonKey(name: 'merge_commit_title') MergeCommitTitle? mergeCommitTitle,
 
     /// The default value for a merge Commit message.
     ///
@@ -153,6 +131,7 @@ abstract class ReposOwnerRepoRequestBody with _$ReposOwnerRepoRequestBody {
     @JsonKey(name: 'merge_commit_message')
     MergeCommitMessage? mergeCommitMessage,
   }) = _ReposOwnerRepoRequestBody;
-  
-  factory ReposOwnerRepoRequestBody.fromJson(Map<String, Object?> json) => _$ReposOwnerRepoRequestBodyFromJson(json);
+
+  factory ReposOwnerRepoRequestBody.fromJson(Map<String, Object?> json) =>
+      _$ReposOwnerRepoRequestBodyFromJson(json);
 }

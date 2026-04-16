@@ -7,15 +7,13 @@ import '../util/logger.dart';
 /// Creates a JWT for GitHub App authentication.
 String createGitHubAppJwt(String appId, String privateKey) {
   final now = DateTime.now().toUtc();
-  final jwt = JWT(
-    {
-      'iat': now.subtract(const Duration(seconds: 60)).millisecondsSinceEpoch ~/
-          1000,
-      'exp': now.add(const Duration(minutes: 10)).millisecondsSinceEpoch ~/
-          1000,
-      'iss': appId,
-    },
-  );
+  final jwt = JWT({
+    'iat':
+        now.subtract(const Duration(seconds: 60)).millisecondsSinceEpoch ~/
+        1000,
+    'exp': now.add(const Duration(minutes: 10)).millisecondsSinceEpoch ~/ 1000,
+    'iss': appId,
+  });
 
   return jwt.sign(RSAPrivateKey(privateKey), algorithm: JWTAlgorithm.RS256);
 }
@@ -30,10 +28,12 @@ Future<Map<String, dynamic>> getInstallationToken(int installationId) async {
   try {
     final response = await dio.post<Map<String, dynamic>>(
       'https://api.github.com/app/installations/$installationId/access_tokens',
-      options: Options(headers: {
-        'Authorization': 'Bearer $jwt',
-        'Accept': 'application/vnd.github+json',
-      }),
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $jwt',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return {
       'token': response.data!['token'] as String,
@@ -65,10 +65,12 @@ Future<int?> createCheckRun({
         'started_at': DateTime.now().toUtc().toIso8601String(),
         'details_url': detailsUrl,
       },
-      options: Options(headers: {
-        'Authorization': 'token $token',
-        'Accept': 'application/vnd.github+json',
-      }),
+      options: Options(
+        headers: {
+          'Authorization': 'token $token',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return response.data?['id'] as int?;
   } catch (e) {
@@ -90,10 +92,12 @@ Future<Map<String, dynamic>> githubGet(
     final response = await dio.get<Map<String, dynamic>>(
       'https://api.github.com$path',
       queryParameters: queryParameters,
-      options: Options(headers: {
-        'Authorization': 'token $token',
-        'Accept': 'application/vnd.github+json',
-      }),
+      options: Options(
+        headers: {
+          'Authorization': 'token $token',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return response.data!;
   } finally {
@@ -112,10 +116,12 @@ Future<Map<String, dynamic>> githubPost(
     final response = await dio.post<Map<String, dynamic>>(
       'https://api.github.com$path',
       data: data,
-      options: Options(headers: {
-        'Authorization': 'token $token',
-        'Accept': 'application/vnd.github+json',
-      }),
+      options: Options(
+        headers: {
+          'Authorization': 'token $token',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return response.data!;
   } finally {
@@ -134,10 +140,12 @@ Future<Map<String, dynamic>> githubPatch(
     final response = await dio.patch<Map<String, dynamic>>(
       'https://api.github.com$path',
       data: data,
-      options: Options(headers: {
-        'Authorization': 'token $token',
-        'Accept': 'application/vnd.github+json',
-      }),
+      options: Options(
+        headers: {
+          'Authorization': 'token $token',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return response.data!;
   } finally {
@@ -156,10 +164,12 @@ Future<Map<String, dynamic>> githubPut(
     final response = await dio.put<Map<String, dynamic>>(
       'https://api.github.com$path',
       data: data,
-      options: Options(headers: {
-        'Authorization': 'token $token',
-        'Accept': 'application/vnd.github+json',
-      }),
+      options: Options(
+        headers: {
+          'Authorization': 'token $token',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return response.data!;
   } finally {
@@ -177,14 +187,13 @@ Future<Map<String, dynamic>> githubGraphql(
   try {
     final response = await dio.post<Map<String, dynamic>>(
       'https://api.github.com/graphql',
-      data: {
-        'query': query,
-        if (variables != null) 'variables': variables,
-      },
-      options: Options(headers: {
-        'Authorization': 'bearer $token',
-        'Accept': 'application/vnd.github+json',
-      }),
+      data: {'query': query, 'variables': ?variables},
+      options: Options(
+        headers: {
+          'Authorization': 'bearer $token',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     return response.data!;
   } finally {

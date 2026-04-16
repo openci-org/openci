@@ -25,10 +25,7 @@ ArgParser get argParser {
       abbr: 'w',
       help: 'Unique ID for this worker (e.g., worker-1, worker-2).',
     )
-    ..addOption(
-      'sentry-dsn',
-      help: 'Sentry DSN for error reporting.',
-    );
+    ..addOption('sentry-dsn', help: 'Sentry DSN for error reporting.');
 }
 
 void printArgsUsage() {

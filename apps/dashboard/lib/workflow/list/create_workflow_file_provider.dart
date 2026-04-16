@@ -40,16 +40,18 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
     final functions = ref.read(functionsProvider);
 
     try {
-      final result = await functions.httpsCallable(createWorkflowFileFunction).call({
-        'teamId': team.id,
-        'repository': repository,
-        'branch': branch,
-        'fileName': fileName,
-        'content': content,
-        'commitMode': commitMode.toApiValue(),
-        if (commitMessage != null && commitMessage.isNotEmpty)
-          'commitMessage': commitMessage,
-      });
+      final result = await functions
+          .httpsCallable(createWorkflowFileFunction)
+          .call({
+            'teamId': team.id,
+            'repository': repository,
+            'branch': branch,
+            'fileName': fileName,
+            'content': content,
+            'commitMode': commitMode.toApiValue(),
+            if (commitMessage != null && commitMessage.isNotEmpty)
+              'commitMessage': commitMessage,
+          });
 
       final data = Map<String, dynamic>.from(result.data as Map);
       if (ref.mounted) state = const AsyncData(null);

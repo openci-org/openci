@@ -11,9 +11,9 @@ part 'advanced_security.g.dart';
 abstract class AdvancedSecurity with _$AdvancedSecurity {
   const factory AdvancedSecurity({
     /// Can be `enabled` or `disabled`.
-    @JsonKey(name: 'Status')
-    String? status,
+    @JsonKey(name: 'Status') String? status,
   }) = _AdvancedSecurity;
-  
-  factory AdvancedSecurity.fromJson(Map<String, Object?> json) => _$AdvancedSecurityFromJson(json);
+
+  factory AdvancedSecurity.fromJson(Map<String, Object?> json) =>
+      _$AdvancedSecurityFromJson(json);
 }

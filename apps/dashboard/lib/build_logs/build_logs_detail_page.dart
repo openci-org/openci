@@ -1161,7 +1161,9 @@ class _FailureSummaryCard extends HookWidget {
                               ),
                               code: TextStyle(
                                 fontFamily: 'monospace',
-                                backgroundColor: _kBorder.withValues(alpha: 0.5),
+                                backgroundColor: _kBorder.withValues(
+                                  alpha: 0.5,
+                                ),
                                 color: const Color(0xFF58A6FF), // blue for code
                                 fontSize: 12,
                               ),
@@ -1176,8 +1178,7 @@ class _FailureSummaryCard extends HookWidget {
                               ),
                               blockquoteDecoration: BoxDecoration(
                                 border: Border(
-                                  left: BorderSide(
-                                      color: _kBorder, width: 4),
+                                  left: BorderSide(color: _kBorder, width: 4),
                                 ),
                               ),
                               listBullet: TextStyle(

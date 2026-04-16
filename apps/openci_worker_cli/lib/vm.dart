@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
@@ -30,7 +30,9 @@ Future<void> cloneVm({
 }
 
 String currentVmName({required String workerId, required String buildJobId}) {
-  final shortId = buildJobId.length >= 8 ? buildJobId.substring(0, 8) : buildJobId;
+  final shortId = buildJobId.length >= 8
+      ? buildJobId.substring(0, 8)
+      : buildJobId;
   return 'openci-vm-$workerId-$shortId';
 }
 
@@ -117,8 +119,18 @@ Future<String> getVmIp(String vmName) async {
   const retryDelay = Duration(seconds: 3);
   for (var attempt = 1; attempt <= maxRetries; attempt++) {
     final result = await Process.run('lume', [
-      'ssh', vmName, '--user', sshUser, '--password', sshPassword,
-      '--timeout', '10', '--', 'ipconfig', 'getifaddr', 'en0',
+      'ssh',
+      vmName,
+      '--user',
+      sshUser,
+      '--password',
+      sshPassword,
+      '--timeout',
+      '10',
+      '--',
+      'ipconfig',
+      'getifaddr',
+      'en0',
     ]);
     final output = result.stdout.toString().trim();
     final stderr = result.stderr.toString().trim();
@@ -154,9 +166,15 @@ Future<String> getVmIp(String vmName) async {
 Future<void> setupDirectSsh(String vmName) async {
   final keyFile = File(_sshKeyPath);
   if (!keyFile.existsSync()) {
-    await Process.run(
-      'ssh-keygen', ['-t', 'ed25519', '-f', _sshKeyPath, '-N', '', '-q'],
-    );
+    await Process.run('ssh-keygen', [
+      '-t',
+      'ed25519',
+      '-f',
+      _sshKeyPath,
+      '-N',
+      '',
+      '-q',
+    ]);
     _log.info('Generated SSH key at $_sshKeyPath');
   }
   final pubKey = File('$_sshKeyPath.pub').readAsStringSync().trim();
@@ -177,12 +195,15 @@ Future<void> cleanupOrphanedVms(String workerId) async {
     final shell = Shell(throwOnError: false, verbose: false);
     final prefix = 'openci-vm-$workerId-';
 
-    final lsResult = await Process.run('ls', ['-1', '${Platform.environment['HOME']}/.lume/']);
+    final lsResult = await Process.run('ls', [
+      '-1',
+      '${Platform.environment['HOME']}/.lume/',
+    ]);
     if (lsResult.exitCode != 0) return;
 
-    final vmNames = LineSplitter.split(lsResult.stdout.toString())
-        .where((name) => name.startsWith(prefix))
-        .toList();
+    final vmNames = LineSplitter.split(
+      lsResult.stdout.toString(),
+    ).where((name) => name.startsWith(prefix)).toList();
 
     for (final vmName in vmNames) {
       _log.info('Deleting orphaned VM: $vmName');
@@ -209,12 +230,15 @@ Future<void> pruneStaleVms(
     final prefix = 'openci-vm-$workerId-';
     final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
-    final lsResult = await Process.run('ls', ['-1', '${Platform.environment['HOME']}/.lume/']);
+    final lsResult = await Process.run('ls', [
+      '-1',
+      '${Platform.environment['HOME']}/.lume/',
+    ]);
     if (lsResult.exitCode != 0) return;
 
-    final vmNames = LineSplitter.split(lsResult.stdout.toString())
-        .where((name) => name.startsWith(prefix) && name != currentVm)
-        .toList();
+    final vmNames = LineSplitter.split(
+      lsResult.stdout.toString(),
+    ).where((name) => name.startsWith(prefix) && name != currentVm).toList();
 
     for (final vmName in vmNames) {
       await logInfo(firestore, buildJobId, runId, 'Deleting stale VM: $vmName');
@@ -299,13 +323,20 @@ Future<void> execCommandStreaming(
   required Future<bool> Function() isCancelled,
 }) async {
   final process = await Process.start('ssh', [
-    '-o', 'StrictHostKeyChecking=no',
-    '-o', 'UserKnownHostsFile=/dev/null',
-    '-o', 'LogLevel=ERROR',
-    '-o', 'RequestTTY=no',
-    '-o', 'ServerAliveInterval=30',
-    '-o', 'ServerAliveCountMax=5',
-    '-i', _sshKeyPath,
+    '-o',
+    'StrictHostKeyChecking=no',
+    '-o',
+    'UserKnownHostsFile=/dev/null',
+    '-o',
+    'LogLevel=ERROR',
+    '-o',
+    'RequestTTY=no',
+    '-o',
+    'ServerAliveInterval=30',
+    '-o',
+    'ServerAliveCountMax=5',
+    '-i',
+    _sshKeyPath,
     '$sshUser@$vmIp',
     ...command,
   ]);
@@ -366,9 +397,7 @@ Future<void> execCommandStreaming(
   }
 
   if (outputErrors.isNotEmpty) {
-    throw Exception(
-      'act reported errors:\n${outputErrors.join('\n')}',
-    );
+    throw Exception('act reported errors:\n${outputErrors.join('\n')}');
   }
 
   if (!hasSuccessfulStep) {

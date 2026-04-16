@@ -75,10 +75,7 @@ Future<CallableResult<Map<String, dynamic>>> handleProcessInvitationsOnSignUp(
 
     if (!members.contains(uid)) {
       final updatedMembers = List<String>.from(members)..add(uid);
-      await teamRef.update({
-        'members': updatedMembers,
-        'updatedAt': nowIso,
-      });
+      await teamRef.update({'members': updatedMembers, 'updatedAt': nowIso});
     }
 
     // Mark invitation as accepted

@@ -97,10 +97,7 @@ _TriggerInfo? _extractTriggerInfo(WebhookEvent event) {
 
     case GitHubEventType.create:
       if (event.refType != 'tag') return null;
-      return _TriggerInfo(
-        triggerType: 'tag',
-        tagName: event.ref,
-      );
+      return _TriggerInfo(triggerType: 'tag', tagName: event.ref);
 
     case GitHubEventType.release:
       return _TriggerInfo(
@@ -166,16 +163,13 @@ Future<List<OpenciDirEntry>> _fetchOpenciDir({
       'https://api.github.com/graphql',
       data: {
         'query': openciDirQuery,
-        'variables': {
-          'owner': owner,
-          'repo': repo,
-          'expression': expression,
-        },
+        'variables': {'owner': owner, 'repo': repo, 'expression': expression},
       },
     );
 
-    final entries = (response.data['data']?['repository']?['object']
-            ?['entries'] as List<dynamic>?) ??
+    final entries =
+        (response.data['data']?['repository']?['object']?['entries']
+            as List<dynamic>?) ??
         [];
 
     return entries
@@ -242,7 +236,8 @@ Future<_BuildJobsResult> _createBuildJobs({
   );
 
   // Determine the Git ref for the GraphQL query
-  final queryRef = commitSha ??
+  final queryRef =
+      commitSha ??
       (triggerInfo.triggerBranch != null
           ? 'heads/${triggerInfo.triggerBranch}'
           : null);
@@ -277,9 +272,14 @@ Future<_BuildJobsResult> _createBuildJobs({
       if (parsed == null) continue;
 
       final workflowName =
-          parsed['name'] as String? ?? entry.name.replaceAll(RegExp(r'\.(yaml|yml)$'), '');
+          parsed['name'] as String? ??
+          entry.name.replaceAll(RegExp(r'\.(yaml|yml)$'), '');
 
-      if (!matchesTrigger(parsed, triggerInfo.triggerType, triggerInfo.triggerBranch)) {
+      if (!matchesTrigger(
+        parsed,
+        triggerInfo.triggerType,
+        triggerInfo.triggerBranch,
+      )) {
         logInfo('Workflow ${entry.name} does not match trigger', {
           'triggerType': triggerInfo.triggerType,
           'triggerBranch': triggerInfo.triggerBranch,
@@ -314,7 +314,10 @@ Future<_BuildJobsResult> _createBuildJobs({
         }
       }
 
-      final totalSteps = jobInfos.fold<int>(0, (sum, j) => sum + j.steps.length);
+      final totalSteps = jobInfos.fold<int>(
+        0,
+        (acc, j) => acc + j.steps.length,
+      );
       logInfo('Matched .openci/${entry.name}', {
         'jobs': jobInfos.length,
         'steps': totalSteps,
@@ -366,10 +369,7 @@ Future<_BuildJobsResult> _createBuildJobs({
 
         final now = DateTime.now().toUtc().toIso8601String();
 
-        await firestore
-            .collection(buildJobsCollection)
-            .doc(documentId)
-            .set({
+        await firestore.collection(buildJobsCollection).doc(documentId).set({
           'event': event.event.value,
           'action': event.action?.value,
           'repository': repo.fullName,

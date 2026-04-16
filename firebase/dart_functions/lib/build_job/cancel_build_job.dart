@@ -54,8 +54,10 @@ Future<Map<String, dynamic>> handleCancelBuildJob(
   // Verify team membership
   final teamId = jobData['teamId'] as String?;
   if (teamId != null) {
-    final teamDoc =
-        await firestore.collection(teamsCollection).doc(teamId).get();
+    final teamDoc = await firestore
+        .collection(teamsCollection)
+        .doc(teamId)
+        .get();
 
     if (!teamDoc.exists) {
       throw NotFoundError('Team not found');

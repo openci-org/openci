@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/auto_updater.dart';
 import 'package:openci_worker_cli/docker_job_executor.dart';
@@ -29,17 +29,14 @@ Future<void> pollForJobs({
 
   void startSpinner() {
     spinnerTimer?.cancel();
-    spinnerTimer = Timer.periodic(
-      const Duration(milliseconds: 100),
-      (_) {
-        final now = DateTime.now();
-        final time =
-            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
-        final frame = _spinnerFrames[spinnerIndex % _spinnerFrames.length];
-        stderr.write('\r$time $frame [Poller] Waiting for jobs...  ');
-        spinnerIndex++;
-      },
-    );
+    spinnerTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      final now = DateTime.now();
+      final time =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+      final frame = _spinnerFrames[spinnerIndex % _spinnerFrames.length];
+      stderr.write('\r$time $frame [Poller] Waiting for jobs...  ');
+      spinnerIndex++;
+    });
   }
 
   void stopSpinner() {
@@ -113,4 +110,3 @@ Future<void> pollForJobs({
     }
   }
 }
-

@@ -13,11 +13,10 @@ abstract class Output3 with _$Output3 {
     required String? title,
     required String? summary,
     required String? text,
-    @JsonKey(name: 'annotations_count')
-    required int annotationsCount,
-    @JsonKey(name: 'annotations_url')
-    required String annotationsUrl,
+    @JsonKey(name: 'annotations_count') required int annotationsCount,
+    @JsonKey(name: 'annotations_url') required String annotationsUrl,
   }) = _Output3;
-  
-  factory Output3.fromJson(Map<String, Object?> json) => _$Output3FromJson(json);
+
+  factory Output3.fromJson(Map<String, Object?> json) =>
+      _$Output3FromJson(json);
 }

@@ -12,9 +12,9 @@ abstract class Parents with _$Parents {
   const factory Parents({
     required String sha,
     required String url,
-    @JsonKey(name: 'html_url')
-    String? htmlUrl,
+    @JsonKey(name: 'html_url') String? htmlUrl,
   }) = _Parents;
-  
-  factory Parents.fromJson(Map<String, Object?> json) => _$ParentsFromJson(json);
+
+  factory Parents.fromJson(Map<String, Object?> json) =>
+      _$ParentsFromJson(json);
 }

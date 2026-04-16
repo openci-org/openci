@@ -14,9 +14,9 @@ abstract class Verification with _$Verification {
     String? reason,
     String? signature,
     String? payload,
-    @JsonKey(name: 'verified_at')
-    String? verifiedAt,
+    @JsonKey(name: 'verified_at') String? verifiedAt,
   }) = _Verification;
-  
-  factory Verification.fromJson(Map<String, Object?> json) => _$VerificationFromJson(json);
+
+  factory Verification.fromJson(Map<String, Object?> json) =>
+      _$VerificationFromJson(json);
 }

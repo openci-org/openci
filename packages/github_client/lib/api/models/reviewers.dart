@@ -14,17 +14,15 @@ part 'reviewers.g.dart';
 abstract class Reviewers with _$Reviewers {
   const factory Reviewers({
     /// The ID of the Team or role selected as a bypass reviewer
-    @JsonKey(name: 'reviewer_id')
-    required int reviewerId,
+    @JsonKey(name: 'reviewer_id') required int reviewerId,
 
     /// The type of the bypass reviewer
-    @JsonKey(name: 'reviewer_type')
-    required ReviewerType reviewerType,
+    @JsonKey(name: 'reviewer_type') required ReviewerType reviewerType,
 
     /// The bypass mode for the reviewer
-    @Default(Mode.always)
-    Mode mode,
+    @Default(Mode.always) Mode mode,
   }) = _Reviewers;
-  
-  factory Reviewers.fromJson(Map<String, Object?> json) => _$ReviewersFromJson(json);
+
+  factory Reviewers.fromJson(Map<String, Object?> json) =>
+      _$ReviewersFromJson(json);
 }

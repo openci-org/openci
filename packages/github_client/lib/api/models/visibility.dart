@@ -11,20 +11,21 @@ enum Visibility {
   public('public'),
   @JsonValue('private')
   private('private'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const Visibility(this.json);
 
-  factory Visibility.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory Visibility.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<Visibility> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<Visibility> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

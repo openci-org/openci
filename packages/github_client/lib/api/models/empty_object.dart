@@ -11,6 +11,7 @@ part 'empty_object.g.dart';
 @Freezed()
 abstract class EmptyObject with _$EmptyObject {
   const factory EmptyObject() = _EmptyObject;
-  
-  factory EmptyObject.fromJson(Map<String, Object?> json) => _$EmptyObjectFromJson(json);
+
+  factory EmptyObject.fromJson(Map<String, Object?> json) =>
+      _$EmptyObjectFromJson(json);
 }

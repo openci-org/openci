@@ -65,7 +65,7 @@ void main() {
       final iat = payload['iat'] as int;
       final expectedIat =
           before.subtract(const Duration(seconds: 60)).millisecondsSinceEpoch ~/
-              1000;
+          1000;
 
       // Allow 2 second tolerance
       expect(iat, closeTo(expectedIat, 2));
@@ -82,7 +82,7 @@ void main() {
       final exp = payload['exp'] as int;
       final expectedExp =
           before.add(const Duration(minutes: 10)).millisecondsSinceEpoch ~/
-              1000;
+          1000;
 
       expect(exp, closeTo(expectedExp, 2));
     });

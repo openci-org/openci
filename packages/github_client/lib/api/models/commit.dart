@@ -9,10 +9,7 @@ part 'commit.g.dart';
 
 @Freezed()
 abstract class Commit with _$Commit {
-  const factory Commit({
-    required String sha,
-    required String url,
-  }) = _Commit;
-  
+  const factory Commit({required String sha, required String url}) = _Commit;
+
   factory Commit.fromJson(Map<String, Object?> json) => _$CommitFromJson(json);
 }

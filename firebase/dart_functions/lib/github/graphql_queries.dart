@@ -23,11 +23,7 @@ class OpenciDirEntry {
   final String type;
   final String? text;
 
-  OpenciDirEntry({
-    required this.name,
-    required this.type,
-    this.text,
-  });
+  OpenciDirEntry({required this.name, required this.type, this.text});
 
   factory OpenciDirEntry.fromJson(Map<String, dynamic> json) {
     return OpenciDirEntry(

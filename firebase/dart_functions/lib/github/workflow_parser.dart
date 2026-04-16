@@ -1,5 +1,6 @@
 /// Pure functions for matching workflow triggers and extracting jobs
 /// from parsed .openci/ YAML files.
+library;
 
 /// Determines whether a parsed workflow YAML matches
 /// the given trigger type and branch.
@@ -22,8 +23,9 @@ bool matchesTrigger(
   if (on == null) return false;
 
   // Map Dart trigger type to YAML key
-  final yamlTriggerKey =
-      triggerType == 'pullRequest' ? 'pull_request' : triggerType;
+  final yamlTriggerKey = triggerType == 'pullRequest'
+      ? 'pull_request'
+      : triggerType;
 
   // on: "push"
   if (on is String) {
@@ -43,8 +45,9 @@ bool matchesTrigger(
 
     if (triggerConfig is Map && triggerConfig['branches'] != null) {
       final branches = triggerConfig['branches'];
-      final branchList =
-          branches is List ? branches.cast<String>() : [branches.toString()];
+      final branchList = branches is List
+          ? branches.cast<String>()
+          : [branches.toString()];
       if (triggerBranch != null && !branchList.contains(triggerBranch)) {
         return false;
       }
@@ -78,12 +81,7 @@ class JobStep {
   final String? uses;
   final Map<String, String>? withParams;
 
-  JobStep({
-    required this.name,
-    this.run,
-    this.uses,
-    this.withParams,
-  });
+  JobStep({required this.name, this.run, this.uses, this.withParams});
 }
 
 /// Extracts job definitions from a parsed workflow YAML.
@@ -119,11 +117,13 @@ List<JobInfo> extractJobs(Map<String, dynamic> parsed) {
             withParams[e.key.toString()] = e.value.toString();
           }
         }
-        steps.add(JobStep(
-          name: name,
-          uses: step['uses'] as String,
-          withParams: withParams,
-        ));
+        steps.add(
+          JobStep(
+            name: name,
+            uses: step['uses'] as String,
+            withParams: withParams,
+          ),
+        );
       } else if (step['run'] != null) {
         steps.add(JobStep(name: name, run: step['run'] as String));
       }
@@ -140,12 +140,9 @@ List<JobInfo> extractJobs(Map<String, dynamic> parsed) {
       needs.add(rawNeeds);
     }
 
-    jobInfos.add(JobInfo(
-      jobKey: jobKey,
-      needs: needs,
-      runsOn: runsOn,
-      steps: steps,
-    ));
+    jobInfos.add(
+      JobInfo(jobKey: jobKey, needs: needs, runsOn: runsOn, steps: steps),
+    );
   }
 
   return jobInfos;

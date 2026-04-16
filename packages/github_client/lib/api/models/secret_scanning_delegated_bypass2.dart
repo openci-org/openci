@@ -10,11 +10,12 @@ part 'secret_scanning_delegated_bypass2.freezed.dart';
 part 'secret_scanning_delegated_bypass2.g.dart';
 
 @Freezed()
-abstract class SecretScanningDelegatedBypass2 with _$SecretScanningDelegatedBypass2 {
+abstract class SecretScanningDelegatedBypass2
+    with _$SecretScanningDelegatedBypass2 {
   const factory SecretScanningDelegatedBypass2({
-    @JsonKey(name: 'Status')
-    Status2? status,
+    @JsonKey(name: 'Status') Status2? status,
   }) = _SecretScanningDelegatedBypass2;
-  
-  factory SecretScanningDelegatedBypass2.fromJson(Map<String, Object?> json) => _$SecretScanningDelegatedBypass2FromJson(json);
+
+  factory SecretScanningDelegatedBypass2.fromJson(Map<String, Object?> json) =>
+      _$SecretScanningDelegatedBypass2FromJson(json);
 }

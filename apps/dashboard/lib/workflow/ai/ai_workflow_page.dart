@@ -31,10 +31,12 @@ class AiWorkflowPage extends HookConsumerWidget {
 
     useEffect(() {
       Future.microtask(() {
-        ref.read(aiWorkflowProvider.notifier).initialize(
-          repository: repository,
-          branch: branch,
-        );
+        ref
+            .read(aiWorkflowProvider.notifier)
+            .initialize(
+              repository: repository,
+              branch: branch,
+            );
       });
       return null;
     }, const []);
@@ -77,23 +79,29 @@ class AiWorkflowPage extends HookConsumerWidget {
                 child: ListView.builder(
                   controller: scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  itemCount: aiState.messages.length +
+                  itemCount:
+                      aiState.messages.length +
                       (aiState.isGenerating ? 1 : 0) +
                       (aiState.generatedYaml != null ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index < aiState.messages.length) {
                       final message = aiState.messages[index];
-                      final isLastMessage = index == aiState.messages.length - 1;
+                      final isLastMessage =
+                          index == aiState.messages.length - 1;
                       return _ChatBubble(
                         message: message,
                         showSuggestions: isLastMessage && !aiState.isGenerating,
                         onSuggestionTap: (suggestion) {
-                          if (suggestion.value == t.aiWorkflow.suggestion.startOver) {
+                          if (suggestion.value ==
+                              t.aiWorkflow.suggestion.startOver) {
                             ref.read(aiWorkflowProvider.notifier).reset();
                           } else {
                             ref
                                 .read(aiWorkflowProvider.notifier)
-                                .sendMessage(suggestion.label, matchKey: suggestion.value);
+                                .sendMessage(
+                                  suggestion.label,
+                                  matchKey: suggestion.value,
+                                );
                           }
                         },
                       );
@@ -160,12 +168,14 @@ class _ChatBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isUser
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!isUser) ...[
@@ -361,10 +371,10 @@ class _YamlPreview extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         aiT.generatedWorkflow,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ],
                   ),
@@ -388,21 +398,22 @@ class _YamlPreview extends StatelessWidget {
                         theme: monokaiTheme,
                       ),
                     ),
-                    indicatorBuilder: (
-                      context,
-                      editingController,
-                      chunkController,
-                      notifier,
-                    ) {
-                      return Row(
-                        children: [
-                          DefaultCodeLineNumber(
-                            controller: editingController,
-                            notifier: notifier,
-                          ),
-                        ],
-                      );
-                    },
+                    indicatorBuilder:
+                        (
+                          context,
+                          editingController,
+                          chunkController,
+                          notifier,
+                        ) {
+                          return Row(
+                            children: [
+                              DefaultCodeLineNumber(
+                                controller: editingController,
+                                notifier: notifier,
+                              ),
+                            ],
+                          );
+                        },
                   ),
                 ),
               ],

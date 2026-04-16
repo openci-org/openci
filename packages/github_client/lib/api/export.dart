@@ -158,4 +158,3 @@ export 'models/conclusion3.dart';
 export 'models/status7.dart';
 // Root client
 export 'git_hub_client.dart';
-

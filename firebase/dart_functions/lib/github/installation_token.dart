@@ -5,21 +5,14 @@ import 'package:github_client/api/export.dart';
 
 import '../secret_manager.dart';
 
-String createGitHubAppJwt({
-  required String appId,
-  required String privateKey,
-}) {
+String createGitHubAppJwt({required String appId, required String privateKey}) {
   final now = DateTime.now().toUtc();
   final iatSeconds =
       now.subtract(const Duration(seconds: 60)).millisecondsSinceEpoch ~/ 1000;
   final expSeconds =
       now.add(const Duration(minutes: 10)).millisecondsSinceEpoch ~/ 1000;
 
-  final jwt = JWT({
-    'iat': iatSeconds,
-    'exp': expSeconds,
-    'iss': appId,
-  });
+  final jwt = JWT({'iat': iatSeconds, 'exp': expSeconds, 'iss': appId});
 
   return jwt.sign(
     RSAPrivateKey(privateKey),
@@ -59,8 +52,5 @@ Future<({String token, String expiresAt})> getInstallationToken(
 
   appDio.close();
 
-  return (
-    token: result.token,
-    expiresAt: result.expiresAt,
-  );
+  return (token: result.token, expiresAt: result.expiresAt);
 }

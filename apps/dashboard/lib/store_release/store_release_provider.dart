@@ -23,11 +23,11 @@ class AscApp {
   });
 
   factory AscApp.fromMap(Map<String, dynamic> map) => AscApp(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        bundleId: map['bundleId'] as String,
-        sku: map['sku'] as String?,
-      );
+    id: map['id'] as String,
+    name: map['name'] as String,
+    bundleId: map['bundleId'] as String,
+    sku: map['sku'] as String?,
+  );
 }
 
 class AscBuild {
@@ -58,8 +58,7 @@ class AscBuild {
   bool get isProcessingComplete => processingState == 'VALID';
 
   bool get isInReview =>
-      appStoreState == 'WAITING_FOR_REVIEW' ||
-      appStoreState == 'IN_REVIEW';
+      appStoreState == 'WAITING_FOR_REVIEW' || appStoreState == 'IN_REVIEW';
 
   bool get isSubmitted =>
       appStoreState != null &&
@@ -67,17 +66,17 @@ class AscBuild {
       appStoreState != 'REJECTED';
 
   factory AscBuild.fromMap(Map<String, dynamic> map) => AscBuild(
-        id: map['id'] as String,
-        version: map['version'] as String? ?? '',
-        buildNumber: map['buildNumber'] as String? ?? '',
-        platform: map['platform'] as String? ?? 'IOS',
-        uploadedDate: map['uploadedDate'] as String?,
-        processingState: map['processingState'] as String?,
-        iconUrl: map['iconUrl'] as String?,
-        externalBuildState: map['externalBuildState'] as String?,
-        internalBuildState: map['internalBuildState'] as String?,
-        appStoreState: map['appStoreState'] as String?,
-      );
+    id: map['id'] as String,
+    version: map['version'] as String? ?? '',
+    buildNumber: map['buildNumber'] as String? ?? '',
+    platform: map['platform'] as String? ?? 'IOS',
+    uploadedDate: map['uploadedDate'] as String?,
+    processingState: map['processingState'] as String?,
+    iconUrl: map['iconUrl'] as String?,
+    externalBuildState: map['externalBuildState'] as String?,
+    internalBuildState: map['internalBuildState'] as String?,
+    appStoreState: map['appStoreState'] as String?,
+  );
 }
 
 // ── Providers ──
@@ -114,10 +113,11 @@ class AscApps extends _$AscApps {
     final functions = ref.read(functionsProvider);
     final teamId = _requireTeamId(ref);
 
-    final result =
-        await functions.httpsCallableFromUrl(dartFunctionUrl('asc-list-apps')).call({
-      'teamId': teamId,
-    });
+    final result = await functions
+        .httpsCallableFromUrl(dartFunctionUrl('asc-list-apps'))
+        .call({
+          'teamId': teamId,
+        });
 
     final data = result.data as Map<String, dynamic>;
     final apps = (data['apps'] as List<dynamic>)
@@ -135,11 +135,12 @@ class AscBuilds extends _$AscBuilds {
     final functions = ref.read(functionsProvider);
     final teamId = _requireTeamId(ref);
 
-    final result =
-        await functions.httpsCallableFromUrl(dartFunctionUrl('asc-list-builds')).call({
-      'teamId': teamId,
-      'appId': appId,
-    });
+    final result = await functions
+        .httpsCallableFromUrl(dartFunctionUrl('asc-list-builds'))
+        .call({
+          'teamId': teamId,
+          'appId': appId,
+        });
 
     final data = result.data as Map<String, dynamic>;
     final builds = (data['builds'] as List<dynamic>)
@@ -159,11 +160,12 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
     final functions = ref.read(functionsProvider);
     final teamId = _requireTeamId(ref);
 
-    final result =
-        await functions.httpsCallableFromUrl(dartFunctionUrl('asc-submit-to-test-flight')).call({
-      'teamId': teamId,
-      'buildId': buildId,
-    });
+    final result = await functions
+        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-to-test-flight'))
+        .call({
+          'teamId': teamId,
+          'buildId': buildId,
+        });
 
     final data = result.data as Map<String, dynamic>;
     return data['betaGroupName'] as String? ?? 'External Testers';
@@ -186,14 +188,16 @@ class SubmitForReview extends _$SubmitForReview {
     final functions = ref.read(functionsProvider);
     final teamId = _requireTeamId(ref);
 
-    await functions.httpsCallableFromUrl(dartFunctionUrl('asc-submit-for-review')).call({
-      'teamId': teamId,
-      'appId': appId,
-      'buildId': buildId,
-      'versionString': versionString,
-      'whatsNew': whatsNew,
-      'platform': platform,
-    });
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-for-review'))
+        .call({
+          'teamId': teamId,
+          'appId': appId,
+          'buildId': buildId,
+          'versionString': versionString,
+          'whatsNew': whatsNew,
+          'platform': platform,
+        });
   }
 }
 

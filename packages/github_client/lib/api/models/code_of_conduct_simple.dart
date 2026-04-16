@@ -12,12 +12,11 @@ part 'code_of_conduct_simple.g.dart';
 abstract class CodeOfConductSimple with _$CodeOfConductSimple {
   const factory CodeOfConductSimple({
     required String url,
-    @JsonKey(name: 'Key')
-    required String key,
+    @JsonKey(name: 'Key') required String key,
     required String name,
-    @JsonKey(name: 'html_url')
-    required String? htmlUrl,
+    @JsonKey(name: 'html_url') required String? htmlUrl,
   }) = _CodeOfConductSimple;
-  
-  factory CodeOfConductSimple.fromJson(Map<String, Object?> json) => _$CodeOfConductSimpleFromJson(json);
+
+  factory CodeOfConductSimple.fromJson(Map<String, Object?> json) =>
+      _$CodeOfConductSimpleFromJson(json);
 }

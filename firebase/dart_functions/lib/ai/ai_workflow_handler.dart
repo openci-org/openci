@@ -27,9 +27,7 @@ class GenerateAiWorkflowRequest {
     }
     return GenerateAiWorkflowRequest(
       teamId: teamId,
-      messages: messages
-          .map((m) => m as Map<String, dynamic>)
-          .toList(),
+      messages: messages.map((m) => m as Map<String, dynamic>).toList(),
       repoContext: json['repoContext'] as String?,
     );
   }
@@ -43,7 +41,8 @@ class GenerateAiWorkflowRequest {
 // System prompt
 // ---------------------------------------------------------------------------
 
-const _systemPrompt = r'''You are an AI assistant that helps developers create CI/CD workflow files for OpenCI.
+const _systemPrompt =
+    r'''You are an AI assistant that helps developers create CI/CD workflow files for OpenCI.
 
 OpenCI workflow YAML format is similar to GitHub Actions but simplified. Here is the structure:
 
@@ -106,19 +105,16 @@ Future<Map<String, dynamic>> handleGenerateAiWorkflow(
   CallableRequest<GenerateAiWorkflowRequest> request,
   CallableResponse<Map<String, dynamic>> response,
 ) async {
-  await verifyTeamMembership(
-    auth: request.auth,
-    teamId: request.data.teamId,
-  );
+  await verifyTeamMembership(auth: request.auth, teamId: request.data.teamId);
 
   try {
     final apiKey = await accessSecret('ANTHROPIC_API_KEY');
 
     final systemPrompt = request.data.repoContext != null
         ? '$_systemPrompt\n\n--- Repository Context ---\n'
-            'The user is working on the following repository. '
-            'Use this information to suggest appropriate workflow steps and commands.\n\n'
-            '${request.data.repoContext}'
+              'The user is working on the following repository. '
+              'Use this information to suggest appropriate workflow steps and commands.\n\n'
+              '${request.data.repoContext}'
         : _systemPrompt;
 
     final dio = Dio();
@@ -130,42 +126,37 @@ Future<Map<String, dynamic>> handleGenerateAiWorkflow(
           'max_tokens': 4096,
           'system': systemPrompt,
           'messages': request.data.messages
-              .map((msg) => {
-                    'role': msg['role'],
-                    'content': msg['content'],
-                  })
+              .map((msg) => {'role': msg['role'], 'content': msg['content']})
               .toList(),
         },
-        options: Options(headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        }),
+        options: Options(
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+        ),
       );
 
       final content = apiResponse.data?['content'] as List<dynamic>? ?? [];
       final responseText = content
-          .where((block) =>
-              (block as Map<String, dynamic>)['type'] == 'text')
+          .where((block) => (block as Map<String, dynamic>)['type'] == 'text')
           .map((block) => (block as Map<String, dynamic>)['text'] as String)
           .join('');
 
       String? yaml;
-      final yamlMatch = RegExp(r'<<<YAML>>>\s*([\s\S]*?)\s*<<<END_YAML>>>')
-          .firstMatch(responseText);
+      final yamlMatch = RegExp(
+        r'<<<YAML>>>\s*([\s\S]*?)\s*<<<END_YAML>>>',
+      ).firstMatch(responseText);
       if (yamlMatch != null) {
         yaml = yamlMatch.group(1)?.trim();
       }
 
       final displayText = responseText
-          .replaceAll(
-              RegExp(r'<<<YAML>>>[\s\S]*?<<<END_YAML>>>'), '')
+          .replaceAll(RegExp(r'<<<YAML>>>[\s\S]*?<<<END_YAML>>>'), '')
           .trim();
 
-      return <String, dynamic>{
-        'message': displayText,
-        'yaml': yaml,
-      };
+      return <String, dynamic>{'message': displayText, 'yaml': yaml};
     } finally {
       dio.close();
     }

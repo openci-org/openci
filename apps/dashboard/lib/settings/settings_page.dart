@@ -165,6 +165,7 @@ class SettingsPage extends HookConsumerWidget {
     );
   }
 }
+
 class _AiFeaturesTile extends ConsumerWidget {
   const _AiFeaturesTile();
 

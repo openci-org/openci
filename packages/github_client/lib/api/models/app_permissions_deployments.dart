@@ -11,20 +11,21 @@ enum AppPermissionsDeployments {
   read('read'),
   @JsonValue('write')
   write('write'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const AppPermissionsDeployments(this.json);
 
-  factory AppPermissionsDeployments.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory AppPermissionsDeployments.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<AppPermissionsDeployments> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<AppPermissionsDeployments> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

@@ -10,11 +10,13 @@ part 'secret_scanning_non_provider_patterns2.freezed.dart';
 part 'secret_scanning_non_provider_patterns2.g.dart';
 
 @Freezed()
-abstract class SecretScanningNonProviderPatterns2 with _$SecretScanningNonProviderPatterns2 {
+abstract class SecretScanningNonProviderPatterns2
+    with _$SecretScanningNonProviderPatterns2 {
   const factory SecretScanningNonProviderPatterns2({
-    @JsonKey(name: 'Status')
-    Status2? status,
+    @JsonKey(name: 'Status') Status2? status,
   }) = _SecretScanningNonProviderPatterns2;
-  
-  factory SecretScanningNonProviderPatterns2.fromJson(Map<String, Object?> json) => _$SecretScanningNonProviderPatterns2FromJson(json);
+
+  factory SecretScanningNonProviderPatterns2.fromJson(
+    Map<String, Object?> json,
+  ) => _$SecretScanningNonProviderPatterns2FromJson(json);
 }

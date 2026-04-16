@@ -79,18 +79,21 @@ class WebhookEvent {
       refType: body['ref_type'] as String?,
       repository: body['repository'] != null
           ? WebhookRepository.fromJson(
-              body['repository'] as Map<String, dynamic>)
+              body['repository'] as Map<String, dynamic>,
+            )
           : null,
       sender: body['sender'] != null
           ? WebhookSender.fromJson(body['sender'] as Map<String, dynamic>)
           : null,
       installation: body['installation'] != null
           ? WebhookInstallation.fromJson(
-              body['installation'] as Map<String, dynamic>)
+              body['installation'] as Map<String, dynamic>,
+            )
           : null,
       pullRequest: body['pull_request'] != null
           ? WebhookPullRequest.fromJson(
-              body['pull_request'] as Map<String, dynamic>)
+              body['pull_request'] as Map<String, dynamic>,
+            )
           : null,
       release: body['release'] != null
           ? WebhookRelease.fromJson(body['release'] as Map<String, dynamic>)
@@ -172,19 +175,17 @@ class WebhookRelease {
   final String? htmlUrl;
   final List<WebhookReleaseAsset> assets;
 
-  WebhookRelease({
-    required this.tagName,
-    this.htmlUrl,
-    this.assets = const [],
-  });
+  WebhookRelease({required this.tagName, this.htmlUrl, this.assets = const []});
 
   factory WebhookRelease.fromJson(Map<String, dynamic> json) {
     return WebhookRelease(
       tagName: json['tag_name'] as String? ?? '',
       htmlUrl: json['html_url'] as String?,
-      assets: (json['assets'] as List<dynamic>?)
-              ?.map((a) =>
-                  WebhookReleaseAsset.fromJson(a as Map<String, dynamic>))
+      assets:
+          (json['assets'] as List<dynamic>?)
+              ?.map(
+                (a) => WebhookReleaseAsset.fromJson(a as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -195,10 +196,7 @@ class WebhookReleaseAsset {
   final String name;
   final String browserDownloadUrl;
 
-  WebhookReleaseAsset({
-    required this.name,
-    required this.browserDownloadUrl,
-  });
+  WebhookReleaseAsset({required this.name, required this.browserDownloadUrl});
 
   factory WebhookReleaseAsset.fromJson(Map<String, dynamic> json) {
     return WebhookReleaseAsset(

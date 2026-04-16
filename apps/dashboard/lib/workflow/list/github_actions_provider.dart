@@ -52,11 +52,13 @@ Future<List<GitHubAction>> searchGitHubActions(
 }) async {
   try {
     final functions = ref.read(functionsProvider);
-    final result = await functions.httpsCallable(searchGitHubActionsFunction).call({
-      'teamId': teamId,
-      'type': 'search',
-      'query': query,
-    });
+    final result = await functions
+        .httpsCallable(searchGitHubActionsFunction)
+        .call({
+          'teamId': teamId,
+          'type': 'search',
+          'query': query,
+        });
 
     final data = Map<String, dynamic>.from(result.data as Map);
     final items = data['actions'] as List<dynamic>;
@@ -144,11 +146,13 @@ Future<List<String>> actionTags(
 }) async {
   try {
     final functions = ref.read(functionsProvider);
-    final result = await functions.httpsCallable(searchGitHubActionsFunction).call({
-      'teamId': teamId,
-      'type': 'tags',
-      'fullName': fullName,
-    });
+    final result = await functions
+        .httpsCallable(searchGitHubActionsFunction)
+        .call({
+          'teamId': teamId,
+          'type': 'tags',
+          'fullName': fullName,
+        });
 
     final data = Map<String, dynamic>.from(result.data as Map);
     final tags = (data['tags'] as List<dynamic>).cast<String>();
@@ -166,11 +170,13 @@ Future<String> fetchLatestTag({
   required FirebaseFunctions functions,
 }) async {
   try {
-    final result = await functions.httpsCallable(searchGitHubActionsFunction).call({
-      'teamId': teamId,
-      'type': 'tags',
-      'fullName': fullName,
-    });
+    final result = await functions
+        .httpsCallable(searchGitHubActionsFunction)
+        .call({
+          'teamId': teamId,
+          'type': 'tags',
+          'fullName': fullName,
+        });
 
     final data = Map<String, dynamic>.from(result.data as Map);
     final tags = (data['tags'] as List<dynamic>).cast<String>();

@@ -9,9 +9,8 @@ part 'check_suite.g.dart';
 
 @Freezed()
 abstract class CheckSuite with _$CheckSuite {
-  const factory CheckSuite({
-    required int id,
-  }) = _CheckSuite;
-  
-  factory CheckSuite.fromJson(Map<String, Object?> json) => _$CheckSuiteFromJson(json);
+  const factory CheckSuite({required int id}) = _CheckSuite;
+
+  factory CheckSuite.fromJson(Map<String, Object?> json) =>
+      _$CheckSuiteFromJson(json);
 }

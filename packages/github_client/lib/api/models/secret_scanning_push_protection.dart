@@ -8,12 +8,13 @@ part 'secret_scanning_push_protection.freezed.dart';
 part 'secret_scanning_push_protection.g.dart';
 
 @Freezed()
-abstract class SecretScanningPushProtection with _$SecretScanningPushProtection {
+abstract class SecretScanningPushProtection
+    with _$SecretScanningPushProtection {
   const factory SecretScanningPushProtection({
     /// Can be `enabled` or `disabled`.
-    @JsonKey(name: 'Status')
-    String? status,
+    @JsonKey(name: 'Status') String? status,
   }) = _SecretScanningPushProtection;
-  
-  factory SecretScanningPushProtection.fromJson(Map<String, Object?> json) => _$SecretScanningPushProtectionFromJson(json);
+
+  factory SecretScanningPushProtection.fromJson(Map<String, Object?> json) =>
+      _$SecretScanningPushProtectionFromJson(json);
 }

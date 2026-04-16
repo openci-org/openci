@@ -37,19 +37,16 @@ Future<void> syncWorkflowFiles({
         'https://api.github.com/graphql',
         data: {
           'query': openciDirQuery,
-          'variables': {
-            'owner': owner,
-            'repo': repo,
-            'expression': expression,
-          },
+          'variables': {'owner': owner, 'repo': repo, 'expression': expression},
         },
       );
 
-      entries = ((response.data['data']?['repository']?['object']?['entries']
-                  as List<dynamic>?) ??
-              [])
-          .map((e) => OpenciDirEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
+      entries =
+          ((response.data['data']?['repository']?['object']?['entries']
+                      as List<dynamic>?) ??
+                  [])
+              .map((e) => OpenciDirEntry.fromJson(e as Map<String, dynamic>))
+              .toList();
     } catch (e) {
       final message = e.toString();
       if (message.contains('Could not resolve to an object')) {
@@ -76,22 +73,16 @@ Future<void> syncWorkflowFiles({
 
       currentFileNames.add(entry.name);
 
-      await firestore
-          .collection(workflowFilesCollection)
-          .doc(docId)
-          .set(
-        {
-          'teamId': teamId,
-          'repository': repository,
-          'branch': branch,
-          'fileName': entry.name,
-          'filePath': '.openci/${entry.name}',
-          'content': entry.text,
-          'updatedAt': now,
-          'syncedAt': now,
-        },
-        options: const SetOptions.merge(),
-      );
+      await firestore.collection(workflowFilesCollection).doc(docId).set({
+        'teamId': teamId,
+        'repository': repository,
+        'branch': branch,
+        'fileName': entry.name,
+        'filePath': '.openci/${entry.name}',
+        'content': entry.text,
+        'updatedAt': now,
+        'syncedAt': now,
+      }, options: const SetOptions.merge());
 
       syncedCount++;
     }
@@ -171,8 +162,9 @@ Future<int> _deleteRemovedWorkflowFiles(
       .where('branch', WhereFilter.equal, branch)
       .get();
 
-  final toDelete =
-      snapshot.docs.where((doc) => !currentFileNames.contains(doc.data()['fileName']));
+  final toDelete = snapshot.docs.where(
+    (doc) => !currentFileNames.contains(doc.data()['fileName']),
+  );
 
   var count = 0;
   for (final doc in toDelete) {

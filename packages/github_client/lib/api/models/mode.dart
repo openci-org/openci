@@ -11,20 +11,21 @@ enum Mode {
   always('ALWAYS'),
   @JsonValue('EXEMPT')
   exempt('EXEMPT'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const Mode(this.json);
 
-  factory Mode.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory Mode.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<Mode> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<Mode> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

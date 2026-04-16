@@ -11,10 +11,9 @@ part 'advanced_security2.g.dart';
 
 @Freezed()
 abstract class AdvancedSecurity2 with _$AdvancedSecurity2 {
-  const factory AdvancedSecurity2({
-    @JsonKey(name: 'Status')
-    Status2? status,
-  }) = _AdvancedSecurity2;
-  
-  factory AdvancedSecurity2.fromJson(Map<String, Object?> json) => _$AdvancedSecurity2FromJson(json);
+  const factory AdvancedSecurity2({@JsonKey(name: 'Status') Status2? status}) =
+      _AdvancedSecurity2;
+
+  factory AdvancedSecurity2.fromJson(Map<String, Object?> json) =>
+      _$AdvancedSecurity2FromJson(json);
 }

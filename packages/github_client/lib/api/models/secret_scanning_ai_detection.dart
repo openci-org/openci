@@ -11,9 +11,9 @@ part 'secret_scanning_ai_detection.g.dart';
 abstract class SecretScanningAiDetection with _$SecretScanningAiDetection {
   const factory SecretScanningAiDetection({
     /// Can be `enabled` or `disabled`.
-    @JsonKey(name: 'Status')
-    String? status,
+    @JsonKey(name: 'Status') String? status,
   }) = _SecretScanningAiDetection;
-  
-  factory SecretScanningAiDetection.fromJson(Map<String, Object?> json) => _$SecretScanningAiDetectionFromJson(json);
+
+  factory SecretScanningAiDetection.fromJson(Map<String, Object?> json) =>
+      _$SecretScanningAiDetectionFromJson(json);
 }

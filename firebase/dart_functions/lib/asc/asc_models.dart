@@ -3,6 +3,7 @@
 /// These are minimal models containing only the fields
 /// that OpenCI actually uses, parsed from the JSON:API
 /// response format.
+library;
 
 /// An app from App Store Connect.
 class AscApp {
@@ -29,11 +30,11 @@ class AscApp {
   final String? sku;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'bundleId': bundleId,
-        'sku': sku,
-      };
+    'id': id,
+    'name': name,
+    'bundleId': bundleId,
+    'sku': sku,
+  };
 }
 
 /// A build from App Store Connect.
@@ -59,21 +60,24 @@ class AscBuild {
     Map<String, Map<String, dynamic>> appStoreVersions = const {},
   }) {
     final attrs = json['attributes'] as Map<String, dynamic>;
-    final relationships =
-        json['relationships'] as Map<String, dynamic>? ?? {};
+    final relationships = json['relationships'] as Map<String, dynamic>? ?? {};
 
-    final preReleaseVersionId =
-        _relationshipId(relationships, 'preReleaseVersion');
+    final preReleaseVersionId = _relationshipId(
+      relationships,
+      'preReleaseVersion',
+    );
     final betaDetailId = _relationshipId(relationships, 'buildBetaDetail');
-    final appStoreVersionId =
-        _relationshipId(relationships, 'appStoreVersion');
+    final appStoreVersionId = _relationshipId(relationships, 'appStoreVersion');
 
-    final preRelease =
-        preReleaseVersionId != null ? preReleaseVersions[preReleaseVersionId] : null;
-    final betaDetail =
-        betaDetailId != null ? buildBetaDetails[betaDetailId] : null;
-    final appStoreVersion =
-        appStoreVersionId != null ? appStoreVersions[appStoreVersionId] : null;
+    final preRelease = preReleaseVersionId != null
+        ? preReleaseVersions[preReleaseVersionId]
+        : null;
+    final betaDetail = betaDetailId != null
+        ? buildBetaDetails[betaDetailId]
+        : null;
+    final appStoreVersion = appStoreVersionId != null
+        ? appStoreVersions[appStoreVersionId]
+        : null;
 
     // Icon URL template replacement
     String? iconUrl;
@@ -90,7 +94,8 @@ class AscBuild {
 
     return AscBuild(
       id: json['id'] as String,
-      version: (preRelease?['version'] as String?) ??
+      version:
+          (preRelease?['version'] as String?) ??
           (attrs['version'] as String?) ??
           '',
       buildNumber: (attrs['version'] as String?) ?? '',
@@ -116,17 +121,17 @@ class AscBuild {
   final String? appStoreState;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'version': version,
-        'buildNumber': buildNumber,
-        'platform': platform,
-        'uploadedDate': uploadedDate,
-        'processingState': processingState,
-        'iconUrl': iconUrl,
-        'externalBuildState': externalBuildState,
-        'internalBuildState': internalBuildState,
-        'appStoreState': appStoreState,
-      };
+    'id': id,
+    'version': version,
+    'buildNumber': buildNumber,
+    'platform': platform,
+    'uploadedDate': uploadedDate,
+    'processingState': processingState,
+    'iconUrl': iconUrl,
+    'externalBuildState': externalBuildState,
+    'internalBuildState': internalBuildState,
+    'appStoreState': appStoreState,
+  };
 }
 
 /// A beta group from App Store Connect.
@@ -152,10 +157,7 @@ class AscBetaGroup {
 }
 
 /// Extracts a relationship ID from JSON:API relationships.
-String? _relationshipId(
-  Map<String, dynamic> relationships,
-  String key,
-) {
+String? _relationshipId(Map<String, dynamic> relationships, String key) {
   final rel = relationships[key] as Map<String, dynamic>?;
   final data = rel?['data'] as Map<String, dynamic>?;
   return data?['id'] as String?;
@@ -167,7 +169,8 @@ String? _relationshipId(
   Map<String, Map<String, dynamic>> preReleaseVersions,
   Map<String, Map<String, dynamic>> buildBetaDetails,
   Map<String, Map<String, dynamic>> appStoreVersions,
-}) parseIncludedResources(List<dynamic> included) {
+})
+parseIncludedResources(List<dynamic> included) {
   final preReleaseVersions = <String, Map<String, dynamic>>{};
   final buildBetaDetails = <String, Map<String, dynamic>>{};
   final appStoreVersions = <String, Map<String, dynamic>>{};

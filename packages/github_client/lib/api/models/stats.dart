@@ -9,11 +9,7 @@ part 'stats.g.dart';
 
 @Freezed()
 abstract class Stats with _$Stats {
-  const factory Stats({
-    int? additions,
-    int? deletions,
-    int? total,
-  }) = _Stats;
-  
+  const factory Stats({int? additions, int? deletions, int? total}) = _Stats;
+
   factory Stats.fromJson(Map<String, Object?> json) => _$StatsFromJson(json);
 }

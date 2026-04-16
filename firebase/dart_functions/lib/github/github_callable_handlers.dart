@@ -36,7 +36,8 @@ String _buildDirectoryTreeFragment(int depth) {
   return 'name type object { ... on Tree { entries { ${_buildDirectoryTreeFragment(depth - 1)} } } }';
 }
 
-final _directoryTreeQuery = '''
+final _directoryTreeQuery =
+    '''
   query(\$owner: String!, \$repo: String!, \$expression: String!) {
     repository(owner: \$owner, name: \$repo) {
       object(expression: \$expression) {
@@ -244,13 +245,13 @@ class SyncWorkflowFilesRequest {
 
 /// Gets installation IDs from team data, throwing if none.
 List<int> _getInstallationIds(Map<String, dynamic> teamData) {
-  final ids = (teamData['installationIds'] as List<dynamic>?)
+  final ids =
+      (teamData['installationIds'] as List<dynamic>?)
           ?.map((e) => e as int)
           .toList() ??
       [];
   if (ids.isEmpty) {
-    throw FailedPreconditionError(
-        'GitHub App is not installed for this team');
+    throw FailedPreconditionError('GitHub App is not installed for this team');
   }
   return ids;
 }
@@ -310,19 +311,18 @@ Future<Map<String, dynamic>> handleListRepositories(
         queryParameters: {'per_page': 100},
       );
 
-      final repos = (data['repositories'] as List<dynamic>?)
-              ?.map((repo) {
-                final r = repo as Map<String, dynamic>;
-                final owner = r['owner'] as Map<String, dynamic>;
-                return {
-                  'fullName': r['full_name'],
-                  'name': r['name'],
-                  'owner': owner['login'],
-                  'private': r['private'],
-                  'defaultBranch': r['default_branch'],
-                };
-              })
-              .toList() ??
+      final repos =
+          (data['repositories'] as List<dynamic>?)?.map((repo) {
+            final r = repo as Map<String, dynamic>;
+            final owner = r['owner'] as Map<String, dynamic>;
+            return {
+              'fullName': r['full_name'],
+              'name': r['name'],
+              'owner': owner['login'],
+              'private': r['private'],
+              'defaultBranch': r['default_branch'],
+            };
+          }).toList() ??
           [];
 
       allRepositories.addAll(repos);
@@ -371,15 +371,13 @@ Future<Map<String, dynamic>> handleListBranches(
               result['data']?['repository'] as Map<String, dynamic>?;
           if (repository == null) break;
 
-          if (defaultBranchName == null) {
-            defaultBranchName = (repository['defaultBranchRef']
-                as Map<String, dynamic>?)?['name'] as String?;
-          }
+          defaultBranchName ??=
+              (repository['defaultBranchRef'] as Map<String, dynamic>?)?['name']
+                  as String?;
 
           final refs = repository['refs'] as Map<String, dynamic>;
           final nodes = refs['nodes'] as List<dynamic>;
-          allBranches
-              .addAll(nodes.cast<Map<String, dynamic>>());
+          allBranches.addAll(nodes.cast<Map<String, dynamic>>());
 
           final pageInfo = refs['pageInfo'] as Map<String, dynamic>;
           if (pageInfo['hasNextPage'] != true) break;
@@ -390,17 +388,18 @@ Future<Map<String, dynamic>> handleListBranches(
         allBranches.sort((a, b) {
           if (a['name'] == defaultBranchName) return -1;
           if (b['name'] == defaultBranchName) return 1;
-          final aDate = (a['target'] as Map<String, dynamic>?)?['committedDate']
+          final aDate =
+              (a['target'] as Map<String, dynamic>?)?['committedDate']
                   as String? ??
               '';
-          final bDate = (b['target'] as Map<String, dynamic>?)?['committedDate']
+          final bDate =
+              (b['target'] as Map<String, dynamic>?)?['committedDate']
                   as String? ??
               '';
           return bDate.compareTo(aDate);
         });
 
-        final branches =
-            allBranches.map((b) => b['name'] as String).toList();
+        final branches = allBranches.map((b) => b['name'] as String).toList();
 
         return <String, dynamic>{'branches': branches};
       } catch (_) {
@@ -442,9 +441,10 @@ Future<Map<String, dynamic>> handleListDirectories(
           variables: {'owner': owner, 'repo': repo, 'expression': 'HEAD:'},
         );
 
-        final entries = ((result['data']?['repository']
-                    as Map<String, dynamic>?)?['object']
-                as Map<String, dynamic>?)?['entries'] as List<dynamic>? ??
+        final entries =
+            ((result['data']?['repository'] as Map<String, dynamic>?)?['object']
+                    as Map<String, dynamic>?)?['entries']
+                as List<dynamic>? ??
             [];
 
         final directories = <String>[
@@ -493,15 +493,13 @@ Future<Map<String, dynamic>> handleListWorkflowFiles(
           final result = await githubGraphql(
             _openciDirQuery,
             token,
-            variables: {
-              'owner': owner,
-              'repo': repo,
-              'expression': expression,
-            },
+            variables: {'owner': owner, 'repo': repo, 'expression': expression},
           );
-          entries = ((result['data']?['repository']
-                      as Map<String, dynamic>?)?['object']
-                  as Map<String, dynamic>?)?['entries'] as List<dynamic>? ??
+          entries =
+              ((result['data']?['repository']
+                          as Map<String, dynamic>?)?['object']
+                      as Map<String, dynamic>?)?['entries']
+                  as List<dynamic>? ??
               [];
         } catch (e) {
           if (e.toString().contains('Could not resolve to an object')) {
@@ -574,22 +572,21 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
         },
       );
 
-      final actions = (data['items'] as List<dynamic>?)
-              ?.map((repo) {
-                final r = repo as Map<String, dynamic>;
-                final owner = r['owner'] as Map<String, dynamic>;
-                return {
-                  'fullName': r['full_name'],
-                  'description': r['description'] ?? '',
-                  'stars': r['stargazers_count'],
-                  'owner': owner['login'],
-                  'avatarUrl': owner['avatar_url'],
-                  'htmlUrl': r['html_url'],
-                  'defaultBranch': r['default_branch'] ?? 'main',
-                  'isOfficial': owner['login'] == 'actions',
-                };
-              })
-              .toList() ??
+      final actions =
+          (data['items'] as List<dynamic>?)?.map((repo) {
+            final r = repo as Map<String, dynamic>;
+            final owner = r['owner'] as Map<String, dynamic>;
+            return {
+              'fullName': r['full_name'],
+              'description': r['description'] ?? '',
+              'stars': r['stargazers_count'],
+              'owner': owner['login'],
+              'avatarUrl': owner['avatar_url'],
+              'htmlUrl': r['html_url'],
+              'defaultBranch': r['default_branch'] ?? 'main',
+              'isOfficial': owner['login'] == 'actions',
+            };
+          }).toList() ??
           [];
 
       return <String, dynamic>{'actions': actions};
@@ -610,10 +607,12 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
         final tagsResponse = await dio.get<List<dynamic>>(
           'https://api.github.com/repos/$owner/$repo/tags',
           queryParameters: {'per_page': 100},
-          options: Options(headers: {
-            'Authorization': 'token $token',
-            'Accept': 'application/vnd.github+json',
-          }),
+          options: Options(
+            headers: {
+              'Authorization': 'token $token',
+              'Accept': 'application/vnd.github+json',
+            },
+          ),
         );
 
         final majorTags = <String>[];
@@ -859,9 +858,10 @@ Future<Map<String, dynamic>> _syncWorkflowFilesToFirestore({
       token,
       variables: {'owner': owner, 'repo': repo, 'expression': expression},
     );
-    entries = ((result['data']?['repository']
-                as Map<String, dynamic>?)?['object']
-            as Map<String, dynamic>?)?['entries'] as List<dynamic>? ??
+    entries =
+        ((result['data']?['repository'] as Map<String, dynamic>?)?['object']
+                as Map<String, dynamic>?)?['entries']
+            as List<dynamic>? ??
         [];
   } catch (e) {
     if (e.toString().contains('Could not resolve to an object')) {
@@ -955,8 +955,9 @@ Future<int> _deleteRemovedWorkflowFiles(
       .where('branch', WhereFilter.equal, branch)
       .get();
 
-  final toDelete =
-      snapshot.docs.where((doc) => !currentFileNames.contains(doc.data()['fileName'])).toList();
+  final toDelete = snapshot.docs
+      .where((doc) => !currentFileNames.contains(doc.data()['fileName']))
+      .toList();
 
   if (toDelete.isEmpty) return 0;
 

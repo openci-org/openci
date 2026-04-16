@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dart_firebase_admin/firestore.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 
@@ -40,10 +40,7 @@ Future<bool> _updateMacOS(String latestVersion) async {
     return false;
   }
 
-  final upgradeResult = await Process.run(
-    'brew',
-    ['upgrade', 'openci-worker'],
-  );
+  final upgradeResult = await Process.run('brew', ['upgrade', 'openci-worker']);
 
   if (upgradeResult.exitCode != 0) {
     _log.warning('brew upgrade failed: ${upgradeResult.stderr}');
@@ -52,10 +49,11 @@ Future<bool> _updateMacOS(String latestVersion) async {
 
   // Verify the upgrade actually installed the new version.
   // `brew upgrade` returns exit code 0 even if "already installed".
-  final infoResult = await Process.run(
-    'brew',
-    ['info', '--json=v2', 'openci-worker'],
-  );
+  final infoResult = await Process.run('brew', [
+    'info',
+    '--json=v2',
+    'openci-worker',
+  ]);
 
   if (infoResult.exitCode == 0) {
     final output = infoResult.stdout as String;
@@ -76,7 +74,8 @@ Future<bool> _updateLinux(String latestVersion) async {
   _log.info('Updating via GitHub Release...');
 
   const binaryPath = '/usr/local/bin/openci-worker';
-  final url = 'https://github.com/open-ci-io/openci/releases/download/'
+  final url =
+      'https://github.com/open-ci-io/openci/releases/download/'
       'v$latestVersion/openci-worker-v$latestVersion-linux-x64';
 
   final downloadResult = await Process.run('curl', [

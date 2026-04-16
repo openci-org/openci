@@ -58,8 +58,9 @@ class NotificationService extends _$NotificationService {
         debugPrint('[FCM] FCM token is null');
       }
 
-      _tokenRefreshSubscription =
-          messaging.onTokenRefresh.listen((newToken) async {
+      _tokenRefreshSubscription = messaging.onTokenRefresh.listen((
+        newToken,
+      ) async {
         if (!ref.mounted) return;
         final userNotifier = ref.read(userProvider.notifier);
         await userNotifier.addFcmToken(newToken);

@@ -11,10 +11,9 @@ part 'code_security2.g.dart';
 
 @Freezed()
 abstract class CodeSecurity2 with _$CodeSecurity2 {
-  const factory CodeSecurity2({
-    @JsonKey(name: 'Status')
-    Status2? status,
-  }) = _CodeSecurity2;
-  
-  factory CodeSecurity2.fromJson(Map<String, Object?> json) => _$CodeSecurity2FromJson(json);
+  const factory CodeSecurity2({@JsonKey(name: 'Status') Status2? status}) =
+      _CodeSecurity2;
+
+  factory CodeSecurity2.fromJson(Map<String, Object?> json) =>
+      _$CodeSecurity2FromJson(json);
 }

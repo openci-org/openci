@@ -24,20 +24,21 @@ enum Conclusion {
   stale('stale'),
   @JsonValue('timed_out')
   timedOut('timed_out'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const Conclusion(this.json);
 
-  factory Conclusion.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory Conclusion.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<Conclusion> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<Conclusion> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

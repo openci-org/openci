@@ -76,7 +76,10 @@ String? _toAppLocation(Uri uri) {
   }
 
   if (path.isEmpty) return '/';
-  if (path == '/' || path.startsWith('/runs/') || path.startsWith('/invite/') || path == '/auth') {
+  if (path == '/' ||
+      path.startsWith('/runs/') ||
+      path.startsWith('/invite/') ||
+      path == '/auth') {
     final query = uri.hasQuery ? '?${uri.query}' : '';
     final fragment = uri.hasFragment ? '#${uri.fragment}' : '';
     return '$path$query$fragment';

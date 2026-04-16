@@ -18,13 +18,15 @@ Future<void> main(List<String> arguments) async {
     final config = await parseWorkerConfig(arguments);
     if (config == null) return;
 
-    final firestore = initFirestore(
+    final firestore = await initFirestore(
       projectId: config.projectId,
       serviceAccountPath: config.serviceAccountPath,
     );
 
     _log.info('Worker started. Worker ID: ${config.workerId}');
-    _log.info('Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (Lume)'}');
+    _log.info(
+      'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (Lume)'}',
+    );
 
     if (Platform.isLinux) {
       await cleanupOrphanedContainers(config.workerId);
@@ -47,4 +49,3 @@ Future<void> main(List<String> arguments) async {
     exit(1);
   }
 }
-

@@ -9,10 +9,7 @@ part 'tree.g.dart';
 
 @Freezed()
 abstract class Tree with _$Tree {
-  const factory Tree({
-    required String sha,
-    required String url,
-  }) = _Tree;
-  
+  const factory Tree({required String sha, required String url}) = _Tree;
+
   factory Tree.fromJson(Map<String, Object?> json) => _$TreeFromJson(json);
 }

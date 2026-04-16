@@ -56,8 +56,9 @@ Future<Map<String, dynamic>> handleRetryBuildJob(
   final callerUid = auth.uid;
   final buildJobId = request.data.buildJobId;
 
-  final originalJobRef =
-      firestore.collection(buildJobsCollection).doc(buildJobId);
+  final originalJobRef = firestore
+      .collection(buildJobsCollection)
+      .doc(buildJobId);
   final originalJobDoc = await originalJobRef.get();
 
   if (!originalJobDoc.exists) {
@@ -158,10 +159,7 @@ Future<Map<String, dynamic>> handleRetryBuildJob(
     'repo': originalJob['repo'],
   });
 
-  return <String, dynamic>{
-    'success': true,
-    'newBuildJobId': newDocumentId,
-  };
+  return <String, dynamic>{'success': true, 'newBuildJobId': newDocumentId};
 }
 
 Future<Map<String, dynamic>> handleRetryWorkflowRun(
@@ -203,7 +201,10 @@ Future<Map<String, dynamic>> handleRetryWorkflowRun(
       tokenExpiresAt = tokenData['expires_at'] as String;
     } catch (e) {
       logError(
-          'Failed to authenticate with GitHub for workflow retry', null, e);
+        'Failed to authenticate with GitHub for workflow retry',
+        null,
+        e,
+      );
       throw InternalError('Failed to authenticate with GitHub');
     }
   }
@@ -224,10 +225,11 @@ Future<Map<String, dynamic>> handleRetryWorkflowRun(
 
   for (final originalJob in originalJobs) {
     final jobKey = originalJob['jobKey'] as String?;
-    final newDocumentId =
-        jobKey != null ? newJobDocIds[jobKey]! : const Uuid().v4();
-    final originalNeeds =
-        (originalJob['needs'] as List<dynamic>?)?.cast<String>();
+    final newDocumentId = jobKey != null
+        ? newJobDocIds[jobKey]!
+        : const Uuid().v4();
+    final originalNeeds = (originalJob['needs'] as List<dynamic>?)
+        ?.cast<String>();
     final hasNeeds = originalNeeds != null && originalNeeds.isNotEmpty;
 
     Map<String, String>? resolvedNeeds;
@@ -251,8 +253,9 @@ Future<Map<String, dynamic>> handleRetryWorkflowRun(
         logError('workflowName is missing on job $jobKey');
       } else {
         final multipleJobs = originalJobs.length > 1;
-        final checkRunName =
-            multipleJobs ? '$workflowName / $jobKey' : workflowName;
+        final checkRunName = multipleJobs
+            ? '$workflowName / $jobKey'
+            : workflowName;
         final checkRunDetailsUrl = buildDashboardRunUrl(newDocumentId);
 
         checkRunId = await createCheckRun(

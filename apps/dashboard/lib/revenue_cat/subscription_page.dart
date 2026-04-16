@@ -304,7 +304,9 @@ class _PackageCard extends StatelessWidget {
         side: isActive
             ? BorderSide(color: Colors.green, width: 2)
             : BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.3),
               ),
       ),
       child: InkWell(

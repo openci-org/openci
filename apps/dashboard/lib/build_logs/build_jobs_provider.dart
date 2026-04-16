@@ -45,8 +45,8 @@ class BuildJobs extends _$BuildJobs {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('cancel-build-job'))
         .call({
-      'buildJobId': buildJobId,
-    });
+          'buildJobId': buildJobId,
+        });
   }
 
   Future<void> retryWorkflowRun(String workflowRunId) async {
