@@ -30,15 +30,75 @@ String extractSecretData(
   return utf8.decode(data);
 }
 
+Future<SecretManagerService> _createClient() async {
+  final httpClient = await clientViaMetadataServer();
+  return SecretManagerService(client: httpClient);
+}
+
 Future<String> accessSecret(String secretId) async {
   final projectId = resolveProjectId();
-  final httpClient = await clientViaMetadataServer();
-  final client = SecretManagerService(client: httpClient);
+  final client = await _createClient();
   try {
     final response = await client.accessSecretVersion(
       AccessSecretVersionRequest(name: buildSecretPath(projectId, secretId)),
     );
     return extractSecretData(response, secretId);
+  } finally {
+    client.close();
+  }
+}
+
+/// Creates a new secret in Secret Manager and adds its initial value.
+///
+/// Returns the full resource path: `projects/{project}/secrets/{secretId}`.
+Future<String> createSecretWithValue(String secretId, String value) async {
+  final projectId = resolveProjectId();
+  final parent = 'projects/$projectId';
+  final client = await _createClient();
+  try {
+    await client.createSecret(
+      CreateSecretRequest(
+        parent: parent,
+        secretId: secretId,
+        secret: Secret(
+          replication: Replication(automatic: Replication_Automatic()),
+        ),
+      ),
+    );
+
+    await client.addSecretVersion(
+      AddSecretVersionRequest(
+        parent: '$parent/secrets/$secretId',
+        payload: SecretPayload(data: utf8.encode(value)),
+      ),
+    );
+
+    return '$parent/secrets/$secretId';
+  } finally {
+    client.close();
+  }
+}
+
+/// Adds a new version to an existing secret.
+Future<void> addSecretVersionByPath(String secretPath, String value) async {
+  final client = await _createClient();
+  try {
+    await client.addSecretVersion(
+      AddSecretVersionRequest(
+        parent: secretPath,
+        payload: SecretPayload(data: utf8.encode(value)),
+      ),
+    );
+  } finally {
+    client.close();
+  }
+}
+
+/// Deletes a secret by its full resource path (e.g. `projects/X/secrets/Y`).
+Future<void> deleteSecretByPath(String secretPath) async {
+  final client = await _createClient();
+  try {
+    await client.deleteSecret(DeleteSecretRequest(name: secretPath));
   } finally {
     client.close();
   }

@@ -6,6 +6,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
 import 'package:openci_worker_cli/run_manager.dart';
@@ -16,12 +17,27 @@ Future<BuildJob?> claimBuildJob(Firestore firestore) async {
       .collection(buildJobsCollection)
       .where('status', WhereFilter.equal, 'queued')
       .orderBy('createdAt')
-      .limit(1)
+      .limit(10)
       .get();
 
   if (querySnapshot.docs.isEmpty) return null;
 
-  final buildJobId = querySnapshot.docs.first.id;
+  // Filter by platform: macOS claims macos-* jobs (or null for backward compat),
+  // Linux claims ubuntu-* jobs.
+  final isLinux = Platform.isLinux;
+  final candidates = querySnapshot.docs.where((doc) {
+    final runsOn = doc.data()['runsOn'] as String?;
+    if (isLinux) {
+      return runsOn != null && runsOn.contains('ubuntu');
+    } else {
+      // macOS: claim macos-* jobs, or jobs without runsOn (legacy)
+      return runsOn == null || runsOn.contains('macos');
+    }
+  }).toList();
+
+  if (candidates.isEmpty) return null;
+
+  final buildJobId = candidates.first.id;
   final jobRef = firestore.collection(buildJobsCollection).doc(buildJobId);
 
   final claimedData = await firestore.runTransaction((transaction) async {
@@ -280,6 +296,10 @@ Future<bool> processJob(
       'status': 'success',
       'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
+
+    // Notify cloud functions (replaces Firestore triggers)
+    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'));
+    unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
   } catch (e, s) {
     await logError(
       firestore,
@@ -300,6 +320,10 @@ Future<bool> processJob(
       'status': 'failure',
       'completedAt': DateTime.now().toUtc().toIso8601String(),
     });
+
+    // Notify cloud functions (replaces Firestore triggers)
+    unawaited(notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'));
+    unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
     rethrow;
   } finally {
     await flushRemainingLogs();

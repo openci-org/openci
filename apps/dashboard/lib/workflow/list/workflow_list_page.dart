@@ -12,7 +12,6 @@ import 'package:dashboard/team/team_members_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
@@ -23,7 +22,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:material_symbols_icons/symbols.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:yaml/yaml.dart';
@@ -67,8 +65,7 @@ class WorkflowListPage extends HookConsumerWidget {
     final wfT = t.workflow;
     final tabController = useTabController(initialLength: 3);
     useListenable(tabController);
-    final isWorkflowsTab = tabController.index == 0;
-
+    final isWorkflowsTab = tabController.index == 2;
 
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
@@ -84,57 +81,12 @@ class WorkflowListPage extends HookConsumerWidget {
         Widget buildRepoRequiredTab(Widget child) {
           if (!isGitHubConnected) return const ConnectGitHub();
           if (selectedRepo == null) return const SelectRepository();
-          return Column(
-            children: [
-              // ── Chip row ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ActionChip(
-                        avatar: FaIcon(FontAwesomeIcons.github, size: 16),
-                        label: Text(
-                          selectedRepo.split('/').last,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onPressed: () => showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          showDragHandle: true,
-                          builder: (_) => const SelectRepositoryBottomSheet(),
-                        ),
-                      ),
-                      if (selectedBranch != null)
-                        ActionChip(
-                          avatar: FaIcon(FontAwesomeIcons.codeBranch, size: 14),
-                          label: Text(
-                            selectedBranch,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onPressed: () => showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            showDragHandle: true,
-                            builder: (_) => SelectBranchBottomSheet(
-                              repoFullName: selectedRepo,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              // ── Content ──
-              Expanded(child: child),
-            ],
-          );
+          return child;
         }
 
         final tabChildren = [
+          buildRepoRequiredTab(const LogsBody()),
+          const StoreReleaseBody(),
           buildRepoRequiredTab(
             _WorkflowBody(
               selectedRepo: selectedRepo ?? '',
@@ -147,8 +99,6 @@ class WorkflowListPage extends HookConsumerWidget {
               },
             ),
           ),
-          buildRepoRequiredTab(const LogsBody()),
-          const StoreReleaseBody(),
         ];
 
         return Scaffold(
@@ -196,29 +146,120 @@ class WorkflowListPage extends HookConsumerWidget {
                 )
               : null,
           appBar: AppBar(
-            title: const Text('OpenCI'),
+            titleSpacing: 16,
+            title: selectedRepo != null
+                ? Row(
+                    children: [
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            showDragHandle: true,
+                            builder: (_) => const SelectRepositoryBottomSheet(),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FaIcon(
+                                FontAwesomeIcons.github,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  selectedRepo.split('/').last,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.unfold_more,
+                                size: 16,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (selectedBranch != null) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            '/',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () => showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              showDragHandle: true,
+                              builder: (_) => SelectBranchBottomSheet(
+                                repoFullName: selectedRepo,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FaIcon(
+                                  FontAwesomeIcons.codeBranch,
+                                  size: 13,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    selectedBranch,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Icon(
+                                  Icons.unfold_more,
+                                  size: 14,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.7),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : null,
             bottom: TabBar(
               controller: tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               tabs: [
-                Tab(text: wfT.tabWorkflows),
                 Tab(text: wfT.tabRuns),
                 Tab(text: t.storeRelease.title),
+                Tab(text: wfT.tabWorkflows),
               ],
             ),
             actions: [
-              TextButton.icon(
-                icon: Icon(Symbols.key_rounded),
-                label: Text(t.variables.title),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    SwipeablePageRoute(
-                      builder: (_) => const VariablesPage(),
-                    ),
-                  );
-                },
-              ),
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: Consumer(
@@ -331,7 +372,7 @@ class _WorkflowBody extends ConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
               itemCount: files.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
@@ -444,15 +485,19 @@ class _WorkflowBody extends ConsumerWidget {
                                             color: colorScheme.onSurfaceVariant,
                                           ),
                                           const SizedBox(width: 4),
-                                          Text(
-                                            trigger,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
+                                          Flexible(
+                                            child: Text(
+                                              trigger,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -522,11 +567,12 @@ class ConnectGitHub extends ConsumerWidget {
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () async {
-                final url = Uri.parse(
-                  'https://github.com/apps/openci-org/installations/new',
-                ).replace(
-                  queryParameters: {'state': team?.id ?? ''},
-                );
+                final url =
+                    Uri.parse(
+                      'https://github.com/apps/openci-org/installations/new',
+                    ).replace(
+                      queryParameters: {'state': team?.id ?? ''},
+                    );
                 await url_launcher.launchUrl(url);
               },
               icon: FaIcon(FontAwesomeIcons.github, size: 18),
@@ -756,8 +802,7 @@ class _TeamMenuButton extends StatelessWidget {
                               showModalBottomSheet(
                                 showDragHandle: true,
                                 context: context,
-                                builder: (_) =>
-                                    const TeamMembersBottomSheet(),
+                                builder: (_) => const TeamMembersBottomSheet(),
                               );
                             },
                           ),
@@ -770,8 +815,7 @@ class _TeamMenuButton extends StatelessWidget {
                                 showDragHandle: true,
                                 context: context,
                                 isScrollControlled: true,
-                                builder: (_) =>
-                                    const SwitchTeamBottomSheet(),
+                                builder: (_) => const SwitchTeamBottomSheet(),
                               );
                             },
                           ),
@@ -784,8 +828,7 @@ class _TeamMenuButton extends StatelessWidget {
                                 showDragHandle: true,
                                 context: context,
                                 isScrollControlled: true,
-                                builder: (_) =>
-                                    const EditTeamBottomSheet(),
+                                builder: (_) => const EditTeamBottomSheet(),
                               );
                             },
                           ),
@@ -799,10 +842,8 @@ class _TeamMenuButton extends StatelessWidget {
                                 context: context,
                                 builder: (_) => SizedBox(
                                   height:
-                                      MediaQuery.of(context).size.height *
-                                          0.6,
-                                  child:
-                                      const InviteTeamMemberBottomSheet(),
+                                      MediaQuery.of(context).size.height * 0.6,
+                                  child: const InviteTeamMemberBottomSheet(),
                                 ),
                               );
                             },
@@ -816,8 +857,7 @@ class _TeamMenuButton extends StatelessWidget {
                                 showDragHandle: true,
                                 context: context,
                                 isScrollControlled: true,
-                                builder: (_) =>
-                                    const CreateTeamBottomSheet(),
+                                builder: (_) => const CreateTeamBottomSheet(),
                               );
                             },
                           ),
@@ -830,8 +870,7 @@ class _TeamMenuButton extends StatelessWidget {
                                 showDragHandle: true,
                                 context: context,
                                 isScrollControlled: true,
-                                builder: (_) =>
-                                    const DeleteTeamBottomSheet(),
+                                builder: (_) => const DeleteTeamBottomSheet(),
                               );
                             },
                           ),
@@ -860,8 +899,7 @@ class _TeamMenuButton extends StatelessWidget {
                             context: context,
                             isScrollControlled: true,
                             builder: (_) => SizedBox(
-                              height:
-                                  MediaQuery.of(context).size.height * 0.85,
+                              height: MediaQuery.of(context).size.height * 0.85,
                               child: const SettingsPage(),
                             ),
                           );
@@ -909,8 +947,8 @@ class _MenuItem extends StatelessWidget {
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
           ],

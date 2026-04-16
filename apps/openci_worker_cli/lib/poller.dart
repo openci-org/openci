@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/auto_updater.dart';
+import 'package:openci_worker_cli/docker_job_executor.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:sentry/sentry.dart';
 
@@ -73,13 +74,24 @@ Future<void> pollForJobs({
 
   while (true) {
     try {
-      final jobFound = await processJob(
-        firestore,
-        projectId,
-        serviceAccountPath,
-        workerId,
-        onJobFound: stopSpinner,
-      );
+      final bool jobFound;
+      if (Platform.isLinux) {
+        jobFound = await processDockerJob(
+          firestore,
+          projectId,
+          serviceAccountPath,
+          workerId,
+          onJobFound: stopSpinner,
+        );
+      } else {
+        jobFound = await processJob(
+          firestore,
+          projectId,
+          serviceAccountPath,
+          workerId,
+          onJobFound: stopSpinner,
+        );
+      }
 
       if (jobFound) {
         _log.info('Job completed, checking for next...');

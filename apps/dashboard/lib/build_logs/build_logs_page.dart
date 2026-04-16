@@ -755,7 +755,7 @@ class WorkflowRunCard extends HookConsumerWidget {
 
 // ── Status indicator widget ─────────────────────────────────────────────────
 
-class _StatusIndicator extends StatefulWidget {
+class _StatusIndicator extends StatelessWidget {
   const _StatusIndicator({
     required this.status,
     required this.color,
@@ -769,88 +769,29 @@ class _StatusIndicator extends StatefulWidget {
   final double size;
 
   @override
-  State<_StatusIndicator> createState() => _StatusIndicatorState();
-}
-
-class _StatusIndicatorState extends State<_StatusIndicator>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _pulseAnimation;
-
-  bool get _isAnimated =>
-      widget.status == 'in_progress' ||
-      widget.status == 'queued' ||
-      widget.status == 'waiting';
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
-    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-    if (_isAnimated && widget.status != 'in_progress') {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _StatusIndicator oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_isAnimated && widget.status != 'in_progress') {
-      if (!_controller.isAnimating) _controller.repeat(reverse: true);
-    } else {
-      _controller.stop();
-      _controller.value = 1.0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.status == 'in_progress') {
+    if (status == 'in_progress') {
       return Tooltip(
-        message: widget.tooltip,
+        message: tooltip,
         child: SizedBox(
-          width: widget.size,
-          height: widget.size,
+          width: size,
+          height: size,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: widget.color,
+            color: color,
           ),
         ),
       );
     }
 
-    final icon = Icon(
-      _statusIcon(widget.status),
-      color: widget.color,
-      size: widget.size,
+    return Tooltip(
+      message: tooltip,
+      child: Icon(
+        _statusIcon(status),
+        color: color,
+        size: size,
+      ),
     );
-
-    if (_isAnimated) {
-      return Tooltip(
-        message: widget.tooltip,
-        child: AnimatedBuilder(
-          animation: _pulseAnimation,
-          builder: (context, child) => Opacity(
-            opacity: _pulseAnimation.value,
-            child: child,
-          ),
-          child: icon,
-        ),
-      );
-    }
-
-    return Tooltip(message: widget.tooltip, child: icon);
   }
 }
 
@@ -929,53 +870,43 @@ class _NeedsBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    final children = <Widget>[
-      Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.segment, size: 14, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 4),
-          Text(
-            'Needs',
-            style: TextStyle(
-              fontSize: 11,
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
+          Icon(
+            Icons.account_tree_outlined,
+            size: 11,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
           ),
+          const SizedBox(width: 4),
+          for (int i = 0; i < needs.length; i++) ...[
+            Text(
+              needs[i],
+              style: TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            if (i < needs.length - 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Icon(
+                  Icons.add,
+                  size: 9,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+              ),
+          ],
         ],
       ),
-    ];
-
-    for (final n in needs) {
-      children.add(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Text(
-            n,
-            style: TextStyle(
-              fontSize: 10,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Wrap(
-      spacing: 4,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: children,
     );
   }
 }

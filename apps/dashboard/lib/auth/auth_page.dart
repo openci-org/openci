@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
@@ -10,6 +12,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+/// Fire-and-forget call to process pending invitations after login/signup.
+void _processInvitations() {
+  FirebaseFunctions.instance
+      .httpsCallableFromUrl(
+        dartFunctionUrl('process-invitations-on-sign-up'),
+      )
+      .call<void>()
+      .then((_) {})
+      .catchError((Object e) {
+    debugPrint('processInvitationsOnSignUp failed: $e');
+  });
+}
 
 class AuthPage extends HookConsumerWidget {
   const AuthPage({super.key});
@@ -129,6 +144,8 @@ class AuthPage extends HookConsumerWidget {
                                           );
                                       ref.invalidate(authProvider);
                                       ref.invalidate(firestoreProvider);
+                                      // Process pending invitations (fire-and-forget)
+                                      _processInvitations();
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       debugPrint(e.toString());
@@ -192,6 +209,8 @@ class AuthPage extends HookConsumerWidget {
                                       await batch.commit();
                                       ref.invalidate(authProvider);
                                       ref.invalidate(firestoreProvider);
+                                      // Process pending invitations (fire-and-forget)
+                                      _processInvitations();
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       debugPrint(e.toString());

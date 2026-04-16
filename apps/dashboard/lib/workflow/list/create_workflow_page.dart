@@ -1,5 +1,6 @@
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/list/create_workflow_file_provider.dart';
 import 'package:dashboard/workflow/list/github_actions_provider.dart';
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
@@ -12,6 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/monokai.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 import 'status_dot.dart';
@@ -487,6 +489,31 @@ class _EditorTab extends HookConsumerWidget {
                   );
                 },
               ),
+            const SizedBox(height: 8),
+            // ── Variables shortcut ──
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  Symbols.key_rounded,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                title: Text(t.variables.title),
+                subtitle: Text(
+                  '${t.variables.secretsTab} / ${t.variables.envVarsTab}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const VariablesPage(),
+                    ),
+                  );
+                },
+              ),
+            ),
             ...List.generate(steps.value.length, (index) {
               final step = steps.value[index];
               return Column(

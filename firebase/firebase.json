@@ -4,13 +4,7 @@
       "codebase": "default",
       "source": "dart_functions",
       "runtime": "dart3",
-      "ignore": [
-        ".dart_tool",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
+      "ignore": [".dart_tool", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"]
     }
   ],
   "firestore": {
@@ -19,10 +13,7 @@
   },
   "hosting": {
     "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/node_modules/**"],
     "headers": [
       {
         "source": "/.well-known/apple-app-site-association",
