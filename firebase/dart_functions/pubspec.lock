@@ -289,7 +289,7 @@ packages:
     source: hosted
     version: "0.4.0"
   google_cloud_firestore:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: google_cloud_firestore
       sha256: d60ae84a6e8c9bbdac12afe49e1bc5d8501263ecabcf0796fc43a35bb814486b
@@ -720,7 +720,7 @@ packages:
     source: hosted
     version: "1.4.0"
   uuid:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: uuid
       sha256: "1fef9e8e11e2991bb773070d4656b7bd5d850967a2456cfc83cf47925ba79489"
@@ -776,7 +776,7 @@ packages:
     source: hosted
     version: "1.2.1"
   yaml:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: yaml
       sha256: b9da305ac7c39faa3f030eccd175340f968459dae4af175130b3fc47e40d76ce
