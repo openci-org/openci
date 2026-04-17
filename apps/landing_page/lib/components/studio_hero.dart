@@ -20,6 +20,12 @@ class StudioHero extends StatelessComponent {
           Component.text(
               'アプリ開発において、最も大切なのは技術ではなく、ビジネスが成功するかどうか。ここに重点を置き、開発、技術支援、コンサルティングを行います。'),
         ]),
+        // Primary CTA — only one primary button per page
+        a([Component.text('お問い合わせ')],
+            href: 'https://form.typeform.com/to/XIdO4iES',
+            target: Target.blank,
+            classes: 'cta-button',
+            attributes: {'style': 'margin-top: 1.75rem'}),
       ]),
     ]);
   }

@@ -18,11 +18,6 @@ class StudioAboutLayout extends PageLayoutBase {
   Iterable<Component> buildHead(Page page) sync* {
     yield* super.buildHead(page);
     yield link(
-      rel: 'stylesheet',
-      href:
-          'https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap',
-    );
-    yield link(
       rel: 'icon',
       href: '/favicon.png',
       type: 'image/png',

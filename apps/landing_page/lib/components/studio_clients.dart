@@ -9,6 +9,7 @@ class StudioClients extends StatelessComponent {
     return section(classes: 'clients-section', [
       div(classes: 'container', [
         div(classes: 'section-intro', [
+          // No uppercase eyebrow
           div(classes: 'eyebrow', [Component.text('実績')]),
           h2([Component.text('長期的なパートナーシップを大切にしています。')]),
           p([
@@ -19,7 +20,7 @@ class StudioClients extends StatelessComponent {
         ]),
         div(classes: 'clients-grid', [
           _clientCard(
-            label: '技術顧問 / 継続2年以上',
+            label: '技術顧問 · 継続2年以上',
             title: '大手外資系企業 / 東証プライム上場企業',
             description:
                 'モバイルアプリケーションの技術顧問として、アーキテクチャ設計や開発チームの体制構築を支援。'
@@ -27,7 +28,7 @@ class StudioClients extends StatelessComponent {
             isLongTerm: true,
           ),
           _clientCard(
-            label: '技術顧問 / 継続2年以上',
+            label: '技術顧問 · 継続2年以上',
             title: 'スポーツテック系スタートアップ',
             description:
                 '甲子園常連の強豪校や大手企業をクライアントに持つスポーツテック企業の技術顧問。'
@@ -59,13 +60,11 @@ class StudioClients extends StatelessComponent {
     required String description,
     bool isLongTerm = false,
   }) {
-    return div(
-        classes: 'client-card${isLongTerm ? ' long-term' : ''}',
-        [
-          if (label != null)
-            div(classes: 'client-badge', [Component.text(label)]),
-          h3([Component.text(title)]),
-          p([Component.text(description)]),
-        ]);
+    return div(classes: 'client-card${isLongTerm ? ' long-term' : ''}', [
+      if (label != null)
+        div(classes: 'client-badge', [Component.text(label)]),
+      h3([Component.text(title)]),
+      p([Component.text(description)]),
+    ]);
   }
 }

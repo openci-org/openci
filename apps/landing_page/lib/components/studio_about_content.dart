@@ -47,7 +47,8 @@ class StudioAboutContent extends StatelessComponent {
               Component.text('ご興味のある方は、'),
               a([Component.text('OpenCIのGitHub')],
                   href: 'https://github.com/open-ci-io/openci',
-                  target: Target.blank),
+                  target: Target.blank,
+                  attributes: {'rel': 'noopener noreferrer'}),
               Component.text('をご覧ください。'),
             ]),
             p([
@@ -74,7 +75,7 @@ class StudioAboutContent extends StatelessComponent {
           div(classes: 'team-card', [
             img(
               src: '/images/team/masahiro-aoki.jpg',
-              alt: 'Masahiro Aoki',
+              alt: 'Masahiro Aoki - OpenCI Studio 代表取締役',
               classes: 'team-card-image',
             ),
             div(classes: 'team-card-info', [

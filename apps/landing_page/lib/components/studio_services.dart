@@ -9,8 +9,9 @@ class StudioServices extends StatelessComponent {
     return section(classes: 'services-section', [
       div(classes: 'container', [
         div(classes: 'section-intro', [
+          // No uppercase eyebrow — ui.sh says never use uppercase unless monospace
           div(classes: 'eyebrow', [Component.text('提供サービス')]),
-          h2([Component.text('個人開発規模から大規模なものまで、なんでもお任せください。')]),
+          h2([Component.text('個人開発規模から大規模まで、なんでもお任せください。')]),
           p([
             Component.text(
                 'OpenCI Studioは、数人規模の会社から大手外資系企業まで、様々な規模のプロジェクトに参画し、結果を残してきました。'),

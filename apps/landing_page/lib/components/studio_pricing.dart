@@ -31,7 +31,7 @@ const _tiers = [
   _PricingTier(
     id: 'flutter-app-development',
     name: 'アプリ開発 (Flutter)',
-    price: '800,000円~',
+    price: '800,000円〜',
     period: '/月',
     description: 'Flutterを使用したアプリ開発を行います。',
     features: [
@@ -47,7 +47,7 @@ const _tiers = [
   _PricingTier(
     id: 'flutter-development-consulting',
     name: 'Flutter開発の技術支援 (技術顧問)',
-    price: '300,000円~',
+    price: '300,000円〜',
     period: '/月',
     description: 'Flutter開発の技術支援を行います。',
     features: [
@@ -81,12 +81,11 @@ class StudioPricing extends StatelessComponent {
   Component build(BuildContext context) {
     return section(classes: 'pricing-section', [
       div(classes: 'container', [
+        // Left-aligned pricing header — consistent with page flow
         div(classes: 'pricing-header', [
           h2([Component.text('料金表')]),
           p([
-            Component.text('価格は全て税抜きです。'),
-            const br(),
-            Component.text('最低契約期間は3ヶ月、毎月最低稼動時間は100時間です。'),
+            Component.text('価格は全て税抜きです。最低契約期間は3ヶ月、毎月最低稼動時間は100時間です。'),
           ]),
         ]),
         div(classes: 'pricing-grid', [
@@ -115,6 +114,7 @@ class StudioPricing extends StatelessComponent {
         Component.element(
           tag: 'ul',
           classes: 'features',
+          attributes: {'role': 'list'},
           children: [
             for (final feature in tier.features)
               Component.element(
@@ -127,10 +127,13 @@ class StudioPricing extends StatelessComponent {
           p(classes: 'unavailable-note', [
             Component.text(tier.unavailableNote!),
           ]),
-        a([Component.text(tier.unavailable ? 'ご相談はこちら' : tier.cta)],
-            href: 'https://form.typeform.com/to/XIdO4iES',
-            target: Target.blank,
-            classes: 'cta-button${tier.featured ? ' inverted' : ''}'),
+        a(
+          [Component.text(tier.unavailable ? 'ご相談はこちら' : tier.cta)],
+          href: 'https://form.typeform.com/to/XIdO4iES',
+          target: Target.blank,
+          // All secondary buttons — primary is in the hero
+          classes: 'cta-button inverted',
+        ),
       ],
     );
   }
