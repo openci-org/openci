@@ -3,7 +3,7 @@ description: OpenCI, Inc. landing page
 version: 0.0.1
 
 environment:
-  sdk: ^3.11.0
+  sdk: 3.11.5
 
 resolution: workspace
 
