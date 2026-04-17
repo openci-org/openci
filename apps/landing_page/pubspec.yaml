@@ -1,0 +1,21 @@
+name: landing_page
+description: OpenCI, Inc. landing page
+version: 0.0.1
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  jaspr: ^0.22.4
+  jaspr_content: ^0.5.1
+
+dev_dependencies:
+  build_runner: ^2.10.0
+  build_web_compilers: ^4.4.17
+  jaspr_builder: ^0.22.4
+  lints: ^6.0.0
+
+jaspr:
+  mode: static
