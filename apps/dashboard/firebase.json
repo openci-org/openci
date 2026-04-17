@@ -1,0 +1,47 @@
+{
+  "flutter": {
+    "platforms": {
+      "ios": {
+        "default": {
+          "projectId": "openci-b1b91",
+          "appId": "1:372767414789:ios:e634856bb9d72ca1bb1a6c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "openci-b1b91",
+          "appId": "1:372767414789:ios:95f7465ff4e96654bb1a6c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "openci-b1b91",
+          "configurations": {
+            "ios": "1:372767414789:ios:e634856bb9d72ca1bb1a6c",
+            "macos": "1:372767414789:ios:95f7465ff4e96654bb1a6c",
+            "web": "1:372767414789:web:d88eafacbda01d2bbb1a6c"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "site": "dashboard-openci",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
