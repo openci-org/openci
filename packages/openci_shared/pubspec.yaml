@@ -3,7 +3,7 @@ description: Shared constants for OpenCI monorepo
 publish_to: none
 
 environment:
-  sdk: ^3.11.0
+  sdk: 3.11.5
 
 resolution: workspace
 dependencies:
