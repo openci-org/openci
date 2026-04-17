@@ -13,6 +13,7 @@
   },
   "hosting": {
     "public": "public",
+    "cleanUrls": true,
     "ignore": ["firebase.json", "**/node_modules/**"],
     "headers": [
       {
@@ -27,12 +28,6 @@
             "value": "public, max-age=300"
           }
         ]
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
       }
     ]
   }

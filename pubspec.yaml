@@ -10,4 +10,5 @@ workspace:
   - apps/openci_worker_cli
   - firebase/dart_functions
   - packages/github_client
+  - apps/landing_page
   - packages/openci_shared

@@ -15,3 +15,9 @@ formatter:
 
 plugins:
   riverpod_lint: 3.1.2
+  jaspr_lints:
+    version: ^0.6.1
+    diagnostics:
+      prefer_html_components: true
+      sort_children_last: true
+      styles_ordering: true
