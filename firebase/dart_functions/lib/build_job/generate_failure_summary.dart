@@ -99,11 +99,9 @@ Future<void> _generateSummary(
     final geminiApiKey = await _accessSecretCached('GEMINI_API_KEY');
 
     // Mark as generating
+    final stopwatch = Stopwatch()..start();
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'aiSummary': <String, dynamic>{
-        'status': 'generating',
-        'updatedAt': DateTime.now().toUtc().toIso8601String(),
-      },
+      'failureSummaryStatus': 'generating',
     });
 
     // Get last N log lines
@@ -119,11 +117,8 @@ Future<void> _generateSummary(
 
     if (logsSnapshot.docs.isEmpty) {
       await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-        'aiSummary': <String, dynamic>{
-          'status': 'error',
-          'error': 'No logs found',
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        },
+        'failureSummaryStatus': 'error',
+        'failureSummary': 'No logs found',
       });
       return;
     }
@@ -132,10 +127,11 @@ Future<void> _generateSummary(
         .map((doc) => doc.data()['message'] as String? ?? '')
         .join('\n');
 
+    const modelName = 'gemini-2.5-flash-lite';
     final dio = Dio();
     try {
       final resp = await dio.post<Map<String, dynamic>>(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=$geminiApiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$geminiApiKey',
         data: {
           'contents': [
             {
@@ -157,26 +153,25 @@ Future<void> _generateSummary(
               as String? ??
           'No summary generated';
 
+      stopwatch.stop();
       await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-        'aiSummary': <String, dynamic>{
-          'status': 'done',
-          'summary': text,
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        },
+        'failureSummaryStatus': 'done',
+        'failureSummary': text,
+        'failureSummaryModel': modelName,
+        'failureSummaryDurationMs': stopwatch.elapsedMilliseconds,
       });
 
-      logInfo('Generated failure summary for $buildJobId');
+      logInfo(
+        'Generated failure summary for $buildJobId using $modelName in ${stopwatch.elapsedMilliseconds}ms',
+      );
     } finally {
       dio.close();
     }
   } catch (e) {
     logError('Failed to generate failure summary', null, e);
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'aiSummary': <String, dynamic>{
-        'status': 'error',
-        'error': e.toString(),
-        'updatedAt': DateTime.now().toUtc().toIso8601String(),
-      },
+      'failureSummaryStatus': 'error',
+      'failureSummary': e.toString(),
     });
   }
 }
