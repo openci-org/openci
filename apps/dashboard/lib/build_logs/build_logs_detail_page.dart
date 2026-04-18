@@ -50,7 +50,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       'failure' => Icons.cancel_rounded,
       'queued' => Icons.schedule_rounded,
       'cancelled' => Icons.block_rounded,
-      'waiting' => Icons.hourglass_top_rounded,
+      'waiting' => Icons.pending_outlined,
       'skipped' => Icons.skip_next_rounded,
       _ => Icons.help_outline_rounded,
     };
