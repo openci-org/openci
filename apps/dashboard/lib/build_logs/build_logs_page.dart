@@ -1,4 +1,5 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -101,19 +102,21 @@ class LogsBody extends HookConsumerWidget {
           }
         }
 
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              itemCount: orderedDisplayList.length,
-              itemBuilder: (_, index) {
-                final jobs = orderedDisplayList[index];
-                if (jobs.length == 1) {
-                  return BuildJobCard(buildJob: jobs.first);
-                }
-                return WorkflowRunCard(jobs: jobs);
-              },
+        return SyncedSpinnerScope(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                itemCount: orderedDisplayList.length,
+                itemBuilder: (_, index) {
+                  final jobs = orderedDisplayList[index];
+                  if (jobs.length == 1) {
+                    return BuildJobCard(buildJob: jobs.first);
+                  }
+                  return WorkflowRunCard(jobs: jobs);
+                },
+              ),
             ),
           ),
         );
@@ -631,13 +634,9 @@ class _StatusIndicator extends StatelessWidget {
     if (status == 'in_progress') {
       return Tooltip(
         message: tooltip,
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: color,
-          ),
+        child: SyncedSpinner(
+          color: color,
+          size: size,
         ),
       );
     }

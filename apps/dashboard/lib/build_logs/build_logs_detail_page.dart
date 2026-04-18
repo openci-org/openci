@@ -1,4 +1,5 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -68,7 +69,8 @@ class BuildLogsDetailPage extends HookConsumerWidget {
     final canCancel =
         buildJob.status == 'queued' || buildJob.status == 'in_progress';
 
-    return Scaffold(
+    return SyncedSpinnerScope(
+      child: Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kSurface,
@@ -245,13 +247,10 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (buildJob.status == 'in_progress')
-                            SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: statusColor,
-                              ),
+                            SyncedSpinner(
+                              size: 14,
+                              strokeWidth: 1.5,
+                              color: statusColor,
                             )
                           else
                             Icon(statusIcon, color: statusColor, size: 14),
@@ -374,6 +373,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   ),
           ),
         ],
+      ),
       ),
     );
   }
