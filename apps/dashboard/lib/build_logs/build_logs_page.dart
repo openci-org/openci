@@ -591,7 +591,7 @@ class WorkflowRunCard extends HookConsumerWidget {
               ],
             ),
           ),
-          // ── Jobs list ────────────────────────────────────────────────
+          // ── Jobs tree ────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Container(
@@ -602,136 +602,7 @@ class WorkflowRunCard extends HookConsumerWidget {
                   color: scheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
-              child: Column(
-                children: _sortedJobs.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final job = entry.value;
-                  final isLast = index == _sortedJobs.length - 1;
-
-                  final isRunning =
-                      job.status == 'in_progress' || job.status == 'queued';
-
-                  final jobColor = _statusColor(job.status, scheme);
-                  final jobLabel = _statusLabel(job.status);
-
-                  return Column(
-                    children: [
-                      InkWell(
-                        borderRadius: index == 0
-                            ? const BorderRadius.vertical(
-                                top: Radius.circular(12),
-                              )
-                            : (isLast
-                                  ? const BorderRadius.vertical(
-                                      bottom: Radius.circular(12),
-                                    )
-                                  : BorderRadius.zero),
-                        onTap: () {
-                          context.push('/runs/${Uri.encodeComponent(job.id)}');
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          child: Row(
-                            children: [
-                              _StatusIndicator(
-                                status: job.status,
-                                color: jobColor,
-                                tooltip: jobLabel,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      job.jobKey ?? 'Unnamed Job',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 4,
-                                      children: [
-                                        _RunDurationBadge(buildJob: job),
-                                        if (job.needs != null &&
-                                            job.needs!.isNotEmpty)
-                                          _NeedsBadge(needs: job.needs!),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_vert, size: 20),
-                                padding: EdgeInsets.zero,
-                                onSelected: (value) async {
-                                  if (value == 'retry') {
-                                    await ref
-                                        .read(buildJobsProvider.notifier)
-                                        .retryBuildJob(job.id);
-                                  } else if (value == 'cancel') {
-                                    await ref
-                                        .read(buildJobsProvider.notifier)
-                                        .cancelBuildJob(job.id);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    value: 'retry',
-                                    child: ListTile(
-                                      leading: const Icon(
-                                        Icons.replay,
-                                        size: 20,
-                                      ),
-                                      title: Text(t.buildLogs.detail.retry),
-                                      dense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                  if (isRunning)
-                                    PopupMenuItem(
-                                      value: 'cancel',
-                                      child: ListTile(
-                                        leading: const Icon(
-                                          Icons.cancel_outlined,
-                                          size: 20,
-                                          color: Colors.red,
-                                        ),
-                                        title: Text(
-                                          t.common.cancel,
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                          ),
-                                        ),
-                                        dense: true,
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (!isLast)
-                        Divider(
-                          height: 1,
-                          indent: 48,
-                          color: scheme.outlineVariant.withValues(alpha: 0.3),
-                        ),
-                    ],
-                  );
-                }).toList(),
-              ),
+              child: _JobTree(jobs: _sortedJobs),
             ),
           ),
         ],
@@ -893,6 +764,208 @@ class _NeedsBadge extends StatelessWidget {
               ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// ジョブをneeds依存関係に基づいてツリー構造で表示するウィジェット
+class _JobTree extends ConsumerWidget {
+  const _JobTree({required this.jobs});
+  final List<BuildJob> jobs;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // jobKeyからジョブへのマップ
+    final byKey = <String, BuildJob>{};
+    for (final job in jobs) {
+      if (job.jobKey != null) {
+        byKey[job.jobKey!] = job;
+      }
+    }
+
+    // 親→子のマップを構築
+    final children = <String, List<BuildJob>>{};
+    final hasParent = <String>{};
+
+    for (final job in jobs) {
+      if (job.needs != null && job.needs!.isNotEmpty && job.jobKey != null) {
+        for (final parentKey in job.needs!) {
+          children.putIfAbsent(parentKey, () => []).add(job);
+          hasParent.add(job.jobKey!);
+        }
+      }
+    }
+
+    // ルートジョブ = 親を持たないジョブ
+    final rootJobs =
+        jobs.where((j) => j.jobKey == null || !hasParent.contains(j.jobKey!)).toList();
+
+    final widgets = <Widget>[];
+    var globalIndex = 0;
+    final totalCount = jobs.length;
+
+    void buildTree(BuildJob job, int depth, bool isLastInParent) {
+      final currentIndex = globalIndex++;
+      final isFirst = currentIndex == 0;
+      final isLast = globalIndex == totalCount;
+
+      widgets.add(
+        _JobTreeRow(
+          job: job,
+          depth: depth,
+          isFirst: isFirst,
+          isLast: isLast,
+        ),
+      );
+
+      if (!isLast) {
+        widgets.add(
+          Divider(
+            height: 1,
+            indent: 16 + (depth * 24.0) + 32,
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        );
+      }
+
+      final childJobs = job.jobKey != null ? children[job.jobKey!] ?? [] : <BuildJob>[];
+      for (var i = 0; i < childJobs.length; i++) {
+        buildTree(childJobs[i], depth + 1, i == childJobs.length - 1);
+      }
+    }
+
+    for (var i = 0; i < rootJobs.length; i++) {
+      buildTree(rootJobs[i], 0, i == rootJobs.length - 1);
+    }
+
+    return Column(children: widgets);
+  }
+}
+
+class _JobTreeRow extends ConsumerWidget {
+  const _JobTreeRow({
+    required this.job,
+    required this.depth,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  final BuildJob job;
+  final int depth;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final jobColor = _statusColor(job.status, scheme);
+    final jobLabel = _statusLabel(job.status);
+    final isRunning = job.status == 'in_progress' || job.status == 'queued';
+
+    return InkWell(
+      borderRadius: isFirst
+          ? const BorderRadius.vertical(top: Radius.circular(12))
+          : (isLast
+                ? const BorderRadius.vertical(bottom: Radius.circular(12))
+                : BorderRadius.zero),
+      onTap: () {
+        context.push('/runs/${Uri.encodeComponent(job.id)}');
+      },
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16 + (depth * 24.0),
+          right: 8,
+          top: 12,
+          bottom: 12,
+        ),
+        child: Row(
+          children: [
+            // 依存関係の視覚的コネクター
+            if (depth > 0) ...[
+              Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                size: 16,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.35),
+              ),
+              const SizedBox(width: 8),
+            ],
+            _StatusIndicator(
+              status: job.status,
+              color: jobColor,
+              tooltip: jobLabel,
+              size: 16,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    job.jobKey ?? 'Unnamed Job',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: depth > 0 ? 13 : 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _RunDurationBadge(buildJob: job),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert,
+                size: 18,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onSelected: (value) async {
+                if (value == 'retry') {
+                  await ref
+                      .read(buildJobsProvider.notifier)
+                      .retryBuildJob(job.id);
+                } else if (value == 'cancel') {
+                  await ref
+                      .read(buildJobsProvider.notifier)
+                      .cancelBuildJob(job.id);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'retry',
+                  child: ListTile(
+                    leading: const Icon(Icons.replay, size: 20),
+                    title: Text(t.buildLogs.detail.retry),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                if (isRunning)
+                  PopupMenuItem(
+                    value: 'cancel',
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.cancel_outlined,
+                        size: 20,
+                        color: Colors.red,
+                      ),
+                      title: Text(
+                        t.common.cancel,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

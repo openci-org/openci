@@ -120,6 +120,9 @@ Future<void> _resolveDependencies(
       logInfo(
         'Skipped job ${jobData['jobKey']} because dependency $jobKey $completedStatus',
       );
+
+      // Cascade: skip children of this skipped job too
+      await _resolveDependencies(jobData, 'skipped');
       continue;
     }
 
