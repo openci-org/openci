@@ -908,7 +908,16 @@ class _JobTreeRow extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  _RunDurationBadge(buildJob: job),
+                  Row(
+                    children: [
+                      _RunDurationBadge(buildJob: job),
+                      if (job.status == 'failure' &&
+                          job.failureSummaryStatus == 'generating') ...[
+                        const SizedBox(width: 8),
+                        _AiGeneratingBadge(),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -991,6 +1000,72 @@ class _RunDurationBadge extends ConsumerWidget {
         debugPrint('stackTrace: $s');
         throw Exception('Failed to load run duration: $e');
       },
+    );
+  }
+}
+
+// ── AI Generating badge ─────────────────────────────────────────────────────
+
+class _AiGeneratingBadge extends StatefulWidget {
+  @override
+  State<_AiGeneratingBadge> createState() => _AiGeneratingBadgeState();
+}
+
+class _AiGeneratingBadgeState extends State<_AiGeneratingBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const aiColor = Color(0xFFD29922);
+    return FadeTransition(
+      opacity: _opacity,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: aiColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: aiColor.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: 10,
+              color: aiColor.withValues(alpha: 0.8),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              t.buildLogs.detail.generatingSummary,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: aiColor.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
