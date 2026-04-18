@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
+import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:openci_worker_cli/logger.dart';
@@ -36,7 +37,7 @@ Future<bool> processDockerJob(
     firestore,
     buildJobId,
     runId,
-    'Processing job: $buildJobId for $owner/$repo (Docker)',
+    'Processing job: $buildJobId for $owner/$repo (Docker) [v$version]',
   );
 
   await createContainer(name);

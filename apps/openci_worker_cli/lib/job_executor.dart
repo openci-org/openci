@@ -88,7 +88,7 @@ Future<bool> processJob(
     firestore,
     buildJobId,
     runId,
-    'Processing job: $buildJobId for $owner/$repo',
+    'Processing job: $buildJobId for $owner/$repo [v$version]',
   );
 
   await cloneVm(
