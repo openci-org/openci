@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/args.dart';
+import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/firebase.dart';
 import 'package:openci_worker_cli/log.dart';
@@ -32,7 +33,7 @@ Future<void> main(List<String> arguments) async {
       serviceAccountPath: config.serviceAccountPath,
     );
 
-    _log.info('Worker started. Worker ID: ${config.workerId}');
+    _log.info('Worker started. Worker ID: ${config.workerId} (v$version)');
     _log.info(
       'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (Lume)'}',
     );
@@ -57,4 +58,3 @@ Future<void> main(List<String> arguments) async {
     exit(1);
   }
 }
-
