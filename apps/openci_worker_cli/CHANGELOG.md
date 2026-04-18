@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.6
+- Fix: Skip dependent jobs when parent job fails (cascade skip via Cloud Function)
+
+## 0.9.5
+- Add Worker CLI version to job processing log
+
 ## 0.9.3
 - Fix: Kill zombie lume VM processes from any worker ID on startup
 - Prevents VM slot exhaustion when orphaned processes outlive their worker
