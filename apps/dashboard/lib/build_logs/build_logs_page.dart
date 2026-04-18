@@ -636,7 +636,7 @@ class _StatusIndicator extends StatelessWidget {
         message: tooltip,
         child: SyncedSpinner(
           color: color,
-          size: size,
+          size: size - 4,
         ),
       );
     }
