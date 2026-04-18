@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.8
+- Require explicit `runs-on` in workflow: macOS worker only processes `macos-*` jobs, no longer claims jobs without `runsOn`
+
+## 0.9.7
+- Fix: Ensure Cloud Function notifications complete before rethrowing exceptions in error handler
+
 ## 0.9.6
 - Fix: Skip dependent jobs when parent job fails (cascade skip via Cloud Function)
 

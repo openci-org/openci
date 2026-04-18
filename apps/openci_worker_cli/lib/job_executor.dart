@@ -27,11 +27,11 @@ Future<BuildJob?> claimBuildJob(Firestore firestore) async {
   final isLinux = Platform.isLinux;
   final candidates = querySnapshot.docs.where((doc) {
     final runsOn = doc.data()['runsOn'] as String?;
+    if (runsOn == null) return false;
     if (isLinux) {
-      return runsOn != null && runsOn.contains('ubuntu');
+      return runsOn.contains('ubuntu');
     } else {
-      // macOS: claim macos-* jobs, or jobs without runsOn (legacy)
-      return runsOn == null || runsOn.contains('macos');
+      return runsOn.contains('macos');
     }
   }).toList();
 
