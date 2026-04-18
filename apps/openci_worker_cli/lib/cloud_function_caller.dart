@@ -95,3 +95,11 @@ Future<void> notifyCheckRunUpdate(
     'conclusion': ?conclusion,
   });
 }
+
+/// Request AI failure summary generation for a failed build job.
+/// Fire-and-forget: the Cloud Function handles everything independently.
+Future<void> requestFailureSummary(String buildJobId) async {
+  await callDartFunction('generate-failure-summary', {
+    'buildJobId': buildJobId,
+  });
+}

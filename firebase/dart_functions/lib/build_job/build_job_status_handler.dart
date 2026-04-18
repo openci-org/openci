@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
@@ -76,34 +74,8 @@ Future<Map<String, dynamic>> handleBuildJobStatusChange(
     await _resolveDependencies(jobData, currentStatus);
   }
 
-  // 2. Generate AI failure summary (fire-and-forget)
-  if (currentStatus == 'failure') {
-    final latestRunId = jobData['latestRunId'] as String?;
-    final teamId = jobData['teamId'] as String?;
-    if (latestRunId != null) {
-      var aiEnabled = true;
-      if (teamId != null) {
-        final teamDoc = await firestore
-            .collection(teamsCollection)
-            .doc(teamId)
-            .get();
-        if (teamDoc.exists) {
-          aiEnabled = teamDoc.data()?['aiEnabled'] != false;
-        }
-      }
-      if (aiEnabled) {
-        unawaited(
-          _generateFailureSummary(buildJobId, latestRunId).catchError((
-            Object e,
-          ) {
-            logError('Background failure summary generation failed', null, e);
-          }),
-        );
-      } else {
-        logInfo('AI features disabled for team $teamId, skipping summary');
-      }
-    }
-  }
+  // 2. AI failure summary is now handled by a separate Cloud Function
+  //    (generate-failure-summary), called directly by the Worker CLI.
 
   // 3. Send FCM notifications for success/failure
   if (currentStatus == 'success' || currentStatus == 'failure') {
@@ -175,97 +147,8 @@ Future<void> _resolveDependencies(
   }
 }
 
-// ---------------------------------------------------------------------------
-// AI failure summary (Gemini)
-// ---------------------------------------------------------------------------
 
-Future<void> _generateFailureSummary(
-  String buildJobId,
-  String latestRunId,
-) async {
-  try {
-    final geminiApiKey = await accessSecretCached('GEMINI_API_KEY');
 
-    // Mark as generating
-    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'aiSummary': <String, dynamic>{
-        'status': 'generating',
-        'updatedAt': DateTime.now().toUtc().toIso8601String(),
-      },
-    });
-
-    // Get last N log lines
-    final logsSnapshot = await firestore
-        .collection(buildJobsCollection)
-        .doc(buildJobId)
-        .collection('runs')
-        .doc(latestRunId)
-        .collection('logs')
-        .orderBy('timestamp', descending: true)
-        .limit(50)
-        .get();
-
-    if (logsSnapshot.docs.isEmpty) {
-      await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-        'aiSummary': <String, dynamic>{
-          'status': 'error',
-          'error': 'No logs found',
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        },
-      });
-      return;
-    }
-
-    final logLines = logsSnapshot.docs.reversed
-        .map((doc) => doc.data()['message'] as String? ?? '')
-        .join('\n');
-
-    final dio = Dio();
-    try {
-      final resp = await dio.post<Map<String, dynamic>>(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=$geminiApiKey',
-        data: {
-          'contents': [
-            {
-              'parts': [
-                {
-                  'text':
-                      'You are a CI/CD expert. Analyze the following build log and provide a concise summary of why the build failed. Focus on the root cause and suggest a fix. Keep it under 3 sentences.\n\n$logLines',
-                },
-              ],
-            },
-          ],
-        },
-      );
-
-      final candidates = resp.data?['candidates'] as List<dynamic>?;
-      final text =
-          (candidates?.firstOrNull
-                  as Map<String, dynamic>?)?['content']?['parts']?[0]?['text']
-              as String? ??
-          'No summary generated';
-
-      await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-        'aiSummary': <String, dynamic>{
-          'status': 'done',
-          'summary': text,
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        },
-      });
-    } finally {
-      dio.close();
-    }
-  } catch (e) {
-    logError('Failed to generate failure summary', null, e);
-    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'aiSummary': <String, dynamic>{
-        'status': 'error',
-        'error': e.toString(),
-        'updatedAt': DateTime.now().toUtc().toIso8601String(),
-      },
-    });
-  }
-}
 
 // ---------------------------------------------------------------------------
 // FCM push notifications

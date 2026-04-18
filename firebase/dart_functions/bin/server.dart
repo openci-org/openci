@@ -7,6 +7,7 @@ import 'package:dart_functions/asc/asc_requests.dart';
 import 'package:dart_functions/asc/asc_submit_for_review.dart';
 import 'package:dart_functions/asc/asc_submit_to_testflight.dart';
 import 'package:dart_functions/build_job/build_job_status_handler.dart';
+import 'package:dart_functions/build_job/generate_failure_summary.dart';
 import 'package:dart_functions/build_job/cancel_build_job.dart';
 import 'package:dart_functions/build_job/check_run_handler.dart';
 import 'package:dart_functions/build_job/retry_handlers.dart';
@@ -108,6 +109,17 @@ Future<void> main(List<String> args) async {
           name: 'buildJobStatusChange',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+          ),
+        );
+
+    firebase.https
+        .onCallWithData<GenerateFailureSummaryRequest, Map<String, dynamic>>(
+          handleGenerateFailureSummary,
+          fromJson: GenerateFailureSummaryRequest.fromJson,
+          name: 'generateFailureSummary',
+          options: const CallableOptions(
+            region: DeployOption(SupportedRegion.asiaNortheast1),
+            timeoutSeconds: DeployOption(120),
           ),
         );
 

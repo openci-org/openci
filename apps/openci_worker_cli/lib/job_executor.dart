@@ -328,6 +328,7 @@ Future<bool> processJob(
       notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'),
     );
     unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
+    unawaited(requestFailureSummary(buildJobId));
     rethrow;
   } finally {
     await flushRemainingLogs();

@@ -85,7 +85,7 @@ This can be done via the GitHub API or by cloning the repo and pushing.
 
 ### 8. Firestore auto-update (automatic)
 
-> ✅ This step is **automatic**. The GitHub App webhook (`github-app.ts → updateWorkerCliVersion`) detects the new release, checks that the asset name starts with `openci-worker-`, and updates `config/workerCli.latestVersion` in Firestore automatically.
+> ✅ This step is **automatic**. The GitHub webhook handler (`update_worker_cli_version.dart`) detects the new release, checks that the asset name starts with `openci-worker-`, and updates `config/workerCli.latestVersion` in Firestore automatically.
 
 No manual action needed. Workers will pick up the new version on their next poll cycle.
 
@@ -95,6 +95,6 @@ After completing all steps, verify:
 
 1. GitHub Release exists: https://github.com/open-ci-io/openci/releases/tag/vX.Y.Z
 2. Homebrew formula updated: `brew update && brew info openci-worker` shows new version
-3. Firestore updated: check `config/workerCli` document in [Firebase Console](https://console.firebase.google.com/project/openci-prod-efada/firestore/databases/-default-/data/~2Fconfig~2FworkerCli)
+3. Firestore updated: check `config/workerCli` document in [Firebase Console](https://console.firebase.google.com/project/openci-b1b91/firestore/databases/-default-/data/~2Fconfig~2FworkerCli)
 4. Running workers auto-update on next poll cycle (check worker logs for "New version available" message)
 
