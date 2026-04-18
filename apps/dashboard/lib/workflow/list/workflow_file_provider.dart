@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
@@ -77,7 +78,9 @@ Future<void> syncWorkflowFiles(Ref ref) async {
     throw StateError('selectedRepository is null');
   }
 
-  await functions.httpsCallable(syncWorkflowFilesFunction).call({
+  await functions
+      .httpsCallableFromUrl(dartFunctionUrl('sync-workflow-files'))
+      .call({
     'teamId': team.id,
     'repository': selectedRepo,
     'branch': selectedBranch,

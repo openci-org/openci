@@ -1,10 +1,10 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:openci_shared/callable_function_names.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'team_members_bottom_sheet.g.dart';
@@ -38,7 +38,7 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
   if (team == null) return [];
 
   final result = await FirebaseFunctions.instanceFor(region: 'asia-northeast1')
-      .httpsCallable(getTeamMembersFunction)
+      .httpsCallableFromUrl(dartFunctionUrl('get-team-members'))
       .call<Map<String, dynamic>>({'teamId': team.id});
 
   final data = result.data;

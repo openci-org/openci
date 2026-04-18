@@ -7,3 +7,9 @@ const sshPassword = 'admin';
 
 // Linux (Docker)
 const dockerImage = 'openci-ubuntu:latest';
+
+// Exit codes for supervisor communication
+const exitCodeUpdateRequested = 42;
+
+// Signal file for cross-worker update notification
+const updateSignalFile = '/tmp/openci-update-requested';

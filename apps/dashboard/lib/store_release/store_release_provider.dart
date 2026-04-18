@@ -215,7 +215,9 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     final functions = ref.read(functionsProvider);
     final teamId = _requireTeamId(ref);
 
-    await functions.httpsCallable(setupAscApiKeyFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
+        .call({
       'teamId': teamId,
       'issuerId': issuerId,
       'keyId': keyId,

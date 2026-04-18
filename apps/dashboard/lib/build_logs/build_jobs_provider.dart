@@ -35,7 +35,9 @@ class BuildJobs extends _$BuildJobs {
 
   Future<void> retryBuildJob(String buildJobId) async {
     final functions = ref.watch(functionsProvider);
-    await functions.httpsCallable(retryBuildJobFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('retry-build-job'))
+        .call({
       'buildJobId': buildJobId,
     });
   }
@@ -51,7 +53,9 @@ class BuildJobs extends _$BuildJobs {
 
   Future<void> retryWorkflowRun(String workflowRunId) async {
     final functions = ref.watch(functionsProvider);
-    await functions.httpsCallable(retryWorkflowRunFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('retry-workflow-run'))
+        .call({
       'workflowRunId': workflowRunId,
     });
   }

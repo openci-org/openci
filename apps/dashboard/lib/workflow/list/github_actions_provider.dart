@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -53,7 +53,7 @@ Future<List<GitHubAction>> searchGitHubActions(
   try {
     final functions = ref.read(functionsProvider);
     final result = await functions
-        .httpsCallable(searchGitHubActionsFunction)
+        .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
         .call({
           'teamId': teamId,
           'type': 'search',
@@ -147,7 +147,7 @@ Future<List<String>> actionTags(
   try {
     final functions = ref.read(functionsProvider);
     final result = await functions
-        .httpsCallable(searchGitHubActionsFunction)
+        .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
         .call({
           'teamId': teamId,
           'type': 'tags',
@@ -171,7 +171,7 @@ Future<String> fetchLatestTag({
 }) async {
   try {
     final result = await functions
-        .httpsCallable(searchGitHubActionsFunction)
+        .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
         .call({
           'teamId': teamId,
           'type': 'tags',

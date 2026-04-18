@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:logging/logging.dart';
+import 'package:openci_worker_cli/args.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/firebase.dart';
 import 'package:openci_worker_cli/log.dart';
 import 'package:openci_worker_cli/poller.dart';
+import 'package:openci_worker_cli/supervisor.dart';
 import 'package:openci_worker_cli/vm.dart';
 import 'package:openci_worker_cli/worker_config.dart';
 import 'package:sentry/sentry.dart';
@@ -13,6 +15,13 @@ final _log = Logger('Main');
 
 Future<void> main(List<String> arguments) async {
   setupLogging();
+
+  // Check for --supervised flag before anything else
+  final results = argParser.parse(arguments);
+  if (results.flag('supervised')) {
+    await runSupervised(arguments);
+    return;
+  }
 
   try {
     final config = await parseWorkerConfig(arguments);
@@ -39,7 +48,6 @@ Future<void> main(List<String> arguments) async {
       workerId: config.workerId,
       projectId: config.projectId,
       serviceAccountPath: config.serviceAccountPath,
-      rawArguments: arguments,
     );
   } on FormatException catch (e) {
     _log.severe(e.message);
@@ -49,3 +57,4 @@ Future<void> main(List<String> arguments) async {
     exit(1);
   }
 }
+

@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -94,7 +94,7 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
 
       final functions = ref.read(functionsProvider);
       final result = await functions
-          .httpsCallable(listDirectoriesFunction)
+          .httpsCallableFromUrl(dartFunctionUrl('list-directories'))
           .call({
             'teamId': team.id,
             'repository': _repository,
@@ -138,8 +138,8 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
           .toList();
 
       final result = await functions
-          .httpsCallable(
-            generateAiWorkflowResponseFunction,
+          .httpsCallableFromUrl(
+            dartFunctionUrl('generate-ai-workflow-response'),
             options: HttpsCallableOptions(timeout: const Duration(seconds: 60)),
           )
           .call({

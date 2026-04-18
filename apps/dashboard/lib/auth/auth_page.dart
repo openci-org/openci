@@ -41,6 +41,7 @@ class AuthPage extends HookConsumerWidget {
     final authNotifier = ref.watch(authProvider.notifier);
     final firestore = ref.watch(firestoreProvider);
     final authT = t.auth;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: Stack(
@@ -56,16 +57,64 @@ class AuthPage extends HookConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // ── Branded header ──
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                colorScheme.primary,
+                                colorScheme.primary.withValues(alpha: 0.7),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'CI',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.onPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         Text(
                           'OpenCI',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.5,
+                              ),
                         ),
-                        SizedBox(height: 16),
-                        Text('Firebase: ${firestore.app.name}'),
-                        SizedBox(height: 40),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Sign in to your account',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: 36),
+
+                        // ── Form fields ──
                         TextFormField(
                           controller: emailController,
-                          decoration: InputDecoration(labelText: authT.email),
+                          decoration: InputDecoration(
+                            labelText: authT.email,
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              size: 20,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return authT.enterEmail;
@@ -73,11 +122,16 @@ class AuthPage extends HookConsumerWidget {
                             return null;
                           },
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         TextFormField(
                           controller: passwordController,
                           decoration: InputDecoration(
                             labelText: authT.password,
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              size: 20,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                           obscureText: true,
                           validator: (value) {
@@ -87,7 +141,9 @@ class AuthPage extends HookConsumerWidget {
                             return null;
                           },
                         ),
-                        SizedBox(height: 40),
+                        const SizedBox(height: 20),
+
+                        // ── Terms checkbox ──
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           spacing: 8.0,
@@ -101,189 +157,200 @@ class AuthPage extends HookConsumerWidget {
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                             ),
-                            Text.rich(
-                              TextSpan(
-                                text: authT.agreePrefix,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                                children: [
-                                  TextSpan(
-                                    text: authT.termsOfService,
-                                    style: TextStyle(
-                                      color: Theme.of(context).primaryColor,
-                                      decoration: TextDecoration.underline,
+                            Flexible(
+                              child: Text.rich(
+                                TextSpan(
+                                  text: authT.agreePrefix,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                  children: [
+                                    TextSpan(
+                                      text: authT.termsOfService,
+                                      style: TextStyle(
+                                        color: colorScheme.primary,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: colorScheme.primary
+                                            .withValues(alpha: 0.4),
+                                      ),
+                                      recognizer: tapGestureRecognizer
+                                        ..onTap = () {
+                                          launchUrl(
+                                            Uri.parse(
+                                              'https://openci.org/terms-of-service',
+                                            ),
+                                          );
+                                        },
                                     ),
-                                    recognizer: tapGestureRecognizer
-                                      ..onTap = () {
-                                        launchUrl(
-                                          Uri.parse(
-                                            'https://openci.org/terms-of-service',
-                                          ),
-                                        );
-                                      },
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            fixedSize: Size(200, 20),
-                          ),
-                          onPressed: (isAgreed.value && !isLoading.value)
-                              ? () async {
-                                  if (formKey.currentState!.validate()) {
-                                    isLoading.value = true;
-                                    try {
-                                      await authNotifier
-                                          .getFirebaseAuth()
-                                          .signInWithEmailAndPassword(
-                                            email: emailController.text,
-                                            password: passwordController.text,
-                                          );
-                                      ref.invalidate(authProvider);
-                                      ref.invalidate(firestoreProvider);
-                                      // Process pending invitations (fire-and-forget)
-                                      _processInvitations();
-                                    } catch (e) {
-                                      if (!context.mounted) return;
-                                      debugPrint(e.toString());
-                                      context.showSnackBarMessage(
-                                        t.common.error(error: e.toString()),
-                                      );
-                                    } finally {
-                                      isLoading.value = false;
-                                    }
-                                  }
-                                }
-                              : null,
-                          child: Text(authT.login),
-                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Primary action: Login ──
                         SizedBox(
-                          height: 8,
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            fixedSize: Size(200, 20),
-                            backgroundColor: Theme.of(context).primaryColor,
-                          ),
-                          onPressed: (isAgreed.value && !isLoading.value)
-                              ? () async {
-                                  if (formKey.currentState!.validate()) {
-                                    isLoading.value = true;
-                                    try {
-                                      final credential = await authNotifier
-                                          .getFirebaseAuth()
-                                          .createUserWithEmailAndPassword(
-                                            email: emailController.text,
-                                            password: passwordController.text,
-                                          );
-                                      final userId = credential.user!.uid;
-                                      final db = firestore;
-                                      final teamsRef = db
-                                          .collection(teamsCollection)
-                                          .doc();
-                                      final teamId = teamsRef.id;
-                                      final batch = db.batch();
-                                      batch.set(teamsRef, {
-                                        'id': teamId,
-                                        'name': teamId,
-                                        'members': [userId],
-                                        'createdAt':
-                                            FieldValue.serverTimestamp(),
-                                        'updatedAt':
-                                            FieldValue.serverTimestamp(),
-                                      });
-                                      final userRef = db
-                                          .collection(usersCollection)
-                                          .doc(userId);
-                                      batch.set(userRef, {
-                                        'id': userId,
-                                        'selectedTeamId': teamId,
-                                        'createdAt':
-                                            FieldValue.serverTimestamp(),
-                                        'updatedAt':
-                                            FieldValue.serverTimestamp(),
-                                      });
-                                      await batch.commit();
-                                      ref.invalidate(authProvider);
-                                      ref.invalidate(firestoreProvider);
-                                      // Process pending invitations (fire-and-forget)
-                                      _processInvitations();
-                                    } catch (e) {
-                                      if (!context.mounted) return;
-                                      debugPrint(e.toString());
-                                      context.showSnackBarMessage(
-                                        t.common.error(error: e.toString()),
-                                      );
-                                    } finally {
-                                      if (context.mounted) {
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: (isAgreed.value && !isLoading.value)
+                                ? () async {
+                                    if (formKey.currentState!.validate()) {
+                                      isLoading.value = true;
+                                      try {
+                                        await authNotifier
+                                            .getFirebaseAuth()
+                                            .signInWithEmailAndPassword(
+                                              email: emailController.text,
+                                              password: passwordController.text,
+                                            );
+                                        ref.invalidate(authProvider);
+                                        ref.invalidate(firestoreProvider);
+                                        // Process pending invitations (fire-and-forget)
+                                        _processInvitations();
+                                      } catch (e) {
+                                        if (!context.mounted) return;
+                                        debugPrint(e.toString());
+                                        context.showSnackBarMessage(
+                                          t.common.error(
+                                            error: e.toString(),
+                                          ),
+                                        );
+                                      } finally {
                                         isLoading.value = false;
                                       }
                                     }
                                   }
-                                }
-                              : null,
-                          child: Text(
-                            authT.createAccount,
-                            style: TextStyle(
-                              color: Theme.of(context).secondaryHeaderColor,
-                            ),
+                                : null,
+                            child: Text(authT.login),
                           ),
                         ),
-                        SizedBox(
-                          height: 8,
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            fixedSize: Size(200, 20),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.tertiary,
-                          ),
-                          onPressed: () async {
-                            await showModalBottomSheet(
-                              isScrollControlled: true,
-                              context: context,
-                              builder: (context) {
-                                return FirebaseFormSheet();
-                              },
-                            );
-                          },
-                          child: Text(
-                            authT.useYourFirebase,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 8,
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            fixedSize: Size(200, 20),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.error,
-                          ),
-                          onPressed: () async {
-                            for (final app in Firebase.apps) {
-                              if (app.name == '[DEFAULT]') continue;
-                              await app.delete();
-                            }
+                        const SizedBox(height: 10),
 
-                            ref.invalidate(authProvider);
-                            ref.invalidate(firestoreProvider);
-                            if (!context.mounted) return;
-                            context.showSnackBarMessage(authT.resetSuccess);
-                          },
-                          child: Text(
-                            authT.resetFirebase,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary,
+                        // ── Secondary action: Create Account ──
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: (isAgreed.value && !isLoading.value)
+                                ? () async {
+                                    if (formKey.currentState!.validate()) {
+                                      isLoading.value = true;
+                                      try {
+                                        final credential = await authNotifier
+                                            .getFirebaseAuth()
+                                            .createUserWithEmailAndPassword(
+                                              email: emailController.text,
+                                              password: passwordController.text,
+                                            );
+                                        final userId = credential.user!.uid;
+                                        final db = firestore;
+                                        final teamsRef = db
+                                            .collection(teamsCollection)
+                                            .doc();
+                                        final teamId = teamsRef.id;
+                                        final batch = db.batch();
+                                        batch.set(teamsRef, {
+                                          'id': teamId,
+                                          'name': teamId,
+                                          'members': [userId],
+                                          'createdAt':
+                                              FieldValue.serverTimestamp(),
+                                          'updatedAt':
+                                              FieldValue.serverTimestamp(),
+                                        });
+                                        final userRef = db
+                                            .collection(usersCollection)
+                                            .doc(userId);
+                                        batch.set(userRef, {
+                                          'id': userId,
+                                          'selectedTeamId': teamId,
+                                          'createdAt':
+                                              FieldValue.serverTimestamp(),
+                                          'updatedAt':
+                                              FieldValue.serverTimestamp(),
+                                        });
+                                        await batch.commit();
+                                        ref.invalidate(authProvider);
+                                        ref.invalidate(firestoreProvider);
+                                        // Process pending invitations (fire-and-forget)
+                                        _processInvitations();
+                                      } catch (e) {
+                                        if (!context.mounted) return;
+                                        debugPrint(e.toString());
+                                        context.showSnackBarMessage(
+                                          t.common.error(
+                                            error: e.toString(),
+                                          ),
+                                        );
+                                      } finally {
+                                        if (context.mounted) {
+                                          isLoading.value = false;
+                                        }
+                                      }
+                                    }
+                                  }
+                                : null,
+                            child: Text(authT.createAccount),
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // ── Tertiary actions ──
+                        Divider(
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Advanced',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () async {
+                              await showModalBottomSheet(
+                                isScrollControlled: true,
+                                context: context,
+                                builder: (context) {
+                                  return FirebaseFormSheet();
+                                },
+                              );
+                            },
+                            child: Text(authT.useYourFirebase),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: colorScheme.error,
                             ),
+                            onPressed: () async {
+                              for (final app in Firebase.apps) {
+                                if (app.name == '[DEFAULT]') continue;
+                                await app.delete();
+                              }
+
+                              ref.invalidate(authProvider);
+                              ref.invalidate(firestoreProvider);
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(authT.resetSuccess);
+                            },
+                            child: Text(authT.resetFirebase),
                           ),
                         ),
                       ],

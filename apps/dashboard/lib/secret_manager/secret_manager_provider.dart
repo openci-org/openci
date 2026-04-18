@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
@@ -35,7 +36,9 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable(createSecretFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('create-secret-v1'))
+        .call({
       'name': name,
       'value': value,
       'teamId': teamId,
@@ -50,7 +53,9 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable(updateSecretFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('update-secret-v1'))
+        .call({
       'documentId': documentId,
       'name': name,
       if (value != null && value.isNotEmpty) 'value': value,
@@ -62,7 +67,9 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable(deleteSecretFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('delete-secret-v1'))
+        .call({
       'documentId': documentId,
       'teamId': teamId,
     });
@@ -72,7 +79,9 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable(generateCertificateKeyFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('generate-certificate-key-v1'))
+        .call({
       'teamId': teamId,
     });
   }
@@ -85,7 +94,9 @@ class SecretManager extends _$SecretManager {
     final functions = ref.read(functionsProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable(setupAscApiKeyFunction).call({
+    await functions
+        .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
+        .call({
       'teamId': teamId,
       'issuerId': issuerId,
       'keyId': keyId,

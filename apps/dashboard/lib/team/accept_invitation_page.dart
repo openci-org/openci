@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +26,9 @@ class AcceptInvitationPage extends HookConsumerWidget {
         try {
           final response = await ref
               .read(functionsProvider)
-              .httpsCallable(acceptInvitationFunction)
+              .httpsCallableFromUrl(
+                dartFunctionUrl('accept-invitation'),
+              )
               .call({'token': token});
 
           final data = response.data as Map<String, dynamic>;

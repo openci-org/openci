@@ -82,6 +82,7 @@ String generateAscJwt({
     {},
     issuer: issuerId,
     audience: Audience(['appstoreconnect-v1']),
+    header: {'kid': keyId},
   );
 
   return jwt.sign(

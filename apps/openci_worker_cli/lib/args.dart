@@ -25,7 +25,13 @@ ArgParser get argParser {
       abbr: 'w',
       help: 'Unique ID for this worker (e.g., worker-1, worker-2).',
     )
-    ..addOption('sentry-dsn', help: 'Sentry DSN for error reporting.');
+    ..addOption('sentry-dsn', help: 'Sentry DSN for error reporting.')
+    ..addFlag(
+      'supervised',
+      negatable: false,
+      help: 'Run in supervised mode. The process will manage a child worker '
+          'and handle auto-updates and crash recovery.',
+    );
 }
 
 void printArgsUsage() {

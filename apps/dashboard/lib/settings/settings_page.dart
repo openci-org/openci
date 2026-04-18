@@ -117,34 +117,35 @@ class SettingsPage extends HookConsumerWidget {
                               ),
                             ),
                           ),
-                          SizedBox(height: 40),
-                          SizedBox(height: 8),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              fixedSize: Size(200, 20),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                try {
+                                  await logoutRevenueCat();
+                                  await auth.getFirebaseAuth().signOut();
+                                  ref.invalidate(notificationServiceProvider);
+                                  ref.invalidate(authProvider);
+                                  ref.invalidate(firestoreProvider);
+                                  if (!context.mounted) return;
+                                  context.showSnackBarMessage(
+                                    settingsT.logoutSuccess,
+                                  );
+                                } catch (e, s) {
+                                  debugPrint(e.toString());
+                                  debugPrint(s.toString());
+                                  context.showSnackBarMessage(
+                                    settingsT.logoutFailed(
+                                      error: e.toString(),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text(settingsT.logout),
                             ),
-                            onPressed: () async {
-                              try {
-                                await logoutRevenueCat();
-                                await auth.getFirebaseAuth().signOut();
-                                ref.invalidate(notificationServiceProvider);
-                                ref.invalidate(authProvider);
-                                ref.invalidate(firestoreProvider);
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage(
-                                  settingsT.logoutSuccess,
-                                );
-                              } catch (e, s) {
-                                debugPrint(e.toString());
-                                debugPrint(s.toString());
-                                context.showSnackBarMessage(
-                                  settingsT.logoutFailed(error: e.toString()),
-                                );
-                              }
-                            },
-                            child: Text(settingsT.logout),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           _DeleteAccountButton(
                             isDeleting: isDeleting,
                           ),
@@ -339,8 +340,8 @@ class _LanguageBottomSheet extends ConsumerWidget {
                       option.label,
                       style: isSelected
                           ? TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
                             )
                           : null,
                     ),
@@ -410,18 +411,17 @@ class _DeleteAccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settingsT = t.settings;
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        fixedSize: Size(200, 20),
-      ),
-      onPressed: isDeleting.value
-          ? null
-          : () => _showDeleteConfirmationDialog(context),
-      child: Text(
-        settingsT.deleteAccount,
-        style: TextStyle(
-          color: isDeleting.value ? Colors.grey : Colors.red,
+    final colorScheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.error,
         ),
+        onPressed: isDeleting.value
+            ? null
+            : () => _showDeleteConfirmationDialog(context),
+        child: Text(settingsT.deleteAccount),
       ),
     );
   }
@@ -442,7 +442,9 @@ class _DeleteAccountButton extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               t.common.delete,
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ),
         ],

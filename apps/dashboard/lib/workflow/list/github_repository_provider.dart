@@ -1,4 +1,4 @@
-import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -27,7 +27,9 @@ Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
   if (team == null) return [];
   final functions = ref.watch(functionsProvider);
 
-  final result = await functions.httpsCallable(listRepositoriesFunction).call({
+  final result = await functions
+      .httpsCallableFromUrl(dartFunctionUrl('list-repositories'))
+      .call({
     'teamId': team.id,
   });
 
@@ -47,7 +49,9 @@ Future<List<String>> gitHubBranches(Ref ref, String repoFullName) async {
   if (team == null) return [];
   final functions = ref.watch(functionsProvider);
 
-  final result = await functions.httpsCallable(listBranchesFunction).call({
+  final result = await functions
+      .httpsCallableFromUrl(dartFunctionUrl('list-branches'))
+      .call({
     'teamId': team.id,
     'repository': repoFullName,
   });

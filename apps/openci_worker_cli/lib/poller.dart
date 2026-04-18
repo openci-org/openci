@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/auto_updater.dart';
+import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_job_executor.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:sentry/sentry.dart';
@@ -19,7 +20,6 @@ Future<void> pollForJobs({
   required String workerId,
   required String projectId,
   required String serviceAccountPath,
-  required List<String> rawArguments,
 }) async {
   _log.info('Starting job poller...');
 
@@ -51,22 +51,24 @@ Future<void> pollForJobs({
     lastUpdateCheck = DateTime.now();
     final updated = await checkAndUpdate(firestore);
     if (updated) {
-      _log.info('Restarting with updated binary...');
+      _log.info('Update staged. Exiting for restart...');
 
-      // Use `which` to resolve the brew symlink, not Platform.resolvedExecutable
-      // which resolves to the old Cellar binary path after brew upgrade.
-      final whichResult = await Process.run('which', ['openci-worker']);
-      final executable = whichResult.exitCode == 0
-          ? (whichResult.stdout as String).trim()
-          : Platform.resolvedExecutable;
+      // Signal other workers to update too
+      try {
+        File(updateSignalFile).createSync();
+      } catch (_) {}
 
-      await Process.start(
-        executable,
-        rawArguments,
-        mode: ProcessStartMode.inheritStdio,
-      );
-      exit(0);
+      exit(exitCodeUpdateRequested);
     }
+  }
+
+  void checkUpdateSignal() {
+    try {
+      if (File(updateSignalFile).existsSync()) {
+        _log.info('Update signal detected from another worker.');
+        exit(exitCodeUpdateRequested);
+      }
+    } catch (_) {}
   }
 
   while (true) {
@@ -94,6 +96,9 @@ Future<void> pollForJobs({
         _log.info('Job completed, checking for next...');
         await tryAutoUpdate();
       } else {
+        // Check if another worker has signalled an update
+        checkUpdateSignal();
+
         final now = DateTime.now();
         if (now.difference(lastUpdateCheck) >= _updateCheckInterval) {
           stopSpinner();

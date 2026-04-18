@@ -6,6 +6,17 @@ import 'package:openci_worker_cli/constants.dart';
 
 final _log = Logger('AutoUpdater');
 
+/// Staging path where the new binary is downloaded before the supervisor
+/// swaps it into place.
+const stagedBinaryPath = '/tmp/openci-worker.staged';
+
+/// Checks if a new version is available and stages it for the supervisor.
+///
+/// Returns `true` if an update is available and the worker should restart
+/// (exit with [exitCodeUpdateRequested]).
+///
+/// Downloads the new binary to [stagedBinaryPath]. The supervisor
+/// swaps it into place and restarts the worker.
 Future<bool> checkAndUpdate(Firestore firestore) async {
   try {
     final latestVersion = await _fetchLatestVersion(firestore);
@@ -16,72 +27,60 @@ Future<bool> checkAndUpdate(Firestore firestore) async {
       return false;
     }
 
-    _log.info('New version available: $version → $latestVersion');
-
-    if (Platform.isLinux) {
-      return _updateLinux(latestVersion);
-    } else {
-      return _updateMacOS(latestVersion);
+    if (!_isNewerVersion(latestVersion, version)) {
+      _log.fine('Remote version ($latestVersion) is not newer than $version');
+      return false;
     }
+
+    _log.info('New version available: $version → $latestVersion');
+    return _stageBinary(latestVersion);
   } catch (e) {
     _log.warning('Auto-update check failed: $e');
     return false;
   }
 }
 
-Future<bool> _updateMacOS(String latestVersion) async {
-  _log.info('Updating via brew...');
+/// Returns true if [remote] is a newer version than [current].
+/// Simple semver comparison (major.minor.patch).
+bool _isNewerVersion(String remote, String current) {
+  final remoteParts = remote.split('.').map(int.tryParse).toList();
+  final currentParts = current.split('.').map(int.tryParse).toList();
 
-  // Must run `brew update` first to fetch the latest tap info,
-  // otherwise `brew upgrade` won't know about the new version.
-  final updateTapResult = await Process.run('brew', ['update']);
-  if (updateTapResult.exitCode != 0) {
-    _log.warning('brew update failed: ${updateTapResult.stderr}');
-    return false;
+  for (var i = 0; i < 3; i++) {
+    final r = i < remoteParts.length ? (remoteParts[i] ?? 0) : 0;
+    final c = i < currentParts.length ? (currentParts[i] ?? 0) : 0;
+    if (r > c) return true;
+    if (r < c) return false;
   }
-
-  final upgradeResult = await Process.run('brew', ['upgrade', 'openci-worker']);
-
-  if (upgradeResult.exitCode != 0) {
-    _log.warning('brew upgrade failed: ${upgradeResult.stderr}');
-    return false;
-  }
-
-  // Verify the upgrade actually installed the new version.
-  // `brew upgrade` returns exit code 0 even if "already installed".
-  final infoResult = await Process.run('brew', [
-    'info',
-    '--json=v2',
-    'openci-worker',
-  ]);
-
-  if (infoResult.exitCode == 0) {
-    final output = infoResult.stdout as String;
-    if (!output.contains(latestVersion)) {
-      _log.warning(
-        'brew upgrade succeeded but version $latestVersion not found. '
-        'Skipping restart.',
-      );
-      return false;
-    }
-  }
-
-  _log.info('Updated to $latestVersion. Restarting...');
-  return true;
+  return false;
 }
 
-Future<bool> _updateLinux(String latestVersion) async {
-  _log.info('Updating via GitHub Release...');
+/// Downloads the new binary to [stagedBinaryPath].
+///
+/// - macOS: downloads a `.tar.gz` archive and extracts the binary.
+/// - Linux: downloads the raw binary directly.
+Future<bool> _stageBinary(String latestVersion) async {
+  _log.info('Downloading new binary...');
 
-  const binaryPath = '/usr/local/bin/openci-worker';
+  if (Platform.isMacOS) {
+    return _stageMacOSBinary(latestVersion);
+  } else {
+    return _stageLinuxBinary(latestVersion);
+  }
+}
+
+Future<bool> _stageMacOSBinary(String latestVersion) async {
+  final archiveName = 'openci-worker-v$latestVersion-darwin-arm64.tar.gz';
   final url =
       'https://github.com/open-ci-io/openci/releases/download/'
-      'v$latestVersion/openci-worker-v$latestVersion-linux-x64';
+      'v$latestVersion/$archiveName';
+  final archivePath = '/tmp/$archiveName';
 
+  // Download the archive
   final downloadResult = await Process.run('curl', [
     '-fsSL',
     '-o',
-    '$binaryPath.tmp',
+    archivePath,
     url,
   ]);
 
@@ -90,15 +89,59 @@ Future<bool> _updateLinux(String latestVersion) async {
     return false;
   }
 
-  // Replace the current binary atomically
-  await Process.run('chmod', ['+x', '$binaryPath.tmp']);
-  final mvResult = await Process.run('mv', ['$binaryPath.tmp', binaryPath]);
-  if (mvResult.exitCode != 0) {
-    _log.warning('Failed to replace binary: ${mvResult.stderr}');
+  // Extract the binary from the archive
+  final extractResult = await Process.run('tar', [
+    'xzf',
+    archivePath,
+    '-C',
+    '/tmp',
+  ]);
+
+  if (extractResult.exitCode != 0) {
+    _log.warning('Extraction failed: ${extractResult.stderr}');
     return false;
   }
 
-  _log.info('Updated to $latestVersion. Restarting...');
+  // Move the extracted binary to the staging path
+  final mvResult = await Process.run('mv', [
+    '/tmp/openci-worker',
+    stagedBinaryPath,
+  ]);
+
+  if (mvResult.exitCode != 0) {
+    _log.warning('Failed to stage binary: ${mvResult.stderr}');
+    return false;
+  }
+
+  // Clean up the archive
+  try {
+    File(archivePath).deleteSync();
+  } catch (_) {}
+
+  await Process.run('chmod', ['+x', stagedBinaryPath]);
+  _log.info('New binary staged at $stagedBinaryPath');
+  return true;
+}
+
+Future<bool> _stageLinuxBinary(String latestVersion) async {
+  final url =
+      'https://github.com/open-ci-io/openci/releases/download/'
+      'v$latestVersion/openci-worker-v$latestVersion-linux-x64';
+
+  final downloadResult = await Process.run('curl', [
+    '-fsSL',
+    '-o',
+    stagedBinaryPath,
+    url,
+  ]);
+
+  if (downloadResult.exitCode != 0) {
+    _log.warning('Download failed: ${downloadResult.stderr}');
+    return false;
+  }
+
+  await Process.run('chmod', ['+x', stagedBinaryPath]);
+  _log.info('New binary staged at $stagedBinaryPath');
   return true;
 }
 
