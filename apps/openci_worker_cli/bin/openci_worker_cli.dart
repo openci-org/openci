@@ -37,6 +37,11 @@ Future<void> main(List<String> arguments) async {
     _log.info(
       'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (Lume)'}',
     );
+    _log.info(
+      'Host: ${Platform.localHostname} | '
+      '${Platform.operatingSystemVersion} | '
+      '${Platform.numberOfProcessors} cores',
+    );
 
     if (Platform.isLinux) {
       await cleanupOrphanedContainers(config.workerId);
