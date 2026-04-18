@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.3
+- Fix: Kill zombie lume VM processes from any worker ID on startup
+- Prevents VM slot exhaustion when orphaned processes outlive their worker
+
 ## 0.9.2
 - Extract AI failure summary into standalone Cloud Function (`generate-failure-summary`)
 - Worker now calls `generate-failure-summary` independently after build failures

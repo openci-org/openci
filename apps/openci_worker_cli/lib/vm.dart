@@ -193,29 +193,79 @@ Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     _log.info('Cleaning orphaned VMs');
     final shell = Shell(throwOnError: false, verbose: false);
-    final prefix = 'openci-vm-$workerId-';
 
+    // 1. Clean up filesystem-based VMs for this worker
+    final prefix = 'openci-vm-$workerId-';
     final lsResult = await Process.run('ls', [
       '-1',
       '${Platform.environment['HOME']}/.lume/',
     ]);
-    if (lsResult.exitCode != 0) return;
+    if (lsResult.exitCode == 0) {
+      final vmNames = LineSplitter.split(
+        lsResult.stdout.toString(),
+      ).where((name) => name.startsWith(prefix)).toList();
 
-    final vmNames = LineSplitter.split(
-      lsResult.stdout.toString(),
-    ).where((name) => name.startsWith(prefix)).toList();
+      for (final vmName in vmNames) {
+        _log.info('Deleting orphaned VM: $vmName');
+        await shell.run('lume stop $vmName');
+        await shell.run('lume delete $vmName --force');
+      }
+      if (vmNames.isNotEmpty) {
+        _log.info('Deleted ${vmNames.length} orphaned VM(s)');
+      }
+    }
 
-    for (final vmName in vmNames) {
-      _log.info('Deleting orphaned VM: $vmName');
-      await shell.run('lume stop $vmName');
-      await shell.run('lume delete $vmName --force');
-    }
-    if (vmNames.isNotEmpty) {
-      _log.info('Deleted ${vmNames.length} orphaned VM(s)');
-    }
+    // 2. Kill zombie "lume run openci-vm-*" processes from ANY worker
+    //    These can linger after lume delete and block VM slots.
+    await _killZombieLumeProcesses();
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
+  }
+}
+
+/// Finds and kills any `lume run openci-vm-*` processes that are still
+/// running but whose VM no longer exists on disk.
+Future<void> _killZombieLumeProcesses() async {
+  try {
+    final psResult = await Process.run('ps', ['aux']);
+    if (psResult.exitCode != 0) return;
+
+    final lumeRunPattern = RegExp(
+      r'^\S+\s+(\d+)\s+.*lume\s+run\s+(openci-vm-\S+)',
+    );
+    final homeDir = Platform.environment['HOME'] ?? '';
+    final zombiePids = <int>[];
+
+    for (final line in LineSplitter.split(psResult.stdout.toString())) {
+      final match = lumeRunPattern.firstMatch(line);
+      if (match == null) continue;
+
+      final pid = int.tryParse(match.group(1)!);
+      final vmName = match.group(2)!;
+      if (pid == null) continue;
+
+      // Check if the VM still exists on disk
+      final vmDir = Directory('$homeDir/.lume/$vmName');
+      if (!vmDir.existsSync()) {
+        _log.warning(
+          'Found zombie lume process: PID=$pid VM=$vmName (no disk entry). '
+          'Killing...',
+        );
+        zombiePids.add(pid);
+      }
+    }
+
+    for (final pid in zombiePids) {
+      Process.killPid(pid);
+    }
+    if (zombiePids.isNotEmpty) {
+      _log.info('Killed ${zombiePids.length} zombie lume process(es)');
+      // Wait for Virtualization.framework to clean up
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+  } catch (e) {
+    _log.warning('Error killing zombie lume processes: $e');
   }
 }
 
