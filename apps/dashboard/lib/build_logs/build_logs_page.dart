@@ -27,7 +27,7 @@ IconData _statusIcon(String status) => switch (status) {
   'failure' => Icons.cancel_rounded,
   'queued' => Icons.schedule_rounded,
   'cancelled' => Icons.block_rounded,
-  'waiting' => Icons.circle_outlined,
+  'waiting' => Icons.adjust_rounded,
   'skipped' => Icons.skip_next_rounded,
   _ => Icons.help_outline_rounded,
 };
