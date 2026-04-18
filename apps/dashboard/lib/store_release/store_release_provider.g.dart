@@ -337,7 +337,7 @@ final class SetupAscCredentialsProvider
 }
 
 String _$setupAscCredentialsHash() =>
-    r'f272a12d9f6f95d9bdc0844026e46fb8c30fdafd';
+    r'60b3160e1f029773723316a4d66cc1928148dfc9';
 
 /// Setup ASC API credentials.
 

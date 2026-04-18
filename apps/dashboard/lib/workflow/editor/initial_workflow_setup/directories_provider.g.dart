@@ -88,4 +88,4 @@ final class DirectoriesProvider
   }
 }
 
-String _$directoriesHash() => r'b4aaae686bbba8e1e19634468e58b63640f142a9';
+String _$directoriesHash() => r'0a7023ec2dee38b05caea3620ecb17f1e015a9af';

@@ -107,7 +107,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'3b3d713ae1c955ccecc9e76c2b1fbd1bb7732947';
+String _$buildJobsHash() => r'a96394c93b81155359696c83e346452655307946';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();

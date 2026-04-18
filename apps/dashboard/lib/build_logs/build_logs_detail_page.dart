@@ -1164,7 +1164,7 @@ class _FailureSummaryCard extends HookWidget {
                                 backgroundColor: _kBorder.withValues(
                                   alpha: 0.5,
                                 ),
-                                color: const Color(0xFF58A6FF), // blue for code
+                                color: const Color(0xFF58A6FF),
                                 fontSize: 12,
                               ),
                               codeblockDecoration: BoxDecoration(

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_functions/firebase_functions.dart';
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/firestore_paths.dart';
 
 import '../firebase.dart';
@@ -12,9 +11,7 @@ import '../util/logger.dart';
 // ---------------------------------------------------------------------------
 
 class GenerateFailureSummaryRequest {
-  const GenerateFailureSummaryRequest({
-    required this.buildJobId,
-  });
+  const GenerateFailureSummaryRequest({required this.buildJobId});
 
   factory GenerateFailureSummaryRequest.fromJson(Map<String, dynamic> json) {
     final buildJobId = json['buildJobId'] as String?;
@@ -77,10 +74,7 @@ Future<Map<String, dynamic>> handleGenerateFailureSummary(
 
   final latestRunId = jobData['latestRunId'] as String?;
   if (latestRunId == null) {
-    return <String, dynamic>{
-      'success': false,
-      'reason': 'No run ID found',
-    };
+    return <String, dynamic>{'success': false, 'reason': 'No run ID found'};
   }
 
   await _generateSummary(buildJobId, latestRunId);
@@ -91,12 +85,9 @@ Future<Map<String, dynamic>> handleGenerateFailureSummary(
 // Summary generation
 // ---------------------------------------------------------------------------
 
-Future<void> _generateSummary(
-  String buildJobId,
-  String latestRunId,
-) async {
+Future<void> _generateSummary(String buildJobId, String latestRunId) async {
   try {
-    final geminiApiKey = await _accessSecretCached('GEMINI_API_KEY');
+    final anthropicApiKey = await _accessSecretCached('ANTHROPIC_API_KEY');
 
     // Mark as generating
     final stopwatch = Stopwatch()..start();
@@ -127,30 +118,34 @@ Future<void> _generateSummary(
         .map((doc) => doc.data()['message'] as String? ?? '')
         .join('\n');
 
-    const modelName = 'gemini-2.5-flash-lite';
+    const modelName = 'claude-opus-4-7';
     final dio = Dio();
     try {
       final resp = await dio.post<Map<String, dynamic>>(
-        'https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$geminiApiKey',
+        'https://api.anthropic.com/v1/messages',
+        options: Options(
+          headers: {
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+        ),
         data: {
-          'contents': [
+          'model': modelName,
+          'max_tokens': 1024,
+          'messages': [
             {
-              'parts': [
-                {
-                  'text':
-                      'You are a CI/CD expert. Analyze the following build log and provide a concise summary of why the build failed. Focus on the root cause and suggest a fix. Keep it under 3 sentences.\n\n$logLines',
-                },
-              ],
+              'role': 'user',
+              'content':
+                  'あなたはCI/CDの専門家です。以下のビルドログを分析し、ビルドが失敗した原因を簡潔に要約してください。根本原因に焦点を当て、修正方法を提案してください。3文以内で日本語で回答してください。\n\n$logLines',
             },
           ],
         },
       );
 
-      final candidates = resp.data?['candidates'] as List<dynamic>?;
+      final content = resp.data?['content'] as List<dynamic>?;
       final text =
-          (candidates?.firstOrNull
-                  as Map<String, dynamic>?)?['content']?['parts']?[0]?['text']
-              as String? ??
+          (content?.firstOrNull as Map<String, dynamic>?)?['text'] as String? ??
           'No summary generated';
 
       stopwatch.stop();

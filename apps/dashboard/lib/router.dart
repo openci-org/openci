@@ -26,26 +26,25 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/auth',
-        pageBuilder: (context, state) => SwipeablePage(
+        pageBuilder: (context, state) => _responsivePage(
           key: state.pageKey,
-          builder: (context) => const AuthPage(),
+          child: const AuthPage(),
         ),
       ),
       GoRoute(
         path: '/',
-        pageBuilder: (context, state) => SwipeablePage(
+        pageBuilder: (context, state) => _responsivePage(
           key: state.pageKey,
-          builder: (context) => const HomeRoutePage(),
+          child: const HomeRoutePage(),
         ),
         routes: [
           GoRoute(
             path: 'runs/:buildJobId',
             pageBuilder: (context, state) {
               final buildJobId = state.pathParameters['buildJobId']!;
-              return SwipeablePage(
+              return _responsivePage(
                 key: state.pageKey,
-                builder: (context) =>
-                    BuildLogsDetailRoutePage(buildJobId: buildJobId),
+                child: BuildLogsDetailRoutePage(buildJobId: buildJobId),
               );
             },
           ),
@@ -53,9 +52,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'invite/:token',
             pageBuilder: (context, state) {
               final token = state.pathParameters['token']!;
-              return SwipeablePage(
+              return _responsivePage(
                 key: state.pageKey,
-                builder: (context) => AcceptInvitationPage(token: token),
+                child: AcceptInvitationPage(token: token),
               );
             },
           ),
@@ -85,6 +84,38 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
   );
 });
+
+/// デスクトップ幅（>800px）ではフェードアニメーション、
+/// モバイル幅ではSwipeablePageを使用する
+Page<void> _responsivePage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  // WidgetsBindingで画面幅を取得（BuildContext外で判定するため）
+  final width =
+      WidgetsBinding.instance.platformDispatcher.views.first.physicalSize.width /
+      WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+
+  if (width > 800) {
+    return CustomTransitionPage<void>(
+      key: key,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 150),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+          ),
+          child: child,
+        );
+      },
+    );
+  }
+
+  return SwipeablePage(key: key, builder: (context) => child);
+}
 
 class HomeRoutePage extends HookConsumerWidget {
   const HomeRoutePage({super.key});
