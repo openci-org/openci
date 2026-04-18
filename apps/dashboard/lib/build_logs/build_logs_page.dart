@@ -438,10 +438,10 @@ class WorkflowRunCard extends HookConsumerWidget {
       overallStatus = 'in_progress';
     } else if (jobs.any((j) => j.status == 'queued')) {
       overallStatus = 'queued';
-    } else if (jobs.any((j) => j.status == 'waiting')) {
-      overallStatus = 'waiting';
     } else if (jobs.any((j) => j.status == 'failure')) {
       overallStatus = 'failure';
+    } else if (jobs.any((j) => j.status == 'waiting')) {
+      overallStatus = 'waiting';
     } else if (jobs.any((j) => j.status == 'cancelled')) {
       overallStatus = 'cancelled';
     } else if (jobs.every((j) => j.status == 'skipped')) {
