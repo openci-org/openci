@@ -35,12 +35,11 @@ Release notes MUST include a ## What's New section with a bulleted list of chang
 
 1. Update version in apps/openci_worker_cli/pubspec.yaml
 2. Update version constant in apps/openci_worker_cli/lib/constants.dart
-3. Run flutter analyze on the worker CLI
+3. Run dart analyze on the worker CLI
 4. Commit and push to develop
-5. Build binary: dart compile exe bin/openci_worker_cli.dart -o /tmp/openci-worker
+5. Build binary: dart compile exe bin/openci_worker_cli.dart -o openci_worker
 6. Archive: tar czf /tmp/openci-worker-v<version>-darwin-arm64.tar.gz -C /tmp openci-worker
 7. Get sha256: shasum -a 256 /tmp/openci-worker-v<version>-darwin-arm64.tar.gz
 8. Create GitHub release with the binary attached
-9. Update homebrew-tap/Formula/openci-worker.rb (version, url, sha256)
-10. Commit and push homebrew-tap to main
-11. Update Firestore config/workerCli document: set latestVersion to the new version
+9. Firestore config/workerCli document is updated automatically by the GitHub webhook handler
+
