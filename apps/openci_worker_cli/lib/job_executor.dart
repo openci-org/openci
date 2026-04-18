@@ -324,11 +324,12 @@ Future<bool> processJob(
     });
 
     // Notify cloud functions (replaces Firestore triggers)
-    unawaited(
+    // Must await these before rethrow, otherwise the futures are dropped.
+    await Future.wait([
       notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'),
-    );
-    unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
-    unawaited(requestFailureSummary(buildJobId));
+      notifyBuildJobStatusChange(buildJobId, 'failure'),
+      requestFailureSummary(buildJobId),
+    ]);
     rethrow;
   } finally {
     await flushRemainingLogs();
