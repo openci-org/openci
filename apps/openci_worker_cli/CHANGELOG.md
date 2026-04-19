@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.13
+- Verify auto-update across all environments (Hetzner + macOS)
+
 ## 0.9.12
 - Verify auto-update via pub.dev in supervised mode
 
