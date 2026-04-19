@@ -1,7 +1,6 @@
 import '../util/logger.dart';
 import 'build_trigger.dart';
 import 'sync_workflow_files.dart';
-import 'update_worker_cli_version.dart';
 import 'webhook_event.dart';
 
 Future<void> routeWebhookEvent(WebhookEvent event) async {
@@ -64,7 +63,6 @@ Future<void> _onRelease(WebhookEvent event) async {
 
   logInfo('Release published', {'tag': event.release?.tagName});
   await handleBuildTrigger(event);
-  await updateWorkerCliVersion(event);
 }
 
 Future<void> _onIssueComment(WebhookEvent event) async {
