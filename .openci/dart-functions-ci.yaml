@@ -18,6 +18,13 @@ jobs:
         with:
           dart-version: "stable"
 
+      - name: Patch workspace for Dart-only CI
+        run: |
+          # Remove Flutter-dependent packages from workspace so dart pub get
+          # doesn't try to resolve Flutter SDK dependencies in Docker
+          sed -i '/- apps\/dashboard/d' pubspec.yaml
+          sed -i '/- apps\/landing_page/d' pubspec.yaml
+
       - name: Install dependencies
         run: cd firebase/dart_functions && dart pub get
 
