@@ -1,9 +1,7 @@
 name: Publish Worker CLI to pub.dev
 
 on:
-  push:
-    tags:
-      - "worker-v*"
+  tag:
 
 jobs:
   publish:
@@ -26,4 +24,11 @@ jobs:
           cp .config/dart/pub-credentials.json ~/.config/dart/pub-credentials.json
 
       - name: Publish openci_worker_cli
-        run: cd apps/openci_worker_cli && dart pub publish --force
+        run: |
+          TAG="${OPENCI_TAG:-}"
+          if [[ ! "$TAG" == worker-v* ]]; then
+            echo "Tag '$TAG' does not match worker-v*, skipping publish"
+            exit 0
+          fi
+          echo "Publishing for tag: $TAG"
+          cd apps/openci_worker_cli && dart pub publish --force

@@ -1,9 +1,7 @@
 name: Publish openci_shared to pub.dev
 
 on:
-  push:
-    tags:
-      - "shared-v*"
+  tag:
 
 jobs:
   publish:
@@ -26,4 +24,11 @@ jobs:
           cp .config/dart/pub-credentials.json ~/.config/dart/pub-credentials.json
 
       - name: Publish openci_shared
-        run: cd packages/openci_shared && dart pub publish --force
+        run: |
+          TAG="${OPENCI_TAG:-}"
+          if [[ ! "$TAG" == shared-v* ]]; then
+            echo "Tag '$TAG' does not match shared-v*, skipping publish"
+            exit 0
+          fi
+          echo "Publishing for tag: $TAG"
+          cd packages/openci_shared && dart pub publish --force
