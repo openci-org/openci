@@ -124,14 +124,17 @@ Future<bool> _stageMacOSBinary(String latestVersion) async {
 }
 
 Future<bool> _stageLinuxBinary(String latestVersion) async {
+  final archiveName = 'openci-worker-v$latestVersion-linux-x64.tar.gz';
   final url =
       'https://github.com/open-ci-io/openci/releases/download/'
-      'v$latestVersion/openci-worker-v$latestVersion-linux-x64';
+      'v$latestVersion/$archiveName';
+  final archivePath = '/tmp/$archiveName';
 
+  // Download the archive
   final downloadResult = await Process.run('curl', [
     '-fsSL',
     '-o',
-    stagedBinaryPath,
+    archivePath,
     url,
   ]);
 
@@ -139,6 +142,35 @@ Future<bool> _stageLinuxBinary(String latestVersion) async {
     _log.warning('Download failed: ${downloadResult.stderr}');
     return false;
   }
+
+  // Extract the binary from the archive
+  final extractResult = await Process.run('tar', [
+    'xzf',
+    archivePath,
+    '-C',
+    '/tmp',
+  ]);
+
+  if (extractResult.exitCode != 0) {
+    _log.warning('Extraction failed: ${extractResult.stderr}');
+    return false;
+  }
+
+  // Move the extracted binary to the staging path
+  final mvResult = await Process.run('mv', [
+    '/tmp/openci-worker',
+    stagedBinaryPath,
+  ]);
+
+  if (mvResult.exitCode != 0) {
+    _log.warning('Failed to stage binary: ${mvResult.stderr}');
+    return false;
+  }
+
+  // Clean up the archive
+  try {
+    File(archivePath).deleteSync();
+  } catch (_) {}
 
   await Process.run('chmod', ['+x', stagedBinaryPath]);
   _log.info('New binary staged at $stagedBinaryPath');
