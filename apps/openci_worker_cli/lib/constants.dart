@@ -1,7 +1,7 @@
-const version = '0.9.13';
+const version = '0.9.14';
 
 // macOS (Lume VM)
-const baseVmName = 'tahoe-base_v1.1.0';
+const baseVmName = 'tahoe-base_v1.1.1';
 const sshUser = 'admin';
 const sshPassword = 'admin';
 

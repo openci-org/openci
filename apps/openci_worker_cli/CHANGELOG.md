@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.14
+- Update base VM image to tahoe-base v1.1.1
+
 ## 0.9.13
 - Verify auto-update across all environments (Hetzner + macOS)
 
