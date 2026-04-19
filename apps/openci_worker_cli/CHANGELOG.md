@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.10
+- Verify automated pub.dev publishing pipeline
+
 ## 0.9.9
 - Migrate auto-updater from GitHub Releases binary swap to pub.dev `dart pub global activate`
 - Simplify supervisor: remove binary swap logic, restart-only
