@@ -31,4 +31,4 @@ jobs:
             exit 0
           fi
           echo "Publishing for tag: $TAG"
-          cd apps/openci_worker_cli && dart pub publish --force
+          cd apps/openci_worker_cli && flutter pub publish --force
