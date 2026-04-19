@@ -270,10 +270,9 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     const Spacer(),
                     Text(
                       '${buildJob.owner}/${buildJob.repo}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         color: _kMuted,
-                        fontFamily: 'monospace',
                       ),
                     ),
                   ],
@@ -411,7 +410,6 @@ class _DetailGitChip extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 fontSize: 12,
-                fontFamily: 'monospace',
                 color: color.withValues(alpha: 0.9),
                 fontWeight: FontWeight.w500,
               ),
@@ -527,10 +525,9 @@ class _DetailLogsView extends HookConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         detailT.logEntries(count: logs.length.toString()),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           color: _kMuted,
-                          fontFamily: 'monospace',
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -743,7 +740,6 @@ class _DetailLogLine extends HookWidget {
                 child: SelectableText(
                   log.message,
                   style: TextStyle(
-                    fontFamily: 'monospace',
                     fontSize: 13,
                     color: levelColor,
                     height: 1.5,
@@ -793,7 +789,6 @@ class _DetailLogLine extends HookWidget {
                         child: Text(
                           lines.first,
                           style: TextStyle(
-                            fontFamily: 'monospace',
                             fontSize: 13,
                             color: levelColor,
                             height: 1.5,
@@ -831,7 +826,6 @@ class _DetailLogLine extends HookWidget {
                                 fontSize: 11,
                                 color: levelColor.withValues(alpha: 0.8),
                                 fontWeight: FontWeight.w600,
-                                fontFamily: 'monospace',
                               ),
                             ),
                           ],
@@ -862,7 +856,6 @@ class _DetailLogLine extends HookWidget {
                 child: SelectableText(
                   log.message,
                   style: TextStyle(
-                    fontFamily: 'monospace',
                     fontSize: 13,
                     color: levelColor.withValues(alpha: 0.9),
                     height: 1.6,
@@ -891,7 +884,6 @@ class _DetailLogLine extends HookWidget {
       child: Text(
         '$lineNumber',
         style: TextStyle(
-          fontFamily: 'monospace',
           fontSize: 12,
           color: _kMuted.withValues(alpha: 0.4),
           height: 1.5,
@@ -1070,7 +1062,6 @@ class _FailureSummaryCard extends HookWidget {
                           model!,
                           style: TextStyle(
                             fontSize: 10,
-                            fontFamily: 'monospace',
                             color: _kMuted.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
@@ -1083,7 +1074,6 @@ class _FailureSummaryCard extends HookWidget {
                         durationLabel,
                         style: TextStyle(
                           fontSize: 10,
-                          fontFamily: 'monospace',
                           color: _kMuted.withValues(alpha: 0.5),
                         ),
                       ),
@@ -1160,12 +1150,11 @@ class _FailureSummaryCard extends HookWidget {
                                 color: _kText.withValues(alpha: 0.95),
                               ),
                               code: TextStyle(
-                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                color: const Color(0xFF58A6FF),
                                 backgroundColor: _kBorder.withValues(
                                   alpha: 0.5,
                                 ),
-                                color: const Color(0xFF58A6FF),
-                                fontSize: 12,
                               ),
                               codeblockDecoration: BoxDecoration(
                                 color: _kSurface,

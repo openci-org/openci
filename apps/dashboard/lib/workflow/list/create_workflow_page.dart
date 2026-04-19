@@ -667,7 +667,6 @@ class _StepEditorCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontFamily: 'monospace',
                     color: Theme.of(context).hintColor,
                   ),
                 ),
@@ -815,8 +814,7 @@ class _EditStepSheet extends HookConsumerWidget {
                       TextFormField(
                         controller: runController,
                         maxLines: 5,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
+                        style: TextStyle(
                           fontSize: 14,
                         ),
                         decoration: const InputDecoration(
@@ -844,8 +842,7 @@ class _EditStepSheet extends HookConsumerWidget {
                             withParams.value = {};
                           }
                         },
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
+                        style: TextStyle(
                           fontSize: 14,
                         ),
                         decoration: InputDecoration(
@@ -892,8 +889,7 @@ class _EditStepSheet extends HookConsumerWidget {
                                           value: tag,
                                           child: Text(
                                             tag,
-                                            style: const TextStyle(
-                                              fontFamily: 'monospace',
+                                            style: TextStyle(
                                             ),
                                           ),
                                         ),
@@ -992,7 +988,6 @@ class _EditStepSheet extends HookConsumerWidget {
                                                   .textTheme
                                                   .bodyMedium
                                                   ?.copyWith(
-                                                    fontFamily: 'monospace',
                                                     fontWeight: input.required_
                                                         ? FontWeight.bold
                                                         : null,
@@ -1054,8 +1049,7 @@ class _EditStepSheet extends HookConsumerWidget {
                                           child: TextFormField(
                                             initialValue:
                                                 withParams.value[input.key],
-                                            style: const TextStyle(
-                                              fontFamily: 'monospace',
+                                            style: TextStyle(
                                               fontSize: 13,
                                             ),
                                             decoration: InputDecoration(

@@ -119,8 +119,7 @@ class _BuiltInEnvVarTile extends StatelessWidget {
                   child: Text(
                     envVar.key,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -184,8 +183,7 @@ class _CustomEnvVarTile extends StatelessWidget {
             title: Text(
               envVar.key,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'monospace',
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
               ),
             ),

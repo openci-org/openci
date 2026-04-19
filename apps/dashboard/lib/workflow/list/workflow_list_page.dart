@@ -443,7 +443,6 @@ class _WorkflowBody extends ConsumerWidget {
                                 '.openci/${file.name}',
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
-                                      fontFamily: 'monospace',
                                       color: colorScheme.onSurfaceVariant,
                                     ),
                                 maxLines: 1,

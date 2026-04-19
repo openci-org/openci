@@ -4,6 +4,7 @@ import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -213,7 +214,7 @@ class BuildJobCard extends HookConsumerWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _RunDurationBadge(buildJob: buildJob),
+                        _LiveDurationBadge(buildJob: buildJob),
                         if (buildJob.needs != null &&
                             buildJob.needs!.isNotEmpty)
                           _NeedsBadge(needs: buildJob.needs!),
@@ -568,6 +569,10 @@ class WorkflowRunCard extends HookConsumerWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    _WorkflowDurationBadge(
+                      jobs: jobs,
+                      overallStatus: overallStatus,
+                    ),
                     if (mainJob.pullRequestNumber != null)
                       _InfoBadge(
                         icon: const FaIcon(
@@ -654,21 +659,16 @@ class _StatusIndicator extends StatelessWidget {
 
 // ── Shared utility widgets ──────────────────────────────────────────────────
 
-String _formatDuration(Duration duration) {
-  final durationT = t.buildLogs.duration;
-  final totalMinutes = duration.inMinutes;
-  if (totalMinutes < 1) return durationT.lessThanMinute;
-  if (totalMinutes < 60) {
-    return durationT.minutes(count: totalMinutes.toString());
-  }
-  final hours = totalMinutes ~/ 60;
-  final minutes = totalMinutes % 60;
-  return minutes > 0
-      ? durationT.hoursAndMinutes(
-          hours: hours.toString(),
-          minutes: minutes.toString(),
-        )
-      : durationT.hours(count: hours.toString());
+String _formatDurationCompact(Duration duration) {
+  final totalSeconds = duration.inSeconds;
+  if (totalSeconds < 60) return '${totalSeconds}s';
+  final minutes = totalSeconds ~/ 60;
+  final seconds = totalSeconds % 60;
+  final ss = seconds.toString().padLeft(2, '0');
+  if (minutes < 60) return '${minutes}m ${ss}s';
+  final hours = minutes ~/ 60;
+  final mm = (minutes % 60).toString().padLeft(2, '0');
+  return '${hours}h ${mm}m';
 }
 
 class _InfoBadge extends StatelessWidget {
@@ -707,7 +707,6 @@ class _InfoBadge extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 11,
-              fontFamily: 'monospace',
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
@@ -747,7 +746,6 @@ class _NeedsBadge extends StatelessWidget {
               needs[i],
               style: TextStyle(
                 fontSize: 11,
-                fontFamily: 'monospace',
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurfaceVariant,
               ),
@@ -797,8 +795,9 @@ class _JobTree extends ConsumerWidget {
     }
 
     // ルートジョブ = 親を持たないジョブ
-    final rootJobs =
-        jobs.where((j) => j.jobKey == null || !hasParent.contains(j.jobKey!)).toList();
+    final rootJobs = jobs
+        .where((j) => j.jobKey == null || !hasParent.contains(j.jobKey!))
+        .toList();
 
     final widgets = <Widget>[];
     var globalIndex = 0;
@@ -823,12 +822,16 @@ class _JobTree extends ConsumerWidget {
           Divider(
             height: 1,
             indent: 16 + (depth * 24.0) + 32,
-            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.3),
           ),
         );
       }
 
-      final childJobs = job.jobKey != null ? children[job.jobKey!] ?? [] : <BuildJob>[];
+      final childJobs = job.jobKey != null
+          ? children[job.jobKey!] ?? []
+          : <BuildJob>[];
       for (var i = 0; i < childJobs.length; i++) {
         buildTree(childJobs[i], depth + 1, i == childJobs.length - 1);
       }
@@ -910,7 +913,7 @@ class _JobTreeRow extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      _RunDurationBadge(buildJob: job),
+                      _LiveDurationBadge(buildJob: job),
                       if (job.status == 'failure' &&
                           job.failureSummaryStatus == 'generating') ...[
                         const SizedBox(width: 8),
@@ -979,28 +982,114 @@ class _JobTreeRow extends ConsumerWidget {
   }
 }
 
-class _RunDurationBadge extends ConsumerWidget {
-  const _RunDurationBadge({required this.buildJob});
+class _LiveDurationBadge extends HookConsumerWidget {
+  const _LiveDurationBadge({required this.buildJob});
   final BuildJob buildJob;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final durationAsync = ref.watch(runDurationProvider(buildJob));
-    return durationAsync.when(
-      data: (duration) {
-        if (duration == null) return const SizedBox.shrink();
-        return _InfoBadge(
-          icon: const Icon(Icons.timer_outlined, size: 10),
-          label: _formatDuration(duration),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (e, s) {
-        debugPrint('error: $e');
-        debugPrint('stackTrace: $s');
-        throw Exception('Failed to load run duration: $e');
-      },
-    );
+    final isRunning = buildJob.status == 'in_progress';
+    final isTerminal =
+        buildJob.status == 'success' ||
+        buildJob.status == 'failure' ||
+        buildJob.status == 'cancelled';
+
+    // Tick every second while running
+    final tick = useState(0);
+    useEffect(() {
+      if (!isRunning) return null;
+      final timer = Stream.periodic(const Duration(seconds: 1)).listen((_) {
+        tick.value++;
+      });
+      return timer.cancel;
+    }, [isRunning]);
+
+    // While running: show elapsed from createdAt
+    if (isRunning) {
+      // Suppress unused variable warning; tick.value read forces rebuild
+      tick.value;
+      final elapsed = DateTime.now().toUtc().difference(buildJob.createdAt);
+      return _InfoBadge(
+        icon: const Icon(Icons.timer_outlined, size: 10),
+        label: _formatDurationCompact(elapsed),
+      );
+    }
+
+    // Terminal: use run's actual duration from Firestore
+    if (isTerminal) {
+      final durationAsync = ref.watch(runDurationProvider(buildJob));
+      return durationAsync.when(
+        data: (duration) {
+          if (duration == null) return const SizedBox.shrink();
+          return _InfoBadge(
+            icon: const Icon(Icons.timer_outlined, size: 10),
+            label: _formatDurationCompact(duration),
+          );
+        },
+        loading: () => const SizedBox.shrink(),
+        error: (_, _) => const SizedBox.shrink(),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+class _WorkflowDurationBadge extends HookWidget {
+  const _WorkflowDurationBadge({
+    required this.jobs,
+    required this.overallStatus,
+  });
+  final List<BuildJob> jobs;
+  final String overallStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRunning =
+        overallStatus == 'in_progress' || overallStatus == 'queued';
+    final isTerminal =
+        overallStatus == 'success' ||
+        overallStatus == 'failure' ||
+        overallStatus == 'cancelled';
+
+    // Tick every second while running
+    final tick = useState(0);
+    useEffect(() {
+      if (!isRunning) return null;
+      final timer = Stream.periodic(const Duration(seconds: 1)).listen((_) {
+        tick.value++;
+      });
+      return timer.cancel;
+    }, [isRunning]);
+
+    final earliestCreatedAt = jobs
+        .map((j) => j.createdAt)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+
+    if (isRunning) {
+      tick.value;
+      final elapsed = DateTime.now().toUtc().difference(earliestCreatedAt);
+      return _InfoBadge(
+        icon: const Icon(Icons.timer_outlined, size: 10),
+        label: _formatDurationCompact(elapsed),
+      );
+    }
+
+    if (isTerminal) {
+      final latestUpdatedAt = jobs
+          .map((j) => j.completedAt ?? j.updatedAt)
+          .reduce((a, b) => a.isAfter(b) ? a : b);
+      final duration = latestUpdatedAt.difference(earliestCreatedAt);
+      if (duration.isNegative || duration.inSeconds == 0) {
+        return const SizedBox.shrink();
+      }
+      return _InfoBadge(
+        icon: const Icon(Icons.timer_outlined, size: 10),
+        label: _formatDurationCompact(duration),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 

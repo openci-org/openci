@@ -226,7 +226,6 @@ class _ActionCard extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  fontFamily: 'monospace',
                                 ),
                             overflow: TextOverflow.ellipsis,
                           ),

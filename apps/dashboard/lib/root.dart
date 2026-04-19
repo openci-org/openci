@@ -2,6 +2,7 @@ import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,6 +32,7 @@ ThemeData _buildTheme() {
   return ThemeData(
     colorScheme: colorScheme,
     useMaterial3: true,
+    textTheme: GoogleFonts.spaceMonoTextTheme(),
     // ── Card theme — subtle border, no elevation (uidotsh surfaces) ──
     cardTheme: CardThemeData(
       elevation: 0,
