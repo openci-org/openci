@@ -1,25 +1,22 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 
 final _log = Logger('AutoUpdater');
 
-/// Staging path where the new binary is downloaded before the supervisor
-/// swaps it into place.
-const stagedBinaryPath = '/tmp/openci-worker.staged';
-
-/// Checks if a new version is available and stages it for the supervisor.
+/// Checks if a new version is available on pub.dev and installs it.
 ///
-/// Returns `true` if an update is available and the worker should restart
+/// Returns `true` if an update was installed and the worker should restart
 /// (exit with [exitCodeUpdateRequested]).
 ///
-/// Downloads the new binary to [stagedBinaryPath]. The supervisor
-/// swaps it into place and restarts the worker.
-Future<bool> checkAndUpdate(Firestore firestore) async {
+/// Uses `dart pub global activate` to install the new version.
+/// The supervisor will restart the worker process automatically.
+Future<bool> checkAndUpdate() async {
   try {
-    final latestVersion = await _fetchLatestVersion(firestore);
+    final latestVersion = await _fetchLatestVersion();
     if (latestVersion == null) return false;
 
     if (latestVersion == version) {
@@ -33,7 +30,7 @@ Future<bool> checkAndUpdate(Firestore firestore) async {
     }
 
     _log.info('New version available: $version → $latestVersion');
-    return _stageBinary(latestVersion);
+    return _installUpdate(latestVersion);
   } catch (e) {
     _log.warning('Auto-update check failed: $e');
     return false;
@@ -55,137 +52,41 @@ bool _isNewerVersion(String remote, String current) {
   return false;
 }
 
-/// Downloads the new binary to [stagedBinaryPath].
-///
-/// - macOS: downloads a `.tar.gz` archive and extracts the binary.
-/// - Linux: downloads the raw binary directly.
-Future<bool> _stageBinary(String latestVersion) async {
-  _log.info('Downloading new binary...');
+/// Installs the specified version via `dart pub global activate`.
+Future<bool> _installUpdate(String latestVersion) async {
+  _log.info('Installing update via dart pub global activate...');
 
-  if (Platform.isMacOS) {
-    return _stageMacOSBinary(latestVersion);
-  } else {
-    return _stageLinuxBinary(latestVersion);
-  }
-}
-
-Future<bool> _stageMacOSBinary(String latestVersion) async {
-  final archiveName = 'openci-worker-v$latestVersion-darwin-arm64.tar.gz';
-  final url =
-      'https://github.com/open-ci-io/openci/releases/download/'
-      'v$latestVersion/$archiveName';
-  final archivePath = '/tmp/$archiveName';
-
-  // Download the archive
-  final downloadResult = await Process.run('curl', [
-    '-fsSL',
-    '-o',
-    archivePath,
-    url,
+  final result = await Process.run('dart', [
+    'pub',
+    'global',
+    'activate',
+    'openci_worker_cli',
+    latestVersion,
   ]);
 
-  if (downloadResult.exitCode != 0) {
-    _log.warning('Download failed: ${downloadResult.stderr}');
+  if (result.exitCode != 0) {
+    _log.warning('Update failed: ${result.stderr}');
     return false;
   }
 
-  // Extract the binary from the archive
-  final extractResult = await Process.run('tar', [
-    'xzf',
-    archivePath,
-    '-C',
-    '/tmp',
-  ]);
-
-  if (extractResult.exitCode != 0) {
-    _log.warning('Extraction failed: ${extractResult.stderr}');
-    return false;
-  }
-
-  // Move the extracted binary to the staging path
-  final mvResult = await Process.run('mv', [
-    '/tmp/openci-worker',
-    stagedBinaryPath,
-  ]);
-
-  if (mvResult.exitCode != 0) {
-    _log.warning('Failed to stage binary: ${mvResult.stderr}');
-    return false;
-  }
-
-  // Clean up the archive
-  try {
-    File(archivePath).deleteSync();
-  } catch (_) {}
-
-  await Process.run('chmod', ['+x', stagedBinaryPath]);
-  _log.info('New binary staged at $stagedBinaryPath');
+  _log.info('Successfully installed openci_worker_cli $latestVersion');
   return true;
 }
 
-Future<bool> _stageLinuxBinary(String latestVersion) async {
-  final archiveName = 'openci-worker-v$latestVersion-linux-x64.tar.gz';
-  final url =
-      'https://github.com/open-ci-io/openci/releases/download/'
-      'v$latestVersion/$archiveName';
-  final archivePath = '/tmp/$archiveName';
+/// Fetches the latest version from pub.dev API.
+Future<String?> _fetchLatestVersion() async {
+  final response = await http.get(
+    Uri.parse('https://pub.dev/api/packages/openci_worker_cli'),
+  );
 
-  // Download the archive
-  final downloadResult = await Process.run('curl', [
-    '-fsSL',
-    '-o',
-    archivePath,
-    url,
-  ]);
-
-  if (downloadResult.exitCode != 0) {
-    _log.warning('Download failed: ${downloadResult.stderr}');
-    return false;
-  }
-
-  // Extract the binary from the archive
-  final extractResult = await Process.run('tar', [
-    'xzf',
-    archivePath,
-    '-C',
-    '/tmp',
-  ]);
-
-  if (extractResult.exitCode != 0) {
-    _log.warning('Extraction failed: ${extractResult.stderr}');
-    return false;
-  }
-
-  // Move the extracted binary to the staging path
-  final mvResult = await Process.run('mv', [
-    '/tmp/openci-worker',
-    stagedBinaryPath,
-  ]);
-
-  if (mvResult.exitCode != 0) {
-    _log.warning('Failed to stage binary: ${mvResult.stderr}');
-    return false;
-  }
-
-  // Clean up the archive
-  try {
-    File(archivePath).deleteSync();
-  } catch (_) {}
-
-  await Process.run('chmod', ['+x', stagedBinaryPath]);
-  _log.info('New binary staged at $stagedBinaryPath');
-  return true;
-}
-
-Future<String?> _fetchLatestVersion(Firestore firestore) async {
-  final doc = await firestore.collection('config').doc('workerCli').get();
-  if (!doc.exists) {
-    _log.fine('config/workerCli document not found');
+  if (response.statusCode != 200) {
+    _log.warning('Failed to fetch version from pub.dev: ${response.statusCode}');
     return null;
   }
 
-  final data = doc.data();
-  if (data == null) return null;
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  final latest = data['latest'] as Map<String, dynamic>?;
+  if (latest == null) return null;
 
-  return data['latestVersion'] as String?;
+  return latest['version'] as String?;
 }

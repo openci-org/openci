@@ -49,26 +49,11 @@ Future<void> pollForJobs({
 
   Future<void> tryAutoUpdate() async {
     lastUpdateCheck = DateTime.now();
-    final updated = await checkAndUpdate(firestore);
+    final updated = await checkAndUpdate();
     if (updated) {
-      _log.info('Update staged. Exiting for restart...');
-
-      // Signal other workers to update too
-      try {
-        File(updateSignalFile).createSync();
-      } catch (_) {}
-
+      _log.info('Update installed. Exiting for restart...');
       exit(exitCodeUpdateRequested);
     }
-  }
-
-  void checkUpdateSignal() {
-    try {
-      if (File(updateSignalFile).existsSync()) {
-        _log.info('Update signal detected from another worker.');
-        exit(exitCodeUpdateRequested);
-      }
-    } catch (_) {}
   }
 
   while (true) {
@@ -96,9 +81,6 @@ Future<void> pollForJobs({
         _log.info('Job completed, checking for next...');
         await tryAutoUpdate();
       } else {
-        // Check if another worker has signalled an update
-        checkUpdateSignal();
-
         final now = DateTime.now();
         if (now.difference(lastUpdateCheck) >= _updateCheckInterval) {
           stopSpinner();

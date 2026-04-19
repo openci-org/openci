@@ -1,9 +1,10 @@
 name: openci_shared
-description: Shared constants for OpenCI monorepo
-publish_to: none
+description: Shared models and constants for OpenCI
+version: 0.1.0
+repository: https://github.com/open-ci-io/openci
 
 environment:
-  sdk: 3.11.5
+  sdk: ^3.11.0
 
 resolution: workspace
 dependencies:
