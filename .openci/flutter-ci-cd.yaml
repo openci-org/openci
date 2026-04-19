@@ -69,5 +69,5 @@ jobs:
           platform: "web"
           working-directory: "apps/dashboard"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
-          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}"
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }}"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
