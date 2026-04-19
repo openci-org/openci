@@ -19,10 +19,10 @@ jobs:
           flutter-version: "stable"
 
       - name: Install dependencies
-        run: cd firebase/dart_functions && dart pub get
+        run: cd firebase/dart_functions && flutter pub get
 
       - name: Analyze
-        run: cd firebase/dart_functions && dart analyze
+        run: cd firebase/dart_functions && flutter analyze
 
       - name: Test
-        run: cd firebase/dart_functions && dart test
+        run: cd firebase/dart_functions && flutter test
