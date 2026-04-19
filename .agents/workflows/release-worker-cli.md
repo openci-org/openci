@@ -4,15 +4,15 @@ description: How to release a new version of the OpenCI Worker CLI (openci_worke
 
 # Worker CLI Release Flow
 
-This workflow covers the full release process for `openci_worker_cli`, including GitHub Release and Firestore auto-update trigger.
+This workflow covers the full release process for `openci_worker_cli` via pub.dev automated publishing using OpenCI.
 
 ## Prerequisites
 
 - Push access to `open-ci-io/openci`
 - Dart SDK installed
-- SSH access to Hetzner VM (`ssh root@46.225.152.106`)
+- `PUB_CREDENTIALS` secret registered in GCP Secret Manager (already done)
 
-## Steps
+## Release Steps
 
 ### 1. Bump version numbers
 
@@ -48,71 +48,22 @@ git commit -m 'chore: release openci_worker_cli vX.Y.Z'
 git push origin develop
 ```
 
-### 5. Compile the macOS binary (local)
+### 5. Create Git tag & push
 
 ```bash
-cd apps/openci_worker_cli
-dart compile exe bin/openci_worker_cli.dart -o openci_worker
+git tag worker-vX.Y.Z
+git push origin worker-vX.Y.Z
 ```
 
-### 6. Create the macOS release tarball
+This triggers the OpenCI workflow `.openci/publish-worker-cli.yaml`, which:
+1. Restores `PUB_CREDENTIALS` from Secret Manager
+2. Sets up `~/.config/dart/pub-credentials.json`
+3. Runs `dart pub publish --force`
+
+### 6. Create GitHub Release (optional)
 
 ```bash
-mkdir -p /tmp/openci-release
-cp openci_worker /tmp/openci-release/openci-worker
-cd /tmp/openci-release
-tar czf openci-worker-vX.Y.Z-darwin-arm64.tar.gz openci-worker
-shasum -a 256 openci-worker-vX.Y.Z-darwin-arm64.tar.gz
-```
-
-### 7. Compile the Linux binary (Hetzner VM)
-
-SSH into the Hetzner VM and build from the same tag:
-
-```bash
-ssh root@46.225.152.106
-
-# On the VM:
-export PATH=/opt/dart-sdk/bin:$PATH
-cd /opt/openci-repo
-git fetch --tags origin
-git checkout vX.Y.Z
-
-# Remove Flutter-dependent packages from workspace for dart-only build
-cp pubspec.yaml pubspec.yaml.bak
-sed -i '/apps\/dashboard/d; /apps\/landing_page/d' pubspec.yaml
-dart pub get
-
-# Compile
-cd apps/openci_worker_cli
-dart compile exe bin/openci_worker_cli.dart -o /tmp/openci-worker
-
-# Restore pubspec
-cd /opt/openci-repo
-mv pubspec.yaml.bak pubspec.yaml
-
-# Create tarball
-cd /tmp
-tar czf openci-worker-vX.Y.Z-linux-x64.tar.gz openci-worker
-sha256sum openci-worker-vX.Y.Z-linux-x64.tar.gz
-```
-
-### 8. Download Linux tarball to local
-
-```bash
-scp root@46.225.152.106:/tmp/openci-worker-vX.Y.Z-linux-x64.tar.gz /tmp/openci-release/
-```
-
-### 9. Create Git tag & GitHub Release
-
-```bash
-# From the repo root
-git tag vX.Y.Z
-git push origin vX.Y.Z
-
-gh release create vX.Y.Z \
-  /tmp/openci-release/openci-worker-vX.Y.Z-darwin-arm64.tar.gz \
-  /tmp/openci-release/openci-worker-vX.Y.Z-linux-x64.tar.gz \
+gh release create worker-vX.Y.Z \
   --title "Worker CLI vX.Y.Z" \
   --notes "## What's New
 
@@ -121,20 +72,43 @@ gh release create vX.Y.Z \
 
 > 💡 If `gh` is not in PATH, use `eval "$(/opt/homebrew/bin/brew shellenv)"` first.
 
-### 10. Firestore auto-update (automatic)
+### 7. Verify publication
 
-> ✅ This step is **automatic**. The GitHub webhook handler (`update_worker_cli_version.dart`) detects the new release, checks that the asset name starts with `openci-worker-`, and updates `config/workerCli.latestVersion` in Firestore automatically.
+1. Check OpenCI dashboard for build status
+2. Check pub.dev: https://pub.dev/packages/openci_worker_cli
+3. Running workers will auto-update via `dart pub global activate` on next poll cycle (every 1 minute)
 
-No manual action needed. Workers will pick up the new version on their next poll cycle (every 1 minute).
+## Releasing openci_shared
 
-## Worker Binary Locations
+If `openci_shared` needs to be updated:
 
-| Platform | Host | Binary Path | Worker IDs |
-|----------|------|-------------|------------|
-| macOS (Lume) | Local Mac | `~/bin/openci-worker` | worker-1, worker-2 |
-| Linux (Docker) | Hetzner VM `46.225.152.106` | `/usr/local/bin/openci-worker` | ubuntu-1 ~ ubuntu-4 |
+1. Bump version in `packages/openci_shared/pubspec.yaml`
+2. Update `packages/openci_shared/CHANGELOG.md`
+3. **Also update** `openci_worker_cli/pubspec.yaml` to reference the new version: `openci_shared: ^X.Y.Z`
+4. Commit & push
+5. Tag & push: `git tag shared-vX.Y.Z && git push origin shared-vX.Y.Z`
+6. Wait for pub.dev to index the new version before publishing worker CLI
 
-The supervisor auto-updater downloads new versions from GitHub Releases (`.tar.gz` archives) and swaps the binary in-place.
+## Worker Installation
+
+Workers are now installed and updated via `dart pub global activate`:
+
+```bash
+# Install
+dart pub global activate openci_worker_cli
+
+# Run
+openci_worker_cli --project-id=<ID> --service-account=<path>
+```
+
+## Worker Locations
+
+| Platform | Host | How to run | Worker IDs |
+|----------|------|------------|------------|
+| macOS (Lume) | Local Mac | `dart pub global activate openci_worker_cli` | worker-1, worker-2 |
+| Linux (Docker) | Hetzner VM `46.225.152.106` | `dart pub global activate openci_worker_cli` | ubuntu-1 ~ ubuntu-4 |
+
+The supervisor monitors the worker process and restarts it after `dart pub global activate` updates the package.
 
 ## Hetzner VM Access
 
@@ -162,7 +136,7 @@ openci-ubuntu:latest  (Dockerfile at /opt/openci/Dockerfile)
 
 After completing all steps, verify:
 
-1. GitHub Release exists with **both** macOS and Linux assets: https://github.com/open-ci-io/openci/releases/tag/vX.Y.Z
-2. Firestore updated: check `config/workerCli` document in [Firebase Console](https://console.firebase.google.com/project/openci-b1b91/firestore/databases/-default-/data/~2Fconfig~2FworkerCli)
-3. Running workers auto-update on next poll cycle (check worker logs for "New version available" message)
+1. OpenCI build succeeded on the dashboard
+2. Package published on pub.dev: https://pub.dev/packages/openci_worker_cli/versions
+3. Running workers auto-update on next poll cycle (check worker logs for "Update installed" message)
 4. Hetzner VM workers: `ssh root@46.225.152.106 "tail -5 /var/log/openci-worker-{1..4}.log"`

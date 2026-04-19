@@ -1,0 +1,29 @@
+name: Publish openci_shared to pub.dev
+
+on:
+  push:
+    tags:
+      - "shared-v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: open-ci-io/flutter-setup@v1
+        with:
+          flutter-version: "stable"
+
+      - uses: open-ci-io/save-secret-file@v1
+        with:
+          secret: ${{ secrets.PUB_CREDENTIALS }}
+          path: ".config/dart/pub-credentials.json"
+
+      - name: Setup pub.dev credentials
+        run: |
+          mkdir -p ~/.config/dart
+          cp .config/dart/pub-credentials.json ~/.config/dart/pub-credentials.json
+
+      - name: Publish openci_shared
+        run: cd packages/openci_shared && dart pub publish --force

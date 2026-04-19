@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.9
+- Migrate auto-updater from GitHub Releases binary swap to pub.dev `dart pub global activate`
+- Simplify supervisor: remove binary swap logic, restart-only
+- Add OpenCI CI/CD workflow for automated pub.dev publishing
+
 ## 0.9.8
 - Require explicit `runs-on` in workflow: macOS worker only processes `macos-*` jobs, no longer claims jobs without `runsOn`
 
