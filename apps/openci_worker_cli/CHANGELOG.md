@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.11
+- Fix supervisor: detect pub global execution and use `dart pub global run` to spawn child worker, preventing `--service-account` from being misinterpreted as Dart VM flags
+
 ## 0.9.10
 - Verify automated pub.dev publishing pipeline
 

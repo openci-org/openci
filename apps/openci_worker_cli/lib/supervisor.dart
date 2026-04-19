@@ -19,12 +19,37 @@ final _log = Logger('Supervisor');
 Future<void> runSupervised(List<String> arguments) async {
   final workerArgs = arguments.where((a) => a != '--supervised').toList();
 
+  // Detect if running via pub global (Platform.resolvedExecutable points to
+  // the dart binary, not a compiled AOT executable).
+  final resolvedExe = Platform.resolvedExecutable;
+  final isRunningViaPubGlobal = resolvedExe.endsWith('/dart') ||
+      resolvedExe.endsWith(r'\dart.exe');
+
   while (true) {
     _log.info('Starting worker process...');
 
+    final String executable;
+    final List<String> processArgs;
+
+    if (isRunningViaPubGlobal) {
+      // Use `dart pub global run` to re-enter through the package entrypoint.
+      executable = resolvedExe;
+      processArgs = [
+        'pub',
+        'global',
+        'run',
+        'openci_worker_cli',
+        ...workerArgs,
+      ];
+    } else {
+      // AOT-compiled binary: just re-run self.
+      executable = resolvedExe;
+      processArgs = workerArgs;
+    }
+
     final process = await Process.start(
-      Platform.resolvedExecutable,
-      workerArgs,
+      executable,
+      processArgs,
       mode: ProcessStartMode.inheritStdio,
     );
 
