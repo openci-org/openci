@@ -242,6 +242,9 @@ class _TranslationsSettingsJa implements TranslationsSettingsEn {
 	@override String get manageSubscription => 'サブスクリプションプランを管理';
 	@override String firebaseAppName({required Object name}) => 'Firebaseアプリ名: ${name}';
 	@override String get resetToCloud => 'OpenCI Cloudにリセット';
+	@override String get resetToCloudSuccess => '設定をクリアしました。アプリを再起動してください。';
+	@override String get selfHostedActive => 'セルフホストFirebase';
+	@override String selfHostedProject({required Object projectId}) => 'プロジェクト: ${projectId}';
 	@override String get inviteTeamMember => 'チームメンバーを招待';
 	@override String get appVersion => 'アプリバージョン';
 	@override String get logout => 'ログアウト';
@@ -493,7 +496,11 @@ class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn 
 	@override String get messagingSenderId => 'メッセージ送信者ID';
 	@override String get projectId => 'プロジェクトID';
 	@override String get storageBucket => 'ストレージバケット';
-	@override String get pickConfig => 'Firebase設定を選択';
+	@override String get pickConfig => '設定を保存';
+	@override String get cloudRunHash => 'Cloud Runハッシュ';
+	@override String get cloudRunRegionCode => 'Cloud Runリージョンコード';
+	@override String get configSaved => '設定を保存しました。アプリを再起動してください。';
+	@override String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
 }
 
 // Path: workflow.editor
@@ -763,7 +770,11 @@ extension on TranslationsJa {
 			'auth.firebaseForm.messagingSenderId' => 'メッセージ送信者ID',
 			'auth.firebaseForm.projectId' => 'プロジェクトID',
 			'auth.firebaseForm.storageBucket' => 'ストレージバケット',
-			'auth.firebaseForm.pickConfig' => 'Firebase設定を選択',
+			'auth.firebaseForm.pickConfig' => '設定を保存',
+			'auth.firebaseForm.cloudRunHash' => 'Cloud Runハッシュ',
+			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Runリージョンコード',
+			'auth.firebaseForm.configSaved' => '設定を保存しました。アプリを再起動してください。',
+			'auth.firebaseForm.configActive' => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。',
 			'workflow.title' => 'ワークフロー',
 			'workflow.tabWorkflows' => 'ワークフロー',
 			'workflow.tabRuns' => '実行履歴',
@@ -896,6 +907,9 @@ extension on TranslationsJa {
 			'settings.manageSubscription' => 'サブスクリプションプランを管理',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebaseアプリ名: ${name}',
 			'settings.resetToCloud' => 'OpenCI Cloudにリセット',
+			'settings.resetToCloudSuccess' => '設定をクリアしました。アプリを再起動してください。',
+			'settings.selfHostedActive' => 'セルフホストFirebase',
+			'settings.selfHostedProject' => ({required Object projectId}) => 'プロジェクト: ${projectId}',
 			'settings.inviteTeamMember' => 'チームメンバーを招待',
 			'settings.appVersion' => 'アプリバージョン',
 			'settings.logout' => 'ログアウト',

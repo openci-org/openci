@@ -1,3 +1,5 @@
+import 'package:dashboard/firebase/dart_function_urls.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
@@ -11,9 +13,14 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  final selfHosted = await loadSelfHostedConfig();
+  if (selfHosted != null) {
+    await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
+  } else {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
 }
 
 Future<void> main() async {
@@ -22,11 +29,21 @@ Future<void> main() async {
     usePathUrlStrategy();
   }
   await LocaleSettings.useDeviceLocale();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  await initializeRevenueCat();
+  final selfHosted = await loadSelfHostedConfig();
+  if (selfHosted != null) {
+    await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
+  } else {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
+  initDartFunctionUrls(selfHosted);
+
+  if (selfHosted == null) {
+    await initializeRevenueCat();
+  }
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(

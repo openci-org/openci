@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
@@ -15,9 +16,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authNotifier = ref.read(authProvider.notifier);
   final refreshNotifier = RouterRefreshNotifier(
-    authNotifier.getFirebaseAuth().authStateChanges(),
+    FirebaseAuth.instance.authStateChanges(),
   );
   ref.onDispose(refreshNotifier.dispose);
 

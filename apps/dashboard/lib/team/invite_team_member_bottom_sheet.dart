@@ -1,6 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -85,8 +84,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         : () async {
                             if (!formKey.currentState!.validate()) return;
                             try {
-                              final result = await ref
-                                  .read(functionsProvider)
+                              final result = await FirebaseFunctions.instance
                                   .httpsCallableFromUrl(
                                     dartFunctionUrl('invite-team-member'),
                                   )

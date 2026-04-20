@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,8 +11,7 @@ part 'workflow_editor_provider.g.dart';
 class WorkflowEditor extends _$WorkflowEditor {
   @override
   Stream<Workflow> build(String workflowId) {
-    return ref
-        .watch(firestoreProvider)
+    return FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .withConverter(
@@ -30,16 +29,14 @@ class WorkflowEditor extends _$WorkflowEditor {
   }
 
   Future<void> updateName(String name) async {
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({'name': name});
   }
 
   Future<void> updateWorkflowConfig(WorkflowConfig config) async {
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({'workflowConfig': config.toJson()});
@@ -49,8 +46,7 @@ class WorkflowEditor extends _$WorkflowEditor {
     required int index,
     required WorkflowStep step,
   }) async {
-    final doc = await ref
-        .watch(firestoreProvider)
+    final doc = await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -67,8 +63,7 @@ class WorkflowEditor extends _$WorkflowEditor {
         : step;
     steps[index] = updatedStep;
 
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({
@@ -77,8 +72,7 @@ class WorkflowEditor extends _$WorkflowEditor {
   }
 
   Future<void> addStep({int? insertAt}) async {
-    final doc = await ref
-        .watch(firestoreProvider)
+    final doc = await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -99,8 +93,7 @@ class WorkflowEditor extends _$WorkflowEditor {
       steps.add(newStep);
     }
 
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({
@@ -109,8 +102,7 @@ class WorkflowEditor extends _$WorkflowEditor {
   }
 
   Future<void> deleteStep(int index) async {
-    final doc = await ref
-        .watch(firestoreProvider)
+    final doc = await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -123,8 +115,7 @@ class WorkflowEditor extends _$WorkflowEditor {
 
     steps.removeAt(index);
 
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({
@@ -133,8 +124,7 @@ class WorkflowEditor extends _$WorkflowEditor {
   }
 
   Future<void> reorderSteps(int oldIndex, int newIndex) async {
-    final doc = await ref
-        .watch(firestoreProvider)
+    final doc = await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -150,8 +140,7 @@ class WorkflowEditor extends _$WorkflowEditor {
     final item = steps.removeAt(oldIndex);
     steps.insert(newIndex, item);
 
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .update({

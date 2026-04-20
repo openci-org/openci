@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,7 +9,7 @@ part 'logs_provider.g.dart';
 
 @riverpod
 Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
-  final firestore = ref.read(firestoreProvider);
+  final firestore = FirebaseFirestore.instance;
 
   return firestore
       .collection(buildJobsCollection)

@@ -2,18 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Fire-and-forget call to process pending invitations after login/signup.
 void _processInvitations() {
   FirebaseFunctions.instance
       .httpsCallableFromUrl(
@@ -38,8 +37,7 @@ class AuthPage extends HookConsumerWidget {
     final tapGestureRecognizer = useMemoized(() => TapGestureRecognizer());
     final isLoading = useState(false);
 
-    final authNotifier = ref.watch(authProvider.notifier);
-    final firestore = ref.watch(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final authT = t.auth;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -200,14 +198,12 @@ class AuthPage extends HookConsumerWidget {
                                     if (formKey.currentState!.validate()) {
                                       isLoading.value = true;
                                       try {
-                                        await authNotifier
-                                            .getFirebaseAuth()
+                                        await FirebaseAuth.instance
                                             .signInWithEmailAndPassword(
                                               email: emailController.text,
                                               password: passwordController.text,
                                             );
                                         ref.invalidate(authProvider);
-                                        ref.invalidate(firestoreProvider);
                                         // Process pending invitations (fire-and-forget)
                                         _processInvitations();
                                       } catch (e) {
@@ -238,8 +234,8 @@ class AuthPage extends HookConsumerWidget {
                                     if (formKey.currentState!.validate()) {
                                       isLoading.value = true;
                                       try {
-                                        final credential = await authNotifier
-                                            .getFirebaseAuth()
+                                        final credential = await FirebaseAuth
+                                            .instance
                                             .createUserWithEmailAndPassword(
                                               email: emailController.text,
                                               password: passwordController.text,
@@ -273,7 +269,6 @@ class AuthPage extends HookConsumerWidget {
                                         });
                                         await batch.commit();
                                         ref.invalidate(authProvider);
-                                        ref.invalidate(firestoreProvider);
                                         // Process pending invitations (fire-and-forget)
                                         _processInvitations();
                                       } catch (e) {
@@ -340,13 +335,7 @@ class AuthPage extends HookConsumerWidget {
                               foregroundColor: colorScheme.error,
                             ),
                             onPressed: () async {
-                              for (final app in Firebase.apps) {
-                                if (app.name == '[DEFAULT]') continue;
-                                await app.delete();
-                              }
-
-                              ref.invalidate(authProvider);
-                              ref.invalidate(firestoreProvider);
+                              await clearSelfHostedConfig();
                               if (!context.mounted) return;
                               context.showSnackBarMessage(authT.resetSuccess);
                             },
@@ -377,17 +366,24 @@ class FirebaseFormSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nameController = useTextEditingController();
     final apiKeyController = useTextEditingController();
     final appIdController = useTextEditingController();
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
+    final cloudRunHashController = useTextEditingController();
+    final cloudRunRegionCodeController = useTextEditingController(text: 'an');
+    final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Check if config is already saved
+    final configFuture = useMemoized(() => loadSelfHostedConfig());
+    final configSnapshot = useFuture(configFuture);
 
     return SizedBox(
       width: double.infinity,
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.85,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
@@ -402,72 +398,139 @@ class FirebaseFormSheet extends HookConsumerWidget {
                 ),
               ),
             ),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(labelText: formT.name),
-            ),
-            TextField(
-              controller: apiKeyController,
-              decoration: InputDecoration(labelText: formT.apiKey),
-            ),
-            TextField(
-              controller: appIdController,
-              decoration: InputDecoration(labelText: formT.appId),
-            ),
-            TextField(
-              controller: messagingSenderIdController,
-              decoration: InputDecoration(
-                labelText: formT.messagingSenderId,
-              ),
-            ),
-            TextField(
-              controller: projectIdController,
-              decoration: InputDecoration(labelText: formT.projectId),
-            ),
-            TextField(
-              controller: storageBucketController,
-              decoration: InputDecoration(
-                labelText: formT.storageBucket,
-              ),
-            ),
-            SizedBox(
-              height: 16,
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  if (Firebase.apps.any(
-                    (app) => app.name == nameController.text,
-                  )) {
-                    await Firebase.app(nameController.text).delete();
-                  }
 
-                  await Firebase.initializeApp(
-                    name: nameController.text,
-                    options: FirebaseOptions(
-                      apiKey: apiKeyController.text,
-                      appId: appIdController.text,
-                      messagingSenderId: messagingSenderIdController.text,
-                      projectId: projectIdController.text,
-                      storageBucket: storageBucketController.text,
+            // Show indicator if config is already saved
+            if (configSnapshot.data != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Colors.amber,
                     ),
-                  );
-                  ref.invalidate(authProvider);
-                  ref.invalidate(firestoreProvider);
-                } catch (e) {
-                  if (!context.mounted) return;
-                  debugPrint(e.toString());
-                  context.showSnackBarMessage(
-                    t.common.error(error: e.toString()),
-                  );
-                } finally {
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                }
-              },
-              child: Text(formT.pickConfig),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        formT.configActive,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            Expanded(
+              child: ListView(
+                children: [
+                  TextField(
+                    controller: apiKeyController,
+                    decoration: InputDecoration(labelText: formT.apiKey),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: appIdController,
+                    decoration: InputDecoration(labelText: formT.appId),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: messagingSenderIdController,
+                    decoration: InputDecoration(
+                      labelText: formT.messagingSenderId,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: projectIdController,
+                    decoration: InputDecoration(labelText: formT.projectId),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: storageBucketController,
+                    decoration: InputDecoration(
+                      labelText: formT.storageBucket,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: cloudRunHashController,
+                    decoration: InputDecoration(
+                      labelText: formT.cloudRunHash,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: cloudRunRegionCodeController,
+                    decoration: InputDecoration(
+                      labelText: formT.cloudRunRegionCode,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: isSaving.value
+                    ? null
+                    : () async {
+                        if (apiKeyController.text.isEmpty ||
+                            appIdController.text.isEmpty ||
+                            projectIdController.text.isEmpty) {
+                          context.showSnackBarMessage(
+                            t.common.error(
+                              error: 'API Key, App ID, Project ID are required',
+                            ),
+                          );
+                          return;
+                        }
+                        isSaving.value = true;
+                        try {
+                          final config = SelfHostedConfig(
+                            apiKey: apiKeyController.text,
+                            appId: appIdController.text,
+                            messagingSenderId: messagingSenderIdController.text,
+                            projectId: projectIdController.text,
+                            storageBucket: storageBucketController.text,
+                            cloudRunHash: cloudRunHashController.text,
+                            cloudRunRegionCode:
+                                cloudRunRegionCodeController.text.isNotEmpty
+                                ? cloudRunRegionCodeController.text
+                                : 'an',
+                          );
+                          await saveSelfHostedConfig(config);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
+                          context.showSnackBarMessage(formT.configSaved);
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(
+                            t.common.error(error: e.toString()),
+                          );
+                        } finally {
+                          isSaving.value = false;
+                        }
+                      },
+                child: Text(formT.pickConfig),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

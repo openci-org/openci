@@ -437,6 +437,15 @@ class TranslationsSettingsEn {
 	/// en: 'Reset to OpenCI Cloud'
 	String get resetToCloud => 'Reset to OpenCI Cloud';
 
+	/// en: 'Configuration cleared. Please restart the app.'
+	String get resetToCloudSuccess => 'Configuration cleared. Please restart the app.';
+
+	/// en: 'Self-hosted Firebase'
+	String get selfHostedActive => 'Self-hosted Firebase';
+
+	/// en: 'Project: $projectId'
+	String selfHostedProject({required Object projectId}) => 'Project: ${projectId}';
+
 	/// en: 'Invite Team Member'
 	String get inviteTeamMember => 'Invite Team Member';
 
@@ -1052,8 +1061,20 @@ class TranslationsAuthFirebaseFormEn {
 	/// en: 'Storage Bucket'
 	String get storageBucket => 'Storage Bucket';
 
-	/// en: 'Pick Firebase config'
-	String get pickConfig => 'Pick Firebase config';
+	/// en: 'Save configuration'
+	String get pickConfig => 'Save configuration';
+
+	/// en: 'Cloud Run Hash'
+	String get cloudRunHash => 'Cloud Run Hash';
+
+	/// en: 'Cloud Run Region Code'
+	String get cloudRunRegionCode => 'Cloud Run Region Code';
+
+	/// en: 'Configuration saved. Please restart the app to apply.'
+	String get configSaved => 'Configuration saved. Please restart the app to apply.';
+
+	/// en: 'Custom Firebase project is configured. Restart to apply.'
+	String get configActive => 'Custom Firebase project is configured. Restart to apply.';
 }
 
 // Path: workflow.editor
@@ -1567,7 +1588,11 @@ extension on Translations {
 			'auth.firebaseForm.messagingSenderId' => 'Messaging Sender ID',
 			'auth.firebaseForm.projectId' => 'Project ID',
 			'auth.firebaseForm.storageBucket' => 'Storage Bucket',
-			'auth.firebaseForm.pickConfig' => 'Pick Firebase config',
+			'auth.firebaseForm.pickConfig' => 'Save configuration',
+			'auth.firebaseForm.cloudRunHash' => 'Cloud Run Hash',
+			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Run Region Code',
+			'auth.firebaseForm.configSaved' => 'Configuration saved. Please restart the app to apply.',
+			'auth.firebaseForm.configActive' => 'Custom Firebase project is configured. Restart to apply.',
 			'workflow.title' => 'Workflows',
 			'workflow.tabWorkflows' => 'Workflows',
 			'workflow.tabRuns' => 'Runs',
@@ -1700,6 +1725,9 @@ extension on Translations {
 			'settings.manageSubscription' => 'Manage your subscription plan',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebase App Name: ${name}',
 			'settings.resetToCloud' => 'Reset to OpenCI Cloud',
+			'settings.resetToCloudSuccess' => 'Configuration cleared. Please restart the app.',
+			'settings.selfHostedActive' => 'Self-hosted Firebase',
+			'settings.selfHostedProject' => ({required Object projectId}) => 'Project: ${projectId}',
 			'settings.inviteTeamMember' => 'Invite Team Member',
 			'settings.appVersion' => 'App Version',
 			'settings.logout' => 'Logout',

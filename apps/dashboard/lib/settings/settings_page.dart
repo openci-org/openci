@@ -1,6 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_info.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
@@ -25,7 +25,7 @@ class SettingsPage extends HookConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDeleting = useState(false);
-    final auth = ref.watch(authProvider.notifier);
+
     final settingsT = t.settings;
 
     return Scaffold(
@@ -107,16 +107,7 @@ class SettingsPage extends HookConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            settingsT.firebaseAppName(
-                              name: auth.getFirebaseAuth().app.name,
-                            ),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.6,
-                              ),
-                            ),
-                          ),
+                          _SelfHostedIndicator(),
                           const SizedBox(height: 32),
                           SizedBox(
                             width: double.infinity,
@@ -124,10 +115,9 @@ class SettingsPage extends HookConsumerWidget {
                               onPressed: () async {
                                 try {
                                   await logoutRevenueCat();
-                                  await auth.getFirebaseAuth().signOut();
+                                  await FirebaseAuth.instance.signOut();
                                   ref.invalidate(notificationServiceProvider);
                                   ref.invalidate(authProvider);
-                                  ref.invalidate(firestoreProvider);
                                   if (!context.mounted) return;
                                   context.showSnackBarMessage(
                                     settingsT.logoutSuccess,
@@ -163,6 +153,112 @@ class SettingsPage extends HookConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _SelfHostedIndicator extends StatelessWidget {
+  const _SelfHostedIndicator();
+
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final settingsT = t.settings;
+
+    return FutureBuilder<SelfHostedConfig?>(
+      future: loadSelfHostedConfig(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+
+        final config = snapshot.data;
+        if (config != null) {
+          // Self-hosted config is saved in SharedPreferences
+          return Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_outlined,
+                      size: 18,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            settingsT.selfHostedActive,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            settingsT.selfHostedProject(
+                              projectId: config.projectId,
+                            ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(
+                      color: colorScheme.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  onPressed: () async {
+                    await clearSelfHostedConfig();
+                    if (!context.mounted) return;
+                    context.showSnackBarMessage(
+                      settingsT.resetToCloudSuccess,
+                    );
+                  },
+                  child: Text(settingsT.resetToCloud),
+                ),
+              ),
+            ],
+          );
+        }
+
+        // Default: show normal app name
+        return Text(
+          settingsT.firebaseAppName(
+            name: FirebaseAuth.instance.app.name,
+          ),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
+        );
+      },
     );
   }
 }

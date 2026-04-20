@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/initial_workflow_setup_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -19,7 +19,7 @@ Future<List<String>> directories(Ref ref) async {
 
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
-  final functions = ref.watch(functionsProvider);
+  final functions = FirebaseFunctions.instance;
 
   final result = await functions
       .httpsCallableFromUrl(dartFunctionUrl('list-directories'))

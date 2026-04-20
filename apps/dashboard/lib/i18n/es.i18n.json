@@ -45,7 +45,11 @@
       "messagingSenderId": "ID de remitente de mensajes",
       "projectId": "ID de proyecto",
       "storageBucket": "Depósito de almacenamiento",
-      "pickConfig": "Seleccionar configuración de Firebase"
+      "pickConfig": "Guardar configuración",
+      "cloudRunHash": "Cloud Run Hash",
+      "cloudRunRegionCode": "Código de región Cloud Run",
+      "configSaved": "Configuración guardada. Por favor, reinicia la app.",
+      "configActive": "Proyecto Firebase personalizado configurado. Reinicia para aplicar."
     }
   },
   "workflow": {
@@ -199,6 +203,9 @@
     "manageSubscription": "Gestionar tu plan de suscripción",
     "firebaseAppName": "Nombre de la app Firebase: $name",
     "resetToCloud": "Restablecer a OpenCI Cloud",
+    "resetToCloudSuccess": "Configuración eliminada. Por favor, reinicia la app.",
+    "selfHostedActive": "Firebase autoalojado",
+    "selfHostedProject": "Proyecto: $projectId",
     "inviteTeamMember": "Invitar miembro al equipo",
     "appVersion": "Versión de la app",
     "logout": "Cerrar sesión",

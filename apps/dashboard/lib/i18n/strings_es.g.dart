@@ -242,6 +242,9 @@ class _TranslationsSettingsEs implements TranslationsSettingsEn {
 	@override String get manageSubscription => 'Gestionar tu plan de suscripción';
 	@override String firebaseAppName({required Object name}) => 'Nombre de la app Firebase: ${name}';
 	@override String get resetToCloud => 'Restablecer a OpenCI Cloud';
+	@override String get resetToCloudSuccess => 'Configuración eliminada. Por favor, reinicia la app.';
+	@override String get selfHostedActive => 'Firebase autoalojado';
+	@override String selfHostedProject({required Object projectId}) => 'Proyecto: ${projectId}';
 	@override String get inviteTeamMember => 'Invitar miembro al equipo';
 	@override String get appVersion => 'Versión de la app';
 	@override String get logout => 'Cerrar sesión';
@@ -493,7 +496,11 @@ class _TranslationsAuthFirebaseFormEs implements TranslationsAuthFirebaseFormEn 
 	@override String get messagingSenderId => 'ID de remitente de mensajes';
 	@override String get projectId => 'ID de proyecto';
 	@override String get storageBucket => 'Depósito de almacenamiento';
-	@override String get pickConfig => 'Seleccionar configuración de Firebase';
+	@override String get pickConfig => 'Guardar configuración';
+	@override String get cloudRunHash => 'Cloud Run Hash';
+	@override String get cloudRunRegionCode => 'Código de región Cloud Run';
+	@override String get configSaved => 'Configuración guardada. Por favor, reinicia la app.';
+	@override String get configActive => 'Proyecto Firebase personalizado configurado. Reinicia para aplicar.';
 }
 
 // Path: workflow.editor
@@ -763,7 +770,11 @@ extension on TranslationsEs {
 			'auth.firebaseForm.messagingSenderId' => 'ID de remitente de mensajes',
 			'auth.firebaseForm.projectId' => 'ID de proyecto',
 			'auth.firebaseForm.storageBucket' => 'Depósito de almacenamiento',
-			'auth.firebaseForm.pickConfig' => 'Seleccionar configuración de Firebase',
+			'auth.firebaseForm.pickConfig' => 'Guardar configuración',
+			'auth.firebaseForm.cloudRunHash' => 'Cloud Run Hash',
+			'auth.firebaseForm.cloudRunRegionCode' => 'Código de región Cloud Run',
+			'auth.firebaseForm.configSaved' => 'Configuración guardada. Por favor, reinicia la app.',
+			'auth.firebaseForm.configActive' => 'Proyecto Firebase personalizado configurado. Reinicia para aplicar.',
 			'workflow.title' => 'Flujos de trabajo',
 			'workflow.tabWorkflows' => 'Flujos de trabajo',
 			'workflow.tabRuns' => 'Ejecuciones',
@@ -896,6 +907,9 @@ extension on TranslationsEs {
 			'settings.manageSubscription' => 'Gestionar tu plan de suscripción',
 			'settings.firebaseAppName' => ({required Object name}) => 'Nombre de la app Firebase: ${name}',
 			'settings.resetToCloud' => 'Restablecer a OpenCI Cloud',
+			'settings.resetToCloudSuccess' => 'Configuración eliminada. Por favor, reinicia la app.',
+			'settings.selfHostedActive' => 'Firebase autoalojado',
+			'settings.selfHostedProject' => ({required Object projectId}) => 'Proyecto: ${projectId}',
 			'settings.inviteTeamMember' => 'Invitar miembro al equipo',
 			'settings.appVersion' => 'Versión de la app',
 			'settings.logout' => 'Cerrar sesión',

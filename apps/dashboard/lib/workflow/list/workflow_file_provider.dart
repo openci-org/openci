@@ -1,7 +1,7 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -39,8 +39,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
     return Stream.value([]);
   }
 
-  return ref
-      .read(firestoreProvider)
+  return FirebaseFirestore.instance
       .collection(workflowFilesCollection)
       .where('teamId', isEqualTo: team.id)
       .where('repository', isEqualTo: selectedRepo)
@@ -69,7 +68,7 @@ Future<void> syncWorkflowFiles(Ref ref) async {
     throw StateError('team or user is not loaded yet');
   }
 
-  final functions = ref.read(functionsProvider);
+  final functions = FirebaseFunctions.instance;
 
   final selectedRepo = user.selectedRepository;
   final selectedBranch = user.selectedBranch;
@@ -118,8 +117,7 @@ Future<void> toggleWorkflowEnabled(
     fileName,
   );
 
-  await ref
-      .read(firestoreProvider)
+  await FirebaseFirestore.instance
       .collection(workflowFilesCollection)
       .doc(docId)
       .update({'enabled': enabled});
