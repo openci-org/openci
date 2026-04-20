@@ -160,8 +160,11 @@ Future<bool> processJob(
       runId,
       'Cloning repository $owner/$repo...',
     );
+    final githubHost = buildJob.githubBaseUrl != null
+        ? Uri.parse(buildJob.githubBaseUrl!).host
+        : 'github.com';
     final cloneUrl =
-        'https://x-access-token:$token@github.com/$owner/$repo.git';
+        'https://x-access-token:$token@$githubHost/$owner/$repo.git';
 
     await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
 

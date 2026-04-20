@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../secret_manager.dart' show accessSecret;
 import '../util/logger.dart';
+import 'github_urls.dart';
 
 /// Creates a JWT for GitHub App authentication.
 String createGitHubAppJwt(String appId, String privateKey) {
@@ -19,7 +20,10 @@ String createGitHubAppJwt(String appId, String privateKey) {
 }
 
 /// Gets a fresh installation access token for the given installation ID.
-Future<Map<String, dynamic>> getInstallationToken(int installationId) async {
+Future<Map<String, dynamic>> getInstallationToken(
+  int installationId, {
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
+}) async {
   final appId = await accessSecret('GITHUB_APP_ID');
   final privateKey = await accessSecret('GITHUB_PRIVATE_KEY');
   final jwt = createGitHubAppJwt(appId, privateKey);
@@ -27,7 +31,7 @@ Future<Map<String, dynamic>> getInstallationToken(int installationId) async {
   final dio = Dio();
   try {
     final response = await dio.post<Map<String, dynamic>>(
-      'https://api.github.com/app/installations/$installationId/access_tokens',
+      '$apiBaseUrl/app/installations/$installationId/access_tokens',
       options: Options(
         headers: {
           'Authorization': 'Bearer $jwt',
@@ -53,11 +57,12 @@ Future<int?> createCheckRun({
   required String headSha,
   required String status,
   required String detailsUrl,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final dio = Dio();
   try {
     final response = await dio.post<Map<String, dynamic>>(
-      'https://api.github.com/repos/$owner/$repo/check-runs',
+      '$apiBaseUrl/repos/$owner/$repo/check-runs',
       data: {
         'name': name,
         'head_sha': headSha,
@@ -86,11 +91,12 @@ Future<Map<String, dynamic>> githubGet(
   String path,
   String token, {
   Map<String, dynamic>? queryParameters,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final dio = Dio();
   try {
     final response = await dio.get<Map<String, dynamic>>(
-      'https://api.github.com$path',
+      '$apiBaseUrl$path',
       queryParameters: queryParameters,
       options: Options(
         headers: {
@@ -110,11 +116,12 @@ Future<Map<String, dynamic>> githubPost(
   String path,
   String token, {
   Object? data,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final dio = Dio();
   try {
     final response = await dio.post<Map<String, dynamic>>(
-      'https://api.github.com$path',
+      '$apiBaseUrl$path',
       data: data,
       options: Options(
         headers: {
@@ -134,11 +141,12 @@ Future<Map<String, dynamic>> githubPatch(
   String path,
   String token, {
   Object? data,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final dio = Dio();
   try {
     final response = await dio.patch<Map<String, dynamic>>(
-      'https://api.github.com$path',
+      '$apiBaseUrl$path',
       data: data,
       options: Options(
         headers: {
@@ -158,11 +166,12 @@ Future<Map<String, dynamic>> githubPut(
   String path,
   String token, {
   Object? data,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final dio = Dio();
   try {
     final response = await dio.put<Map<String, dynamic>>(
-      'https://api.github.com$path',
+      '$apiBaseUrl$path',
       data: data,
       options: Options(
         headers: {
@@ -182,11 +191,12 @@ Future<Map<String, dynamic>> githubGraphql(
   String query,
   String token, {
   Map<String, dynamic>? variables,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final dio = Dio();
   try {
     final response = await dio.post<Map<String, dynamic>>(
-      'https://api.github.com/graphql',
+      graphqlEndpoint(apiBaseUrl),
       data: {'query': query, 'variables': ?variables},
       options: Options(
         headers: {

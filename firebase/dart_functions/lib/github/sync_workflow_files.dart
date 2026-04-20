@@ -1,6 +1,7 @@
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 
 import '../firebase.dart';
+import '../util/github_urls.dart';
 import '../util/logger.dart';
 import 'graphql_queries.dart';
 import 'installation_token.dart';
@@ -23,8 +24,13 @@ Future<void> syncWorkflowFiles({
     return;
   }
 
-  final (:token, expiresAt: _) = await getInstallationToken(installationId);
-  final dio = createGitHubDio(token);
+  final apiBaseUrl = await getGitHubApiBaseUrl(teamId);
+
+  final (:token, expiresAt: _) = await getInstallationToken(
+    installationId,
+    apiBaseUrl: apiBaseUrl,
+  );
+  final dio = createGitHubDio(token, apiBaseUrl: apiBaseUrl);
 
   try {
     final [owner, repo] = repository.split('/');
@@ -34,7 +40,7 @@ Future<void> syncWorkflowFiles({
     List<OpenciDirEntry> entries;
     try {
       final response = await dio.post(
-        'https://api.github.com/graphql',
+        graphqlEndpoint(apiBaseUrl),
         data: {
           'query': openciDirQuery,
           'variables': {'owner': owner, 'repo': repo, 'expression': expression},

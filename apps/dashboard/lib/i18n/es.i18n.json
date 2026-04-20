@@ -198,6 +198,7 @@
     "subscription": "Suscripción",
     "manageSubscription": "Gestionar tu plan de suscripción",
     "firebaseAppName": "Nombre de la app Firebase: $name",
+    "resetToCloud": "Restablecer a OpenCI Cloud",
     "inviteTeamMember": "Invitar miembro al equipo",
     "appVersion": "Versión de la app",
     "logout": "Cerrar sesión",

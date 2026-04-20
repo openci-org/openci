@@ -198,6 +198,7 @@
     "subscription": "サブスクリプション",
     "manageSubscription": "サブスクリプションプランを管理",
     "firebaseAppName": "Firebaseアプリ名: $name",
+    "resetToCloud": "OpenCI Cloudにリセット",
     "inviteTeamMember": "チームメンバーを招待",
     "appVersion": "アプリバージョン",
     "logout": "ログアウト",

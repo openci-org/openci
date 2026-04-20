@@ -4,6 +4,7 @@ import 'package:openci_shared/firestore_paths.dart';
 
 import '../firebase.dart';
 import '../util/github_app.dart';
+import '../util/github_urls.dart';
 import '../util/logger.dart';
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,8 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
   final repo = jobData['repo'] as String;
   final installationToken = jobData['installationToken'] as String;
   final detailsUrl = buildDashboardRunUrl(buildJobId);
+  final apiBaseUrl = (jobData['githubApiBaseUrl'] as String?) ??
+      defaultGitHubApiBaseUrl;
 
   // Determine GitHub check run status & conclusion
   String ghStatus;
@@ -98,7 +101,7 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
     final dio = Dio();
     try {
       final url =
-          'https://api.github.com/repos/$owner/$repo/check-runs/$checkRunId';
+          '$apiBaseUrl/repos/$owner/$repo/check-runs/$checkRunId';
       final body = <String, dynamic>{
         'status': ghStatus,
         'conclusion': ?ghConclusion,

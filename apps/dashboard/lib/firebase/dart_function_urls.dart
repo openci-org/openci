@@ -1,22 +1,37 @@
-/// URL builder for Dart Firebase Functions deployed as Cloud Run services.
-///
-/// Dart functions use `httpsCallableFromUrl` instead of `httpsCallable`
-/// because name-based lookup is not supported for Dart-based functions.
-/// See: https://github.com/firebase/firebase-functions-dart#note
-///
-/// The Cloud Run URL pattern is:
-///   https://{service-name}-{project-hash}-{region-code}.a.run.app
+import 'package:dashboard/firebase/firebase_config_provider.dart';
+
+/// Default values for the official OpenCI Cloud project.
 ///
 /// Confirmed via:
 ///   gcloud run services list --region asia-northeast1 --project openci-b1b91
-const _projectHash = 'zmg24bcsaq';
-const _regionCode = 'an'; // asia-northeast1
+const _defaultProjectHash = 'zmg24bcsaq';
+const _defaultRegionCode = 'an'; // asia-northeast1
+
+/// Cached self-hosted config loaded once at startup.
+SelfHostedConfig? _cachedSelfHostedConfig;
+
+/// Call this once from [main] after loading the self-hosted config.
+void initDartFunctionUrls(SelfHostedConfig? selfHostedConfig) {
+  _cachedSelfHostedConfig = selfHostedConfig;
+}
 
 /// Returns the Cloud Run HTTPS URL for a Dart Firebase Function.
+///
+/// When running against a self-hosted project, the project hash and region
+/// code are taken from the persisted [SelfHostedConfig].
+/// Otherwise the official OpenCI Cloud defaults are used.
 ///
 /// [serviceName] is the kebab-case name as shown in `gcloud run services list`.
 /// Example: `dartFunctionUrl('asc-list-apps')`
 ///   → `https://asc-list-apps-zmg24bcsaq-an.a.run.app`
 String dartFunctionUrl(String serviceName) {
-  return 'https://$serviceName-$_projectHash-$_regionCode.a.run.app';
+  final hash =
+      _cachedSelfHostedConfig?.cloudRunHash.isNotEmpty == true
+          ? _cachedSelfHostedConfig!.cloudRunHash
+          : _defaultProjectHash;
+  final region =
+      _cachedSelfHostedConfig?.cloudRunRegionCode.isNotEmpty == true
+          ? _cachedSelfHostedConfig!.cloudRunRegionCode
+          : _defaultRegionCode;
+  return 'https://$serviceName-$hash-$region.a.run.app';
 }

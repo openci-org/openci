@@ -434,6 +434,9 @@ class TranslationsSettingsEn {
 	/// en: 'Firebase App Name: $name'
 	String firebaseAppName({required Object name}) => 'Firebase App Name: ${name}';
 
+	/// en: 'Reset to OpenCI Cloud'
+	String get resetToCloud => 'Reset to OpenCI Cloud';
+
 	/// en: 'Invite Team Member'
 	String get inviteTeamMember => 'Invite Team Member';
 
@@ -1696,6 +1699,7 @@ extension on Translations {
 			'settings.subscription' => 'Subscription',
 			'settings.manageSubscription' => 'Manage your subscription plan',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebase App Name: ${name}',
+			'settings.resetToCloud' => 'Reset to OpenCI Cloud',
 			'settings.inviteTeamMember' => 'Invite Team Member',
 			'settings.appVersion' => 'App Version',
 			'settings.logout' => 'Logout',

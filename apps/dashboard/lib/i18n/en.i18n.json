@@ -198,6 +198,7 @@
     "subscription": "Subscription",
     "manageSubscription": "Manage your subscription plan",
     "firebaseAppName": "Firebase App Name: $name",
+    "resetToCloud": "Reset to OpenCI Cloud",
     "inviteTeamMember": "Invite Team Member",
     "appVersion": "App Version",
     "logout": "Logout",

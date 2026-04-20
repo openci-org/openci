@@ -241,6 +241,7 @@ class _TranslationsSettingsJa implements TranslationsSettingsEn {
 	@override String get subscription => 'サブスクリプション';
 	@override String get manageSubscription => 'サブスクリプションプランを管理';
 	@override String firebaseAppName({required Object name}) => 'Firebaseアプリ名: ${name}';
+	@override String get resetToCloud => 'OpenCI Cloudにリセット';
 	@override String get inviteTeamMember => 'チームメンバーを招待';
 	@override String get appVersion => 'アプリバージョン';
 	@override String get logout => 'ログアウト';
@@ -894,6 +895,7 @@ extension on TranslationsJa {
 			'settings.subscription' => 'サブスクリプション',
 			'settings.manageSubscription' => 'サブスクリプションプランを管理',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebaseアプリ名: ${name}',
+			'settings.resetToCloud' => 'OpenCI Cloudにリセット',
 			'settings.inviteTeamMember' => 'チームメンバーを招待',
 			'settings.appVersion' => 'アプリバージョン',
 			'settings.logout' => 'ログアウト',

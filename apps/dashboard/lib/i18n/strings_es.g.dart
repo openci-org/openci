@@ -241,6 +241,7 @@ class _TranslationsSettingsEs implements TranslationsSettingsEn {
 	@override String get subscription => 'Suscripción';
 	@override String get manageSubscription => 'Gestionar tu plan de suscripción';
 	@override String firebaseAppName({required Object name}) => 'Nombre de la app Firebase: ${name}';
+	@override String get resetToCloud => 'Restablecer a OpenCI Cloud';
 	@override String get inviteTeamMember => 'Invitar miembro al equipo';
 	@override String get appVersion => 'Versión de la app';
 	@override String get logout => 'Cerrar sesión';
@@ -894,6 +895,7 @@ extension on TranslationsEs {
 			'settings.subscription' => 'Suscripción',
 			'settings.manageSubscription' => 'Gestionar tu plan de suscripción',
 			'settings.firebaseAppName' => ({required Object name}) => 'Nombre de la app Firebase: ${name}',
+			'settings.resetToCloud' => 'Restablecer a OpenCI Cloud',
 			'settings.inviteTeamMember' => 'Invitar miembro al equipo',
 			'settings.appVersion' => 'Versión de la app',
 			'settings.logout' => 'Cerrar sesión',
