@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.16
+- Fix: update `openci_shared` dependency to 0.1.1 for `githubBaseUrl` / `githubApiBaseUrl` fields (GitHub Enterprise support)
+
 ## 0.9.15
 - Fix poison queue: automatically mark jobs with missing `runsOn` as failure instead of silently skipping them, preventing queue blockage
 
