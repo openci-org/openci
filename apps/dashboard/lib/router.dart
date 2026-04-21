@@ -62,10 +62,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
-      final authState = ref.read(authProvider);
-      if (authState.isLoading) return null;
-
-      final isAuthed = authState.asData?.value != null;
+      final isAuthed = FirebaseAuth.instance.currentUser != null;
       final onAuthRoute = state.matchedLocation == '/auth';
       final requestedLocation = state.uri.toString();
       final redirectTarget = state.uri.queryParameters['from'];

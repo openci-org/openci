@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,3 +54,8 @@ Future<void> clearSelfHostedConfig() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove(_prefKey);
 }
+
+/// Riverpod provider to expose the self-hosted config to UI widgets.
+final selfHostedConfigProvider = FutureProvider<SelfHostedConfig?>((ref) {
+  return loadSelfHostedConfig();
+});

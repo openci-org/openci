@@ -31,12 +31,25 @@ Future<void> main() async {
   await LocaleSettings.useDeviceLocale();
 
   final selfHosted = await loadSelfHostedConfig();
-  if (selfHosted != null) {
-    await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+
+  // Initialize Firebase. GoogleService-Info.plist is intentionally removed
+  // from the macOS bundle so that Dart always controls which project is used.
+  try {
+    if (selfHosted != null) {
+      debugPrint(
+        '[OpenCI] Using self-hosted Firebase: ${selfHosted.projectId}',
+      );
+      await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
+    } else {
+      debugPrint('[OpenCI] Using default Firebase config');
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } on FirebaseException catch (e) {
+    // Ignore duplicate-app on hot restart.
+    if (e.code != 'duplicate-app') rethrow;
+    debugPrint('[OpenCI] Firebase already initialized (hot restart)');
   }
 
   initDartFunctionUrls(selfHosted);

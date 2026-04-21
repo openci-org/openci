@@ -1,12 +1,18 @@
+
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -36,285 +42,383 @@ class AuthPage extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final tapGestureRecognizer = useMemoized(() => TapGestureRecognizer());
     final isLoading = useState(false);
+    final obscurePassword = useState(true);
 
     final firestore = FirebaseFirestore.instance;
     final authT = t.auth;
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Check if a self-hosted Firebase config is active
+    final configFuture = useMemoized(() => loadSelfHostedConfig());
+    final configSnapshot = useFuture(configFuture);
+
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       body: Stack(
         children: [
           Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Form(
-                key: formKey,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // ── Branded header ──
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                colorScheme.primary,
-                                colorScheme.primary.withValues(alpha: 0.7),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 380),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // ── Branded logo ──
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  colorScheme.primary,
+                                  colorScheme.primary.withValues(alpha: 0.6),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary
+                                      .withValues(alpha: 0.25),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'CI',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: colorScheme.onPrimary,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'OpenCI',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: -0.5,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Sign in to your account',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        const SizedBox(height: 36),
-
-                        // ── Form fields ──
-                        TextFormField(
-                          controller: emailController,
-                          decoration: InputDecoration(
-                            labelText: authT.email,
-                            prefixIcon: Icon(
-                              Icons.email_outlined,
-                              size: 20,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return authT.enterEmail;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: passwordController,
-                          decoration: InputDecoration(
-                            labelText: authT.password,
-                            prefixIcon: Icon(
-                              Icons.lock_outline,
-                              size: 20,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return authT.enterPassword;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // ── Terms checkbox ──
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 8.0,
-                          children: [
-                            Checkbox(
-                              value: isAgreed.value,
-                              onChanged: (value) {
-                                isAgreed.value = value!;
-                              },
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            Flexible(
-                              child: Text.rich(
-                                TextSpan(
-                                  text: authT.agreePrefix,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                  children: [
-                                    TextSpan(
-                                      text: authT.termsOfService,
-                                      style: TextStyle(
-                                        color: colorScheme.primary,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: colorScheme.primary
-                                            .withValues(alpha: 0.4),
-                                      ),
-                                      recognizer: tapGestureRecognizer
-                                        ..onTap = () {
-                                          launchUrl(
-                                            Uri.parse(
-                                              'https://openci.org/terms-of-service',
-                                            ),
-                                          );
-                                        },
-                                    ),
-                                  ],
+                            child: const Center(
+                              child: Text(
+                                'CI',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
                                 ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'OpenCI',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Sign in to your account',
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Colors.white.withValues(alpha: 0.5),
+                                    ),
+                          ),
+
+                          // ── Self-hosted config indicator ──
+                          if (configSnapshot.data != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.green.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 13,
+                                    color:
+                                        Colors.green.withValues(alpha: 0.8),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    configSnapshot.data!.projectId,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color:
+                                          Colors.green.withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 24),
 
-                        // ── Primary action: Login ──
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: (isAgreed.value && !isLoading.value)
-                                ? () async {
-                                    if (formKey.currentState!.validate()) {
-                                      isLoading.value = true;
-                                      try {
-                                        await FirebaseAuth.instance
-                                            .signInWithEmailAndPassword(
-                                              email: emailController.text,
-                                              password: passwordController.text,
-                                            );
-                                        ref.invalidate(authProvider);
-                                        // Process pending invitations (fire-and-forget)
-                                        _processInvitations();
-                                      } catch (e) {
-                                        if (!context.mounted) return;
-                                        debugPrint(e.toString());
-                                        context.showSnackBarMessage(
-                                          t.common.error(
-                                            error: e.toString(),
-                                          ),
-                                        );
-                                      } finally {
-                                        isLoading.value = false;
-                                      }
-                                    }
-                                  }
-                                : null,
-                            child: Text(authT.login),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
+                          const SizedBox(height: 32),
 
-                        // ── Secondary action: Create Account ──
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: (isAgreed.value && !isLoading.value)
-                                ? () async {
-                                    if (formKey.currentState!.validate()) {
-                                      isLoading.value = true;
-                                      try {
-                                        final credential = await FirebaseAuth
-                                            .instance
-                                            .createUserWithEmailAndPassword(
-                                              email: emailController.text,
-                                              password: passwordController.text,
-                                            );
-                                        final userId = credential.user!.uid;
-                                        final db = firestore;
-                                        final teamsRef = db
-                                            .collection(teamsCollection)
-                                            .doc();
-                                        final teamId = teamsRef.id;
-                                        final batch = db.batch();
-                                        batch.set(teamsRef, {
-                                          'id': teamId,
-                                          'name': teamId,
-                                          'members': [userId],
-                                          'createdAt':
-                                              FieldValue.serverTimestamp(),
-                                          'updatedAt':
-                                              FieldValue.serverTimestamp(),
-                                        });
-                                        final userRef = db
-                                            .collection(usersCollection)
-                                            .doc(userId);
-                                        batch.set(userRef, {
-                                          'id': userId,
-                                          'selectedTeamId': teamId,
-                                          'createdAt':
-                                              FieldValue.serverTimestamp(),
-                                          'updatedAt':
-                                              FieldValue.serverTimestamp(),
-                                        });
-                                        await batch.commit();
-                                        ref.invalidate(authProvider);
-                                        // Process pending invitations (fire-and-forget)
-                                        _processInvitations();
-                                      } catch (e) {
-                                        if (!context.mounted) return;
-                                        debugPrint(e.toString());
-                                        context.showSnackBarMessage(
-                                          t.common.error(
-                                            error: e.toString(),
-                                          ),
-                                        );
-                                      } finally {
-                                        if (context.mounted) {
-                                          isLoading.value = false;
-                                        }
-                                      }
-                                    }
-                                  }
-                                : null,
-                            child: Text(authT.createAccount),
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // ── Tertiary actions ──
-                        Divider(
-                          color: colorScheme.outlineVariant.withValues(
-                            alpha: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Advanced',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.6,
-                                ),
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
+                          // ── Form card ──
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF141414),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.08),
                               ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton(
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // ── Email field ──
+                                TextFormField(
+                                  controller: emailController,
+                                  decoration: InputDecoration(
+                                    labelText: authT.email,
+                                    prefixIcon: Icon(
+                                      Icons.email_outlined,
+                                      size: 18,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return authT.enterEmail;
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                // ── Password field ──
+                                TextFormField(
+                                  controller: passwordController,
+                                  decoration: InputDecoration(
+                                    labelText: authT.password,
+                                    prefixIcon: Icon(
+                                      Icons.lock_outline,
+                                      size: 18,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.4),
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        obscurePassword.value
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        size: 18,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.4),
+                                      ),
+                                      onPressed: () {
+                                        obscurePassword.value =
+                                            !obscurePassword.value;
+                                      },
+                                    ),
+                                  ),
+                                  obscureText: obscurePassword.value,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return authT.enterPassword;
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+
+                                // ── Terms checkbox ──
+                                Row(
+                                  children: [
+                                    Checkbox(
+                                      value: isAgreed.value,
+                                      onChanged: (value) {
+                                        isAgreed.value = value!;
+                                      },
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text.rich(
+                                        TextSpan(
+                                          text: authT.agreePrefix,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.5),
+                                              ),
+                                          children: [
+                                            TextSpan(
+                                              text: authT.termsOfService,
+                                              style: TextStyle(
+                                                color: colorScheme.primary,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                                decorationColor: colorScheme
+                                                    .primary
+                                                    .withValues(alpha: 0.4),
+                                              ),
+                                              recognizer: tapGestureRecognizer
+                                                ..onTap = () {
+                                                  launchUrl(
+                                                    Uri.parse(
+                                                      'https://openci.org/terms-of-service',
+                                                    ),
+                                                  );
+                                                },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+
+                                // ── Primary action: Login ──
+                                FilledButton(
+                                  onPressed:
+                                      (isAgreed.value && !isLoading.value)
+                                          ? () async {
+                                              if (formKey.currentState!
+                                                  .validate()) {
+                                                isLoading.value = true;
+                                                try {
+                                                  await FirebaseAuth.instance
+                                                      .signInWithEmailAndPassword(
+                                                    email:
+                                                        emailController.text,
+                                                    password:
+                                                        passwordController
+                                                            .text,
+                                                  );
+                                                  ref.invalidate(
+                                                      authProvider);
+                                                  // Process pending invitations (fire-and-forget)
+                                                  _processInvitations();
+                                                } catch (e) {
+                                                  if (!context.mounted) {
+                                                    return;
+                                                  }
+                                                  debugPrint(e.toString());
+                                                  context.showSnackBarMessage(
+                                                    t.common.error(
+                                                      error: e.toString(),
+                                                    ),
+                                                  );
+                                                } finally {
+                                                  isLoading.value = false;
+                                                }
+                                              }
+                                            }
+                                          : null,
+                                  child: Text(authT.login),
+                                ),
+                                const SizedBox(height: 10),
+
+                                // ── Secondary action: Create Account ──
+                                OutlinedButton(
+                                  onPressed:
+                                      (isAgreed.value && !isLoading.value)
+                                          ? () async {
+                                              if (formKey.currentState!
+                                                  .validate()) {
+                                                isLoading.value = true;
+                                                try {
+                                                  final credential =
+                                                      await FirebaseAuth
+                                                          .instance
+                                                          .createUserWithEmailAndPassword(
+                                                    email:
+                                                        emailController.text,
+                                                    password:
+                                                        passwordController
+                                                            .text,
+                                                  );
+                                                  final userId =
+                                                      credential.user!.uid;
+                                                  final db = firestore;
+                                                  final teamsRef = db
+                                                      .collection(
+                                                          teamsCollection)
+                                                      .doc();
+                                                  final teamId = teamsRef.id;
+                                                  final batch = db.batch();
+                                                  final now = DateTime.now()
+                                                      .toUtc()
+                                                      .toIso8601String();
+                                                  batch.set(teamsRef, {
+                                                    'id': teamId,
+                                                    'name': teamId,
+                                                    'members': [userId],
+                                                    'createdAt': now,
+                                                    'updatedAt': now,
+                                                  });
+                                                  final userRef = db
+                                                      .collection(
+                                                          usersCollection)
+                                                      .doc(userId);
+                                                  batch.set(userRef, {
+                                                    'id': userId,
+                                                    'selectedTeamId': teamId,
+                                                    'createdAt': now,
+                                                    'updatedAt': now,
+                                                  });
+                                                  await batch.commit();
+                                                  ref.invalidate(
+                                                      authProvider);
+                                                  _processInvitations();
+                                                } catch (e) {
+                                                  if (!context.mounted) {
+                                                    return;
+                                                  }
+                                                  debugPrint(e.toString());
+                                                  context.showSnackBarMessage(
+                                                    t.common.error(
+                                                      error: e.toString(),
+                                                    ),
+                                                  );
+                                                } finally {
+                                                  if (context.mounted) {
+                                                    isLoading.value = false;
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          : null,
+                                  child: Text(authT.createAccount),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // ── Tertiary actions ──
+                          Text(
+                            'Advanced',
+                            style:
+                                Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.3),
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
                             onPressed: () async {
                               await showModalBottomSheet(
                                 isScrollControlled: true,
@@ -326,11 +430,8 @@ class AuthPage extends HookConsumerWidget {
                             },
                             child: Text(authT.useYourFirebase),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton(
+                          const SizedBox(height: 2),
+                          TextButton(
                             style: TextButton.styleFrom(
                               foregroundColor: colorScheme.error,
                             ),
@@ -341,8 +442,8 @@ class AuthPage extends HookConsumerWidget {
                             },
                             child: Text(authT.resetFirebase),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -350,7 +451,10 @@ class AuthPage extends HookConsumerWidget {
             ),
           ),
           if (isLoading.value) ...[
-            const ModalBarrier(dismissible: false, color: Colors.black26),
+            const ModalBarrier(
+              dismissible: false,
+              color: Colors.black54,
+            ),
             const Center(child: CircularProgressIndicator.adaptive()),
           ],
         ],
@@ -363,6 +467,57 @@ class FirebaseFormSheet extends HookConsumerWidget {
   const FirebaseFormSheet({
     super.key,
   });
+
+  /// Tries to parse file content as JSON (google-services.json) and returns
+  /// a [SelfHostedConfig] if successful.
+  static SelfHostedConfig? _parseJson(String content) {
+    try {
+      final map = jsonDecode(content) as Map<String, dynamic>;
+
+      // Web-style firebase config JSON (has apiKey at top-level)
+      if (map.containsKey('apiKey')) {
+        return SelfHostedConfig.fromJson(map);
+      }
+
+      // Android google-services.json style
+      final projectInfo = map['project_info'] as Map<String, dynamic>?;
+      final clients = map['client'] as List<dynamic>?;
+      if (projectInfo != null && clients != null && clients.isNotEmpty) {
+        final client = clients[0] as Map<String, dynamic>;
+        final clientInfo =
+            client['client_info'] as Map<String, dynamic>? ?? {};
+        final apiKeys = client['api_key'] as List<dynamic>? ?? [];
+        final appId =
+            clientInfo['mobilesdk_app_id'] as String? ?? '';
+        final apiKey = apiKeys.isNotEmpty
+            ? (apiKeys[0] as Map<String, dynamic>)['current_key'] as String? ??
+                ''
+            : '';
+        final projectId =
+            projectInfo['project_id'] as String? ?? '';
+        final storageBucket =
+            projectInfo['storage_bucket'] as String? ?? '';
+        final projectNumber =
+            projectInfo['project_number'] as String? ?? '';
+
+        if (apiKey.isEmpty || appId.isEmpty || projectId.isEmpty) {
+          return null;
+        }
+
+        return SelfHostedConfig(
+          apiKey: apiKey,
+          appId: appId,
+          messagingSenderId: projectNumber,
+          projectId: projectId,
+          storageBucket: storageBucket,
+        );
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -380,6 +535,49 @@ class FirebaseFormSheet extends HookConsumerWidget {
     // Check if config is already saved
     final configFuture = useMemoized(() => loadSelfHostedConfig());
     final configSnapshot = useFuture(configFuture);
+
+    void applyConfig(SelfHostedConfig config) {
+      apiKeyController.text = config.apiKey;
+      appIdController.text = config.appId;
+      messagingSenderIdController.text = config.messagingSenderId;
+      projectIdController.text = config.projectId;
+      storageBucketController.text = config.storageBucket;
+    }
+
+    Future<void> pickConfigFile() async {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json', 'plist'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      final bytes = file.bytes;
+      if (bytes == null) return;
+
+      final content = utf8.decode(bytes);
+      final fileName = file.name.toLowerCase();
+
+      SelfHostedConfig? config;
+
+      if (fileName.endsWith('.plist')) {
+        config = parsePlist(content);
+      } else if (fileName.endsWith('.json')) {
+        config = _parseJson(content);
+      }
+
+      if (config != null) {
+        applyConfig(config);
+        if (context.mounted) {
+          context.showSnackBarMessage(formT.fileLoaded);
+        }
+      } else {
+        if (context.mounted) {
+          context.showSnackBarMessage(formT.invalidFile);
+        }
+      }
+    }
 
     return SizedBox(
       width: double.infinity,
@@ -438,6 +636,74 @@ class FirebaseFormSheet extends HookConsumerWidget {
             Expanded(
               child: ListView(
                 children: [
+                  // ── Import from file button ──
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: pickConfigFile,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.3),
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color:
+                                  colorScheme.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.upload_file_rounded,
+                              size: 20,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  formT.importFile,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  formT.importFileHint,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 20,
+                            color: colorScheme.primary.withValues(alpha: 0.6),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: apiKeyController,
                     decoration: InputDecoration(labelText: formT.apiKey),

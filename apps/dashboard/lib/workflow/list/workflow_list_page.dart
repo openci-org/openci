@@ -1,5 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
@@ -260,6 +261,53 @@ class WorkflowListPage extends HookConsumerWidget {
               ],
             ),
             actions: [
+              Consumer(
+                builder: (context, ref, _) {
+                  final configAsync = ref.watch(selfHostedConfigProvider);
+                  return configAsync.maybeWhen(
+                    data: (config) {
+                      if (config == null) return const SizedBox.shrink();
+                      return Tooltip(
+                        message: 'Self-Hosted: ${config.projectId}',
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.cloud_outlined,
+                                size: 14,
+                                color: Colors.amber,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                config.projectId,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    orElse: () => const SizedBox.shrink(),
+                  );
+                },
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: Consumer(
@@ -839,9 +887,10 @@ class _TeamMenuButton extends StatelessWidget {
                               showModalBottomSheet(
                                 showDragHandle: true,
                                 context: context,
-                                builder: (_) => SizedBox(
+                                builder: (sheetContext) => SizedBox(
                                   height:
-                                      MediaQuery.of(context).size.height * 0.6,
+                                      MediaQuery.of(sheetContext).size.height *
+                                      0.6,
                                   child: const InviteTeamMemberBottomSheet(),
                                 ),
                               );
@@ -897,8 +946,10 @@ class _TeamMenuButton extends StatelessWidget {
                             showDragHandle: true,
                             context: context,
                             isScrollControlled: true,
-                            builder: (_) => SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.85,
+                            builder: (sheetContext) => SizedBox(
+                              height:
+                                  MediaQuery.of(sheetContext).size.height *
+                                  0.85,
                               child: const SettingsPage(),
                             ),
                           );

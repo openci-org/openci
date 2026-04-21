@@ -49,7 +49,11 @@
       "cloudRunHash": "Cloud Run Hash",
       "cloudRunRegionCode": "Código de región Cloud Run",
       "configSaved": "Configuración guardada. Por favor, reinicia la app.",
-      "configActive": "Proyecto Firebase personalizado configurado. Reinicia para aplicar."
+      "configActive": "Proyecto Firebase personalizado configurado. Reinicia para aplicar.",
+      "importFile": "Importar desde archivo",
+      "importFileHint": "JSON (google-services.json) o plist (GoogleService-Info.plist)",
+      "invalidFile": "No se pudo analizar el archivo seleccionado. Verifica el formato.",
+      "fileLoaded": "Configuración cargada desde archivo. Revisa y guarda."
     }
   },
   "workflow": {

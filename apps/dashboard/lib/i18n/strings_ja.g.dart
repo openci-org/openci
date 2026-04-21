@@ -501,6 +501,10 @@ class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn 
 	@override String get cloudRunRegionCode => 'Cloud Runリージョンコード';
 	@override String get configSaved => '設定を保存しました。アプリを再起動してください。';
 	@override String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
+	@override String get importFile => 'ファイルから読み込み';
+	@override String get importFileHint => 'JSON (google-services.json) または plist (GoogleService-Info.plist)';
+	@override String get invalidFile => '選択されたファイルを解析できませんでした。形式を確認してください。';
+	@override String get fileLoaded => 'ファイルから設定を読み込みました。内容を確認して保存してください。';
 }
 
 // Path: workflow.editor
@@ -775,6 +779,10 @@ extension on TranslationsJa {
 			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Runリージョンコード',
 			'auth.firebaseForm.configSaved' => '設定を保存しました。アプリを再起動してください。',
 			'auth.firebaseForm.configActive' => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。',
+			'auth.firebaseForm.importFile' => 'ファイルから読み込み',
+			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) または plist (GoogleService-Info.plist)',
+			'auth.firebaseForm.invalidFile' => '選択されたファイルを解析できませんでした。形式を確認してください。',
+			'auth.firebaseForm.fileLoaded' => 'ファイルから設定を読み込みました。内容を確認して保存してください。',
 			'workflow.title' => 'ワークフロー',
 			'workflow.tabWorkflows' => 'ワークフロー',
 			'workflow.tabRuns' => '実行履歴',

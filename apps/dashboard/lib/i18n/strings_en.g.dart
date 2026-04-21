@@ -1075,6 +1075,18 @@ class TranslationsAuthFirebaseFormEn {
 
 	/// en: 'Custom Firebase project is configured. Restart to apply.'
 	String get configActive => 'Custom Firebase project is configured. Restart to apply.';
+
+	/// en: 'Import from file'
+	String get importFile => 'Import from file';
+
+	/// en: 'JSON (google-services.json) or plist (GoogleService-Info.plist)'
+	String get importFileHint => 'JSON (google-services.json) or plist (GoogleService-Info.plist)';
+
+	/// en: 'Could not parse the selected file. Please check the format.'
+	String get invalidFile => 'Could not parse the selected file. Please check the format.';
+
+	/// en: 'Config loaded from file. Review and save.'
+	String get fileLoaded => 'Config loaded from file. Review and save.';
 }
 
 // Path: workflow.editor
@@ -1593,6 +1605,10 @@ extension on Translations {
 			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Run Region Code',
 			'auth.firebaseForm.configSaved' => 'Configuration saved. Please restart the app to apply.',
 			'auth.firebaseForm.configActive' => 'Custom Firebase project is configured. Restart to apply.',
+			'auth.firebaseForm.importFile' => 'Import from file',
+			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) or plist (GoogleService-Info.plist)',
+			'auth.firebaseForm.invalidFile' => 'Could not parse the selected file. Please check the format.',
+			'auth.firebaseForm.fileLoaded' => 'Config loaded from file. Review and save.',
 			'workflow.title' => 'Workflows',
 			'workflow.tabWorkflows' => 'Workflows',
 			'workflow.tabRuns' => 'Runs',
