@@ -697,34 +697,28 @@ class _TeamMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
-      customBorder: const CircleBorder(),
+      customBorder: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
       onTap: () => _showTeamMenu(context),
-      child: Ink(
-        width: 40,
-        height: 40,
+      child: Container(
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.15),
-              colorScheme.tertiary.withValues(alpha: 0.15),
-            ],
-          ),
+          borderRadius: BorderRadius.circular(10),
+          color: const Color(0xFF1A1A1A),
           border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.3),
-            width: 1.5,
+            color: Colors.white.withValues(alpha: 0.1),
           ),
         ),
         child: Center(
           child: Text(
             initials,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
               color: colorScheme.primary,
-              letterSpacing: 0.5,
+              letterSpacing: 0.3,
             ),
           ),
         ),
@@ -733,12 +727,11 @@ class _TeamMenuButton extends StatelessWidget {
   }
 
   void _showTeamMenu(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     showDialog(
       context: context,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (dialogContext) => Stack(
         children: [
           // Dismiss barrier
@@ -749,80 +742,74 @@ class _TeamMenuButton extends StatelessWidget {
               child: const SizedBox.expand(),
             ),
           ),
-          // Menu popup
+          // Menu popup — dark surface, inset ring, no shadow
           Positioned(
             top: kToolbarHeight + MediaQuery.of(context).padding.top + 4,
             right: 8,
             child: Material(
-              elevation: 8,
-              shadowColor: colorScheme.shadow.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
+              elevation: 0,
+              borderRadius: BorderRadius.circular(14),
               clipBehavior: Clip.antiAlias,
-              color: colorScheme.surfaceContainerHigh,
-              child: SizedBox(
-                width: 260,
+              color: const Color(0xFF1A1A1A),
+              child: Container(
+                width: 256,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ── Header ──
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            colorScheme.primary.withValues(alpha: 0.08),
-                            colorScheme.tertiary.withValues(alpha: 0.05),
-                          ],
-                        ),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                       child: Row(
                         children: [
                           Container(
-                            width: 44,
-                            height: 44,
+                            width: 38,
+                            height: 38,
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  colorScheme.primary.withValues(alpha: 0.2),
-                                  colorScheme.tertiary.withValues(alpha: 0.2),
-                                ],
-                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              color: const Color(0xFF252525),
                             ),
                             child: Center(
                               child: Text(
                                 initials,
                                 style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   teamName,
-                                  style: textTheme.titleSmall?.copyWith(
+                                  style: textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontSize: 13,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 if (email != null) ...[
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 1),
                                   Text(
                                     email!,
                                     style: textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      fontSize: 11,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -835,14 +822,33 @@ class _TeamMenuButton extends StatelessWidget {
                       ),
                     ),
 
+                    // ── Divider ──
+                    Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+
                     // ── Team section ──
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.fromLTRB(6, 6, 6, 2),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+                            child: Text(
+                              'Team',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
                           _MenuItem(
-                            icon: Icons.group_rounded,
+                            icon: Icons.group_outlined,
                             label: t.team.members,
                             onTap: () {
                               Navigator.of(dialogContext).pop();
@@ -867,7 +873,7 @@ class _TeamMenuButton extends StatelessWidget {
                             },
                           ),
                           _MenuItem(
-                            icon: Icons.edit_rounded,
+                            icon: Icons.edit_outlined,
                             label: t.team.editTeam,
                             onTap: () {
                               Navigator.of(dialogContext).pop();
@@ -880,7 +886,7 @@ class _TeamMenuButton extends StatelessWidget {
                             },
                           ),
                           _MenuItem(
-                            icon: Icons.person_add_rounded,
+                            icon: Icons.person_add_outlined,
                             label: t.settings.inviteTeamMember,
                             onTap: () {
                               Navigator.of(dialogContext).pop();
@@ -897,7 +903,7 @@ class _TeamMenuButton extends StatelessWidget {
                             },
                           ),
                           _MenuItem(
-                            icon: Icons.group_add_rounded,
+                            icon: Icons.group_add_outlined,
                             label: t.team.createTeam,
                             onTap: () {
                               Navigator.of(dialogContext).pop();
@@ -912,6 +918,7 @@ class _TeamMenuButton extends StatelessWidget {
                           _MenuItem(
                             icon: Icons.delete_outline_rounded,
                             label: t.team.deleteTeam,
+                            isDestructive: true,
                             onTap: () {
                               Navigator.of(dialogContext).pop();
                               showModalBottomSheet(
@@ -929,16 +936,14 @@ class _TeamMenuButton extends StatelessWidget {
                     // ── Divider ──
                     Divider(
                       height: 1,
-                      indent: 16,
-                      endIndent: 16,
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
 
                     // ── Settings section ──
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
                       child: _MenuItem(
-                        icon: Icons.settings_rounded,
+                        icon: Icons.settings_outlined,
                         label: t.nav.settings,
                         onTap: () {
                           Navigator.of(dialogContext).pop();
@@ -972,32 +977,45 @@ class _MenuItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.isDestructive = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final itemColor = isDestructive
+        ? Colors.red.withValues(alpha: 0.9)
+        : Colors.white.withValues(alpha: 0.8);
+    final hoverColor = isDestructive
+        ? Colors.red.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.06);
+
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      hoverColor: hoverColor,
+      splashColor: hoverColor,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         child: Row(
           children: [
             Icon(
               icon,
-              size: 20,
-              color: colorScheme.onSurfaceVariant,
+              size: 18,
+              color: itemColor.withValues(alpha: 0.6),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface,
+                  color: itemColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
