@@ -340,241 +340,414 @@ class _EditorTab extends HookConsumerWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 680),
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.workflow.editor.basicInfo,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+            // ── Basic Info Section ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.workflow.editor.basicInfo,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.4),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: nameController,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: t.workflow.editor.workflowName,
+                      labelStyle: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.45),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: t.workflow.editor.workflowName,
-                        border: const OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        workflowName.value = value;
-                        onChanged();
-                      },
+                    onChanged: (value) {
+                      workflowName.value = value;
+                      onChanged();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'TRIGGERS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.4),
+                      letterSpacing: 0.5,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Triggers',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: ['push', 'pull_request', 'release', 'tag'].map(
-                        (type) {
-                          IconData icon;
-                          switch (type) {
-                            case 'push':
-                              icon = Icons.publish_rounded;
-                              break;
-                            case 'pull_request':
-                              icon = Icons.merge_type_rounded;
-                              break;
-                            case 'release':
-                              icon = Icons.new_releases_rounded;
-                              break;
-                            case 'tag':
-                              icon = Icons.local_offer_rounded;
-                              break;
-                            default:
-                              icon = Icons.bolt_rounded;
-                          }
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children:
+                        ['push', 'pull_request', 'release', 'tag'].map((type) {
+                      IconData icon;
+                      switch (type) {
+                        case 'push':
+                          icon = Icons.publish_rounded;
+                          break;
+                        case 'pull_request':
+                          icon = Icons.merge_type_rounded;
+                          break;
+                        case 'release':
+                          icon = Icons.new_releases_rounded;
+                          break;
+                        case 'tag':
+                          icon = Icons.local_offer_rounded;
+                          break;
+                        default:
+                          icon = Icons.bolt_rounded;
+                      }
 
-                          final isSelected = triggers.value.containsKey(type);
+                      final isSelected = triggers.value.containsKey(type);
 
-                          return FilterChip(
-                            label: Text(type),
-                            avatar: Icon(
-                              icon,
-                              size: 18,
-                              color: isSelected
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.onSecondaryContainer
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                            ),
-                            selected: isSelected,
-                            showCheckmark: false,
-                            onSelected: (selected) {
-                              final current = Map<String, String?>.from(
-                                triggers.value,
-                              );
-                              if (selected) {
-                                final needsBranch =
-                                    type == 'push' || type == 'pull_request';
-                                current[type] = needsBranch ? 'main' : null;
-                              } else {
-                                current.remove(type);
-                              }
-                              if (current.isEmpty) return;
-                              triggers.value = current;
-                              onChanged();
-                            },
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: () {
+                          final current = Map<String, String?>.from(
+                            triggers.value,
                           );
+                          if (!isSelected) {
+                            final needsBranch =
+                                type == 'push' || type == 'pull_request';
+                            current[type] = needsBranch ? 'main' : null;
+                          } else {
+                            current.remove(type);
+                          }
+                          if (current.isEmpty) return;
+                          triggers.value = current;
+                          onChanged();
                         },
-                      ).toList(),
-                    ),
-                    for (final type in ['push', 'pull_request'])
-                      if (triggers.value.containsKey(type)) ...[
-                        const SizedBox(height: 12),
-                        branchesAsync.when(
-                          loading: () => TextFormField(
-                            enabled: false,
-                            decoration: InputDecoration(
-                              labelText: t.workflow.triggerBranchLoading(
-                                type: type,
-                              ),
-                              border: const OutlineInputBorder(),
-                            ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
                           ),
-                          error: (e, _) => TextFormField(
-                            enabled: false,
-                            decoration: InputDecoration(
-                              labelText: t.workflow.triggerBranch(type: type),
-                              border: const OutlineInputBorder(),
-                              suffixIcon: Icon(
-                                Icons.error_outline,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.white.withValues(alpha: 0.08),
                             ),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          data: (branches) => Autocomplete<String>(
-                            initialValue: TextEditingValue(
-                              text: triggers.value[type] ?? '',
-                            ),
-                            optionsBuilder: (textEditingValue) {
-                              if (textEditingValue.text.isEmpty) {
-                                return branches;
-                              }
-                              return branches.where(
-                                (b) => b.toLowerCase().contains(
-                                  textEditingValue.text.toLowerCase(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                icon,
+                                size: 14,
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.8)
+                                    : Colors.white.withValues(alpha: 0.35),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                type,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white.withValues(alpha: 0.9)
+                                      : Colors.white.withValues(alpha: 0.45),
                                 ),
-                              );
-                            },
-                            fieldViewBuilder:
-                                (
-                                  context,
-                                  controller,
-                                  focusNode,
-                                  onFieldSubmitted,
-                                ) {
-                                  return TextFormField(
-                                    controller: controller,
-                                    focusNode: focusNode,
-                                    decoration: InputDecoration(
-                                      labelText: t.workflow.triggerBranch(
-                                        type: type,
-                                      ),
-                                      border: const OutlineInputBorder(),
-                                      suffixIcon: const Icon(
-                                        Icons.search,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  );
-                                },
-                            onSelected: (value) {
-                              final current = Map<String, String?>.from(
-                                triggers.value,
-                              );
-                              current[type] = value;
-                              triggers.value = current;
-                              onChanged();
-                            },
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                  ],
-                ),
+                      );
+                    }).toList(),
+                  ),
+                  for (final type in ['push', 'pull_request'])
+                    if (triggers.value.containsKey(type)) ...[
+                      const SizedBox(height: 12),
+                      branchesAsync.when(
+                        loading: () => TextFormField(
+                          enabled: false,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            labelText: t.workflow.triggerBranchLoading(
+                              type: type,
+                            ),
+                            labelStyle: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.4),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        error: (e, _) => TextFormField(
+                          enabled: false,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            labelText: t.workflow.triggerBranch(type: type),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            suffixIcon: Icon(
+                              Icons.error_outline,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        data: (branches) => Autocomplete<String>(
+                          initialValue: TextEditingValue(
+                            text: triggers.value[type] ?? '',
+                          ),
+                          optionsBuilder: (textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return branches;
+                            }
+                            return branches.where(
+                              (b) => b.toLowerCase().contains(
+                                textEditingValue.text.toLowerCase(),
+                              ),
+                            );
+                          },
+                          fieldViewBuilder: (
+                            context,
+                            controller,
+                            focusNode,
+                            onFieldSubmitted,
+                          ) {
+                            return TextFormField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              style: const TextStyle(fontSize: 14),
+                              decoration: InputDecoration(
+                                labelText: t.workflow.triggerBranch(
+                                  type: type,
+                                ),
+                                labelStyle: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                suffixIcon: Icon(
+                                  Icons.search,
+                                  size: 18,
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                            );
+                          },
+                          onSelected: (value) {
+                            final current = Map<String, String?>.from(
+                              triggers.value,
+                            );
+                            current[type] = value;
+                            triggers.value = current;
+                            onChanged();
+                          },
+                        ),
+                      ),
+                    ],
+                ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             if (existingFile != null)
               HookConsumer(
                 builder: (context, ref, child) {
                   final isEnabled = useState(existingFile!.enabled);
-                  return Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
-                      secondary: StatusDot(
-                        active: isEnabled.value,
-                        size: 10,
-                      ),
-                      title: Text(
-                        isEnabled.value
-                            ? t.workflow.enabled
-                            : t.workflow.disabled,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        StatusDot(
+                          active: isEnabled.value,
+                          size: 8,
                         ),
-                      ),
-                      subtitle: Text(
-                        isEnabled.value
-                            ? t.workflow.enabledDescription
-                            : t.workflow.disabledDescription,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      value: isEnabled.value,
-                      onChanged: (value) {
-                        isEnabled.value = value;
-                        ref.read(
-                          toggleWorkflowEnabledProvider(
-                            fileName: existingFile!.name,
-                            enabled: value,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isEnabled.value
+                                    ? t.workflow.enabled
+                                    : t.workflow.disabled,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                isEnabled.value
+                                    ? t.workflow.enabledDescription
+                                    : t.workflow.disabledDescription,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                        Switch(
+                          value: isEnabled.value,
+                          onChanged: (value) {
+                            isEnabled.value = value;
+                            ref.read(
+                              toggleWorkflowEnabledProvider(
+                                fileName: existingFile!.name,
+                                enabled: value,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   );
                 },
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             // ── Variables shortcut ──
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  Symbols.key_rounded,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                title: Text(t.variables.title),
-                subtitle: Text(
-                  '${t.variables.secretsTab} / ${t.variables.envVarsTab}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const VariablesPage(),
                   ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const VariablesPage(),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Symbols.key_rounded,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.4),
                     ),
-                  );
-                },
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.variables.title,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${t.variables.secretsTab} / ${t.variables.envVarsTab}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.25),
+                    ),
+                  ],
+                ),
               ),
             ),
             ...List.generate(steps.value.length, (index) {
@@ -612,10 +785,11 @@ class _EditorTab extends HookConsumerWidget {
                 ],
               );
             }),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Center(
-              child: IconButton.filled(
-                onPressed: () {
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
                   final newSteps = List<WorkflowYamlStep>.from(steps.value);
                   newSteps.add(
                     WorkflowYamlStep(name: 'New Step', run: 'echo "hello"'),
@@ -623,7 +797,37 @@ class _EditorTab extends HookConsumerWidget {
                   steps.value = newSteps;
                   onChanged();
                 },
-                icon: const Icon(Icons.add),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.add,
+                        size: 15,
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        t.workflow.editor.addSteps,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 80),
@@ -642,29 +846,34 @@ class _StepConnectorLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 40,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
-            width: 2,
-            height: 44,
-            color: Colors.black26,
+            width: 1,
+            height: 40,
+            color: Colors.white.withValues(alpha: 0.08),
           ),
-          IconButton(
-            iconSize: 14,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            style: ButtonStyle(
-              backgroundColor: WidgetStatePropertyAll(
-                Theme.of(context).colorScheme.surfaceContainerHighest,
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onInsert,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
-              iconColor: WidgetStatePropertyAll(
-                Theme.of(context).colorScheme.onSurfaceVariant,
+              child: Icon(
+                Icons.add,
+                size: 12,
+                color: Colors.white.withValues(alpha: 0.4),
               ),
             ),
-            onPressed: onInsert,
-            icon: const Icon(Icons.add),
           ),
         ],
       ),
@@ -689,87 +898,191 @@ class _StepEditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => _showEditSheet(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+          ),
+          borderRadius: BorderRadius.circular(10),
         ),
-        onTap: () => _showEditSheet(context),
-        leading: CircleAvatar(
-          radius: 16,
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Text(
-            '${stepIndex + 1}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+        child: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(7),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '${stepIndex + 1}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
             ),
-          ),
-        ),
-        title: Text(
-          step.name,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            children: [
-              Icon(
-                step.type == StepType.uses ? Icons.extension : Icons.terminal,
-                size: 14,
-                color: Theme.of(context).hintColor,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  step.type == StepType.uses ? step.uses : step.run,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).hintColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        trailing: IconButton(
-          icon: Icon(
-            Icons.delete_outline,
-            color: Theme.of(context).colorScheme.error,
-            size: 20,
-          ),
-          onPressed: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: Text(t.workflow.editor.deleteStep),
-                content: Text(
-                  t.workflow.editor.deleteStepConfirm,
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text(t.common.cancel),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.error,
+            const SizedBox(width: 12),
+            Expanded(
+              child: step.name.isEmpty
+                  ? Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: step.type == StepType.uses
+                                ? Colors.purple.withValues(alpha: 0.12)
+                                : Colors.blue.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: step.type == StepType.uses
+                                  ? Colors.purple.withValues(alpha: 0.25)
+                                  : Colors.blue.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                step.type == StepType.uses
+                                    ? Icons.extension
+                                    : Icons.terminal,
+                                size: 10,
+                                color: step.type == StepType.uses
+                                    ? Colors.purple.withValues(alpha: 0.7)
+                                    : Colors.blue.withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                step.type == StepType.uses
+                                    ? t.workflow.editor.action
+                                    : t.workflow.editor.command,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: step.type == StepType.uses
+                                      ? Colors.purple.withValues(alpha: 0.7)
+                                      : Colors.blue.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            step.type == StepType.uses
+                                ? step.uses
+                                : step.run,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          step.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Icon(
+                              step.type == StepType.uses
+                                  ? Icons.extension
+                                  : Icons.terminal,
+                              size: 12,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                step.type == StepType.uses
+                                    ? step.uses
+                                    : step.run,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      Colors.white.withValues(alpha: 0.35),
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    child: Text(t.common.delete),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(t.workflow.editor.deleteStep),
+                    content: Text(
+                      t.workflow.editor.deleteStepConfirm,
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(t.common.cancel),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.error,
+                        ),
+                        child: Text(t.common.delete),
+                      ),
+                    ],
                   ),
-                ],
+                );
+                if (confirmed == true) {
+                  onDelete();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.delete_outline,
+                  size: 16,
+                  color: Colors.white.withValues(alpha: 0.25),
+                ),
               ),
-            );
-            if (confirmed == true) {
-              onDelete();
-            }
-          },
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
+          ],
         ),
       ),
     );
@@ -816,15 +1129,56 @@ class _EditStepSheet extends HookConsumerWidget {
           )
         : null;
 
+    final inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.1),
+      ),
+    );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.25),
+      ),
+    );
+    final labelStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: Colors.white.withValues(alpha: 0.45),
+    );
+
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.75,
         child: Column(
           children: [
-            Text(
-              t.workflow.editor.editStep,
-              style: Theme.of(context).textTheme.titleLarge,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    t.workflow.editor.editStep,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -833,64 +1187,125 @@ class _EditStepSheet extends HookConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      t.workflow.editor.stepName,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
+                    Text(t.workflow.editor.stepName, style: labelStyle),
+                    const SizedBox(height: 6),
                     TextFormField(
                       controller: nameController,
+                      style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
                         hintText: t.workflow.editor.stepNameHint,
-                        border: OutlineInputBorder(),
+                        hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                        border: inputBorder,
+                        enabledBorder: inputBorder,
+                        focusedBorder: focusedBorder,
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      t.workflow.editor.type,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<StepType>(
-                      segments: const [
-                        ButtonSegment(
-                          value: StepType.run,
-                          label: Text('run'),
-                          icon: Icon(Icons.terminal, size: 16),
+                    Text(t.workflow.editor.type, style: labelStyle),
+                    const SizedBox(height: 6),
+                    // ── Custom pill toggle ──
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
                         ),
-                        ButtonSegment(
-                          value: StepType.uses,
-                          label: Text('uses'),
-                          icon: Icon(Icons.extension, size: 16),
-                        ),
-                      ],
-                      selected: {stepType.value},
-                      onSelectionChanged: (v) => stepType.value = v.first,
+                      ),
+                      padding: const EdgeInsets.all(3),
+                      child: Row(
+                        children: StepType.values.map((type) {
+                          final isSelected = stepType.value == type;
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () => stepType.value = type,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      type == StepType.run
+                                          ? Icons.terminal
+                                          : Icons.extension,
+                                      size: 14,
+                                      color: isSelected
+                                          ? Colors.white
+                                              .withValues(alpha: 0.7)
+                                          : Colors.white
+                                              .withValues(alpha: 0.3),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      type == StepType.run ? 'run' : 'uses',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: isSelected
+                                            ? Colors.white
+                                                .withValues(alpha: 0.8)
+                                            : Colors.white
+                                                .withValues(alpha: 0.35),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (stepType.value == StepType.run) ...[
-                      Text(
-                        t.workflow.editor.command,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
+                      Text(t.workflow.editor.command, style: labelStyle),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: runController,
                         maxLines: 5,
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'monospace',
                         ),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'echo "hello"',
-                          border: OutlineInputBorder(),
+                          hintStyle: TextStyle(
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          border: inputBorder,
+                          enabledBorder: inputBorder,
+                          focusedBorder: focusedBorder,
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.03),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ] else ...[
-                      Text(
-                        t.workflow.editor.action,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
+                      Text(t.workflow.editor.action, style: labelStyle),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: usesController,
                         readOnly: true,
@@ -905,13 +1320,27 @@ class _EditStepSheet extends HookConsumerWidget {
                             withParams.value = {};
                           }
                         },
-                        style: TextStyle(
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
                           hintText: t.workflow.editor.actionHint,
-                          border: const OutlineInputBorder(),
-                          suffixIcon: const Icon(Icons.search),
+                          hintStyle: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          border: inputBorder,
+                          enabledBorder: inputBorder,
+                          focusedBorder: focusedBorder,
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.03),
+                          suffixIcon: Icon(
+                            Icons.search,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
                       ),
                       if (usesValue.value.contains('@')) ...[
@@ -928,8 +1357,13 @@ class _EditStepSheet extends HookConsumerWidget {
                               ),
                             );
                             return tagsAsync.when(
-                              loading: () =>
-                                  Text(t.workflow.editor.loadingVersions),
+                              loading: () => Text(
+                                t.workflow.editor.loadingVersions,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                ),
+                              ),
                               error: (_, _) => const SizedBox.shrink(),
                               data: (tags) {
                                 if (tags.isEmpty) {
@@ -941,20 +1375,27 @@ class _EditStepSheet extends HookConsumerWidget {
                                 return DropdownButtonFormField<String>(
                                   initialValue: currentTag,
                                   isExpanded: true,
+                                  style: const TextStyle(fontSize: 13),
                                   decoration: InputDecoration(
                                     labelText: t.workflow.editor.version,
-                                    border: const OutlineInputBorder(),
+                                    labelStyle: labelStyle,
+                                    border: inputBorder,
+                                    enabledBorder: inputBorder,
+                                    focusedBorder: focusedBorder,
+                                    filled: true,
+                                    fillColor:
+                                        Colors.white.withValues(alpha: 0.03),
                                     isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
                                   ),
                                   items: effectiveTags
                                       .map(
                                         (tag) => DropdownMenuItem(
                                           value: tag,
-                                          child: Text(
-                                            tag,
-                                            style: TextStyle(
-                                            ),
-                                          ),
+                                          child: Text(tag),
                                         ),
                                       )
                                       .toList(),
@@ -972,27 +1413,30 @@ class _EditStepSheet extends HookConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      Text(
-                        t.workflow.editor.kWith,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
+                      Text(t.workflow.editor.kWith, style: labelStyle),
+                      const SizedBox(height: 6),
                       if (inputsAsync != null)
                         inputsAsync.when(
                           loading: () => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Center(
-                              child: Text(t.workflow.editor.loadingInputs),
+                              child: Text(
+                                t.workflow.editor.loadingInputs,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                ),
+                              ),
                             ),
                           ),
                           error: (e, _) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
                               t.workflow.editor.couldNotLoadInputs,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(context).hintColor,
-                                  ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.35),
+                              ),
                             ),
                           ),
                           data: (inputs) {
@@ -1003,10 +1447,11 @@ class _EditStepSheet extends HookConsumerWidget {
                                 ),
                                 child: Text(
                                   t.workflow.editor.noInputs,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context).hintColor,
-                                      ),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color:
+                                        Colors.white.withValues(alpha: 0.35),
+                                  ),
                                 ),
                               );
                             }
@@ -1024,10 +1469,14 @@ class _EditStepSheet extends HookConsumerWidget {
                                       Row(
                                         children: [
                                           SizedBox(
-                                            width: 24,
-                                            height: 24,
+                                            width: 20,
+                                            height: 20,
                                             child: Checkbox(
                                               value: isEnabled,
+                                              side: BorderSide(
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.2),
+                                              ),
                                               onChanged: (v) {
                                                 final updated =
                                                     Map<String, String>.from(
@@ -1047,14 +1496,13 @@ class _EditStepSheet extends HookConsumerWidget {
                                           Expanded(
                                             child: Text(
                                               input.key,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.copyWith(
-                                                    fontWeight: input.required_
-                                                        ? FontWeight.bold
-                                                        : null,
-                                                  ),
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: input.required_
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                                fontFamily: 'monospace',
+                                              ),
                                             ),
                                           ),
                                           if (input.required_)
@@ -1065,22 +1513,23 @@ class _EditStepSheet extends HookConsumerWidget {
                                                     vertical: 2,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.errorContainer,
+                                                color: Colors.red
+                                                    .withValues(alpha: 0.12),
+                                                border: Border.all(
+                                                  color: Colors.red
+                                                      .withValues(alpha: 0.2),
+                                                ),
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
                                                 t.workflow.editor.required,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onErrorContainer,
-                                                    ),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.red
+                                                      .withValues(alpha: 0.7),
+                                                ),
                                               ),
                                             ),
                                         ],
@@ -1088,39 +1537,46 @@ class _EditStepSheet extends HookConsumerWidget {
                                       if (input.description.isNotEmpty)
                                         Padding(
                                           padding: const EdgeInsets.only(
-                                            left: 32,
+                                            left: 28,
                                             top: 2,
                                           ),
                                           child: Text(
                                             input.description,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).hintColor,
-                                                ),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.35),
+                                            ),
                                           ),
                                         ),
                                       if (isEnabled)
                                         Padding(
                                           padding: const EdgeInsets.only(
-                                            left: 32,
+                                            left: 28,
                                             top: 6,
                                           ),
                                           child: TextFormField(
                                             initialValue:
                                                 withParams.value[input.key],
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 13,
+                                              fontFamily: 'monospace',
                                             ),
                                             decoration: InputDecoration(
                                               isDense: true,
                                               hintText:
                                                   input.defaultValue ?? '',
-                                              border:
-                                                  const OutlineInputBorder(),
+                                              hintStyle: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.2),
+                                              ),
+                                              border: inputBorder,
+                                              enabledBorder: inputBorder,
+                                              focusedBorder: focusedBorder,
+                                              filled: true,
+                                              fillColor: Colors.white
+                                                  .withValues(alpha: 0.03),
                                               contentPadding:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 12,
@@ -1145,34 +1601,61 @@ class _EditStepSheet extends HookConsumerWidget {
                       else
                         Text(
                           t.workflow.editor.enterAction,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Theme.of(context).hintColor),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.35),
+                          ),
                         ),
                     ],
                   ],
                 ),
               ),
             ),
+            // ── Save button ──
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                onPressed: () {
-                  onSave(
-                    WorkflowYamlStep(
-                      name: nameController.text,
-                      type: stepType.value,
-                      run: runController.text,
-                      uses: usesController.text,
-                      withParams: withParams.value,
+              child: SizedBox(
+                width: double.infinity,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    onSave(
+                      WorkflowYamlStep(
+                        name: nameController.text,
+                        type: stepType.value,
+                        run: runController.text,
+                        uses: usesController.text,
+                        withParams: withParams.value,
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.15),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.3),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  );
-                  Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.check),
-                label: Text(t.common.save),
+                    alignment: Alignment.center,
+                    child: Text(
+                      t.common.save,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -1264,15 +1747,56 @@ class _CommitBottomSheet extends HookConsumerWidget {
     final commitMode = useState(CommitMode.direct);
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
+    final inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.1),
+      ),
+    );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.25),
+      ),
+    );
+    final labelStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: Colors.white.withValues(alpha: 0.45),
+    );
+
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.5,
         child: Column(
           children: [
-            Text(
-              t.workflow.editor.saveToRepo,
-              style: Theme.of(context).textTheme.titleLarge,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    t.workflow.editor.saveToRepo,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -1281,30 +1805,39 @@ class _CommitBottomSheet extends HookConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      t.workflow.editor.fileName,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
+                    Text(t.workflow.editor.fileName, style: labelStyle),
+                    const SizedBox(height: 6),
                     TextFormField(
                       controller: fileNameController,
                       readOnly: isEditing,
+                      style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
                         hintText: t.workflow.editor.fileNameHint,
-                        border: const OutlineInputBorder(),
+                        hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                        border: inputBorder,
+                        enabledBorder: inputBorder,
+                        focusedBorder: focusedBorder,
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
                         prefixText: '.openci/',
-                        prefixStyle: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(color: Theme.of(context).hintColor),
+                        prefixStyle: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                       onChanged: isEditing
                           ? null
                           : (value) => fileName.value = value,
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      t.workflow.editor.howToSave,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                    Text(t.workflow.editor.howToSave, style: labelStyle),
                     const SizedBox(height: 8),
                     _CommitModeCard(
                       icon: Icons.commit,
@@ -1327,38 +1860,79 @@ class _CommitBottomSheet extends HookConsumerWidget {
                 ),
               ),
             ),
+            // ── Submit button ──
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                onPressed: isLoading.value
-                    ? null
-                    : () => _onSubmit(
-                        context: context,
-                        ref: ref,
-                        fileName: fileNameController.text.trim(),
-                        commitMode: commitMode.value,
+              child: SizedBox(
+                width: double.infinity,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: isLoading.value
+                      ? null
+                      : () => _onSubmit(
+                            context: context,
+                            ref: ref,
+                            fileName: fileNameController.text.trim(),
+                            commitMode: commitMode.value,
+                          ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isLoading.value
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.15),
+                      border: Border.all(
+                        color: isLoading.value
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.3),
                       ),
-                icon: isLoading.value
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Icon(
-                        commitMode.value == CommitMode.direct
-                            ? Icons.commit
-                            : Icons.call_merge,
-                      ),
-                label: Text(
-                  commitMode.value == CommitMode.direct
-                      ? t.workflow.editor.commitToBranchButton(branch: branch)
-                      : t.workflow.editor.createPRButton,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: isLoading.value
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                commitMode.value == CommitMode.direct
+                                    ? Icons.commit
+                                    : Icons.call_merge,
+                                size: 16,
+                                color:
+                                    Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                commitMode.value == CommitMode.direct
+                                    ? t.workflow.editor
+                                        .commitToBranchButton(branch: branch)
+                                    : t.workflow.editor.createPRButton,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ),
             ),
@@ -1473,39 +2047,84 @@ class _CommitModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(
-          icon,
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
           color: isSelected
-              ? colorScheme.primary
-              : colorScheme.onSurfaceVariant,
-        ),
-        title: Text(
-          title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+              ? primary.withValues(alpha: 0.06)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? primary.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.08),
           ),
+          borderRadius: BorderRadius.circular(10),
         ),
-        subtitle: Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).hintColor,
-          ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? primary.withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.3),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? primary
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? primary
+                      : Colors.white.withValues(alpha: 0.15),
+                  width: isSelected ? 0 : 1.5,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      size: 12,
+                      color: Colors.white,
+                    )
+                  : null,
+            ),
+          ],
         ),
-        trailing: isSelected
-            ? Icon(Icons.check_circle, color: colorScheme.primary)
-            : Icon(Icons.circle_outlined, color: colorScheme.outlineVariant),
       ),
     );
   }

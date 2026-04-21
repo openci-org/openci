@@ -1252,6 +1252,9 @@ class TranslationsWorkflowEditorEn {
 
 	/// en: 'Pull request created'
 	String get prCreatedSuccess => 'Pull request created';
+
+	/// en: 'Add step'
+	String get addSteps => 'Add step';
 }
 
 // Path: buildLogs.status
@@ -1710,6 +1713,7 @@ extension on Translations {
 			'workflow.editor.openInGitHub' => 'Open in GitHub',
 			'workflow.editor.committedToBranch' => ({required Object branch}) => 'Workflow file committed to ${branch}',
 			'workflow.editor.prCreatedSuccess' => 'Pull request created',
+			'workflow.editor.addSteps' => 'Add step',
 			'buildLogs.title' => ({required Object date}) => 'Build Logs - ${date}',
 			'buildLogs.noJobs' => 'No build jobs found',
 			'buildLogs.status.success' => 'Success',

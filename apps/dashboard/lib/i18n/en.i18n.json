@@ -125,7 +125,8 @@
       "close": "Close",
       "openInGitHub": "Open in GitHub",
       "committedToBranch": "Workflow file committed to $branch",
-      "prCreatedSuccess": "Pull request created"
+      "prCreatedSuccess": "Pull request created",
+      "addSteps": "Add step"
     }
   },
   "buildLogs": {

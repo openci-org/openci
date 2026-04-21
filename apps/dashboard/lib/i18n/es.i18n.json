@@ -125,7 +125,8 @@
       "close": "Cerrar",
       "openInGitHub": "Abrir en GitHub",
       "committedToBranch": "Archivo de flujo de trabajo confirmado en $branch",
-      "prCreatedSuccess": "Pull request creado"
+      "prCreatedSuccess": "Pull request creado",
+      "addSteps": "Agregar paso"
     }
   },
   "buildLogs": {

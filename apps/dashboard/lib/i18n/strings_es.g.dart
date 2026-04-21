@@ -566,6 +566,7 @@ class _TranslationsWorkflowEditorEs implements TranslationsWorkflowEditorEn {
 	@override String get openInGitHub => 'Abrir en GitHub';
 	@override String committedToBranch({required Object branch}) => 'Archivo de flujo de trabajo confirmado en ${branch}';
 	@override String get prCreatedSuccess => 'Pull request creado';
+	@override String get addSteps => 'Agregar paso';
 }
 
 // Path: buildLogs.status
@@ -862,6 +863,7 @@ extension on TranslationsEs {
 			'workflow.editor.openInGitHub' => 'Abrir en GitHub',
 			'workflow.editor.committedToBranch' => ({required Object branch}) => 'Archivo de flujo de trabajo confirmado en ${branch}',
 			'workflow.editor.prCreatedSuccess' => 'Pull request creado',
+			'workflow.editor.addSteps' => 'Agregar paso',
 			'buildLogs.title' => ({required Object date}) => 'Registros de compilación - ${date}',
 			'buildLogs.noJobs' => 'No se encontraron trabajos de compilación',
 			'buildLogs.status.success' => 'Exitoso',

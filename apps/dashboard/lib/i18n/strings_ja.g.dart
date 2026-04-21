@@ -566,6 +566,7 @@ class _TranslationsWorkflowEditorJa implements TranslationsWorkflowEditorEn {
 	@override String get openInGitHub => 'GitHubで開く';
 	@override String committedToBranch({required Object branch}) => 'ワークフローファイルが ${branch} にコミットされました';
 	@override String get prCreatedSuccess => 'プルリクエストが作成されました';
+	@override String get addSteps => 'ステップを追加';
 }
 
 // Path: buildLogs.status
@@ -862,6 +863,7 @@ extension on TranslationsJa {
 			'workflow.editor.openInGitHub' => 'GitHubで開く',
 			'workflow.editor.committedToBranch' => ({required Object branch}) => 'ワークフローファイルが ${branch} にコミットされました',
 			'workflow.editor.prCreatedSuccess' => 'プルリクエストが作成されました',
+			'workflow.editor.addSteps' => 'ステップを追加',
 			'buildLogs.title' => ({required Object date}) => 'ビルドログ - ${date}',
 			'buildLogs.noJobs' => 'ビルドジョブが見つかりません',
 			'buildLogs.status.success' => '成功',
