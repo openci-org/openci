@@ -28,8 +28,9 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
         ),
         child: Form(
           key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
@@ -308,6 +309,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
               ),
               const SizedBox(height: 24),
             ],
+            ),
           ),
         ),
       ),

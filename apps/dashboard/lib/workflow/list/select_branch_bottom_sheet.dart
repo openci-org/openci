@@ -5,6 +5,7 @@ import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -18,13 +19,14 @@ const _textSecondary = Color(0xFFA1A1AA);
 const _textTertiary = Color(0xFF71717A);
 const _radius = 12.0;
 
-class SelectBranchBottomSheet extends ConsumerWidget {
+class SelectBranchBottomSheet extends HookConsumerWidget {
   const SelectBranchBottomSheet({super.key, required this.repoFullName});
 
   final String repoFullName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scrollController = useScrollController();
     final branches = ref.watch(gitHubBranchesProvider(repoFullName));
     final userAsync = ref.watch(userProvider);
     final wfT = t.workflow;
@@ -92,7 +94,9 @@ class SelectBranchBottomSheet extends ConsumerWidget {
               }
 
               return Scrollbar(
+                controller: scrollController,
                 child: ListView.separated(
+                  controller: scrollController,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 4,
