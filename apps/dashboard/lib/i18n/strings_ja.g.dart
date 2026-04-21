@@ -236,6 +236,8 @@ class _TranslationsSettingsJa implements TranslationsSettingsEn {
 
 	// Translations
 	@override String get title => '設定';
+	@override String get general => '一般';
+	@override String get preferences => '環境設定';
 	@override String get buildNotifications => 'ビルド通知';
 	@override String get configureNotifications => '通知を受け取るタイミングを設定';
 	@override String get subscription => 'サブスクリプション';
@@ -909,6 +911,8 @@ extension on TranslationsJa {
 			'envVars.deletedSuccess' => '削除しました',
 			'envVars.runNumberUpdated' => '実行番号が更新されました',
 			'settings.title' => '設定',
+			'settings.general' => '一般',
+			'settings.preferences' => '環境設定',
 			'settings.buildNotifications' => 'ビルド通知',
 			'settings.configureNotifications' => '通知を受け取るタイミングを設定',
 			'settings.subscription' => 'サブスクリプション',

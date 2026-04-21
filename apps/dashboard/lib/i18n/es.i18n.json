@@ -201,6 +201,8 @@
   },
   "settings": {
     "title": "Configuración",
+    "general": "General",
+    "preferences": "Preferencias",
     "buildNotifications": "Notificaciones de compilación",
     "configureNotifications": "Configurar cuándo recibir notificaciones",
     "subscription": "Suscripción",

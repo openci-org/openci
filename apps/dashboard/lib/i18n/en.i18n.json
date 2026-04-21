@@ -201,6 +201,8 @@
   },
   "settings": {
     "title": "Settings",
+    "general": "General",
+    "preferences": "Preferences",
     "buildNotifications": "Build Notifications",
     "configureNotifications": "Configure when to receive notifications",
     "subscription": "Subscription",

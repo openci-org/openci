@@ -22,10 +22,7 @@ class SettingsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDeleting = useState(false);
-
     final settingsT = t.settings;
 
     return Scaffold(
@@ -36,113 +33,74 @@ class SettingsPage extends HookConsumerWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
-                  ListTile(
-                    leading: Icon(
-                      Symbols.notifications_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    title: Text(settingsT.buildNotifications),
-                    subtitle: Text(
-                      settingsT.configureNotifications,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.5,
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        SwipeablePageRoute(
-                          builder: (_) => const NotificationSettingsPage(),
+                  _SectionHeader(label: settingsT.general),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsItem(
+                        icon: Symbols.notifications_rounded,
+                        title: settingsT.buildNotifications,
+                        subtitle: settingsT.configureNotifications,
+                        onTap: () => Navigator.of(context).push(
+                          SwipeablePageRoute(
+                            builder: (_) => const NotificationSettingsPage(),
+                          ),
                         ),
-                      );
+                      ),
+                      const _GroupDivider(),
+                      const _AiFeaturesTile(),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionHeader(label: settingsT.subscription),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsItem(
+                        icon: Symbols.credit_card_rounded,
+                        title: settingsT.subscription,
+                        subtitle: settingsT.manageSubscription,
+                        onTap: () => Navigator.of(context).push(
+                          SwipeablePageRoute(
+                            builder: (_) => const SubscriptionPage(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionHeader(label: settingsT.preferences),
+                  _SettingsGroup(
+                    children: [
+                      const _LanguageTile(),
+                      const _GroupDivider(),
+                      const _AppVersionTile(),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const _SelfHostedIndicator(),
+                  const SizedBox(height: 24),
+                  _ActionButton(
+                    label: settingsT.logout,
+                    onPressed: () async {
+                      try {
+                        await logoutRevenueCat();
+                        await FirebaseAuth.instance.signOut();
+                        ref.invalidate(notificationServiceProvider);
+                        ref.invalidate(authProvider);
+                        if (!context.mounted) return;
+                        context.showSnackBarMessage(settingsT.logoutSuccess);
+                      } catch (e, s) {
+                        debugPrint(e.toString());
+                        debugPrint(s.toString());
+                        context.showSnackBarMessage(
+                          settingsT.logoutFailed(error: e.toString()),
+                        );
+                      }
                     },
                   ),
-                  const Divider(),
-                  const _AiFeaturesTile(),
-                  const Divider(),
-                  ListTile(
-                    leading: Icon(
-                      Symbols.credit_card_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    title: Text(settingsT.subscription),
-                    subtitle: Text(
-                      settingsT.manageSubscription,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.5,
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        SwipeablePageRoute(
-                          builder: (_) => const SubscriptionPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(),
-                  _LanguageTile(),
-                  const Divider(),
-                  _AppVersionTile(),
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 24,
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _SelfHostedIndicator(),
-                          const SizedBox(height: 32),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              onPressed: () async {
-                                try {
-                                  await logoutRevenueCat();
-                                  await FirebaseAuth.instance.signOut();
-                                  ref.invalidate(notificationServiceProvider);
-                                  ref.invalidate(authProvider);
-                                  if (!context.mounted) return;
-                                  context.showSnackBarMessage(
-                                    settingsT.logoutSuccess,
-                                  );
-                                } catch (e, s) {
-                                  debugPrint(e.toString());
-                                  debugPrint(s.toString());
-                                  context.showSnackBarMessage(
-                                    settingsT.logoutFailed(
-                                      error: e.toString(),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Text(settingsT.logout),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _DeleteAccountButton(
-                            isDeleting: isDeleting,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 8),
+                  _DeleteAccountButton(isDeleting: isDeleting),
                 ],
               ),
             ),
@@ -157,108 +115,133 @@ class SettingsPage extends HookConsumerWidget {
   }
 }
 
-class _SelfHostedIndicator extends StatelessWidget {
-  const _SelfHostedIndicator();
-
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final settingsT = t.settings;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withValues(alpha: 0.3),
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+}
 
-    return FutureBuilder<SelfHostedConfig?>(
-      future: loadSelfHostedConfig(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
-        }
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+  final List<Widget> children;
 
-        final config = snapshot.data;
-        if (config != null) {
-          // Self-hosted config is saved in SharedPreferences
-          return Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.cloud_outlined,
-                      size: 18,
-                      color: Colors.amber,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            settingsT.selfHostedActive,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          Text(
-                            settingsT.selfHostedProject(
-                              projectId: config.projectId,
-                            ),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _GroupDivider extends StatelessWidget {
+  const _GroupDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: Colors.white.withValues(alpha: 0.06),
+    );
+  }
+}
+
+class _SettingsItem extends StatelessWidget {
+  const _SettingsItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      hoverColor: Colors.white.withValues(alpha: 0.03),
+      splashColor: Colors.white.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.error,
-                    side: BorderSide(
-                      color: colorScheme.error.withValues(alpha: 0.3),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
                   ),
-                  onPressed: () async {
-                    await clearSelfHostedConfig();
-                    if (!context.mounted) return;
-                    context.showSnackBarMessage(
-                      settingsT.resetToCloudSuccess,
-                    );
-                  },
-                  child: Text(settingsT.resetToCloud),
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          );
-        }
-
-        // Default: show normal app name
-        return Text(
-          settingsT.firebaseAppName(
-            name: FirebaseAuth.instance.app.name,
-          ),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-          ),
-        );
-      },
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: Colors.white.withValues(alpha: 0.25),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -268,34 +251,18 @@ class _AiFeaturesTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final teamAsync = ref.watch(teamStateProvider);
     final aiT = t.settings.aiFeatures;
 
     return teamAsync.when(
       data: (team) {
         final isEnabled = team.aiEnabled;
-        return SwitchListTile(
-          secondary: Icon(
-            Icons.auto_awesome,
-            color: isEnabled
-                ? colorScheme.primary
-                : colorScheme.onSurfaceVariant,
-          ),
-          title: Text(aiT.title),
-          subtitle: Text(
-            isEnabled ? aiT.enabled : aiT.disabled,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          value: isEnabled,
-          onChanged: (value) async {
+        return InkWell(
+          onTap: () async {
             try {
               await ref
                   .read(teamListProvider.notifier)
-                  .updateAiEnabled(team.id, value);
+                  .updateAiEnabled(team.id, !isEnabled);
               if (!context.mounted) return;
               context.showSnackBarMessage(aiT.updated);
             } catch (e) {
@@ -305,24 +272,129 @@ class _AiFeaturesTile extends ConsumerWidget {
               );
             }
           },
+          hoverColor: Colors.white.withValues(alpha: 0.03),
+          splashColor: Colors.white.withValues(alpha: 0.05),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: isEnabled
+                        ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.auto_awesome,
+                      size: 18,
+                      color: isEnabled
+                          ? const Color(0xFF3B82F6)
+                          : Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        aiT.title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isEnabled ? aiT.enabled : aiT.disabled,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: 28,
+                  child: Switch.adaptive(
+                    value: isEnabled,
+                    onChanged: (value) async {
+                      try {
+                        await ref
+                            .read(teamListProvider.notifier)
+                            .updateAiEnabled(team.id, value);
+                        if (!context.mounted) return;
+                        context.showSnackBarMessage(aiT.updated);
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        context.showSnackBarMessage(
+                          t.common.error(error: e.toString()),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
-      loading: () => ListTile(
-        leading: Icon(
-          Icons.auto_awesome,
-          color: colorScheme.onSurfaceVariant,
-        ),
-        title: Text(aiT.title),
-        subtitle: Text(
-          aiT.subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.auto_awesome,
+                  size: 18,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    aiT.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    aiT.subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+            ),
+          ],
         ),
       ),
       error: (_, _) => const SizedBox.shrink(),
@@ -335,8 +407,6 @@ class _LanguageTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final localeAsync = ref.watch(localeProvider);
     final langT = t.settings.language;
 
@@ -351,22 +421,10 @@ class _LanguageTile extends ConsumerWidget {
       error: (_, _) => langT.system,
     );
 
-    return ListTile(
-      leading: Icon(
-        Symbols.language,
-        color: colorScheme.onSurfaceVariant,
-      ),
-      title: Text(langT.title),
-      subtitle: Text(
-        currentLabel,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-      ),
+    return _SettingsItem(
+      icon: Symbols.language,
+      title: langT.title,
+      subtitle: currentLabel,
       onTap: () {
         showModalBottomSheet(
           showDragHandle: true,
@@ -389,76 +447,122 @@ class _LanguageBottomSheet extends ConsumerWidget {
     final options = <({String? tag, String label, String subtitle})>[
       (tag: null, label: langT.system, subtitle: ''),
       (tag: 'en', label: langT.english, subtitle: 'English'),
-      (tag: 'ja', label: langT.japanese, subtitle: 'Japanese'),
-      (tag: 'es', label: langT.spanish, subtitle: 'Spanish'),
+      (tag: 'ja', label: langT.japanese, subtitle: '日本語'),
+      (tag: 'es', label: langT.spanish, subtitle: 'Español'),
     ];
 
     return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              langT.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 12),
+              child: Text(
+                langT.title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
-          localeAsync.when(
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator.adaptive(),
-              ),
-            ),
-            error: (error, _) {
-              debugPrint(error.toString());
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(t.common.error(error: error.toString())),
-              );
-            },
-            data: (savedLocale) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: options.map(
-                (option) {
-                  final isSelected = option.tag == savedLocale;
-                  return ListTile(
-                    leading: isSelected
-                        ? Icon(
-                            Icons.check,
-                            color: Theme.of(context).primaryColor,
-                          )
-                        : const SizedBox(width: 24),
-                    title: Text(
-                      option.label,
-                      style: isSelected
-                          ? TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.primary,
-                            )
-                          : null,
+            _SettingsGroup(
+              children: localeAsync.when(
+                loading: () => [
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: CircularProgressIndicator.adaptive(),
                     ),
-                    subtitle: option.subtitle.isNotEmpty
-                        ? Text(option.subtitle)
-                        : null,
-                    onTap: () async {
-                      await ref
-                          .read(localeProvider.notifier)
-                          .setLocale(option.tag);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                  );
+                  ),
+                ],
+                error: (error, _) {
+                  debugPrint(error.toString());
+                  return [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(t.common.error(error: error.toString())),
+                    ),
+                  ];
                 },
-              ).toList(),
+                data: (savedLocale) {
+                  final items = <Widget>[];
+                  for (var i = 0; i < options.length; i++) {
+                    if (i > 0) items.add(const _GroupDivider());
+                    final option = options[i];
+                    final isSelected = option.tag == savedLocale;
+                    items.add(
+                      InkWell(
+                        onTap: () async {
+                          await ref
+                              .read(localeProvider.notifier)
+                              .setLocale(option.tag);
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        hoverColor: Colors.white.withValues(alpha: 0.03),
+                        splashColor: Colors.white.withValues(alpha: 0.05),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 13,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      option.label,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? const Color(0xFF3B82F6)
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                    if (option.subtitle.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        option.subtitle,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_rounded,
+                                  size: 18,
+                                  color: const Color(0xFF3B82F6),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return items;
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-        ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
@@ -469,32 +573,225 @@ class _AppVersionTile extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final snapshot = useFuture(
       useMemoized(() => PackageInfo.fromPlatform()),
     );
 
     final info = snapshot.data;
+    final versionText = info != null
+        ? 'v${info.version} (${info.buildNumber})  •  $buildDate'
+        : '...';
 
-    return ListTile(
-      leading: Icon(
-        Symbols.info_rounded,
-        color: colorScheme.onSurfaceVariant,
-      ),
-      title: Text(t.settings.appVersion),
-      subtitle: info != null
-          ? Text(
-              'v${info.version} (${info.buildNumber})  •  $buildDate',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+    return InkWell(
+      onTap: null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(9),
               ),
-            )
-          : const SizedBox(
-              height: 12,
-              width: 12,
-              child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+              child: Center(
+                child: Icon(
+                  Symbols.info_rounded,
+                  size: 18,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.settings.appVersion,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    versionText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelfHostedIndicator extends StatelessWidget {
+  const _SelfHostedIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    final settingsT = t.settings;
+
+    return FutureBuilder<SelfHostedConfig?>(
+      future: loadSelfHostedConfig(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+
+        final config = snapshot.data;
+        if (config != null) {
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.amber.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.cloud_outlined,
+                          size: 18,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            settingsT.selfHostedActive,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            settingsT.selfHostedProject(
+                              projectId: config.projectId,
+                            ),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.amber,
+                      backgroundColor: Colors.amber.withValues(alpha: 0.1),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Colors.amber.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ),
+                    onPressed: () async {
+                      await clearSelfHostedConfig();
+                      if (!context.mounted) return;
+                      context.showSnackBarMessage(
+                        settingsT.resetToCloudSuccess,
+                      );
+                    },
+                    child: Text(
+                      settingsT.resetToCloud,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Center(
+          child: Text(
+            settingsT.firebaseAppName(
+              name: FirebaseAuth.instance.app.name,
+            ),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -507,17 +804,26 @@ class _DeleteAccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settingsT = t.settings;
-    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: double.infinity,
       child: TextButton(
         style: TextButton.styleFrom(
-          foregroundColor: colorScheme.error,
+          foregroundColor: Colors.red.withValues(alpha: 0.7),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
         onPressed: isDeleting.value
             ? null
             : () => _showDeleteConfirmationDialog(context),
-        child: Text(settingsT.deleteAccount),
+        child: Text(
+          settingsT.deleteAccount,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

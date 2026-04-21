@@ -1072,12 +1072,9 @@ class _TeamMenuButton extends StatelessWidget {
                               showModalBottomSheet(
                                 showDragHandle: true,
                                 context: context,
-                                builder: (sheetContext) => SizedBox(
-                                  height:
-                                      MediaQuery.of(sheetContext).size.height *
-                                      0.6,
-                                  child: const InviteTeamMemberBottomSheet(),
-                                ),
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    const InviteTeamMemberBottomSheet(),
                               );
                             },
                           ),

@@ -236,6 +236,8 @@ class _TranslationsSettingsEs implements TranslationsSettingsEn {
 
 	// Translations
 	@override String get title => 'Configuración';
+	@override String get general => 'General';
+	@override String get preferences => 'Preferencias';
 	@override String get buildNotifications => 'Notificaciones de compilación';
 	@override String get configureNotifications => 'Configurar cuándo recibir notificaciones';
 	@override String get subscription => 'Suscripción';
@@ -909,6 +911,8 @@ extension on TranslationsEs {
 			'envVars.deletedSuccess' => 'Eliminado exitosamente',
 			'envVars.runNumberUpdated' => 'Número de ejecución actualizado',
 			'settings.title' => 'Configuración',
+			'settings.general' => 'General',
+			'settings.preferences' => 'Preferencias',
 			'settings.buildNotifications' => 'Notificaciones de compilación',
 			'settings.configureNotifications' => 'Configurar cuándo recibir notificaciones',
 			'settings.subscription' => 'Suscripción',

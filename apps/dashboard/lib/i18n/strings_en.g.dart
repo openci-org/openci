@@ -419,6 +419,12 @@ class TranslationsSettingsEn {
 	/// en: 'Settings'
 	String get title => 'Settings';
 
+	/// en: 'General'
+	String get general => 'General';
+
+	/// en: 'Preferences'
+	String get preferences => 'Preferences';
+
 	/// en: 'Build Notifications'
 	String get buildNotifications => 'Build Notifications';
 
@@ -1735,6 +1741,8 @@ extension on Translations {
 			'envVars.deletedSuccess' => 'Deleted successfully',
 			'envVars.runNumberUpdated' => 'Run number updated',
 			'settings.title' => 'Settings',
+			'settings.general' => 'General',
+			'settings.preferences' => 'Preferences',
 			'settings.buildNotifications' => 'Build Notifications',
 			'settings.configureNotifications' => 'Configure when to receive notifications',
 			'settings.subscription' => 'Subscription',

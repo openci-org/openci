@@ -201,6 +201,8 @@
   },
   "settings": {
     "title": "設定",
+    "general": "一般",
+    "preferences": "環境設定",
     "buildNotifications": "ビルド通知",
     "configureNotifications": "通知を受け取るタイミングを設定",
     "subscription": "サブスクリプション",
