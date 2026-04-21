@@ -24,6 +24,8 @@ abstract class BuildJob with _$BuildJob {
     String? jobKey,
     String? workflowRunId,
     List<String>? needs,
+    String? githubBaseUrl,
+    String? githubApiBaseUrl,
     @DateTimeConverter() DateTime? createdAt,
     @DateTimeConverter() DateTime? updatedAt,
   }) = _BuildJob;

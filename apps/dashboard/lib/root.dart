@@ -2,9 +2,9 @@ import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class Root extends ConsumerWidget {
   const Root({super.key});
@@ -26,47 +26,51 @@ class Root extends ConsumerWidget {
 
 ThemeData _buildTheme() {
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF2563EB), // Refined blue
+    seedColor: const Color(0xFF3B82F6),
+    brightness: Brightness.dark,
   );
+
+  final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
 
   return ThemeData(
     colorScheme: colorScheme,
+    brightness: Brightness.dark,
     useMaterial3: true,
-    textTheme: GoogleFonts.spaceMonoTextTheme(),
-    // ── Card theme — subtle border, no elevation (uidotsh surfaces) ──
+    scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+    textTheme: baseTextTheme,
     cardTheme: CardThemeData(
       elevation: 0,
-      color: colorScheme.surfaceContainerLow,
+      color: const Color(0xFF141414),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: Colors.white.withValues(alpha: 0.08),
         ),
       ),
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
     ),
-    // ── Divider — opacity-based (uidotsh: never solid colors) ──
     dividerTheme: DividerThemeData(
-      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+      color: Colors.white.withValues(alpha: 0.08),
       space: 1,
       thickness: 1,
     ),
-    // ── AppBar — clean, no shadow ──
     appBarTheme: AppBarTheme(
       elevation: 0,
-      scrolledUnderElevation: 0.5,
+      scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(
-        fontSize: 16,
+      backgroundColor: const Color(0xFF0A0A0A),
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: baseTextTheme.titleMedium?.copyWith(
+        fontSize: 15,
         fontWeight: FontWeight.w600,
-        color: colorScheme.onSurface,
+        color: Colors.white,
+        letterSpacing: -0.2,
       ),
     ),
-    // ── Input fields — outlined style for clarity ──
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colorScheme.surfaceContainerLow,
+      fillColor: const Color(0xFF141414),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 14,
@@ -74,13 +78,13 @@ ThemeData _buildTheme() {
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       focusedBorder: OutlineInputBorder(
@@ -97,24 +101,29 @@ ThemeData _buildTheme() {
         ),
       ),
       labelStyle: TextStyle(
-        color: colorScheme.onSurfaceVariant,
+        color: Colors.white.withValues(alpha: 0.5),
         fontWeight: FontWeight.w500,
+        fontSize: 14,
+      ),
+      hintStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.3),
+        fontSize: 14,
       ),
     ),
-    // ── Filled button — primary action ──
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
+        elevation: 0,
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
         ),
       ),
     ),
-    // ── Elevated button — secondary action ──
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -125,10 +134,10 @@ ThemeData _buildTheme() {
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
         ),
       ),
     ),
-    // ── Outlined button ──
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -136,15 +145,15 @@ ThemeData _buildTheme() {
           borderRadius: BorderRadius.circular(10),
         ),
         side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Colors.white.withValues(alpha: 0.12),
         ),
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
         ),
       ),
     ),
-    // ── Text button ──
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -154,37 +163,86 @@ ThemeData _buildTheme() {
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
         ),
       ),
     ),
-    // ── TabBar ──
     tabBarTheme: TabBarThemeData(
       labelStyle: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
+        letterSpacing: -0.1,
       ),
-      unselectedLabelStyle: const TextStyle(
+      unselectedLabelStyle: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
+        color: Colors.white.withValues(alpha: 0.5),
       ),
       indicatorSize: TabBarIndicatorSize.label,
-      dividerColor: colorScheme.outlineVariant.withValues(alpha: 0.3),
+      dividerColor: Colors.white.withValues(alpha: 0.06),
     ),
-    // ── BottomSheet ──
-    bottomSheetTheme: const BottomSheetThemeData(
-      shape: RoundedRectangleBorder(
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: const Color(0xFF141414),
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       showDragHandle: true,
     ),
-    // ── Snackbar ──
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
+      backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
     ),
-    // ── Page transitions ──
+    dialogTheme: DialogThemeData(
+      backgroundColor: const Color(0xFF141414),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: const Color(0xFF1A1A1A),
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: const Color(0xFF1A1A1A),
+      side: BorderSide(
+        color: Colors.white.withValues(alpha: 0.08),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      labelStyle: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      elevation: 0,
+      hoverElevation: 0,
+      focusElevation: 0,
+      highlightElevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4),
+      ),
+    ),
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: ResponsivePageTransitionsBuilder(),
@@ -208,19 +266,16 @@ class ResponsivePageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    // 画面幅が800pxを超える（デスクトップサイズ）場合は、素早いフェードアニメーション
     if (MediaQuery.sizeOf(context).width > 800) {
       return FadeTransition(
         opacity: CurvedAnimation(
           parent: animation,
-          // MaterialPageRouteのデフォルト遷移時間(300ms)のうち、最初の約100msでフェードインを完了させる
           curve: const Interval(0.0, 0.33, curve: Curves.easeOut),
         ),
         child: child,
       );
     }
 
-    // モバイルサイズの場合はプラットフォーム標準のアニメーション
     final platform = Theme.of(context).platform;
     if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
       return const CupertinoPageTransitionsBuilder().buildTransitions(

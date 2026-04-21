@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 Future<void> initializeRevenueCat() async {
@@ -6,20 +6,23 @@ Future<void> initializeRevenueCat() async {
       ? const String.fromEnvironment('REVENUE_CAT_WEB_API_KEY')
       : const String.fromEnvironment('REVENUE_CAT_API_KEY');
   if (apiKey.isEmpty) {
-    throw StateError(
-      'RevenueCat API key is not set. '
+    debugPrint(
+      '[RevenueCat] API key is not set. '
       'Pass REVENUE_CAT_API_KEY (Apple) or REVENUE_CAT_WEB_API_KEY (Web) '
-      'via --dart-define-from-file',
+      'via --dart-define-from-file. Skipping RevenueCat initialization.',
     );
+    return;
   }
   await Purchases.configure(PurchasesConfiguration(apiKey));
 }
 
 Future<void> loginRevenueCat(String uid) async {
+  if (!await Purchases.isConfigured) return;
   await Purchases.logIn(uid);
 }
 
 Future<void> logoutRevenueCat() async {
+  if (!await Purchases.isConfigured) return;
   final customerInfo = await Purchases.getCustomerInfo();
   if (customerInfo.originalAppUserId.isEmpty) return;
   final isAnonymous = await Purchases.isAnonymous;

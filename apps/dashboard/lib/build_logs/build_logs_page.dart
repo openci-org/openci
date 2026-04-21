@@ -12,15 +12,15 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 // ── Curated status palette ──────────────────────────────────────────────────
 
-Color _statusColor(String status, ColorScheme scheme) => switch (status) {
+Color _statusColor(String status) => switch (status) {
   'success' => const Color(0xFF2DA44E),
   'failure' => const Color(0xFFCF222E),
   'in_progress' => const Color(0xFF1F6FEB),
   'queued' => const Color(0xFF6E40C9),
   'cancelled' => const Color(0xFFBF8700),
   'waiting' => const Color(0xFFBF8700),
-  'skipped' => scheme.onSurfaceVariant.withValues(alpha: 0.6),
-  _ => scheme.onSurfaceVariant.withValues(alpha: 0.6),
+  'skipped' => Colors.white.withValues(alpha: 0.35),
+  _ => Colors.white.withValues(alpha: 0.35),
 };
 
 IconData _statusIcon(String status) => switch (status) {
@@ -60,26 +60,28 @@ class LogsBody extends HookConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 80,
-                  height: 80,
+                  width: 72,
+                  height: 72,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
                   ),
                   child: Icon(
-                    Icons.inbox_rounded,
-                    size: 40,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    Icons.inbox_outlined,
+                    size: 32,
+                    color: Colors.white.withValues(alpha: 0.25),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Text(
                   t.buildLogs.noJobs,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -134,245 +136,252 @@ class BuildJobCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
     final workflowNameAsync = ref.watch(workflowNameProvider(buildJob));
 
-    final color = _statusColor(buildJob.status, scheme);
+    final color = _statusColor(buildJob.status);
     final statusLabel = _statusLabel(buildJob.status);
     final isRunning =
         buildJob.status == 'in_progress' || buildJob.status == 'queued';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
-        },
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2, right: 12),
-                          child: _StatusIndicator(
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
+          },
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: Colors.white.withValues(alpha: 0.03),
+          splashColor: Colors.white.withValues(alpha: 0.05),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: workflowNameAsync.when(
+                              data: (name) {
+                                final title =
+                                    name ?? '${buildJob.owner}/${buildJob.repo}';
+                                final displayTitle = buildJob.jobKey != null
+                                    ? '$title (${buildJob.jobKey})'
+                                    : title;
+                                return Text(
+                                  displayTitle,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              },
+                              loading: () => Skeletonizer(
+                                child: Text(
+                                  buildJob.jobKey != null
+                                      ? '${buildJob.owner}/${buildJob.repo} (${buildJob.jobKey})'
+                                      : '${buildJob.owner}/${buildJob.repo}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              error: asyncErrorWidget,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            buildJob.createdAt.toTimeAgo(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _StatusBadge(
                             status: buildJob.status,
                             color: color,
-                            tooltip: statusLabel,
-                            size: 18,
+                            label: statusLabel,
                           ),
-                        ),
-                        Expanded(
-                          child: workflowNameAsync.when(
-                            data: (name) {
-                              final title =
-                                  name ?? '${buildJob.owner}/${buildJob.repo}';
-                              final displayTitle = buildJob.jobKey != null
-                                  ? '$title (${buildJob.jobKey})'
-                                  : title;
-                              return Text(
-                                displayTitle,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
-                              );
-                            },
-                            loading: () => Skeletonizer(
-                              child: Text(
-                                buildJob.jobKey != null
-                                    ? '${buildJob.owner}/${buildJob.repo} (${buildJob.jobKey})'
-                                    : '${buildJob.owner}/${buildJob.repo}',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
+                          _LiveDurationBadge(buildJob: buildJob),
+                          if (buildJob.needs != null &&
+                              buildJob.needs!.isNotEmpty)
+                            _NeedsBadge(needs: buildJob.needs!),
+                          if (buildJob.pullRequestNumber != null)
+                            _InfoBadge(
+                              icon: FaIcon(
+                                FontAwesomeIcons.codePullRequest,
+                                size: 10,
                               ),
+                              label: '#${buildJob.pullRequestNumber}',
                             ),
-                            error: asyncErrorWidget,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          buildJob.createdAt.toTimeAgo(),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: scheme.onSurfaceVariant.withValues(
-                                  alpha: 0.7,
+                          if (buildJob.tagName != null)
+                            _InfoBadge(
+                              icon: FaIcon(FontAwesomeIcons.tag, size: 10),
+                              label: buildJob.tagName!,
+                            ),
+                          if (buildJob.commitSha != null)
+                            _InfoBadge(
+                              icon: FaIcon(
+                                FontAwesomeIcons.codeCommit,
+                                size: 10,
+                              ),
+                              label: buildJob.commitSha!.substring(0, 7),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                _MoreMenuButton(
+                  onSelected: (value) async {
+                    switch (value) {
+                      case 'details':
+                        await context.push(
+                          '/runs/${Uri.encodeComponent(buildJob.id)}',
+                        );
+                      case 'retry':
+                        try {
+                          await ref
+                              .read(buildJobsProvider.notifier)
+                              .retryBuildJob(buildJob.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(t.buildLogs.detail.retrySuccess),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  t.buildLogs.detail.failedToRetry(
+                                    error: e.toString(),
+                                  ),
                                 ),
                               ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _LiveDurationBadge(buildJob: buildJob),
-                        if (buildJob.needs != null &&
-                            buildJob.needs!.isNotEmpty)
-                          _NeedsBadge(needs: buildJob.needs!),
-                        if (buildJob.pullRequestNumber != null)
-                          _InfoBadge(
-                            icon: FaIcon(
-                              FontAwesomeIcons.codePullRequest,
-                              size: 10,
+                            );
+                          }
+                        }
+                      case 'cancel':
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            backgroundColor: const Color(0xFF1A1A1A),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.1),
+                              ),
                             ),
-                            label: '#${buildJob.pullRequestNumber}',
-                          ),
-                        if (buildJob.tagName != null)
-                          _InfoBadge(
-                            icon: FaIcon(FontAwesomeIcons.tag, size: 10),
-                            label: buildJob.tagName!,
-                          ),
-                        if (buildJob.commitSha != null)
-                          _InfoBadge(
-                            icon: FaIcon(
-                              FontAwesomeIcons.codeCommit,
-                              size: 10,
+                            title: Text(
+                              t.buildLogs.detail.cancelBuild,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            label: buildJob.commitSha!.substring(0, 7),
+                            content: Text(
+                              t.buildLogs.detail.cancelConfirm,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 14,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(
+                                  t.buildLogs.detail.cancelNo,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFFEF4444),
+                                ),
+                                child: Text(t.buildLogs.detail.cancelBuild),
+                              ),
+                            ],
                           ),
-                      ],
+                        );
+                        if (confirmed != true) return;
+                        try {
+                          await ref
+                              .read(buildJobsProvider.notifier)
+                              .cancelBuildJob(buildJob.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(t.buildLogs.detail.buildCancelled),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  t.buildLogs.detail.failedToCancel(
+                                    error: e.toString(),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                    }
+                  },
+                  items: [
+                    _MenuItemData(
+                      value: 'details',
+                      icon: Icons.arrow_outward_rounded,
+                      label: t.buildLogs.detail.viewDetails,
                     ),
+                    _MenuItemData(
+                      value: 'retry',
+                      icon: Icons.refresh_rounded,
+                      label: t.buildLogs.detail.retry,
+                    ),
+                    if (isRunning)
+                      _MenuItemData(
+                        value: 'cancel',
+                        icon: Icons.stop_circle_outlined,
+                        label: t.common.cancel,
+                        isDestructive: true,
+                      ),
                   ],
                 ),
-              ),
-              PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_vert,
-                  color: scheme.onSurfaceVariant,
-                  size: 20,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'details':
-                      await context.push(
-                        '/runs/${Uri.encodeComponent(buildJob.id)}',
-                      );
-                    case 'retry':
-                      try {
-                        await ref
-                            .read(buildJobsProvider.notifier)
-                            .retryBuildJob(buildJob.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(t.buildLogs.detail.retrySuccess),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                t.buildLogs.detail.failedToRetry(
-                                  error: e.toString(),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    case 'cancel':
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: Text(t.buildLogs.detail.cancelBuild),
-                          content: Text(t.buildLogs.detail.cancelConfirm),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: Text(t.buildLogs.detail.cancelNo),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.red,
-                              ),
-                              child: Text(t.buildLogs.detail.cancelBuild),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) return;
-                      try {
-                        await ref
-                            .read(buildJobsProvider.notifier)
-                            .cancelBuildJob(buildJob.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(t.buildLogs.detail.buildCancelled),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                t.buildLogs.detail.failedToCancel(
-                                  error: e.toString(),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                  }
-                },
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'details',
-                    child: ListTile(
-                      leading: const Icon(Icons.info_outline, size: 20),
-                      title: Text(t.buildLogs.detail.viewDetails),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'retry',
-                    child: ListTile(
-                      leading: const Icon(Icons.replay, size: 20),
-                      title: Text(t.buildLogs.detail.retry),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  if (isRunning)
-                    PopupMenuItem(
-                      value: 'cancel',
-                      child: ListTile(
-                        leading: Icon(
-                          Icons.cancel_outlined,
-                          size: 20,
-                          color: Colors.red,
-                        ),
-                        title: Text(
-                          t.common.cancel,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -430,7 +439,6 @@ class WorkflowRunCard extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (jobs.isEmpty) return const SizedBox.shrink();
 
-    final scheme = Theme.of(context).colorScheme;
     final mainJob = jobs.first;
     final workflowNameAsync = ref.watch(workflowNameProvider(mainJob));
 
@@ -453,16 +461,16 @@ class WorkflowRunCard extends HookConsumerWidget {
       overallStatus = 'success';
     }
 
-    final color = _statusColor(overallStatus, scheme);
+    final color = _statusColor(overallStatus);
     final statusLabel = _statusLabel(overallStatus);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.5),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -470,35 +478,30 @@ class WorkflowRunCard extends HookConsumerWidget {
         children: [
           // ── Header ───────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2, right: 12),
-                      child: _StatusIndicator(
-                        status: overallStatus,
-                        color: color,
-                        tooltip: statusLabel,
-                        size: 18,
-                      ),
-                    ),
                     Expanded(
                       child: workflowNameAsync.when(
                         data: (name) => Text(
                           name ?? '${mainJob.owner}/${mainJob.repo}',
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         loading: () => Skeletonizer(
                           child: Text(
                             '${mainJob.owner}/${mainJob.repo}',
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -507,14 +510,13 @@ class WorkflowRunCard extends HookConsumerWidget {
                     ),
                     Text(
                       mainJob.createdAt.toTimeAgo(),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.4),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, size: 20),
-                      padding: EdgeInsets.zero,
+                    const SizedBox(width: 2),
+                    _MoreMenuButton(
                       onSelected: (value) async {
                         if (value == 'retry_all') {
                           try {
@@ -547,18 +549,11 @@ class WorkflowRunCard extends HookConsumerWidget {
                           }
                         }
                       },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
+                      items: [
+                        _MenuItemData(
                           value: 'retry_all',
-                          child: ListTile(
-                            leading: const Icon(
-                              Icons.replay,
-                              size: 20,
-                            ),
-                            title: Text(t.buildLogs.detail.retry),
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
+                          icon: Icons.refresh_rounded,
+                          label: t.buildLogs.detail.retry,
                         ),
                       ],
                     ),
@@ -569,6 +564,11 @@ class WorkflowRunCard extends HookConsumerWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    _StatusBadge(
+                      status: overallStatus,
+                      color: color,
+                      label: statusLabel,
+                    ),
                     _WorkflowDurationBadge(
                       jobs: jobs,
                       overallStatus: overallStatus,
@@ -601,13 +601,13 @@ class WorkflowRunCard extends HookConsumerWidget {
           ),
           // ── Jobs tree ────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Container(
               decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withValues(alpha: 0.02),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.4),
+                  color: Colors.white.withValues(alpha: 0.06),
                 ),
               ),
               child: _JobTree(jobs: _sortedJobs),
@@ -619,7 +619,53 @@ class WorkflowRunCard extends HookConsumerWidget {
   }
 }
 
-// ── Status indicator widget ─────────────────────────────────────────────────
+// ── Status pill badge ────────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.status,
+    required this.color,
+    required this.label,
+  });
+
+  final String status;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status == 'in_progress')
+            SyncedSpinner(color: color, size: 10)
+          else
+            Icon(_statusIcon(status), color: color, size: 12),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Status indicator (for tree rows) ────────────────────────────────────────
 
 class _StatusIndicator extends StatelessWidget {
   const _StatusIndicator({
@@ -682,13 +728,14 @@ class _InfoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -697,7 +744,7 @@ class _InfoBadge extends StatelessWidget {
             IconTheme(
               data: IconThemeData(
                 size: 10,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: Colors.white.withValues(alpha: 0.45),
               ),
               child: icon,
             ),
@@ -707,8 +754,9 @@ class _InfoBadge extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 11,
-              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
+              fontFamily: 'monospace',
+              color: Colors.white.withValues(alpha: 0.55),
             ),
           ),
         ],
@@ -724,13 +772,14 @@ class _NeedsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -738,7 +787,7 @@ class _NeedsBadge extends StatelessWidget {
           Icon(
             Icons.account_tree_outlined,
             size: 11,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+            color: Colors.white.withValues(alpha: 0.45),
           ),
           const SizedBox(width: 4),
           for (int i = 0; i < needs.length; i++) ...[
@@ -747,7 +796,8 @@ class _NeedsBadge extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: scheme.onSurfaceVariant,
+                fontFamily: 'monospace',
+                color: Colors.white.withValues(alpha: 0.55),
               ),
             ),
             if (i < needs.length - 1)
@@ -756,7 +806,7 @@ class _NeedsBadge extends StatelessWidget {
                 child: Icon(
                   Icons.add,
                   size: 9,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: Colors.white.withValues(alpha: 0.3),
                 ),
               ),
           ],
@@ -822,9 +872,7 @@ class _JobTree extends ConsumerWidget {
           Divider(
             height: 1,
             indent: 16 + (depth * 24.0) + 32,
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: Colors.white.withValues(alpha: 0.05),
           ),
         );
       }
@@ -860,17 +908,18 @@ class _JobTreeRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final jobColor = _statusColor(job.status, scheme);
+    final jobColor = _statusColor(job.status);
     final jobLabel = _statusLabel(job.status);
     final isRunning = job.status == 'in_progress' || job.status == 'queued';
 
     return InkWell(
       borderRadius: isFirst
-          ? const BorderRadius.vertical(top: Radius.circular(12))
+          ? const BorderRadius.vertical(top: Radius.circular(10))
           : (isLast
-                ? const BorderRadius.vertical(bottom: Radius.circular(12))
+                ? const BorderRadius.vertical(bottom: Radius.circular(10))
                 : BorderRadius.zero),
+      hoverColor: Colors.white.withValues(alpha: 0.03),
+      splashColor: Colors.white.withValues(alpha: 0.05),
       onTap: () {
         context.push('/runs/${Uri.encodeComponent(job.id)}');
       },
@@ -878,8 +927,8 @@ class _JobTreeRow extends ConsumerWidget {
         padding: EdgeInsets.only(
           left: 16 + (depth * 24.0),
           right: 8,
-          top: 12,
-          bottom: 12,
+          top: 10,
+          bottom: 10,
         ),
         child: Row(
           children: [
@@ -887,8 +936,8 @@ class _JobTreeRow extends ConsumerWidget {
             if (depth > 0) ...[
               Icon(
                 Icons.subdirectory_arrow_right_rounded,
-                size: 16,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.35),
+                size: 14,
+                color: Colors.white.withValues(alpha: 0.2),
               ),
               const SizedBox(width: 8),
             ],
@@ -898,16 +947,17 @@ class _JobTreeRow extends ConsumerWidget {
               tooltip: jobLabel,
               size: 16,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     job.jobKey ?? 'Unnamed Job',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: depth > 0 ? 13 : 14,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.85),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -924,17 +974,8 @@ class _JobTreeRow extends ConsumerWidget {
                 ],
               ),
             ),
-            PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_vert,
-                size: 18,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+            _MoreMenuButton(
+              size: 18,
               onSelected: (value) async {
                 if (value == 'retry') {
                   await ref
@@ -946,32 +987,18 @@ class _JobTreeRow extends ConsumerWidget {
                       .cancelBuildJob(job.id);
                 }
               },
-              itemBuilder: (context) => [
-                PopupMenuItem(
+              items: [
+                _MenuItemData(
                   value: 'retry',
-                  child: ListTile(
-                    leading: const Icon(Icons.replay, size: 20),
-                    title: Text(t.buildLogs.detail.retry),
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+                  icon: Icons.refresh_rounded,
+                  label: t.buildLogs.detail.retry,
                 ),
                 if (isRunning)
-                  PopupMenuItem(
+                  _MenuItemData(
                     value: 'cancel',
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.cancel_outlined,
-                        size: 20,
-                        color: Colors.red,
-                      ),
-                      title: Text(
-                        t.common.cancel,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
+                    icon: Icons.stop_circle_outlined,
+                    label: t.common.cancel,
+                    isDestructive: true,
                   ),
               ],
             ),
@@ -1155,6 +1182,83 @@ class _AiGeneratingBadgeState extends State<_AiGeneratingBadge>
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Shared menu components ──────────────────────────────────────────────────
+
+class _MenuItemData {
+  const _MenuItemData({
+    required this.value,
+    required this.icon,
+    required this.label,
+    this.isDestructive = false,
+  });
+
+  final String value;
+  final IconData icon;
+  final String label;
+  final bool isDestructive;
+}
+
+class _MoreMenuButton extends StatelessWidget {
+  const _MoreMenuButton({
+    required this.onSelected,
+    required this.items,
+    this.size = 20,
+  });
+
+  final ValueChanged<String> onSelected;
+  final List<_MenuItemData> items;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: Icon(
+        Icons.more_horiz_rounded,
+        size: size,
+        color: Colors.white.withValues(alpha: 0.35),
+      ),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      style: IconButton.styleFrom(
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      color: const Color(0xFF1A1A1A),
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: 0.1),
+        ),
+      ),
+      onSelected: onSelected,
+      itemBuilder: (_) => items.map((item) {
+        final color = item.isDestructive
+            ? const Color(0xFFEF4444)
+            : Colors.white.withValues(alpha: 0.8);
+        return PopupMenuItem<String>(
+          value: item.value,
+          height: 36,
+          child: Row(
+            children: [
+              Icon(item.icon, size: 16, color: color),
+              const SizedBox(width: 10),
+              Text(
+                item.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

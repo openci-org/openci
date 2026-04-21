@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -37,7 +37,7 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
 
     final team = ref.read(teamStateProvider).value;
     if (team == null) throw StateError('team is not loaded yet');
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
 
     try {
       final result = await functions

@@ -1,6 +1,6 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +37,8 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
 
-  final result = await FirebaseFunctions.instanceFor(region: 'asia-northeast1')
+  final functions = FirebaseFunctions.instance;
+  final result = await functions
       .httpsCallableFromUrl(dartFunctionUrl('get-team-members'))
       .call<Map<String, dynamic>>({'teamId': team.id});
 
@@ -57,8 +58,6 @@ class TeamMembersBottomSheet extends ConsumerWidget {
     final membersAsync = ref.watch(teamMembersProvider);
     final currentUid = ref.watch(authProvider).value?.uid;
     final teamT = t.team;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
@@ -66,21 +65,33 @@ class TeamMembersBottomSheet extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         body: Column(
           children: [
-            // Header
+            // ── Header ──
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.group_rounded,
-                    color: colorScheme.primary,
-                    size: 24,
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.group_outlined,
+                        size: 18,
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     teamT.members,
-                    style: textTheme.titleMedium?.copyWith(
+                    style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                   const Spacer(),
@@ -91,14 +102,18 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
                           ),
                           child: Text(
                             teamT.membersCount(count: members.length),
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onPrimaryContainer,
+                            style: TextStyle(
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.6),
                             ),
                           ),
                         ),
@@ -109,9 +124,9 @@ class TeamMembersBottomSheet extends ConsumerWidget {
             ),
             Divider(
               height: 1,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: Colors.white.withValues(alpha: 0.06),
             ),
-            // List
+            // ── List ──
             Expanded(
               child: membersAsync.when(
                 loading: () =>
@@ -121,15 +136,15 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       e.toString(),
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.error,
+                      style: TextStyle(
+                        color: Colors.red.withValues(alpha: 0.8),
+                        fontSize: 13,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ),
                 ),
                 data: (members) {
-                  // Put current user first
                   final sorted = [...members]
                     ..sort((a, b) {
                       if (a.uid == currentUid) return -1;
@@ -138,84 +153,139 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                     });
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: sorted.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      indent: 72,
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
+                    itemCount: sorted.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 2),
                     itemBuilder: (context, index) {
                       final member = sorted[index];
                       final isCurrentUser = member.uid == currentUid;
                       final displayName = member.displayName;
                       final email = member.email ?? teamT.noEmail;
 
-                      return ListTile(
-                        leading: CircleAvatar(
-                          radius: 20,
-                          backgroundImage: member.photoURL != null
-                              ? NetworkImage(member.photoURL!)
-                              : null,
-                          backgroundColor: colorScheme.primaryContainer
-                              .withValues(
-                                alpha: 0.6,
-                              ),
-                          child: member.photoURL == null
-                              ? Text(
-                                  _getInitials(displayName ?? email),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.primary,
-                                  ),
-                                )
-                              : null,
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF141414),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
                         ),
-                        title: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                displayName ?? email,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            if (isCurrentUser) ...[
-                              const SizedBox(width: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              // Avatar
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
+                                width: 38,
+                                height: 38,
                                 decoration: BoxDecoration(
-                                  color: colorScheme.tertiaryContainer,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: const Color(0xFF252525),
+                                  image: member.photoURL != null
+                                      ? DecorationImage(
+                                          image:
+                                              NetworkImage(member.photoURL!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
                                 ),
-                                child: Text(
-                                  teamT.you,
-                                  style: textTheme.labelSmall?.copyWith(
-                                    color: colorScheme.onTertiaryContainer,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                child: member.photoURL == null
+                                    ? Center(
+                                        child: Text(
+                                          _getInitials(
+                                            displayName ?? email,
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              // Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            displayName ?? email,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isCurrentUser) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF3B82F6)
+                                                  .withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color:
+                                                    const Color(0xFF3B82F6)
+                                                        .withValues(
+                                                          alpha: 0.3,
+                                                        ),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              teamT.you,
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF3B82F6),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (displayName != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        email,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ],
-                          ],
+                          ),
                         ),
-                        subtitle: displayName != null
-                            ? Text(
-                                email,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              )
-                            : null,
                       );
                     },
                   );

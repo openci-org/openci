@@ -106,7 +106,7 @@ final class TeamListProvider
   TeamList create() => TeamList();
 }
 
-String _$teamListHash() => r'd9e92fe38b8f82203bd7509c139929fb92ed5dbb';
+String _$teamListHash() => r'a844c809168af7b39e3de4b6888226a9ff5c7581';
 
 abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();

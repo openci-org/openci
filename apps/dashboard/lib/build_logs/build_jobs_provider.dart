@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -16,7 +15,7 @@ part 'build_jobs_provider.g.dart';
 class BuildJobs extends _$BuildJobs {
   @override
   Stream<List<BuildJob>> build() {
-    final firestore = ref.watch(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
 
@@ -34,7 +33,7 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> retryBuildJob(String buildJobId) async {
-    final functions = ref.watch(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('retry-build-job'))
         .call({
@@ -43,7 +42,7 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
-    final functions = ref.watch(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('cancel-build-job'))
         .call({
@@ -52,7 +51,7 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> retryWorkflowRun(String workflowRunId) async {
-    final functions = ref.watch(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('retry-workflow-run'))
         .call({
@@ -63,7 +62,7 @@ class BuildJobs extends _$BuildJobs {
 
 @riverpod
 Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
-  final firestore = ref.watch(firestoreProvider);
+  final firestore = FirebaseFirestore.instance;
 
   return firestore
       .collection(buildJobsCollection)
@@ -85,7 +84,7 @@ Future<String?> workflowName(Ref ref, BuildJob buildJob) async {
   if (teamId == null) return null;
 
   final repo = '${buildJob.owner}/${buildJob.repo}';
-  final firestore = ref.read(firestoreProvider);
+  final firestore = FirebaseFirestore.instance;
 
   final qs = await firestore
       .collection(workflowFilesCollection)
@@ -143,7 +142,7 @@ Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
   final runId = buildJob.latestRunId;
   if (runId == null) return Stream.value(null);
 
-  final firestore = ref.read(firestoreProvider);
+  final firestore = FirebaseFirestore.instance;
   return firestore
       .collection(buildJobsCollection)
       .doc(buildJob.id)

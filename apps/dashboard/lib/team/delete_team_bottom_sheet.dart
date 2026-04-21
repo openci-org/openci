@@ -17,99 +17,173 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
     final isDeleting = useState(false);
     final teamT = t.team;
     final commonT = t.common;
-    final colorScheme = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16.0,
-          ),
-          child: teamListStream.when(
-            data: (teams) {
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Text(
-                      teamT.deleteTeam,
-                      style: TextStyle(fontSize: 16),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: teamListStream.when(
+          data: (teams) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 16),
+                  child: Text(
+                    teamT.deleteTeam,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 16),
-                    InputDecorator(
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: teamT.selectTeamLabel,
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: selectedTeamId.value,
-                          isExpanded: true,
-                          isDense: true,
-                          hint: Text(teamT.selectTeamLabel),
-                          onChanged: (value) {
-                            selectedTeamId.value = value;
+                  ),
+                ),
+                // ── Team selector ──
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141414),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < teams.length; i++) ...[
+                        if (i > 0)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
+                        InkWell(
+                          onTap: () {
+                            selectedTeamId.value = teams[i].id;
                           },
-                          items: teams
-                              .map(
-                                (team) => DropdownMenuItem(
-                                  value: team.id,
-                                  child: Text(team.name),
+                          hoverColor: Colors.white.withValues(alpha: 0.03),
+                          splashColor: Colors.white.withValues(alpha: 0.05),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 13,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: selectedTeamId.value == teams[i].id
+                                        ? Colors.red.withValues(alpha: 0.15)
+                                        : const Color(0xFF252525),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      teams[i].name.isNotEmpty
+                                          ? teams[i].name[0].toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            selectedTeamId.value == teams[i].id
+                                                ? Colors.red.withValues(
+                                                    alpha: 0.9,
+                                                  )
+                                                : Colors.white.withValues(
+                                                    alpha: 0.6,
+                                                  ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              )
-                              .toList(),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    teams[i].name,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight:
+                                          selectedTeamId.value == teams[i].id
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
+                                      color:
+                                          selectedTeamId.value == teams[i].id
+                                              ? Colors.red.withValues(
+                                                  alpha: 0.9,
+                                                )
+                                              : Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                if (selectedTeamId.value == teams[i].id)
+                                  Icon(
+                                    Icons.check_rounded,
+                                    size: 18,
+                                    color: Colors.red.withValues(alpha: 0.9),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ),
+                      ],
+                    ],
+                  ),
+                ),
+                // ── Warning + Delete button ──
+                if (selectedTeamId.value != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.2),
                       ),
                     ),
-                    if (selectedTeamId.value != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: colorScheme.errorContainer.withValues(
-                            alpha: 0.3,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: colorScheme.error.withValues(alpha: 0.3),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.red.withValues(alpha: 0.8),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            teamT.deleteTeamConfirm(
+                              teamName: teams
+                                  .firstWhere(
+                                    (t) => t.id == selectedTeamId.value,
+                                  )
+                                  .name,
+                            ),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.red.withValues(alpha: 0.8),
+                            ),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: colorScheme.error,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                teamT.deleteTeamConfirm(
-                                  teamName: teams
-                                      .firstWhere(
-                                        (t) => t.id == selectedTeamId.value,
-                                      )
-                                      .name,
-                                ),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: colorScheme.error,
-                                    ),
-                              ),
-                            ),
-                          ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red.withValues(alpha: 0.8),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.error,
-                        foregroundColor: colorScheme.onError,
-                      ),
-                      onPressed:
-                          selectedTeamId.value == null || isDeleting.value
+                      onPressed: isDeleting.value
                           ? null
                           : () async {
                               if (teams.length <= 1) {
@@ -121,9 +195,9 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
 
                               isDeleting.value = true;
                               try {
-                                final teamIdToDelete = selectedTeamId.value!;
+                                final teamIdToDelete =
+                                    selectedTeamId.value!;
 
-                                // Switch to another team before deleting
                                 final otherTeam = teams.firstWhere(
                                   (t) => t.id != teamIdToDelete,
                                 );
@@ -147,24 +221,31 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                               }
                             },
                       child: isDeleting.value
-                          ? SizedBox(
+                          ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: colorScheme.onError,
+                                color: Colors.white,
                               ),
                             )
-                          : Text(commonT.delete),
+                          : Text(
+                              commonT.delete,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              );
-            },
-            error: asyncErrorWidget,
-            loading: () => Center(child: CircularProgressIndicator.adaptive()),
-          ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+          error: asyncErrorWidget,
+          loading: () =>
+              const Center(child: CircularProgressIndicator.adaptive()),
         ),
       ),
     );

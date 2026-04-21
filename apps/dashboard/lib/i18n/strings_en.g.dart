@@ -251,6 +251,33 @@ class TranslationsWorkflowEn {
 	/// en: '$type branch (loading...)'
 	String triggerBranchLoading({required Object type}) => '${type} branch (loading...)';
 
+	/// en: 'Select Branch'
+	String get selectBranch => 'Select Branch';
+
+	/// en: 'Choose a branch to view workflows from.'
+	String get selectBranchHint => 'Choose a branch to view workflows from.';
+
+	/// en: 'No branches found'
+	String get noBranches => 'No branches found';
+
+	/// en: 'Select Repository'
+	String get selectRepository => 'Select Repository';
+
+	/// en: 'Choose a GitHub repository to manage workflows.'
+	String get selectRepositoryHint => 'Choose a GitHub repository to manage workflows.';
+
+	/// en: 'Search repositories...'
+	String get searchRepositories => 'Search repositories...';
+
+	/// en: 'No repositories found. Please install the OpenCI GitHub App.'
+	String get noRepositories => 'No repositories found.\nPlease install the OpenCI GitHub App.';
+
+	/// en: 'No repositories matching "$query"'
+	String noMatchingRepositories({required Object query}) => 'No repositories matching "${query}"';
+
+	/// en: 'default: $branch'
+	String defaultBranch({required Object branch}) => 'default: ${branch}';
+
 	late final TranslationsWorkflowEditorEn editor = TranslationsWorkflowEditorEn._(_root);
 }
 
@@ -419,6 +446,12 @@ class TranslationsSettingsEn {
 	/// en: 'Settings'
 	String get title => 'Settings';
 
+	/// en: 'General'
+	String get general => 'General';
+
+	/// en: 'Preferences'
+	String get preferences => 'Preferences';
+
 	/// en: 'Build Notifications'
 	String get buildNotifications => 'Build Notifications';
 
@@ -433,6 +466,18 @@ class TranslationsSettingsEn {
 
 	/// en: 'Firebase App Name: $name'
 	String firebaseAppName({required Object name}) => 'Firebase App Name: ${name}';
+
+	/// en: 'Reset to OpenCI Cloud'
+	String get resetToCloud => 'Reset to OpenCI Cloud';
+
+	/// en: 'Configuration cleared. Please restart the app.'
+	String get resetToCloudSuccess => 'Configuration cleared. Please restart the app.';
+
+	/// en: 'Self-hosted Firebase'
+	String get selfHostedActive => 'Self-hosted Firebase';
+
+	/// en: 'Project: $projectId'
+	String selfHostedProject({required Object projectId}) => 'Project: ${projectId}';
 
 	/// en: 'Invite Team Member'
 	String get inviteTeamMember => 'Invite Team Member';
@@ -1049,8 +1094,32 @@ class TranslationsAuthFirebaseFormEn {
 	/// en: 'Storage Bucket'
 	String get storageBucket => 'Storage Bucket';
 
-	/// en: 'Pick Firebase config'
-	String get pickConfig => 'Pick Firebase config';
+	/// en: 'Save configuration'
+	String get pickConfig => 'Save configuration';
+
+	/// en: 'Cloud Run Hash'
+	String get cloudRunHash => 'Cloud Run Hash';
+
+	/// en: 'Cloud Run Region Code'
+	String get cloudRunRegionCode => 'Cloud Run Region Code';
+
+	/// en: 'Configuration saved. Please restart the app to apply.'
+	String get configSaved => 'Configuration saved. Please restart the app to apply.';
+
+	/// en: 'Custom Firebase project is configured. Restart to apply.'
+	String get configActive => 'Custom Firebase project is configured. Restart to apply.';
+
+	/// en: 'Import from file'
+	String get importFile => 'Import from file';
+
+	/// en: 'JSON (google-services.json) or plist (GoogleService-Info.plist)'
+	String get importFileHint => 'JSON (google-services.json) or plist (GoogleService-Info.plist)';
+
+	/// en: 'Could not parse the selected file. Please check the format.'
+	String get invalidFile => 'Could not parse the selected file. Please check the format.';
+
+	/// en: 'Config loaded from file. Review and save.'
+	String get fileLoaded => 'Config loaded from file. Review and save.';
 }
 
 // Path: workflow.editor
@@ -1564,7 +1633,15 @@ extension on Translations {
 			'auth.firebaseForm.messagingSenderId' => 'Messaging Sender ID',
 			'auth.firebaseForm.projectId' => 'Project ID',
 			'auth.firebaseForm.storageBucket' => 'Storage Bucket',
-			'auth.firebaseForm.pickConfig' => 'Pick Firebase config',
+			'auth.firebaseForm.pickConfig' => 'Save configuration',
+			'auth.firebaseForm.cloudRunHash' => 'Cloud Run Hash',
+			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Run Region Code',
+			'auth.firebaseForm.configSaved' => 'Configuration saved. Please restart the app to apply.',
+			'auth.firebaseForm.configActive' => 'Custom Firebase project is configured. Restart to apply.',
+			'auth.firebaseForm.importFile' => 'Import from file',
+			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) or plist (GoogleService-Info.plist)',
+			'auth.firebaseForm.invalidFile' => 'Could not parse the selected file. Please check the format.',
+			'auth.firebaseForm.fileLoaded' => 'Config loaded from file. Review and save.',
 			'workflow.title' => 'Workflows',
 			'workflow.tabWorkflows' => 'Workflows',
 			'workflow.tabRuns' => 'Runs',
@@ -1583,6 +1660,15 @@ extension on Translations {
 			'workflow.triggers' => 'Triggers',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} branch',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} branch (loading...)',
+			'workflow.selectBranch' => 'Select Branch',
+			'workflow.selectBranchHint' => 'Choose a branch to view workflows from.',
+			'workflow.noBranches' => 'No branches found',
+			'workflow.selectRepository' => 'Select Repository',
+			'workflow.selectRepositoryHint' => 'Choose a GitHub repository to manage workflows.',
+			'workflow.searchRepositories' => 'Search repositories...',
+			'workflow.noRepositories' => 'No repositories found.\nPlease install the OpenCI GitHub App.',
+			'workflow.noMatchingRepositories' => ({required Object query}) => 'No repositories matching "${query}"',
+			'workflow.defaultBranch' => ({required Object branch}) => 'default: ${branch}',
 			'workflow.editor.createTitle' => 'Create Workflow',
 			'workflow.editor.editTitle' => 'Edit Workflow',
 			'workflow.editor.editorTab' => 'Editor',
@@ -1691,11 +1777,17 @@ extension on Translations {
 			'envVars.deletedSuccess' => 'Deleted successfully',
 			'envVars.runNumberUpdated' => 'Run number updated',
 			'settings.title' => 'Settings',
+			'settings.general' => 'General',
+			'settings.preferences' => 'Preferences',
 			'settings.buildNotifications' => 'Build Notifications',
 			'settings.configureNotifications' => 'Configure when to receive notifications',
 			'settings.subscription' => 'Subscription',
 			'settings.manageSubscription' => 'Manage your subscription plan',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebase App Name: ${name}',
+			'settings.resetToCloud' => 'Reset to OpenCI Cloud',
+			'settings.resetToCloudSuccess' => 'Configuration cleared. Please restart the app.',
+			'settings.selfHostedActive' => 'Self-hosted Firebase',
+			'settings.selfHostedProject' => ({required Object projectId}) => 'Project: ${projectId}',
 			'settings.inviteTeamMember' => 'Invite Team Member',
 			'settings.appVersion' => 'App Version',
 			'settings.logout' => 'Logout',

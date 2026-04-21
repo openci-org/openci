@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';
 
 import '../firebase.dart';
+import '../util/github_urls.dart';
 import '../util/logger.dart';
 import 'dashboard_url.dart';
 import 'graphql_queries.dart';
@@ -26,8 +27,16 @@ Future<void> handleBuildTrigger(WebhookEvent event) async {
     return;
   }
 
-  final (:token, :expiresAt) = await getInstallationToken(installationId);
-  final dio = createGitHubDio(token);
+  // Resolve team to get API base URL for GHE support
+  final teamId = await _findTeamIdForInstallation(installationId);
+  final apiBaseUrl = await getGitHubApiBaseUrl(teamId);
+  final githubBaseUrl = await getGitHubBaseUrl(teamId);
+
+  final (:token, :expiresAt) = await getInstallationToken(
+    installationId,
+    apiBaseUrl: apiBaseUrl,
+  );
+  final dio = createGitHubDio(token, apiBaseUrl: apiBaseUrl);
 
   try {
     final result = await _createBuildJobs(
@@ -37,6 +46,9 @@ Future<void> handleBuildTrigger(WebhookEvent event) async {
       installationToken: token,
       tokenExpiresAt: expiresAt,
       dio: dio,
+      teamId: teamId,
+      apiBaseUrl: apiBaseUrl,
+      githubBaseUrl: githubBaseUrl,
     );
 
     if (result.createdJobs == 0) {
@@ -157,10 +169,11 @@ Future<List<OpenciDirEntry>> _fetchOpenciDir({
   required String owner,
   required String repo,
   required String expression,
+  required String apiBaseUrl,
 }) async {
   try {
     final response = await dio.post(
-      'https://api.github.com/graphql',
+      graphqlEndpoint(apiBaseUrl),
       data: {
         'query': openciDirQuery,
         'variables': {'owner': owner, 'repo': repo, 'expression': expression},
@@ -222,6 +235,9 @@ Future<_BuildJobsResult> _createBuildJobs({
   required String installationToken,
   required String tokenExpiresAt,
   required Dio dio,
+  required String? teamId,
+  required String apiBaseUrl,
+  required String githubBaseUrl,
 }) async {
   final repo = event.repository;
   if (repo == null) return _BuildJobsResult(createdJobs: 0, errors: 0);
@@ -253,6 +269,7 @@ Future<_BuildJobsResult> _createBuildJobs({
     owner: owner,
     repo: repoName,
     expression: '$queryRef:.openci',
+    apiBaseUrl: apiBaseUrl,
   );
 
   final yamlEntries = entries.where(
@@ -293,7 +310,7 @@ Future<_BuildJobsResult> _createBuildJobs({
         continue;
       }
 
-      final teamId = await _findTeamIdForInstallation(installationId);
+      // teamId is already resolved at the top of handleBuildTrigger
 
       // Check if workflow is disabled in Firestore
       if (teamId != null) {
@@ -399,6 +416,12 @@ Future<_BuildJobsResult> _createBuildJobs({
           'tagName': triggerInfo.tagName,
           'branch': triggerInfo.branch,
           'releaseName': triggerInfo.releaseName,
+          'githubApiBaseUrl': apiBaseUrl != defaultGitHubApiBaseUrl
+              ? apiBaseUrl
+              : null,
+          'githubBaseUrl': githubBaseUrl != defaultGitHubBaseUrl
+              ? githubBaseUrl
+              : null,
         });
 
         createdJobCount++;

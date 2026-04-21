@@ -24,6 +24,8 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   jobKey: json['jobKey'] as String?,
   workflowRunId: json['workflowRunId'] as String?,
   needs: (json['needs'] as List<dynamic>?)?.map((e) => e as String).toList(),
+  githubBaseUrl: json['githubBaseUrl'] as String?,
+  githubApiBaseUrl: json['githubApiBaseUrl'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt']),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt']),
 );
@@ -46,6 +48,8 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'jobKey': instance.jobKey,
   'workflowRunId': instance.workflowRunId,
   'needs': instance.needs,
+  'githubBaseUrl': instance.githubBaseUrl,
+  'githubApiBaseUrl': instance.githubApiBaseUrl,
   'createdAt': _$JsonConverterToJson<dynamic, DateTime>(
     instance.createdAt,
     const DateTimeConverter().toJson,

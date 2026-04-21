@@ -4,6 +4,7 @@ import 'package:sentry_dio/sentry_dio.dart';
 import 'package:github_client/api/export.dart';
 
 import '../secret_manager.dart';
+import '../util/github_urls.dart';
 
 String createGitHubAppJwt({required String appId, required String privateKey}) {
   final now = DateTime.now().toUtc();
@@ -21,10 +22,13 @@ String createGitHubAppJwt({required String appId, required String privateKey}) {
   );
 }
 
-Dio createGitHubDio(String token) {
+Dio createGitHubDio(
+  String token, {
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
+}) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'https://api.github.com',
+      baseUrl: apiBaseUrl,
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github+json',
@@ -37,13 +41,14 @@ Dio createGitHubDio(String token) {
 }
 
 Future<({String token, String expiresAt})> getInstallationToken(
-  int installationId,
-) async {
+  int installationId, {
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
+}) async {
   final appId = await accessSecret('GITHUB_APP_ID');
   final privateKey = await accessSecret('GITHUB_PRIVATE_KEY');
 
   final jwtToken = createGitHubAppJwt(appId: appId, privateKey: privateKey);
-  final appDio = createGitHubDio(jwtToken);
+  final appDio = createGitHubDio(jwtToken, apiBaseUrl: apiBaseUrl);
 
   final client = GitHubClient(appDio);
   final result = await client.apps.appsCreateInstallationAccessToken(

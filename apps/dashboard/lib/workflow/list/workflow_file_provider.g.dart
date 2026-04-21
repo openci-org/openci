@@ -68,7 +68,7 @@ final class WorkflowFilesProvider
   }
 }
 
-String _$workflowFilesHash() => r'e552ff1ed188a0602de6df77ca42de01c7c10b47';
+String _$workflowFilesHash() => r'2d6edcff2895908d2e6e9bc4b98eaae00b2caf4a';
 
 @ProviderFor(syncWorkflowFiles)
 final syncWorkflowFilesProvider = SyncWorkflowFilesProvider._();
@@ -101,7 +101,7 @@ final class SyncWorkflowFilesProvider
   }
 }
 
-String _$syncWorkflowFilesHash() => r'682517a2c5b2afac9af5ef690ce4291f65ee4d1f';
+String _$syncWorkflowFilesHash() => r'0a362ecd203c5723383acf9550dd91806a7c1f8a';
 
 @ProviderFor(toggleWorkflowEnabled)
 final toggleWorkflowEnabledProvider = ToggleWorkflowEnabledFamily._();
@@ -157,7 +157,7 @@ final class ToggleWorkflowEnabledProvider
 }
 
 String _$toggleWorkflowEnabledHash() =>
-    r'94c794bdb661c25342d1fced29711befdd520b75';
+    r'78b3bc1d1b153575ece319eed13e293fd2fe8456';
 
 final class ToggleWorkflowEnabledFamily extends $Family
     with

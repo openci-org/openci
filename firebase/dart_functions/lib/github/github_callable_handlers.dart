@@ -7,6 +7,7 @@ import 'package:openci_shared/firestore_paths.dart';
 
 import '../firebase.dart';
 import '../util/github_app.dart';
+import '../util/github_urls.dart';
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
@@ -297,18 +298,23 @@ Future<Map<String, dynamic>> handleListRepositories(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
 
   try {
     final allRepositories = <Map<String, dynamic>>[];
 
     for (final installationId in installationIds) {
-      final tokenData = await getInstallationToken(installationId);
+      final tokenData = await getInstallationToken(
+        installationId,
+        apiBaseUrl: apiBaseUrl,
+      );
       final token = tokenData['token'] as String;
 
       final data = await githubGet(
         '/installation/repositories',
         token,
         queryParameters: {'per_page': 100},
+        apiBaseUrl: apiBaseUrl,
       );
 
       final repos =
@@ -346,6 +352,7 @@ Future<Map<String, dynamic>> handleListBranches(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
   final parts = request.data.repository.split('/');
   final owner = parts[0];
   final repo = parts[1];
@@ -353,7 +360,10 @@ Future<Map<String, dynamic>> handleListBranches(
   try {
     for (final installationId in installationIds) {
       try {
-        final tokenData = await getInstallationToken(installationId);
+        final tokenData = await getInstallationToken(
+          installationId,
+          apiBaseUrl: apiBaseUrl,
+        );
         final token = tokenData['token'] as String;
 
         final allBranches = <Map<String, dynamic>>[];
@@ -365,6 +375,7 @@ Future<Map<String, dynamic>> handleListBranches(
             _branchesQuery,
             token,
             variables: {'owner': owner, 'repo': repo, 'cursor': cursor},
+            apiBaseUrl: apiBaseUrl,
           );
 
           final repository =
@@ -425,6 +436,7 @@ Future<Map<String, dynamic>> handleListDirectories(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
   final parts = request.data.repository.split('/');
   final owner = parts[0];
   final repo = parts[1];
@@ -432,13 +444,17 @@ Future<Map<String, dynamic>> handleListDirectories(
   try {
     for (final installationId in installationIds) {
       try {
-        final tokenData = await getInstallationToken(installationId);
+        final tokenData = await getInstallationToken(
+          installationId,
+          apiBaseUrl: apiBaseUrl,
+        );
         final token = tokenData['token'] as String;
 
         final result = await githubGraphql(
           _directoryTreeQuery,
           token,
           variables: {'owner': owner, 'repo': repo, 'expression': 'HEAD:'},
+          apiBaseUrl: apiBaseUrl,
         );
 
         final entries =
@@ -476,6 +492,7 @@ Future<Map<String, dynamic>> handleListWorkflowFiles(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
   final parts = request.data.repository.split('/');
   final owner = parts[0];
   final repo = parts[1];
@@ -483,7 +500,10 @@ Future<Map<String, dynamic>> handleListWorkflowFiles(
   try {
     for (final installationId in installationIds) {
       try {
-        final tokenData = await getInstallationToken(installationId);
+        final tokenData = await getInstallationToken(
+          installationId,
+          apiBaseUrl: apiBaseUrl,
+        );
         final token = tokenData['token'] as String;
 
         final expression = '${request.data.branch ?? "HEAD"}:.openci';
@@ -494,6 +514,7 @@ Future<Map<String, dynamic>> handleListWorkflowFiles(
             _openciDirQuery,
             token,
             variables: {'owner': owner, 'repo': repo, 'expression': expression},
+            apiBaseUrl: apiBaseUrl,
           );
           entries =
               ((result['data']?['repository']
@@ -551,9 +572,13 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
 
   try {
-    final tokenData = await getInstallationToken(installationIds[0]);
+    final tokenData = await getInstallationToken(
+      installationIds[0],
+      apiBaseUrl: apiBaseUrl,
+    );
     final token = tokenData['token'] as String;
 
     if (request.data.type == 'search') {
@@ -570,6 +595,7 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
           'order': 'desc',
           'per_page': 50,
         },
+        apiBaseUrl: apiBaseUrl,
       );
 
       final actions =
@@ -605,7 +631,7 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
       final dio = Dio();
       try {
         final tagsResponse = await dio.get<List<dynamic>>(
-          'https://api.github.com/repos/$owner/$repo/tags',
+          '$apiBaseUrl/repos/$owner/$repo/tags',
           queryParameters: {'per_page': 100},
           options: Options(
             headers: {
@@ -652,6 +678,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
   final parts = request.data.repository.split('/');
   final owner = parts[0];
   final repo = parts[1];
@@ -663,7 +690,10 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
   try {
     for (final installationId in installationIds) {
       try {
-        final tokenData = await getInstallationToken(installationId);
+        final tokenData = await getInstallationToken(
+          installationId,
+          apiBaseUrl: apiBaseUrl,
+        );
         final token = tokenData['token'] as String;
 
         if (request.data.commitMode == 'direct') {
@@ -671,6 +701,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
           final refData = await githubGet(
             '/repos/$owner/$repo/git/ref/heads/${request.data.branch}',
             token,
+            apiBaseUrl: apiBaseUrl,
           );
           final latestCommitSha =
               (refData['object'] as Map<String, dynamic>)['sha'] as String;
@@ -680,12 +711,14 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
             '/repos/$owner/$repo/git/blobs',
             token,
             data: {'content': contentBase64, 'encoding': 'base64'},
+            apiBaseUrl: apiBaseUrl,
           );
 
           // Get latest commit tree
           final latestCommit = await githubGet(
             '/repos/$owner/$repo/git/commits/$latestCommitSha',
             token,
+            apiBaseUrl: apiBaseUrl,
           );
           final baseTreeSha =
               (latestCommit['tree'] as Map<String, dynamic>)['sha'] as String;
@@ -705,6 +738,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
                 },
               ],
             },
+            apiBaseUrl: apiBaseUrl,
           );
 
           // Create commit
@@ -716,6 +750,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
               'tree': treeData['sha'],
               'parents': [latestCommitSha],
             },
+            apiBaseUrl: apiBaseUrl,
           );
 
           // Update ref
@@ -723,6 +758,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
             '/repos/$owner/$repo/git/refs/heads/${request.data.branch}',
             token,
             data: {'sha': newCommit['sha']},
+            apiBaseUrl: apiBaseUrl,
           );
 
           return <String, dynamic>{
@@ -738,6 +774,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
           final refData = await githubGet(
             '/repos/$owner/$repo/git/ref/heads/${request.data.branch}',
             token,
+            apiBaseUrl: apiBaseUrl,
           );
 
           await githubPost(
@@ -747,6 +784,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
               'ref': 'refs/heads/$newBranchName',
               'sha': (refData['object'] as Map<String, dynamic>)['sha'],
             },
+            apiBaseUrl: apiBaseUrl,
           );
 
           await githubPut(
@@ -757,6 +795,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
               'content': contentBase64,
               'branch': newBranchName,
             },
+            apiBaseUrl: apiBaseUrl,
           );
 
           final pr = await githubPost(
@@ -769,6 +808,7 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
               'body':
                   'This workflow file was created by OpenCI.\n\nFile: `$filePath`',
             },
+            apiBaseUrl: apiBaseUrl,
           );
 
           return <String, dynamic>{
@@ -802,6 +842,7 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
   );
 
   final installationIds = _getInstallationIds(teamData);
+  final apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
   final parts = request.data.repository.split('/');
   final owner = parts[0];
   final repo = parts[1];
@@ -810,11 +851,18 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
   try {
     for (final installationId in installationIds) {
       try {
-        final tokenData = await getInstallationToken(installationId);
+        final tokenData = await getInstallationToken(
+          installationId,
+          apiBaseUrl: apiBaseUrl,
+        );
         final token = tokenData['token'] as String;
 
         // Verify repository access
-        await githubGet('/repos/$owner/$repo', token);
+        await githubGet(
+          '/repos/$owner/$repo',
+          token,
+          apiBaseUrl: apiBaseUrl,
+        );
 
         // Sync workflow files
         final result = await _syncWorkflowFilesToFirestore(
@@ -822,6 +870,7 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
           repository: request.data.repository,
           branch: targetBranch,
           token: token,
+          apiBaseUrl: apiBaseUrl,
         );
 
         return result;
@@ -845,6 +894,7 @@ Future<Map<String, dynamic>> _syncWorkflowFilesToFirestore({
   required String repository,
   required String branch,
   required String token,
+  String apiBaseUrl = defaultGitHubApiBaseUrl,
 }) async {
   final parts = repository.split('/');
   final owner = parts[0];
@@ -857,6 +907,7 @@ Future<Map<String, dynamic>> _syncWorkflowFilesToFirestore({
       _openciDirQuery,
       token,
       variables: {'owner': owner, 'repo': repo, 'expression': expression},
+      apiBaseUrl: apiBaseUrl,
     );
     entries =
         ((result['data']?['repository'] as Map<String, dynamic>?)?['object']

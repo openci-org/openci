@@ -1,6 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -35,7 +35,7 @@ class User extends _$User {
   Stream<OpenCIUser> build() => fetchUser();
 
   Stream<OpenCIUser> fetchUser() {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -54,7 +54,7 @@ class User extends _$User {
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -70,7 +70,7 @@ class User extends _$User {
   Future<void> updateNotificationPreference(
     NotificationPreference preference,
   ) async {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -82,7 +82,7 @@ class User extends _$User {
   }
 
   Future<void> addFcmToken(String token) async {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -102,7 +102,7 @@ class User extends _$User {
     required String repository,
     required String defaultBranch,
   }) async {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -115,7 +115,7 @@ class User extends _$User {
   }
 
   Future<void> updateSelectedBranch(String branch) async {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
