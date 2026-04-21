@@ -169,17 +169,20 @@ ThemeData _buildTheme() {
     ),
     tabBarTheme: TabBarThemeData(
       labelStyle: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
         letterSpacing: -0.1,
       ),
       unselectedLabelStyle: TextStyle(
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: Colors.white.withValues(alpha: 0.5),
+        color: Colors.white.withValues(alpha: 0.45),
       ),
-      indicatorSize: TabBarIndicatorSize.label,
-      dividerColor: Colors.white.withValues(alpha: 0.06),
+      indicatorSize: TabBarIndicatorSize.tab,
+      dividerColor: Colors.transparent,
+      indicatorColor: Colors.transparent,
+      labelColor: Colors.white,
+      overlayColor: WidgetStatePropertyAll(Colors.transparent),
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: const Color(0xFF141414),

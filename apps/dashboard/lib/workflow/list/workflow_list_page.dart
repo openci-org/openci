@@ -283,28 +283,64 @@ class WorkflowListPage extends HookConsumerWidget {
                     ],
                   )
                 : null,
-            bottom: TabBar(
-              controller: tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white.withValues(alpha: 0.4),
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Row(
+                  children: List.generate(3, (index) {
+                    final labels = [
+                      wfT.tabRuns,
+                      t.storeRelease.title,
+                      wfT.tabWorkflows,
+                    ];
+                    final isSelected = tabController.index == index;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 2),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => tabController.animateTo(index),
+                          hoverColor: Colors.white.withValues(alpha: 0.04),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.easeOut,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              labels[index],
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.45),
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-              indicatorSize: TabBarIndicatorSize.label,
-              indicatorWeight: 2,
-              dividerColor: Colors.white.withValues(alpha: 0.06),
-              tabs: [
-                Tab(text: wfT.tabRuns),
-                Tab(text: t.storeRelease.title),
-                Tab(text: wfT.tabWorkflows),
-              ],
             ),
             actions: [
               Consumer(
