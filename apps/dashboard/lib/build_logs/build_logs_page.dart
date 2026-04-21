@@ -12,15 +12,15 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 // ── Curated status palette ──────────────────────────────────────────────────
 
-Color _statusColor(String status, ColorScheme scheme) => switch (status) {
+Color _statusColor(String status) => switch (status) {
   'success' => const Color(0xFF2DA44E),
   'failure' => const Color(0xFFCF222E),
   'in_progress' => const Color(0xFF1F6FEB),
   'queued' => const Color(0xFF6E40C9),
   'cancelled' => const Color(0xFFBF8700),
   'waiting' => const Color(0xFFBF8700),
-  'skipped' => scheme.onSurfaceVariant.withValues(alpha: 0.6),
-  _ => scheme.onSurfaceVariant.withValues(alpha: 0.6),
+  'skipped' => Colors.white.withValues(alpha: 0.35),
+  _ => Colors.white.withValues(alpha: 0.35),
 };
 
 IconData _statusIcon(String status) => switch (status) {
@@ -136,10 +136,9 @@ class BuildJobCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
     final workflowNameAsync = ref.watch(workflowNameProvider(buildJob));
 
-    final color = _statusColor(buildJob.status, scheme);
+    final color = _statusColor(buildJob.status);
     final statusLabel = _statusLabel(buildJob.status);
     final isRunning =
         buildJob.status == 'in_progress' || buildJob.status == 'queued';
@@ -440,7 +439,6 @@ class WorkflowRunCard extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (jobs.isEmpty) return const SizedBox.shrink();
 
-    final scheme = Theme.of(context).colorScheme;
     final mainJob = jobs.first;
     final workflowNameAsync = ref.watch(workflowNameProvider(mainJob));
 
@@ -463,7 +461,7 @@ class WorkflowRunCard extends HookConsumerWidget {
       overallStatus = 'success';
     }
 
-    final color = _statusColor(overallStatus, scheme);
+    final color = _statusColor(overallStatus);
     final statusLabel = _statusLabel(overallStatus);
 
     return Container(
@@ -910,8 +908,7 @@ class _JobTreeRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final jobColor = _statusColor(job.status, scheme);
+    final jobColor = _statusColor(job.status);
     final jobLabel = _statusLabel(job.status);
     final isRunning = job.status == 'in_progress' || job.status == 'queued';
 
