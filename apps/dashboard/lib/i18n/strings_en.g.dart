@@ -251,6 +251,33 @@ class TranslationsWorkflowEn {
 	/// en: '$type branch (loading...)'
 	String triggerBranchLoading({required Object type}) => '${type} branch (loading...)';
 
+	/// en: 'Select Branch'
+	String get selectBranch => 'Select Branch';
+
+	/// en: 'Choose a branch to view workflows from.'
+	String get selectBranchHint => 'Choose a branch to view workflows from.';
+
+	/// en: 'No branches found'
+	String get noBranches => 'No branches found';
+
+	/// en: 'Select Repository'
+	String get selectRepository => 'Select Repository';
+
+	/// en: 'Choose a GitHub repository to manage workflows.'
+	String get selectRepositoryHint => 'Choose a GitHub repository to manage workflows.';
+
+	/// en: 'Search repositories...'
+	String get searchRepositories => 'Search repositories...';
+
+	/// en: 'No repositories found. Please install the OpenCI GitHub App.'
+	String get noRepositories => 'No repositories found.\nPlease install the OpenCI GitHub App.';
+
+	/// en: 'No repositories matching "$query"'
+	String noMatchingRepositories({required Object query}) => 'No repositories matching "${query}"';
+
+	/// en: 'default: $branch'
+	String defaultBranch({required Object branch}) => 'default: ${branch}';
+
 	late final TranslationsWorkflowEditorEn editor = TranslationsWorkflowEditorEn._(_root);
 }
 
@@ -1633,6 +1660,15 @@ extension on Translations {
 			'workflow.triggers' => 'Triggers',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} branch',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} branch (loading...)',
+			'workflow.selectBranch' => 'Select Branch',
+			'workflow.selectBranchHint' => 'Choose a branch to view workflows from.',
+			'workflow.noBranches' => 'No branches found',
+			'workflow.selectRepository' => 'Select Repository',
+			'workflow.selectRepositoryHint' => 'Choose a GitHub repository to manage workflows.',
+			'workflow.searchRepositories' => 'Search repositories...',
+			'workflow.noRepositories' => 'No repositories found.\nPlease install the OpenCI GitHub App.',
+			'workflow.noMatchingRepositories' => ({required Object query}) => 'No repositories matching "${query}"',
+			'workflow.defaultBranch' => ({required Object branch}) => 'default: ${branch}',
 			'workflow.editor.createTitle' => 'Create Workflow',
 			'workflow.editor.editTitle' => 'Edit Workflow',
 			'workflow.editor.editorTab' => 'Editor',

@@ -152,9 +152,8 @@ class _AscSetupView extends HookConsumerWidget {
                         controller: keyIdController,
                         label: releaseT.keyId,
                         icon: Icons.vpn_key_outlined,
-                        validator: (v) => v == null || v.isEmpty
-                            ? releaseT.enterKeyId
-                            : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? releaseT.enterKeyId : null,
                       ),
                       const SizedBox(height: 16),
                       _StyledTextField(
@@ -266,8 +265,8 @@ class _AscSetupView extends HookConsumerWidget {
                                   .setup(
                                     issuerId: issuerIdController.text.trim(),
                                     keyId: keyIdController.text.trim(),
-                                    privateKey:
-                                        privateKeyController.text.trim(),
+                                    privateKey: privateKeyController.text
+                                        .trim(),
                                   );
                               if (context.mounted) {
                                 context.showSnackBarMessage(
@@ -1235,10 +1234,10 @@ class _WizardSteps extends HookConsumerWidget {
                         height: 40,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                canProceed ? _accentBlue : _cardBg,
-                            foregroundColor:
-                                canProceed ? Colors.white : _textTertiary,
+                            backgroundColor: canProceed ? _accentBlue : _cardBg,
+                            foregroundColor: canProceed
+                                ? Colors.white
+                                : _textTertiary,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(_radius),
@@ -1272,8 +1271,9 @@ class _WizardSteps extends HookConsumerWidget {
                               borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
-                          onPressed:
-                              isSubmitting.value ? null : submitForReview,
+                          onPressed: isSubmitting.value
+                              ? null
+                              : submitForReview,
                           child: isSubmitting.value
                               ? const SizedBox(
                                   width: 18,
@@ -1355,13 +1355,9 @@ class _WizardStepBar extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isCompleted || isCurrent
-                    ? _accentBlue
-                    : _cardBg,
+                color: isCompleted || isCurrent ? _accentBlue : _cardBg,
                 border: Border.all(
-                  color: isCompleted || isCurrent
-                      ? _accentBlue
-                      : _cardBorder,
+                  color: isCompleted || isCurrent ? _accentBlue : _cardBorder,
                   width: 2,
                 ),
               ),
@@ -1381,9 +1377,7 @@ class _WizardStepBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                color: isCompleted || isCurrent
-                    ? _accentBlue
-                    : _textTertiary,
+                color: isCompleted || isCurrent ? _accentBlue : _textTertiary,
               ),
             ),
           ],
@@ -1595,9 +1589,7 @@ class _SelectableBuildCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(
-          color: isSelected
-              ? _accentBlue
-              : _cardBorder,
+          color: isSelected ? _accentBlue : _cardBorder,
           width: isSelected ? 1.5 : 1,
         ),
         color: isSelected
@@ -1654,9 +1646,7 @@ class _SelectableBuildCard extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: isDisabled
-                                  ? _textTertiary
-                                  : _textPrimary,
+                              color: isDisabled ? _textTertiary : _textPrimary,
                             ),
                           ),
                           const SizedBox(width: 8),

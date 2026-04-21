@@ -148,6 +148,15 @@ class _TranslationsWorkflowEs implements TranslationsWorkflowEn {
 	@override String get triggers => 'Disparadores';
 	@override String triggerBranch({required Object type}) => 'Rama de ${type}';
 	@override String triggerBranchLoading({required Object type}) => 'Rama de ${type} (cargando...)';
+	@override String get selectBranch => 'Seleccionar rama';
+	@override String get selectBranchHint => 'Elige una rama para ver los flujos de trabajo.';
+	@override String get noBranches => 'No se encontraron ramas';
+	@override String get selectRepository => 'Seleccionar repositorio';
+	@override String get selectRepositoryHint => 'Elige un repositorio de GitHub para gestionar flujos de trabajo.';
+	@override String get searchRepositories => 'Buscar repositorios...';
+	@override String get noRepositories => 'No se encontraron repositorios.\nPor favor, instala la aplicación OpenCI GitHub.';
+	@override String noMatchingRepositories({required Object query}) => 'No hay repositorios que coincidan con "${query}"';
+	@override String defaultBranch({required Object branch}) => 'predeterminado: ${branch}';
 	@override late final _TranslationsWorkflowEditorEs editor = _TranslationsWorkflowEditorEs._(_root);
 }
 
@@ -803,6 +812,15 @@ extension on TranslationsEs {
 			'workflow.triggers' => 'Disparadores',
 			'workflow.triggerBranch' => ({required Object type}) => 'Rama de ${type}',
 			'workflow.triggerBranchLoading' => ({required Object type}) => 'Rama de ${type} (cargando...)',
+			'workflow.selectBranch' => 'Seleccionar rama',
+			'workflow.selectBranchHint' => 'Elige una rama para ver los flujos de trabajo.',
+			'workflow.noBranches' => 'No se encontraron ramas',
+			'workflow.selectRepository' => 'Seleccionar repositorio',
+			'workflow.selectRepositoryHint' => 'Elige un repositorio de GitHub para gestionar flujos de trabajo.',
+			'workflow.searchRepositories' => 'Buscar repositorios...',
+			'workflow.noRepositories' => 'No se encontraron repositorios.\nPor favor, instala la aplicación OpenCI GitHub.',
+			'workflow.noMatchingRepositories' => ({required Object query}) => 'No hay repositorios que coincidan con "${query}"',
+			'workflow.defaultBranch' => ({required Object branch}) => 'predeterminado: ${branch}',
 			'workflow.editor.createTitle' => 'Crear flujo de trabajo',
 			'workflow.editor.editTitle' => 'Editar flujo de trabajo',
 			'workflow.editor.editorTab' => 'Editor',

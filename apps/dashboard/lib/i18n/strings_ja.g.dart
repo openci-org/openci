@@ -148,6 +148,15 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 	@override String get triggers => 'トリガー';
 	@override String triggerBranch({required Object type}) => '${type} ブランチ';
 	@override String triggerBranchLoading({required Object type}) => '${type} ブランチ (読み込み中...)';
+	@override String get selectBranch => 'ブランチを選択';
+	@override String get selectBranchHint => 'ワークフローを表示するブランチを選択してください。';
+	@override String get noBranches => 'ブランチが見つかりません';
+	@override String get selectRepository => 'リポジトリを選択';
+	@override String get selectRepositoryHint => 'ワークフローを管理するGitHubリポジトリを選択してください。';
+	@override String get searchRepositories => 'リポジトリを検索...';
+	@override String get noRepositories => 'リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。';
+	@override String noMatchingRepositories({required Object query}) => '「${query}」に一致するリポジトリはありません';
+	@override String defaultBranch({required Object branch}) => 'デフォルト: ${branch}';
 	@override late final _TranslationsWorkflowEditorJa editor = _TranslationsWorkflowEditorJa._(_root);
 }
 
@@ -803,6 +812,15 @@ extension on TranslationsJa {
 			'workflow.triggers' => 'トリガー',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} ブランチ',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} ブランチ (読み込み中...)',
+			'workflow.selectBranch' => 'ブランチを選択',
+			'workflow.selectBranchHint' => 'ワークフローを表示するブランチを選択してください。',
+			'workflow.noBranches' => 'ブランチが見つかりません',
+			'workflow.selectRepository' => 'リポジトリを選択',
+			'workflow.selectRepositoryHint' => 'ワークフローを管理するGitHubリポジトリを選択してください。',
+			'workflow.searchRepositories' => 'リポジトリを検索...',
+			'workflow.noRepositories' => 'リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。',
+			'workflow.noMatchingRepositories' => ({required Object query}) => '「${query}」に一致するリポジトリはありません',
+			'workflow.defaultBranch' => ({required Object branch}) => 'デフォルト: ${branch}',
 			'workflow.editor.createTitle' => 'ワークフロー作成',
 			'workflow.editor.editTitle' => 'ワークフロー編集',
 			'workflow.editor.editorTab' => 'エディター',

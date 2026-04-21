@@ -162,6 +162,7 @@ class WorkflowListPage extends HookConsumerWidget {
                             context: context,
                             isScrollControlled: true,
                             showDragHandle: true,
+                            backgroundColor: const Color(0xFF09090B),
                             builder: (_) => const SelectRepositoryBottomSheet(),
                           ),
                           child: Container(
@@ -227,6 +228,7 @@ class WorkflowListPage extends HookConsumerWidget {
                               context: context,
                               isScrollControlled: true,
                               showDragHandle: true,
+                              backgroundColor: const Color(0xFF09090B),
                               builder: (_) => SelectBranchBottomSheet(
                                 repoFullName: selectedRepo,
                               ),
@@ -826,6 +828,7 @@ class SelectRepository extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 showDragHandle: true,
+                backgroundColor: const Color(0xFF09090B),
                 builder: (_) => const SelectRepositoryBottomSheet(),
               ),
               style: TextButton.styleFrom(
