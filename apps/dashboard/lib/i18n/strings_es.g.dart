@@ -148,6 +148,15 @@ class _TranslationsWorkflowEs implements TranslationsWorkflowEn {
 	@override String get triggers => 'Disparadores';
 	@override String triggerBranch({required Object type}) => 'Rama de ${type}';
 	@override String triggerBranchLoading({required Object type}) => 'Rama de ${type} (cargando...)';
+	@override String get selectBranch => 'Seleccionar rama';
+	@override String get selectBranchHint => 'Elige una rama para ver los flujos de trabajo.';
+	@override String get noBranches => 'No se encontraron ramas';
+	@override String get selectRepository => 'Seleccionar repositorio';
+	@override String get selectRepositoryHint => 'Elige un repositorio de GitHub para gestionar flujos de trabajo.';
+	@override String get searchRepositories => 'Buscar repositorios...';
+	@override String get noRepositories => 'No se encontraron repositorios.\nPor favor, instala la aplicación OpenCI GitHub.';
+	@override String noMatchingRepositories({required Object query}) => 'No hay repositorios que coincidan con "${query}"';
+	@override String defaultBranch({required Object branch}) => 'predeterminado: ${branch}';
 	@override late final _TranslationsWorkflowEditorEs editor = _TranslationsWorkflowEditorEs._(_root);
 }
 
@@ -236,11 +245,17 @@ class _TranslationsSettingsEs implements TranslationsSettingsEn {
 
 	// Translations
 	@override String get title => 'Configuración';
+	@override String get general => 'General';
+	@override String get preferences => 'Preferencias';
 	@override String get buildNotifications => 'Notificaciones de compilación';
 	@override String get configureNotifications => 'Configurar cuándo recibir notificaciones';
 	@override String get subscription => 'Suscripción';
 	@override String get manageSubscription => 'Gestionar tu plan de suscripción';
 	@override String firebaseAppName({required Object name}) => 'Nombre de la app Firebase: ${name}';
+	@override String get resetToCloud => 'Restablecer a OpenCI Cloud';
+	@override String get resetToCloudSuccess => 'Configuración eliminada. Por favor, reinicia la app.';
+	@override String get selfHostedActive => 'Firebase autoalojado';
+	@override String selfHostedProject({required Object projectId}) => 'Proyecto: ${projectId}';
 	@override String get inviteTeamMember => 'Invitar miembro al equipo';
 	@override String get appVersion => 'Versión de la app';
 	@override String get logout => 'Cerrar sesión';
@@ -492,7 +507,15 @@ class _TranslationsAuthFirebaseFormEs implements TranslationsAuthFirebaseFormEn 
 	@override String get messagingSenderId => 'ID de remitente de mensajes';
 	@override String get projectId => 'ID de proyecto';
 	@override String get storageBucket => 'Depósito de almacenamiento';
-	@override String get pickConfig => 'Seleccionar configuración de Firebase';
+	@override String get pickConfig => 'Guardar configuración';
+	@override String get cloudRunHash => 'Cloud Run Hash';
+	@override String get cloudRunRegionCode => 'Código de región Cloud Run';
+	@override String get configSaved => 'Configuración guardada. Por favor, reinicia la app.';
+	@override String get configActive => 'Proyecto Firebase personalizado configurado. Reinicia para aplicar.';
+	@override String get importFile => 'Importar desde archivo';
+	@override String get importFileHint => 'JSON (google-services.json) o plist (GoogleService-Info.plist)';
+	@override String get invalidFile => 'No se pudo analizar el archivo seleccionado. Verifica el formato.';
+	@override String get fileLoaded => 'Configuración cargada desde archivo. Revisa y guarda.';
 }
 
 // Path: workflow.editor
@@ -762,7 +785,15 @@ extension on TranslationsEs {
 			'auth.firebaseForm.messagingSenderId' => 'ID de remitente de mensajes',
 			'auth.firebaseForm.projectId' => 'ID de proyecto',
 			'auth.firebaseForm.storageBucket' => 'Depósito de almacenamiento',
-			'auth.firebaseForm.pickConfig' => 'Seleccionar configuración de Firebase',
+			'auth.firebaseForm.pickConfig' => 'Guardar configuración',
+			'auth.firebaseForm.cloudRunHash' => 'Cloud Run Hash',
+			'auth.firebaseForm.cloudRunRegionCode' => 'Código de región Cloud Run',
+			'auth.firebaseForm.configSaved' => 'Configuración guardada. Por favor, reinicia la app.',
+			'auth.firebaseForm.configActive' => 'Proyecto Firebase personalizado configurado. Reinicia para aplicar.',
+			'auth.firebaseForm.importFile' => 'Importar desde archivo',
+			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) o plist (GoogleService-Info.plist)',
+			'auth.firebaseForm.invalidFile' => 'No se pudo analizar el archivo seleccionado. Verifica el formato.',
+			'auth.firebaseForm.fileLoaded' => 'Configuración cargada desde archivo. Revisa y guarda.',
 			'workflow.title' => 'Flujos de trabajo',
 			'workflow.tabWorkflows' => 'Flujos de trabajo',
 			'workflow.tabRuns' => 'Ejecuciones',
@@ -781,6 +812,15 @@ extension on TranslationsEs {
 			'workflow.triggers' => 'Disparadores',
 			'workflow.triggerBranch' => ({required Object type}) => 'Rama de ${type}',
 			'workflow.triggerBranchLoading' => ({required Object type}) => 'Rama de ${type} (cargando...)',
+			'workflow.selectBranch' => 'Seleccionar rama',
+			'workflow.selectBranchHint' => 'Elige una rama para ver los flujos de trabajo.',
+			'workflow.noBranches' => 'No se encontraron ramas',
+			'workflow.selectRepository' => 'Seleccionar repositorio',
+			'workflow.selectRepositoryHint' => 'Elige un repositorio de GitHub para gestionar flujos de trabajo.',
+			'workflow.searchRepositories' => 'Buscar repositorios...',
+			'workflow.noRepositories' => 'No se encontraron repositorios.\nPor favor, instala la aplicación OpenCI GitHub.',
+			'workflow.noMatchingRepositories' => ({required Object query}) => 'No hay repositorios que coincidan con "${query}"',
+			'workflow.defaultBranch' => ({required Object branch}) => 'predeterminado: ${branch}',
 			'workflow.editor.createTitle' => 'Crear flujo de trabajo',
 			'workflow.editor.editTitle' => 'Editar flujo de trabajo',
 			'workflow.editor.editorTab' => 'Editor',
@@ -889,11 +929,17 @@ extension on TranslationsEs {
 			'envVars.deletedSuccess' => 'Eliminado exitosamente',
 			'envVars.runNumberUpdated' => 'Número de ejecución actualizado',
 			'settings.title' => 'Configuración',
+			'settings.general' => 'General',
+			'settings.preferences' => 'Preferencias',
 			'settings.buildNotifications' => 'Notificaciones de compilación',
 			'settings.configureNotifications' => 'Configurar cuándo recibir notificaciones',
 			'settings.subscription' => 'Suscripción',
 			'settings.manageSubscription' => 'Gestionar tu plan de suscripción',
 			'settings.firebaseAppName' => ({required Object name}) => 'Nombre de la app Firebase: ${name}',
+			'settings.resetToCloud' => 'Restablecer a OpenCI Cloud',
+			'settings.resetToCloudSuccess' => 'Configuración eliminada. Por favor, reinicia la app.',
+			'settings.selfHostedActive' => 'Firebase autoalojado',
+			'settings.selfHostedProject' => ({required Object projectId}) => 'Proyecto: ${projectId}',
 			'settings.inviteTeamMember' => 'Invitar miembro al equipo',
 			'settings.appVersion' => 'Versión de la app',
 			'settings.logout' => 'Cerrar sesión',

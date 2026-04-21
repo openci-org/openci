@@ -1,7 +1,7 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -92,7 +92,7 @@ String _requireTeamId(dynamic ref) {
 class IsAscConfigured extends _$IsAscConfigured {
   @override
   Stream<bool> build() {
-    final firestore = ref.read(firestoreProvider);
+    final firestore = FirebaseFirestore.instance;
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value(false);
 
@@ -110,7 +110,7 @@ class IsAscConfigured extends _$IsAscConfigured {
 class AscApps extends _$AscApps {
   @override
   Future<List<AscApp>> build() async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = _requireTeamId(ref);
 
     final result = await functions
@@ -132,7 +132,7 @@ class AscApps extends _$AscApps {
 class AscBuilds extends _$AscBuilds {
   @override
   Future<List<AscBuild>> build(String appId) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = _requireTeamId(ref);
 
     final result = await functions
@@ -157,7 +157,7 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
   FutureOr<void> build() {}
 
   Future<String> submit(String buildId) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = _requireTeamId(ref);
 
     final result = await functions
@@ -185,7 +185,7 @@ class SubmitForReview extends _$SubmitForReview {
     required String whatsNew,
     String platform = 'IOS',
   }) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = _requireTeamId(ref);
 
     await functions
@@ -212,7 +212,7 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     required String keyId,
     required String privateKey,
   }) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = _requireTeamId(ref);
 
     await functions

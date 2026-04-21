@@ -1,6 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -51,7 +50,7 @@ Future<List<GitHubAction>> searchGitHubActions(
   required String teamId,
 }) async {
   try {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final result = await functions
         .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
         .call({
@@ -145,7 +144,7 @@ Future<List<String>> actionTags(
   required String teamId,
 }) async {
   try {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final result = await functions
         .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
         .call({

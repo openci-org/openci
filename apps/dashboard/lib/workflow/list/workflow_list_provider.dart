@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,8 +12,7 @@ class WorkflowList extends _$WorkflowList {
   Stream<List<Workflow>> build() {
     final team = ref.watch(teamStateProvider).value;
     if (team == null) return Stream.value([]);
-    return ref
-        .read(firestoreProvider)
+    return FirebaseFirestore.instance
         .collection(workflowsCollection)
         .where('teamId', isEqualTo: team.id)
         .orderBy('updatedAt', descending: true)
@@ -27,8 +26,7 @@ class WorkflowList extends _$WorkflowList {
 
   Future<String> duplicateWorkflow(Workflow workflow) async {
     final now = DateTime.now();
-    final newDoc = ref
-        .watch(firestoreProvider)
+    final newDoc = FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc();
 
@@ -45,8 +43,7 @@ class WorkflowList extends _$WorkflowList {
   }
 
   Future<void> deleteWorkflow(String workflowId) async {
-    await ref
-        .watch(firestoreProvider)
+    await FirebaseFirestore.instance
         .collection(workflowsCollection)
         .doc(workflowId)
         .delete();

@@ -1,4 +1,4 @@
-import 'package:dashboard/firebase/firestore_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -49,9 +49,7 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     if (team == null) throw StateError('team is not loaded yet');
     final teamId = team.id;
 
-    await ref
-        .read(firestoreProvider.notifier)
-        .state
+    await FirebaseFirestore.instance
         .collection('workflows_v1')
         .doc(documentId)
         .set(

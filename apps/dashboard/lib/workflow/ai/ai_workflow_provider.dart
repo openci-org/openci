@@ -1,6 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -92,7 +91,7 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
       final team = ref.read(teamStateProvider).value;
       if (team == null) return;
 
-      final functions = ref.read(functionsProvider);
+      final functions = FirebaseFunctions.instance;
       final result = await functions
           .httpsCallableFromUrl(dartFunctionUrl('list-directories'))
           .call({
@@ -126,7 +125,7 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
       final team = ref.read(teamStateProvider).value;
       if (team == null) throw StateError('Team not loaded');
 
-      final functions = ref.read(functionsProvider);
+      final functions = FirebaseFunctions.instance;
 
       final messagesPayload = state.messages
           .map(

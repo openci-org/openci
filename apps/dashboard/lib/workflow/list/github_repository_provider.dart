@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -25,7 +25,7 @@ abstract class GitHubRepo with _$GitHubRepo {
 Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
-  final functions = ref.watch(functionsProvider);
+  final functions = FirebaseFunctions.instance;
 
   final result = await functions
       .httpsCallableFromUrl(dartFunctionUrl('list-repositories'))
@@ -47,7 +47,7 @@ Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
 Future<List<String>> gitHubBranches(Ref ref, String repoFullName) async {
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
-  final functions = ref.watch(functionsProvider);
+  final functions = FirebaseFunctions.instance;
 
   final result = await functions
       .httpsCallableFromUrl(dartFunctionUrl('list-branches'))

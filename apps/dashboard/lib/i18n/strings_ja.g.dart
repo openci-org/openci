@@ -148,6 +148,15 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 	@override String get triggers => 'トリガー';
 	@override String triggerBranch({required Object type}) => '${type} ブランチ';
 	@override String triggerBranchLoading({required Object type}) => '${type} ブランチ (読み込み中...)';
+	@override String get selectBranch => 'ブランチを選択';
+	@override String get selectBranchHint => 'ワークフローを表示するブランチを選択してください。';
+	@override String get noBranches => 'ブランチが見つかりません';
+	@override String get selectRepository => 'リポジトリを選択';
+	@override String get selectRepositoryHint => 'ワークフローを管理するGitHubリポジトリを選択してください。';
+	@override String get searchRepositories => 'リポジトリを検索...';
+	@override String get noRepositories => 'リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。';
+	@override String noMatchingRepositories({required Object query}) => '「${query}」に一致するリポジトリはありません';
+	@override String defaultBranch({required Object branch}) => 'デフォルト: ${branch}';
 	@override late final _TranslationsWorkflowEditorJa editor = _TranslationsWorkflowEditorJa._(_root);
 }
 
@@ -236,11 +245,17 @@ class _TranslationsSettingsJa implements TranslationsSettingsEn {
 
 	// Translations
 	@override String get title => '設定';
+	@override String get general => '一般';
+	@override String get preferences => '環境設定';
 	@override String get buildNotifications => 'ビルド通知';
 	@override String get configureNotifications => '通知を受け取るタイミングを設定';
 	@override String get subscription => 'サブスクリプション';
 	@override String get manageSubscription => 'サブスクリプションプランを管理';
 	@override String firebaseAppName({required Object name}) => 'Firebaseアプリ名: ${name}';
+	@override String get resetToCloud => 'OpenCI Cloudにリセット';
+	@override String get resetToCloudSuccess => '設定をクリアしました。アプリを再起動してください。';
+	@override String get selfHostedActive => 'セルフホストFirebase';
+	@override String selfHostedProject({required Object projectId}) => 'プロジェクト: ${projectId}';
 	@override String get inviteTeamMember => 'チームメンバーを招待';
 	@override String get appVersion => 'アプリバージョン';
 	@override String get logout => 'ログアウト';
@@ -492,7 +507,15 @@ class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn 
 	@override String get messagingSenderId => 'メッセージ送信者ID';
 	@override String get projectId => 'プロジェクトID';
 	@override String get storageBucket => 'ストレージバケット';
-	@override String get pickConfig => 'Firebase設定を選択';
+	@override String get pickConfig => '設定を保存';
+	@override String get cloudRunHash => 'Cloud Runハッシュ';
+	@override String get cloudRunRegionCode => 'Cloud Runリージョンコード';
+	@override String get configSaved => '設定を保存しました。アプリを再起動してください。';
+	@override String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
+	@override String get importFile => 'ファイルから読み込み';
+	@override String get importFileHint => 'JSON (google-services.json) または plist (GoogleService-Info.plist)';
+	@override String get invalidFile => '選択されたファイルを解析できませんでした。形式を確認してください。';
+	@override String get fileLoaded => 'ファイルから設定を読み込みました。内容を確認して保存してください。';
 }
 
 // Path: workflow.editor
@@ -762,7 +785,15 @@ extension on TranslationsJa {
 			'auth.firebaseForm.messagingSenderId' => 'メッセージ送信者ID',
 			'auth.firebaseForm.projectId' => 'プロジェクトID',
 			'auth.firebaseForm.storageBucket' => 'ストレージバケット',
-			'auth.firebaseForm.pickConfig' => 'Firebase設定を選択',
+			'auth.firebaseForm.pickConfig' => '設定を保存',
+			'auth.firebaseForm.cloudRunHash' => 'Cloud Runハッシュ',
+			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Runリージョンコード',
+			'auth.firebaseForm.configSaved' => '設定を保存しました。アプリを再起動してください。',
+			'auth.firebaseForm.configActive' => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。',
+			'auth.firebaseForm.importFile' => 'ファイルから読み込み',
+			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) または plist (GoogleService-Info.plist)',
+			'auth.firebaseForm.invalidFile' => '選択されたファイルを解析できませんでした。形式を確認してください。',
+			'auth.firebaseForm.fileLoaded' => 'ファイルから設定を読み込みました。内容を確認して保存してください。',
 			'workflow.title' => 'ワークフロー',
 			'workflow.tabWorkflows' => 'ワークフロー',
 			'workflow.tabRuns' => '実行履歴',
@@ -781,6 +812,15 @@ extension on TranslationsJa {
 			'workflow.triggers' => 'トリガー',
 			'workflow.triggerBranch' => ({required Object type}) => '${type} ブランチ',
 			'workflow.triggerBranchLoading' => ({required Object type}) => '${type} ブランチ (読み込み中...)',
+			'workflow.selectBranch' => 'ブランチを選択',
+			'workflow.selectBranchHint' => 'ワークフローを表示するブランチを選択してください。',
+			'workflow.noBranches' => 'ブランチが見つかりません',
+			'workflow.selectRepository' => 'リポジトリを選択',
+			'workflow.selectRepositoryHint' => 'ワークフローを管理するGitHubリポジトリを選択してください。',
+			'workflow.searchRepositories' => 'リポジトリを検索...',
+			'workflow.noRepositories' => 'リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。',
+			'workflow.noMatchingRepositories' => ({required Object query}) => '「${query}」に一致するリポジトリはありません',
+			'workflow.defaultBranch' => ({required Object branch}) => 'デフォルト: ${branch}',
 			'workflow.editor.createTitle' => 'ワークフロー作成',
 			'workflow.editor.editTitle' => 'ワークフロー編集',
 			'workflow.editor.editorTab' => 'エディター',
@@ -889,11 +929,17 @@ extension on TranslationsJa {
 			'envVars.deletedSuccess' => '削除しました',
 			'envVars.runNumberUpdated' => '実行番号が更新されました',
 			'settings.title' => '設定',
+			'settings.general' => '一般',
+			'settings.preferences' => '環境設定',
 			'settings.buildNotifications' => 'ビルド通知',
 			'settings.configureNotifications' => '通知を受け取るタイミングを設定',
 			'settings.subscription' => 'サブスクリプション',
 			'settings.manageSubscription' => 'サブスクリプションプランを管理',
 			'settings.firebaseAppName' => ({required Object name}) => 'Firebaseアプリ名: ${name}',
+			'settings.resetToCloud' => 'OpenCI Cloudにリセット',
+			'settings.resetToCloudSuccess' => '設定をクリアしました。アプリを再起動してください。',
+			'settings.selfHostedActive' => 'セルフホストFirebase',
+			'settings.selfHostedProject' => ({required Object projectId}) => 'プロジェクト: ${projectId}',
 			'settings.inviteTeamMember' => 'チームメンバーを招待',
 			'settings.appVersion' => 'アプリバージョン',
 			'settings.logout' => 'ログアウト',

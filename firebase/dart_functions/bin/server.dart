@@ -58,6 +58,7 @@ Future<void> main(List<String> args) async {
       name: 'ascListApps',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -67,6 +68,7 @@ Future<void> main(List<String> args) async {
       name: 'ascListBuilds',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -77,6 +79,7 @@ Future<void> main(List<String> args) async {
           name: 'ascSubmitToTestFlight',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -86,6 +89,7 @@ Future<void> main(List<String> args) async {
       name: 'ascSubmitForReview',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -99,6 +103,7 @@ Future<void> main(List<String> args) async {
       name: 'cancelBuildJob',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -109,6 +114,7 @@ Future<void> main(List<String> args) async {
           name: 'buildJobStatusChange',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -119,6 +125,7 @@ Future<void> main(List<String> args) async {
           name: 'generateFailureSummary',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
             timeoutSeconds: DeployOption(120),
           ),
         );
@@ -129,6 +136,7 @@ Future<void> main(List<String> args) async {
       name: 'checkRunUpdate',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -138,6 +146,7 @@ Future<void> main(List<String> args) async {
       name: 'retryBuildJob',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -148,6 +157,7 @@ Future<void> main(List<String> args) async {
           name: 'retryWorkflowRun',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -161,6 +171,7 @@ Future<void> main(List<String> args) async {
       name: 'createSecretV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -170,6 +181,7 @@ Future<void> main(List<String> args) async {
       name: 'deleteSecretV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -179,6 +191,7 @@ Future<void> main(List<String> args) async {
       name: 'updateSecretV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -189,6 +202,7 @@ Future<void> main(List<String> args) async {
           name: 'generateCertificateKeyV1',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -198,6 +212,7 @@ Future<void> main(List<String> args) async {
       name: 'setupAscApiKeyV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -211,6 +226,7 @@ Future<void> main(List<String> args) async {
       name: 'getTeamMembers',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -221,6 +237,7 @@ Future<void> main(List<String> args) async {
           name: 'inviteTeamMember',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -231,6 +248,7 @@ Future<void> main(List<String> args) async {
           name: 'acceptInvitation',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -239,6 +257,7 @@ Future<void> main(List<String> args) async {
       name: 'processInvitationsOnSignUp',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -252,6 +271,7 @@ Future<void> main(List<String> args) async {
       name: 'listRepositories',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -261,6 +281,7 @@ Future<void> main(List<String> args) async {
       name: 'listBranches',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -270,6 +291,7 @@ Future<void> main(List<String> args) async {
       name: 'listDirectories',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
+        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
       ),
     );
 
@@ -280,6 +302,7 @@ Future<void> main(List<String> args) async {
           name: 'listWorkflowFiles',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -290,6 +313,7 @@ Future<void> main(List<String> args) async {
           name: 'searchGitHubActions',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -300,6 +324,7 @@ Future<void> main(List<String> args) async {
           name: 'createWorkflowFile',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -310,6 +335,7 @@ Future<void> main(List<String> args) async {
           name: 'syncWorkflowFiles',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
           ),
         );
 
@@ -324,6 +350,7 @@ Future<void> main(List<String> args) async {
           name: 'generateAiWorkflowResponse',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
+            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
             timeoutSeconds: DeployOption(60),
           ),
         );

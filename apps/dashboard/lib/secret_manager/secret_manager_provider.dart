@@ -1,7 +1,7 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore_provider.dart';
-import 'package:dashboard/firebase/functions_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -18,7 +18,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Stream<List<Secret>> secretsStream() {
-    final firestore = ref.read(firestoreProvider.notifier).state;
+    final firestore = FirebaseFirestore.instance;
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
     return firestore
@@ -33,7 +33,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> addSecret(String name, String value) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
@@ -50,7 +50,7 @@ class SecretManager extends _$SecretManager {
     required String name,
     String? value,
   }) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
@@ -64,7 +64,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> deleteSecret({required String documentId}) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
@@ -76,7 +76,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> generateCertificateKey() async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
@@ -91,7 +91,7 @@ class SecretManager extends _$SecretManager {
     required String keyId,
     required String privateKey,
   }) async {
-    final functions = ref.read(functionsProvider);
+    final functions = FirebaseFunctions.instance;
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
