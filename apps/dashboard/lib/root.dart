@@ -25,22 +25,19 @@ class Root extends ConsumerWidget {
 }
 
 ThemeData _buildTheme() {
-  // ── Dark-first color scheme for CI/CD developer tool ──
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF3B82F6), // Tailwind blue-500
+    seedColor: const Color(0xFF3B82F6),
     brightness: Brightness.dark,
   );
 
-  // Inter-based text theme for readability (monospace only for code/logs)
   final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
 
   return ThemeData(
     colorScheme: colorScheme,
     brightness: Brightness.dark,
     useMaterial3: true,
-    scaffoldBackgroundColor: const Color(0xFF0A0A0A), // Near-black background
+    scaffoldBackgroundColor: const Color(0xFF0A0A0A),
     textTheme: baseTextTheme,
-    // ── Card — slightly lighter than bg, subtle inset ring, no shadow ──
     cardTheme: CardThemeData(
       elevation: 0,
       color: const Color(0xFF141414),
@@ -53,13 +50,11 @@ ThemeData _buildTheme() {
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
     ),
-    // ── Divider — opacity-based (uidotsh: never solid colors) ──
     dividerTheme: DividerThemeData(
       color: Colors.white.withValues(alpha: 0.08),
       space: 1,
       thickness: 1,
     ),
-    // ── AppBar — clean, no shadow, dark surface ──
     appBarTheme: AppBarTheme(
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -73,7 +68,6 @@ ThemeData _buildTheme() {
         letterSpacing: -0.2,
       ),
     ),
-    // ── Input fields — dark surface, subtle border, clean focus ring ──
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: const Color(0xFF141414),
@@ -116,7 +110,6 @@ ThemeData _buildTheme() {
         fontSize: 14,
       ),
     ),
-    // ── Filled button — primary action, no shadow ──
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -131,7 +124,6 @@ ThemeData _buildTheme() {
         ),
       ),
     ),
-    // ── Elevated button — secondary action, no shadow ──
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -146,7 +138,6 @@ ThemeData _buildTheme() {
         ),
       ),
     ),
-    // ── Outlined button — subtle border ──
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -163,7 +154,6 @@ ThemeData _buildTheme() {
         ),
       ),
     ),
-    // ── Text button ──
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -177,7 +167,6 @@ ThemeData _buildTheme() {
         ),
       ),
     ),
-    // ── TabBar — clean tabs, subtle divider ──
     tabBarTheme: TabBarThemeData(
       labelStyle: const TextStyle(
         fontSize: 14,
@@ -192,7 +181,6 @@ ThemeData _buildTheme() {
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: Colors.white.withValues(alpha: 0.06),
     ),
-    // ── BottomSheet — dark surface ──
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: const Color(0xFF141414),
       shape: const RoundedRectangleBorder(
@@ -200,7 +188,6 @@ ThemeData _buildTheme() {
       ),
       showDragHandle: true,
     ),
-    // ── Snackbar ──
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: const Color(0xFF1E1E1E),
@@ -208,7 +195,6 @@ ThemeData _buildTheme() {
         borderRadius: BorderRadius.circular(10),
       ),
     ),
-    // ── Dialog ──
     dialogTheme: DialogThemeData(
       backgroundColor: const Color(0xFF141414),
       elevation: 0,
@@ -219,7 +205,6 @@ ThemeData _buildTheme() {
         ),
       ),
     ),
-    // ── PopupMenu ──
     popupMenuTheme: PopupMenuThemeData(
       color: const Color(0xFF1A1A1A),
       elevation: 8,
@@ -231,7 +216,6 @@ ThemeData _buildTheme() {
         ),
       ),
     ),
-    // ── Chip ──
     chipTheme: ChipThemeData(
       backgroundColor: const Color(0xFF1A1A1A),
       side: BorderSide(
@@ -245,7 +229,6 @@ ThemeData _buildTheme() {
         fontWeight: FontWeight.w500,
       ),
     ),
-    // ── FloatingActionButton ──
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       elevation: 0,
       hoverElevation: 0,
@@ -255,13 +238,11 @@ ThemeData _buildTheme() {
         borderRadius: BorderRadius.circular(14),
       ),
     ),
-    // ── Checkbox ──
     checkboxTheme: CheckboxThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(4),
       ),
     ),
-    // ── Page transitions ──
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: ResponsivePageTransitionsBuilder(),
@@ -285,19 +266,16 @@ class ResponsivePageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    // 画面幅が800pxを超える（デスクトップサイズ）場合は、素早いフェードアニメーション
     if (MediaQuery.sizeOf(context).width > 800) {
       return FadeTransition(
         opacity: CurvedAnimation(
           parent: animation,
-          // MaterialPageRouteのデフォルト遷移時間(300ms)のうち、最初の約100msでフェードインを完了させる
           curve: const Interval(0.0, 0.33, curve: Curves.easeOut),
         ),
         child: child,
       );
     }
 
-    // モバイルサイズの場合はプラットフォーム標準のアニメーション
     final platform = Theme.of(context).platform;
     if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
       return const CupertinoPageTransitionsBuilder().buildTransitions(

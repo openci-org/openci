@@ -32,8 +32,6 @@ Future<void> main() async {
 
   final selfHosted = await loadSelfHostedConfig();
 
-  // Initialize Firebase. GoogleService-Info.plist is intentionally removed
-  // from the macOS bundle so that Dart always controls which project is used.
   try {
     if (selfHosted != null) {
       debugPrint(
@@ -47,7 +45,6 @@ Future<void> main() async {
       );
     }
   } on FirebaseException catch (e) {
-    // Ignore duplicate-app on hot restart.
     if (e.code != 'duplicate-app') rethrow;
     debugPrint('[OpenCI] Firebase already initialized (hot restart)');
   }
