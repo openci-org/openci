@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.15
+- Fix poison queue: automatically mark jobs with missing `runsOn` as failure instead of silently skipping them, preventing queue blockage
+
 ## 0.9.14
 - Update base VM image to tahoe-base v1.1.1
 

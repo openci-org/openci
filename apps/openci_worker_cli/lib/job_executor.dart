@@ -22,12 +22,35 @@ Future<BuildJob?> claimBuildJob(Firestore firestore) async {
 
   if (querySnapshot.docs.isEmpty) return null;
 
-  // Filter by platform: macOS claims macos-* jobs (or null for backward compat),
+  // Clean up invalid jobs that have no runsOn field set.
+  // These jobs can never be claimed by any worker and would otherwise
+  // block the queue (poison queue) since we query oldest-first with a limit.
+  final invalidJobs = querySnapshot.docs.where((doc) {
+    final runsOn = doc.data()['runsOn'] as String?;
+    return runsOn == null || runsOn.isEmpty;
+  }).toList();
+
+  for (final doc in invalidJobs) {
+    try {
+      await firestore.collection(buildJobsCollection).doc(doc.id).update({
+        'status': 'failure',
+        'completedAt': DateTime.now().toUtc().toIso8601String(),
+        'failureReason': 'Invalid job: runsOn is not set',
+      });
+      // Notify cloud functions about the failure
+      unawaited(notifyCheckRunUpdate(doc.id, 'completed', conclusion: 'failure'));
+      unawaited(notifyBuildJobStatusChange(doc.id, 'failure'));
+    } catch (_) {
+      // Best-effort cleanup; another worker may have already handled it.
+    }
+  }
+
+  // Filter by platform: macOS claims macos-* jobs,
   // Linux claims ubuntu-* jobs.
   final isLinux = Platform.isLinux;
   final candidates = querySnapshot.docs.where((doc) {
     final runsOn = doc.data()['runsOn'] as String?;
-    if (runsOn == null) return false;
+    if (runsOn == null || runsOn.isEmpty) return false;
     if (isLinux) {
       return runsOn.contains('ubuntu');
     } else {
