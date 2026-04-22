@@ -18,18 +18,65 @@ class WorkflowYamlStep {
   final Map<String, String> withParams;
 }
 
+class WorkflowYamlJob {
+  WorkflowYamlJob({
+    required this.id,
+    this.name,
+    this.needs = const [],
+    this.runsOn = 'macos-latest',
+    this.steps = const [],
+  });
+
+  final String id;
+  final String? name;
+  final List<String> needs;
+  final String runsOn;
+  final List<WorkflowYamlStep> steps;
+
+  WorkflowYamlJob copyWith({
+    String? id,
+    String? name,
+    List<String>? needs,
+    String? runsOn,
+    List<WorkflowYamlStep>? steps,
+  }) {
+    return WorkflowYamlJob(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      needs: needs ?? this.needs,
+      runsOn: runsOn ?? this.runsOn,
+      steps: steps ?? this.steps,
+    );
+  }
+}
+
 class WorkflowYamlConfig {
   WorkflowYamlConfig({
     required this.name,
     this.triggers = const {
       'push': ['main'],
     },
-    this.steps = const [],
-  });
+    this.jobs = const [],
+    @Deprecated('Use jobs instead') List<WorkflowYamlStep>? steps,
+  }) {
+    // Backward compat: if steps provided but no jobs, wrap in a single job
+    if (jobs.isEmpty && steps != null && steps.isNotEmpty) {
+      jobs = [
+        WorkflowYamlJob(
+          id: 'build',
+          steps: steps,
+        ),
+      ];
+    }
+  }
 
   final String name;
   final Map<String, List<String>> triggers;
-  final List<WorkflowYamlStep> steps;
+  // ignore: avoid_setters_without_getters
+  late final List<WorkflowYamlJob> jobs;
+
+  /// Backward compat getter: all steps across all jobs
+  List<WorkflowYamlStep> get steps => jobs.expand((j) => j.steps).toList();
 }
 
 String stepsToYaml(WorkflowYamlConfig config) {
@@ -51,28 +98,60 @@ String stepsToYaml(WorkflowYamlConfig config) {
   }
   buffer.writeln();
   buffer.writeln('jobs:');
-  buffer.writeln('  build:');
-  buffer.writeln('    runs-on: macos-latest');
-  buffer.writeln('    steps:');
-  buffer.writeln('      - uses: actions/checkout@v4');
-  for (final step in config.steps) {
-    buffer.writeln('      - name: ${step.name}');
-    if (step.type == StepType.uses) {
-      buffer.writeln('        uses: ${step.uses}');
-      if (step.withParams.isNotEmpty) {
-        buffer.writeln('        with:');
-        for (final entry in step.withParams.entries) {
-          buffer.writeln('          ${entry.key}: ${entry.value}');
-        }
-      }
-    } else {
-      final runLines = step.run.split('\n');
-      if (runLines.length == 1) {
-        buffer.writeln('        run: ${step.run}');
+
+  for (final job in config.jobs) {
+    buffer.writeln('  ${job.id}:');
+    if (job.name != null && job.name!.isNotEmpty) {
+      buffer.writeln('    name: ${job.name}');
+    }
+    buffer.writeln('    runs-on: ${job.runsOn}');
+    if (job.needs.isNotEmpty) {
+      if (job.needs.length == 1) {
+        buffer.writeln('    needs: ${job.needs.first}');
       } else {
-        buffer.writeln('        run: |');
-        for (final line in runLines) {
-          buffer.writeln('          $line');
+        buffer.writeln('    needs: [${job.needs.join(', ')}]');
+      }
+    }
+    buffer.writeln('    steps:');
+    buffer.writeln('      - uses: actions/checkout@v4');
+    for (final step in job.steps) {
+      if (step.name.isNotEmpty) {
+        buffer.writeln('      - name: ${step.name}');
+      } else {
+        buffer.write('      - ');
+      }
+      if (step.type == StepType.uses) {
+        if (step.name.isNotEmpty) {
+          buffer.writeln('        uses: ${step.uses}');
+        } else {
+          buffer.writeln('uses: ${step.uses}');
+        }
+        if (step.withParams.isNotEmpty) {
+          buffer.writeln('        with:');
+          for (final entry in step.withParams.entries) {
+            buffer.writeln('          ${entry.key}: ${entry.value}');
+          }
+        }
+      } else {
+        final runLines = step.run.split('\n');
+        if (step.name.isNotEmpty) {
+          if (runLines.length == 1) {
+            buffer.writeln('        run: ${step.run}');
+          } else {
+            buffer.writeln('        run: |');
+            for (final line in runLines) {
+              buffer.writeln('          $line');
+            }
+          }
+        } else {
+          if (runLines.length == 1) {
+            buffer.writeln('run: ${step.run}');
+          } else {
+            buffer.writeln('run: |');
+            for (final line in runLines) {
+              buffer.writeln('          $line');
+            }
+          }
         }
       }
     }
@@ -107,12 +186,29 @@ WorkflowYamlConfig? yamlToConfig(String yamlContent) {
       triggers['push'] = ['main'];
     }
 
-    final steps = <WorkflowYamlStep>[];
-    final jobs = doc['jobs'];
-    if (jobs is YamlMap) {
-      for (final jobKey in jobs.keys) {
-        final job = jobs[jobKey];
-        if (job is YamlMap && job['steps'] is YamlList) {
+    final jobs = <WorkflowYamlJob>[];
+    final jobsMap = doc['jobs'];
+    if (jobsMap is YamlMap) {
+      for (final jobKey in jobsMap.keys) {
+        final jobId = jobKey.toString();
+        final job = jobsMap[jobKey];
+        if (job is! YamlMap) continue;
+
+        final jobName = job['name']?.toString();
+        final runsOn = job['runs-on']?.toString() ?? 'macos-latest';
+
+        // Parse needs
+        final needs = <String>[];
+        final needsValue = job['needs'];
+        if (needsValue is YamlList) {
+          needs.addAll(needsValue.map((n) => n.toString()));
+        } else if (needsValue is String) {
+          needs.add(needsValue);
+        }
+
+        // Parse steps
+        final steps = <WorkflowYamlStep>[];
+        if (job['steps'] is YamlList) {
           for (final step in job['steps'] as YamlList) {
             if (step is YamlMap) {
               final usesValue = step['uses']?.toString() ?? '';
@@ -138,13 +234,33 @@ WorkflowYamlConfig? yamlToConfig(String yamlContent) {
             }
           }
         }
+
+        jobs.add(
+          WorkflowYamlJob(
+            id: jobId,
+            name: jobName,
+            needs: needs,
+            runsOn: runsOn,
+            steps: steps,
+          ),
+        );
       }
+    }
+
+    // Fallback: if no jobs parsed, create a single default job
+    if (jobs.isEmpty) {
+      jobs.add(
+        WorkflowYamlJob(
+          id: 'build',
+          steps: [],
+        ),
+      );
     }
 
     return WorkflowYamlConfig(
       name: name,
       triggers: triggers,
-      steps: steps,
+      jobs: jobs,
     );
   } catch (_) {
     return null;

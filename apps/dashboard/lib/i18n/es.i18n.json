@@ -126,7 +126,9 @@
       "openInGitHub": "Abrir en GitHub",
       "committedToBranch": "Archivo de flujo de trabajo confirmado en $branch",
       "prCreatedSuccess": "Pull request creado",
-      "addSteps": "Agregar paso"
+      "addSteps": "Agregar paso",
+      "addJob": "Agregar trabajo",
+      "parallel": "Paralelo"
     }
   },
   "buildLogs": {
@@ -187,7 +189,13 @@
     "deleteConfirm": "¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.",
     "deletedSuccess": "Secreto eliminado exitosamente",
     "unusedSecrets": "Secretos no utilizados",
-    "notUsedInWorkflows": "No se usa en ningún flujo de trabajo"
+    "notUsedInWorkflows": "No se usa en ningún flujo de trabajo",
+    "inputModeText": "Texto",
+    "inputModeFile": "Archivo",
+    "uploadFile": "Subir archivo",
+    "fileSelected": "$fileName seleccionado",
+    "orUploadFile": "Haz clic para seleccionar un archivo",
+    "enterValueOrUpload": "Ingresa un valor o sube un archivo"
   },
   "envVars": {
     "title": "Variables de entorno",

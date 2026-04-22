@@ -1,33 +1,66 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/theme/app_colors.dart';
+import 'package:dashboard/theme/theme_provider.dart';
+
 import 'package:dashboard/build_logs/build_logs_page.dart';
+
 import 'package:dashboard/firebase/firebase_config_provider.dart';
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/settings/settings_page.dart';
+
 import 'package:dashboard/store_release/store_release_page.dart';
+
+import 'package:dashboard/variables/variables_page.dart';
+
 import 'package:dashboard/team/create_team_bottom_sheet.dart';
+
 import 'package:dashboard/team/delete_team_bottom_sheet.dart';
+
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
+
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
+
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
+
 import 'package:dashboard/team/team_members_bottom_sheet.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/users/user_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
+
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
+
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
+
 import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
+
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
+
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:swipeable_page_route/swipeable_page_route.dart';
+
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+
 import 'package:yaml/yaml.dart';
 
+
 import 'status_dot.dart';
+
 
 String getInitials(String name) {
   final words = name.trim().split(RegExp(r'\s+'));
@@ -64,7 +97,7 @@ class WorkflowListPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProvider);
     final wfT = t.workflow;
-    final tabController = useTabController(initialLength: 3);
+    final tabController = useTabController(initialLength: 4);
     useListenable(tabController);
     final isWorkflowsTab = tabController.index == 2;
 
@@ -100,6 +133,7 @@ class WorkflowListPage extends HookConsumerWidget {
               },
             ),
           ),
+          const VariablesBody(),
         ];
 
         return Scaffold(
@@ -111,13 +145,13 @@ class WorkflowListPage extends HookConsumerWidget {
                     final aiEnabled = team?.aiEnabled ?? true;
                     final fabIcon = aiEnabled ? Icons.auto_awesome : Icons.add;
                     return FloatingActionButton.extended(
-                      backgroundColor: const Color(0xFF141414),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.of(context).surface,
+                      foregroundColor: AppColors.of(context).textPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.12),
+                          color: AppColors.of(context).border,
                         ),
                       ),
                       onPressed: () {
@@ -162,7 +196,7 @@ class WorkflowListPage extends HookConsumerWidget {
                             context: context,
                             isScrollControlled: true,
                             showDragHandle: true,
-                            backgroundColor: const Color(0xFF09090B),
+                            backgroundColor: AppColors.of(context).scaffold,
                             builder: (_) => const SelectRepositoryBottomSheet(),
                           ),
                           child: Container(
@@ -171,10 +205,10 @@ class WorkflowListPage extends HookConsumerWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.04),
+                              color: AppColors.of(context).borderSubtle,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
+                                color: AppColors.of(context).border,
                               ),
                             ),
                             child: Row(
@@ -183,16 +217,16 @@ class WorkflowListPage extends HookConsumerWidget {
                                 FaIcon(
                                   FontAwesomeIcons.github,
                                   size: 16,
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: AppColors.of(context).textSecondary,
                                 ),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
                                     selectedRepo.split('/').last,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                      color: AppColors.of(context).textPrimary,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
@@ -202,7 +236,7 @@ class WorkflowListPage extends HookConsumerWidget {
                                 Icon(
                                   Icons.unfold_more,
                                   size: 14,
-                                  color: Colors.white.withValues(alpha: 0.3),
+                                  color: AppColors.of(context).textTertiary,
                                 ),
                               ],
                             ),
@@ -215,7 +249,7 @@ class WorkflowListPage extends HookConsumerWidget {
                           child: Text(
                             '/',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: AppColors.of(context).border,
                               fontSize: 16,
                               fontWeight: FontWeight.w300,
                             ),
@@ -228,7 +262,7 @@ class WorkflowListPage extends HookConsumerWidget {
                               context: context,
                               isScrollControlled: true,
                               showDragHandle: true,
-                              backgroundColor: const Color(0xFF09090B),
+                              backgroundColor: AppColors.of(context).scaffold,
                               builder: (_) => SelectBranchBottomSheet(
                                 repoFullName: selectedRepo,
                               ),
@@ -239,10 +273,10 @@ class WorkflowListPage extends HookConsumerWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.04),
+                                color: AppColors.of(context).borderSubtle,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: AppColors.of(context).border,
                                 ),
                               ),
                               child: Row(
@@ -251,16 +285,16 @@ class WorkflowListPage extends HookConsumerWidget {
                                   FaIcon(
                                     FontAwesomeIcons.codeBranch,
                                     size: 12,
-                                    color: const Color(0xFF58A6FF),
+                                    color: AppColors.of(context).accent,
                                   ),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
                                       selectedBranch,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Color(0xFF58A6FF),
+                                        color: AppColors.of(context).accent,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
@@ -289,56 +323,60 @@ class WorkflowListPage extends HookConsumerWidget {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                     ),
                   ),
                 ),
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: Row(
-                  children: List.generate(3, (index) {
-                    final labels = [
-                      wfT.tabRuns,
-                      t.storeRelease.title,
-                      wfT.tabWorkflows,
-                    ];
-                    final isSelected = tabController.index == index;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 2),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => tabController.animateTo(index),
-                          hoverColor: Colors.white.withValues(alpha: 0.04),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            curve: Curves.easeOut,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              labels[index],
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(4, (index) {
+                      final labels = [
+                        wfT.tabRuns,
+                        t.storeRelease.title,
+                        wfT.tabWorkflows,
+                        t.variables.title,
+                      ];
+                      final isSelected = tabController.index == index;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 2),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => tabController.animateTo(index),
+                            hoverColor: AppColors.of(context).borderSubtle,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              curve: Curves.easeOut,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.45),
-                                letterSpacing: -0.1,
+                                    ? AppColors.of(context).border
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                labels[index],
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected
+                                      ? AppColors.of(context).textPrimary
+                                      : AppColors.of(context).textTertiary,
+                                  letterSpacing: -0.1,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
               ),
             ),
@@ -478,25 +516,25 @@ class _WorkflowBody extends ConsumerWidget {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: AppColors.of(context).borderSubtle,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                     ),
                   ),
                   child: Icon(
                     Icons.layers_outlined,
                     size: 32,
-                    color: Colors.white.withValues(alpha: 0.25),
+                    color: AppColors.of(context).textTertiary,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   wfT.noWorkflowFiles,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -504,15 +542,15 @@ class _WorkflowBody extends ConsumerWidget {
                   wfT.addYamlHint,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: AppColors.of(context).textTertiary,
                   ),
                 ),
                 const SizedBox(height: 20),
                 TextButton.icon(
                   onPressed: onSync,
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.06),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.of(context).divider,
+                    foregroundColor: AppColors.of(context).textPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
@@ -520,7 +558,7 @@ class _WorkflowBody extends ConsumerWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: AppColors.of(context).border,
                       ),
                     ),
                   ),
@@ -555,18 +593,18 @@ class _WorkflowBody extends ConsumerWidget {
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF141414),
+                      color: AppColors.of(context).surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: AppColors.of(context).border,
                       ),
                     ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
-                        hoverColor: Colors.white.withValues(alpha: 0.03),
-                        splashColor: Colors.white.withValues(alpha: 0.05),
+                        hoverColor: AppColors.of(context).borderSubtle,
+                        splashColor: AppColors.of(context).borderSubtle,
                         onTap: () {
                           final branch = ref
                               .read(userProvider)
@@ -601,10 +639,10 @@ class _WorkflowBody extends ConsumerWidget {
                                   Expanded(
                                     child: Text(
                                       workflowName,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.white,
+                                        color: AppColors.of(context).textPrimary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -612,7 +650,7 @@ class _WorkflowBody extends ConsumerWidget {
                                   ),
                                   Icon(
                                     Icons.chevron_right,
-                                    color: Colors.white.withValues(alpha: 0.3),
+                                    color: AppColors.of(context).textTertiary,
                                     size: 18,
                                   ),
                                 ],
@@ -626,7 +664,7 @@ class _WorkflowBody extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontFamily: 'monospace',
-                                    color: Colors.white.withValues(alpha: 0.4),
+                                    color: AppColors.of(context).textTertiary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -655,16 +693,12 @@ class _WorkflowBody extends ConsumerWidget {
                                           vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.05,
-                                          ),
+                                          color: AppColors.of(context).borderSubtle,
                                           borderRadius: BorderRadius.circular(
                                             6,
                                           ),
                                           border: Border.all(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.08,
-                                            ),
+                                            color: AppColors.of(context).border,
                                           ),
                                         ),
                                         child: Row(
@@ -673,9 +707,7 @@ class _WorkflowBody extends ConsumerWidget {
                                             Icon(
                                               icon,
                                               size: 11,
-                                              color: Colors.white.withValues(
-                                                alpha: 0.45,
-                                              ),
+                                              color: AppColors.of(context).textTertiary,
                                             ),
                                             const SizedBox(width: 4),
                                             Flexible(
@@ -685,8 +717,7 @@ class _WorkflowBody extends ConsumerWidget {
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,
                                                   fontFamily: 'monospace',
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.55),
+                                                  color: AppColors.of(context).textSecondary,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
                                                 maxLines: 1,
@@ -733,27 +764,27 @@ class ConnectGitHub extends ConsumerWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppColors.of(context).borderSubtle,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: AppColors.of(context).divider,
                 ),
               ),
               child: Center(
                 child: FaIcon(
                   FontAwesomeIcons.github,
                   size: 32,
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: AppColors.of(context).textTertiary,
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               githubT.connectTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: AppColors.of(context).textPrimary,
               ),
             ),
             const SizedBox(height: 6),
@@ -762,7 +793,7 @@ class ConnectGitHub extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: AppColors.of(context).textTertiary,
               ),
             ),
             const SizedBox(height: 20),
@@ -777,8 +808,8 @@ class ConnectGitHub extends ConsumerWidget {
                 await url_launcher.launchUrl(url);
               },
               style: TextButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.06),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.of(context).divider,
+                foregroundColor: AppColors.of(context).textPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -786,14 +817,14 @@ class ConnectGitHub extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.of(context).border,
                   ),
                 ),
               ),
               icon: FaIcon(
                 FontAwesomeIcons.github,
                 size: 16,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: AppColors.of(context).textPrimary,
               ),
               label: Text(
                 githubT.connectButton,
@@ -826,27 +857,27 @@ class SelectRepository extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppColors.of(context).borderSubtle,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: AppColors.of(context).divider,
                 ),
               ),
               child: Center(
                 child: FaIcon(
                   FontAwesomeIcons.github,
                   size: 32,
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: AppColors.of(context).textTertiary,
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               wfT.selectRepo,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: AppColors.of(context).textPrimary,
               ),
             ),
             const SizedBox(height: 6),
@@ -855,7 +886,7 @@ class SelectRepository extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: AppColors.of(context).textTertiary,
               ),
             ),
             const SizedBox(height: 20),
@@ -864,12 +895,12 @@ class SelectRepository extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 showDragHandle: true,
-                backgroundColor: const Color(0xFF09090B),
+                backgroundColor: AppColors.of(context).scaffold,
                 builder: (_) => const SelectRepositoryBottomSheet(),
               ),
               style: TextButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.06),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.of(context).divider,
+                foregroundColor: AppColors.of(context).textPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -877,14 +908,14 @@ class SelectRepository extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.of(context).border,
                   ),
                 ),
               ),
               icon: FaIcon(
                 FontAwesomeIcons.github,
                 size: 16,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: AppColors.of(context).textPrimary,
               ),
               label: Text(
                 wfT.selectRepoButton,
@@ -926,9 +957,9 @@ class _TeamMenuButton extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: const Color(0xFF1A1A1A),
+          color: AppColors.of(context).surfaceHover,
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: AppColors.of(context).border,
           ),
         ),
         child: Center(
@@ -937,7 +968,7 @@ class _TeamMenuButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: AppColors.of(context).textSecondary,
               letterSpacing: 0.3,
             ),
           ),
@@ -968,13 +999,13 @@ class _TeamMenuButton extends StatelessWidget {
               elevation: 0,
               borderRadius: BorderRadius.circular(14),
               clipBehavior: Clip.antiAlias,
-              color: const Color(0xFF1A1A1A),
+              color: AppColors.of(context).surfaceHover,
               child: Container(
                 width: 256,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.of(context).border,
                   ),
                 ),
                 child: Column(
@@ -991,14 +1022,14 @@ class _TeamMenuButton extends StatelessWidget {
                             height: 38,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
-                              color: const Color(0xFF252525),
+                              color: AppColors.of(context).surfaceTertiary,
                             ),
                             child: Center(
                               child: Text(
                                 initials,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.8),
+                                  color: AppColors.of(context).textPrimary,
                                   fontSize: 13,
                                 ),
                               ),
@@ -1011,9 +1042,9 @@ class _TeamMenuButton extends StatelessWidget {
                               children: [
                                 Text(
                                   teamName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                                    color: AppColors.of(context).textPrimary,
                                     fontSize: 13,
                                   ),
                                   maxLines: 1,
@@ -1024,9 +1055,7 @@ class _TeamMenuButton extends StatelessWidget {
                                   Text(
                                     email!,
                                     style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.4,
-                                      ),
+                                      color: AppColors.of(context).textTertiary,
                                       fontSize: 11,
                                     ),
                                     maxLines: 1,
@@ -1043,7 +1072,7 @@ class _TeamMenuButton extends StatelessWidget {
                     // ── Divider ──
                     Divider(
                       height: 1,
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                     ),
 
                     // ── Team section ──
@@ -1058,7 +1087,7 @@ class _TeamMenuButton extends StatelessWidget {
                             child: Text(
                               'Team',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.3),
+                                color: AppColors.of(context).textTertiary,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 10,
                                 letterSpacing: 0.8,
@@ -1151,29 +1180,91 @@ class _TeamMenuButton extends StatelessWidget {
                     // ── Divider ──
                     Divider(
                       height: 1,
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                     ),
 
-                    // ── Settings section ──
+                    // ── Appearance & Settings section ──
                     Padding(
                       padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-                      child: _MenuItem(
-                        icon: Icons.settings_outlined,
-                        label: t.nav.settings,
-                        onTap: () {
-                          Navigator.of(dialogContext).pop();
-                          showModalBottomSheet(
-                            showDragHandle: true,
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (sheetContext) => SizedBox(
-                              height:
-                                  MediaQuery.of(sheetContext).size.height *
-                                  0.85,
-                              child: const SettingsPage(),
-                            ),
-                          );
-                        },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Theme toggle
+                          Consumer(
+                            builder: (ctx, ref, _) {
+                              final mode = ref.watch(themeModeProvider);
+                              final isDark = mode == ThemeMode.dark;
+                              return InkWell(
+                                onTap: () => ref.read(themeModeProvider.notifier).toggle(),
+                                borderRadius: BorderRadius.circular(8),
+                                hoverColor: AppColors.of(context).divider,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                                        size: 18,
+                                        color: AppColors.of(context).textPrimary.withValues(alpha: 0.6),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          isDark ? 'Dark Mode' : 'Light Mode',
+                                          style: TextStyle(
+                                            color: AppColors.of(context).textPrimary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 36,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(10),
+                                          color: isDark ? AppColors.of(context).accent : AppColors.of(context).border,
+                                        ),
+                                        child: AnimatedAlign(
+                                          duration: const Duration(milliseconds: 200),
+                                          curve: Curves.easeInOut,
+                                          alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
+                                          child: Container(
+                                            width: 16,
+                                            height: 16,
+                                            margin: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: AppColors.of(context).textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.settings_outlined,
+                            label: t.nav.settings,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                              showModalBottomSheet(
+                                showDragHandle: true,
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (sheetContext) => SizedBox(
+                                  height:
+                                      MediaQuery.of(sheetContext).size.height *
+                                      0.85,
+                                  child: const SettingsPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1204,10 +1295,10 @@ class _MenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final itemColor = isDestructive
         ? Colors.red.withValues(alpha: 0.9)
-        : Colors.white.withValues(alpha: 0.8);
+        : AppColors.of(context).textPrimary;
     final hoverColor = isDestructive
         ? Colors.red.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.06);
+        : AppColors.of(context).divider;
 
     return InkWell(
       onTap: onTap,

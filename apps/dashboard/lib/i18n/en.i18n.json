@@ -126,7 +126,11 @@
       "openInGitHub": "Open in GitHub",
       "committedToBranch": "Workflow file committed to $branch",
       "prCreatedSuccess": "Pull request created",
-      "addSteps": "Add step"
+      "addSteps": "Add step",
+      "addJob": "Add Job",
+      "parallel": "Parallel",
+      "action": "Action",
+      "command": "Command"
     }
   },
   "buildLogs": {
@@ -187,7 +191,13 @@
     "deleteConfirm": "Are you sure you want to delete this secret? This action cannot be undone.",
     "deletedSuccess": "Secret deleted successfully",
     "unusedSecrets": "Unused Secrets",
-    "notUsedInWorkflows": "Not used in any workflow"
+    "notUsedInWorkflows": "Not used in any workflow",
+    "inputModeText": "Text",
+    "inputModeFile": "File",
+    "uploadFile": "Upload file",
+    "fileSelected": "$fileName selected",
+    "orUploadFile": "Click to select a file",
+    "enterValueOrUpload": "Please enter a value or upload a file"
   },
   "envVars": {
     "title": "Environment Variables",

@@ -1,23 +1,26 @@
+import 'package:dashboard/theme/app_colors.dart';
 import 'dart:async';
 
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/users/user_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:skeletonizer/skeletonizer.dart';
 
-// ── Design Tokens (ui.sh) ──
-const _cardBg = Color(0xFF18181B);
-const _cardBorder = Color(0xFF27272A);
-const _accentBlue = Color(0xFF3B82F6);
-const _textPrimary = Color(0xFFFAFAFA);
-const _textSecondary = Color(0xFFA1A1AA);
-const _textTertiary = Color(0xFF71717A);
-const _radius = 12.0;
+
 
 class SelectBranchBottomSheet extends HookConsumerWidget {
   const SelectBranchBottomSheet({super.key, required this.repoFullName});
@@ -68,23 +71,23 @@ class SelectBranchBottomSheet extends HookConsumerWidget {
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: _cardBg,
+                            color: AppColors.of(context).surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _cardBorder),
+                            border: Border.all(color: AppColors.of(context).border),
                           ),
-                          child: const FaIcon(
+                          child: FaIcon(
                             FontAwesomeIcons.codeBranch,
                             size: 24,
-                            color: _textTertiary,
+                            color: AppColors.of(context).textTertiary,
                           ),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           wfT.noBranches,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: _textPrimary,
+                            color: AppColors.of(context).textPrimary,
                           ),
                         ),
                       ],
@@ -177,17 +180,17 @@ class SelectBranchBottomSheet extends HookConsumerWidget {
                     children: [
                       Text(
                         wfT.selectBranch,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                       Text(
                         wfT.selectBranchHint,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: _textSecondary,
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ],
@@ -196,9 +199,9 @@ class SelectBranchBottomSheet extends HookConsumerWidget {
               ],
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(color: _cardBorder, height: 20),
+            child: Divider(color: AppColors.of(context).border, height: 20),
           ),
           // ── Content ──
           Expanded(child: child),
@@ -225,15 +228,15 @@ class _BranchTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(12.0),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? _accentBlue.withValues(alpha: 0.06) : _cardBg,
-            borderRadius: BorderRadius.circular(_radius),
+            color: isSelected ? AppColors.of(context).accent.withValues(alpha: 0.06) : AppColors.of(context).surface,
+            borderRadius: BorderRadius.circular(12.0),
             border: Border.all(
-              color: isSelected ? _accentBlue : _cardBorder,
+              color: isSelected ? AppColors.of(context).accent : AppColors.of(context).border,
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -242,7 +245,7 @@ class _BranchTile extends StatelessWidget {
               FaIcon(
                 FontAwesomeIcons.codeBranch,
                 size: 14,
-                color: isSelected ? _accentBlue : _textTertiary,
+                color: isSelected ? AppColors.of(context).accent : AppColors.of(context).textTertiary,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -253,7 +256,7 @@ class _BranchTile extends StatelessWidget {
                     fontWeight: isSelected
                         ? FontWeight.w600
                         : FontWeight.normal,
-                    color: isSelected ? _accentBlue : _textPrimary,
+                    color: isSelected ? AppColors.of(context).accent : AppColors.of(context).textPrimary,
                   ),
                 ),
               ),
@@ -261,14 +264,14 @@ class _BranchTile extends StatelessWidget {
                 Container(
                   width: 22,
                   height: 22,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _accentBlue,
+                    color: AppColors.of(context).accent,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check,
                     size: 14,
-                    color: Colors.white,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
             ],

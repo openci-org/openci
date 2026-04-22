@@ -1,9 +1,16 @@
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 
 class CreateTeamBottomSheet extends HookConsumerWidget {
   const CreateTeamBottomSheet({super.key});
@@ -30,10 +37,10 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
               padding: const EdgeInsets.only(left: 4, bottom: 16),
               child: Text(
                 teamT.createNewTeam,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -41,22 +48,22 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
               key: formKey,
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141414),
+                  color: AppColors.of(context).surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: AppColors.of(context).border,
                   ),
                 ),
                 child: TextFormField(
                   controller: teamNameController,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white,
+                    color: AppColors.of(context).textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: teamT.teamName,
                     hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: AppColors.of(context).textTertiary,
                       fontSize: 14,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -69,7 +76,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                       child: Icon(
                         Icons.group_add_outlined,
                         size: 18,
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: AppColors.of(context).textTertiary,
                       ),
                     ),
                     prefixIconConstraints: const BoxConstraints(
@@ -91,8 +98,8 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
               width: double.infinity,
               child: TextButton(
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: AppColors.of(context).textPrimary,
+                  backgroundColor: AppColors.of(context).accent,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -117,12 +124,12 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                         }
                       },
                 child: isLoading.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       )
                     : Text(

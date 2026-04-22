@@ -126,7 +126,11 @@
       "openInGitHub": "GitHubで開く",
       "committedToBranch": "ワークフローファイルが $branch にコミットされました",
       "prCreatedSuccess": "プルリクエストが作成されました",
-      "addSteps": "ステップを追加"
+      "addSteps": "ステップを追加",
+      "addJob": "ジョブを追加",
+      "parallel": "並列実行",
+      "action": "アクション",
+      "command": "コマンド"
     }
   },
   "buildLogs": {
@@ -187,7 +191,13 @@
     "deleteConfirm": "このシークレットを削除しますか？この操作は元に戻せません。",
     "deletedSuccess": "シークレットが削除されました",
     "unusedSecrets": "未使用のシークレット",
-    "notUsedInWorkflows": "ワークフローで使用されていません"
+    "notUsedInWorkflows": "ワークフローで使用されていません",
+    "inputModeText": "テキスト",
+    "inputModeFile": "ファイル",
+    "uploadFile": "ファイルをアップロード",
+    "fileSelected": "$fileName を選択中",
+    "orUploadFile": "クリックしてファイルを選択",
+    "enterValueOrUpload": "値を入力するかファイルをアップロードしてください"
   },
   "envVars": {
     "title": "環境変数",

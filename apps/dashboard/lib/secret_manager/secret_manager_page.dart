@@ -1,13 +1,23 @@
 import 'dart:convert';
+import 'package:dashboard/theme/app_colors.dart';
+
 
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
+
 import 'package:file_picker/file_picker.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 
 /// Extract secret names referenced in workflow YAML content.
 Set<String> _extractSecretNames(String content) {
@@ -65,17 +75,23 @@ class SecretManagerTab extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     final state = ref.watch(secretManagerProvider);
     final workflowFilesAsync = ref.watch(workflowFilesProvider);
     final secretsT = t.secrets;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
+        backgroundColor: colors.accent,
+        foregroundColor: Colors.white,
+        elevation: 0,
         onPressed: () {
           showModalBottomSheet(
             showDragHandle: true,
             context: context,
             isScrollControlled: true,
+            backgroundColor: colors.scaffold,
             builder: (context) => const _AddSecretBottomSheet(),
           );
         },
@@ -93,16 +109,48 @@ class SecretManagerTab extends HookConsumerWidget {
             if (!hasCertKey) _GenerateCertificateKeyButton(),
             if (!hasAscApiKey) _SetupAscApiKeyButton(),
           ];
+
           if (secrets.isEmpty) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
+                  constraints: const BoxConstraints(maxWidth: 400),
                   child: Column(
                     children: [
-                      Text(secretsT.noSecrets),
-                      const SizedBox(height: 24),
+                      // Empty state illustration
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: colors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.key_off_outlined,
+                          size: 28,
+                          color: colors.accent,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        secretsT.noSecrets,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Add secrets and API keys to use in your workflows',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colors.textTertiary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
                       ...setupCards,
                     ],
                   ),
@@ -111,66 +159,70 @@ class SecretManagerTab extends HookConsumerWidget {
             );
           }
 
-          // Get workflow files for grouping
           final workflowFiles = workflowFilesAsync.value ?? [];
           final grouped = _groupSecretsByWorkflow(secrets, workflowFiles);
 
           return ListView(
-            padding: const EdgeInsets.only(top: 8, bottom: 80),
-            children: [
-              // Setup cards
-              ...setupCards.map(
-                (card) => Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
+              padding: const EdgeInsets.only(top: 12, bottom: 80),
+              children: [
+                // Setup cards
+                ...setupCards.map(
+                  (card) => Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: card,
                       ),
-                      child: card,
                     ),
                   ),
                 ),
-              ),
-              // Grouped sections
-              for (final group in grouped.groups) ...[
-                _SectionHeader(
-                  icon: Icons.description_outlined,
-                  title: group.workflowName,
-                  count: group.secrets.length,
-                ),
-                ...group.secrets.map(
-                  (secret) => _SecretListTile(secret: secret),
-                ),
-              ],
-              // Unused section
-              if (grouped.unused.isNotEmpty) ...[
-                _SectionHeader(
-                  icon: Icons.warning_amber_rounded,
-                  title: secretsT.unusedSecrets,
-                  count: grouped.unused.length,
-                  isWarning: true,
-                ),
-                ...grouped.unused.map(
-                  (secret) => _SecretListTile(
-                    secret: secret,
-                    isUnused: true,
+                // Grouped sections
+                for (final group in grouped.groups) ...[
+                  _SectionHeader(
+                    icon: Icons.description_outlined,
+                    title: group.workflowName,
+                    count: group.secrets.length,
                   ),
-                ),
+                  ...group.secrets.map(
+                    (secret) => _SecretListTile(secret: secret),
+                  ),
+                ],
+                // Unused section
+                if (grouped.unused.isNotEmpty) ...[
+                  _SectionHeader(
+                    icon: Icons.warning_amber_rounded,
+                    title: secretsT.unusedSecrets,
+                    count: grouped.unused.length,
+                    isWarning: true,
+                  ),
+                  ...grouped.unused.map(
+                    (secret) => _SecretListTile(
+                      secret: secret,
+                      isUnused: true,
+                    ),
+                  ),
+                ],
+                // If no workflows loaded yet, show flat list
+                if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
+                  ...secrets.map(
+                    (secret) => _SecretListTile(secret: secret),
+                  ),
+                ],
               ],
-              // If no workflows loaded yet, show flat list
-              if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
-                ...secrets.map(
-                  (secret) => _SecretListTile(secret: secret),
-                ),
-              ],
-            ],
-          );
+            );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: colors.accent),
+        ),
         error: (error, stack) => Center(
-          child: Text(t.common.error(error: error.toString())),
+          child: Text(
+            t.common.error(error: error.toString()),
+            style: TextStyle(color: colors.error),
+          ),
         ),
       ),
     );
@@ -192,41 +244,53 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color = isWarning ? colorScheme.error : colorScheme.primary;
+    final colors = AppColors.of(context);
+    final color = isWarning ? colors.warning : colors.accent;
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: const BoxConstraints(maxWidth: 520),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: color,
+                  style: TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
+                    color: colors.textSecondary,
+                    letterSpacing: -0.2,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 8,
-                  vertical: 2,
+                  vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '$count',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color,
+                  style: TextStyle(
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: color,
                   ),
                 ),
               ),
@@ -249,61 +313,112 @@ class _SecretListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = AppColors.of(context);
     final secretsT = t.secrets;
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: const BoxConstraints(maxWidth: 520),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ListTile(
-            leading: Icon(
-              Icons.key,
-              size: 20,
-              color: isUnused
-                  ? colorScheme.outline
-                  : colorScheme.onSurfaceVariant,
-            ),
-            title: Text(
-              secret.name,
-              style: TextStyle(
-                color: isUnused ? colorScheme.outline : null,
-                decoration: isUnused ? TextDecoration.lineThrough : null,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isUnused
+                    ? colors.warning.withValues(alpha: 0.2)
+                    : colors.border,
               ),
             ),
-            subtitle: isUnused
-                ? Text(
-                    secretsT.notUsedInWorkflows,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.error.withValues(alpha: 0.7),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              child: Row(
+                children: [
+                  // Key icon
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isUnused
+                          ? colors.warning.withValues(alpha: 0.1)
+                          : colors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  )
-                : null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () {
-                    showModalBottomSheet(
-                      showDragHandle: true,
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (context) =>
-                          _EditSecretBottomSheet(secret: secret),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    size: 20,
-                    color: colorScheme.error,
+                    child: Icon(
+                      Icons.key_rounded,
+                      size: 16,
+                      color: isUnused ? colors.warning : colors.accent,
+                    ),
                   ),
-                  onPressed: () => _confirmDelete(context, ref, secretsT),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  // Name + subtitle
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          secret.name,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'monospace',
+                            color: isUnused
+                                ? colors.textTertiary
+                                : colors.textPrimary,
+                            decoration: isUnused
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (isUnused) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            secretsT.notUsedInWorkflows,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.warning,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Actions
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ActionIconButton(
+                        icon: Icons.edit_outlined,
+                        color: colors.textTertiary,
+                        tooltip: secretsT.editSecret,
+                        onPressed: () {
+                          showModalBottomSheet(
+                            showDragHandle: true,
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: colors.scaffold,
+                            builder: (context) =>
+                                _EditSecretBottomSheet(secret: secret),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      _ActionIconButton(
+                        icon: Icons.delete_outline,
+                        color: colors.error,
+                        tooltip: t.common.delete,
+                        onPressed: () =>
+                            _confirmDelete(context, ref, secretsT),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -316,21 +431,35 @@ class _SecretListTile extends ConsumerWidget {
     WidgetRef ref,
     dynamic secretsT,
   ) async {
+    final colors = AppColors.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.common.delete),
-        content: Text(secretsT.deleteConfirm),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          t.common.delete,
+          style: TextStyle(color: colors.textPrimary),
+        ),
+        content: Text(
+          secretsT.deleteConfirm,
+          style: TextStyle(color: colors.textSecondary),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(t.common.cancel),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              t.common.cancel,
+              style: TextStyle(color: colors.textTertiary),
+            ),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: colors.error,
             ),
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(t.common.delete),
           ),
         ],
@@ -350,6 +479,43 @@ class _SecretListTile extends ConsumerWidget {
   }
 }
 
+/// Small icon button with hover effect for secret actions.
+class _ActionIconButton extends StatelessWidget {
+  const _ActionIconButton({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: IconButton(
+        icon: Icon(icon, size: 16, color: color),
+        onPressed: onPressed,
+        tooltip: tooltip,
+        padding: EdgeInsets.zero,
+        splashRadius: 16,
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _InputMode { text, file }
+
 class _AddSecretBottomSheet extends HookConsumerWidget {
   const _AddSecretBottomSheet();
 
@@ -359,84 +525,424 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
     final secretValueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final secretsT = t.secrets;
+    final inputMode = useState(_InputMode.text);
+    final selectedFileName = useState<String?>(null);
+    final fileContent = useState<String?>(null);
+    final isLoading = useState(false);
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.6,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  children: [
-                    Text(
-                      secretsT.addSecret,
-                      style: TextStyle(fontSize: 16),
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height * 0.4,
+          ),
+          child: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Title ──
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 20),
+                  child: Text(
+                    secretsT.addSecret,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.of(context).textPrimary,
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: secretNameController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: secretsT.secretName,
+                  ),
+                ),
+
+                // ── Secret Name ──
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.of(context).border,
+                    ),
+                  ),
+                  child: TextFormField(
+                    controller: secretNameController,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.of(context).textPrimary,
+                      fontFamily: 'monospace',
+                    ),
+                    decoration: InputDecoration(
+                      hintText: secretsT.secretName,
+                      hintStyle: TextStyle(
+                        color: AppColors.of(context).textTertiary,
+                        fontSize: 14,
+                        fontFamily: 'monospace',
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return secretsT.enterSecretName;
-                        }
-                        return null;
-                      },
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: InputBorder.none,
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 8),
+                        child: Icon(
+                          Icons.key_outlined,
+                          size: 18,
+                          color: AppColors.of(context).textTertiary,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 0,
+                        minHeight: 0,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return secretsT.enterSecretName;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // ── Input Mode Toggle ──
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.of(context).border,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _ModeTab(
+                          label: secretsT.inputModeText,
+                          icon: Icons.text_fields,
+                          isSelected: inputMode.value == _InputMode.text,
+                          onTap: () {
+                            inputMode.value = _InputMode.text;
+                            selectedFileName.value = null;
+                            fileContent.value = null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _ModeTab(
+                          label: secretsT.inputModeFile,
+                          icon: Icons.upload_file,
+                          isSelected: inputMode.value == _InputMode.file,
+                          onTap: () {
+                            inputMode.value = _InputMode.file;
+                            secretValueController.clear();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // ── Value Input (Text Mode) ──
+                if (inputMode.value == _InputMode.text)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.of(context).surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.of(context).border,
+                      ),
+                    ),
+                    child: TextFormField(
                       controller: secretValueController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: secretsT.secretValue,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.of(context).textPrimary,
                       ),
                       obscureText: true,
+                      decoration: InputDecoration(
+                        hintText: secretsT.secretValue,
+                        hintStyle: TextStyle(
+                          color: AppColors.of(context).textTertiary,
+                          fontSize: 14,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        border: InputBorder.none,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 12, right: 8),
+                          child: Icon(
+                            Icons.lock_outline,
+                            size: 18,
+                            color: AppColors.of(context).textTertiary,
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 0,
+                          minHeight: 0,
+                        ),
+                      ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (inputMode.value == _InputMode.text &&
+                            (value == null || value.isEmpty)) {
                           return secretsT.enterSecretValue;
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () async {
-                        if (!formKey.currentState!.validate()) return;
-                        try {
-                          await ref
-                              .read(secretManagerProvider.notifier)
-                              .addSecret(
-                                secretNameController.text.trim(),
-                                secretValueController.text,
-                              );
-                          if (!context.mounted) return;
-                          context.showSnackBarMessage(
-                            secretsT.addedSuccess,
-                          );
-                          Navigator.of(context).pop();
-                        } catch (e) {
-                          if (!context.mounted) return;
-                          context.showSnackBarMessage('$e');
+                  )
+
+                // ── File Upload (File Mode) ──
+                else
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        withData: true,
+                      );
+                      if (result != null && result.files.isNotEmpty) {
+                        final file = result.files.first;
+                        if (file.bytes != null) {
+                          fileContent.value = utf8.decode(file.bytes!);
+                          selectedFileName.value = file.name;
                         }
-                      },
-                      child: Text(secretsT.addSecret),
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 28,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.of(context).surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selectedFileName.value != null
+                              ? AppColors.of(context).accent.withValues(alpha: 0.4)
+                              : AppColors.of(context).border,
+                          width: selectedFileName.value != null ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: selectedFileName.value != null
+                                  ? const Color(
+                                      0xFF3B82F6,
+                                    ).withValues(alpha: 0.15)
+                                  : AppColors.of(context).divider,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              selectedFileName.value != null
+                                  ? Icons.check_rounded
+                                  : Icons.cloud_upload_outlined,
+                              size: 20,
+                              color: selectedFileName.value != null
+                                  ? AppColors.of(context).accent
+                                  : AppColors.of(context).textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (selectedFileName.value != null) ...[
+                            Text(
+                              selectedFileName.value!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.of(context).textPrimary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF3B82F6,
+                                ).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'file loaded',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.of(context).accent,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            Text(
+                              secretsT.uploadFile,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.of(context).textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              secretsT.orUploadFile,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.of(context).textTertiary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
+
+                const SizedBox(height: 16),
+
+                // ── Submit Button ──
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.of(context).textPrimary,
+                      backgroundColor: AppColors.of(context).accent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isLoading.value
+                        ? null
+                        : () async {
+                            if (inputMode.value == _InputMode.file &&
+                                fileContent.value == null) {
+                              context.showSnackBarMessage(
+                                secretsT.enterValueOrUpload,
+                              );
+                              return;
+                            }
+                            if (!formKey.currentState!.validate()) return;
+
+                            final value = inputMode.value == _InputMode.file
+                                ? fileContent.value!
+                                : secretValueController.text;
+
+                            isLoading.value = true;
+                            try {
+                              await ref
+                                  .read(secretManagerProvider.notifier)
+                                  .addSecret(
+                                    secretNameController.text.trim(),
+                                    value,
+                                  );
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(
+                                secretsT.addedSuccess,
+                              );
+                              Navigator.of(context).pop();
+                            } catch (e) {
+                              isLoading.value = false;
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage('$e');
+                            }
+                          },
+                    child: isLoading.value
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.of(context).textPrimary,
+                            ),
+                          )
+                        : Text(
+                            secretsT.addSecret,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+              ],
             ),
           ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A pill-shaped tab for the Text/File mode toggle.
+class _ModeTab extends StatelessWidget {
+  const _ModeTab({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.of(context).border
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? AppColors.of(context).textPrimary
+                  : AppColors.of(context).textTertiary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected
+                    ? AppColors.of(context).textPrimary
+                    : AppColors.of(context).textTertiary,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -450,37 +956,85 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     final nameController = useTextEditingController(text: secret.name);
     final valueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
     final secretsT = t.secrets;
+    final inputMode = useState(_InputMode.text);
+    final selectedFileName = useState<String?>(null);
+    final fileContent = useState<String?>(null);
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.6,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  children: [
-                    Text(
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height * 0.35,
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Title ──
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 20),
+                    child: Text(
                       secretsT.editSecret,
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
+                  ),
+
+                  // ── Secret Name ──
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: TextFormField(
                       controller: nameController,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colors.textPrimary,
+                        fontFamily: 'monospace',
+                      ),
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: secretsT.secretName,
+                        hintText: secretsT.secretName,
+                        hintStyle: TextStyle(
+                          color: colors.textTertiary,
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        border: InputBorder.none,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 12, right: 8),
+                          child: Icon(
+                            Icons.key_outlined,
+                            size: 18,
+                            color: colors.textTertiary,
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 0,
+                          minHeight: 0,
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -489,22 +1043,240 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: valueController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: secretsT.newSecretValue,
-                      ),
-                      obscureText: true,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Input Mode Toggle ──
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: colors.border),
                     ),
-                    const SizedBox(height: 16),
-                    FilledButton(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _ModeTab(
+                            label: secretsT.inputModeText,
+                            icon: Icons.text_fields,
+                            isSelected: inputMode.value == _InputMode.text,
+                            onTap: () {
+                              inputMode.value = _InputMode.text;
+                              selectedFileName.value = null;
+                              fileContent.value = null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: _ModeTab(
+                            label: secretsT.inputModeFile,
+                            icon: Icons.upload_file,
+                            isSelected: inputMode.value == _InputMode.file,
+                            onTap: () {
+                              inputMode.value = _InputMode.file;
+                              valueController.clear();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Value Input (Text Mode) ──
+                  if (inputMode.value == _InputMode.text)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: colors.border),
+                          ),
+                          child: TextFormField(
+                            controller: valueController,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: colors.textPrimary,
+                            ),
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              hintText: secretsT.newSecretValue,
+                              hintStyle: TextStyle(
+                                color: colors.textTertiary,
+                                fontSize: 14,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: InputBorder.none,
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(left: 12, right: 8),
+                                child: Icon(
+                                  Icons.lock_outline,
+                                  size: 18,
+                                  color: colors.textTertiary,
+                                ),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 0,
+                                minHeight: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // ── Hint ──
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, top: 6),
+                          child: Text(
+                            'Leave value empty to keep current secret',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.textTertiary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+
+                  // ── File Upload (File Mode) ──
+                  else
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final result = await FilePicker.platform.pickFiles(
+                          withData: true,
+                        );
+                        if (result != null && result.files.isNotEmpty) {
+                          final file = result.files.first;
+                          if (file.bytes != null) {
+                            fileContent.value = utf8.decode(file.bytes!);
+                            selectedFileName.value = file.name;
+                          }
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 28,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selectedFileName.value != null
+                                ? colors.accent.withValues(alpha: 0.4)
+                                : colors.border,
+                            width: selectedFileName.value != null ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: selectedFileName.value != null
+                                    ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                                    : colors.divider,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                selectedFileName.value != null
+                                    ? Icons.check_rounded
+                                    : Icons.cloud_upload_outlined,
+                                size: 20,
+                                color: selectedFileName.value != null
+                                    ? colors.accent
+                                    : colors.textTertiary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            if (selectedFileName.value != null) ...[
+                              Text(
+                                selectedFileName.value!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.textPrimary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'file loaded',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: colors.accent,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              Text(
+                                secretsT.uploadFile,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                secretsT.orUploadFile,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.textTertiary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Submit Button ──
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: colors.accent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                       onPressed: isLoading.value
                           ? null
                           : () async {
                               if (!formKey.currentState!.validate()) return;
                               final name = nameController.text.trim();
+
+                              String? value;
+                              if (inputMode.value == _InputMode.file) {
+                                value = fileContent.value;
+                              } else if (valueController.text.isNotEmpty) {
+                                value = valueController.text;
+                              }
 
                               isLoading.value = true;
                               try {
@@ -513,9 +1285,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                                     .updateSecret(
                                       documentId: secret.id,
                                       name: name,
-                                      value: valueController.text.isNotEmpty
-                                          ? valueController.text
-                                          : null,
+                                      value: value,
                                     );
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
@@ -529,16 +1299,25 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                               }
                             },
                       child: isLoading.value
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
-                          : Text(t.common.save),
+                          : Text(
+                              t.common.save,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
           ),
@@ -551,9 +1330,15 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
 class _GenerateCertificateKeyButton extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     final isLoading = useState(false);
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -561,25 +1346,53 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.key, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: colors.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.key,
+                    size: 16,
+                    color: colors.accent,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'iOS Code Signing',
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.textPrimary,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               'Generate a certificate private key for iOS builds. This is required for automatic code signing.',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+                height: 1.4,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
-              child: FilledButton.icon(
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: colors.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
                 onPressed: isLoading.value
                     ? null
                     : () async {
@@ -599,17 +1412,30 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                           if (context.mounted) isLoading.value = false;
                         }
                       },
-                icon: isLoading.value
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isLoading.value)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Icon(Icons.vpn_key),
-                label: Text(
-                  isLoading.value
-                      ? 'Generating...'
-                      : 'Generate Certificate Key',
+                    else ...[
+                      const Icon(Icons.vpn_key, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Generate Certificate Key',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -623,6 +1449,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
 class _SetupAscApiKeyButton extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     final isLoading = useState(false);
     final isExpanded = useState(false);
     final issuerIdController = useTextEditingController();
@@ -631,37 +1458,66 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
     final p8FileName = useState<String?>(null);
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             InkWell(
+              borderRadius: BorderRadius.circular(8),
               onTap: () => isExpanded.value = !isExpanded.value,
               child: Row(
                 children: [
-                  Icon(
-                    Icons.apple,
-                    color: Theme.of(context).colorScheme.primary,
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.apple,
+                      size: 16,
+                      color: Colors.purple,
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'App Store Connect API Key',
-                      style: Theme.of(context).textTheme.titleSmall,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
                     ),
                   ),
-                  Icon(
-                    isExpanded.value ? Icons.expand_less : Icons.expand_more,
+                  AnimatedRotation(
+                    turns: isExpanded.value ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 20,
+                      color: colors.textTertiary,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               'Required for iOS code signing and TestFlight deployment.',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+                height: 1.4,
+              ),
             ),
             if (isExpanded.value) ...[
               const SizedBox(height: 16),
@@ -669,39 +1525,99 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                 key: formKey,
                 child: Column(
                   children: [
-                    TextFormField(
-                      controller: issuerIdController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Issuer ID',
-                        hintText: 'e.g. 69a6d....-....-....',
+                    // Issuer ID
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceTertiary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colors.border),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Enter Issuer ID';
-                        }
-                        return null;
-                      },
+                      child: TextFormField(
+                        controller: issuerIdController,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textPrimary,
+                          fontFamily: 'monospace',
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Issuer ID (e.g. 69a6d…)',
+                          hintStyle: TextStyle(
+                            color: colors.textTertiary,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter Issuer ID';
+                          }
+                          return null;
+                        },
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: keyIdController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Key ID',
-                        hintText: 'e.g. ABC123DEFG',
+                    // Key ID
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceTertiary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colors.border),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Enter Key ID';
-                        }
-                        return null;
-                      },
+                      child: TextFormField(
+                        controller: keyIdController,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textPrimary,
+                          fontFamily: 'monospace',
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Key ID (e.g. ABC123DEFG)',
+                          hintStyle: TextStyle(
+                            color: colors.textTertiary,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter Key ID';
+                          }
+                          return null;
+                        },
+                      ),
                     ),
                     const SizedBox(height: 12),
+                    // .p8 file upload
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton.icon(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: p8FileName.value != null
+                              ? Colors.green
+                              : colors.textSecondary,
+                          backgroundColor: p8FileName.value != null
+                              ? Colors.green.withValues(alpha: 0.08)
+                              : colors.surfaceTertiary,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color: p8FileName.value != null
+                                  ? Colors.green.withValues(alpha: 0.3)
+                                  : colors.border,
+                            ),
+                          ),
+                        ),
                         onPressed: () async {
                           final result = await FilePicker.platform.pickFiles(
                             type: FileType.custom,
@@ -715,31 +1631,51 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                           privateKeyContent.value = utf8.decode(bytes);
                           p8FileName.value = file.name;
                         },
-                        icon: Icon(
-                          p8FileName.value != null
-                              ? Icons.check_circle
-                              : Icons.upload_file,
-                        ),
-                        label: Text(
-                          p8FileName.value ?? 'Upload .p8 file',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              p8FileName.value != null
+                                  ? Icons.check_circle
+                                  : Icons.upload_file,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              p8FileName.value ?? 'Upload .p8 file',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                     if (privateKeyContent.value == null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: 6, left: 4),
                         child: Text(
                           'Download the .p8 file from App Store Connect',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colors.textTertiary,
+                          ),
                         ),
                       ),
                     const SizedBox(height: 16),
+                    // Save button
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton.icon(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: colors.accent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                         onPressed: isLoading.value
                             ? null
                             : () async {
@@ -771,17 +1707,30 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                                   if (context.mounted) isLoading.value = false;
                                 }
                               },
-                        icon: isLoading.value
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isLoading.value)
+                              const SizedBox(
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.save),
-                        label: Text(
-                          isLoading.value ? 'Saving...' : 'Save API Key',
+                            else ...[
+                              const Icon(Icons.save, size: 16),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Save API Key',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),

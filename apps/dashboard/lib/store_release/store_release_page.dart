@@ -1,5 +1,6 @@
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/store_release/store_release_provider.dart';
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -7,17 +8,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-// ═══════════════════════════════════════════════════════════════════
 // Design Tokens (ui.sh)
-// ═══════════════════════════════════════════════════════════════════
-const _cardBg = Color(0xFF18181B);
-const _cardBorder = Color(0xFF27272A);
-const _inputBg = Color(0xFF1C1C1E);
-const _accentBlue = Color(0xFF3B82F6);
-const _textPrimary = Color(0xFFFAFAFA);
-const _textSecondary = Color(0xFFA1A1AA);
-const _textTertiary = Color(0xFF71717A);
-const _radius = 12.0;
 
 class StoreReleaseBody extends HookConsumerWidget {
   const StoreReleaseBody({super.key});
@@ -37,7 +28,7 @@ class StoreReleaseBody extends HookConsumerWidget {
               context: context,
               isScrollControlled: true,
               useSafeArea: true,
-              backgroundColor: const Color(0xFF09090B),
+              backgroundColor: AppColors.of(context).scaffold,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
@@ -54,9 +45,9 @@ class StoreReleaseBody extends HookConsumerWidget {
           },
         );
       },
-      loading: () => const Center(
+      loading: () => Center(
         child: CircularProgressIndicator.adaptive(
-          valueColor: AlwaysStoppedAnimation(_accentBlue),
+          valueColor: AlwaysStoppedAnimation(AppColors.of(context).accent),
         ),
       ),
       error: asyncErrorWidget,
@@ -64,9 +55,7 @@ class StoreReleaseBody extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // ASC Credentials Setup View
-// ═══════════════════════════════════════════════════════════════════
 class _AscSetupView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -94,25 +83,27 @@ class _AscSetupView extends HookConsumerWidget {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: _accentBlue.withValues(alpha: 0.1),
+                    color: AppColors.of(context).accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: _accentBlue.withValues(alpha: 0.2),
+                      color: AppColors.of(
+                        context,
+                      ).accent.withValues(alpha: 0.2),
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.rocket_launch_outlined,
                     size: 32,
-                    color: _accentBlue,
+                    color: AppColors.of(context).accent,
                   ),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   releaseT.setupTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: _textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -120,9 +111,9 @@ class _AscSetupView extends HookConsumerWidget {
                 Text(
                   releaseT.setupDescription,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: _textSecondary,
+                    color: AppColors.of(context).textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -132,9 +123,9 @@ class _AscSetupView extends HookConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: _cardBg,
-                    borderRadius: BorderRadius.circular(_radius),
-                    border: Border.all(color: _cardBorder),
+                    color: AppColors.of(context).surface,
+                    borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(color: AppColors.of(context).border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -190,14 +181,14 @@ class _AscSetupView extends HookConsumerWidget {
                                 ? Icons.expand_less
                                 : Icons.help_outline,
                             size: 16,
-                            color: _accentBlue,
+                            color: AppColors.of(context).accent,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             releaseT.howToGetCredentials,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: _accentBlue,
+                              color: AppColors.of(context).accent,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -211,10 +202,14 @@ class _AscSetupView extends HookConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: _accentBlue.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(_radius),
+                      color: AppColors.of(
+                        context,
+                      ).accent.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12.0),
                       border: Border.all(
-                        color: _accentBlue.withValues(alpha: 0.15),
+                        color: AppColors.of(
+                          context,
+                        ).accent.withValues(alpha: 0.15),
                       ),
                     ),
                     child: Row(
@@ -223,7 +218,9 @@ class _AscSetupView extends HookConsumerWidget {
                         Icon(
                           Icons.info_outline,
                           size: 16,
-                          color: _accentBlue.withValues(alpha: 0.7),
+                          color: AppColors.of(
+                            context,
+                          ).accent.withValues(alpha: 0.7),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -231,7 +228,7 @@ class _AscSetupView extends HookConsumerWidget {
                             releaseT.credentialsHelp,
                             style: TextStyle(
                               fontSize: 13,
-                              color: _textSecondary,
+                              color: AppColors.of(context).textSecondary,
                               height: 1.5,
                             ),
                           ),
@@ -247,11 +244,11 @@ class _AscSetupView extends HookConsumerWidget {
                   height: 44,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _accentBlue,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.of(context).accent,
+                      foregroundColor: AppColors.of(context).textPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(_radius),
+                        borderRadius: BorderRadius.circular(12.0),
                       ),
                     ),
                     onPressed: isLoading.value
@@ -286,12 +283,12 @@ class _AscSetupView extends HookConsumerWidget {
                             }
                           },
                     child: isLoading.value
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.of(context).textPrimary,
                             ),
                           )
                         : Row(
@@ -313,9 +310,7 @@ class _AscSetupView extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // App Selection View
-// ═══════════════════════════════════════════════════════════════════
 class _AppSelectionView extends ConsumerWidget {
   const _AppSelectionView({required this.onAppSelected});
 
@@ -339,32 +334,32 @@ class _AppSelectionView extends ConsumerWidget {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      color: _cardBg,
+                      color: AppColors.of(context).surface,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _cardBorder),
+                      border: Border.all(color: AppColors.of(context).border),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.apps_outlined,
                       size: 32,
-                      color: _textTertiary,
+                      color: AppColors.of(context).textTertiary,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     releaseT.noApps,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: _textPrimary,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     releaseT.noAppsHint,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: _textSecondary,
+                      color: AppColors.of(context).textSecondary,
                     ),
                   ),
                 ],
@@ -387,22 +382,24 @@ class _AppSelectionView extends ConsumerWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: _accentBlue.withValues(alpha: 0.1),
+                          color: AppColors.of(
+                            context,
+                          ).accent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.rocket_launch,
                           size: 16,
-                          color: _accentBlue,
+                          color: AppColors.of(context).accent,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         releaseT.selectApp,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                     ],
@@ -414,31 +411,29 @@ class _AppSelectionView extends ConsumerWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       releaseT.selectAppHint,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: _textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ),
                 ),
                 // App list
                 Expanded(
-                  child: Scrollbar(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      itemCount: apps.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (_, index) {
-                        final app = apps[index];
-                        return _AppCard(
-                          app: app,
-                          onTap: () => onAppSelected(app),
-                        );
-                      },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
+                    itemCount: apps.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (_, index) {
+                      final app = apps[index];
+                      return _AppCard(
+                        app: app,
+                        onTap: () => onAppSelected(app),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -468,22 +463,24 @@ class _AppSelectionView extends ConsumerWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: _accentBlue.withValues(alpha: 0.1),
+                          color: AppColors.of(
+                            context,
+                          ).accent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.rocket_launch,
                           size: 16,
-                          color: _accentBlue,
+                          color: AppColors.of(context).accent,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         releaseT.selectApp,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                     ],
@@ -495,9 +492,9 @@ class _AppSelectionView extends ConsumerWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       releaseT.selectAppHint,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: _textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ),
@@ -511,10 +508,14 @@ class _AppSelectionView extends ConsumerWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: _accentBlue.withValues(alpha: 0.06),
+                      color: AppColors.of(
+                        context,
+                      ).accent.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _accentBlue.withValues(alpha: 0.12),
+                        color: AppColors.of(
+                          context,
+                        ).accent.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Row(
@@ -524,7 +525,9 @@ class _AppSelectionView extends ConsumerWidget {
                           height: 12,
                           child: CircularProgressIndicator(
                             strokeWidth: 1.5,
-                            color: _accentBlue.withValues(alpha: 0.6),
+                            color: AppColors.of(
+                              context,
+                            ).accent.withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -533,7 +536,7 @@ class _AppSelectionView extends ConsumerWidget {
                             releaseT.ascLoadingHint,
                             style: TextStyle(
                               fontSize: 12,
-                              color: _textSecondary,
+                              color: AppColors.of(context).textSecondary,
                             ),
                           ),
                         ),
@@ -568,9 +571,7 @@ class _AppSelectionView extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // App Card
-// ═══════════════════════════════════════════════════════════════════
 class _AppCard extends StatelessWidget {
   const _AppCard({required this.app, required this.onTap});
 
@@ -583,13 +584,13 @@ class _AppCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(12.0),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: _cardBg,
-            borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: _cardBorder),
+            color: AppColors.of(context).surface,
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(color: AppColors.of(context).border),
           ),
           child: Row(
             children: [
@@ -597,10 +598,14 @@ class _AppCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _accentBlue.withValues(alpha: 0.1),
+                  color: AppColors.of(context).accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.apps, size: 20, color: _accentBlue),
+                child: Icon(
+                  Icons.apps,
+                  size: 20,
+                  color: AppColors.of(context).accent,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -609,27 +614,27 @@ class _AppCard extends StatelessWidget {
                   children: [
                     Text(
                       app.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: _textPrimary,
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       app.bundleId,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: _textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: _textTertiary,
+                color: AppColors.of(context).textTertiary,
               ),
             ],
           ),
@@ -639,9 +644,7 @@ class _AppCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Submission Wizard Page (full page with Scaffold)
-// ═══════════════════════════════════════════════════════════════════
 class _SubmissionWizardPage extends HookConsumerWidget {
   const _SubmissionWizardPage({
     required this.app,
@@ -660,9 +663,9 @@ class _SubmissionWizardPage extends HookConsumerWidget {
         // Header
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: _cardBorder),
+              bottom: BorderSide(color: AppColors.of(context).border),
             ),
           ),
           child: Row(
@@ -674,14 +677,14 @@ class _SubmissionWizardPage extends HookConsumerWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: _cardBg,
+                    color: AppColors.of(context).surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _cardBorder),
+                    border: Border.all(color: AppColors.of(context).border),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.close,
                     size: 16,
-                    color: _textSecondary,
+                    color: AppColors.of(context).textSecondary,
                   ),
                 ),
               ),
@@ -690,13 +693,13 @@ class _SubmissionWizardPage extends HookConsumerWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _accentBlue.withValues(alpha: 0.1),
+                  color: AppColors.of(context).accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.apps,
                   size: 16,
-                  color: _accentBlue,
+                  color: AppColors.of(context).accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -707,17 +710,17 @@ class _SubmissionWizardPage extends HookConsumerWidget {
                   children: [
                     Text(
                       app.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
-                        color: _textPrimary,
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                     Text(
                       app.bundleId,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: _textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ],
@@ -753,15 +756,17 @@ class _SubmissionWizardPage extends HookConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircularProgressIndicator.adaptive(
-                      valueColor: AlwaysStoppedAnimation(_accentBlue),
+                    CircularProgressIndicator.adaptive(
+                      valueColor: AlwaysStoppedAnimation(
+                        AppColors.of(context).accent,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       t.storeRelease.ascLoadingHint,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: _textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -777,9 +782,7 @@ class _SubmissionWizardPage extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // In-Review View (locked state)
-// ═══════════════════════════════════════════════════════════════════
 class _InReviewView extends HookConsumerWidget {
   const _InReviewView({
     required this.app,
@@ -846,9 +849,9 @@ class _InReviewView extends HookConsumerWidget {
               Text(
                 statusDescription,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: _textSecondary,
+                  color: AppColors.of(context).textSecondary,
                   height: 1.5,
                 ),
               ),
@@ -863,24 +866,24 @@ class _InReviewView extends HookConsumerWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _cardBg,
+                    color: AppColors.of(context).surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _cardBorder),
+                    border: Border.all(color: AppColors.of(context).border),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.schedule,
                         size: 14,
-                        color: _textTertiary,
+                        color: AppColors.of(context).textTertiary,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         releaseT.estimatedWait,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: _textSecondary,
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ],
@@ -892,9 +895,9 @@ class _InReviewView extends HookConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _cardBg,
-                  borderRadius: BorderRadius.circular(_radius),
-                  border: Border.all(color: _cardBorder),
+                  color: AppColors.of(context).surface,
+                  borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(color: AppColors.of(context).border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -906,7 +909,7 @@ class _InReviewView extends HookConsumerWidget {
                     const SizedBox(height: 14),
                     Container(
                       height: 1,
-                      color: _cardBorder,
+                      color: AppColors.of(context).border,
                     ),
                     const SizedBox(height: 14),
                     _InfoRow(
@@ -934,7 +937,7 @@ class _InReviewView extends HookConsumerWidget {
                     const SizedBox(height: 14),
                     Container(
                       height: 1,
-                      color: _cardBorder,
+                      color: AppColors.of(context).border,
                     ),
                     const SizedBox(height: 14),
                     // Review status badge
@@ -962,9 +965,7 @@ class _InReviewView extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Pulsing Status Icon (animated ring for review state)
-// ═══════════════════════════════════════════════════════════════════
 class _PulsingStatusIcon extends HookWidget {
   const _PulsingStatusIcon({
     required this.icon,
@@ -1038,9 +1039,7 @@ class _PulsingStatusIcon extends HookWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Wizard Steps (the actual 3-step flow)
-// ═══════════════════════════════════════════════════════════════════
 class _WizardSteps extends HookConsumerWidget {
   const _WizardSteps({
     required this.app,
@@ -1193,9 +1192,9 @@ class _WizardSteps extends HookConsumerWidget {
 
           // ── Bottom Navigation ──
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: _cardBorder),
+                top: BorderSide(color: AppColors.of(context).border),
               ),
             ),
             child: SafeArea(
@@ -1211,10 +1210,14 @@ class _WizardSteps extends HookConsumerWidget {
                         height: 40,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: _textSecondary,
-                            side: const BorderSide(color: _cardBorder),
+                            foregroundColor: AppColors.of(
+                              context,
+                            ).textSecondary,
+                            side: BorderSide(
+                              color: AppColors.of(context).border,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(12.0),
                             ),
                           ),
                           onPressed: goBack,
@@ -1234,17 +1237,19 @@ class _WizardSteps extends HookConsumerWidget {
                         height: 40,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: canProceed ? _accentBlue : _cardBg,
+                            backgroundColor: canProceed
+                                ? AppColors.of(context).accent
+                                : AppColors.of(context).surface,
                             foregroundColor: canProceed
-                                ? Colors.white
-                                : _textTertiary,
+                                ? AppColors.of(context).textPrimary
+                                : AppColors.of(context).textTertiary,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(12.0),
                               side: BorderSide(
                                 color: canProceed
                                     ? Colors.transparent
-                                    : _cardBorder,
+                                    : AppColors.of(context).border,
                               ),
                             ),
                           ),
@@ -1264,23 +1269,23 @@ class _WizardSteps extends HookConsumerWidget {
                         height: 40,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _accentBlue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.of(context).accent,
+                            foregroundColor: AppColors.of(context).textPrimary,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(12.0),
                             ),
                           ),
                           onPressed: isSubmitting.value
                               ? null
                               : submitForReview,
                           child: isSubmitting.value
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: AppColors.of(context).textPrimary,
                                   ),
                                 )
                               : Row(
@@ -1308,9 +1313,7 @@ class _WizardSteps extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Wizard Step Bar
-// ═══════════════════════════════════════════════════════════════════
 class _WizardStepBar extends StatelessWidget {
   const _WizardStepBar({
     required this.currentStep,
@@ -1335,7 +1338,9 @@ class _WizardStepBar extends StatelessWidget {
               height: 2,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: isCompleted ? _accentBlue : _cardBorder,
+                color: isCompleted
+                    ? AppColors.of(context).accent
+                    : AppColors.of(context).border,
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -1355,19 +1360,29 @@ class _WizardStepBar extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isCompleted || isCurrent ? _accentBlue : _cardBg,
+                color: isCompleted || isCurrent
+                    ? AppColors.of(context).accent
+                    : AppColors.of(context).surface,
                 border: Border.all(
-                  color: isCompleted || isCurrent ? _accentBlue : _cardBorder,
+                  color: isCompleted || isCurrent
+                      ? AppColors.of(context).accent
+                      : AppColors.of(context).border,
                   width: 2,
                 ),
               ),
               child: Center(
                 child: isCompleted
-                    ? const Icon(Icons.check, size: 18, color: Colors.white)
+                    ? Icon(
+                        Icons.check,
+                        size: 18,
+                        color: AppColors.of(context).textPrimary,
+                      )
                     : Icon(
                         stepIcons[stepIndex],
                         size: 16,
-                        color: isCurrent ? Colors.white : _textTertiary,
+                        color: isCurrent
+                            ? AppColors.of(context).textPrimary
+                            : AppColors.of(context).textTertiary,
                       ),
               ),
             ),
@@ -1377,7 +1392,9 @@ class _WizardStepBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                color: isCompleted || isCurrent ? _accentBlue : _textTertiary,
+                color: isCompleted || isCurrent
+                    ? AppColors.of(context).accent
+                    : AppColors.of(context).textTertiary,
               ),
             ),
           ],
@@ -1387,9 +1404,7 @@ class _WizardStepBar extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Step 1: Build Picker
-// ═══════════════════════════════════════════════════════════════════
 class _BuildPickerStep extends HookConsumerWidget {
   const _BuildPickerStep({
     super.key,
@@ -1415,10 +1430,10 @@ class _BuildPickerStep extends HookConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
             releaseT.selectBuildTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: _textPrimary,
+              color: AppColors.of(context).textPrimary,
             ),
           ),
         ),
@@ -1426,9 +1441,9 @@ class _BuildPickerStep extends HookConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
             releaseT.selectBuildHint,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: _textSecondary,
+              color: AppColors.of(context).textSecondary,
             ),
           ),
         ),
@@ -1448,31 +1463,33 @@ class _BuildPickerStep extends HookConsumerWidget {
                         width: 72,
                         height: 72,
                         decoration: BoxDecoration(
-                          color: _cardBg,
+                          color: AppColors.of(context).surface,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _cardBorder),
+                          border: Border.all(
+                            color: AppColors.of(context).border,
+                          ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.cloud_upload_outlined,
                           size: 32,
-                          color: _textTertiary,
+                          color: AppColors.of(context).textTertiary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         releaseT.noBuilds,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         releaseT.noBuildsHint,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: _textSecondary,
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ],
@@ -1484,30 +1501,28 @@ class _BuildPickerStep extends HookConsumerWidget {
                 onRefresh: () async {
                   ref.invalidate(ascBuildsProvider(appId));
                 },
-                color: _accentBlue,
-                child: Scrollbar(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: validBuilds.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (_, index) {
-                      final build = validBuilds[index];
-                      final isSelected = selectedBuild?.id == build.id;
-                      final isAlreadySubmitted = build.isSubmitted;
-
-                      return _SelectableBuildCard(
-                        ascBuild: build,
-                        isSelected: isSelected,
-                        isDisabled: isAlreadySubmitted,
-                        onTap: isAlreadySubmitted
-                            ? null
-                            : () => onBuildSelected(build),
-                      );
-                    },
+                color: AppColors.of(context).accent,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
+                  itemCount: validBuilds.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, index) {
+                    final build = validBuilds[index];
+                    final isSelected = selectedBuild?.id == build.id;
+                    final isAlreadySubmitted = build.isSubmitted;
+
+                    return _SelectableBuildCard(
+                      ascBuild: build,
+                      isSelected: isSelected,
+                      isDisabled: isAlreadySubmitted,
+                      onTap: isAlreadySubmitted
+                          ? null
+                          : () => onBuildSelected(build),
+                    );
+                  },
                 ),
               );
             },
@@ -1546,9 +1561,7 @@ class _BuildPickerStep extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Selectable Build Card
-// ═══════════════════════════════════════════════════════════════════
 class _SelectableBuildCard extends StatelessWidget {
   const _SelectableBuildCard({
     required this.ascBuild,
@@ -1587,23 +1600,25 @@ class _SelectableBuildCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: isSelected ? _accentBlue : _cardBorder,
+          color: isSelected
+              ? AppColors.of(context).accent
+              : AppColors.of(context).border,
           width: isSelected ? 1.5 : 1,
         ),
         color: isSelected
-            ? _accentBlue.withValues(alpha: 0.06)
+            ? AppColors.of(context).accent.withValues(alpha: 0.06)
             : isDisabled
-            ? const Color(0xFF0F0F11)
-            : _cardBg,
+            ? AppColors.of(context).scaffold
+            : AppColors.of(context).surface,
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(12.0),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(_radius),
+          borderRadius: BorderRadius.circular(12.0),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -1617,19 +1632,21 @@ class _SelectableBuildCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isSelected
-                          ? _accentBlue
+                          ? AppColors.of(context).accent
                           : isDisabled
-                          ? _cardBorder
-                          : _textTertiary,
+                          ? AppColors.of(context).border
+                          : AppColors.of(context).textTertiary,
                       width: 2,
                     ),
-                    color: isSelected ? _accentBlue : Colors.transparent,
+                    color: isSelected
+                        ? AppColors.of(context).accent
+                        : Colors.transparent,
                   ),
                   child: isSelected
-                      ? const Icon(
+                      ? Icon(
                           Icons.check,
                           size: 14,
-                          color: Colors.white,
+                          color: AppColors.of(context).textPrimary,
                         )
                       : null,
                 ),
@@ -1646,24 +1663,26 @@ class _SelectableBuildCard extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: isDisabled ? _textTertiary : _textPrimary,
+                              color: isDisabled
+                                  ? AppColors.of(context).textTertiary
+                                  : AppColors.of(context).textPrimary,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             releaseT.buildNumber(number: ascBuild.buildNumber),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: _textSecondary,
+                              color: AppColors.of(context).textSecondary,
                             ),
                           ),
                           const Spacer(),
                           if (uploadedLabel.isNotEmpty)
                             Text(
                               uploadedLabel,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: _textTertiary,
+                                color: AppColors.of(context).textTertiary,
                               ),
                             ),
                         ],
@@ -1676,7 +1695,7 @@ class _SelectableBuildCard extends StatelessWidget {
                         children: [
                           _StatusChip(
                             label: ascBuild.platform,
-                            color: _textSecondary,
+                            color: AppColors.of(context).textSecondary,
                             icon: ascBuild.platform == 'IOS'
                                 ? Icons.phone_iphone
                                 : Icons.desktop_mac,
@@ -1713,9 +1732,7 @@ class _SelectableBuildCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Step 2: Release Details
-// ═══════════════════════════════════════════════════════════════════
 class _DetailsStep extends HookConsumerWidget {
   const _DetailsStep({
     super.key,
@@ -1742,18 +1759,18 @@ class _DetailsStep extends HookConsumerWidget {
             // Section header
             Text(
               releaseT.releaseDetailsTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: _textPrimary,
+                color: AppColors.of(context).textPrimary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               releaseT.releaseDetailsHint,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: _textSecondary,
+                color: AppColors.of(context).textSecondary,
               ),
             ),
             const SizedBox(height: 24),
@@ -1762,9 +1779,9 @@ class _DetailsStep extends HookConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _cardBg,
-                borderRadius: BorderRadius.circular(_radius),
-                border: Border.all(color: _cardBorder),
+                color: AppColors.of(context).surface,
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(color: AppColors.of(context).border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1806,9 +1823,9 @@ class _DetailsStep extends HookConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _cardBg,
-                borderRadius: BorderRadius.circular(_radius),
-                border: Border.all(color: _cardBorder),
+                color: AppColors.of(context).surface,
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(color: AppColors.of(context).border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1820,7 +1837,7 @@ class _DetailsStep extends HookConsumerWidget {
                     isPlaceholder: true,
                   ),
                   const SizedBox(height: 14),
-                  Container(height: 1, color: _cardBorder),
+                  Container(height: 1, color: AppColors.of(context).border),
                   const SizedBox(height: 14),
                   _InfoRow(
                     label: releaseT.keywordsLabel,
@@ -1837,9 +1854,7 @@ class _DetailsStep extends HookConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Step 3: Review & Submit
-// ═══════════════════════════════════════════════════════════════════
 class _ReviewStep extends StatelessWidget {
   const _ReviewStep({
     super.key,
@@ -1865,18 +1880,18 @@ class _ReviewStep extends StatelessWidget {
         children: [
           Text(
             releaseT.reviewTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: _textPrimary,
+              color: AppColors.of(context).textPrimary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             releaseT.reviewHint,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: _textSecondary,
+              color: AppColors.of(context).textSecondary,
             ),
           ),
           const SizedBox(height: 20),
@@ -1890,9 +1905,9 @@ class _ReviewStep extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _cardBg,
-              borderRadius: BorderRadius.circular(_radius),
-              border: Border.all(color: _cardBorder),
+              color: AppColors.of(context).surface,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: AppColors.of(context).border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1904,13 +1919,15 @@ class _ReviewStep extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: _accentBlue.withValues(alpha: 0.1),
+                        color: AppColors.of(
+                          context,
+                        ).accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.apps,
                         size: 20,
-                        color: _accentBlue,
+                        color: AppColors.of(context).accent,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1920,17 +1937,17 @@ class _ReviewStep extends StatelessWidget {
                         children: [
                           Text(
                             app.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
-                              color: _textPrimary,
+                              color: AppColors.of(context).textPrimary,
                             ),
                           ),
                           Text(
                             app.bundleId,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: _textSecondary,
+                              color: AppColors.of(context).textSecondary,
                             ),
                           ),
                         ],
@@ -1939,7 +1956,7 @@ class _ReviewStep extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Container(height: 1, color: _cardBorder),
+                Container(height: 1, color: AppColors.of(context).border),
                 const SizedBox(height: 14),
                 // Build info
                 _InfoRow(
@@ -1949,7 +1966,7 @@ class _ReviewStep extends StatelessWidget {
                       '(${releaseT.buildNumber(number: selectedBuild.buildNumber)})',
                 ),
                 const SizedBox(height: 14),
-                Container(height: 1, color: _cardBorder),
+                Container(height: 1, color: AppColors.of(context).border),
                 const SizedBox(height: 14),
                 // Version
                 _InfoRow(
@@ -1957,7 +1974,7 @@ class _ReviewStep extends StatelessWidget {
                   value: versionString,
                 ),
                 const SizedBox(height: 14),
-                Container(height: 1, color: _cardBorder),
+                Container(height: 1, color: AppColors.of(context).border),
                 const SizedBox(height: 14),
                 // What's New
                 _InfoRow(
@@ -1978,9 +1995,9 @@ class _ReviewStep extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: _cardBg,
-              borderRadius: BorderRadius.circular(_radius),
-              border: Border.all(color: _cardBorder),
+              color: AppColors.of(context).surface,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: AppColors.of(context).border),
             ),
             child: Center(
               child: Column(
@@ -1988,17 +2005,22 @@ class _ReviewStep extends StatelessWidget {
                   Icon(
                     Icons.photo_library_outlined,
                     size: 48,
-                    color: _textTertiary.withValues(alpha: 0.4),
+                    color: AppColors.of(
+                      context,
+                    ).textTertiary.withValues(alpha: 0.4),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     '',
-                    style: TextStyle(color: _textSecondary, fontSize: 14),
+                    style: TextStyle(
+                      color: AppColors.of(context).textSecondary,
+                      fontSize: 14,
+                    ),
                   ),
                   Text(
                     releaseT.noScreenshots,
-                    style: const TextStyle(
-                      color: _textSecondary,
+                    style: TextStyle(
+                      color: AppColors.of(context).textSecondary,
                       fontSize: 14,
                     ),
                   ),
@@ -2006,7 +2028,9 @@ class _ReviewStep extends StatelessWidget {
                   Text(
                     releaseT.screenshotsHint,
                     style: TextStyle(
-                      color: _textTertiary.withValues(alpha: 0.7),
+                      color: AppColors.of(
+                        context,
+                      ).textTertiary.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                     textAlign: TextAlign.center,
@@ -2021,10 +2045,10 @@ class _ReviewStep extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: _accentBlue.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(_radius),
+              color: AppColors.of(context).accent.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12.0),
               border: Border.all(
-                color: _accentBlue.withValues(alpha: 0.15),
+                color: AppColors.of(context).accent.withValues(alpha: 0.15),
               ),
             ),
             child: Row(
@@ -2033,7 +2057,7 @@ class _ReviewStep extends StatelessWidget {
                 Icon(
                   Icons.info_outline,
                   size: 18,
-                  color: _accentBlue.withValues(alpha: 0.7),
+                  color: AppColors.of(context).accent.withValues(alpha: 0.7),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2041,9 +2065,9 @@ class _ReviewStep extends StatelessWidget {
                     releaseT.submitForReviewConfirm(
                       version: versionString,
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: _textSecondary,
+                      color: AppColors.of(context).textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -2058,9 +2082,7 @@ class _ReviewStep extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Shared Widgets
-// ═══════════════════════════════════════════════════════════════════
 
 class _StyledTextField extends StatelessWidget {
   const _StyledTextField({
@@ -2086,10 +2108,10 @@ class _StyledTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: _textSecondary,
+            color: AppColors.of(context).textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -2097,29 +2119,32 @@ class _StyledTextField extends StatelessWidget {
           controller: controller,
           maxLines: maxLines,
           validator: validator,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: _textPrimary,
+            color: AppColors.of(context).textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
               fontSize: 14,
-              color: _textTertiary.withValues(alpha: 0.6),
+              color: AppColors.of(context).textTertiary.withValues(alpha: 0.6),
             ),
             filled: true,
-            fillColor: _inputBg,
+            fillColor: AppColors.of(context).surfaceSecondary,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _cardBorder),
+              borderSide: BorderSide(color: AppColors.of(context).border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _cardBorder),
+              borderSide: BorderSide(color: AppColors.of(context).border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _accentBlue, width: 1.5),
+              borderSide: BorderSide(
+                color: AppColors.of(context).accent,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -2136,7 +2161,11 @@ class _StyledTextField extends StatelessWidget {
                     padding: EdgeInsets.only(
                       bottom: maxLines > 1 ? (maxLines - 1) * 20.0 : 0,
                     ),
-                    child: Icon(icon, size: 18, color: _textTertiary),
+                    child: Icon(
+                      icon,
+                      size: 18,
+                      color: AppColors.of(context).textTertiary,
+                    ),
                   )
                 : null,
           ),
@@ -2156,14 +2185,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: _accentBlue),
+        Icon(icon, size: 16, color: AppColors.of(context).accent),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: _accentBlue,
+            color: AppColors.of(context).accent,
           ),
         ),
       ],
@@ -2189,10 +2218,10 @@ class _InfoRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: _textTertiary,
+            color: AppColors.of(context).textTertiary,
             letterSpacing: 0.5,
           ),
         ),
@@ -2202,8 +2231,8 @@ class _InfoRow extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             color: isPlaceholder
-                ? _textTertiary.withValues(alpha: 0.6)
-                : _textPrimary,
+                ? AppColors.of(context).textTertiary.withValues(alpha: 0.6)
+                : AppColors.of(context).textPrimary,
             fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
           ),
         ),
@@ -2253,9 +2282,7 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // App Store State Helpers
-// ═══════════════════════════════════════════════════════════════════
 String _appStoreStateLabel(dynamic releaseT, String state) {
   return switch (state) {
     'WAITING_FOR_REVIEW' => releaseT.waitingForReview,
@@ -2273,7 +2300,7 @@ String _appStoreStateLabel(dynamic releaseT, String state) {
 Color _appStoreStateColor(String state) {
   return switch (state) {
     'WAITING_FOR_REVIEW' || 'IN_REVIEW' => Colors.orange,
-    'PENDING_DEVELOPER_RELEASE' => _accentBlue,
+    'PENDING_DEVELOPER_RELEASE' => const Color(0xFF3B82F6),
     'READY_FOR_DISTRIBUTION' || 'READY_FOR_SALE' => Colors.green,
     'DEVELOPER_REJECTED' || 'REJECTED' => Colors.red,
     'PREPARE_FOR_SUBMISSION' => Colors.grey,

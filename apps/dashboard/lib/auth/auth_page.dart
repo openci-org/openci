@@ -1,23 +1,41 @@
 
 import 'dart:convert';
+import 'package:dashboard/theme/app_colors.dart';
+
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:cloud_functions/cloud_functions.dart';
+
 import 'package:dashboard/auth/auth_provider.dart';
+
 import 'package:dashboard/firebase/dart_function_urls.dart';
+
 import 'package:dashboard/firebase/firebase_config_provider.dart';
+
 import 'package:dashboard/firebase/firestore_paths.dart';
+
 import 'package:dashboard/firebase/plist_parser.dart';
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:file_picker/file_picker.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 
+
 import 'package:flutter/gestures.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:url_launcher/url_launcher.dart';
+
 
 void _processInvitations() {
   FirebaseFunctions.instance
@@ -53,7 +71,7 @@ class AuthPage extends HookConsumerWidget {
     final configSnapshot = useFuture(configFuture);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppColors.of(context).scaffold,
       body: Stack(
         children: [
           Center(
@@ -91,13 +109,13 @@ class AuthPage extends HookConsumerWidget {
                                 ),
                               ],
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Text(
                                 'CI',
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: AppColors.of(context).textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -111,7 +129,7 @@ class AuthPage extends HookConsumerWidget {
                                 .headlineSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: AppColors.of(context).textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                           ),
@@ -120,7 +138,7 @@ class AuthPage extends HookConsumerWidget {
                             'Sign in to your account',
                             style:
                                 Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.5),
+                                      color: AppColors.of(context).textSecondary,
                                     ),
                           ),
 
@@ -169,10 +187,10 @@ class AuthPage extends HookConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF141414),
+                              color: AppColors.of(context).surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
+                                color: AppColors.of(context).border,
                               ),
                             ),
                             child: Column(
@@ -187,7 +205,7 @@ class AuthPage extends HookConsumerWidget {
                                       Icons.email_outlined,
                                       size: 18,
                                       color:
-                                          Colors.white.withValues(alpha: 0.4),
+                                          AppColors.of(context).textTertiary,
                                     ),
                                   ),
                                   keyboardType: TextInputType.emailAddress,
@@ -208,7 +226,7 @@ class AuthPage extends HookConsumerWidget {
                                       Icons.lock_outline,
                                       size: 18,
                                       color:
-                                          Colors.white.withValues(alpha: 0.4),
+                                          AppColors.of(context).textTertiary,
                                     ),
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -216,7 +234,7 @@ class AuthPage extends HookConsumerWidget {
                                             ? Icons.visibility_off_outlined
                                             : Icons.visibility_outlined,
                                         size: 18,
-                                        color: Colors.white
+                                        color: AppColors.of(context).textPrimary
                                             .withValues(alpha: 0.4),
                                       ),
                                       onPressed: () {
@@ -256,7 +274,7 @@ class AuthPage extends HookConsumerWidget {
                                               .textTheme
                                               .bodySmall
                                               ?.copyWith(
-                                                color: Colors.white
+                                                color: AppColors.of(context).textPrimary
                                                     .withValues(alpha: 0.5),
                                               ),
                                           children: [
@@ -412,7 +430,7 @@ class AuthPage extends HookConsumerWidget {
                             style:
                                 Theme.of(context).textTheme.labelSmall?.copyWith(
                                       color:
-                                          Colors.white.withValues(alpha: 0.3),
+                                          AppColors.of(context).textTertiary,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 0.5,
                                     ),

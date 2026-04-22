@@ -1,14 +1,25 @@
 import 'dart:ui';
+import 'package:dashboard/theme/app_colors.dart';
+
 
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
+
 import 'package:dashboard/workflow/workflow.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:re_editor/re_editor.dart';
+
 import 'package:re_highlight/languages/bash.dart';
+
 import 'package:re_highlight/styles/monokai.dart';
+
 
 class WorkflowEditorPage extends ConsumerWidget {
   const WorkflowEditorPage({
@@ -642,8 +653,8 @@ class EditStepBottomSheet extends HookConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                           style: CodeEditorStyle(
                             fontSize: 14,
-                            backgroundColor: const Color(0xFF1E1E1E),
-                            textColor: Colors.white,
+                            backgroundColor: AppColors.of(context).surfaceSecondary,
+                            textColor: AppColors.of(context).textPrimary,
                             codeTheme: CodeHighlightTheme(
                               languages: {
                                 'bash': CodeHighlightThemeMode(mode: langBash),

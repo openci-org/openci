@@ -1,6 +1,8 @@
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
+import 'package:dashboard/theme/app_colors.dart';
+import 'package:dashboard/theme/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,7 @@ class Root extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(deepLinkListenerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -19,39 +22,45 @@ class Root extends ConsumerWidget {
       supportedLocales: AppLocaleUtils.supportedLocales,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
-      theme: _buildTheme(),
+      themeMode: themeMode,
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
     );
   }
 }
 
-ThemeData _buildTheme() {
+ThemeData _buildTheme(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  final colors = isDark ? AppColors.dark : AppColors.light;
+
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF3B82F6),
-    brightness: Brightness.dark,
+    seedColor: colors.accent,
+    brightness: brightness,
   );
 
-  final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
+  final baseTextTheme = isDark
+      ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
+      : GoogleFonts.interTextTheme(ThemeData.light().textTheme);
 
   return ThemeData(
+    extensions: [colors],
     colorScheme: colorScheme,
-    brightness: Brightness.dark,
+    brightness: brightness,
     useMaterial3: true,
-    scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+    scaffoldBackgroundColor: colors.scaffold,
     textTheme: baseTextTheme,
     cardTheme: CardThemeData(
       elevation: 0,
-      color: const Color(0xFF141414),
+      color: colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        side: BorderSide(color: colors.border),
       ),
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
     ),
     dividerTheme: DividerThemeData(
-      color: Colors.white.withValues(alpha: 0.08),
+      color: colors.divider,
       space: 1,
       thickness: 1,
     ),
@@ -59,54 +68,46 @@ ThemeData _buildTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: colors.scaffold,
       surfaceTintColor: Colors.transparent,
       titleTextStyle: baseTextTheme.titleMedium?.copyWith(
         fontSize: 15,
         fontWeight: FontWeight.w600,
-        color: Colors.white,
+        color: colors.textPrimary,
         letterSpacing: -0.2,
       ),
+      iconTheme: IconThemeData(color: colors.textPrimary),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF141414),
+      fillColor: colors.surface,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 14,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        borderSide: BorderSide(color: colors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        borderSide: BorderSide(color: colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: colorScheme.primary,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: colors.borderFocused, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: colorScheme.error,
-        ),
+        borderSide: BorderSide(color: colors.error),
       ),
       labelStyle: TextStyle(
-        color: Colors.white.withValues(alpha: 0.5),
+        color: colors.textSecondary,
         fontWeight: FontWeight.w500,
         fontSize: 14,
       ),
       hintStyle: TextStyle(
-        color: Colors.white.withValues(alpha: 0.3),
+        color: colors.textTertiary,
         fontSize: 14,
       ),
     ),
@@ -144,9 +145,7 @@ ThemeData _buildTheme() {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
+        side: BorderSide(color: colors.border),
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -176,16 +175,16 @@ ThemeData _buildTheme() {
       unselectedLabelStyle: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: Colors.white.withValues(alpha: 0.45),
+        color: colors.textTertiary,
       ),
       indicatorSize: TabBarIndicatorSize.tab,
       dividerColor: Colors.transparent,
       indicatorColor: Colors.transparent,
-      labelColor: Colors.white,
-      overlayColor: WidgetStatePropertyAll(Colors.transparent),
+      labelColor: colors.textPrimary,
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
     ),
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: isDark ? colors.surface : colors.scaffold,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -193,37 +192,31 @@ ThemeData _buildTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: colors.surfaceSecondary,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: colors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        side: BorderSide(color: colors.border),
       ),
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: const Color(0xFF1A1A1A),
+      color: colors.surfaceHover,
       elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: 0.5),
+      shadowColor: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        side: BorderSide(color: colors.border),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFF1A1A1A),
-      side: BorderSide(
-        color: Colors.white.withValues(alpha: 0.08),
-      ),
+      backgroundColor: colors.surfaceHover,
+      side: BorderSide(color: colors.border),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),

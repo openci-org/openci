@@ -1,14 +1,26 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/build_logs/synced_spinner.dart';
+
 import 'package:dashboard/extensions/date_time_extensions.dart';
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:go_router/go_router.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:skeletonizer/skeletonizer.dart';
+
 
 // ── Curated status palette ──────────────────────────────────────────────────
 
@@ -19,8 +31,8 @@ Color _statusColor(String status) => switch (status) {
   'queued' => const Color(0xFF6E40C9),
   'cancelled' => const Color(0xFFBF8700),
   'waiting' => const Color(0xFFBF8700),
-  'skipped' => Colors.white.withValues(alpha: 0.35),
-  _ => Colors.white.withValues(alpha: 0.35),
+  'skipped' => const Color(0xFFA1A1AA),
+  _ => const Color(0xFFA1A1AA),
 };
 
 IconData _statusIcon(String status) => switch (status) {
@@ -63,16 +75,16 @@ class LogsBody extends HookConsumerWidget {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: AppColors.of(context).borderSubtle,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                     ),
                   ),
                   child: Icon(
                     Icons.inbox_outlined,
                     size: 32,
-                    color: Colors.white.withValues(alpha: 0.25),
+                    color: AppColors.of(context).textTertiary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -81,7 +93,7 @@ class LogsBody extends HookConsumerWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: AppColors.of(context).textSecondary,
                   ),
                 ),
               ],
@@ -146,10 +158,10 @@ class BuildJobCard extends HookConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.of(context).border,
         ),
       ),
       child: Material(
@@ -159,8 +171,8 @@ class BuildJobCard extends HookConsumerWidget {
             context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
           },
           borderRadius: BorderRadius.circular(12),
-          hoverColor: Colors.white.withValues(alpha: 0.03),
-          splashColor: Colors.white.withValues(alpha: 0.05),
+          hoverColor: AppColors.of(context).borderSubtle,
+          splashColor: AppColors.of(context).borderSubtle,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -181,10 +193,10 @@ class BuildJobCard extends HookConsumerWidget {
                                     : title;
                                 return Text(
                                   displayTitle,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                                    color: AppColors.of(context).textPrimary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 );
@@ -209,7 +221,7 @@ class BuildJobCard extends HookConsumerWidget {
                             buildJob.createdAt.toTimeAgo(),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.4),
+                              color: AppColors.of(context).textTertiary,
                             ),
                           ),
                         ],
@@ -291,17 +303,17 @@ class BuildJobCard extends HookConsumerWidget {
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (_) => AlertDialog(
-                            backgroundColor: const Color(0xFF1A1A1A),
+                            backgroundColor: AppColors.of(context).surfaceHover,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: AppColors.of(context).border,
                               ),
                             ),
                             title: Text(
                               t.buildLogs.detail.cancelBuild,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: AppColors.of(context).textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -309,7 +321,7 @@ class BuildJobCard extends HookConsumerWidget {
                             content: Text(
                               t.buildLogs.detail.cancelConfirm,
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
+                                color: AppColors.of(context).textSecondary,
                                 fontSize: 14,
                               ),
                             ),
@@ -319,7 +331,7 @@ class BuildJobCard extends HookConsumerWidget {
                                 child: Text(
                                   t.buildLogs.detail.cancelNo,
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.6),
+                                    color: AppColors.of(context).textSecondary,
                                   ),
                                 ),
                               ),
@@ -467,10 +479,10 @@ class WorkflowRunCard extends HookConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.of(context).border,
         ),
       ),
       child: Column(
@@ -488,10 +500,10 @@ class WorkflowRunCard extends HookConsumerWidget {
                       child: workflowNameAsync.when(
                         data: (name) => Text(
                           name ?? '${mainJob.owner}/${mainJob.repo}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: AppColors.of(context).textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -512,7 +524,7 @@ class WorkflowRunCard extends HookConsumerWidget {
                       mainJob.createdAt.toTimeAgo(),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: AppColors.of(context).textTertiary,
                       ),
                     ),
                     const SizedBox(width: 2),
@@ -604,10 +616,10 @@ class WorkflowRunCard extends HookConsumerWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.02),
+                color: AppColors.of(context).borderSubtle,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: AppColors.of(context).divider,
                 ),
               ),
               child: _JobTree(jobs: _sortedJobs),
@@ -731,10 +743,10 @@ class _InfoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppColors.of(context).borderSubtle,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.of(context).border,
         ),
       ),
       child: Row(
@@ -744,7 +756,7 @@ class _InfoBadge extends StatelessWidget {
             IconTheme(
               data: IconThemeData(
                 size: 10,
-                color: Colors.white.withValues(alpha: 0.45),
+                color: AppColors.of(context).textTertiary,
               ),
               child: icon,
             ),
@@ -756,7 +768,7 @@ class _InfoBadge extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w500,
               fontFamily: 'monospace',
-              color: Colors.white.withValues(alpha: 0.55),
+              color: AppColors.of(context).textSecondary,
             ),
           ),
         ],
@@ -775,10 +787,10 @@ class _NeedsBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppColors.of(context).borderSubtle,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.of(context).border,
         ),
       ),
       child: Row(
@@ -787,7 +799,7 @@ class _NeedsBadge extends StatelessWidget {
           Icon(
             Icons.account_tree_outlined,
             size: 11,
-            color: Colors.white.withValues(alpha: 0.45),
+            color: AppColors.of(context).textTertiary,
           ),
           const SizedBox(width: 4),
           for (int i = 0; i < needs.length; i++) ...[
@@ -797,7 +809,7 @@ class _NeedsBadge extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 fontFamily: 'monospace',
-                color: Colors.white.withValues(alpha: 0.55),
+                color: AppColors.of(context).textSecondary,
               ),
             ),
             if (i < needs.length - 1)
@@ -806,7 +818,7 @@ class _NeedsBadge extends StatelessWidget {
                 child: Icon(
                   Icons.add,
                   size: 9,
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: AppColors.of(context).textTertiary,
                 ),
               ),
           ],
@@ -872,7 +884,7 @@ class _JobTree extends ConsumerWidget {
           Divider(
             height: 1,
             indent: 16 + (depth * 24.0) + 32,
-            color: Colors.white.withValues(alpha: 0.05),
+            color: AppColors.of(context).borderSubtle,
           ),
         );
       }
@@ -918,8 +930,8 @@ class _JobTreeRow extends ConsumerWidget {
           : (isLast
                 ? const BorderRadius.vertical(bottom: Radius.circular(10))
                 : BorderRadius.zero),
-      hoverColor: Colors.white.withValues(alpha: 0.03),
-      splashColor: Colors.white.withValues(alpha: 0.05),
+      hoverColor: AppColors.of(context).borderSubtle,
+      splashColor: AppColors.of(context).borderSubtle,
       onTap: () {
         context.push('/runs/${Uri.encodeComponent(job.id)}');
       },
@@ -937,7 +949,7 @@ class _JobTreeRow extends ConsumerWidget {
               Icon(
                 Icons.subdirectory_arrow_right_rounded,
                 size: 14,
-                color: Colors.white.withValues(alpha: 0.2),
+                color: AppColors.of(context).border,
               ),
               const SizedBox(width: 8),
             ],
@@ -957,7 +969,7 @@ class _JobTreeRow extends ConsumerWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1219,27 +1231,27 @@ class _MoreMenuButton extends StatelessWidget {
       icon: Icon(
         Icons.more_horiz_rounded,
         size: size,
-        color: Colors.white.withValues(alpha: 0.35),
+        color: AppColors.of(context).textTertiary,
       ),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       style: IconButton.styleFrom(
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      color: const Color(0xFF1A1A1A),
+      color: AppColors.of(context).surfaceHover,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: AppColors.of(context).border,
         ),
       ),
       onSelected: onSelected,
       itemBuilder: (_) => items.map((item) {
         final color = item.isDestructive
             ? const Color(0xFFEF4444)
-            : Colors.white.withValues(alpha: 0.8);
+            : AppColors.of(context).textPrimary;
         return PopupMenuItem<String>(
           value: item.value,
           height: 36,
