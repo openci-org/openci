@@ -1,24 +1,34 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/build_logs/synced_spinner.dart';
+
 import 'package:dashboard/build_logs/build_logs_provider.dart';
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 
 enum _ActionState { idle, loading, done }
 
 // ── ui.sh zinc-neutral palette ──────────────────────────────────────────────
-const _kBg = Color(0xFF09090B);
-const _kSurface = Color(0xFF141414);
-const _kMuted = Color(0xFF71717A);
-const _kText = Color(0xFFFAFAFA);
 
 class BuildLogsDetailPage extends HookConsumerWidget {
   const BuildLogsDetailPage({super.key, required this.buildJob});
@@ -39,8 +49,8 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       'queued' => const Color(0xFFBC8CFF),
       'cancelled' => const Color(0xFFD29922),
       'waiting' => const Color(0xFFD29922),
-      'skipped' => _kMuted,
-      _ => _kMuted,
+      'skipped' => AppColors.of(context).textTertiary,
+      _ => AppColors.of(context).textTertiary,
     };
 
     final statusIcon = switch (buildJob.status) {
@@ -69,26 +79,26 @@ class BuildLogsDetailPage extends HookConsumerWidget {
 
     return SyncedSpinnerScope(
       child: Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: AppColors.of(context).scaffold,
       appBar: AppBar(
-        backgroundColor: _kSurface,
+        backgroundColor: AppColors.of(context).surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
             size: 16,
-            color: Colors.white.withValues(alpha: 0.5),
+            color: AppColors.of(context).textSecondary,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         title: workflowNameAsync.when(
           data: (name) => Text(
             name ?? '${buildJob.owner}/${buildJob.repo}',
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 15,
-              color: _kText,
+              color: AppColors.of(context).textPrimary,
               letterSpacing: -0.3,
             ),
           ),
@@ -97,7 +107,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             height: 14,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.white.withValues(alpha: 0.3),
+              color: AppColors.of(context).textTertiary,
             ),
           ),
           error: asyncErrorWidget,
@@ -109,18 +119,18 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1A1A1A),
+                    backgroundColor: AppColors.of(context).surfaceHover,
                     surfaceTintColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: AppColors.of(context).border,
                       ),
                     ),
                     title: Text(
                       detailT.cancelBuild,
-                      style: const TextStyle(
-                        color: _kText,
+                      style: TextStyle(
+                        color: AppColors.of(context).textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -128,7 +138,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     content: Text(
                       detailT.cancelConfirm,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: AppColors.of(context).textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -138,7 +148,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                         child: Text(
                           detailT.cancelNo,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: AppColors.of(context).textSecondary,
                           ),
                         ),
                       ),
@@ -215,7 +225,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 1.5,
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: AppColors.of(context).textTertiary,
                   ),
                 ),
                 _ActionState.done => const Icon(
@@ -228,7 +238,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   Icons.replay_rounded,
                   key: const ValueKey('retry-icon'),
                   size: 18,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.of(context).textSecondary,
                 ),
               },
             ),
@@ -240,7 +250,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
           preferredSize: const Size.fromHeight(1),
           child: Container(
             height: 1,
-            color: Colors.white.withValues(alpha: 0.06),
+            color: AppColors.of(context).divider,
           ),
         ),
       ),
@@ -252,10 +262,10 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: _kSurface,
+              color: AppColors.of(context).surface,
               border: Border(
                 bottom: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: AppColors.of(context).divider,
                 ),
               ),
             ),
@@ -307,7 +317,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color: AppColors.of(context).textTertiary,
                       ),
                     ),
                   ],
@@ -339,7 +349,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                       _DetailGitChip(
                         icon: FontAwesomeIcons.codeCommit,
                         label: buildJob.commitSha!.substring(0, 7),
-                        color: _kMuted,
+                        color: AppColors.of(context).textTertiary,
                       ),
                   ],
                 ),
@@ -384,20 +394,20 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.04),
+                            color: AppColors.of(context).borderSubtle,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(
                             Icons.hourglass_empty_rounded,
                             size: 28,
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: AppColors.of(context).border,
                           ),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           detailT.noRuns,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: AppColors.of(context).textTertiary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -429,10 +439,10 @@ class _DetailGitChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppColors.of(context).borderSubtle,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.of(context).border,
         ),
       ),
       child: Row(
@@ -448,7 +458,7 @@ class _DetailGitChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontFamily: 'monospace',
-                color: Colors.white.withValues(alpha: 0.6),
+                color: AppColors.of(context).textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -521,14 +531,14 @@ class _DetailLogsView extends HookConsumerWidget {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 1.5,
-                    color: Colors.white.withValues(alpha: 0.25),
+                    color: AppColors.of(context).textTertiary,
                   ),
                 ),
                 const SizedBox(height: 14),
                 Text(
                   detailT.waitingForLogs,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.35),
+                    color: AppColors.of(context).textTertiary,
                     fontSize: 13,
                   ),
                 ),
@@ -548,10 +558,10 @@ class _DetailLogsView extends HookConsumerWidget {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: _kSurface,
+                    color: AppColors.of(context).surface,
                     border: Border(
                       bottom: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.06),
+                        color: AppColors.of(context).divider,
                       ),
                     ),
                   ),
@@ -560,7 +570,7 @@ class _DetailLogsView extends HookConsumerWidget {
                       Icon(
                         Icons.terminal_rounded,
                         size: 14,
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: AppColors.of(context).textTertiary,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -568,7 +578,7 @@ class _DetailLogsView extends HookConsumerWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontFamily: 'monospace',
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: AppColors.of(context).textTertiary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -579,7 +589,7 @@ class _DetailLogsView extends HookConsumerWidget {
                             : Icons.copy_all_rounded,
                         iconColor: copyDone.value
                             ? const Color(0xFF3FB950)
-                            : Colors.white.withValues(alpha: 0.4),
+                            : AppColors.of(context).textTertiary,
                         tooltip: detailT.copyAll,
                         onPressed: copyDone.value
                             ? null
@@ -639,7 +649,7 @@ class _DetailLogsView extends HookConsumerWidget {
                   width: 36,
                   height: 36,
                   child: Material(
-                    color: _kSurface,
+                    color: AppColors.of(context).surface,
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
@@ -654,13 +664,13 @@ class _DetailLogsView extends HookConsumerWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: AppColors.of(context).border,
                           ),
                         ),
                         child: Icon(
                           Icons.keyboard_double_arrow_down_rounded,
                           size: 18,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ),
@@ -672,7 +682,7 @@ class _DetailLogsView extends HookConsumerWidget {
       },
       loading: () => Center(
         child: CircularProgressIndicator(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: AppColors.of(context).border,
         ),
       ),
       error: (error, stack) => Center(
@@ -768,7 +778,7 @@ class _DetailLogLine extends HookWidget {
       'error' => const Color(0xFFF85149),
       'warning' => const Color(0xFFD29922),
       'success' => const Color(0xFF3FB950),
-      _ => Colors.white.withValues(alpha: 0.65),
+      _ => AppColors.of(context).textSecondary,
     };
 
     final levelIcon = switch (log.level) {
@@ -786,7 +796,7 @@ class _DetailLogLine extends HookWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _lineNumberWidget(),
+              _lineNumberWidget(context),
               const SizedBox(width: 12),
               _levelIconWidget(levelIcon, levelColor),
               const SizedBox(width: 8),
@@ -812,10 +822,10 @@ class _DetailLogLine extends HookWidget {
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.02),
+          color: AppColors.of(context).borderSubtle,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: Colors.white.withValues(
+            color: AppColors.of(context).textPrimary.withValues(
               alpha: isExpanded.value ? 0.1 : 0.06,
             ),
           ),
@@ -836,7 +846,7 @@ class _DetailLogLine extends HookWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _lineNumberWidget(),
+                      _lineNumberWidget(context),
                       const SizedBox(width: 12),
                       _levelIconWidget(levelIcon, levelColor),
                       const SizedBox(width: 8),
@@ -860,10 +870,10 @@ class _DetailLogLine extends HookWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.06),
+                          color: AppColors.of(context).divider,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: AppColors.of(context).border,
                           ),
                         ),
                         child: Row(
@@ -874,7 +884,7 @@ class _DetailLogLine extends HookWidget {
                                   ? Icons.unfold_less_rounded
                                   : Icons.unfold_more_rounded,
                               size: 13,
-                              color: Colors.white.withValues(alpha: 0.45),
+                              color: AppColors.of(context).textTertiary,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -884,7 +894,7 @@ class _DetailLogLine extends HookWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontFamily: 'monospace',
-                                color: Colors.white.withValues(alpha: 0.45),
+                                color: AppColors.of(context).textTertiary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -905,10 +915,10 @@ class _DetailLogLine extends HookWidget {
               secondChild: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: _kBg,
+                  color: AppColors.of(context).scaffold,
                   border: Border(
                     top: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                     ),
                   ),
                 ),
@@ -939,7 +949,7 @@ class _DetailLogLine extends HookWidget {
     );
   }
 
-  Widget _lineNumberWidget() {
+  Widget _lineNumberWidget(BuildContext context) {
     return SizedBox(
       width: 40,
       child: Text(
@@ -947,7 +957,7 @@ class _DetailLogLine extends HookWidget {
         style: TextStyle(
           fontSize: 12,
           fontFamily: 'monospace',
-          color: Colors.white.withValues(alpha: 0.15),
+          color: AppColors.of(context).border,
           height: 1.5,
         ),
         textAlign: TextAlign.right,
@@ -992,7 +1002,7 @@ class _HoverHighlightState extends State<_HoverHighlight> {
         duration: const Duration(milliseconds: 100),
         decoration: BoxDecoration(
           color: _hovering
-              ? Colors.white.withValues(alpha: 0.03)
+              ? AppColors.of(context).borderSubtle
               : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
         ),
@@ -1027,10 +1037,10 @@ class _FailureSummaryCard extends HookWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _kSurface,
+          color: AppColors.of(context).surface,
           border: Border(
             bottom: BorderSide(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: AppColors.of(context).divider,
             ),
           ),
         ),
@@ -1080,10 +1090,10 @@ class _FailureSummaryCard extends HookWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: _kSurface,
+        color: AppColors.of(context).surface,
         border: Border(
           bottom: BorderSide(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: AppColors.of(context).divider,
           ),
         ),
       ),
@@ -1114,7 +1124,7 @@ class _FailureSummaryCard extends HookWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                     if (model != null) ...[
@@ -1125,10 +1135,10 @@ class _FailureSummaryCard extends HookWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: AppColors.of(context).borderSubtle,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: AppColors.of(context).border,
                           ),
                         ),
                         child: Text(
@@ -1136,7 +1146,7 @@ class _FailureSummaryCard extends HookWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontFamily: 'monospace',
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: AppColors.of(context).textTertiary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1149,7 +1159,7 @@ class _FailureSummaryCard extends HookWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontFamily: 'monospace',
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: AppColors.of(context).textTertiary,
                         ),
                       ),
                     ],
@@ -1159,7 +1169,7 @@ class _FailureSummaryCard extends HookWidget {
                           ? Icons.expand_less_rounded
                           : Icons.expand_more_rounded,
                       size: 18,
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: AppColors.of(context).textTertiary,
                     ),
                   ],
                 ),
@@ -1217,41 +1227,41 @@ class _FailureSummaryCard extends HookWidget {
                             styleSheet: MarkdownStyleSheet(
                               p: TextStyle(
                                 fontSize: 13,
-                                color: Colors.white.withValues(alpha: 0.75),
+                                color: AppColors.of(context).textSecondary,
                                 height: 1.6,
                               ),
                               strong: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: AppColors.of(context).textPrimary,
                               ),
                               code: TextStyle(
                                 fontSize: 12,
                                 fontFamily: 'monospace',
                                 color: const Color(0xFF58A6FF),
                                 backgroundColor:
-                                    Colors.white.withValues(alpha: 0.06),
+                                    AppColors.of(context).divider,
                               ),
                               codeblockDecoration: BoxDecoration(
-                                color: _kBg,
+                                color: AppColors.of(context).scaffold,
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: AppColors.of(context).border,
                                 ),
                               ),
                               blockquote: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
+                                color: AppColors.of(context).textTertiary,
                                 fontStyle: FontStyle.italic,
                               ),
                               blockquoteDecoration: BoxDecoration(
                                 border: Border(
                                   left: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.1),
+                                    color: AppColors.of(context).border,
                                     width: 3,
                                   ),
                                 ),
                               ),
                               listBullet: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
+                                color: AppColors.of(context).textTertiary,
                                 fontSize: 13,
                               ),
                             ),

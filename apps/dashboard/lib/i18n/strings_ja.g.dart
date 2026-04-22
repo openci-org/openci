@@ -208,6 +208,12 @@ class _TranslationsSecretsJa implements TranslationsSecretsEn {
 	@override String get deletedSuccess => 'シークレットが削除されました';
 	@override String get unusedSecrets => '未使用のシークレット';
 	@override String get notUsedInWorkflows => 'ワークフローで使用されていません';
+	@override String get inputModeText => 'テキスト';
+	@override String get inputModeFile => 'ファイル';
+	@override String get uploadFile => 'ファイルをアップロード';
+	@override String fileSelected({required Object fileName}) => '${fileName} を選択中';
+	@override String get orUploadFile => 'クリックしてファイルを選択';
+	@override String get enterValueOrUpload => '値を入力するかファイルをアップロードしてください';
 }
 
 // Path: envVars
@@ -566,6 +572,9 @@ class _TranslationsWorkflowEditorJa implements TranslationsWorkflowEditorEn {
 	@override String get openInGitHub => 'GitHubで開く';
 	@override String committedToBranch({required Object branch}) => 'ワークフローファイルが ${branch} にコミットされました';
 	@override String get prCreatedSuccess => 'プルリクエストが作成されました';
+	@override String get addSteps => 'ステップを追加';
+	@override String get addJob => 'ジョブを追加';
+	@override String get parallel => '並列実行';
 }
 
 // Path: buildLogs.status
@@ -862,6 +871,9 @@ extension on TranslationsJa {
 			'workflow.editor.openInGitHub' => 'GitHubで開く',
 			'workflow.editor.committedToBranch' => ({required Object branch}) => 'ワークフローファイルが ${branch} にコミットされました',
 			'workflow.editor.prCreatedSuccess' => 'プルリクエストが作成されました',
+			'workflow.editor.addSteps' => 'ステップを追加',
+			'workflow.editor.addJob' => 'ジョブを追加',
+			'workflow.editor.parallel' => '並列実行',
 			'buildLogs.title' => ({required Object date}) => 'ビルドログ - ${date}',
 			'buildLogs.noJobs' => 'ビルドジョブが見つかりません',
 			'buildLogs.status.success' => '成功',
@@ -910,6 +922,12 @@ extension on TranslationsJa {
 			'secrets.deletedSuccess' => 'シークレットが削除されました',
 			'secrets.unusedSecrets' => '未使用のシークレット',
 			'secrets.notUsedInWorkflows' => 'ワークフローで使用されていません',
+			'secrets.inputModeText' => 'テキスト',
+			'secrets.inputModeFile' => 'ファイル',
+			'secrets.uploadFile' => 'ファイルをアップロード',
+			'secrets.fileSelected' => ({required Object fileName}) => '${fileName} を選択中',
+			'secrets.orUploadFile' => 'クリックしてファイルを選択',
+			'secrets.enterValueOrUpload' => '値を入力するかファイルをアップロードしてください',
 			'envVars.title' => '環境変数',
 			'envVars.noEnvVars' => '環境変数が見つかりません',
 			'envVars.noCustomEnvVars' => 'カスタム環境変数がありません',

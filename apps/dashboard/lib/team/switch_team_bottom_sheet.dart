@@ -1,10 +1,18 @@
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/users/user_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 
 class SwitchTeamBottomSheet extends HookConsumerWidget {
   const SwitchTeamBottomSheet({super.key});
@@ -26,10 +34,10 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
               padding: const EdgeInsets.only(left: 4, bottom: 12),
               child: Text(
                 teamT.selectTeam,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -37,10 +45,10 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
               data: (teams) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF141414),
+                    color: AppColors.of(context).surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: AppColors.of(context).border,
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -52,7 +60,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 1,
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.of(context).divider,
                           ),
                         _TeamItem(
                           name: teams[i].name,
@@ -105,8 +113,8 @@ class _TeamItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      hoverColor: Colors.white.withValues(alpha: 0.03),
-      splashColor: Colors.white.withValues(alpha: 0.05),
+      hoverColor: AppColors.of(context).borderSubtle,
+      splashColor: AppColors.of(context).borderSubtle,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
@@ -116,8 +124,8 @@ class _TeamItem extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
-                    : const Color(0xFF252525),
+                    ? AppColors.of(context).accent.withValues(alpha: 0.15)
+                    : AppColors.of(context).surfaceTertiary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
@@ -127,8 +135,8 @@ class _TeamItem extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: isSelected
-                        ? const Color(0xFF3B82F6)
-                        : Colors.white.withValues(alpha: 0.6),
+                        ? AppColors.of(context).accent
+                        : AppColors.of(context).textSecondary,
                   ),
                 ),
               ),
@@ -141,17 +149,17 @@ class _TeamItem extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color:
-                      isSelected ? const Color(0xFF3B82F6) : Colors.white,
+                      isSelected ? AppColors.of(context).accent : AppColors.of(context).textPrimary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             if (isSelected)
-              const Icon(
+              Icon(
                 Icons.check_rounded,
                 size: 18,
-                color: Color(0xFF3B82F6),
+                color: AppColors.of(context).accent,
               ),
           ],
         ),

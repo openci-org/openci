@@ -1,22 +1,23 @@
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/users/user_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:skeletonizer/skeletonizer.dart';
 
-// ── Design Tokens (ui.sh) ──
-const _cardBg = Color(0xFF18181B);
-const _cardBorder = Color(0xFF27272A);
-const _inputBg = Color(0xFF1C1C1E);
-const _accentBlue = Color(0xFF3B82F6);
-const _textPrimary = Color(0xFFFAFAFA);
-const _textSecondary = Color(0xFFA1A1AA);
-const _textTertiary = Color(0xFF71717A);
-const _radius = 12.0;
+
 
 class SelectRepositoryBottomSheet extends HookConsumerWidget {
   const SelectRepositoryBottomSheet({super.key});
@@ -41,13 +42,13 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: _accentBlue.withValues(alpha: 0.1),
+                    color: AppColors.of(context).accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.folder_outlined,
                     size: 16,
-                    color: _accentBlue,
+                    color: AppColors.of(context).accent,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -57,17 +58,17 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                     children: [
                       Text(
                         wfT.selectRepository,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                       Text(
                         wfT.selectRepositoryHint,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: _textSecondary,
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ],
@@ -76,9 +77,9 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
               ],
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(color: _cardBorder, height: 16),
+            child: Divider(color: AppColors.of(context).border, height: 16),
           ),
 
           // ── Search ──
@@ -87,42 +88,42 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
             child: TextField(
               controller: searchController,
               autofocus: true,
-              style: const TextStyle(fontSize: 14, color: _textPrimary),
+              style: TextStyle(fontSize: 14, color: AppColors.of(context).textPrimary),
               decoration: InputDecoration(
                 hintText: wfT.searchRepositories,
                 hintStyle: TextStyle(
                   fontSize: 14,
-                  color: _textTertiary.withValues(alpha: 0.6),
+                  color: AppColors.of(context).textTertiary.withValues(alpha: 0.6),
                 ),
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.search,
                   size: 18,
-                  color: _textTertiary,
+                  color: AppColors.of(context).textTertiary,
                 ),
                 suffixIcon: searchText.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.clear,
                           size: 16,
-                          color: _textTertiary,
+                          color: AppColors.of(context).textTertiary,
                         ),
                         onPressed: () => searchController.clear(),
                       )
                     : null,
                 filled: true,
-                fillColor: _inputBg,
+                fillColor: AppColors.of(context).surfaceSecondary,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: _cardBorder),
+                  borderSide: BorderSide(color: AppColors.of(context).border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: _cardBorder),
+                  borderSide: BorderSide(color: AppColors.of(context).border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(
-                    color: _accentBlue,
+                  borderSide: BorderSide(
+                    color: AppColors.of(context).accent,
                     width: 1.5,
                   ),
                 ),
@@ -150,23 +151,23 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: _cardBg,
+                              color: AppColors.of(context).surface,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: _cardBorder),
+                              border: Border.all(color: AppColors.of(context).border),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.folder_off_outlined,
                               size: 24,
-                              color: _textTertiary,
+                              color: AppColors.of(context).textTertiary,
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             wfT.noRepositories,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: _textSecondary,
+                              color: AppColors.of(context).textSecondary,
                               height: 1.5,
                             ),
                           ),
@@ -195,14 +196,14 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                           Icon(
                             Icons.search_off,
                             size: 40,
-                            color: _textTertiary.withValues(alpha: 0.5),
+                            color: AppColors.of(context).textTertiary.withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             wfT.noMatchingRepositories(query: query),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: _textSecondary,
+                              color: AppColors.of(context).textSecondary,
                             ),
                           ),
                         ],
@@ -211,8 +212,7 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                   );
                 }
 
-                return Scrollbar(
-                  child: ListView.separated(
+                return ListView.separated(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
@@ -236,8 +236,7 @@ class SelectRepositoryBottomSheet extends HookConsumerWidget {
                         },
                       );
                     },
-                  ),
-                );
+                  );
               },
               error: asyncErrorWidget,
               loading: () => Skeletonizer(
@@ -280,20 +279,20 @@ class _RepoTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(12.0),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: _cardBg,
-            borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: _cardBorder),
+            color: AppColors.of(context).surface,
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(color: AppColors.of(context).border),
           ),
           child: Row(
             children: [
               FaIcon(
                 isPrivate ? FontAwesomeIcons.lock : FontAwesomeIcons.globe,
                 size: 14,
-                color: isPrivate ? Colors.amber : _textTertiary,
+                color: isPrivate ? Colors.amber : AppColors.of(context).textTertiary,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -302,27 +301,27 @@ class _RepoTile extends StatelessWidget {
                   children: [
                     Text(
                       fullName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: _textPrimary,
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       t.workflow.defaultBranch(branch: defaultBranch),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: _textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: _textTertiary,
+                color: AppColors.of(context).textTertiary,
               ),
             ],
           ),

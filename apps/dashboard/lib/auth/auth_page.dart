@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,10 +8,10 @@ import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -53,7 +52,7 @@ class AuthPage extends HookConsumerWidget {
     final configSnapshot = useFuture(configFuture);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppColors.of(context).scaffold,
       body: Stack(
         children: [
           Center(
@@ -84,20 +83,21 @@ class AuthPage extends HookConsumerWidget {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.25),
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.25,
+                                  ),
                                   blurRadius: 20,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Text(
                                 'CI',
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: AppColors.of(context).textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -106,22 +106,20 @@ class AuthPage extends HookConsumerWidget {
                           const SizedBox(height: 20),
                           Text(
                             'OpenCI',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: AppColors.of(context).textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Sign in to your account',
-                            style:
-                                Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.5),
-                                    ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.of(context).textSecondary,
+                                ),
                           ),
 
                           // ── Self-hosted config indicator ──
@@ -145,8 +143,7 @@ class AuthPage extends HookConsumerWidget {
                                   Icon(
                                     Icons.check_circle_outline,
                                     size: 13,
-                                    color:
-                                        Colors.green.withValues(alpha: 0.8),
+                                    color: Colors.green.withValues(alpha: 0.8),
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
@@ -154,8 +151,9 @@ class AuthPage extends HookConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color:
-                                          Colors.green.withValues(alpha: 0.8),
+                                      color: Colors.green.withValues(
+                                        alpha: 0.8,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -169,10 +167,10 @@ class AuthPage extends HookConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF141414),
+                              color: AppColors.of(context).surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
+                                color: AppColors.of(context).border,
                               ),
                             ),
                             child: Column(
@@ -186,8 +184,7 @@ class AuthPage extends HookConsumerWidget {
                                     prefixIcon: Icon(
                                       Icons.email_outlined,
                                       size: 18,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.4),
+                                      color: AppColors.of(context).textTertiary,
                                     ),
                                   ),
                                   keyboardType: TextInputType.emailAddress,
@@ -207,8 +204,7 @@ class AuthPage extends HookConsumerWidget {
                                     prefixIcon: Icon(
                                       Icons.lock_outline,
                                       size: 18,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.4),
+                                      color: AppColors.of(context).textTertiary,
                                     ),
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -216,8 +212,9 @@ class AuthPage extends HookConsumerWidget {
                                             ? Icons.visibility_off_outlined
                                             : Icons.visibility_outlined,
                                         size: 18,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.4),
+                                        color: AppColors.of(
+                                          context,
+                                        ).textPrimary.withValues(alpha: 0.4),
                                       ),
                                       onPressed: () {
                                         obscurePassword.value =
@@ -256,7 +253,8 @@ class AuthPage extends HookConsumerWidget {
                                               .textTheme
                                               .bodySmall
                                               ?.copyWith(
-                                                color: Colors.white
+                                                color: AppColors.of(context)
+                                                    .textPrimary
                                                     .withValues(alpha: 0.5),
                                               ),
                                           children: [
@@ -291,39 +289,36 @@ class AuthPage extends HookConsumerWidget {
                                 FilledButton(
                                   onPressed:
                                       (isAgreed.value && !isLoading.value)
-                                          ? () async {
-                                              if (formKey.currentState!
-                                                  .validate()) {
-                                                isLoading.value = true;
-                                                try {
-                                                  await FirebaseAuth.instance
-                                                      .signInWithEmailAndPassword(
-                                                    email:
-                                                        emailController.text,
+                                      ? () async {
+                                          if (formKey.currentState!
+                                              .validate()) {
+                                            isLoading.value = true;
+                                            try {
+                                              await FirebaseAuth.instance
+                                                  .signInWithEmailAndPassword(
+                                                    email: emailController.text,
                                                     password:
-                                                        passwordController
-                                                            .text,
+                                                        passwordController.text,
                                                   );
-                                                  ref.invalidate(
-                                                      authProvider);
-                                                  // Process pending invitations (fire-and-forget)
-                                                  _processInvitations();
-                                                } catch (e) {
-                                                  if (!context.mounted) {
-                                                    return;
-                                                  }
-                                                  debugPrint(e.toString());
-                                                  context.showSnackBarMessage(
-                                                    t.common.error(
-                                                      error: e.toString(),
-                                                    ),
-                                                  );
-                                                } finally {
-                                                  isLoading.value = false;
-                                                }
+                                              ref.invalidate(authProvider);
+                                              // Process pending invitations (fire-and-forget)
+                                              _processInvitations();
+                                            } catch (e) {
+                                              if (!context.mounted) {
+                                                return;
                                               }
+                                              debugPrint(e.toString());
+                                              context.showSnackBarMessage(
+                                                t.common.error(
+                                                  error: e.toString(),
+                                                ),
+                                              );
+                                            } finally {
+                                              isLoading.value = false;
                                             }
-                                          : null,
+                                          }
+                                        }
+                                      : null,
                                   child: Text(authT.login),
                                 ),
                                 const SizedBox(height: 10),
@@ -332,72 +327,66 @@ class AuthPage extends HookConsumerWidget {
                                 OutlinedButton(
                                   onPressed:
                                       (isAgreed.value && !isLoading.value)
-                                          ? () async {
-                                              if (formKey.currentState!
-                                                  .validate()) {
-                                                isLoading.value = true;
-                                                try {
-                                                  final credential =
-                                                      await FirebaseAuth
-                                                          .instance
-                                                          .createUserWithEmailAndPassword(
-                                                    email:
-                                                        emailController.text,
+                                      ? () async {
+                                          if (formKey.currentState!
+                                              .validate()) {
+                                            isLoading.value = true;
+                                            try {
+                                              final credential = await FirebaseAuth
+                                                  .instance
+                                                  .createUserWithEmailAndPassword(
+                                                    email: emailController.text,
                                                     password:
-                                                        passwordController
-                                                            .text,
+                                                        passwordController.text,
                                                   );
-                                                  final userId =
-                                                      credential.user!.uid;
-                                                  final db = firestore;
-                                                  final teamsRef = db
-                                                      .collection(
-                                                          teamsCollection)
-                                                      .doc();
-                                                  final teamId = teamsRef.id;
-                                                  final batch = db.batch();
-                                                  final now = DateTime.now()
-                                                      .toUtc()
-                                                      .toIso8601String();
-                                                  batch.set(teamsRef, {
-                                                    'id': teamId,
-                                                    'name': teamId,
-                                                    'members': [userId],
-                                                    'createdAt': now,
-                                                    'updatedAt': now,
-                                                  });
-                                                  final userRef = db
-                                                      .collection(
-                                                          usersCollection)
-                                                      .doc(userId);
-                                                  batch.set(userRef, {
-                                                    'id': userId,
-                                                    'selectedTeamId': teamId,
-                                                    'createdAt': now,
-                                                    'updatedAt': now,
-                                                  });
-                                                  await batch.commit();
-                                                  ref.invalidate(
-                                                      authProvider);
-                                                  _processInvitations();
-                                                } catch (e) {
-                                                  if (!context.mounted) {
-                                                    return;
-                                                  }
-                                                  debugPrint(e.toString());
-                                                  context.showSnackBarMessage(
-                                                    t.common.error(
-                                                      error: e.toString(),
-                                                    ),
-                                                  );
-                                                } finally {
-                                                  if (context.mounted) {
-                                                    isLoading.value = false;
-                                                  }
-                                                }
+                                              final userId =
+                                                  credential.user!.uid;
+                                              final db = firestore;
+                                              final teamsRef = db
+                                                  .collection(teamsCollection)
+                                                  .doc();
+                                              final teamId = teamsRef.id;
+                                              final batch = db.batch();
+                                              final now = DateTime.now()
+                                                  .toUtc()
+                                                  .toIso8601String();
+                                              batch.set(teamsRef, {
+                                                'id': teamId,
+                                                'name': teamId,
+                                                'members': [userId],
+                                                'createdAt': now,
+                                                'updatedAt': now,
+                                              });
+                                              final userRef = db
+                                                  .collection(usersCollection)
+                                                  .doc(userId);
+                                              batch.set(userRef, {
+                                                'id': userId,
+                                                'selectedTeamId': teamId,
+                                                'createdAt': now,
+                                                'updatedAt': now,
+                                              });
+                                              await batch.commit();
+                                              ref.invalidate(authProvider);
+                                              _processInvitations();
+                                            } catch (e) {
+                                              if (!context.mounted) {
+                                                return;
+                                              }
+                                              debugPrint(e.toString());
+                                              context.showSnackBarMessage(
+                                                t.common.error(
+                                                  error: e.toString(),
+                                                ),
+                                              );
+                                            } finally {
+                                              if (context.mounted) {
+                                                isLoading.value = false;
                                               }
                                             }
-                                          : null,
+                                          }
+                                        }
+                                      : null,
                                   child: Text(authT.createAccount),
                                 ),
                               ],
@@ -409,13 +398,12 @@ class AuthPage extends HookConsumerWidget {
                           // ── Tertiary actions ──
                           Text(
                             'Advanced',
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.3),
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.5,
-                                    ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: AppColors.of(context).textTertiary,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           TextButton(
@@ -484,21 +472,16 @@ class FirebaseFormSheet extends HookConsumerWidget {
       final clients = map['client'] as List<dynamic>?;
       if (projectInfo != null && clients != null && clients.isNotEmpty) {
         final client = clients[0] as Map<String, dynamic>;
-        final clientInfo =
-            client['client_info'] as Map<String, dynamic>? ?? {};
+        final clientInfo = client['client_info'] as Map<String, dynamic>? ?? {};
         final apiKeys = client['api_key'] as List<dynamic>? ?? [];
-        final appId =
-            clientInfo['mobilesdk_app_id'] as String? ?? '';
+        final appId = clientInfo['mobilesdk_app_id'] as String? ?? '';
         final apiKey = apiKeys.isNotEmpty
             ? (apiKeys[0] as Map<String, dynamic>)['current_key'] as String? ??
-                ''
+                  ''
             : '';
-        final projectId =
-            projectInfo['project_id'] as String? ?? '';
-        final storageBucket =
-            projectInfo['storage_bucket'] as String? ?? '';
-        final projectNumber =
-            projectInfo['project_number'] as String? ?? '';
+        final projectId = projectInfo['project_id'] as String? ?? '';
+        final storageBucket = projectInfo['storage_bucket'] as String? ?? '';
+        final projectNumber = projectInfo['project_number'] as String? ?? '';
 
         if (apiKey.isEmpty || appId.isEmpty || projectId.isEmpty) {
           return null;
@@ -660,8 +643,9 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color:
-                                  colorScheme.primary.withValues(alpha: 0.15),
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.15,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(

@@ -1,11 +1,20 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/firebase/dart_function_urls.dart';
+
 import 'package:cloud_functions/cloud_functions.dart';
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 
 part 'team_members_bottom_sheet.g.dart';
 
@@ -74,24 +83,24 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppColors.of(context).divider,
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Center(
                       child: Icon(
                         Icons.group_outlined,
                         size: 18,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     teamT.members,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const Spacer(),
@@ -102,10 +111,10 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.of(context).divider,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.1),
+                              color: AppColors.of(context).border,
                             ),
                           ),
                           child: Text(
@@ -113,7 +122,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: AppColors.of(context).textSecondary,
                             ),
                           ),
                         ),
@@ -124,7 +133,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
             ),
             Divider(
               height: 1,
-              color: Colors.white.withValues(alpha: 0.06),
+              color: AppColors.of(context).divider,
             ),
             // ── List ──
             Expanded(
@@ -167,10 +176,10 @@ class TeamMembersBottomSheet extends ConsumerWidget {
 
                       return Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF141414),
+                          color: AppColors.of(context).surface,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.of(context).divider,
                           ),
                         ),
                         child: Padding(
@@ -186,7 +195,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                 height: 38,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
-                                  color: const Color(0xFF252525),
+                                  color: AppColors.of(context).surfaceTertiary,
                                   image: member.photoURL != null
                                       ? DecorationImage(
                                           image:
@@ -204,7 +213,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.white.withValues(
+                                            color: AppColors.of(context).textPrimary.withValues(
                                               alpha: 0.7,
                                             ),
                                           ),
@@ -226,10 +235,10 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                             displayName ?? email,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
-                                              color: Colors.white,
+                                              color: AppColors.of(context).textPrimary,
                                             ),
                                           ),
                                         ),
@@ -242,13 +251,13 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF3B82F6)
+                                              color: AppColors.of(context).accent
                                                   .withValues(alpha: 0.15),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               border: Border.all(
                                                 color:
-                                                    const Color(0xFF3B82F6)
+                                                    AppColors.of(context).accent
                                                         .withValues(
                                                           alpha: 0.3,
                                                         ),
@@ -256,10 +265,10 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                             ),
                                             child: Text(
                                               teamT.you,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w600,
-                                                color: Color(0xFF3B82F6),
+                                                color: AppColors.of(context).accent,
                                               ),
                                             ),
                                           ),
@@ -272,7 +281,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                         email,
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white.withValues(
+                                          color: AppColors.of(context).textPrimary.withValues(
                                             alpha: 0.4,
                                           ),
                                         ),

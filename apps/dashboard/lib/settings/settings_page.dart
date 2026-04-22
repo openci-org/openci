@@ -1,21 +1,40 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/build_info.dart';
+
 import 'package:dashboard/firebase/firebase_config_provider.dart';
+
 import 'package:dashboard/i18n/strings.g.dart';
+
 import 'package:dashboard/notifications/notification_provider.dart';
+
 import 'package:dashboard/notifications/notification_settings_page.dart';
+
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
+
 import 'package:dashboard/revenue_cat/subscription_page.dart';
+
 import 'package:dashboard/settings/locale_provider.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:material_symbols_icons/symbols.dart';
+
 import 'package:package_info_plus/package_info_plus.dart';
+
 import 'package:swipeable_page_route/swipeable_page_route.dart';
+
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
@@ -128,7 +147,7 @@ class _SectionHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.3),
+          color: AppColors.of(context).textTertiary,
           letterSpacing: 0.8,
         ),
       ),
@@ -144,10 +163,10 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.of(context).border,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -167,7 +186,7 @@ class _GroupDivider extends StatelessWidget {
     return Divider(
       height: 1,
       thickness: 1,
-      color: Colors.white.withValues(alpha: 0.06),
+      color: AppColors.of(context).divider,
     );
   }
 }
@@ -189,8 +208,8 @@ class _SettingsItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      hoverColor: Colors.white.withValues(alpha: 0.03),
-      splashColor: Colors.white.withValues(alpha: 0.05),
+      hoverColor: AppColors.of(context).borderSubtle,
+      splashColor: AppColors.of(context).borderSubtle,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -199,14 +218,14 @@ class _SettingsItem extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: AppColors.of(context).divider,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Center(
                 child: Icon(
                   icon,
                   size: 18,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.of(context).textSecondary,
                 ),
               ),
             ),
@@ -217,10 +236,10 @@ class _SettingsItem extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -228,7 +247,7 @@ class _SettingsItem extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: AppColors.of(context).textTertiary,
                     ),
                   ),
                 ],
@@ -237,7 +256,7 @@ class _SettingsItem extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               size: 18,
-              color: Colors.white.withValues(alpha: 0.25),
+              color: AppColors.of(context).textTertiary,
             ),
           ],
         ),
@@ -272,8 +291,8 @@ class _AiFeaturesTile extends ConsumerWidget {
               );
             }
           },
-          hoverColor: Colors.white.withValues(alpha: 0.03),
-          splashColor: Colors.white.withValues(alpha: 0.05),
+          hoverColor: AppColors.of(context).borderSubtle,
+          splashColor: AppColors.of(context).borderSubtle,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -283,8 +302,8 @@ class _AiFeaturesTile extends ConsumerWidget {
                   height: 34,
                   decoration: BoxDecoration(
                     color: isEnabled
-                        ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
-                        : Colors.white.withValues(alpha: 0.06),
+                        ? AppColors.of(context).accent.withValues(alpha: 0.15)
+                        : AppColors.of(context).divider,
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Center(
@@ -292,8 +311,8 @@ class _AiFeaturesTile extends ConsumerWidget {
                       Icons.auto_awesome,
                       size: 18,
                       color: isEnabled
-                          ? const Color(0xFF3B82F6)
-                          : Colors.white.withValues(alpha: 0.5),
+                          ? AppColors.of(context).accent
+                          : AppColors.of(context).textSecondary,
                     ),
                   ),
                 ),
@@ -304,10 +323,10 @@ class _AiFeaturesTile extends ConsumerWidget {
                     children: [
                       Text(
                         aiT.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -315,7 +334,7 @@ class _AiFeaturesTile extends ConsumerWidget {
                         isEnabled ? aiT.enabled : aiT.disabled,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: AppColors.of(context).textTertiary,
                         ),
                       ),
                     ],
@@ -354,14 +373,14 @@ class _AiFeaturesTile extends ConsumerWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: AppColors.of(context).divider,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Center(
                 child: Icon(
                   Icons.auto_awesome,
                   size: 18,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.of(context).textSecondary,
                 ),
               ),
             ),
@@ -372,10 +391,10 @@ class _AiFeaturesTile extends ConsumerWidget {
                 children: [
                   Text(
                     aiT.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -383,7 +402,7 @@ class _AiFeaturesTile extends ConsumerWidget {
                     aiT.subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: AppColors.of(context).textTertiary,
                     ),
                   ),
                 ],
@@ -462,10 +481,10 @@ class _LanguageBottomSheet extends ConsumerWidget {
               padding: const EdgeInsets.only(left: 4, bottom: 12),
               child: Text(
                 langT.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -504,8 +523,8 @@ class _LanguageBottomSheet extends ConsumerWidget {
                             Navigator.of(context).pop();
                           }
                         },
-                        hoverColor: Colors.white.withValues(alpha: 0.03),
-                        splashColor: Colors.white.withValues(alpha: 0.05),
+                        hoverColor: AppColors.of(context).borderSubtle,
+                        splashColor: AppColors.of(context).borderSubtle,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -525,8 +544,8 @@ class _LanguageBottomSheet extends ConsumerWidget {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         color: isSelected
-                                            ? const Color(0xFF3B82F6)
-                                            : Colors.white,
+                                            ? AppColors.of(context).accent
+                                            : AppColors.of(context).textPrimary,
                                       ),
                                     ),
                                     if (option.subtitle.isNotEmpty) ...[
@@ -535,7 +554,7 @@ class _LanguageBottomSheet extends ConsumerWidget {
                                         option.subtitle,
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white.withValues(
+                                          color: AppColors.of(context).textPrimary.withValues(
                                             alpha: 0.4,
                                           ),
                                         ),
@@ -548,7 +567,7 @@ class _LanguageBottomSheet extends ConsumerWidget {
                                 Icon(
                                   Icons.check_rounded,
                                   size: 18,
-                                  color: const Color(0xFF3B82F6),
+                                  color: AppColors.of(context).accent,
                                 ),
                             ],
                           ),
@@ -592,14 +611,14 @@ class _AppVersionTile extends HookWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: AppColors.of(context).divider,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Center(
                 child: Icon(
                   Symbols.info_rounded,
                   size: 18,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.of(context).textSecondary,
                 ),
               ),
             ),
@@ -610,10 +629,10 @@ class _AppVersionTile extends HookWidget {
                 children: [
                   Text(
                     t.settings.appVersion,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -621,7 +640,7 @@ class _AppVersionTile extends HookWidget {
                     versionText,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: AppColors.of(context).textTertiary,
                     ),
                   ),
                 ],
@@ -685,10 +704,10 @@ class _SelfHostedIndicator extends StatelessWidget {
                         children: [
                           Text(
                             settingsT.selfHostedActive,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: AppColors.of(context).textPrimary,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -698,7 +717,7 @@ class _SelfHostedIndicator extends StatelessWidget {
                             ),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: AppColors.of(context).textSecondary,
                             ),
                           ),
                         ],
@@ -749,7 +768,7 @@ class _SelfHostedIndicator extends StatelessWidget {
             ),
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.3),
+              color: AppColors.of(context).textTertiary,
             ),
           ),
         );
@@ -773,13 +792,13 @@ class _ActionButton extends StatelessWidget {
       width: double.infinity,
       child: TextButton(
         style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: Colors.white.withValues(alpha: 0.06),
+          foregroundColor: AppColors.of(context).textPrimary,
+          backgroundColor: AppColors.of(context).divider,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: AppColors.of(context).border,
             ),
           ),
         ),

@@ -1,13 +1,24 @@
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/workflow/ai/ai_workflow_provider.dart';
+
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:re_editor/re_editor.dart';
+
 import 'package:re_highlight/languages/yaml.dart';
+
 import 'package:re_highlight/styles/monokai.dart';
+
 import 'package:swipeable_page_route/swipeable_page_route.dart';
+
 
 class AiWorkflowPage extends HookConsumerWidget {
   const AiWorkflowPage({
@@ -389,8 +400,8 @@ class _YamlPreview extends StatelessWidget {
                     borderRadius: BorderRadius.zero,
                     style: CodeEditorStyle(
                       fontSize: 13,
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      textColor: Colors.white,
+                      backgroundColor: AppColors.of(context).surfaceSecondary,
+                      textColor: AppColors.of(context).textPrimary,
                       codeTheme: CodeHighlightTheme(
                         languages: {
                           'yaml': CodeHighlightThemeMode(mode: langYaml),

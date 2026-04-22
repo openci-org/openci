@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
+
 import 'package:flutter/material.dart';
+
 
 /// A premium status indicator dot.
 ///
@@ -182,7 +184,7 @@ class _StatusDotPainter extends CustomPainter {
       ..shader =
           RadialGradient(
             colors: [
-              Colors.white.withValues(alpha: 0.85), // Specular highlight
+              Colors.white, // Specular highlight
               coreColor, // Base emerald
               coreColor.withValues(alpha: 0.7), // Shadowed edge
             ],

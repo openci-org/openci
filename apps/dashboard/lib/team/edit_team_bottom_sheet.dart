@@ -1,10 +1,18 @@
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 
 class EditTeamBottomSheet extends HookConsumerWidget {
   const EditTeamBottomSheet({super.key});
@@ -35,20 +43,20 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   padding: const EdgeInsets.only(left: 4, bottom: 16),
                   child: Text(
                     teamT.editTeam,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                 ),
                 // ── Team selector ──
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF141414),
+                    color: AppColors.of(context).surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: AppColors.of(context).border,
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -60,15 +68,15 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 1,
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.of(context).divider,
                           ),
                         InkWell(
                           onTap: () {
                             selectedTeamId.value = teams[i].id;
                             teamNameController.text = teams[i].name;
                           },
-                          hoverColor: Colors.white.withValues(alpha: 0.03),
-                          splashColor: Colors.white.withValues(alpha: 0.05),
+                          hoverColor: AppColors.of(context).borderSubtle,
+                          splashColor: AppColors.of(context).borderSubtle,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -81,9 +89,9 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                   height: 32,
                                   decoration: BoxDecoration(
                                     color: selectedTeamId.value == teams[i].id
-                                        ? const Color(0xFF3B82F6)
+                                        ? AppColors.of(context).accent
                                             .withValues(alpha: 0.15)
-                                        : const Color(0xFF252525),
+                                        : AppColors.of(context).surfaceTertiary,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Center(
@@ -96,8 +104,8 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                         fontWeight: FontWeight.w600,
                                         color:
                                             selectedTeamId.value == teams[i].id
-                                                ? const Color(0xFF3B82F6)
-                                                : Colors.white.withValues(
+                                                ? AppColors.of(context).accent
+                                                : AppColors.of(context).textPrimary.withValues(
                                                     alpha: 0.6,
                                                   ),
                                       ),
@@ -116,16 +124,16 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                               : FontWeight.w500,
                                       color:
                                           selectedTeamId.value == teams[i].id
-                                              ? const Color(0xFF3B82F6)
-                                              : Colors.white,
+                                              ? AppColors.of(context).accent
+                                              : AppColors.of(context).textPrimary,
                                     ),
                                   ),
                                 ),
                                 if (selectedTeamId.value == teams[i].id)
-                                  const Icon(
+                                  Icon(
                                     Icons.check_rounded,
                                     size: 18,
-                                    color: Color(0xFF3B82F6),
+                                    color: AppColors.of(context).accent,
                                   ),
                               ],
                             ),
@@ -142,22 +150,22 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                     key: formKey,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF141414),
+                        color: AppColors.of(context).surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: AppColors.of(context).border,
                         ),
                       ),
                       child: TextFormField(
                         controller: teamNameController,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white,
+                          color: AppColors.of(context).textPrimary,
                         ),
                         decoration: InputDecoration(
                           hintText: teamT.newTeamName,
                           hintStyle: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: AppColors.of(context).textTertiary,
                             fontSize: 14,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
@@ -171,7 +179,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                             child: Icon(
                               Icons.edit_outlined,
                               size: 18,
-                              color: Colors.white.withValues(alpha: 0.4),
+                              color: AppColors.of(context).textTertiary,
                             ),
                           ),
                           prefixIconConstraints: const BoxConstraints(
@@ -193,8 +201,8 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                     width: double.infinity,
                     child: TextButton(
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: AppColors.of(context).textPrimary,
+                        backgroundColor: AppColors.of(context).accent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -224,12 +232,12 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                               }
                             },
                       child: isLoading.value
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColors.of(context).textPrimary,
                               ),
                             )
                           : Text(

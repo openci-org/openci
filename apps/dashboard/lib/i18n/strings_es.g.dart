@@ -208,6 +208,12 @@ class _TranslationsSecretsEs implements TranslationsSecretsEn {
 	@override String get deletedSuccess => 'Secreto eliminado exitosamente';
 	@override String get unusedSecrets => 'Secretos no utilizados';
 	@override String get notUsedInWorkflows => 'No se usa en ningún flujo de trabajo';
+	@override String get inputModeText => 'Texto';
+	@override String get inputModeFile => 'Archivo';
+	@override String get uploadFile => 'Subir archivo';
+	@override String fileSelected({required Object fileName}) => '${fileName} seleccionado';
+	@override String get orUploadFile => 'Haz clic para seleccionar un archivo';
+	@override String get enterValueOrUpload => 'Ingresa un valor o sube un archivo';
 }
 
 // Path: envVars
@@ -566,6 +572,9 @@ class _TranslationsWorkflowEditorEs implements TranslationsWorkflowEditorEn {
 	@override String get openInGitHub => 'Abrir en GitHub';
 	@override String committedToBranch({required Object branch}) => 'Archivo de flujo de trabajo confirmado en ${branch}';
 	@override String get prCreatedSuccess => 'Pull request creado';
+	@override String get addSteps => 'Agregar paso';
+	@override String get addJob => 'Agregar trabajo';
+	@override String get parallel => 'Paralelo';
 }
 
 // Path: buildLogs.status
@@ -862,6 +871,9 @@ extension on TranslationsEs {
 			'workflow.editor.openInGitHub' => 'Abrir en GitHub',
 			'workflow.editor.committedToBranch' => ({required Object branch}) => 'Archivo de flujo de trabajo confirmado en ${branch}',
 			'workflow.editor.prCreatedSuccess' => 'Pull request creado',
+			'workflow.editor.addSteps' => 'Agregar paso',
+			'workflow.editor.addJob' => 'Agregar trabajo',
+			'workflow.editor.parallel' => 'Paralelo',
 			'buildLogs.title' => ({required Object date}) => 'Registros de compilación - ${date}',
 			'buildLogs.noJobs' => 'No se encontraron trabajos de compilación',
 			'buildLogs.status.success' => 'Exitoso',
@@ -910,6 +922,12 @@ extension on TranslationsEs {
 			'secrets.deletedSuccess' => 'Secreto eliminado exitosamente',
 			'secrets.unusedSecrets' => 'Secretos no utilizados',
 			'secrets.notUsedInWorkflows' => 'No se usa en ningún flujo de trabajo',
+			'secrets.inputModeText' => 'Texto',
+			'secrets.inputModeFile' => 'Archivo',
+			'secrets.uploadFile' => 'Subir archivo',
+			'secrets.fileSelected' => ({required Object fileName}) => '${fileName} seleccionado',
+			'secrets.orUploadFile' => 'Haz clic para seleccionar un archivo',
+			'secrets.enterValueOrUpload' => 'Ingresa un valor o sube un archivo',
 			'envVars.title' => 'Variables de entorno',
 			'envVars.noEnvVars' => 'No se encontraron variables de entorno',
 			'envVars.noCustomEnvVars' => 'Sin variables de entorno personalizadas',

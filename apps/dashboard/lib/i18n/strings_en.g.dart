@@ -370,6 +370,24 @@ class TranslationsSecretsEn {
 
 	/// en: 'Not used in any workflow'
 	String get notUsedInWorkflows => 'Not used in any workflow';
+
+	/// en: 'Text'
+	String get inputModeText => 'Text';
+
+	/// en: 'File'
+	String get inputModeFile => 'File';
+
+	/// en: 'Upload file'
+	String get uploadFile => 'Upload file';
+
+	/// en: '$fileName selected'
+	String fileSelected({required Object fileName}) => '${fileName} selected';
+
+	/// en: 'Click to select a file'
+	String get orUploadFile => 'Click to select a file';
+
+	/// en: 'Please enter a value or upload a file'
+	String get enterValueOrUpload => 'Please enter a value or upload a file';
 }
 
 // Path: envVars
@@ -1252,6 +1270,15 @@ class TranslationsWorkflowEditorEn {
 
 	/// en: 'Pull request created'
 	String get prCreatedSuccess => 'Pull request created';
+
+	/// en: 'Add step'
+	String get addSteps => 'Add step';
+
+	/// en: 'Add Job'
+	String get addJob => 'Add Job';
+
+	/// en: 'Parallel'
+	String get parallel => 'Parallel';
 }
 
 // Path: buildLogs.status
@@ -1710,6 +1737,9 @@ extension on Translations {
 			'workflow.editor.openInGitHub' => 'Open in GitHub',
 			'workflow.editor.committedToBranch' => ({required Object branch}) => 'Workflow file committed to ${branch}',
 			'workflow.editor.prCreatedSuccess' => 'Pull request created',
+			'workflow.editor.addSteps' => 'Add step',
+			'workflow.editor.addJob' => 'Add Job',
+			'workflow.editor.parallel' => 'Parallel',
 			'buildLogs.title' => ({required Object date}) => 'Build Logs - ${date}',
 			'buildLogs.noJobs' => 'No build jobs found',
 			'buildLogs.status.success' => 'Success',
@@ -1758,6 +1788,12 @@ extension on Translations {
 			'secrets.deletedSuccess' => 'Secret deleted successfully',
 			'secrets.unusedSecrets' => 'Unused Secrets',
 			'secrets.notUsedInWorkflows' => 'Not used in any workflow',
+			'secrets.inputModeText' => 'Text',
+			'secrets.inputModeFile' => 'File',
+			'secrets.uploadFile' => 'Upload file',
+			'secrets.fileSelected' => ({required Object fileName}) => '${fileName} selected',
+			'secrets.orUploadFile' => 'Click to select a file',
+			'secrets.enterValueOrUpload' => 'Please enter a value or upload a file',
 			'envVars.title' => 'Environment Variables',
 			'envVars.noEnvVars' => 'No environment variables found',
 			'envVars.noCustomEnvVars' => 'No custom environment variables',

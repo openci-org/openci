@@ -1,11 +1,20 @@
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/theme/app_colors.dart';
+
 import 'package:dashboard/team/team_provider.dart';
+
 import 'package:dashboard/users/user_provider.dart';
+
 import 'package:dashboard/utilities/async_error_widget.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter_hooks/flutter_hooks.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 
 class DeleteTeamBottomSheet extends HookConsumerWidget {
   const DeleteTeamBottomSheet({super.key});
@@ -31,20 +40,20 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                   padding: const EdgeInsets.only(left: 4, bottom: 16),
                   child: Text(
                     teamT.deleteTeam,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                 ),
                 // ── Team selector ──
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF141414),
+                    color: AppColors.of(context).surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: AppColors.of(context).border,
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -56,14 +65,14 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 1,
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.of(context).divider,
                           ),
                         InkWell(
                           onTap: () {
                             selectedTeamId.value = teams[i].id;
                           },
-                          hoverColor: Colors.white.withValues(alpha: 0.03),
-                          splashColor: Colors.white.withValues(alpha: 0.05),
+                          hoverColor: AppColors.of(context).borderSubtle,
+                          splashColor: AppColors.of(context).borderSubtle,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -77,7 +86,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                   decoration: BoxDecoration(
                                     color: selectedTeamId.value == teams[i].id
                                         ? Colors.red.withValues(alpha: 0.15)
-                                        : const Color(0xFF252525),
+                                        : AppColors.of(context).surfaceTertiary,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Center(
@@ -93,7 +102,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                                 ? Colors.red.withValues(
                                                     alpha: 0.9,
                                                   )
-                                                : Colors.white.withValues(
+                                                : AppColors.of(context).textPrimary.withValues(
                                                     alpha: 0.6,
                                                   ),
                                       ),
@@ -115,7 +124,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                               ? Colors.red.withValues(
                                                   alpha: 0.9,
                                                 )
-                                              : Colors.white,
+                                              : AppColors.of(context).textPrimary,
                                     ),
                                   ),
                                 ),
@@ -176,7 +185,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                     width: double.infinity,
                     child: TextButton(
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.of(context).textPrimary,
                         backgroundColor: Colors.red.withValues(alpha: 0.8),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -221,12 +230,12 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                               }
                             },
                       child: isDeleting.value
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColors.of(context).textPrimary,
                               ),
                             )
                           : Text(
