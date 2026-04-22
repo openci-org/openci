@@ -1,12 +1,12 @@
 ---
-title: OpenCI, Inc.
-description: Building CI/CD for everyone.
+title: OpenCI — CI/CD that's faster and cheaper.
+description: Blazing-fast builds on M4 Mac Mini. 10x cheaper than GitHub Actions. Your existing workflow files just work.
+layout: cicd
+lang: en
 ---
 
-# OpenCI, Inc.
+# CI/CD that's
+faster and cheaper.
 
-Building CI/CD for everyone.
-
-GitHub Actions compatible · $0.015/min
-
-[Dashboard →](https://dashboard.openci.org/)
+Blazing-fast builds on M4 Mac Mini. 10x cheaper than GitHub Actions.
+Your existing workflow files just work.
