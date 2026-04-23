@@ -6,6 +6,11 @@ NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-workers"
 
+# Ensure dart pub global executables are on PATH
+if ! echo "$PATH" | grep -q "$HOME/.pub-cache/bin"; then
+  export PATH="$PATH":"$HOME/.pub-cache/bin"
+fi
+
 if ! command -v tmux &> /dev/null; then
   echo "Error: tmux is not installed. Install it with: brew install tmux"
   exit 1

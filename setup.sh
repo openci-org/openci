@@ -31,12 +31,21 @@ else
 fi
 
 # 2. PATH setup
-if echo "$PATH" | grep -q "$HOME/.local/bin"; then
-  echo "✅ PATH already configured"
-else
-  echo "🔧 Configuring PATH..."
+NEED_PATH_UPDATE=false
+if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+  NEED_PATH_UPDATE=true
   echo 'export PATH="$PATH":"$HOME/.local/bin"' >> ~/.zshrc
   export PATH="$PATH":"$HOME/.local/bin"
+fi
+if ! echo "$PATH" | grep -q "$HOME/.pub-cache/bin"; then
+  NEED_PATH_UPDATE=true
+  echo 'export PATH="$PATH":"$HOME/.pub-cache/bin"' >> ~/.zshrc
+  export PATH="$PATH":"$HOME/.pub-cache/bin"
+fi
+if [ "$NEED_PATH_UPDATE" = true ]; then
+  echo "🔧 PATH configured"
+else
+  echo "✅ PATH already configured"
 fi
 
 # 3. tmux
