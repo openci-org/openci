@@ -34,9 +34,7 @@ Future<Response> handleGitHubWebhook(Request request) async {
       headers: {'content-type': 'application/json'},
     );
   } catch (e, stackTrace) {
-    await logError('Webhook processing failed', {
-      'stackTrace': stackTrace.toString(),
-    }, e);
+    await logError('Webhook processing failed', null, e, stackTrace);
     return Response.internalServerError(body: 'Error');
   }
 }

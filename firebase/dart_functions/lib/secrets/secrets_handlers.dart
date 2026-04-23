@@ -182,8 +182,8 @@ Future<Map<String, dynamic>> handleCreateSecret(
 
     logInfo('Secret created: $secretId', {'teamId': teamId, 'name': name});
     return <String, dynamic>{'success': true, 'documentId': documentId};
-  } catch (e) {
-    await logError('Failed to create secret', null, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to create secret', null, e, stackTrace);
     throw InternalError('Failed to create secret: $e');
   }
 }
@@ -227,9 +227,9 @@ Future<Map<String, dynamic>> handleDeleteSecret(
       'name': secretData['name'],
     });
     return <String, dynamic>{'success': true};
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to delete secret', null, e);
+    await logError('Failed to delete secret', null, e, stackTrace);
     throw InternalError('Failed to delete secret: $e');
   }
 }
@@ -318,9 +318,9 @@ Future<Map<String, dynamic>> handleUpdateSecret(
 
     logInfo('Secret updated: $documentId', {'teamId': teamId, 'name': name});
     return <String, dynamic>{'success': true};
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to update secret', null, e);
+    await logError('Failed to update secret', null, e, stackTrace);
     throw InternalError('Failed to update secret: $e');
   }
 }
@@ -370,9 +370,9 @@ Future<Map<String, dynamic>> handleGenerateCertificateKey(
       'secretName': secretName,
     });
     return <String, dynamic>{'success': true, 'documentId': documentId};
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to generate certificate key', null, e);
+    await logError('Failed to generate certificate key', null, e, stackTrace);
     throw InternalError('Failed to generate certificate key: $e');
   }
 }
@@ -438,9 +438,9 @@ Future<Map<String, dynamic>> handleSetupAscApiKey(
       'secrets': results.keys.toList(),
     });
     return <String, dynamic>{'success': true, 'documentIds': results};
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to setup ASC API Key', null, e);
+    await logError('Failed to setup ASC API Key', null, e, stackTrace);
     throw InternalError('Failed to setup ASC API Key: $e');
   }
 }

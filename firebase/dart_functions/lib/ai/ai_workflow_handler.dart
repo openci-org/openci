@@ -148,9 +148,9 @@ Future<Map<String, dynamic>> handleGenerateAiWorkflow(
     } finally {
       dio.close();
     }
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to generate workflow', null, e);
+    await logError('Failed to generate workflow', null, e, stackTrace);
     throw InternalError('Failed to generate workflow: $e');
   }
 }

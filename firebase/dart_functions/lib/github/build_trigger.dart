@@ -142,8 +142,13 @@ Future<String?> _resolveCommitSha({
         '/repos/${repo.fullName}/commits/$tagName',
       );
       return response.data['sha'] as String?;
-    } catch (e) {
-      await logError('Failed to resolve commit SHA for tag', {'tag': tagName}, e);
+    } catch (e, stackTrace) {
+      await logError(
+        'Failed to resolve commit SHA for tag',
+        {'tag': tagName},
+        e,
+        stackTrace,
+      );
     }
   }
 
@@ -174,10 +179,10 @@ Future<List<OpenciDirEntry>> _fetchOpenciDir({
     return entries
         .map((e) => OpenciDirEntry.fromJson(e as Map<String, dynamic>))
         .toList();
-  } catch (e) {
+  } catch (e, stackTrace) {
     final message = e.toString();
     if (!message.contains('Could not resolve to an object')) {
-      await logError('Failed to list .openci/ directory', {}, e);
+      await logError('Failed to list .openci/ directory', {}, e, stackTrace);
     }
     return [];
   }
@@ -193,8 +198,8 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
 
     if (snapshot.docs.isEmpty) return null;
     return snapshot.docs.first.id;
-  } catch (e) {
-    await logError('Failed to find team for installation', {}, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to find team for installation', {}, e, stackTrace);
     return null;
   }
 }
@@ -395,8 +400,13 @@ Future<_BuildJobsResult> _createBuildJobs({
 
         createdJobCount++;
       }
-    } catch (e) {
-      await logError('Failed to process .openci/${entry.name}', {}, e);
+    } catch (e, stackTrace) {
+      await logError(
+        'Failed to process .openci/${entry.name}',
+        {},
+        e,
+        stackTrace,
+      );
       errorCount++;
     }
   }
@@ -424,8 +434,8 @@ Future<int?> _createCheckRun({
       },
     );
     return response.data['id'] as int?;
-  } catch (e) {
-    await logError('Failed to create check run', {'name': name}, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to create check run', {'name': name}, e, stackTrace);
     return null;
   }
 }
@@ -435,8 +445,8 @@ Map<String, dynamic>? _parseYaml(String content) {
     final result = loadYaml(content);
     if (result is! YamlMap) return null;
     return _yamlToMap(result);
-  } catch (e) {
-    unawaited(logError('Failed to parse YAML', {}, e));
+  } catch (e, stackTrace) {
+    unawaited(logError('Failed to parse YAML', {}, e, stackTrace));
     return null;
   }
 }

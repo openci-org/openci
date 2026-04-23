@@ -1,11 +1,11 @@
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
+import 'package:openci_shared/firestore_paths.dart';
 
 import '../firebase.dart';
 import '../util/github_urls.dart';
 import '../util/logger.dart';
 import 'graphql_queries.dart';
 import 'installation_token.dart';
-import 'package:openci_shared/firestore_paths.dart';
 import 'workflow_parser.dart';
 
 Future<void> syncWorkflowFiles({
@@ -101,8 +101,13 @@ Future<void> syncWorkflowFiles({
       'repo': repository,
       'branch': branch,
     });
-  } catch (e) {
-    await logError('Failed to sync workflow files', {'repo': repository}, e);
+  } catch (e, stackTrace) {
+    await logError(
+      'Failed to sync workflow files',
+      {'repo': repository},
+      e,
+      stackTrace,
+    );
   } finally {
     dio.close();
   }
@@ -118,8 +123,8 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
 
     if (snapshot.docs.isEmpty) return null;
     return snapshot.docs.first.id;
-  } catch (e) {
-    await logError('Failed to find team for installation', {}, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to find team for installation', {}, e, stackTrace);
     return null;
   }
 }

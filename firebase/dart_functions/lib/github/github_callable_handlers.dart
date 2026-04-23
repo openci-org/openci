@@ -316,9 +316,9 @@ Future<Map<String, dynamic>> handleListRepositories(
     }
 
     return <String, dynamic>{'repositories': allRepositories};
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to list repositories', null, e);
+    await logError('Failed to list repositories', null, e, stackTrace);
     throw InternalError('Failed to list repositories');
   }
 }
@@ -399,9 +399,9 @@ Future<Map<String, dynamic>> handleListBranches(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to list branches', null, e);
+    await logError('Failed to list branches', null, e, stackTrace);
     throw InternalError('Failed to list branches');
   }
 }
@@ -455,9 +455,9 @@ Future<Map<String, dynamic>> handleListDirectories(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to list directories', null, e);
+    await logError('Failed to list directories', null, e, stackTrace);
     throw InternalError('Failed to list directories');
   }
 }
@@ -535,9 +535,9 @@ Future<Map<String, dynamic>> handleListWorkflowFiles(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to list workflow files', null, e);
+    await logError('Failed to list workflow files', null, e, stackTrace);
     throw InternalError('Failed to list workflow files');
   }
 }
@@ -641,9 +641,9 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
     }
 
     throw InvalidArgumentError('Invalid type');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to search GitHub actions', null, e);
+    await logError('Failed to search GitHub actions', null, e, stackTrace);
     throw InternalError('Failed to search GitHub actions');
   }
 }
@@ -798,9 +798,9 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to create workflow file', null, e);
+    await logError('Failed to create workflow file', null, e, stackTrace);
     throw InternalError('Failed to create workflow file');
   }
 }
@@ -848,9 +848,9 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    await logError('Failed to sync workflow files', null, e);
+    await logError('Failed to sync workflow files', null, e, stackTrace);
     throw InternalError('Failed to sync workflow files');
   }
 }

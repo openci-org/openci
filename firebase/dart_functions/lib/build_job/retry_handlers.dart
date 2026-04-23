@@ -98,8 +98,8 @@ Future<Map<String, dynamic>> handleRetryBuildJob(
           logInfo('Created new check run $checkRunId for retry');
         }
       }
-    } catch (e) {
-      await logError('Failed to authenticate with GitHub for retry', null, e);
+    } catch (e, stackTrace) {
+      await logError('Failed to authenticate with GitHub for retry', null, e, stackTrace);
       throw InternalError('Failed to authenticate with GitHub');
     }
   }

@@ -14,13 +14,17 @@ Future<void> logError(
   String message, [
   Map<String, dynamic>? data,
   Object? error,
+  StackTrace? stackTrace,
 ]) async {
   _log('ERROR', message, data, error);
 
   if (error != null && Sentry.isEnabled) {
     await Sentry.captureException(
       error,
-      stackTrace: error is Error ? error.stackTrace : StackTrace.current,
+      stackTrace:
+          stackTrace ??
+          (error is Error ? error.stackTrace : null) ??
+          StackTrace.current,
     );
   }
 }

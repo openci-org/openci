@@ -65,8 +65,8 @@ Future<Response> handleGitHubSetup(Request request) async {
       ''',
       headers: {'Content-Type': 'text/html'},
     );
-  } catch (e) {
-    await logError('Failed to link GitHub installation', null, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to link GitHub installation', null, e, stackTrace);
     return Response.internalServerError(body: 'Internal server error');
   }
 }

@@ -113,8 +113,8 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
     }
 
     return <String, dynamic>{'success': true};
-  } catch (e) {
-    await logError('Failed to update check run $checkRunId', null, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to update check run $checkRunId', null, e, stackTrace);
     return <String, dynamic>{'success': false, 'error': e.toString()};
   }
 }
