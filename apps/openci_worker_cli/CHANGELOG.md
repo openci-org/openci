@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.17
+- Migrate Firestore to Enterprise Edition (`openci-enterprise` database)
+
 ## 0.9.16
 - Fix: update `openci_shared` dependency to 0.1.1 for `githubBaseUrl` / `githubApiBaseUrl` fields (GitHub Enterprise support)
 
