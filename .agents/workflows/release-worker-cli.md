@@ -8,7 +8,7 @@ This workflow covers the full release process for `openci_worker_cli` via pub.de
 
 ## Prerequisites
 
-- Push access to `open-ci-io/openci`
+- Push access to `openci-org/openci`
 - Dart SDK installed
 - `PUB_CREDENTIALS` secret registered in GCP Secret Manager (already done)
 
@@ -98,7 +98,7 @@ Workers are now installed and updated via `dart pub global activate`:
 dart pub global activate openci_worker_cli
 
 # Run
-openci_worker_cli --project-id=<ID> --service-account=<path>
+openci-worker --project-id=<ID> --service-account=<path>
 ```
 
 ## Worker Locations

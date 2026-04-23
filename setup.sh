@@ -83,6 +83,12 @@ else
 fi
 
 # 7. Worker CLI
+if ! command -v dart &> /dev/null; then
+  echo "📦 Installing Dart SDK..."
+  brew tap dart-lang/dart
+  brew install dart
+fi
+
 if command -v openci-worker &> /dev/null; then
   echo "✅ openci-worker already installed"
 else

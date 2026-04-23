@@ -25,4 +25,4 @@ dev_dependencies:
   test: ^1.25.6
 
 executables:
-  openci_worker: openci_worker_cli
+  openci-worker: openci_worker_cli
