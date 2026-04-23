@@ -7,9 +7,9 @@ import 'package:dart_functions/asc/asc_requests.dart';
 import 'package:dart_functions/asc/asc_submit_for_review.dart';
 import 'package:dart_functions/asc/asc_submit_to_testflight.dart';
 import 'package:dart_functions/build_job/build_job_status_handler.dart';
-import 'package:dart_functions/build_job/generate_failure_summary.dart';
 import 'package:dart_functions/build_job/cancel_build_job.dart';
 import 'package:dart_functions/build_job/check_run_handler.dart';
+import 'package:dart_functions/build_job/generate_failure_summary.dart';
 import 'package:dart_functions/build_job/retry_handlers.dart';
 import 'package:dart_functions/github/github_callable_handlers.dart';
 import 'package:dart_functions/github/github_setup.dart';
@@ -28,10 +28,6 @@ Future<void> main(List<String> args) async {
   }
 
   await fireUp(args, (firebase) {
-    // -----------------------------------------------------------------------
-    // HTTP Request handlers
-    // -----------------------------------------------------------------------
-
     firebase.https.onRequest(
       handleGitHubWebhook,
       name: 'githubWebhook',
@@ -48,17 +44,16 @@ Future<void> main(List<String> args) async {
       ),
     );
 
-    // -----------------------------------------------------------------------
-    // ASC (App Store Connect) callable functions
-    // -----------------------------------------------------------------------
-
     firebase.https.onCallWithData<TeamRequest, Map<String, dynamic>>(
       handleAscListApps,
       fromJson: TeamRequest.fromJson,
       name: 'ascListApps',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -68,7 +63,10 @@ Future<void> main(List<String> args) async {
       name: 'ascListBuilds',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -79,7 +77,10 @@ Future<void> main(List<String> args) async {
           name: 'ascSubmitToTestFlight',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -89,13 +90,12 @@ Future<void> main(List<String> args) async {
       name: 'ascSubmitForReview',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
-
-    // -----------------------------------------------------------------------
-    // Build job callable functions
-    // -----------------------------------------------------------------------
 
     firebase.https.onCallWithData<CancelBuildJobRequest, Map<String, dynamic>>(
       handleCancelBuildJob,
@@ -103,7 +103,10 @@ Future<void> main(List<String> args) async {
       name: 'cancelBuildJob',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -114,7 +117,10 @@ Future<void> main(List<String> args) async {
           name: 'buildJobStatusChange',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -125,7 +131,10 @@ Future<void> main(List<String> args) async {
           name: 'generateFailureSummary',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
             timeoutSeconds: DeployOption(120),
           ),
         );
@@ -136,7 +145,10 @@ Future<void> main(List<String> args) async {
       name: 'checkRunUpdate',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -146,7 +158,10 @@ Future<void> main(List<String> args) async {
       name: 'retryBuildJob',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -157,13 +172,12 @@ Future<void> main(List<String> args) async {
           name: 'retryWorkflowRun',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
-
-    // -----------------------------------------------------------------------
-    // Secret management callable functions
-    // -----------------------------------------------------------------------
 
     firebase.https.onCallWithData<CreateSecretRequest, Map<String, dynamic>>(
       handleCreateSecret,
@@ -171,7 +185,10 @@ Future<void> main(List<String> args) async {
       name: 'createSecretV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -181,7 +198,10 @@ Future<void> main(List<String> args) async {
       name: 'deleteSecretV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -191,7 +211,10 @@ Future<void> main(List<String> args) async {
       name: 'updateSecretV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -202,7 +225,10 @@ Future<void> main(List<String> args) async {
           name: 'generateCertificateKeyV1',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -212,13 +238,12 @@ Future<void> main(List<String> args) async {
       name: 'setupAscApiKeyV1',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
-
-    // -----------------------------------------------------------------------
-    // Team management callable functions
-    // -----------------------------------------------------------------------
 
     firebase.https.onCallWithData<GetTeamMembersRequest, Map<String, dynamic>>(
       handleGetTeamMembers,
@@ -226,7 +251,10 @@ Future<void> main(List<String> args) async {
       name: 'getTeamMembers',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -237,7 +265,10 @@ Future<void> main(List<String> args) async {
           name: 'inviteTeamMember',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -248,7 +279,10 @@ Future<void> main(List<String> args) async {
           name: 'acceptInvitation',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -257,13 +291,12 @@ Future<void> main(List<String> args) async {
       name: 'processInvitationsOnSignUp',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
-
-    // -----------------------------------------------------------------------
-    // GitHub callable functions
-    // -----------------------------------------------------------------------
 
     firebase.https.onCallWithData<TeamIdRequest, Map<String, dynamic>>(
       handleListRepositories,
@@ -271,7 +304,10 @@ Future<void> main(List<String> args) async {
       name: 'listRepositories',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -281,7 +317,10 @@ Future<void> main(List<String> args) async {
       name: 'listBranches',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -291,7 +330,10 @@ Future<void> main(List<String> args) async {
       name: 'listDirectories',
       options: const CallableOptions(
         region: DeployOption(SupportedRegion.asiaNortheast1),
-        cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+        cors: DeployOption([
+          'https://dashboard.openci.org',
+          'http://localhost',
+        ]),
       ),
     );
 
@@ -302,7 +344,10 @@ Future<void> main(List<String> args) async {
           name: 'listWorkflowFiles',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -313,7 +358,10 @@ Future<void> main(List<String> args) async {
           name: 'searchGitHubActions',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -324,7 +372,10 @@ Future<void> main(List<String> args) async {
           name: 'createWorkflowFile',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
 
@@ -335,13 +386,12 @@ Future<void> main(List<String> args) async {
           name: 'syncWorkflowFiles',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
           ),
         );
-
-    // -----------------------------------------------------------------------
-    // AI callable functions
-    // -----------------------------------------------------------------------
 
     firebase.https
         .onCallWithData<GenerateAiWorkflowRequest, Map<String, dynamic>>(
@@ -350,7 +400,10 @@ Future<void> main(List<String> args) async {
           name: 'generateAiWorkflowResponse',
           options: const CallableOptions(
             region: DeployOption(SupportedRegion.asiaNortheast1),
-            cors: DeployOption(['https://dashboard.openci.org', 'http://localhost']),
+            cors: DeployOption([
+              'https://dashboard.openci.org',
+              'http://localhost',
+            ]),
             timeoutSeconds: DeployOption(60),
           ),
         );

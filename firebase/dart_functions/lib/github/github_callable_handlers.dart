@@ -11,10 +11,6 @@ import '../util/github_urls.dart';
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
-// ---------------------------------------------------------------------------
-// GraphQL Queries
-// ---------------------------------------------------------------------------
-
 const _branchesQuery = r'''
   query($owner: String!, $repo: String!, $cursor: String) {
     repository(owner: $owner, name: $repo) {
@@ -858,11 +854,7 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
         final token = tokenData['token'] as String;
 
         // Verify repository access
-        await githubGet(
-          '/repos/$owner/$repo',
-          token,
-          apiBaseUrl: apiBaseUrl,
-        );
+        await githubGet('/repos/$owner/$repo', token, apiBaseUrl: apiBaseUrl);
 
         // Sync workflow files
         final result = await _syncWorkflowFilesToFirestore(

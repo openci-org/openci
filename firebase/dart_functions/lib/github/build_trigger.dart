@@ -67,10 +67,6 @@ Future<void> handleBuildTrigger(WebhookEvent event) async {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Trigger info extraction
-// ---------------------------------------------------------------------------
-
 class _TriggerInfo {
   final String triggerType;
   final String? branch;
@@ -123,10 +119,6 @@ _TriggerInfo? _extractTriggerInfo(WebhookEvent event) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Commit SHA resolution
-// ---------------------------------------------------------------------------
-
 Future<String?> _resolveCommitSha({
   required WebhookEvent event,
   required _TriggerInfo triggerInfo,
@@ -159,10 +151,6 @@ Future<String?> _resolveCommitSha({
 
   return null;
 }
-
-// ---------------------------------------------------------------------------
-// GraphQL: fetch .openci/ directory
-// ---------------------------------------------------------------------------
 
 Future<List<OpenciDirEntry>> _fetchOpenciDir({
   required Dio dio,
@@ -197,10 +185,6 @@ Future<List<OpenciDirEntry>> _fetchOpenciDir({
   }
 }
 
-// ---------------------------------------------------------------------------
-// Find team ID from installation
-// ---------------------------------------------------------------------------
-
 Future<String?> _findTeamIdForInstallation(int installationId) async {
   try {
     final snapshot = await firestore
@@ -216,10 +200,6 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
     return null;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Create build jobs
-// ---------------------------------------------------------------------------
 
 class _BuildJobsResult {
   final int createdJobs;

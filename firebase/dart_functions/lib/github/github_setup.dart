@@ -4,26 +4,22 @@ import 'package:shelf/shelf.dart';
 import '../firebase.dart';
 import '../util/logger.dart';
 
-/// Handler for the GitHub App setup callback (onRequest).
-///
-/// GitHub redirects here after a user installs/configures the GitHub App.
-/// Stores the installation ID in the team document.
 Future<Response> handleGitHubSetup(Request request) async {
-  final installationId = request.url.queryParameters['installation_id'];
-  final teamId = request.url.queryParameters['state'];
-  final setupAction = request.url.queryParameters['setup_action'];
-
-  logInfo('GitHub Setup callback received', {
-    'installationId': installationId,
-    'teamId': teamId,
-    'setupAction': setupAction,
-  });
-
-  if (installationId == null || teamId == null) {
-    return Response(400, body: 'Missing installation_id or state (teamId)');
-  }
-
   try {
+    final installationId = request.url.queryParameters['installation_id'];
+    final teamId = request.url.queryParameters['state'];
+    final setupAction = request.url.queryParameters['setup_action'];
+
+    logInfo('GitHub Setup callback received', {
+      'installationId': installationId,
+      'teamId': teamId,
+      'setupAction': setupAction,
+    });
+
+    if (installationId == null || teamId == null) {
+      return Response(400, body: 'Missing installation_id or state (teamId)');
+    }
+
     final teamRef = firestore.collection(teamsCollection).doc(teamId);
     final teamDoc = await teamRef.get();
 
@@ -31,7 +27,6 @@ Future<Response> handleGitHubSetup(Request request) async {
       return Response.notFound('Team not found');
     }
 
-    // Read current installationIds and add the new one
     final teamData = teamDoc.data()!;
     final currentIds =
         (teamData['installationIds'] as List<dynamic>?)?.cast<int>() ?? [];
