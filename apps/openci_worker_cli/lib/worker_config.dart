@@ -31,8 +31,7 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
   if (results.flag('update')) {
     _log.info('Updating openci-worker...');
     final shell = Shell(verbose: true);
-    await shell.run('brew update');
-    await shell.run('brew upgrade openci-worker');
+    await shell.run('dart pub global activate openci_worker_cli');
     _log.info('Updated successfully!');
     return null;
   }

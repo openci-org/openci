@@ -1,8 +1,8 @@
 name: openci_vm_cli
 description: OpenCI VM CLI
 version: 1.0.12
-repository: https://github.com/open-ci-io/openci
-homepage: https://openci.io
+repository: https://github.com/openci-org/openci
+homepage: https://openci.org
 
 environment:
   sdk: 3.11.5

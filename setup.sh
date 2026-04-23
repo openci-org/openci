@@ -6,7 +6,7 @@ SCRIPT_VERSION="1.0.0"
 NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-setup"
-REPO_BASE="https://raw.githubusercontent.com/open-ci-io/openci/develop"
+REPO_BASE="https://raw.githubusercontent.com/openci-org/openci/develop"
 INSTALL_DIR="$HOME/.openci"
 
 # 0. Download scripts to ~/.openci (always fetch latest)
@@ -79,7 +79,7 @@ if lume ls 2>/dev/null | grep -q "tahoe-base"; then
   echo "✅ VM image already pulled"
 else
   echo "📦 Pulling VM image (this may take a while)..."
-  lume pull tahoe-base:v1.0.0 --organization open-ci-io
+  lume pull tahoe-base:v1.0.0 --organization openci-org
 fi
 
 # 7. Worker CLI
@@ -87,8 +87,7 @@ if command -v openci-worker &> /dev/null; then
   echo "✅ openci-worker already installed"
 else
   echo "📦 Installing Worker CLI..."
-  brew tap open-ci-io/tap
-  brew install openci-worker
+  dart pub global activate openci_worker_cli
 fi
 
 echo ""

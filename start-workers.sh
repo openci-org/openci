@@ -13,7 +13,7 @@ fi
 
 if ! command -v openci-worker &> /dev/null; then
   echo "Error: openci-worker is not installed. Install it with:"
-  echo "  brew tap open-ci-io/tap && brew install openci-worker"
+  echo "  dart pub global activate openci_worker_cli"
   exit 1
 fi
 
