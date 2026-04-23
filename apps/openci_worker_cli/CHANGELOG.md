@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.18
+- Pass a GitHub event payload to `act` via `-e /tmp/openci-event.json` so workflow expressions like `${{ github.event.pull_request.number }}` resolve correctly (enables Firebase Hosting preview channel deploys on PRs)
+
+## 0.9.17
+- Migrate Firestore to Enterprise Edition (`openci-enterprise` database)
+
 ## 0.9.16
 - Fix: update `openci_shared` dependency to 0.1.1 for `githubBaseUrl` / `githubApiBaseUrl` fields (GitHub Enterprise support)
 

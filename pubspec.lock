@@ -165,10 +165,10 @@ packages:
     dependency: transitive
     description:
       name: build_runner
-      sha256: "521daf8d189deb79ba474e43a696b41c49fb3987818dbacf3308f1e03673a75e"
+      sha256: "4425a87d87d0d1303540f867994303f5b141ad2f6ecac7ac2cf8851f41c0cef1"
       url: "https://pub.dev"
     source: hosted
-    version: "2.13.1"
+    version: "2.14.0"
   build_web_compilers:
     dependency: transitive
     description:
@@ -905,34 +905,34 @@ packages:
     dependency: transitive
     description:
       name: jaspr
-      sha256: fcfb975cfaca42beab50735e1865e52ea32d44b69a7ec76504adcca4dc004be9
+      sha256: "3fc388e9c114b5febe8f4678c34332f27c652882e4ec06c293c0350075af8e76"
       url: "https://pub.dev"
     source: hosted
-    version: "0.22.4"
+    version: "0.23.0"
   jaspr_builder:
     dependency: transitive
     description:
       name: jaspr_builder
-      sha256: e76f4feb69217100a3871829ca3a97960231d2d8ed118fac1135752eb9164917
+      sha256: "9f5be7e7f78af33083aac109b8e2c92369f6acd5993c1a2dfecd75a30f9e8d72"
       url: "https://pub.dev"
     source: hosted
-    version: "0.22.4"
+    version: "0.23.0"
   jaspr_content:
     dependency: transitive
     description:
       name: jaspr_content
-      sha256: "692291e35befd0e2ed9107aafc24ec52ea1e9d3fb5b67d102bd094ff6de5bd2a"
+      sha256: "28bacdb5669a7f4b066b9e3cd2a591cbf21eda972ce6f33dcc6047868a4aa1ac"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.1"
+    version: "0.5.2"
   jaspr_router:
     dependency: transitive
     description:
       name: jaspr_router
-      sha256: a82899af7e1717ef1643889a00a9f1a738983b58a7db13f1512a0066056d6a1e
+      sha256: "43abdfd63c19cae8faac50334c7f3065635bac3e85fd558b6076517978ade64a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.1"
+    version: "0.8.2"
   jni:
     dependency: transitive
     description:

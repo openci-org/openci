@@ -1,6 +1,6 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
@@ -18,7 +18,6 @@ class SecretManager extends _$SecretManager {
   }
 
   Stream<List<Secret>> secretsStream() {
-    final firestore = FirebaseFirestore.instance;
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
     return firestore
@@ -39,10 +38,10 @@ class SecretManager extends _$SecretManager {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('create-secret-v1'))
         .call({
-      'name': name,
-      'value': value,
-      'teamId': teamId,
-    });
+          'name': name,
+          'value': value,
+          'teamId': teamId,
+        });
   }
 
   Future<void> updateSecret({
@@ -56,11 +55,11 @@ class SecretManager extends _$SecretManager {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('update-secret-v1'))
         .call({
-      'documentId': documentId,
-      'name': name,
-      if (value != null && value.isNotEmpty) 'value': value,
-      'teamId': teamId,
-    });
+          'documentId': documentId,
+          'name': name,
+          if (value != null && value.isNotEmpty) 'value': value,
+          'teamId': teamId,
+        });
   }
 
   Future<void> deleteSecret({required String documentId}) async {
@@ -70,9 +69,9 @@ class SecretManager extends _$SecretManager {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('delete-secret-v1'))
         .call({
-      'documentId': documentId,
-      'teamId': teamId,
-    });
+          'documentId': documentId,
+          'teamId': teamId,
+        });
   }
 
   Future<void> generateCertificateKey() async {
@@ -82,8 +81,8 @@ class SecretManager extends _$SecretManager {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('generate-certificate-key-v1'))
         .call({
-      'teamId': teamId,
-    });
+          'teamId': teamId,
+        });
   }
 
   Future<void> setupAscApiKey({
@@ -97,11 +96,11 @@ class SecretManager extends _$SecretManager {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
         .call({
-      'teamId': teamId,
-      'issuerId': issuerId,
-      'keyId': keyId,
-      'privateKey': privateKey,
-    });
+          'teamId': teamId,
+          'issuerId': issuerId,
+          'keyId': keyId,
+          'privateKey': privateKey,
+        });
   }
 }
 

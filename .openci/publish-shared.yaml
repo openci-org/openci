@@ -9,11 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: open-ci-io/flutter-setup@v1
+      - uses: openci-org/flutter-setup@v1
         with:
           flutter-version: "stable"
 
-      - uses: open-ci-io/save-secret-file@v1
+      - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.PUB_CREDENTIALS }}
           path: ".config/dart/pub-credentials.json"

@@ -13,14 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: open-ci-io/flutter-setup@v1
+      - uses: openci-org/flutter-setup@v1
         with:
           flutter-version: "stable"
-      - uses: open-ci-io/save-secret-file@v1
+      - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
-      - uses: open-ci-io/flutter-ci@v1
+      - uses: openci-org/flutter-ci@v1
         with:
           test: "false"
           working-directory: "apps/dashboard"
@@ -30,18 +30,22 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: open-ci-io/flutter-setup@v1
+
+      - uses: openci-org/flutter-setup@v1
         with:
           flutter-version: "stable"
-      - uses: open-ci-io/save-secret-file@v1
+
+      - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
-      - uses: open-ci-io/save-secret-file@v1
+
+      - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
-      - uses: open-ci-io/flutter-cd@v2
+          
+      - uses: openci-org/flutter-cd@v2
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
@@ -57,17 +61,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: open-ci-io/flutter-setup@v1
+
+      - uses: openci-org/flutter-setup@v1
         with:
           flutter-version: "stable"
-      - uses: open-ci-io/save-secret-file@v1
+
+      - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
-      - uses: open-ci-io/flutter-cd@v2
+
+      - uses: openci-org/flutter-cd@v2
         with:
           platform: "web"
           working-directory: "apps/dashboard"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }}"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          preview: ${{ github.event_name == 'pull_request' }}

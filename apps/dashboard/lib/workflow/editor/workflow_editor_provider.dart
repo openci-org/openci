@@ -1,5 +1,5 @@
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,7 +11,7 @@ part 'workflow_editor_provider.g.dart';
 class WorkflowEditor extends _$WorkflowEditor {
   @override
   Stream<Workflow> build(String workflowId) {
-    return FirebaseFirestore.instance
+    return firestore
         .collection(workflowsCollection)
         .doc(workflowId)
         .withConverter(
@@ -29,24 +29,22 @@ class WorkflowEditor extends _$WorkflowEditor {
   }
 
   Future<void> updateName(String name) async {
-    await FirebaseFirestore.instance
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .update({'name': name});
+    await firestore.collection(workflowsCollection).doc(workflowId).update({
+      'name': name,
+    });
   }
 
   Future<void> updateWorkflowConfig(WorkflowConfig config) async {
-    await FirebaseFirestore.instance
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .update({'workflowConfig': config.toJson()});
+    await firestore.collection(workflowsCollection).doc(workflowId).update({
+      'workflowConfig': config.toJson(),
+    });
   }
 
   Future<void> updateWorkflowStep({
     required int index,
     required WorkflowStep step,
   }) async {
-    final doc = await FirebaseFirestore.instance
+    final doc = await firestore
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -63,16 +61,13 @@ class WorkflowEditor extends _$WorkflowEditor {
         : step;
     steps[index] = updatedStep;
 
-    await FirebaseFirestore.instance
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .update({
-          'workflowSteps': steps.map((s) => s.toJson()).toList(),
-        });
+    await firestore.collection(workflowsCollection).doc(workflowId).update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
   }
 
   Future<void> addStep({int? insertAt}) async {
-    final doc = await FirebaseFirestore.instance
+    final doc = await firestore
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -93,16 +88,13 @@ class WorkflowEditor extends _$WorkflowEditor {
       steps.add(newStep);
     }
 
-    await FirebaseFirestore.instance
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .update({
-          'workflowSteps': steps.map((s) => s.toJson()).toList(),
-        });
+    await firestore.collection(workflowsCollection).doc(workflowId).update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
   }
 
   Future<void> deleteStep(int index) async {
-    final doc = await FirebaseFirestore.instance
+    final doc = await firestore
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -115,16 +107,13 @@ class WorkflowEditor extends _$WorkflowEditor {
 
     steps.removeAt(index);
 
-    await FirebaseFirestore.instance
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .update({
-          'workflowSteps': steps.map((s) => s.toJson()).toList(),
-        });
+    await firestore.collection(workflowsCollection).doc(workflowId).update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
   }
 
   Future<void> reorderSteps(int oldIndex, int newIndex) async {
-    final doc = await FirebaseFirestore.instance
+    final doc = await firestore
         .collection(workflowsCollection)
         .doc(workflowId)
         .get();
@@ -140,12 +129,9 @@ class WorkflowEditor extends _$WorkflowEditor {
     final item = steps.removeAt(oldIndex);
     steps.insert(newIndex, item);
 
-    await FirebaseFirestore.instance
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .update({
-          'workflowSteps': steps.map((s) => s.toJson()).toList(),
-        });
+    await firestore.collection(workflowsCollection).doc(workflowId).update({
+      'workflowSteps': steps.map((s) => s.toJson()).toList(),
+    });
   }
 }
 

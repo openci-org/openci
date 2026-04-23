@@ -1,6 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -65,7 +65,6 @@ class TeamList extends _$TeamList {
   }
 
   Stream<List<Team>> fetchTeamList() {
-    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -83,7 +82,6 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> createTeam(String teamName) async {
-    final firestore = FirebaseFirestore.instance;
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
@@ -102,7 +100,6 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final firestore = FirebaseFirestore.instance;
     await firestore.collection(teamsCollection).doc(teamId).update({
       'name': newName,
       'updatedAt': DateTime.now(),
@@ -110,7 +107,6 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> updateAiEnabled(String teamId, bool enabled) async {
-    final firestore = FirebaseFirestore.instance;
     await firestore.collection(teamsCollection).doc(teamId).update({
       'aiEnabled': enabled,
       'updatedAt': DateTime.now(),
@@ -118,7 +114,6 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> deleteTeam(String teamId) async {
-    final firestore = FirebaseFirestore.instance;
     await firestore.collection(teamsCollection).doc(teamId).delete();
   }
 }
