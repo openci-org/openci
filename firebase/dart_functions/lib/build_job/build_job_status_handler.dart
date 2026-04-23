@@ -288,7 +288,7 @@ Future<void> _sendBuildNotifications(
       dio.close();
     }
   } catch (e) {
-    logError('Error sending notifications', null, e);
+    await logError('Error sending notifications', null, e);
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/firestore_paths.dart';
@@ -141,7 +143,7 @@ Future<String?> _resolveCommitSha({
       );
       return response.data['sha'] as String?;
     } catch (e) {
-      logError('Failed to resolve commit SHA for tag', {'tag': tagName}, e);
+      await logError('Failed to resolve commit SHA for tag', {'tag': tagName}, e);
     }
   }
 
@@ -175,7 +177,7 @@ Future<List<OpenciDirEntry>> _fetchOpenciDir({
   } catch (e) {
     final message = e.toString();
     if (!message.contains('Could not resolve to an object')) {
-      logError('Failed to list .openci/ directory', {}, e);
+      await logError('Failed to list .openci/ directory', {}, e);
     }
     return [];
   }
@@ -192,7 +194,7 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
     if (snapshot.docs.isEmpty) return null;
     return snapshot.docs.first.id;
   } catch (e) {
-    logError('Failed to find team for installation', {}, e);
+    await logError('Failed to find team for installation', {}, e);
     return null;
   }
 }
@@ -394,7 +396,7 @@ Future<_BuildJobsResult> _createBuildJobs({
         createdJobCount++;
       }
     } catch (e) {
-      logError('Failed to process .openci/${entry.name}', {}, e);
+      await logError('Failed to process .openci/${entry.name}', {}, e);
       errorCount++;
     }
   }
@@ -423,7 +425,7 @@ Future<int?> _createCheckRun({
     );
     return response.data['id'] as int?;
   } catch (e) {
-    logError('Failed to create check run', {'name': name}, e);
+    await logError('Failed to create check run', {'name': name}, e);
     return null;
   }
 }
@@ -434,7 +436,7 @@ Map<String, dynamic>? _parseYaml(String content) {
     if (result is! YamlMap) return null;
     return _yamlToMap(result);
   } catch (e) {
-    logError('Failed to parse YAML', {}, e);
+    unawaited(logError('Failed to parse YAML', {}, e));
     return null;
   }
 }

@@ -10,11 +10,15 @@ void logWarning(String message, [Map<String, dynamic>? data, Object? error]) {
   _log('WARNING', message, data, error);
 }
 
-void logError(String message, [Map<String, dynamic>? data, Object? error]) {
+Future<void> logError(
+  String message, [
+  Map<String, dynamic>? data,
+  Object? error,
+]) async {
   _log('ERROR', message, data, error);
 
   if (error != null && Sentry.isEnabled) {
-    Sentry.captureException(
+    await Sentry.captureException(
       error,
       stackTrace: error is Error ? error.stackTrace : StackTrace.current,
     );

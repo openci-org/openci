@@ -150,7 +150,7 @@ Future<Map<String, dynamic>> handleGenerateAiWorkflow(
     }
   } catch (e) {
     if (e is HttpsError) rethrow;
-    logError('Failed to generate workflow', null, e);
+    await logError('Failed to generate workflow', null, e);
     throw InternalError('Failed to generate workflow: $e');
   }
 }

@@ -99,7 +99,7 @@ Future<Map<String, dynamic>> handleRetryBuildJob(
         }
       }
     } catch (e) {
-      logError('Failed to authenticate with GitHub for retry', null, e);
+      await logError('Failed to authenticate with GitHub for retry', null, e);
       throw InternalError('Failed to authenticate with GitHub');
     }
   }
@@ -193,7 +193,7 @@ Future<Map<String, dynamic>> handleRetryWorkflowRun(
       installationToken = tokenData['token'] as String;
       tokenExpiresAt = tokenData['expires_at'] as String;
     } catch (e) {
-      logError(
+      await logError(
         'Failed to authenticate with GitHub for workflow retry',
         null,
         e,
@@ -242,7 +242,7 @@ Future<Map<String, dynamic>> handleRetryWorkflowRun(
     if (installationToken != null && originalJob['commitSha'] != null) {
       final workflowName = originalJob['workflowName'] as String?;
       if (workflowName == null) {
-        logError('workflowName is missing on job $jobKey');
+        await logError('workflowName is missing on job $jobKey');
       } else {
         final multipleJobs = originalJobs.length > 1;
         final checkRunName = multipleJobs

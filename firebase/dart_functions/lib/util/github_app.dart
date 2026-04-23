@@ -76,7 +76,7 @@ Future<int?> createCheckRun({
     );
     return response.data?['id'] as int?;
   } catch (e) {
-    logError('Failed to create check run', null, e);
+    await logError('Failed to create check run', null, e);
     return null;
   } finally {
     dio.close();

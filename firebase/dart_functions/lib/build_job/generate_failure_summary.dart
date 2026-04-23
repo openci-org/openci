@@ -144,7 +144,7 @@ Future<void> _generateSummary(String buildJobId, String latestRunId) async {
       dio.close();
     }
   } catch (e) {
-    logError('Failed to generate failure summary', null, e);
+    await logError('Failed to generate failure summary', null, e);
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'failureSummaryStatus': 'error',
       'failureSummary': e.toString(),

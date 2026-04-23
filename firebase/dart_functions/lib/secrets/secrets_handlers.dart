@@ -183,7 +183,7 @@ Future<Map<String, dynamic>> handleCreateSecret(
     logInfo('Secret created: $secretId', {'teamId': teamId, 'name': name});
     return <String, dynamic>{'success': true, 'documentId': documentId};
   } catch (e) {
-    logError('Failed to create secret', null, e);
+    await logError('Failed to create secret', null, e);
     throw InternalError('Failed to create secret: $e');
   }
 }
@@ -229,7 +229,7 @@ Future<Map<String, dynamic>> handleDeleteSecret(
     return <String, dynamic>{'success': true};
   } catch (e) {
     if (e is HttpsError) rethrow;
-    logError('Failed to delete secret', null, e);
+    await logError('Failed to delete secret', null, e);
     throw InternalError('Failed to delete secret: $e');
   }
 }
@@ -320,7 +320,7 @@ Future<Map<String, dynamic>> handleUpdateSecret(
     return <String, dynamic>{'success': true};
   } catch (e) {
     if (e is HttpsError) rethrow;
-    logError('Failed to update secret', null, e);
+    await logError('Failed to update secret', null, e);
     throw InternalError('Failed to update secret: $e');
   }
 }
@@ -372,7 +372,7 @@ Future<Map<String, dynamic>> handleGenerateCertificateKey(
     return <String, dynamic>{'success': true, 'documentId': documentId};
   } catch (e) {
     if (e is HttpsError) rethrow;
-    logError('Failed to generate certificate key', null, e);
+    await logError('Failed to generate certificate key', null, e);
     throw InternalError('Failed to generate certificate key: $e');
   }
 }
@@ -440,7 +440,7 @@ Future<Map<String, dynamic>> handleSetupAscApiKey(
     return <String, dynamic>{'success': true, 'documentIds': results};
   } catch (e) {
     if (e is HttpsError) rethrow;
-    logError('Failed to setup ASC API Key', null, e);
+    await logError('Failed to setup ASC API Key', null, e);
     throw InternalError('Failed to setup ASC API Key: $e');
   }
 }

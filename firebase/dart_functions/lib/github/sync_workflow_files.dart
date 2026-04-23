@@ -102,7 +102,7 @@ Future<void> syncWorkflowFiles({
       'branch': branch,
     });
   } catch (e) {
-    logError('Failed to sync workflow files', {'repo': repository}, e);
+    await logError('Failed to sync workflow files', {'repo': repository}, e);
   } finally {
     dio.close();
   }
@@ -119,7 +119,7 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
     if (snapshot.docs.isEmpty) return null;
     return snapshot.docs.first.id;
   } catch (e) {
-    logError('Failed to find team for installation', {}, e);
+    await logError('Failed to find team for installation', {}, e);
     return null;
   }
 }
