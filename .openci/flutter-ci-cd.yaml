@@ -30,17 +30,21 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: openci-org/flutter-setup@v1
         with:
           flutter-version: "stable"
+
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
+          
       - uses: openci-org/flutter-cd@v2
         with:
           platform: "ios"
@@ -66,7 +70,7 @@ jobs:
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
-          
+
       - uses: openci-org/flutter-cd@v2
         with:
           platform: "web"
@@ -74,3 +78,4 @@ jobs:
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }}"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          preview: ${{ github.event_name == 'pull_request' }}
