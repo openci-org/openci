@@ -98,7 +98,7 @@ Workers are now installed and updated via `dart pub global activate`:
 dart pub global activate openci_worker_cli
 
 # Run
-openci-worker --project-id=<ID> --service-account=<path>
+openci_worker --project-id=<ID> --service-account=<path>
 ```
 
 ## Worker Locations

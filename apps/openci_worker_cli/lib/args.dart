@@ -35,6 +35,6 @@ ArgParser get argParser {
 }
 
 void printArgsUsage() {
-  print('Usage: openci-worker <flags> [arguments]');
+  print('Usage: openci_worker <flags> [arguments]');
   print(argParser.usage);
 }

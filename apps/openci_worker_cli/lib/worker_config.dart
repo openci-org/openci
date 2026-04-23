@@ -24,12 +24,12 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
   }
 
   if (results.flag('version')) {
-    _log.info('openci-worker version: $version');
+    _log.info('openci_worker version: $version');
     return null;
   }
 
   if (results.flag('update')) {
-    _log.info('Updating openci-worker...');
+    _log.info('Updating openci_worker...');
     final shell = Shell(verbose: true);
     await shell.run('dart pub global activate openci_worker_cli');
     _log.info('Updated successfully!');

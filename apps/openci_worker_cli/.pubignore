@@ -1,6 +1,5 @@
 # Compiled binaries
 openci_worker
-openci-worker
 
 # Dev scripts
 update_version.dart

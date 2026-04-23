@@ -37,10 +37,11 @@ if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
   echo 'export PATH="$PATH":"$HOME/.local/bin"' >> ~/.zshrc
   export PATH="$PATH":"$HOME/.local/bin"
 fi
-if ! echo "$PATH" | grep -q "$HOME/.pub-cache/bin"; then
+DART_PUB_CACHE_BIN="${PUB_CACHE:-$HOME/.pub-cache}/bin"
+if ! echo ":$PATH:" | grep -q ":$DART_PUB_CACHE_BIN:"; then
   NEED_PATH_UPDATE=true
-  echo 'export PATH="$PATH":"$HOME/.pub-cache/bin"' >> ~/.zshrc
-  export PATH="$PATH":"$HOME/.pub-cache/bin"
+  echo 'export PATH="$PATH":"${PUB_CACHE:-$HOME/.pub-cache}/bin"' >> ~/.zshrc
+  export PATH="$PATH:$DART_PUB_CACHE_BIN"
 fi
 if [ "$NEED_PATH_UPDATE" = true ]; then
   echo "🔧 PATH configured"
@@ -98,8 +99,8 @@ if ! command -v dart &> /dev/null; then
   brew install dart
 fi
 
-if command -v openci-worker &> /dev/null; then
-  echo "✅ openci-worker already installed"
+if command -v openci_worker &> /dev/null; then
+  echo "✅ openci_worker already installed"
 else
   echo "📦 Installing Worker CLI..."
   dart pub global activate openci_worker_cli
@@ -119,7 +120,7 @@ if [ -f "$SA_PATH_EXPANDED" ]; then
 
   tmux rename-session -t "$SESSION_NAME" "openci-workers" 2>/dev/null || true
 
-  WORKER_CMD='while true; do openci-worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
+  WORKER_CMD='while true; do openci_worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
 
   for ((i = 2; i <= NUM_WORKERS; i++)); do
     tmux split-window "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/worker-$i/")"
@@ -127,7 +128,7 @@ if [ -f "$SA_PATH_EXPANDED" ]; then
   done
 
   while true; do
-    openci-worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
+    openci_worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
     echo "🔄 Worker exited. Restarting in 3s..."
     sleep 3
   done
