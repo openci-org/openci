@@ -1,7 +1,7 @@
 name: openci_shared
 description: Shared models and constants for OpenCI
 version: 0.1.1
-repository: https://github.com/open-ci-io/openci
+repository: https://github.com/openci-org/openci
 
 environment:
   sdk: ^3.11.0

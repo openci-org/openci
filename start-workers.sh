@@ -6,14 +6,20 @@ NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-workers"
 
+# Ensure dart pub global executables are on PATH
+DART_PUB_CACHE_BIN="${PUB_CACHE:-$HOME/.pub-cache}/bin"
+if ! echo ":$PATH:" | grep -q ":$DART_PUB_CACHE_BIN:"; then
+  export PATH="$PATH:$DART_PUB_CACHE_BIN"
+fi
+
 if ! command -v tmux &> /dev/null; then
   echo "Error: tmux is not installed. Install it with: brew install tmux"
   exit 1
 fi
 
-if ! command -v openci-worker &> /dev/null; then
-  echo "Error: openci-worker is not installed. Install it with:"
-  echo "  brew tap open-ci-io/tap && brew install openci-worker"
+if ! command -v openci_worker &> /dev/null; then
+  echo "Error: openci_worker is not installed. Install it with:"
+  echo "  dart pub global activate openci_worker_cli"
   exit 1
 fi
 
@@ -22,7 +28,7 @@ if [ ! -f "$SA_PATH" ]; then
   exit 1
 fi
 
-WORKER_CMD='while true; do openci-worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
+WORKER_CMD='while true; do openci_worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
 
 tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 

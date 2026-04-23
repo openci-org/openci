@@ -6,7 +6,7 @@ SCRIPT_VERSION="1.0.0"
 NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-setup"
-REPO_BASE="https://raw.githubusercontent.com/open-ci-io/openci/develop"
+REPO_BASE="https://raw.githubusercontent.com/openci-org/openci/develop"
 INSTALL_DIR="$HOME/.openci"
 
 # 0. Download scripts to ~/.openci (always fetch latest)
@@ -31,12 +31,22 @@ else
 fi
 
 # 2. PATH setup
-if echo "$PATH" | grep -q "$HOME/.local/bin"; then
-  echo "✅ PATH already configured"
-else
-  echo "🔧 Configuring PATH..."
+NEED_PATH_UPDATE=false
+if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+  NEED_PATH_UPDATE=true
   echo 'export PATH="$PATH":"$HOME/.local/bin"' >> ~/.zshrc
   export PATH="$PATH":"$HOME/.local/bin"
+fi
+DART_PUB_CACHE_BIN="${PUB_CACHE:-$HOME/.pub-cache}/bin"
+if ! echo ":$PATH:" | grep -q ":$DART_PUB_CACHE_BIN:"; then
+  NEED_PATH_UPDATE=true
+  echo 'export PATH="$PATH":"${PUB_CACHE:-$HOME/.pub-cache}/bin"' >> ~/.zshrc
+  export PATH="$PATH:$DART_PUB_CACHE_BIN"
+fi
+if [ "$NEED_PATH_UPDATE" = true ]; then
+  echo "🔧 PATH configured"
+else
+  echo "✅ PATH already configured"
 fi
 
 # 3. tmux
@@ -75,20 +85,25 @@ else
 fi
 
 # 6. VM image
-if lume ls 2>/dev/null | grep -q "tahoe-base"; then
+if lume ls 2>/dev/null | grep -q "tahoe-base_v1.1.1"; then
   echo "✅ VM image already pulled"
 else
   echo "📦 Pulling VM image (this may take a while)..."
-  lume pull tahoe-base:v1.0.0 --organization open-ci-io
+  lume pull tahoe-base:v1.1.1 --organization openci-org
 fi
 
 # 7. Worker CLI
-if command -v openci-worker &> /dev/null; then
-  echo "✅ openci-worker already installed"
+if ! command -v dart &> /dev/null; then
+  echo "📦 Installing Dart SDK..."
+  brew tap dart-lang/dart
+  brew install dart
+fi
+
+if command -v openci_worker &> /dev/null; then
+  echo "✅ openci_worker already installed"
 else
   echo "📦 Installing Worker CLI..."
-  brew tap open-ci-io/tap
-  brew install openci-worker
+  dart pub global activate openci_worker_cli
 fi
 
 echo ""
@@ -105,7 +120,7 @@ if [ -f "$SA_PATH_EXPANDED" ]; then
 
   tmux rename-session -t "$SESSION_NAME" "openci-workers" 2>/dev/null || true
 
-  WORKER_CMD='while true; do openci-worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
+  WORKER_CMD='while true; do openci_worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
 
   for ((i = 2; i <= NUM_WORKERS; i++)); do
     tmux split-window "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/worker-$i/")"
@@ -113,7 +128,7 @@ if [ -f "$SA_PATH_EXPANDED" ]; then
   done
 
   while true; do
-    openci-worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
+    openci_worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
     echo "🔄 Worker exited. Restarting in 3s..."
     sleep 3
   done

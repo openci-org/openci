@@ -59,7 +59,7 @@ class StudioFooter extends StatelessComponent {
                   children: [
                     a(
                       [Component.text('GitHub')],
-                      href: 'https://github.com/open-ci-io',
+                      href: 'https://github.com/openci-org',
                       target: Target.blank,
                       attributes: {'rel': 'noopener noreferrer'},
                     ),

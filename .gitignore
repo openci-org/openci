@@ -8,5 +8,5 @@
 
 # Build artifacts
 *.tar.gz
-apps/openci_worker_cli/openci-worker
+apps/openci_worker_cli/openci_worker
 apps/openci_vm_cli/openci-vm

@@ -46,7 +46,7 @@ class StudioAboutContent extends StatelessComponent {
               const br(),
               Component.text('ご興味のある方は、'),
               a([Component.text('OpenCIのGitHub')],
-                  href: 'https://github.com/open-ci-io/openci',
+                  href: 'https://github.com/openci-org/openci',
                   target: Target.blank,
                   attributes: {'rel': 'noopener noreferrer'}),
               Component.text('をご覧ください。'),

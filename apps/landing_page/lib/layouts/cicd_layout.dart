@@ -40,7 +40,7 @@ class CicdLayout extends PageLayoutBase {
             ], href: '#pricing'),
             a(
               [Component.text('GitHub')],
-              href: 'https://github.com/open-ci-io/openci',
+              href: 'https://github.com/openci-org/openci',
               target: Target.blank,
               attributes: {'rel': 'noopener noreferrer'},
             ),
@@ -200,7 +200,7 @@ class CicdLayout extends PageLayoutBase {
             div(classes: 'footer-links', [
               a(
                 [Component.text('GitHub')],
-                href: 'https://github.com/open-ci-io/openci',
+                href: 'https://github.com/openci-org/openci',
                 target: Target.blank,
                 attributes: {'rel': 'noopener noreferrer'},
               ),

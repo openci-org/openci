@@ -1,7 +1,7 @@
 name: openci_worker_cli
 description: OpenCI Worker CLI - A CI/CD worker for OpenCI
 version: 0.9.16
-repository: https://github.com/open-ci-io/openci
+repository: https://github.com/openci-org/openci
 
 environment:
   sdk: ^3.11.0

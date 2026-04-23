@@ -3,9 +3,9 @@
 [![pub package](https://img.shields.io/pub/v/openci_vm_cli.svg)](https://pub.dev/packages/openci_vm_cli)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-CLI tool that runs inside [OpenCI](https://openci.io) VMs to handle iOS code signing, building, and exporting IPAs.
+CLI tool that runs inside [OpenCI](https://openci.org) VMs to handle iOS code signing, building, and exporting IPAs.
 
-Part of the [OpenCI](https://github.com/open-ci-io/openci) open-source CI/CD platform.
+Part of the [OpenCI](https://github.com/openci-org/openci) open-source CI/CD platform.
 
 ## Installation
 
