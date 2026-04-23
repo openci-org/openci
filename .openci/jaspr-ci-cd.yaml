@@ -28,7 +28,7 @@ jobs:
         run: dart pub global activate jaspr_cli
 
       - name: Build jaspr (static)
-        run: cd apps/landing_page && jaspr build
+        run: cd apps/landing_page && dart pub global run jaspr_cli:jaspr build
 
       - name: Sync build output to firebase/public
         run: |
