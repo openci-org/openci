@@ -48,6 +48,7 @@ class CicdLayout extends PageLayoutBase {
               [Component.text(isJapanese ? 'ダッシュボード' : 'Dashboard')],
               href: 'https://dashboard.openci.org/',
               target: Target.blank,
+              attributes: {'rel': 'noopener noreferrer'},
               classes: 'cta-button inverted',
             ),
           ]),
@@ -64,6 +65,7 @@ class CicdLayout extends PageLayoutBase {
                 [Component.text(isJapanese ? '無料で始める' : 'Start for free')],
                 href: 'https://dashboard.openci.org/',
                 target: Target.blank,
+                attributes: {'rel': 'noopener noreferrer'},
                 classes: 'cta-button',
               ),
             ]),
@@ -74,7 +76,8 @@ class CicdLayout extends PageLayoutBase {
           div(classes: 'container', [
             div(classes: 'video-wrapper', [
               RawText(
-                '<video autoplay muted loop playsinline preload="auto">'
+                '<video autoplay muted loop playsinline preload="metadata" '
+                'aria-label="${isJapanese ? "OpenCIのデモ動画" : "OpenCI demo video"}">'
                 '<source src="/openci_demo.mp4" type="video/mp4">'
                 '</video>',
               ),
@@ -105,12 +108,12 @@ class CicdLayout extends PageLayoutBase {
                     ? [
                         'Mac + Linux 両対応',
                         'GitHub Actions互換',
-                        '無料セットアップ通話 (30分)',
+                        '無料セットアップ通話 (15分)',
                       ]
                     : [
                         'Mac + Linux runners',
                         'GitHub Actions compatible',
-                        'Free setup call (30 min)',
+                        'Free setup call (15 min)',
                       ],
               ),
               _pricingCard(
@@ -123,12 +126,12 @@ class CicdLayout extends PageLayoutBase {
                     : 'Apple Silicon (M1/M2/M4) runner',
                 features: isJapanese
                     ? [
-                        'v4 CPU / 8GB RAM',
+                        '4 vCPU / 8GB RAM',
                         'iOS / macOS ネイティブビルド',
                         'GitHub Actionsより最大90%オフ',
                       ]
                     : [
-                        'v4 CPU / 8GB RAM',
+                        '4 vCPU / 8GB RAM',
                         'Native iOS / macOS builds',
                         'Up to 90% cheaper than GitHub Actions',
                       ],
@@ -144,12 +147,12 @@ class CicdLayout extends PageLayoutBase {
                     : 'High-performance Linux runner (Ubuntu)',
                 features: isJapanese
                     ? [
-                        'v2 CPU / 4GB RAM',
+                        '2 vCPU / 4GB RAM',
                         'Docker対応',
                         'GitHub Actionsより最大93%オフ',
                       ]
                     : [
-                        'v2 CPU / 4GB RAM',
+                        '2 vCPU / 4GB RAM',
                         'Docker support',
                         'Up to 93% cheaper than GitHub Actions',
                       ],
@@ -170,8 +173,8 @@ class CicdLayout extends PageLayoutBase {
               p(classes: 'support-description', [
                 Component.text(
                   isJapanese
-                      ? '30分のビデオ通話で、ワークフロー設定から最初のビルド成功まで一緒にお手伝いします。'
-                      : 'We\'ll help you set up your workflows and get your first build running in a free 30-minute video call.',
+                      ? '15分のビデオ通話で、ワークフロー設定から最初のビルド成功まで一緒にお手伝いします。'
+                      : 'We\'ll help you set up your workflows and get your first build running in a free 15-minute video call.',
                 ),
               ]),
               a(
@@ -483,10 +486,9 @@ class _CicdStyles extends StatelessComponent {
             'border': '1px solid rgba(10, 10, 10, 0.08)',
           },
         ),
-        css('.video-wrapper video').styles(
-          width: 100.percent,
-          display: Display.block,
-        ),
+        css(
+          '.video-wrapper video',
+        ).styles(width: 100.percent, display: Display.block),
 
         // ── Pricing ──
         css('.cicd-pricing').styles(
