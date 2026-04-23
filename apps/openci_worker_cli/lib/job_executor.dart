@@ -266,6 +266,11 @@ Future<bool> processJob(
 
     await writeFileToVm(vmName, '/tmp/openci-env', envFileContent);
     await writeFileToVm(vmName, '/tmp/openci-secrets', secretFileContent);
+    await writeFileToVm(
+      vmName,
+      '/tmp/openci-event.json',
+      buildEventPayload(buildJob),
+    );
     await logInfo(
       firestore,
       buildJobId,
@@ -290,6 +295,7 @@ Future<bool> processJob(
           '-P macos-14=-self-hosted '
           '-P macos-15=-self-hosted '
           '-P ubuntu-latest=-self-hosted '
+          '-e /tmp/openci-event.json '
           '--env-file /tmp/openci-env '
           '--secret-file /tmp/openci-secrets',
     ].join('\n');
@@ -456,6 +462,62 @@ Future<Map<String, String>> buildEnvVars({
   }
 
   return envVars;
+}
+
+/// Builds a minimal GitHub event payload JSON for `act -e <file>`.
+///
+/// `act` reads this file and exposes it via `${{ github.event.* }}`.
+/// Without it, expressions like `${{ github.event.pull_request.number }}`
+/// evaluate to empty strings.
+///
+/// The payload is minimal and only covers fields we can derive from
+/// [BuildJob]. Base ref is left empty since it is not tracked today.
+String buildEventPayload(BuildJob buildJob) {
+  final owner = buildJob.owner;
+  final repo = buildJob.repo;
+  final fullName = '$owner/$repo';
+  final commitSha = buildJob.commitSha ?? '';
+  final branch = buildJob.branch ?? '';
+  final pullRequestNumber = buildJob.pullRequestNumber;
+
+  final repository = <String, dynamic>{
+    'name': repo,
+    'full_name': fullName,
+    'owner': {'login': owner, 'name': owner},
+    'default_branch': branch,
+  };
+
+  if (pullRequestNumber != null) {
+    return jsonEncode({
+      'action': 'opened',
+      'number': pullRequestNumber,
+      'pull_request': {
+        'number': pullRequestNumber,
+        'head': {
+          'ref': branch,
+          'sha': commitSha,
+          'repo': {'full_name': fullName, 'name': repo},
+        },
+        'base': {
+          'ref': '',
+          'sha': '',
+          'repo': {'full_name': fullName, 'name': repo},
+        },
+      },
+      'repository': repository,
+      'sender': {'login': owner},
+    });
+  }
+
+  return jsonEncode({
+    'ref': branch.isEmpty ? '' : 'refs/heads/$branch',
+    'before': '',
+    'after': commitSha,
+    'head_commit': {'id': commitSha},
+    'repository': repository,
+    'pusher': {'name': owner},
+    'sender': {'login': owner},
+  });
 }
 
 Future<Map<String, String>> buildSecretVars({

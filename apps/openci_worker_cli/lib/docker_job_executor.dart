@@ -176,6 +176,11 @@ Future<bool> processDockerJob(
       '/tmp/openci-secrets',
       secretFileLines.join('\n'),
     );
+    await writeFileToContainer(
+      name,
+      '/tmp/openci-event.json',
+      buildEventPayload(buildJob),
+    );
     await logInfo(
       firestore,
       buildJobId,
@@ -201,6 +206,7 @@ Future<bool> processDockerJob(
           '-P macos-14=-self-hosted '
           '-P macos-15=-self-hosted '
           '-P ubuntu-latest=-self-hosted '
+          '-e /tmp/openci-event.json '
           '--env-file /tmp/openci-env '
           '--secret-file /tmp/openci-secrets',
     ].join('\n');
