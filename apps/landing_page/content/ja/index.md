@@ -1,12 +1,12 @@
 ---
-title: OpenCI株式会社
-description: 誰もが使えるCI/CDを作っています。
+title: OpenCI — CI/CDを、もっと安く、もっと速く。
+description: M4 Mac Miniで高速ビルド。GitHub Actionsより最大90%オフ。GitHub Actionsのワークフローファイルをそのまま使えます。
+layout: cicd
+lang: ja
 ---
 
-# OpenCI株式会社
+# CI/CDを、
+<span class="hero-tagline">もっと安く、もっと速く。</span>
 
-誰もが使えるCI/CDを作っています。
-
-GitHub Actions互換 · 1分2円
-
-[ダッシュボード →](https://dashboard.openci.org/)
+M4 Macで高速ビルド。GitHub Actionsより最大-90%
+GHAのワークフローファイルをそのまま使えます。
