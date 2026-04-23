@@ -13,11 +13,13 @@
       ]
     }
   ],
-  "firestore": {
-    "database": "openci-enterprise",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
+  "firestore": [
+    {
+      "database": "openci-enterprise",
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
+    }
+  ],
   "hosting": {
     "public": "public",
     "cleanUrls": true,
