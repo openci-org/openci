@@ -125,12 +125,12 @@ class CicdLayout extends PageLayoutBase {
                     ? [
                         'v4 CPU / 8GB RAM',
                         'iOS / macOS ネイティブビルド',
-                        'GitHub Actionsの約1/10の価格',
+                        'GitHub Actionsより最大90%オフ',
                       ]
                     : [
                         'v4 CPU / 8GB RAM',
                         'Native iOS / macOS builds',
-                        '~10x cheaper than GitHub Actions',
+                        'Up to 90% cheaper than GitHub Actions',
                       ],
                 featured: true,
               ),
@@ -146,12 +146,12 @@ class CicdLayout extends PageLayoutBase {
                     ? [
                         'v2 CPU / 4GB RAM',
                         'Docker対応',
-                        'GitHub Actionsの約1/15の価格',
+                        'GitHub Actionsより最大93%オフ',
                       ]
                     : [
                         'v2 CPU / 4GB RAM',
                         'Docker support',
-                        '~15x cheaper than GitHub Actions',
+                        'Up to 93% cheaper than GitHub Actions',
                       ],
               ),
             ]),
@@ -432,12 +432,23 @@ class _CicdStyles extends StatelessComponent {
           raw: {'text-align': 'center'},
         ),
         css('.cicd-hero h1').styles(
-          fontSize: 2.75.rem,
+          fontSize: 1.75.rem,
           fontWeight: FontWeight.w500,
           color: const Color('#0a0a0a'),
           raw: {
-            'letter-spacing': '-0.03em',
+            'letter-spacing': '-0.02em',
             'white-space': 'pre-line',
+            'text-wrap': 'balance',
+          },
+        ),
+        css('.hero-tagline').styles(
+          fontSize: 3.5.rem,
+          fontWeight: FontWeight.w600,
+          color: const Color('#0a0a0a'),
+          display: Display.block,
+          raw: {
+            'letter-spacing': '-0.04em',
+            'margin-top': '0.25rem',
             'text-wrap': 'balance',
           },
         ),
@@ -649,7 +660,8 @@ class _CicdStyles extends StatelessComponent {
       '<style>'
       '@media (max-width: 768px) {'
       '  .cicd-hero { padding-top: 4rem; }'
-      '  .cicd-hero h1 { font-size: 2rem; }'
+      '  .cicd-hero h1 { font-size: 1.375rem; }'
+      '  .hero-tagline { font-size: 2.25rem !important; }'
       '  .pricing-grid { grid-template-columns: 1fr; }'
       '  .cicd-nav { gap: 1rem; }'
       '  .footer-inner { flex-direction: column; gap: 1rem; }'
