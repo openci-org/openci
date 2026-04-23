@@ -57,13 +57,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: openci-org/flutter-setup@v1
         with:
           flutter-version: "stable"
+
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+          
       - uses: openci-org/flutter-cd@v2
         with:
           platform: "web"

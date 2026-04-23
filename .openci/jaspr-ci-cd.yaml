@@ -1,0 +1,52 @@
+name: Jaspr Landing Page CI/CD (Web)
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: openci-org/dart-setup@v1
+        with:
+          dart-version: "stable"
+          
+      - name: Install dependencies
+        run: cd apps/landing_page && dart pub get
+
+      - name: Analyze
+        run: cd apps/landing_page && dart analyze
+
+      - name: Activate jaspr_cli
+        run: dart pub global activate jaspr_cli
+
+      - name: Build jaspr (static)
+        run: cd apps/landing_page && jaspr build
+
+      - name: Sync build output to firebase/public
+        run: |
+          rm -rf firebase/public
+          mkdir -p firebase/public
+          cp -R apps/landing_page/build/jaspr/. firebase/public/
+
+      - uses: openci-org/save-secret-file@v1
+        with:
+          secret: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          path: "firebase/service-account.json"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        working-directory: firebase
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase/service-account.json
+        run: firebase deploy --only hosting --non-interactive
