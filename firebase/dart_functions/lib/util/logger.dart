@@ -33,6 +33,5 @@ void _log(
     if (data != null) ...data,
     if (error != null) 'error': error.toString(),
   };
-  // ignore: avoid_print
   print(jsonEncode(entry));
 }

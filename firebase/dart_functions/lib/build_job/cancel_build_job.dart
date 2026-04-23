@@ -4,7 +4,6 @@ import 'package:openci_shared/firestore_paths.dart';
 import '../firebase.dart';
 import '../util/logger.dart';
 
-/// Request model for `cancelBuildJob`.
 class CancelBuildJobRequest {
   const CancelBuildJobRequest({required this.buildJobId});
 
@@ -19,9 +18,6 @@ class CancelBuildJobRequest {
   final String buildJobId;
 }
 
-/// Handler for the `cancelBuildJob` callable function.
-///
-/// Cancels a queued or in-progress build job.
 Future<Map<String, dynamic>> handleCancelBuildJob(
   CallableRequest<CancelBuildJobRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -44,14 +40,12 @@ Future<Map<String, dynamic>> handleCancelBuildJob(
   final jobData = jobDoc.data()!;
   final currentStatus = jobData['status'] as String?;
 
-  // Only queued or in_progress jobs can be cancelled
   if (currentStatus != 'queued' && currentStatus != 'in_progress') {
     throw FailedPreconditionError(
       "Cannot cancel a build job with status '$currentStatus'",
     );
   }
 
-  // Verify team membership
   final teamId = jobData['teamId'] as String?;
   if (teamId != null) {
     final teamDoc = await firestore
@@ -72,7 +66,6 @@ Future<Map<String, dynamic>> handleCancelBuildJob(
     }
   }
 
-  // Update build job status to cancelled
   await jobRef.update({'status': 'cancelled'});
 
   logInfo('Build job cancelled: $buildJobId', {

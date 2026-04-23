@@ -9,10 +9,6 @@ import '../secret_manager.dart' show accessSecret;
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
-// ---------------------------------------------------------------------------
-// Request models
-// ---------------------------------------------------------------------------
-
 class GetTeamMembersRequest {
   const GetTeamMembersRequest({required this.teamId});
 
@@ -57,11 +53,6 @@ class AcceptInvitationRequest {
   final String token;
 }
 
-// ---------------------------------------------------------------------------
-// Firebase Auth Identity Toolkit helper
-// ---------------------------------------------------------------------------
-
-/// Look up a Firebase Auth user by UID using Google Identity Toolkit API.
 Future<Map<String, dynamic>?> _getUserByUid(
   String uid,
   String accessToken,
@@ -86,7 +77,6 @@ Future<Map<String, dynamic>?> _getUserByUid(
   }
 }
 
-/// Look up a Firebase Auth user by email.
 Future<Map<String, dynamic>?> _getUserByEmail(
   String email,
   String accessToken,
@@ -111,7 +101,6 @@ Future<Map<String, dynamic>?> _getUserByEmail(
   }
 }
 
-/// Get access token via metadata server (for Google API calls).
 Future<String> _getAccessToken() async {
   final dio = Dio();
   try {
@@ -125,7 +114,6 @@ Future<String> _getAccessToken() async {
   }
 }
 
-/// Get project ID from metadata server.
 Future<String> _getProjectId() async {
   final dio = Dio();
   try {
@@ -141,10 +129,6 @@ Future<String> _getProjectId() async {
     dio.close();
   }
 }
-
-// ---------------------------------------------------------------------------
-// Resend email helper
-// ---------------------------------------------------------------------------
 
 Future<void> _sendEmail({
   required String to,
@@ -245,10 +229,6 @@ Future<void> _sendTeamAddedEmail({
   }
 }
 
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
-
 Future<Map<String, dynamic>> handleGetTeamMembers(
   CallableRequest<GetTeamMembersRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -309,11 +289,9 @@ Future<Map<String, dynamic>> handleInviteTeamMember(
   final accessToken = await _getAccessToken();
   final projectId = await _getProjectId();
 
-  // Get caller's email
   final callerUser = await _getUserByUid(callerUid, accessToken, projectId);
   final inviterEmail = (callerUser?['email'] as String?) ?? 'A team member';
 
-  // Check if user already has an OpenCI account
   final existingUser = await _getUserByEmail(email, accessToken, projectId);
   if (existingUser != null) {
     final inviteeUid = existingUser['localId'] as String;
@@ -322,11 +300,9 @@ Future<Map<String, dynamic>> handleInviteTeamMember(
       throw AlreadyExistsError('User is already a member of this team');
     }
 
-    // Add directly to team
     final teamRef = firestore.collection(teamsCollection).doc(teamId);
     final now = DateTime.now().toUtc().toIso8601String();
 
-    // Read current members and append
     final currentMembers = List<String>.from(members);
     currentMembers.add(inviteeUid);
     await teamRef.update({'members': currentMembers, 'updatedAt': now});
@@ -342,14 +318,12 @@ Future<Map<String, dynamic>> handleInviteTeamMember(
     return <String, dynamic>{'status': 'added', 'inviteeUid': inviteeUid};
   }
 
-  // User does NOT have an account — create a pending invitation
   final token = const Uuid().v4();
   final expiresAt = DateTime.now()
       .add(const Duration(days: 7))
       .toUtc()
       .toIso8601String();
 
-  // Check for existing pending invitation
   final existingInvitations = await firestore
       .collection(invitationsCollection)
       .where('email', WhereFilter.equal, email)
@@ -407,7 +381,6 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
   final userEmail = auth.token?['email'] as String?;
   final token = request.data.token;
 
-  // Find invitation by token
   final invitationQuery = await firestore
       .collection(invitationsCollection)
       .where('token', WhereFilter.equal, token)
@@ -422,14 +395,12 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
   final invitationDoc = invitationQuery.docs.first;
   final invitation = invitationDoc.data();
 
-  // Verify email matches
   if (invitation['email'] != userEmail) {
     throw PermissionDeniedError(
       'This invitation was sent to a different email address',
     );
   }
 
-  // Check expiration
   final expiresAtStr = invitation['expiresAt'] as String?;
   if (expiresAtStr != null) {
     final expiresAt = DateTime.parse(expiresAtStr);
@@ -439,7 +410,6 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
     }
   }
 
-  // Check team exists
   final teamId = invitation['teamId'] as String;
   final teamRef = firestore.collection(teamsCollection).doc(teamId);
   final teamDoc = await teamRef.get();
@@ -465,19 +435,16 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
     };
   }
 
-  // Add user to team
   final currentMembers = List<String>.from(members);
   currentMembers.add(uid);
   await teamRef.update({'members': currentMembers, 'updatedAt': now});
 
-  // Mark invitation as accepted
   await invitationDoc.ref.update({
     'status': 'accepted',
     'acceptedAt': now,
     'acceptedBy': uid,
   });
 
-  // Update user's selectedTeamId
   await firestore.collection(usersCollection).doc(uid).update({
     'selectedTeamId': teamId,
     'updatedAt': now,

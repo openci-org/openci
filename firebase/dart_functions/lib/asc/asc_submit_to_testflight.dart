@@ -5,10 +5,6 @@ import 'asc_client.dart';
 import 'asc_models.dart';
 import 'asc_requests.dart';
 
-/// Handler for the `ascSubmitToTestFlight` callable function.
-///
-/// Adds a build to the first external beta group for TestFlight
-/// external testing.
 Future<Map<String, dynamic>> handleAscSubmitToTestFlight(
   CallableRequest<SubmitToTestFlightRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -30,7 +26,6 @@ Future<Map<String, dynamic>> handleAscSubmitToTestFlight(
     privateKey: creds.privateKey,
   );
 
-  // Get existing beta groups for external testing
   final betaGroupsData = await ascApiFetch(
     token: token,
     path: '/betaGroups?limit=50',
@@ -49,7 +44,6 @@ Future<Map<String, dynamic>> handleAscSubmitToTestFlight(
     );
   }
 
-  // Add the build to the first external beta group
   final group = externalGroups.first;
   await ascApiFetch(
     token: token,

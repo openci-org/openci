@@ -4,9 +4,6 @@ import 'asc_client.dart';
 import 'asc_models.dart';
 import 'asc_requests.dart';
 
-/// Handler for the `ascListApps` callable function.
-///
-/// Fetches a list of apps from App Store Connect for the given team.
 Future<Map<String, dynamic>> handleAscListApps(
   CallableRequest<TeamRequest> request,
   CallableResponse<Map<String, dynamic>> response,

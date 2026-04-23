@@ -5,7 +5,6 @@ import '../secret_manager.dart' show accessSecret;
 import '../util/logger.dart';
 import 'github_urls.dart';
 
-/// Creates a JWT for GitHub App authentication.
 String createGitHubAppJwt(String appId, String privateKey) {
   final now = DateTime.now().toUtc();
   final jwt = JWT({
@@ -19,7 +18,6 @@ String createGitHubAppJwt(String appId, String privateKey) {
   return jwt.sign(RSAPrivateKey(privateKey), algorithm: JWTAlgorithm.RS256);
 }
 
-/// Gets a fresh installation access token for the given installation ID.
 Future<Map<String, dynamic>> getInstallationToken(
   int installationId, {
   String apiBaseUrl = defaultGitHubApiBaseUrl,
@@ -48,7 +46,6 @@ Future<Map<String, dynamic>> getInstallationToken(
   }
 }
 
-/// Creates a new check run on GitHub.
 Future<int?> createCheckRun({
   required String token,
   required String owner,
@@ -86,7 +83,6 @@ Future<int?> createCheckRun({
   }
 }
 
-/// Makes an authenticated GitHub REST API call.
 Future<Map<String, dynamic>> githubGet(
   String path,
   String token, {
@@ -111,7 +107,6 @@ Future<Map<String, dynamic>> githubGet(
   }
 }
 
-/// Makes an authenticated GitHub REST API POST call.
 Future<Map<String, dynamic>> githubPost(
   String path,
   String token, {
@@ -136,7 +131,6 @@ Future<Map<String, dynamic>> githubPost(
   }
 }
 
-/// Makes an authenticated GitHub REST API PATCH call.
 Future<Map<String, dynamic>> githubPatch(
   String path,
   String token, {
@@ -161,7 +155,6 @@ Future<Map<String, dynamic>> githubPatch(
   }
 }
 
-/// Makes an authenticated GitHub REST API PUT call.
 Future<Map<String, dynamic>> githubPut(
   String path,
   String token, {
@@ -186,7 +179,6 @@ Future<Map<String, dynamic>> githubPut(
   }
 }
 
-/// Makes an authenticated GitHub GraphQL query.
 Future<Map<String, dynamic>> githubGraphql(
   String query,
   String token, {
@@ -211,7 +203,6 @@ Future<Map<String, dynamic>> githubGraphql(
   }
 }
 
-/// Dashboard URL for a build job.
 String buildDashboardRunUrl(String buildJobId) {
   return 'https://dashboard.openci.org/build-jobs/$buildJobId';
 }

@@ -1,4 +1,3 @@
-/// GraphQL query to list files in the `.openci/` directory.
 const openciDirQuery = r'''
   query($owner: String!, $repo: String!, $expression: String!) {
     repository(owner: $owner, name: $repo) {
@@ -17,7 +16,6 @@ const openciDirQuery = r'''
   }
 ''';
 
-/// A single entry from the `.openci/` directory query.
 class OpenciDirEntry {
   final String name;
   final String type;

@@ -4,9 +4,6 @@ import 'asc_client.dart';
 import 'asc_models.dart';
 import 'asc_requests.dart';
 
-/// Handler for the `ascListBuilds` callable function.
-///
-/// Fetches a list of builds from App Store Connect for the given app.
 Future<Map<String, dynamic>> handleAscListBuilds(
   CallableRequest<ListBuildsRequest> request,
   CallableResponse<Map<String, dynamic>> response,

@@ -1,6 +1,5 @@
 import 'package:firebase_functions/firebase_functions.dart';
 
-/// Base request with teamId (used by most ASC functions).
 class TeamRequest {
   const TeamRequest({required this.teamId});
 
@@ -15,7 +14,6 @@ class TeamRequest {
   final String teamId;
 }
 
-/// Request for `ascListBuilds` — requires teamId and appId.
 class ListBuildsRequest {
   const ListBuildsRequest({required this.teamId, required this.appId});
 
@@ -32,7 +30,6 @@ class ListBuildsRequest {
   final String appId;
 }
 
-/// Request for `ascSubmitToTestFlight` — requires teamId and buildId.
 class SubmitToTestFlightRequest {
   const SubmitToTestFlightRequest({
     required this.teamId,
@@ -55,7 +52,6 @@ class SubmitToTestFlightRequest {
   final String buildId;
 }
 
-/// Request for `ascSubmitForReview`.
 class SubmitForReviewRequest {
   const SubmitForReviewRequest({
     required this.teamId,

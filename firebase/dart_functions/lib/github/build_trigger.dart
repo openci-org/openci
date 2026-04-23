@@ -27,7 +27,6 @@ Future<void> handleBuildTrigger(WebhookEvent event) async {
     return;
   }
 
-  // Resolve team to get API base URL for GHE support
   final teamId = await _findTeamIdForInstallation(installationId);
   final apiBaseUrl = await getGitHubApiBaseUrl(teamId);
   final githubBaseUrl = await getGitHubBaseUrl(teamId);
@@ -124,18 +123,15 @@ Future<String?> _resolveCommitSha({
   required _TriggerInfo triggerInfo,
   required Dio dio,
 }) async {
-  // PR: use head SHA
   if (event.event == GitHubEventType.pullRequest) {
     return event.pullRequest?.headSha;
   }
 
-  // Push: use head_commit.id or after
   if (event.event == GitHubEventType.push) {
     return (event.raw['head_commit']?['id'] as String?) ??
         (event.raw['after'] as String?);
   }
 
-  // Tag / Release: resolve via API
   final tagName = triggerInfo.tagName;
   final repo = event.repository;
   if (tagName != null && repo != null) {
@@ -231,7 +227,6 @@ Future<_BuildJobsResult> _createBuildJobs({
     dio: dio,
   );
 
-  // Determine the Git ref for the GraphQL query
   final queryRef =
       commitSha ??
       (triggerInfo.triggerBranch != null
@@ -243,7 +238,6 @@ Future<_BuildJobsResult> _createBuildJobs({
     return _BuildJobsResult(createdJobs: 0, errors: 0);
   }
 
-  // Fetch .openci/ YAML files via GraphQL
   final entries = await _fetchOpenciDir(
     dio: dio,
     owner: owner,
@@ -290,9 +284,6 @@ Future<_BuildJobsResult> _createBuildJobs({
         continue;
       }
 
-      // teamId is already resolved at the top of handleBuildTrigger
-
-      // Check if workflow is disabled in Firestore
       if (teamId != null) {
         final wfBranch = triggerInfo.triggerBranch ?? 'HEAD';
         final docId = workflowFileDocId(
@@ -322,18 +313,15 @@ Future<_BuildJobsResult> _createBuildJobs({
 
       final workflowRunId = _uuid.v4();
 
-      // First pass: assign document IDs
       final jobDocIds = <String, String>{};
       for (final jobInfo in jobInfos) {
         jobDocIds[jobInfo.jobKey] = _uuid.v4();
       }
 
-      // Second pass: create build_jobs documents
       for (final jobInfo in jobInfos) {
         final documentId = jobDocIds[jobInfo.jobKey]!;
         final hasNeeds = jobInfo.needs.isNotEmpty;
 
-        // Build resolvedNeeds mapping
         Map<String, String>? resolvedNeeds;
         if (hasNeeds) {
           resolvedNeeds = {};
@@ -349,7 +337,6 @@ Future<_BuildJobsResult> _createBuildJobs({
           }
         }
 
-        // Create GitHub Check Run
         int? checkRunId;
         if (commitSha != null) {
           checkRunId = await _createCheckRun(
@@ -415,10 +402,6 @@ Future<_BuildJobsResult> _createBuildJobs({
   return _BuildJobsResult(createdJobs: createdJobCount, errors: errorCount);
 }
 
-// ---------------------------------------------------------------------------
-// Create GitHub Check Run
-// ---------------------------------------------------------------------------
-
 Future<int?> _createCheckRun({
   required Dio dio,
   required String owner,
@@ -445,10 +428,6 @@ Future<int?> _createCheckRun({
   }
 }
 
-// ---------------------------------------------------------------------------
-// YAML parsing helper
-// ---------------------------------------------------------------------------
-
 Map<String, dynamic>? _parseYaml(String content) {
   try {
     final result = loadYaml(content);
@@ -460,7 +439,6 @@ Map<String, dynamic>? _parseYaml(String content) {
   }
 }
 
-/// Convert YamlMap/YamlList to plain Dart Map/List.
 Map<String, dynamic> _yamlToMap(YamlMap yaml) {
   final map = <String, dynamic>{};
   for (final entry in yaml.entries) {

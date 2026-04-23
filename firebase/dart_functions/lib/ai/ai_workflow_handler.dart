@@ -5,10 +5,6 @@ import '../secret_manager.dart' show accessSecret;
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
-// ---------------------------------------------------------------------------
-// Request model
-// ---------------------------------------------------------------------------
-
 class GenerateAiWorkflowRequest {
   const GenerateAiWorkflowRequest({
     required this.teamId,
@@ -36,10 +32,6 @@ class GenerateAiWorkflowRequest {
   final List<Map<String, dynamic>> messages;
   final String? repoContext;
 }
-
-// ---------------------------------------------------------------------------
-// System prompt
-// ---------------------------------------------------------------------------
 
 const _systemPrompt =
     r'''You are an AI assistant that helps developers create CI/CD workflow files for OpenCI.
@@ -96,10 +88,6 @@ Your behavior:
    <<<END_YAML>>>
 5. After generating YAML, offer to make changes.
 6. Always respond in the same language the user is using.''';
-
-// ---------------------------------------------------------------------------
-// Handler
-// ---------------------------------------------------------------------------
 
 Future<Map<String, dynamic>> handleGenerateAiWorkflow(
   CallableRequest<GenerateAiWorkflowRequest> request,

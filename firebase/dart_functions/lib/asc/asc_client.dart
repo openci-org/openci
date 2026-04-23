@@ -12,7 +12,6 @@ import '../secret_manager.dart';
 
 const _ascBaseUrl = 'https://api.appstoreconnect.apple.com/v1';
 
-/// ASC API credentials retrieved from Secret Manager.
 class AscCredentials {
   const AscCredentials({
     required this.issuerId,
@@ -25,7 +24,6 @@ class AscCredentials {
   final String privateKey;
 }
 
-/// Retrieves ASC API credentials from Firestore + Secret Manager.
 Future<AscCredentials> getAscCredentials(String teamId) async {
   final snapshot = await firestore
       .collection(secretsCollection)
@@ -59,20 +57,14 @@ Future<AscCredentials> getAscCredentials(String teamId) async {
   );
 }
 
-/// Reads a secret value from Secret Manager by its full resource path.
 Future<String> _getSecretValue(String pathToSecret) async {
-  // pathToSecret is like "projects/xxx/secrets/yyy"
-  // We need to extract the secret ID and use accessSecret.
-  // However, the TS version accesses by full path, so we replicate that.
   final parts = pathToSecret.split('/');
-  // Expected format: projects/{project}/secrets/{secretId}
   if (parts.length >= 4 && parts[2] == 'secrets') {
     return accessSecret(parts[3]);
   }
   throw AscException('Invalid secret path: $pathToSecret');
 }
 
-/// Generates a JWT for App Store Connect API authentication.
 String generateAscJwt({
   required String issuerId,
   required String keyId,
@@ -93,7 +85,6 @@ String generateAscJwt({
   );
 }
 
-/// Makes a request to the App Store Connect API.
 Future<Map<String, dynamic>> ascApiFetch({
   required String token,
   required String path,
@@ -130,7 +121,6 @@ Future<Map<String, dynamic>> ascApiFetch({
   }
 }
 
-/// Verifies that the caller is a member of the team and returns team data.
 Future<Map<String, dynamic>> verifyAndGetTeam(
   String teamId,
   String callerUid,
@@ -149,7 +139,6 @@ Future<Map<String, dynamic>> verifyAndGetTeam(
   return teamData;
 }
 
-/// Exception class for ASC-related errors.
 class AscException implements Exception {
   const AscException(this.message);
   final String message;

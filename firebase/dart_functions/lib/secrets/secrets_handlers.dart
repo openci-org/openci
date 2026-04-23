@@ -10,10 +10,6 @@ import '../secret_manager.dart';
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
-// ---------------------------------------------------------------------------
-// Request models
-// ---------------------------------------------------------------------------
-
 class CreateSecretRequest {
   const CreateSecretRequest({
     required this.name,
@@ -145,10 +141,6 @@ class SetupAscApiKeyRequest {
   final String privateKey;
 }
 
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
-
 Future<Map<String, dynamic>> handleCreateSecret(
   CallableRequest<CreateSecretRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -158,7 +150,6 @@ Future<Map<String, dynamic>> handleCreateSecret(
   final name = request.data.name;
   final teamId = request.data.teamId;
 
-  // Check for duplicate name
   final duplicateCheck = await firestore
       .collection(secretsCollection)
       .where('teamId', WhereFilter.equal, teamId)
@@ -267,7 +258,6 @@ Future<Map<String, dynamic>> handleUpdateSecret(
 
   final oldName = secretData['name'] as String;
 
-  // Check for duplicate name (only if name is being changed)
   if (name != oldName) {
     final duplicateCheck = await firestore
         .collection(secretsCollection)
@@ -282,7 +272,6 @@ Future<Map<String, dynamic>> handleUpdateSecret(
   }
 
   try {
-    // Update secret value in Secret Manager if a new value is provided
     if (request.data.value != null) {
       final pathToSecret = secretData['pathToSecret'] as String;
       await addSecretVersionByPath(pathToSecret, request.data.value!);
@@ -292,11 +281,9 @@ Future<Map<String, dynamic>> handleUpdateSecret(
       });
     }
 
-    // Update Firestore document
     final now = DateTime.now().toUtc().toIso8601String();
     await secretRef.update({'name': name, 'updatedAt': now});
 
-    // If name changed, update all workflows that reference this secret
     if (name != oldName) {
       final workflowsSnapshot = await firestore
           .collection(workflowsCollection)
@@ -361,7 +348,6 @@ Future<Map<String, dynamic>> handleGenerateCertificateKey(
   }
 
   try {
-    // Generate RSA key pair using openssl process
     final result = await _generateRsaPrivateKey();
 
     final secretId = const Uuid().v4();
@@ -459,7 +445,6 @@ Future<Map<String, dynamic>> handleSetupAscApiKey(
   }
 }
 
-/// Generates a 2048-bit RSA private key using `openssl` subprocess.
 Future<String> _generateRsaPrivateKey() async {
   final result = await Process.run('openssl', [
     'genpkey',

@@ -1,11 +1,5 @@
-/// App Store Connect API model classes.
-///
-/// These are minimal models containing only the fields
-/// that OpenCI actually uses, parsed from the JSON:API
-/// response format.
 library;
 
-/// An app from App Store Connect.
 class AscApp {
   const AscApp({
     required this.id,
@@ -37,7 +31,6 @@ class AscApp {
   };
 }
 
-/// A build from App Store Connect.
 class AscBuild {
   const AscBuild({
     required this.id,
@@ -52,7 +45,6 @@ class AscBuild {
     this.appStoreState,
   });
 
-  /// Parses a build from JSON:API format with included resources.
   factory AscBuild.fromJsonApi(
     Map<String, dynamic> json, {
     Map<String, Map<String, dynamic>> preReleaseVersions = const {},
@@ -79,7 +71,6 @@ class AscBuild {
         ? appStoreVersions[appStoreVersionId]
         : null;
 
-    // Icon URL template replacement
     String? iconUrl;
     final iconToken = attrs['iconAssetToken'] as Map<String, dynamic>?;
     if (iconToken != null) {
@@ -134,7 +125,6 @@ class AscBuild {
   };
 }
 
-/// A beta group from App Store Connect.
 class AscBetaGroup {
   const AscBetaGroup({
     required this.id,
@@ -156,15 +146,12 @@ class AscBetaGroup {
   final bool isInternalGroup;
 }
 
-/// Extracts a relationship ID from JSON:API relationships.
 String? _relationshipId(Map<String, dynamic> relationships, String key) {
   final rel = relationships[key] as Map<String, dynamic>?;
   final data = rel?['data'] as Map<String, dynamic>?;
   return data?['id'] as String?;
 }
 
-/// Parses the `included` array from a JSON:API response into maps
-/// keyed by type.
 ({
   Map<String, Map<String, dynamic>> preReleaseVersions,
   Map<String, Map<String, dynamic>> buildBetaDetails,

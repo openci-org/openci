@@ -8,9 +8,6 @@ import 'installation_token.dart';
 import 'package:openci_shared/firestore_paths.dart';
 import 'workflow_parser.dart';
 
-/// Sync `.openci/` workflow files from GitHub to Firestore.
-///
-/// Called on push events to keep Firestore in sync with the repository.
 Future<void> syncWorkflowFiles({
   required String repository,
   required String branch,
@@ -36,7 +33,6 @@ Future<void> syncWorkflowFiles({
     final [owner, repo] = repository.split('/');
     final expression = '$branch:.openci';
 
-    // Fetch entries via GraphQL
     List<OpenciDirEntry> entries;
     try {
       final response = await dio.post(
@@ -56,7 +52,6 @@ Future<void> syncWorkflowFiles({
     } catch (e) {
       final message = e.toString();
       if (message.contains('Could not resolve to an object')) {
-        // .openci/ does not exist — delete all cached files
         await _deleteAllWorkflowFiles(teamId, repository, branch);
         return;
       }
@@ -93,7 +88,6 @@ Future<void> syncWorkflowFiles({
       syncedCount++;
     }
 
-    // Delete workflow files that no longer exist
     final deletedCount = await _deleteRemovedWorkflowFiles(
       teamId,
       repository,
@@ -113,10 +107,6 @@ Future<void> syncWorkflowFiles({
     dio.close();
   }
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 Future<String?> _findTeamIdForInstallation(int installationId) async {
   try {

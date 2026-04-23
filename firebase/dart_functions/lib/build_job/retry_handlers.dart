@@ -8,10 +8,6 @@ import '../util/github_app.dart';
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
-// ---------------------------------------------------------------------------
-// Request models
-// ---------------------------------------------------------------------------
-
 class RetryBuildJobRequest {
   const RetryBuildJobRequest({required this.buildJobId});
 
@@ -40,10 +36,6 @@ class RetryWorkflowRunRequest {
   final String workflowRunId;
 }
 
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
-
 Future<Map<String, dynamic>> handleRetryBuildJob(
   CallableRequest<RetryBuildJobRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -67,7 +59,6 @@ Future<Map<String, dynamic>> handleRetryBuildJob(
 
   final originalJob = originalJobDoc.data()!;
 
-  // Verify team membership
   final teamId = originalJob['teamId'] as String?;
   if (teamId != null) {
     await verifyTeamMembership(auth: auth, teamId: teamId);
@@ -76,7 +67,6 @@ Future<Map<String, dynamic>> handleRetryBuildJob(
   final newDocumentId = const Uuid().v4();
   final checkRunDetailsUrl = buildDashboardRunUrl(newDocumentId);
 
-  // Get fresh GitHub installation token
   final installationId = originalJob['installationId'] as int?;
   String? installationToken;
   String? tokenExpiresAt;
@@ -214,7 +204,6 @@ Future<Map<String, dynamic>> handleRetryWorkflowRun(
 
   final newWorkflowRunId = const Uuid().v4();
 
-  // First pass: assign new document IDs for each job
   final newJobDocIds = <String, String>{};
   for (final job in originalJobs) {
     final jobKey = job['jobKey'] as String?;

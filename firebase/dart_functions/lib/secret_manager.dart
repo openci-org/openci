@@ -48,9 +48,6 @@ Future<String> accessSecret(String secretId) async {
   }
 }
 
-/// Creates a new secret in Secret Manager and adds its initial value.
-///
-/// Returns the full resource path: `projects/{project}/secrets/{secretId}`.
 Future<String> createSecretWithValue(String secretId, String value) async {
   final projectId = resolveProjectId();
   final parent = 'projects/$projectId';
@@ -79,7 +76,6 @@ Future<String> createSecretWithValue(String secretId, String value) async {
   }
 }
 
-/// Adds a new version to an existing secret.
 Future<void> addSecretVersionByPath(String secretPath, String value) async {
   final client = await _createClient();
   try {
@@ -94,7 +90,6 @@ Future<void> addSecretVersionByPath(String secretPath, String value) async {
   }
 }
 
-/// Deletes a secret by its full resource path (e.g. `projects/X/secrets/Y`).
 Future<void> deleteSecretByPath(String secretPath) async {
   final client = await _createClient();
   try {
