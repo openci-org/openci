@@ -14,6 +14,7 @@
     }
   ],
   "firestore": {
+    "database": "openci-enterprise",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },

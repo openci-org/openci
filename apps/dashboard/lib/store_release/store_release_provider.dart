@@ -1,6 +1,6 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -92,7 +92,6 @@ String _requireTeamId(dynamic ref) {
 class IsAscConfigured extends _$IsAscConfigured {
   @override
   Stream<bool> build() {
-    final firestore = FirebaseFirestore.instance;
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value(false);
 
@@ -218,10 +217,10 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     await functions
         .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
         .call({
-      'teamId': teamId,
-      'issuerId': issuerId,
-      'keyId': keyId,
-      'privateKey': privateKey,
-    });
+          'teamId': teamId,
+          'issuerId': issuerId,
+          'keyId': keyId,
+          'privateKey': privateKey,
+        });
   }
 }

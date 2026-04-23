@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as cloud;
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -13,7 +13,6 @@ part 'environment_variable_provider.g.dart';
 class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   @override
   Stream<List<EnvironmentVariable>> build() {
-    final firestore = FirebaseFirestore.instance;
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
 
@@ -34,7 +33,6 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     String key,
     String value,
   ) async {
-    final firestore = FirebaseFirestore.instance;
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     final docRef = firestore.collection(environmentVariablesCollection).doc();
@@ -55,7 +53,6 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     required String key,
     required String value,
   }) async {
-    final firestore = FirebaseFirestore.instance;
     await firestore
         .collection(environmentVariablesCollection)
         .doc(documentId)
@@ -67,7 +64,6 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   }
 
   Future<void> deleteEnvironmentVariable(String documentId) async {
-    final firestore = FirebaseFirestore.instance;
     await firestore
         .collection(environmentVariablesCollection)
         .doc(documentId)

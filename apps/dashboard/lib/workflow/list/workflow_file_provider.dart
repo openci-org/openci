@@ -1,6 +1,6 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
@@ -39,7 +39,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
     return Stream.value([]);
   }
 
-  return FirebaseFirestore.instance
+  return firestore
       .collection(workflowFilesCollection)
       .where('teamId', isEqualTo: team.id)
       .where('repository', isEqualTo: selectedRepo)
@@ -80,10 +80,10 @@ Future<void> syncWorkflowFiles(Ref ref) async {
   await functions
       .httpsCallableFromUrl(dartFunctionUrl('sync-workflow-files'))
       .call({
-    'teamId': team.id,
-    'repository': selectedRepo,
-    'branch': selectedBranch,
-  });
+        'teamId': team.id,
+        'repository': selectedRepo,
+        'branch': selectedBranch,
+      });
 }
 
 /// Generate a stable document ID matching the Firebase Functions logic.
@@ -117,8 +117,7 @@ Future<void> toggleWorkflowEnabled(
     fileName,
   );
 
-  await FirebaseFirestore.instance
-      .collection(workflowFilesCollection)
-      .doc(docId)
-      .update({'enabled': enabled});
+  await firestore.collection(workflowFilesCollection).doc(docId).update({
+    'enabled': enabled,
+  });
 }

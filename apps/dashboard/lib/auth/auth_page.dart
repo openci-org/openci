@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
@@ -43,7 +43,6 @@ class AuthPage extends HookConsumerWidget {
     final isLoading = useState(false);
     final obscurePassword = useState(true);
 
-    final firestore = FirebaseFirestore.instance;
     final authT = t.auth;
     final colorScheme = Theme.of(context).colorScheme;
 
