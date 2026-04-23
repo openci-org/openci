@@ -1,7 +1,3 @@
-/// Parsed GitHub webhook event.
-///
-/// Extracts only the fields used by the webhook handler
-/// from the raw JSON payload.
 enum GitHubEventType {
   pullRequest('pull_request'),
   push('push'),

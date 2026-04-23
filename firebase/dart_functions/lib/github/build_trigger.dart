@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/firestore_paths.dart';
@@ -27,7 +29,6 @@ Future<void> handleBuildTrigger(WebhookEvent event) async {
     return;
   }
 
-  // Resolve team to get API base URL for GHE support
   final teamId = await _findTeamIdForInstallation(installationId);
   final apiBaseUrl = await getGitHubApiBaseUrl(teamId);
   final githubBaseUrl = await getGitHubBaseUrl(teamId);
@@ -66,10 +67,6 @@ Future<void> handleBuildTrigger(WebhookEvent event) async {
     dio.close();
   }
 }
-
-// ---------------------------------------------------------------------------
-// Trigger info extraction
-// ---------------------------------------------------------------------------
 
 class _TriggerInfo {
   final String triggerType;
@@ -123,27 +120,20 @@ _TriggerInfo? _extractTriggerInfo(WebhookEvent event) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Commit SHA resolution
-// ---------------------------------------------------------------------------
-
 Future<String?> _resolveCommitSha({
   required WebhookEvent event,
   required _TriggerInfo triggerInfo,
   required Dio dio,
 }) async {
-  // PR: use head SHA
   if (event.event == GitHubEventType.pullRequest) {
     return event.pullRequest?.headSha;
   }
 
-  // Push: use head_commit.id or after
   if (event.event == GitHubEventType.push) {
     return (event.raw['head_commit']?['id'] as String?) ??
         (event.raw['after'] as String?);
   }
 
-  // Tag / Release: resolve via API
   final tagName = triggerInfo.tagName;
   final repo = event.repository;
   if (tagName != null && repo != null) {
@@ -152,17 +142,18 @@ Future<String?> _resolveCommitSha({
         '/repos/${repo.fullName}/commits/$tagName',
       );
       return response.data['sha'] as String?;
-    } catch (e) {
-      logError('Failed to resolve commit SHA for tag', {'tag': tagName}, e);
+    } catch (e, stackTrace) {
+      await logError(
+        'Failed to resolve commit SHA for tag',
+        {'tag': tagName},
+        e,
+        stackTrace,
+      );
     }
   }
 
   return null;
 }
-
-// ---------------------------------------------------------------------------
-// GraphQL: fetch .openci/ directory
-// ---------------------------------------------------------------------------
 
 Future<List<OpenciDirEntry>> _fetchOpenciDir({
   required Dio dio,
@@ -188,18 +179,14 @@ Future<List<OpenciDirEntry>> _fetchOpenciDir({
     return entries
         .map((e) => OpenciDirEntry.fromJson(e as Map<String, dynamic>))
         .toList();
-  } catch (e) {
+  } catch (e, stackTrace) {
     final message = e.toString();
     if (!message.contains('Could not resolve to an object')) {
-      logError('Failed to list .openci/ directory', {}, e);
+      await logError('Failed to list .openci/ directory', {}, e, stackTrace);
     }
     return [];
   }
 }
-
-// ---------------------------------------------------------------------------
-// Find team ID from installation
-// ---------------------------------------------------------------------------
 
 Future<String?> _findTeamIdForInstallation(int installationId) async {
   try {
@@ -211,15 +198,11 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
 
     if (snapshot.docs.isEmpty) return null;
     return snapshot.docs.first.id;
-  } catch (e) {
-    logError('Failed to find team for installation', {}, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to find team for installation', {}, e, stackTrace);
     return null;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Create build jobs
-// ---------------------------------------------------------------------------
 
 class _BuildJobsResult {
   final int createdJobs;
@@ -251,7 +234,6 @@ Future<_BuildJobsResult> _createBuildJobs({
     dio: dio,
   );
 
-  // Determine the Git ref for the GraphQL query
   final queryRef =
       commitSha ??
       (triggerInfo.triggerBranch != null
@@ -263,7 +245,6 @@ Future<_BuildJobsResult> _createBuildJobs({
     return _BuildJobsResult(createdJobs: 0, errors: 0);
   }
 
-  // Fetch .openci/ YAML files via GraphQL
   final entries = await _fetchOpenciDir(
     dio: dio,
     owner: owner,
@@ -310,9 +291,6 @@ Future<_BuildJobsResult> _createBuildJobs({
         continue;
       }
 
-      // teamId is already resolved at the top of handleBuildTrigger
-
-      // Check if workflow is disabled in Firestore
       if (teamId != null) {
         final wfBranch = triggerInfo.triggerBranch ?? 'HEAD';
         final docId = workflowFileDocId(
@@ -342,18 +320,15 @@ Future<_BuildJobsResult> _createBuildJobs({
 
       final workflowRunId = _uuid.v4();
 
-      // First pass: assign document IDs
       final jobDocIds = <String, String>{};
       for (final jobInfo in jobInfos) {
         jobDocIds[jobInfo.jobKey] = _uuid.v4();
       }
 
-      // Second pass: create build_jobs documents
       for (final jobInfo in jobInfos) {
         final documentId = jobDocIds[jobInfo.jobKey]!;
         final hasNeeds = jobInfo.needs.isNotEmpty;
 
-        // Build resolvedNeeds mapping
         Map<String, String>? resolvedNeeds;
         if (hasNeeds) {
           resolvedNeeds = {};
@@ -369,7 +344,6 @@ Future<_BuildJobsResult> _createBuildJobs({
           }
         }
 
-        // Create GitHub Check Run
         int? checkRunId;
         if (commitSha != null) {
           checkRunId = await _createCheckRun(
@@ -426,18 +400,19 @@ Future<_BuildJobsResult> _createBuildJobs({
 
         createdJobCount++;
       }
-    } catch (e) {
-      logError('Failed to process .openci/${entry.name}', {}, e);
+    } catch (e, stackTrace) {
+      await logError(
+        'Failed to process .openci/${entry.name}',
+        {},
+        e,
+        stackTrace,
+      );
       errorCount++;
     }
   }
 
   return _BuildJobsResult(createdJobs: createdJobCount, errors: errorCount);
 }
-
-// ---------------------------------------------------------------------------
-// Create GitHub Check Run
-// ---------------------------------------------------------------------------
 
 Future<int?> _createCheckRun({
   required Dio dio,
@@ -459,28 +434,23 @@ Future<int?> _createCheckRun({
       },
     );
     return response.data['id'] as int?;
-  } catch (e) {
-    logError('Failed to create check run', {'name': name}, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to create check run', {'name': name}, e, stackTrace);
     return null;
   }
 }
-
-// ---------------------------------------------------------------------------
-// YAML parsing helper
-// ---------------------------------------------------------------------------
 
 Map<String, dynamic>? _parseYaml(String content) {
   try {
     final result = loadYaml(content);
     if (result is! YamlMap) return null;
     return _yamlToMap(result);
-  } catch (e) {
-    logError('Failed to parse YAML', {}, e);
+  } catch (e, stackTrace) {
+    unawaited(logError('Failed to parse YAML', {}, e, stackTrace));
     return null;
   }
 }
 
-/// Convert YamlMap/YamlList to plain Dart Map/List.
 Map<String, dynamic> _yamlToMap(YamlMap yaml) {
   final map = <String, dynamic>{};
   for (final entry in yaml.entries) {

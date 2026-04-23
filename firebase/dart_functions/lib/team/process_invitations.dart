@@ -5,9 +5,6 @@ import 'package:openci_shared/firestore_paths.dart';
 import '../firebase.dart';
 import '../util/logger.dart';
 
-/// Triggered after a user signs up or logs in.
-/// Called from the Dashboard client to check for pending invitations
-/// matching the user's email and automatically add them to invited teams.
 Future<CallableResult<Map<String, dynamic>>> handleProcessInvitationsOnSignUp(
   CallableRequest<Object?> request,
   CallableResponse<Object> response,
@@ -48,7 +45,6 @@ Future<CallableResult<Map<String, dynamic>>> handleProcessInvitationsOnSignUp(
   for (final doc in pendingInvitations.docs) {
     final invitation = doc.data();
 
-    // Check expiration
     final expiresAtStr = invitation['expiresAt'] as String?;
     if (expiresAtStr != null) {
       final expiresAt = DateTime.parse(expiresAtStr);
@@ -59,7 +55,6 @@ Future<CallableResult<Map<String, dynamic>>> handleProcessInvitationsOnSignUp(
       }
     }
 
-    // Add user to team
     final teamId = invitation['teamId'] as String;
     final teamRef = firestore.collection(teamsCollection).doc(teamId);
     final teamDoc = await teamRef.get();
@@ -78,7 +73,6 @@ Future<CallableResult<Map<String, dynamic>>> handleProcessInvitationsOnSignUp(
       await teamRef.update({'members': updatedMembers, 'updatedAt': nowIso});
     }
 
-    // Mark invitation as accepted
     await doc.ref.update({
       'status': 'accepted',
       'acceptedAt': nowIso,

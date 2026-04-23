@@ -1,19 +1,5 @@
-/// Pure functions for matching workflow triggers and extracting jobs
-/// from parsed .openci/ YAML files.
 library;
 
-/// Determines whether a parsed workflow YAML matches
-/// the given trigger type and branch.
-///
-/// The `on` field in the YAML can be:
-/// - A string: `on: push`
-/// - A list: `on: [push, pull_request]`
-/// - A map with optional branch filters:
-///   ```yaml
-///   on:
-///     push:
-///       branches: [main, develop]
-///   ```
 bool matchesTrigger(
   Map<String, dynamic> parsed,
   String triggerType,
@@ -22,22 +8,18 @@ bool matchesTrigger(
   final on = parsed['on'];
   if (on == null) return false;
 
-  // Map Dart trigger type to YAML key
   final yamlTriggerKey = triggerType == 'pullRequest'
       ? 'pull_request'
       : triggerType;
 
-  // on: "push"
   if (on is String) {
     return on == yamlTriggerKey;
   }
 
-  // on: [push, pull_request]
   if (on is List) {
     return on.contains(yamlTriggerKey);
   }
 
-  // on: { push: { branches: [main] } }
   if (on is Map) {
     final triggerConfig = on[yamlTriggerKey];
     if (triggerConfig == null && !on.containsKey(yamlTriggerKey)) return false;
@@ -59,7 +41,6 @@ bool matchesTrigger(
   return false;
 }
 
-/// Information about a single job extracted from a workflow YAML.
 class JobInfo {
   final String jobKey;
   final List<String> needs;
@@ -74,7 +55,6 @@ class JobInfo {
   });
 }
 
-/// A single step within a job.
 class JobStep {
   final String name;
   final String? run;
@@ -84,9 +64,6 @@ class JobStep {
   JobStep({required this.name, this.run, this.uses, this.withParams});
 }
 
-/// Extracts job definitions from a parsed workflow YAML.
-///
-/// Returns an empty list if no valid jobs are found.
 List<JobInfo> extractJobs(Map<String, dynamic> parsed) {
   final jobs = parsed['jobs'];
   if (jobs == null || jobs is! Map) return [];
@@ -131,7 +108,6 @@ List<JobInfo> extractJobs(Map<String, dynamic> parsed) {
 
     if (steps.isEmpty) continue;
 
-    // Parse needs
     final needs = <String>[];
     final rawNeeds = job['needs'];
     if (rawNeeds is List) {
@@ -148,7 +124,6 @@ List<JobInfo> extractJobs(Map<String, dynamic> parsed) {
   return jobInfos;
 }
 
-/// Generate a stable document ID for a workflow file.
 String workflowFileDocId(
   String teamId,
   String repository,

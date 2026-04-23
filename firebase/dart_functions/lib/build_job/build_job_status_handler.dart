@@ -7,10 +7,6 @@ import '../firebase.dart';
 import '../secret_manager.dart';
 import '../util/logger.dart';
 
-// ---------------------------------------------------------------------------
-// Request model
-// ---------------------------------------------------------------------------
-
 class BuildJobStatusChangeRequest {
   const BuildJobStatusChangeRequest({
     required this.buildJobId,
@@ -33,17 +29,6 @@ class BuildJobStatusChangeRequest {
   final String status;
 }
 
-// ---------------------------------------------------------------------------
-// Handler
-// ---------------------------------------------------------------------------
-
-/// Called by the Worker CLI after updating a build job's status.
-/// Replaces the Firestore trigger `onBuildJobStatusChange`.
-///
-/// Responsibilities:
-/// 1. Resolve job dependencies (for terminal statuses)
-/// 2. Generate AI failure summary (for failures)
-/// 3. Send FCM push notifications (for success/failure)
 Future<Map<String, dynamic>> handleBuildJobStatusChange(
   CallableRequest<BuildJobStatusChangeRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -62,7 +47,6 @@ Future<Map<String, dynamic>> handleBuildJobStatusChange(
 
   final jobData = buildJobDoc.data()!;
 
-  // 1. Resolve dependencies for terminal statuses
   const terminalStatuses = [
     'success',
     'failure',
@@ -74,20 +58,12 @@ Future<Map<String, dynamic>> handleBuildJobStatusChange(
     await _resolveDependencies(jobData, currentStatus);
   }
 
-  // 2. AI failure summary is now handled by a separate Cloud Function
-  //    (generate-failure-summary), called directly by the Worker CLI.
-
-  // 3. Send FCM notifications for success/failure
   if (currentStatus == 'success' || currentStatus == 'failure') {
     await _sendBuildNotifications(buildJobId, jobData, currentStatus);
   }
 
   return <String, dynamic>{'success': true};
 }
-
-// ---------------------------------------------------------------------------
-// Dependency resolution
-// ---------------------------------------------------------------------------
 
 Future<void> _resolveDependencies(
   Map<String, dynamic> completedJobData,
@@ -115,18 +91,15 @@ Future<void> _resolveDependencies(
     if (needs == null || !needs.contains(jobKey)) continue;
 
     if (!isSuccess) {
-      // Dependency failed → skip this job
       await doc.ref.update({'status': 'skipped', 'updatedAt': now});
       logInfo(
         'Skipped job ${jobData['jobKey']} because dependency $jobKey $completedStatus',
       );
 
-      // Cascade: skip children of this skipped job too
       await _resolveDependencies(jobData, 'skipped');
       continue;
     }
 
-    // Dependency succeeded, check if ALL dependencies are now satisfied
     final resolvedNeeds = (jobData['resolvedNeeds'] as Map<String, dynamic>?)
         ?.cast<String, String>();
     if (resolvedNeeds == null) continue;
@@ -150,10 +123,6 @@ Future<void> _resolveDependencies(
   }
 }
 
-// ---------------------------------------------------------------------------
-// FCM push notifications
-// ---------------------------------------------------------------------------
-
 Future<void> _sendBuildNotifications(
   String buildJobId,
   Map<String, dynamic> jobData,
@@ -174,7 +143,6 @@ Future<void> _sendBuildNotifications(
   final branch = jobData['branch'] as String?;
   final workflowName = jobData['workflowName'] as String?;
 
-  // Calculate duration
   var durationText = '';
   final createdAt = jobData['createdAt'] as String?;
   final completedAt = jobData['completedAt'] as String?;
@@ -200,7 +168,6 @@ Future<void> _sendBuildNotifications(
   bodyLines.add('$repo${branch != null ? ' ($branch)' : ''}');
   if (durationText.isNotEmpty) bodyLines.add('⏱ $durationText');
 
-  // For failures, add last error message
   if (!isSuccess) {
     final latestRunId = jobData['latestRunId'] as String?;
     if (latestRunId != null) {
@@ -225,7 +192,6 @@ Future<void> _sendBuildNotifications(
 
   final body = bodyLines.join('\n');
 
-  // Collect FCM tokens
   final tokensToNotify = <String>[];
   for (final memberId in members) {
     final userDoc = await firestore
@@ -249,7 +215,6 @@ Future<void> _sendBuildNotifications(
 
   if (tokensToNotify.isEmpty) return;
 
-  // Send via FCM HTTP v1 API
   try {
     final accessToken = await _getAccessToken();
     final projectId = await _getProjectId();
@@ -298,7 +263,6 @@ Future<void> _sendBuildNotifications(
         'Notifications sent to ${tokensToNotify.length - invalidTokens.length} devices',
       );
 
-      // Clean up invalid tokens
       if (invalidTokens.isNotEmpty) {
         logInfo('Removing ${invalidTokens.length} invalid FCM tokens');
         for (final memberId in members) {
@@ -323,14 +287,10 @@ Future<void> _sendBuildNotifications(
     } finally {
       dio.close();
     }
-  } catch (e) {
-    logError('Error sending notifications', null, e);
+  } catch (e, stackTrace) {
+    await logError('Error sending notifications', null, e, stackTrace);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 Future<String> _getAccessToken() async {
   final dio = Dio();
@@ -361,7 +321,6 @@ Future<String> _getProjectId() async {
   }
 }
 
-/// Cache for secret values to avoid repeated Secret Manager calls.
 final _secretCache = <String, String>{};
 
 Future<String> accessSecretCached(String name) async {

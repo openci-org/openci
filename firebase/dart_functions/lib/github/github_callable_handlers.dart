@@ -11,10 +11,6 @@ import '../util/github_urls.dart';
 import '../util/logger.dart';
 import '../util/team_auth.dart';
 
-// ---------------------------------------------------------------------------
-// GraphQL Queries
-// ---------------------------------------------------------------------------
-
 const _branchesQuery = r'''
   query($owner: String!, $repo: String!, $cursor: String) {
     repository(owner: $owner, name: $repo) {
@@ -69,10 +65,6 @@ const _openciDirQuery = r'''
     }
   }
 ''';
-
-// ---------------------------------------------------------------------------
-// Request models
-// ---------------------------------------------------------------------------
 
 class TeamIdRequest {
   const TeamIdRequest({required this.teamId});
@@ -240,11 +232,6 @@ class SyncWorkflowFilesRequest {
   final String? branch;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/// Gets installation IDs from team data, throwing if none.
 List<int> _getInstallationIds(Map<String, dynamic> teamData) {
   final ids =
       (teamData['installationIds'] as List<dynamic>?)
@@ -257,7 +244,6 @@ List<int> _getInstallationIds(Map<String, dynamic> teamData) {
   return ids;
 }
 
-/// Flattens tree entries into directory paths.
 List<String> _flattenTreeEntries(List<dynamic> entries, [String prefix = '']) {
   final dirs = <String>[];
   for (final entry in entries) {
@@ -274,7 +260,6 @@ List<String> _flattenTreeEntries(List<dynamic> entries, [String prefix = '']) {
   return dirs;
 }
 
-/// Generates stable document ID for workflow files in Firestore.
 String _workflowFileDocId(
   String teamId,
   String repository,
@@ -283,10 +268,6 @@ String _workflowFileDocId(
 ) {
   return '${teamId}_${repository.replaceAll('/', '_')}_${branch}_$fileName';
 }
-
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
 
 Future<Map<String, dynamic>> handleListRepositories(
   CallableRequest<TeamIdRequest> request,
@@ -335,9 +316,9 @@ Future<Map<String, dynamic>> handleListRepositories(
     }
 
     return <String, dynamic>{'repositories': allRepositories};
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to list repositories', null, e);
+    await logError('Failed to list repositories', null, e, stackTrace);
     throw InternalError('Failed to list repositories');
   }
 }
@@ -395,7 +376,6 @@ Future<Map<String, dynamic>> handleListBranches(
           cursor = pageInfo['endCursor'] as String?;
         }
 
-        // Sort: default branch first, then by committed date
         allBranches.sort((a, b) {
           if (a['name'] == defaultBranchName) return -1;
           if (b['name'] == defaultBranchName) return 1;
@@ -419,9 +399,9 @@ Future<Map<String, dynamic>> handleListBranches(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to list branches', null, e);
+    await logError('Failed to list branches', null, e, stackTrace);
     throw InternalError('Failed to list branches');
   }
 }
@@ -475,9 +455,9 @@ Future<Map<String, dynamic>> handleListDirectories(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to list directories', null, e);
+    await logError('Failed to list directories', null, e, stackTrace);
     throw InternalError('Failed to list directories');
   }
 }
@@ -555,9 +535,9 @@ Future<Map<String, dynamic>> handleListWorkflowFiles(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to list workflow files', null, e);
+    await logError('Failed to list workflow files', null, e, stackTrace);
     throw InternalError('Failed to list workflow files');
   }
 }
@@ -661,9 +641,9 @@ Future<Map<String, dynamic>> handleSearchGitHubActions(
     }
 
     throw InvalidArgumentError('Invalid type');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to search GitHub actions', null, e);
+    await logError('Failed to search GitHub actions', null, e, stackTrace);
     throw InternalError('Failed to search GitHub actions');
   }
 }
@@ -697,7 +677,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
         final token = tokenData['token'] as String;
 
         if (request.data.commitMode == 'direct') {
-          // Get latest commit SHA
           final refData = await githubGet(
             '/repos/$owner/$repo/git/ref/heads/${request.data.branch}',
             token,
@@ -706,7 +685,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
           final latestCommitSha =
               (refData['object'] as Map<String, dynamic>)['sha'] as String;
 
-          // Create blob
           final blobData = await githubPost(
             '/repos/$owner/$repo/git/blobs',
             token,
@@ -714,7 +692,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
             apiBaseUrl: apiBaseUrl,
           );
 
-          // Get latest commit tree
           final latestCommit = await githubGet(
             '/repos/$owner/$repo/git/commits/$latestCommitSha',
             token,
@@ -723,7 +700,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
           final baseTreeSha =
               (latestCommit['tree'] as Map<String, dynamic>)['sha'] as String;
 
-          // Create tree
           final treeData = await githubPost(
             '/repos/$owner/$repo/git/trees',
             token,
@@ -741,7 +717,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
             apiBaseUrl: apiBaseUrl,
           );
 
-          // Create commit
           final newCommit = await githubPost(
             '/repos/$owner/$repo/git/commits',
             token,
@@ -753,7 +728,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
             apiBaseUrl: apiBaseUrl,
           );
 
-          // Update ref
           await githubPatch(
             '/repos/$owner/$repo/git/refs/heads/${request.data.branch}',
             token,
@@ -767,7 +741,6 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
             'branch': request.data.branch,
           };
         } else {
-          // Pull request mode
           final newBranchName =
               'openci/add-${request.data.fileName.replaceAll(RegExp(r'\.(yaml|yml)$'), '')}-${DateTime.now().millisecondsSinceEpoch}';
 
@@ -825,9 +798,9 @@ Future<Map<String, dynamic>> handleCreateWorkflowFile(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to create workflow file', null, e);
+    await logError('Failed to create workflow file', null, e, stackTrace);
     throw InternalError('Failed to create workflow file');
   }
 }
@@ -857,14 +830,8 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
         );
         final token = tokenData['token'] as String;
 
-        // Verify repository access
-        await githubGet(
-          '/repos/$owner/$repo',
-          token,
-          apiBaseUrl: apiBaseUrl,
-        );
+        await githubGet('/repos/$owner/$repo', token, apiBaseUrl: apiBaseUrl);
 
-        // Sync workflow files
         final result = await _syncWorkflowFilesToFirestore(
           teamId: request.data.teamId,
           repository: request.data.repository,
@@ -881,14 +848,13 @@ Future<Map<String, dynamic>> handleSyncWorkflowFiles(
     }
 
     throw NotFoundError('Repository not found in any installation');
-  } catch (e) {
+  } catch (e, stackTrace) {
     if (e is HttpsError) rethrow;
-    logError('Failed to sync workflow files', null, e);
+    await logError('Failed to sync workflow files', null, e, stackTrace);
     throw InternalError('Failed to sync workflow files');
   }
 }
 
-/// Syncs .openci/ workflow files from GitHub to Firestore.
 Future<Map<String, dynamic>> _syncWorkflowFilesToFirestore({
   required String teamId,
   required String repository,
@@ -916,7 +882,6 @@ Future<Map<String, dynamic>> _syncWorkflowFilesToFirestore({
         [];
   } catch (e) {
     if (e.toString().contains('Could not resolve to an object')) {
-      // .openci/ directory does not exist — delete all cached files
       await _deleteAllWorkflowFiles(teamId, repository, branch);
       return <String, dynamic>{'synced': 0, 'deleted': 0};
     }
@@ -957,7 +922,6 @@ Future<Map<String, dynamic>> _syncWorkflowFilesToFirestore({
     syncedCount++;
   }
 
-  // Delete workflow files that no longer exist in the repository
   final deletedCount = await _deleteRemovedWorkflowFiles(
     teamId,
     repository,

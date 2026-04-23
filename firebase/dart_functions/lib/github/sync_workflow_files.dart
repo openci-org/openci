@@ -1,16 +1,13 @@
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
+import 'package:openci_shared/firestore_paths.dart';
 
 import '../firebase.dart';
 import '../util/github_urls.dart';
 import '../util/logger.dart';
 import 'graphql_queries.dart';
 import 'installation_token.dart';
-import 'package:openci_shared/firestore_paths.dart';
 import 'workflow_parser.dart';
 
-/// Sync `.openci/` workflow files from GitHub to Firestore.
-///
-/// Called on push events to keep Firestore in sync with the repository.
 Future<void> syncWorkflowFiles({
   required String repository,
   required String branch,
@@ -36,7 +33,6 @@ Future<void> syncWorkflowFiles({
     final [owner, repo] = repository.split('/');
     final expression = '$branch:.openci';
 
-    // Fetch entries via GraphQL
     List<OpenciDirEntry> entries;
     try {
       final response = await dio.post(
@@ -56,7 +52,6 @@ Future<void> syncWorkflowFiles({
     } catch (e) {
       final message = e.toString();
       if (message.contains('Could not resolve to an object')) {
-        // .openci/ does not exist — delete all cached files
         await _deleteAllWorkflowFiles(teamId, repository, branch);
         return;
       }
@@ -93,7 +88,6 @@ Future<void> syncWorkflowFiles({
       syncedCount++;
     }
 
-    // Delete workflow files that no longer exist
     final deletedCount = await _deleteRemovedWorkflowFiles(
       teamId,
       repository,
@@ -107,16 +101,17 @@ Future<void> syncWorkflowFiles({
       'repo': repository,
       'branch': branch,
     });
-  } catch (e) {
-    logError('Failed to sync workflow files', {'repo': repository}, e);
+  } catch (e, stackTrace) {
+    await logError(
+      'Failed to sync workflow files',
+      {'repo': repository},
+      e,
+      stackTrace,
+    );
   } finally {
     dio.close();
   }
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 Future<String?> _findTeamIdForInstallation(int installationId) async {
   try {
@@ -128,8 +123,8 @@ Future<String?> _findTeamIdForInstallation(int installationId) async {
 
     if (snapshot.docs.isEmpty) return null;
     return snapshot.docs.first.id;
-  } catch (e) {
-    logError('Failed to find team for installation', {}, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to find team for installation', {}, e, stackTrace);
     return null;
   }
 }

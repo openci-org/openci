@@ -4,10 +4,6 @@ import '../util/logger.dart';
 import 'asc_client.dart';
 import 'asc_requests.dart';
 
-/// Handler for the `ascSubmitForReview` callable function.
-///
-/// Creates or finds an App Store version, sets release notes,
-/// attaches a build, and submits for App Store review.
 Future<Map<String, dynamic>> handleAscSubmitForReview(
   CallableRequest<SubmitForReviewRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -27,7 +23,6 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
     privateKey: creds.privateKey,
   );
 
-  // 1. Create or find appStoreVersion
   final appStoreVersionId = await _resolveAppStoreVersion(
     token: token,
     appId: req.appId,
@@ -35,14 +30,12 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
     platform: req.platform,
   );
 
-  // 2. Set "What's New" release notes via localizations
   await _setWhatsNew(
     token: token,
     appStoreVersionId: appStoreVersionId,
     whatsNew: req.whatsNew,
   );
 
-  // 3. Attach the build to the version
   await ascApiFetch(
     token: token,
     path: '/appStoreVersions/$appStoreVersionId/relationships/build',
@@ -52,7 +45,6 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
     },
   );
 
-  // 3.5 Set export compliance (usesNonExemptEncryption)
   try {
     await ascApiFetch(
       token: token,
@@ -76,8 +68,6 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
     );
   }
 
-  // 4. Submit for review using the reviewSubmissions API
-  // Step 4a: Create a review submission
   final reviewSubmission = await ascApiFetch(
     token: token,
     path: '/reviewSubmissions',
@@ -97,7 +87,6 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
   final reviewSubmissionId =
       (reviewSubmission['data'] as Map<String, dynamic>)['id'] as String;
 
-  // Step 4b: Add the app store version as a review submission item
   await ascApiFetch(
     token: token,
     path: '/reviewSubmissionItems',
@@ -117,7 +106,6 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
     },
   );
 
-  // Step 4c: Submit the review submission
   await ascApiFetch(
     token: token,
     path: '/reviewSubmissions/$reviewSubmissionId',
@@ -144,11 +132,6 @@ Future<Map<String, dynamic>> handleAscSubmitForReview(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
-
-/// Finds an existing editable version or creates a new one.
 Future<String> _resolveAppStoreVersion({
   required String token,
   required String appId,
@@ -185,7 +168,6 @@ Future<String> _resolveAppStoreVersion({
     );
   }
 
-  // Create a new appStoreVersion
   final createResponse = await ascApiFetch(
     token: token,
     path: '/appStoreVersions',
@@ -206,7 +188,6 @@ Future<String> _resolveAppStoreVersion({
   return (createResponse['data'] as Map<String, dynamic>)['id'] as String;
 }
 
-/// Sets the "What's New" text on all localizations for the version.
 Future<void> _setWhatsNew({
   required String token,
   required String appStoreVersionId,
@@ -222,7 +203,6 @@ Future<void> _setWhatsNew({
   final localizations = (locResponse['data'] as List<dynamic>?) ?? [];
 
   if (localizations.isNotEmpty) {
-    // Update existing localization(s)
     for (final loc in localizations) {
       final locId = (loc as Map<String, dynamic>)['id'] as String;
       await ascApiFetch(
@@ -239,7 +219,6 @@ Future<void> _setWhatsNew({
       );
     }
   } else {
-    // Create a default en-US localization
     await ascApiFetch(
       token: token,
       path: '/appStoreVersionLocalizations',

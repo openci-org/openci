@@ -6,10 +6,6 @@ import '../firebase.dart';
 import '../secret_manager.dart';
 import '../util/logger.dart';
 
-// ---------------------------------------------------------------------------
-// Request model
-// ---------------------------------------------------------------------------
-
 class GenerateFailureSummaryRequest {
   const GenerateFailureSummaryRequest({required this.buildJobId});
 
@@ -24,14 +20,6 @@ class GenerateFailureSummaryRequest {
   final String buildJobId;
 }
 
-// ---------------------------------------------------------------------------
-// Handler
-// ---------------------------------------------------------------------------
-
-/// Generates an AI-powered failure summary for a failed build job.
-///
-/// Called by the Worker CLI after a build job fails.
-/// Reads the last N log lines and sends them to Gemini for analysis.
 Future<Map<String, dynamic>> handleGenerateFailureSummary(
   CallableRequest<GenerateFailureSummaryRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -56,7 +44,6 @@ Future<Map<String, dynamic>> handleGenerateFailureSummary(
     };
   }
 
-  // Check if AI is enabled for the team
   final teamId = jobData['teamId'] as String?;
   if (teamId != null) {
     final teamDoc = await firestore
@@ -81,21 +68,15 @@ Future<Map<String, dynamic>> handleGenerateFailureSummary(
   return <String, dynamic>{'success': true};
 }
 
-// ---------------------------------------------------------------------------
-// Summary generation
-// ---------------------------------------------------------------------------
-
 Future<void> _generateSummary(String buildJobId, String latestRunId) async {
   try {
     final anthropicApiKey = await _accessSecretCached('ANTHROPIC_API_KEY');
 
-    // Mark as generating
     final stopwatch = Stopwatch()..start();
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'failureSummaryStatus': 'generating',
     });
 
-    // Get last N log lines
     final logsSnapshot = await firestore
         .collection(buildJobsCollection)
         .doc(buildJobId)
@@ -162,18 +143,14 @@ Future<void> _generateSummary(String buildJobId, String latestRunId) async {
     } finally {
       dio.close();
     }
-  } catch (e) {
-    logError('Failed to generate failure summary', null, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to generate failure summary', null, e, stackTrace);
     await firestore.collection(buildJobsCollection).doc(buildJobId).update({
       'failureSummaryStatus': 'error',
       'failureSummary': e.toString(),
     });
   }
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 final _secretCache = <String, String>{};
 

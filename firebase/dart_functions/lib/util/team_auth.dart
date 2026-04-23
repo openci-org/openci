@@ -3,10 +3,6 @@ import 'package:openci_shared/firestore_paths.dart';
 
 import '../firebase.dart';
 
-/// Verifies that the caller is authenticated and is a member of the given team.
-///
-/// Returns the team document data.
-/// Throws appropriate errors on failure.
 Future<Map<String, dynamic>> verifyTeamMembership({
   required AuthData? auth,
   required String teamId,

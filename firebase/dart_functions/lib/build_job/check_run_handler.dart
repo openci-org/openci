@@ -7,10 +7,6 @@ import '../util/github_app.dart';
 import '../util/github_urls.dart';
 import '../util/logger.dart';
 
-// ---------------------------------------------------------------------------
-// Request model
-// ---------------------------------------------------------------------------
-
 class CheckRunUpdateRequest {
   const CheckRunUpdateRequest({
     required this.buildJobId,
@@ -36,20 +32,11 @@ class CheckRunUpdateRequest {
 
   final String buildJobId;
 
-  /// "in_progress" or "completed"
   final String runStatus;
 
-  /// Only set when runStatus == "completed" (e.g. "success", "failure")
   final String? conclusion;
 }
 
-// ---------------------------------------------------------------------------
-// Handler
-// ---------------------------------------------------------------------------
-
-/// Called by the Worker CLI when a run is created (in_progress) or
-/// completed. Patches the GitHub check run status accordingly.
-/// Replaces the Firestore triggers `onRunCreated` and `onRunUpdated`.
 Future<Map<String, dynamic>> handleCheckRunUpdate(
   CallableRequest<CheckRunUpdateRequest> request,
   CallableResponse<Map<String, dynamic>> response,
@@ -70,7 +57,6 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
   final jobData = buildJobDoc.data()!;
   final checkRunId = jobData['checkRunId'];
   if (checkRunId == null) {
-    // No check run associated with this build job
     return <String, dynamic>{'skipped': true, 'reason': 'No checkRunId'};
   }
 
@@ -81,7 +67,6 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
   final apiBaseUrl = (jobData['githubApiBaseUrl'] as String?) ??
       defaultGitHubApiBaseUrl;
 
-  // Determine GitHub check run status & conclusion
   String ghStatus;
   String? ghConclusion;
 
@@ -128,8 +113,8 @@ Future<Map<String, dynamic>> handleCheckRunUpdate(
     }
 
     return <String, dynamic>{'success': true};
-  } catch (e) {
-    logError('Failed to update check run $checkRunId', null, e);
+  } catch (e, stackTrace) {
+    await logError('Failed to update check run $checkRunId', null, e, stackTrace);
     return <String, dynamic>{'success': false, 'error': e.toString()};
   }
 }

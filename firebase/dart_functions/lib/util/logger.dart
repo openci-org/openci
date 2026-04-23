@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:sentry/sentry.dart';
+
 void logInfo(String message, [Map<String, dynamic>? data]) {
   _log('INFO', message, data);
 }
@@ -8,8 +10,23 @@ void logWarning(String message, [Map<String, dynamic>? data, Object? error]) {
   _log('WARNING', message, data, error);
 }
 
-void logError(String message, [Map<String, dynamic>? data, Object? error]) {
+Future<void> logError(
+  String message, [
+  Map<String, dynamic>? data,
+  Object? error,
+  StackTrace? stackTrace,
+]) async {
   _log('ERROR', message, data, error);
+
+  if (error != null && Sentry.isEnabled) {
+    await Sentry.captureException(
+      error,
+      stackTrace:
+          stackTrace ??
+          (error is Error ? error.stackTrace : null) ??
+          StackTrace.current,
+    );
+  }
 }
 
 void _log(
@@ -24,6 +41,5 @@ void _log(
     if (data != null) ...data,
     if (error != null) 'error': error.toString(),
   };
-  // ignore: avoid_print
   print(jsonEncode(entry));
 }
