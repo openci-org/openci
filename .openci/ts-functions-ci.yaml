@@ -24,7 +24,7 @@ jobs:
         run: cd firebase/ts_functions && vp check
 
       - name: Build
-        run: cd firebase/ts_functions && vp build
+        run: cd firebase/ts_functions && npm run build
 
       - name: Test
         run: cd firebase/ts_functions && vp test
