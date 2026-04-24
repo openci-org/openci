@@ -7,6 +7,34 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+function getInvitationByToken(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetInvitationByToken', inputVars, inputOpts);
+}
+exports.getInvitationByToken = getInvitationByToken;
+
+function listMyPendingInvitations(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListMyPendingInvitations', undefined, inputOpts);
+}
+exports.listMyPendingInvitations = listMyPendingInvitations;
+
+function listTeamPendingInvitations(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListTeamPendingInvitations', inputVars, inputOpts);
+}
+exports.listTeamPendingInvitations = listTeamPendingInvitations;
+
+function findExistingPendingInvitation(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('FindExistingPendingInvitation', inputVars, inputOpts);
+}
+exports.findExistingPendingInvitation = findExistingPendingInvitation;
+
 function createInvitation(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -48,32 +76,4 @@ function acceptInvitationAndJoinTeam(dcOrVarsOrOptions, varsOrOptions, options) 
   return dcInstance.executeMutation('AcceptInvitationAndJoinTeam', inputVars, inputOpts);
 }
 exports.acceptInvitationAndJoinTeam = acceptInvitationAndJoinTeam;
-
-function getInvitationByToken(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetInvitationByToken', inputVars, inputOpts);
-}
-exports.getInvitationByToken = getInvitationByToken;
-
-function listMyPendingInvitations(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListMyPendingInvitations', undefined, inputOpts);
-}
-exports.listMyPendingInvitations = listMyPendingInvitations;
-
-function listTeamPendingInvitations(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListTeamPendingInvitations', inputVars, inputOpts);
-}
-exports.listTeamPendingInvitations = listTeamPendingInvitations;
-
-function findExistingPendingInvitation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('FindExistingPendingInvitation', inputVars, inputOpts);
-}
-exports.findExistingPendingInvitation = findExistingPendingInvitation;
 

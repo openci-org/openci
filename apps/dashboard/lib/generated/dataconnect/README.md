@@ -281,10 +281,12 @@ ref.execute();
 #### Required Arguments
 ```dart
 String id = ...;
+String teamId = ...;
 String token = ...;
 Timestamp expiresAt = ...;
 DefaultConnector.instance.reinviteInvitation(
   id: id,
+  teamId: teamId,
   token: token,
   expiresAt: expiresAt,
 ).execute();
@@ -305,6 +307,7 @@ class OperationResult<Data, Variables> {
 
 final result = await DefaultConnector.instance.reinviteInvitation(
   id: id,
+  teamId: teamId,
   token: token,
   expiresAt: expiresAt,
 );
@@ -317,11 +320,13 @@ Each builder returns an `execute` function, which is a helper function that crea
 An example of how to use the `Ref` object is shown below:
 ```dart
 String id = ...;
+String teamId = ...;
 String token = ...;
 Timestamp expiresAt = ...;
 
 final ref = DefaultConnector.instance.reinviteInvitation(
   id: id,
+  teamId: teamId,
   token: token,
   expiresAt: expiresAt,
 ).ref();

@@ -4,7 +4,13 @@ mutation CreateInvitation(
   $teamNameSnapshot: String!
   $token: String!
   $expiresAt: Timestamp!
-) @auth(level: USER) {
+) @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
   invitation_insert(
     data: {
       email: $email
@@ -20,9 +26,16 @@ mutation CreateInvitation(
 
 mutation ReinviteInvitation(
   $id: UUID!
+  $teamId: UUID!
   $token: String!
   $expiresAt: Timestamp!
-) @auth(level: USER) {
+) @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
   invitation_update(
     key: { id: $id }
     data: {

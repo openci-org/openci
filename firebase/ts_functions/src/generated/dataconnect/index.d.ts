@@ -153,6 +153,7 @@ export interface ReinviteInvitationData {
 
 export interface ReinviteInvitationVariables {
   id: UUIDString;
+  teamId: UUIDString;
   token: string;
   expiresAt: TimestampString;
 }
@@ -172,6 +173,26 @@ export interface User_Key {
   id: string;
   __typename?: 'User_Key';
 }
+
+/** Generated Node Admin SDK operation action function for the 'GetInvitationByToken' Query. Allow users to execute without passing in DataConnect. */
+export function getInvitationByToken(dc: DataConnect, vars: GetInvitationByTokenVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetInvitationByTokenData>>;
+/** Generated Node Admin SDK operation action function for the 'GetInvitationByToken' Query. Allow users to pass in custom DataConnect instances. */
+export function getInvitationByToken(vars: GetInvitationByTokenVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetInvitationByTokenData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListMyPendingInvitations' Query. Allow users to execute without passing in DataConnect. */
+export function listMyPendingInvitations(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListMyPendingInvitationsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListMyPendingInvitations' Query. Allow users to pass in custom DataConnect instances. */
+export function listMyPendingInvitations(options?: OperationOptions): Promise<ExecuteOperationResponse<ListMyPendingInvitationsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListTeamPendingInvitations' Query. Allow users to execute without passing in DataConnect. */
+export function listTeamPendingInvitations(dc: DataConnect, vars: ListTeamPendingInvitationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListTeamPendingInvitationsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListTeamPendingInvitations' Query. Allow users to pass in custom DataConnect instances. */
+export function listTeamPendingInvitations(vars: ListTeamPendingInvitationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListTeamPendingInvitationsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'FindExistingPendingInvitation' Query. Allow users to execute without passing in DataConnect. */
+export function findExistingPendingInvitation(dc: DataConnect, vars: FindExistingPendingInvitationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindExistingPendingInvitationData>>;
+/** Generated Node Admin SDK operation action function for the 'FindExistingPendingInvitation' Query. Allow users to pass in custom DataConnect instances. */
+export function findExistingPendingInvitation(vars: FindExistingPendingInvitationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindExistingPendingInvitationData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateInvitation' Mutation. Allow users to execute without passing in DataConnect. */
 export function createInvitation(dc: DataConnect, vars: CreateInvitationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateInvitationData>>;
@@ -202,24 +223,4 @@ export function addTeamMember(vars: AddTeamMemberVariables, options?: OperationO
 export function acceptInvitationAndJoinTeam(dc: DataConnect, vars: AcceptInvitationAndJoinTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AcceptInvitationAndJoinTeamData>>;
 /** Generated Node Admin SDK operation action function for the 'AcceptInvitationAndJoinTeam' Mutation. Allow users to pass in custom DataConnect instances. */
 export function acceptInvitationAndJoinTeam(vars: AcceptInvitationAndJoinTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AcceptInvitationAndJoinTeamData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetInvitationByToken' Query. Allow users to execute without passing in DataConnect. */
-export function getInvitationByToken(dc: DataConnect, vars: GetInvitationByTokenVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetInvitationByTokenData>>;
-/** Generated Node Admin SDK operation action function for the 'GetInvitationByToken' Query. Allow users to pass in custom DataConnect instances. */
-export function getInvitationByToken(vars: GetInvitationByTokenVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetInvitationByTokenData>>;
-
-/** Generated Node Admin SDK operation action function for the 'ListMyPendingInvitations' Query. Allow users to execute without passing in DataConnect. */
-export function listMyPendingInvitations(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListMyPendingInvitationsData>>;
-/** Generated Node Admin SDK operation action function for the 'ListMyPendingInvitations' Query. Allow users to pass in custom DataConnect instances. */
-export function listMyPendingInvitations(options?: OperationOptions): Promise<ExecuteOperationResponse<ListMyPendingInvitationsData>>;
-
-/** Generated Node Admin SDK operation action function for the 'ListTeamPendingInvitations' Query. Allow users to execute without passing in DataConnect. */
-export function listTeamPendingInvitations(dc: DataConnect, vars: ListTeamPendingInvitationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListTeamPendingInvitationsData>>;
-/** Generated Node Admin SDK operation action function for the 'ListTeamPendingInvitations' Query. Allow users to pass in custom DataConnect instances. */
-export function listTeamPendingInvitations(vars: ListTeamPendingInvitationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListTeamPendingInvitationsData>>;
-
-/** Generated Node Admin SDK operation action function for the 'FindExistingPendingInvitation' Query. Allow users to execute without passing in DataConnect. */
-export function findExistingPendingInvitation(dc: DataConnect, vars: FindExistingPendingInvitationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindExistingPendingInvitationData>>;
-/** Generated Node Admin SDK operation action function for the 'FindExistingPendingInvitation' Query. Allow users to pass in custom DataConnect instances. */
-export function findExistingPendingInvitation(vars: FindExistingPendingInvitationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindExistingPendingInvitationData>>;
 

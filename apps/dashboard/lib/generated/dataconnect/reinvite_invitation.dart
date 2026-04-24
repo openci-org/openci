@@ -2,11 +2,12 @@ part of 'default.dart';
 
 class ReinviteInvitationVariablesBuilder {
   String id;
+  String teamId;
   String token;
   Timestamp expiresAt;
 
   final FirebaseDataConnect _dataConnect;
-  ReinviteInvitationVariablesBuilder(this._dataConnect, {required  this.id,required  this.token,required  this.expiresAt,});
+  ReinviteInvitationVariablesBuilder(this._dataConnect, {required  this.id,required  this.teamId,required  this.token,required  this.expiresAt,});
   Deserializer<ReinviteInvitationData> dataDeserializer = (dynamic json)  => ReinviteInvitationData.fromJson(jsonDecode(json));
   Serializer<ReinviteInvitationVariables> varsSerializer = (ReinviteInvitationVariables vars) => jsonEncode(vars.toJson());
   Future<OperationResult<ReinviteInvitationData, ReinviteInvitationVariables>> execute() {
@@ -14,7 +15,7 @@ class ReinviteInvitationVariablesBuilder {
   }
 
   MutationRef<ReinviteInvitationData, ReinviteInvitationVariables> ref() {
-    ReinviteInvitationVariables vars= ReinviteInvitationVariables(id: id,token: token,expiresAt: expiresAt,);
+    ReinviteInvitationVariables vars= ReinviteInvitationVariables(id: id,teamId: teamId,token: token,expiresAt: expiresAt,);
     return _dataConnect.mutation("ReinviteInvitation", dataDeserializer, varsSerializer, vars);
   }
 }
@@ -92,12 +93,14 @@ class ReinviteInvitationData {
 @immutable
 class ReinviteInvitationVariables {
   final String id;
+  final String teamId;
   final String token;
   final Timestamp expiresAt;
   @Deprecated('fromJson is deprecated for Variable classes as they are no longer required for deserialization.')
   ReinviteInvitationVariables.fromJson(Map<String, dynamic> json):
   
   id = nativeFromJson<String>(json['id']),
+  teamId = nativeFromJson<String>(json['teamId']),
   token = nativeFromJson<String>(json['token']),
   expiresAt = Timestamp.fromJson(json['expiresAt']);
   @override
@@ -111,17 +114,19 @@ class ReinviteInvitationVariables {
 
     final ReinviteInvitationVariables otherTyped = other as ReinviteInvitationVariables;
     return id == otherTyped.id && 
+    teamId == otherTyped.teamId && 
     token == otherTyped.token && 
     expiresAt == otherTyped.expiresAt;
     
   }
   @override
-  int get hashCode => Object.hashAll([id.hashCode, token.hashCode, expiresAt.hashCode]);
+  int get hashCode => Object.hashAll([id.hashCode, teamId.hashCode, token.hashCode, expiresAt.hashCode]);
   
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
     json['id'] = nativeToJson<String>(id);
+    json['teamId'] = nativeToJson<String>(teamId);
     json['token'] = nativeToJson<String>(token);
     json['expiresAt'] = expiresAt.toJson();
     return json;
@@ -129,6 +134,7 @@ class ReinviteInvitationVariables {
 
   ReinviteInvitationVariables({
     required this.id,
+    required this.teamId,
     required this.token,
     required this.expiresAt,
   });
