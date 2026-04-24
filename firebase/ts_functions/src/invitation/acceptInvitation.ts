@@ -1,13 +1,13 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import "../dataConnect";
-import type { InvitationStatus } from "../dataConnectEnums";
 import {
   acceptInvitationAndJoinTeam,
   expireInvitation,
   getInvitationByToken,
-} from "../generated/dataconnect";
+} from "@openci/dataconnect-admin";
+
+import type { InvitationStatus } from "../dataConnectEnums";
 
 interface AcceptInvitationRequest {
   token: string;
