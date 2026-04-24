@@ -4,14 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
-part 'get_invitation_by_token.dart';
-
-part 'list_my_pending_invitations.dart';
-
-part 'list_team_pending_invitations.dart';
-
-part 'find_existing_pending_invitation.dart';
-
 part 'create_invitation.dart';
 
 part 'reinvite_invitation.dart';
@@ -20,9 +12,15 @@ part 'accept_invitation.dart';
 
 part 'expire_invitation.dart';
 
-part 'add_team_member.dart';
-
 part 'accept_invitation_and_join_team.dart';
+
+part 'get_invitation_by_token.dart';
+
+part 'list_my_pending_invitations.dart';
+
+part 'list_team_pending_invitations.dart';
+
+part 'find_existing_pending_invitation.dart';
 
 
 
@@ -111,26 +109,6 @@ class Unknown extends EnumValue<Never> {
 class DefaultConnector {
   
   
-  GetInvitationByTokenVariablesBuilder getInvitationByToken ({required String token, }) {
-    return GetInvitationByTokenVariablesBuilder(dataConnect, token: token,);
-  }
-  
-  
-  ListMyPendingInvitationsVariablesBuilder listMyPendingInvitations () {
-    return ListMyPendingInvitationsVariablesBuilder(dataConnect, );
-  }
-  
-  
-  ListTeamPendingInvitationsVariablesBuilder listTeamPendingInvitations ({required String teamId, }) {
-    return ListTeamPendingInvitationsVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  FindExistingPendingInvitationVariablesBuilder findExistingPendingInvitation ({required String email, required String teamId, }) {
-    return FindExistingPendingInvitationVariablesBuilder(dataConnect, email: email,teamId: teamId,);
-  }
-  
-  
   CreateInvitationVariablesBuilder createInvitation ({required String email, required String teamId, required String teamNameSnapshot, required String token, required Timestamp expiresAt, }) {
     return CreateInvitationVariablesBuilder(dataConnect, email: email,teamId: teamId,teamNameSnapshot: teamNameSnapshot,token: token,expiresAt: expiresAt,);
   }
@@ -151,13 +129,28 @@ class DefaultConnector {
   }
   
   
-  AddTeamMemberVariablesBuilder addTeamMember ({required String teamId, }) {
-    return AddTeamMemberVariablesBuilder(dataConnect, teamId: teamId,);
+  AcceptInvitationAndJoinTeamVariablesBuilder acceptInvitationAndJoinTeam ({required String id, required String teamId, }) {
+    return AcceptInvitationAndJoinTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
   }
   
   
-  AcceptInvitationAndJoinTeamVariablesBuilder acceptInvitationAndJoinTeam ({required String id, required String teamId, }) {
-    return AcceptInvitationAndJoinTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
+  GetInvitationByTokenVariablesBuilder getInvitationByToken ({required String token, }) {
+    return GetInvitationByTokenVariablesBuilder(dataConnect, token: token,);
+  }
+  
+  
+  ListMyPendingInvitationsVariablesBuilder listMyPendingInvitations () {
+    return ListMyPendingInvitationsVariablesBuilder(dataConnect, );
+  }
+  
+  
+  ListTeamPendingInvitationsVariablesBuilder listTeamPendingInvitations ({required String teamId, }) {
+    return ListTeamPendingInvitationsVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  FindExistingPendingInvitationVariablesBuilder findExistingPendingInvitation ({required String email, required String teamId, }) {
+    return FindExistingPendingInvitationVariablesBuilder(dataConnect, email: email,teamId: teamId,);
   }
   
 

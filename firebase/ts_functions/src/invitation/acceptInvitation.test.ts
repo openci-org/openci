@@ -217,4 +217,21 @@ describe("acceptInvitation", () => {
       expect.objectContaining({ impersonate: expect.any(Object) }),
     );
   });
+
+  it("accepts invitation when email cases differ", async () => {
+    mockGetInvitationByToken.mockResolvedValue({
+      data: { invitations: [makePendingInvitation({ email: "Alice@Example.COM" })] },
+    });
+    mockAcceptInvitationAndJoinTeam.mockResolvedValue({});
+
+    const result = await wrapped({
+      data: { token: VALID_TOKEN },
+      auth: makeAuth({ email: "alice@example.com" }),
+    });
+
+    expect(result).toEqual({
+      teamId: TEAM_ID,
+      teamName: "Team Alpha",
+    });
+  });
 });

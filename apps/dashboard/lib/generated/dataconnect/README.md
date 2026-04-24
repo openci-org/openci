@@ -418,48 +418,6 @@ ref.execute();
 ```
 
 
-### AddTeamMember
-#### Required Arguments
-```dart
-String teamId = ...;
-DefaultConnector.instance.addTeamMember(
-  teamId: teamId,
-).execute();
-```
-
-
-
-#### Return Type
-`execute()` returns a `OperationResult<AddTeamMemberData, AddTeamMemberVariables>`
-```dart
-/// Result of an Operation Request (query/mutation).
-class OperationResult<Data, Variables> {
-  OperationResult(this.dataConnect, this.data, this.ref);
-  Data data;
-  OperationRef<Data, Variables> ref;
-  FirebaseDataConnect dataConnect;
-}
-
-final result = await DefaultConnector.instance.addTeamMember(
-  teamId: teamId,
-);
-AddTeamMemberData data = result.data;
-final ref = result.ref;
-```
-
-#### Getting the Ref
-Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
-An example of how to use the `Ref` object is shown below:
-```dart
-String teamId = ...;
-
-final ref = DefaultConnector.instance.addTeamMember(
-  teamId: teamId,
-).ref();
-ref.execute();
-```
-
-
 ### AcceptInvitationAndJoinTeam
 #### Required Arguments
 ```dart

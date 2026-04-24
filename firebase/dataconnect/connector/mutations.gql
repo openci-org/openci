@@ -72,16 +72,6 @@ mutation ExpireInvitation($id: UUID!) @auth(level: USER) {
 }
 
 
-mutation AddTeamMember($teamId: UUID!) @auth(level: USER) {
-  teamMember_upsert(
-    data: {
-      teamId: $teamId
-      userId_expr: "auth.uid"
-    }
-  )
-}
-
-
 mutation AcceptInvitationAndJoinTeam($id: UUID!, $teamId: UUID!)
   @auth(level: USER_EMAIL_VERIFIED) {
 

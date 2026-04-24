@@ -51,7 +51,7 @@ export const acceptInvitation = onCall<AcceptInvitationRequest, Promise<AcceptIn
       throw new HttpsError("not-found", "Invitation not found or already used");
     }
 
-    if (invitation.email !== email) {
+    if (invitation.email.trim().toLowerCase() !== email.trim().toLowerCase()) {
       throw new HttpsError(
         "permission-denied",
         "This invitation was sent to a different email address",
