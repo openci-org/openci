@@ -1,0 +1,40 @@
+{
+  "name": "ts_functions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenCI Cloud Functions (TypeScript)",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "vp build && firebase emulators:start --only functions",
+    "shell": "vp build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions:ts",
+    "logs": "firebase functions:log",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check",
+    "check": "vp check",
+    "test": "firebase emulators:exec --only functions,dataconnect,auth \"vitest run\"",
+    "test:watch": "firebase emulators:exec --only functions,dataconnect,auth \"vitest\""
+  },
+  "dependencies": {
+    "@openci/dataconnect": "file:src/generated/dataconnect",
+    "@openci/dataconnect-admin": "file:src/generated/dataconnect",
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "firebase-functions-test": "^3.3.0",
+    "typescript": "^5.5.0",
+    "vite-plus": "^0.1.19",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "packageManager": "npm@11.13.0"
+}

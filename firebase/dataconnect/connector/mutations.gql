@@ -1,0 +1,99 @@
+mutation CreateInvitation(
+  $email: String!
+  $teamId: UUID!
+  $teamNameSnapshot: String!
+  $token: String!
+  $expiresAt: Timestamp!
+) @auth(level: USER) {
+  invitation_insert(
+    data: {
+      email: $email
+      teamId: $teamId
+      teamNameSnapshot: $teamNameSnapshot
+      token: $token
+      expiresAt: $expiresAt
+      invitedById_expr: "auth.uid"
+    }
+  )
+}
+
+
+mutation ReinviteInvitation(
+  $id: UUID!
+  $token: String!
+  $expiresAt: Timestamp!
+) @auth(level: USER) {
+  invitation_update(
+    key: { id: $id }
+    data: {
+      token: $token
+      expiresAt: $expiresAt
+      invitedById_expr: "auth.uid"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation AcceptInvitation($id: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
+  invitation_update(
+    key: { id: $id }
+    data: {
+      status: ACCEPTED
+      acceptedById_expr: "auth.uid"
+      acceptedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation ExpireInvitation($id: UUID!) @auth(level: USER) {
+  invitation_update(
+    key: { id: $id }
+    data: {
+      status: EXPIRED
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation AddTeamMember($teamId: UUID!) @auth(level: USER) {
+  teamMember_upsert(
+    data: {
+      teamId: $teamId
+      userId_expr: "auth.uid"
+    }
+  )
+}
+
+
+mutation AcceptInvitationAndJoinTeam($id: UUID!, $teamId: UUID!)
+  @auth(level: USER_EMAIL_VERIFIED) {
+
+  user_upsert(
+    data: {
+      id_expr: "auth.uid"
+      email_expr: "auth.token.email"
+      updatedAt_expr: "request.time"
+    }
+  )
+
+  invitation_update(
+    key: { id: $id }
+    data: {
+      status: ACCEPTED
+      acceptedById_expr: "auth.uid"
+      acceptedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+
+  teamMember_upsert(
+    data: {
+      teamId: $teamId
+      userId_expr: "auth.uid"
+    }
+  )
+}

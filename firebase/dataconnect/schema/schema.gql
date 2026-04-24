@@ -1,0 +1,54 @@
+type User @table(key: "id") {
+  id: String!
+
+  email: String! @col(dataType: "text")
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Team @table(key: "id") {
+  id: UUID! @default(expr: "uuidV4()")
+
+  name: String!
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type TeamMember @table(key: ["team", "user"]) {
+  team: Team!
+  user: User!
+
+  joinedAt: Timestamp! @default(expr: "request.time")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+type Invitation @table(key: "id") {
+  id: UUID! @default(expr: "uuidV4()")
+
+  email: String! @index
+
+  token: String! @col(dataType: "text") @unique
+
+  team: Team!
+
+  teamNameSnapshot: String!
+
+  invitedBy: User
+
+  acceptedBy: User
+  acceptedAt: Timestamp
+
+  status: InvitationStatus! @default(value: PENDING)
+
+  expiresAt: Timestamp!
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

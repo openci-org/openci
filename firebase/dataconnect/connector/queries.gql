@@ -1,0 +1,90 @@
+query GetInvitationByToken($token: String!) @auth(level: USER) {
+  invitations(where: { token: { eq: $token } }, limit: 1) {
+    id
+    email
+    status
+    expiresAt
+    createdAt
+    teamNameSnapshot
+    team {
+      id
+      name
+    }
+    invitedBy {
+      id
+      email
+    }
+  }
+}
+
+
+query ListMyPendingInvitations
+  @auth(
+    level: USER_EMAIL_VERIFIED
+    insecureReason: "Invitations are addressed by email, not uid. Scoping is enforced via `email = auth.token.email` which is server-verified."
+  ) {
+  invitations(
+    where: {
+      _and: [
+        { email: { eq_expr: "auth.token.email" } }
+        { status: { eq: PENDING } }
+      ]
+    }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    teamNameSnapshot
+    expiresAt
+    createdAt
+    team {
+      id
+      name
+    }
+  }
+}
+
+
+query ListTeamPendingInvitations($teamId: UUID!) @auth(level: USER) {
+  teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+    @check(expr: "this != null", message: "You are not a member of this team") {
+    teamId
+  }
+
+  invitations(
+    where: {
+      _and: [
+        { teamId: { eq: $teamId } }
+        { status: { eq: PENDING } }
+      ]
+    }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    email
+    createdAt
+    expiresAt
+    invitedBy {
+      id
+      email
+    }
+  }
+}
+
+
+query FindExistingPendingInvitation($email: String!, $teamId: UUID!)
+  @auth(level: USER) {
+  invitations(
+    where: {
+      _and: [
+        { email: { eq: $email } }
+        { teamId: { eq: $teamId } }
+        { status: { eq: PENDING } }
+      ]
+    }
+    limit: 1
+  ) {
+    id
+    token
+    expiresAt
+  }
+}

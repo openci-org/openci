@@ -1,0 +1,11 @@
+node_modules/
+lib/
+*.log
+.env
+.env.local
+.runtimeconfig.json
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+coverage/
+.vitest-cache/
