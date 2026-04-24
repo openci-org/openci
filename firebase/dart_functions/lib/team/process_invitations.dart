@@ -15,7 +15,7 @@ Future<CallableResult<Map<String, dynamic>>> handleProcessInvitationsOnSignUp(
   }
 
   final uid = auth.uid;
-  final email = auth.token?['email'] as String?;
+  final email = (auth.token?['email'] as String?)?.trim().toLowerCase();
 
   if (email == null || email.isEmpty) {
     return CallableResult(<String, dynamic>{

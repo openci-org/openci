@@ -1,0 +1,30 @@
+name: TS Functions CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "22"
+          working-directory: firebase/ts_functions
+          cache: true
+
+      - name: Check
+        run: cd firebase/ts_functions && vp check
+
+      - name: Build
+        run: cd firebase/ts_functions && npm run build
+
+      - name: Test
+        run: cd firebase/ts_functions && vp test

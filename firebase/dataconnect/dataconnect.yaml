@@ -1,0 +1,12 @@
+specVersion: v1
+serviceId: openci-b1b91-2-service
+location: asia-northeast1
+schema:
+  source: ./schema
+  datasource:
+    postgresql:
+      database: openci-b1b91-2-database
+      cloudSql:
+        instanceId: openci-b1b91-2-instance
+connectorDirs:
+  - ./connector

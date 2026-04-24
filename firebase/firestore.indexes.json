@@ -11,10 +11,6 @@
         {
           "fieldPath": "createdAt",
           "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
         }
       ]
     },
@@ -29,10 +25,20 @@
         {
           "fieldPath": "createdAt",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "build_jobs_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "workflowRunId",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
+          "fieldPath": "status",
+          "order": "ASCENDING"
         }
       ]
     },
@@ -47,9 +53,51 @@
         {
           "fieldPath": "key",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "invitations_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "email",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "__name__",
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "invitations_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "token",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "secrets_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name",
           "order": "ASCENDING"
         }
       ]
@@ -65,28 +113,6 @@
         {
           "fieldPath": "updatedAt",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "workflows_v1",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "workflowConfig.selectedRepository",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "workflowConfig.selectedTriggerType",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "workflowConfig.selectedTriggerBranch",
-          "order": "ASCENDING"
         }
       ]
     },
@@ -104,6 +130,24 @@
         },
         {
           "fieldPath": "branch",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fileName",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "workflow_files_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "repository",
           "order": "ASCENDING"
         },
         {

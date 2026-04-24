@@ -282,7 +282,7 @@ Future<Map<String, dynamic>> handleInviteTeamMember(
   );
 
   final callerUid = auth.uid;
-  final email = request.data.email;
+  final email = request.data.email.trim().toLowerCase();
   final teamId = request.data.teamId;
   final members = (teamData['members'] as List<dynamic>?)?.cast<String>() ?? [];
 
@@ -395,7 +395,10 @@ Future<Map<String, dynamic>> handleAcceptInvitation(
   final invitationDoc = invitationQuery.docs.first;
   final invitation = invitationDoc.data();
 
-  if (invitation['email'] != userEmail) {
+  final normalizedInvitationEmail =
+      (invitation['email'] as String?)?.trim().toLowerCase();
+  final normalizedUserEmail = userEmail?.trim().toLowerCase();
+  if (normalizedInvitationEmail != normalizedUserEmail) {
     throw PermissionDeniedError(
       'This invitation was sent to a different email address',
     );
