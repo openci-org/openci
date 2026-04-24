@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AcceptInvitationResponse } from "./acceptInvitation";
 type AuthData = NonNullable<CallableRequest["auth"]>;
 
+const TEAM_ID = "team-aaa-bbb";
+const INVITATION_ID = "inv-111-222";
+const MOCK_EMAIL = "alice@example.com";
+const MOCK_DIFFERENT_EMAIL = "bob@example.com";
+
 vi.mock("../dataConnect", () => ({}));
 
 const mockGetInvitationByToken = vi.fn();
@@ -36,7 +41,7 @@ function makeAuth(
     email_verified?: boolean;
   } = {},
 ): AuthData {
-  const { uid = "user-123", email = "alice@example.com", email_verified = true } = overrides;
+  const { uid = "user-123", email = MOCK_EMAIL, email_verified = true } = overrides;
   return {
     uid,
     token: {
@@ -53,11 +58,6 @@ function makeAuth(
     },
   } as AuthData;
 }
-
-const TEAM_ID = "team-aaa-bbb";
-const INVITATION_ID = "inv-111-222";
-const MOCK_EMAIL = "alice@example.com";
-const MOCK_DIFFERENT_EMAIL = "bob@example.com";
 
 function makePendingInvitation(overrides: Record<string, unknown> = {}) {
   const future = new Date(Date.now() + 86_400_000).toISOString();
