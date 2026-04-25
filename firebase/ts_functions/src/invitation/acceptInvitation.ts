@@ -6,7 +6,6 @@ import {
   expireInvitation,
   getInvitationByToken,
 } from "@openci/dataconnect-admin";
-
 import type { InvitationStatus } from "../dataConnectEnums";
 
 interface AcceptInvitationRequest {

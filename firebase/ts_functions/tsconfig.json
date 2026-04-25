@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "Node16",
     "target": "es2022",
     "lib": ["es2022"],
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -12,6 +12,7 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "rootDir": "src",
     "outDir": "lib",
     "sourceMap": true,
     "declaration": true,

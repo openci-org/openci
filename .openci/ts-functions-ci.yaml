@@ -8,6 +8,10 @@ on:
     branches:
       - develop
 
+defaults:
+  run:
+    working-directory: firebase/ts_functions
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -18,13 +22,12 @@ jobs:
         with:
           node-version: "22"
           working-directory: firebase/ts_functions
-          cache: true
 
       - name: Check
-        run: cd firebase/ts_functions && vp check
+        run: vp check
 
       - name: Build
-        run: cd firebase/ts_functions && npm run build
+        run: npm run build
 
       - name: Test
-        run: cd firebase/ts_functions && vp test
+        run: vp test

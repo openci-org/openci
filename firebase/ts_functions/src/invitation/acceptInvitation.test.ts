@@ -9,13 +9,14 @@ const INVITATION_ID = "inv-111-222";
 const MOCK_EMAIL = "alice@example.com";
 const MOCK_DIFFERENT_EMAIL = "bob@example.com";
 
-vi.mock("../dataConnect", () => ({}));
+const { mockGetInvitationByToken, mockExpireInvitation, mockAcceptInvitationAndJoinTeam } =
+  vi.hoisted(() => ({
+    mockGetInvitationByToken: vi.fn(),
+    mockExpireInvitation: vi.fn(),
+    mockAcceptInvitationAndJoinTeam: vi.fn(),
+  }));
 
-const mockGetInvitationByToken = vi.fn();
-const mockExpireInvitation = vi.fn();
-const mockAcceptInvitationAndJoinTeam = vi.fn();
-
-vi.mock("../generated/dataconnect", () => ({
+vi.mock("@openci/dataconnect-admin", () => ({
   getInvitationByToken: (...args: unknown[]) => mockGetInvitationByToken(...args),
   expireInvitation: (...args: unknown[]) => mockExpireInvitation(...args),
   acceptInvitationAndJoinTeam: (...args: unknown[]) => mockAcceptInvitationAndJoinTeam(...args),
