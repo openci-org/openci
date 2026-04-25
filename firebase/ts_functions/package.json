@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.5",
     "firebase-functions-test": "^3.4.1",
     "typescript": "^6.0.3",
     "vite-plus": "^0.1.19",
