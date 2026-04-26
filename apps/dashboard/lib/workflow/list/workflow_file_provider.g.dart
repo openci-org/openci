@@ -101,7 +101,7 @@ final class SyncWorkflowFilesProvider
   }
 }
 
-String _$syncWorkflowFilesHash() => r'2763f339676bdca9b9cf52691b11e1650154cf52';
+String _$syncWorkflowFilesHash() => r'c03021264b644be73fa78688340555d354030471';
 
 @ProviderFor(toggleWorkflowEnabled)
 final toggleWorkflowEnabledProvider = ToggleWorkflowEnabledFamily._();

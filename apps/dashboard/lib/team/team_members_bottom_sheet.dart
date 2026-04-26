@@ -1,9 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/theme/app_colors.dart';
-
-import 'package:dashboard/firebase/dart_function_urls.dart';
-
-import 'package:cloud_functions/cloud_functions.dart';
 
 import 'package:dashboard/i18n/strings.g.dart';
 
@@ -14,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
 
 part 'team_members_bottom_sheet.g.dart';
 
@@ -46,9 +42,9 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
 
-  final functions = FirebaseFunctions.instance;
+  final functions = firebaseFunctions;
   final result = await functions
-      .httpsCallableFromUrl(dartFunctionUrl('getteammembers'))
+      .httpsCallable('getTeamMembers')
       .call<Map<String, dynamic>>({'teamId': team.id});
 
   final data = result.data;
@@ -198,8 +194,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                   color: AppColors.of(context).surfaceTertiary,
                                   image: member.photoURL != null
                                       ? DecorationImage(
-                                          image:
-                                              NetworkImage(member.photoURL!),
+                                          image: NetworkImage(member.photoURL!),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
@@ -213,9 +208,11 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: AppColors.of(context).textPrimary.withValues(
-                                              alpha: 0.7,
-                                            ),
+                                            color: AppColors.of(context)
+                                                .textPrimary
+                                                .withValues(
+                                                  alpha: 0.7,
+                                                ),
                                           ),
                                         ),
                                       )
@@ -225,8 +222,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                               // Info
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
@@ -238,29 +234,31 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
-                                              color: AppColors.of(context).textPrimary,
+                                              color: AppColors.of(
+                                                context,
+                                              ).textPrimary,
                                             ),
                                           ),
                                         ),
                                         if (isCurrentUser) ...[
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding:
-                                                const EdgeInsets.symmetric(
+                                            padding: const EdgeInsets.symmetric(
                                               horizontal: 8,
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: AppColors.of(context).accent
-                                                  .withValues(alpha: 0.15),
+                                              color: AppColors.of(
+                                                context,
+                                              ).accent.withValues(alpha: 0.15),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               border: Border.all(
-                                                color:
-                                                    AppColors.of(context).accent
-                                                        .withValues(
-                                                          alpha: 0.3,
-                                                        ),
+                                                color: AppColors.of(context)
+                                                    .accent
+                                                    .withValues(
+                                                      alpha: 0.3,
+                                                    ),
                                               ),
                                             ),
                                             child: Text(
@@ -268,7 +266,9 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w600,
-                                                color: AppColors.of(context).accent,
+                                                color: AppColors.of(
+                                                  context,
+                                                ).accent,
                                               ),
                                             ),
                                           ),
@@ -281,9 +281,11 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                         email,
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: AppColors.of(context).textPrimary.withValues(
-                                            alpha: 0.4,
-                                          ),
+                                          color: AppColors.of(context)
+                                              .textPrimary
+                                              .withValues(
+                                                alpha: 0.4,
+                                              ),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,

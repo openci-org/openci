@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/dart_function_urls.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -23,10 +23,8 @@ class AcceptInvitationPage extends HookConsumerWidget {
     useEffect(() {
       Future<void> acceptInvitation() async {
         try {
-          final response = await FirebaseFunctions.instance
-              .httpsCallableFromUrl(
-                dartFunctionUrl('acceptinvitation'),
-              )
+          final response = await firebaseFunctions
+              .httpsCallable('acceptInvitation')
               .call({'token': token});
 
           final data = response.data as Map<String, dynamic>;

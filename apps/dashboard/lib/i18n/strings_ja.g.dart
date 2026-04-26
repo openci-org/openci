@@ -514,8 +514,6 @@ class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn 
 	@override String get projectId => 'プロジェクトID';
 	@override String get storageBucket => 'ストレージバケット';
 	@override String get pickConfig => '設定を保存';
-	@override String get cloudRunHash => 'Cloud Runハッシュ';
-	@override String get cloudRunRegionCode => 'Cloud Runリージョンコード';
 	@override String get configSaved => '設定を保存しました。アプリを再起動してください。';
 	@override String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
 	@override String get importFile => 'ファイルから読み込み';
@@ -800,8 +798,6 @@ extension on TranslationsJa {
 			'auth.firebaseForm.projectId' => 'プロジェクトID',
 			'auth.firebaseForm.storageBucket' => 'ストレージバケット',
 			'auth.firebaseForm.pickConfig' => '設定を保存',
-			'auth.firebaseForm.cloudRunHash' => 'Cloud Runハッシュ',
-			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Runリージョンコード',
 			'auth.firebaseForm.configSaved' => '設定を保存しました。アプリを再起動してください。',
 			'auth.firebaseForm.configActive' => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。',
 			'auth.firebaseForm.importFile' => 'ファイルから読み込み',

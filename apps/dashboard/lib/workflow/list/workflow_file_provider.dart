@@ -1,6 +1,5 @@
-import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -69,7 +68,7 @@ Future<void> syncWorkflowFiles(Ref ref) async {
     throw StateError('team or user is not loaded yet');
   }
 
-  final functions = FirebaseFunctions.instance;
+  final functions = firebaseFunctions;
 
   final selectedRepo = user.selectedRepository;
   final selectedBranch = user.selectedBranch;
@@ -78,13 +77,11 @@ Future<void> syncWorkflowFiles(Ref ref) async {
     throw StateError('selectedRepository is null');
   }
 
-  await functions
-      .httpsCallableFromUrl(dartFunctionUrl('syncworkflowfiles'))
-      .call({
-        'teamId': team.id,
-        'repository': selectedRepo,
-        'branch': selectedBranch,
-      });
+  await functions.httpsCallable('syncWorkflowFiles').call({
+    'teamId': team.id,
+    'repository': selectedRepo,
+    'branch': selectedBranch,
+  });
 }
 
 /// Generate a stable document ID matching the Firebase Functions logic.

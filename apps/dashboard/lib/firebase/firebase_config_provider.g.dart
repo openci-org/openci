@@ -13,8 +13,6 @@ _SelfHostedConfig _$SelfHostedConfigFromJson(Map<String, dynamic> json) =>
       messagingSenderId: json['messagingSenderId'] as String? ?? '',
       projectId: json['projectId'] as String,
       storageBucket: json['storageBucket'] as String? ?? '',
-      cloudRunHash: json['cloudRunHash'] as String? ?? '',
-      cloudRunRegionCode: json['cloudRunRegionCode'] as String? ?? 'an',
     );
 
 Map<String, dynamic> _$SelfHostedConfigToJson(_SelfHostedConfig instance) =>
@@ -24,6 +22,4 @@ Map<String, dynamic> _$SelfHostedConfigToJson(_SelfHostedConfig instance) =>
       'messagingSenderId': instance.messagingSenderId,
       'projectId': instance.projectId,
       'storageBucket': instance.storageBucket,
-      'cloudRunHash': instance.cloudRunHash,
-      'cloudRunRegionCode': instance.cloudRunRegionCode,
     };

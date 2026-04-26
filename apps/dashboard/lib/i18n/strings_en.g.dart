@@ -1115,12 +1115,6 @@ class TranslationsAuthFirebaseFormEn {
 	/// en: 'Save configuration'
 	String get pickConfig => 'Save configuration';
 
-	/// en: 'Cloud Run Hash'
-	String get cloudRunHash => 'Cloud Run Hash';
-
-	/// en: 'Cloud Run Region Code'
-	String get cloudRunRegionCode => 'Cloud Run Region Code';
-
 	/// en: 'Configuration saved. Please restart the app to apply.'
 	String get configSaved => 'Configuration saved. Please restart the app to apply.';
 
@@ -1676,8 +1670,6 @@ extension on Translations {
 			'auth.firebaseForm.projectId' => 'Project ID',
 			'auth.firebaseForm.storageBucket' => 'Storage Bucket',
 			'auth.firebaseForm.pickConfig' => 'Save configuration',
-			'auth.firebaseForm.cloudRunHash' => 'Cloud Run Hash',
-			'auth.firebaseForm.cloudRunRegionCode' => 'Cloud Run Region Code',
 			'auth.firebaseForm.configSaved' => 'Configuration saved. Please restart the app to apply.',
 			'auth.firebaseForm.configActive' => 'Custom Firebase project is configured. Restart to apply.',
 			'auth.firebaseForm.importFile' => 'Import from file',

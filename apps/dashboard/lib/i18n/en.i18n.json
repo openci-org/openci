@@ -46,8 +46,6 @@
       "projectId": "Project ID",
       "storageBucket": "Storage Bucket",
       "pickConfig": "Save configuration",
-      "cloudRunHash": "Cloud Run Hash",
-      "cloudRunRegionCode": "Cloud Run Region Code",
       "configSaved": "Configuration saved. Please restart the app to apply.",
       "configActive": "Custom Firebase project is configured. Restart to apply.",
       "importFile": "Import from file",

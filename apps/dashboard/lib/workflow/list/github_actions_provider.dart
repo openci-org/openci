@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/dart_function_urls.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -50,14 +50,12 @@ Future<List<GitHubAction>> searchGitHubActions(
   required String teamId,
 }) async {
   try {
-    final functions = FirebaseFunctions.instance;
-    final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('searchgithubactions'))
-        .call({
-          'teamId': teamId,
-          'type': 'search',
-          'query': query,
-        });
+    final functions = firebaseFunctions;
+    final result = await functions.httpsCallable('searchGitHubActions').call({
+      'teamId': teamId,
+      'type': 'search',
+      'query': query,
+    });
 
     final data = Map<String, dynamic>.from(result.data as Map);
     final items = data['actions'] as List<dynamic>;
@@ -144,14 +142,12 @@ Future<List<String>> actionTags(
   required String teamId,
 }) async {
   try {
-    final functions = FirebaseFunctions.instance;
-    final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('searchgithubactions'))
-        .call({
-          'teamId': teamId,
-          'type': 'tags',
-          'fullName': fullName,
-        });
+    final functions = firebaseFunctions;
+    final result = await functions.httpsCallable('searchGitHubActions').call({
+      'teamId': teamId,
+      'type': 'tags',
+      'fullName': fullName,
+    });
 
     final data = Map<String, dynamic>.from(result.data as Map);
     final tags = (data['tags'] as List<dynamic>).cast<String>();
@@ -169,13 +165,11 @@ Future<String> fetchLatestTag({
   required FirebaseFunctions functions,
 }) async {
   try {
-    final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('searchgithubactions'))
-        .call({
-          'teamId': teamId,
-          'type': 'tags',
-          'fullName': fullName,
-        });
+    final result = await functions.httpsCallable('searchGitHubActions').call({
+      'teamId': teamId,
+      'type': 'tags',
+      'fullName': fullName,
+    });
 
     final data = Map<String, dynamic>.from(result.data as Map);
     final tags = (data['tags'] as List<dynamic>).cast<String>();

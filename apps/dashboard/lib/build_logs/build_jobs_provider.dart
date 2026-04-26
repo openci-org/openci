@@ -1,6 +1,5 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:flutter/foundation.dart';
@@ -36,8 +35,8 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> retryBuildJob(String buildJobId) async {
-    final functions = FirebaseFunctions.instance;
-    await functions.httpsCallableFromUrl(dartFunctionUrl('retrybuildjob')).call(
+    final functions = firebaseFunctions;
+    await functions.httpsCallable('retryBuildJob').call(
       {
         'buildJobId': buildJobId,
       },
@@ -45,21 +44,17 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
-    final functions = FirebaseFunctions.instance;
-    await functions
-        .httpsCallableFromUrl(dartFunctionUrl('cancelbuildjob'))
-        .call({
-          'buildJobId': buildJobId,
-        });
+    final functions = firebaseFunctions;
+    await functions.httpsCallable('cancelBuildJob').call({
+      'buildJobId': buildJobId,
+    });
   }
 
   Future<void> retryWorkflowRun(String workflowRunId) async {
-    final functions = FirebaseFunctions.instance;
-    await functions
-        .httpsCallableFromUrl(dartFunctionUrl('retryworkflowrun'))
-        .call({
-          'workflowRunId': workflowRunId,
-        });
+    final functions = firebaseFunctions;
+    await functions.httpsCallable('retryWorkflowRun').call({
+      'workflowRunId': workflowRunId,
+    });
   }
 }
 

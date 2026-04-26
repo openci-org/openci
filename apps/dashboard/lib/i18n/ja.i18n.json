@@ -46,8 +46,6 @@
       "projectId": "プロジェクトID",
       "storageBucket": "ストレージバケット",
       "pickConfig": "設定を保存",
-      "cloudRunHash": "Cloud Runハッシュ",
-      "cloudRunRegionCode": "Cloud Runリージョンコード",
       "configSaved": "設定を保存しました。アプリを再起動してください。",
       "configActive": "カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。",
       "importFile": "ファイルから読み込み",
