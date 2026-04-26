@@ -1,5 +1,5 @@
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -8,20 +8,27 @@ part 'logs_provider.freezed.dart';
 part 'logs_provider.g.dart';
 
 @riverpod
-Stream<List<BuildLog>> buildLogs(Ref ref, String buildJobId, String runId) {
-  return firestore
-      .collection(buildJobsCollection)
-      .doc(buildJobId)
-      .collection('runs')
-      .doc(runId)
-      .collection('logs')
-      .orderBy('timestamp', descending: false)
-      .withConverter(
-        fromFirestore: (snapshot, _) => BuildLog.fromJson(snapshot.data()!),
-        toFirestore: (buildLog, _) => buildLog.toJson(),
+Stream<List<BuildLog>> buildLogs(
+  Ref ref,
+  String buildJobId,
+  String runId,
+) async* {
+  final teamId = ref.watch(teamStateProvider).value?.id;
+  if (teamId == null) {
+    yield const [];
+    return;
+  }
+  final query = dataConnector
+      .listBuildLogsForRun(
+        buildJobId: buildJobId,
+        runId: runId,
+        teamId: teamId,
       )
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+      .ref();
+
+  yield* query.subscribe().map(
+    (result) => _buildLogsFromResult(result.data.buildLogs),
+  );
 }
 
 @freezed
@@ -34,4 +41,16 @@ abstract class BuildLog with _$BuildLog {
 
   factory BuildLog.fromJson(Map<String, Object?> json) =>
       _$BuildLogFromJson(json);
+}
+
+List<BuildLog> _buildLogsFromResult(List<ListBuildLogsForRunBuildLogs> logs) {
+  return logs
+      .map(
+        (log) => BuildLog(
+          message: log.message,
+          level: log.level ?? 'info',
+          timestamp: dateTimeFromDataConnect(log.timestamp),
+        ),
+      )
+      .toList();
 }

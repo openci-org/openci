@@ -2,15 +2,27 @@ type User @table(key: "id") {
   id: String!
 
   email: String! @col(dataType: "text")
+  displayName: String
+  photoUrl: String
+  notificationPreference: String
+  fcmTokens: [String!]
+  selectedTeam: Team
+  selectedRepository: String
+  selectedBranch: String
 
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
 type Team @table(key: "id") {
-  id: UUID! @default(expr: "uuidV4()")
+  id: String! @default(expr: "uuidV4()")
 
   name: String!
+  aiEnabled: Boolean
+  githubApiBaseUrl: String
+  githubBaseUrl: String
+  installationIds: [Int!]
+  members: [String!]
 
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
@@ -30,7 +42,7 @@ enum InvitationStatus {
 }
 
 type Invitation @table(key: "id") {
-  id: UUID! @default(expr: "uuidV4()")
+  id: String! @default(expr: "uuidV4()")
 
   email: String! @index
 
@@ -51,4 +63,119 @@ type Invitation @table(key: "id") {
 
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Secret @table(key: "id") {
+  id: String! @default(expr: "uuidV4()")
+
+  name: String!
+  team: Team!
+  pathToSecret: String
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type EnvironmentVariable @table(key: "id") {
+  id: String! @default(expr: "uuidV4()")
+
+  key: String!
+  value: String! @col(dataType: "text")
+  team: Team!
+  autoIncrement: Boolean
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Workflow @table(key: "id") {
+  id: String!
+
+  name: String
+  team: Team!
+  workflowConfig: Any
+  workflowSteps: Any
+  isEditing: Boolean
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type WorkflowFile @table(key: "id") {
+  id: String!
+
+  team: Team!
+  repository: String!
+  branch: String!
+  fileName: String!
+  filePath: String!
+  content: String! @col(dataType: "text")
+  enabled: Boolean
+
+  updatedAt: Timestamp! @default(expr: "request.time")
+  syncedAt: Timestamp
+}
+
+type BuildJob @table(key: "id") {
+  id: String!
+
+  status: String!
+  owner: String!
+  repo: String!
+  team: Team
+  workflowId: String
+  workflowFileName: String
+  workflowName: String
+  jobKey: String
+  workflowRunId: String
+  needs: [String!]
+  resolvedNeeds: Any
+  installationId: Int64
+  installationToken: String @col(dataType: "text")
+  tokenExpiresAt: Timestamp
+  checkRunId: Int64
+  commitSha: String
+  pullRequestNumber: Int
+  event: String
+  action: String
+  sender: String
+  repository: String
+  tagName: String
+  branch: String
+  releaseName: String
+  runsOn: String
+  runCount: Int
+  latestRunId: String
+  retriedFromBuildJobId: String
+  retriedFromWorkflowRunId: String
+  githubApiBaseUrl: String
+  githubBaseUrl: String
+  failureSummaryStatus: String
+  failureSummary: String @col(dataType: "text")
+  failureSummaryModel: String
+  failureSummaryDurationMs: Int
+  completedAt: Timestamp
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type BuildRun @table(key: ["buildJob", "id"]) {
+  buildJob: BuildJob!
+  id: String!
+  status: String
+  conclusion: String
+
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type BuildLog @table(key: ["buildRun", "id"]) {
+  buildRun: BuildRun!
+  id: String!
+
+  message: String! @col(dataType: "text")
+  level: String
+  timestamp: Timestamp!
+  stackTrace: String @col(dataType: "text")
 }

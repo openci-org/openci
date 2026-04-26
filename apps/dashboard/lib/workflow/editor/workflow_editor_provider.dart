@@ -1,5 +1,6 @@
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/workflow/dataconnect_workflow_mapper.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,47 +12,55 @@ part 'workflow_editor_provider.g.dart';
 class WorkflowEditor extends _$WorkflowEditor {
   @override
   Stream<Workflow> build(String workflowId) {
-    return firestore
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .withConverter(
-          fromFirestore: (snapshot, _) => Workflow.fromJson(snapshot.data()!),
-          toFirestore: (model, _) => model.toJson(),
-        )
-        .snapshots()
-        .map((doc) {
-          final workflow = doc.data();
-          if (workflow == null) {
-            throw Exception('Workflow not found');
-          }
-          return workflow;
+    final teamId = ref.watch(teamStateProvider).value?.id;
+    if (teamId == null) return const Stream.empty();
+    return dataConnector
+        .getWorkflow(id: workflowId, teamId: teamId)
+        .ref()
+        .subscribe()
+        .map((result) {
+          final workflow = result.data.workflow;
+          if (workflow == null) throw Exception('Workflow not found');
+          return workflowFromDataConnect(
+            id: workflow.id,
+            teamId: workflow.teamId,
+            name: workflow.name,
+            workflowConfig: workflow.workflowConfig,
+            workflowSteps: workflow.workflowSteps,
+            isEditing: workflow.isEditing,
+            createdAt: workflow.createdAt,
+            updatedAt: workflow.updatedAt,
+          );
         });
   }
 
   Future<void> updateName(String name) async {
-    await firestore.collection(workflowsCollection).doc(workflowId).update({
-      'name': name,
-    });
+    final workflow = await _currentWorkflow();
+    await dataConnector
+        .updateWorkflowName(
+          id: workflowId,
+          teamId: workflow.teamId,
+          name: name,
+        )
+        .execute();
   }
 
   Future<void> updateWorkflowConfig(WorkflowConfig config) async {
-    await firestore.collection(workflowsCollection).doc(workflowId).update({
-      'workflowConfig': config.toJson(),
-    });
+    final workflow = await _currentWorkflow();
+    await dataConnector
+        .updateWorkflowConfig(
+          id: workflowId,
+          teamId: workflow.teamId,
+          workflowConfig: anyValue(config.toJson()),
+        )
+        .execute();
   }
 
   Future<void> updateWorkflowStep({
     required int index,
     required WorkflowStep step,
   }) async {
-    final doc = await firestore
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .get();
-    final data = doc.data();
-    if (data == null) return;
-
-    final workflow = Workflow.fromJson(data);
+    final workflow = await _currentWorkflow();
     final steps = List<WorkflowStep>.from(workflow.workflowSteps);
     if (index < 0 || index >= steps.length) return;
 
@@ -61,20 +70,11 @@ class WorkflowEditor extends _$WorkflowEditor {
         : step;
     steps[index] = updatedStep;
 
-    await firestore.collection(workflowsCollection).doc(workflowId).update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+    await _updateSteps(workflow.teamId, steps);
   }
 
   Future<void> addStep({int? insertAt}) async {
-    final doc = await firestore
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .get();
-    final data = doc.data();
-    if (data == null) return;
-
-    final workflow = Workflow.fromJson(data);
+    final workflow = await _currentWorkflow();
     final steps = List<WorkflowStep>.from(workflow.workflowSteps);
     final newStep = WorkflowStep(
       name: 'New Step',
@@ -88,39 +88,21 @@ class WorkflowEditor extends _$WorkflowEditor {
       steps.add(newStep);
     }
 
-    await firestore.collection(workflowsCollection).doc(workflowId).update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+    await _updateSteps(workflow.teamId, steps);
   }
 
   Future<void> deleteStep(int index) async {
-    final doc = await firestore
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .get();
-    final data = doc.data();
-    if (data == null) return;
-
-    final workflow = Workflow.fromJson(data);
+    final workflow = await _currentWorkflow();
     final steps = List<WorkflowStep>.from(workflow.workflowSteps);
     if (index < 0 || index >= steps.length) return;
 
     steps.removeAt(index);
 
-    await firestore.collection(workflowsCollection).doc(workflowId).update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+    await _updateSteps(workflow.teamId, steps);
   }
 
   Future<void> reorderSteps(int oldIndex, int newIndex) async {
-    final doc = await firestore
-        .collection(workflowsCollection)
-        .doc(workflowId)
-        .get();
-    final data = doc.data();
-    if (data == null) return;
-
-    final workflow = Workflow.fromJson(data);
+    final workflow = await _currentWorkflow();
     final steps = List<WorkflowStep>.from(workflow.workflowSteps);
 
     if (oldIndex < newIndex) {
@@ -129,9 +111,39 @@ class WorkflowEditor extends _$WorkflowEditor {
     final item = steps.removeAt(oldIndex);
     steps.insert(newIndex, item);
 
-    await firestore.collection(workflowsCollection).doc(workflowId).update({
-      'workflowSteps': steps.map((s) => s.toJson()).toList(),
-    });
+    await _updateSteps(workflow.teamId, steps);
+  }
+
+  Future<Workflow> _currentWorkflow() async {
+    final cached = state.value;
+    if (cached != null) return cached;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+    final result = await dataConnector
+        .getWorkflow(id: workflowId, teamId: teamId)
+        .execute();
+    final workflow = result.data.workflow;
+    if (workflow == null) throw Exception('Workflow not found');
+    return workflowFromDataConnect(
+      id: workflow.id,
+      teamId: workflow.teamId,
+      name: workflow.name,
+      workflowConfig: workflow.workflowConfig,
+      workflowSteps: workflow.workflowSteps,
+      isEditing: workflow.isEditing,
+      createdAt: workflow.createdAt,
+      updatedAt: workflow.updatedAt,
+    );
+  }
+
+  Future<void> _updateSteps(String teamId, List<WorkflowStep> steps) {
+    return dataConnector
+        .updateWorkflowSteps(
+          id: workflowId,
+          teamId: teamId,
+          workflowSteps: anyValue(steps.map((step) => step.toJson()).toList()),
+        )
+        .execute();
   }
 }
 

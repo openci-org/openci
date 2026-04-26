@@ -67,7 +67,7 @@ final class EnvironmentVariableManagerProvider
 }
 
 String _$environmentVariableManagerHash() =>
-    r'544bf7321c8b9835aabf59b99f2819a963ec6a86';
+    r'4cbae8cec8c74eb6f1211accb1ec063cc7acf3e3';
 
 abstract class _$EnvironmentVariableManager
     extends $StreamNotifier<List<EnvironmentVariable>> {

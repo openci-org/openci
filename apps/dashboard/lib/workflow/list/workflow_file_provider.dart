@@ -1,7 +1,6 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -39,23 +38,25 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
     return Stream.value([]);
   }
 
-  return firestore
-      .collection(workflowFilesCollection)
-      .where('teamId', isEqualTo: team.id)
-      .where('repository', isEqualTo: selectedRepo)
-      .where('branch', isEqualTo: selectedBranch)
-      .orderBy('fileName')
-      .snapshots()
+  return dataConnector
+      .listWorkflowFilesForBranch(
+        teamId: team.id,
+        repository: selectedRepo,
+        branch: selectedBranch,
+      )
+      .ref()
+      .subscribe()
       .map(
-        (qs) => qs.docs.map((d) {
-          final data = d.data();
-          return WorkflowFile(
-            name: data['fileName'] as String,
-            path: data['filePath'] as String,
-            content: data['content'] as String,
-            enabled: data['enabled'] as bool? ?? true,
-          );
-        }).toList(),
+        (result) => result.data.workflowFiles
+            .map(
+              (file) => WorkflowFile(
+                name: file.fileName,
+                path: file.filePath,
+                content: file.content,
+                enabled: file.enabled ?? true,
+              ),
+            )
+            .toList(),
       );
 }
 
@@ -78,7 +79,7 @@ Future<void> syncWorkflowFiles(Ref ref) async {
   }
 
   await functions
-      .httpsCallableFromUrl(dartFunctionUrl('sync-workflow-files'))
+      .httpsCallableFromUrl(dartFunctionUrl('syncworkflowfiles'))
       .call({
         'teamId': team.id,
         'repository': selectedRepo,
@@ -117,7 +118,7 @@ Future<void> toggleWorkflowEnabled(
     fileName,
   );
 
-  await firestore.collection(workflowFilesCollection).doc(docId).update({
-    'enabled': enabled,
-  });
+  await dataConnector
+      .updateWorkflowFileEnabled(id: docId, teamId: team.id, enabled: enabled)
+      .execute();
 }

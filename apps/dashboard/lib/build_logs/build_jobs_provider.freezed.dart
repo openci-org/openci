@@ -13,7 +13,7 @@ part of 'build_jobs_provider.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$BuildJob {
+mixin _$BuildJob implements DiagnosticableTreeMixin {
 
  String get id; String get status; String get owner; String get repo; String? get teamId; String? get workflowId; String? get workflowName; String? get workflowFileName; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId; String? get tagName; String? get branch; String? get jobKey; String? get workflowRunId; List<String>? get needs; String? get failureSummary; String? get failureSummaryModel; String? get failureSummaryStatus; int? get failureSummaryDurationMs;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;@DateTimeConverter() DateTime? get completedAt;
 /// Create a copy of BuildJob
@@ -25,6 +25,12 @@ $BuildJobCopyWith<BuildJob> get copyWith => _$BuildJobCopyWithImpl<BuildJob>(thi
   /// Serializes this BuildJob to a JSON map.
   Map<String, dynamic> toJson();
 
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'BuildJob'))
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('owner', owner))..add(DiagnosticsProperty('repo', repo))..add(DiagnosticsProperty('teamId', teamId))..add(DiagnosticsProperty('workflowId', workflowId))..add(DiagnosticsProperty('workflowName', workflowName))..add(DiagnosticsProperty('workflowFileName', workflowFileName))..add(DiagnosticsProperty('commitSha', commitSha))..add(DiagnosticsProperty('pullRequestNumber', pullRequestNumber))..add(DiagnosticsProperty('runCount', runCount))..add(DiagnosticsProperty('latestRunId', latestRunId))..add(DiagnosticsProperty('tagName', tagName))..add(DiagnosticsProperty('branch', branch))..add(DiagnosticsProperty('jobKey', jobKey))..add(DiagnosticsProperty('workflowRunId', workflowRunId))..add(DiagnosticsProperty('needs', needs))..add(DiagnosticsProperty('failureSummary', failureSummary))..add(DiagnosticsProperty('failureSummaryModel', failureSummaryModel))..add(DiagnosticsProperty('failureSummaryStatus', failureSummaryStatus))..add(DiagnosticsProperty('failureSummaryDurationMs', failureSummaryDurationMs))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('completedAt', completedAt));
+}
 
 @override
 bool operator ==(Object other) {
@@ -36,7 +42,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,teamId,workflowId,workflowName,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowRunId,const DeepCollectionEquality().hash(needs),failureSummary,failureSummaryModel,failureSummaryStatus,failureSummaryDurationMs,createdAt,updatedAt,completedAt]);
 
 @override
-String toString() {
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
   return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, workflowName: $workflowName, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowRunId: $workflowRunId, needs: $needs, failureSummary: $failureSummary, failureSummaryModel: $failureSummaryModel, failureSummaryStatus: $failureSummaryStatus, failureSummaryDurationMs: $failureSummaryDurationMs, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
 }
 
@@ -231,7 +237,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.
 /// @nodoc
 @JsonSerializable()
 
-class _BuildJob implements BuildJob {
+class _BuildJob with DiagnosticableTreeMixin implements BuildJob {
   const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, this.teamId, this.workflowId, this.workflowName, this.workflowFileName, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, this.tagName, this.branch, this.jobKey, this.workflowRunId, final  List<String>? needs, this.failureSummary, this.failureSummaryModel, this.failureSummaryStatus, this.failureSummaryDurationMs, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt, @DateTimeConverter() this.completedAt}): _needs = needs;
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
@@ -278,6 +284,12 @@ _$BuildJobCopyWith<_BuildJob> get copyWith => __$BuildJobCopyWithImpl<_BuildJob>
 Map<String, dynamic> toJson() {
   return _$BuildJobToJson(this, );
 }
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'BuildJob'))
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('owner', owner))..add(DiagnosticsProperty('repo', repo))..add(DiagnosticsProperty('teamId', teamId))..add(DiagnosticsProperty('workflowId', workflowId))..add(DiagnosticsProperty('workflowName', workflowName))..add(DiagnosticsProperty('workflowFileName', workflowFileName))..add(DiagnosticsProperty('commitSha', commitSha))..add(DiagnosticsProperty('pullRequestNumber', pullRequestNumber))..add(DiagnosticsProperty('runCount', runCount))..add(DiagnosticsProperty('latestRunId', latestRunId))..add(DiagnosticsProperty('tagName', tagName))..add(DiagnosticsProperty('branch', branch))..add(DiagnosticsProperty('jobKey', jobKey))..add(DiagnosticsProperty('workflowRunId', workflowRunId))..add(DiagnosticsProperty('needs', needs))..add(DiagnosticsProperty('failureSummary', failureSummary))..add(DiagnosticsProperty('failureSummaryModel', failureSummaryModel))..add(DiagnosticsProperty('failureSummaryStatus', failureSummaryStatus))..add(DiagnosticsProperty('failureSummaryDurationMs', failureSummaryDurationMs))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('completedAt', completedAt));
+}
 
 @override
 bool operator ==(Object other) {
@@ -289,7 +301,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,teamId,workflowId,workflowName,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowRunId,const DeepCollectionEquality().hash(_needs),failureSummary,failureSummaryModel,failureSummaryStatus,failureSummaryDurationMs,createdAt,updatedAt,completedAt]);
 
 @override
-String toString() {
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
   return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, teamId: $teamId, workflowId: $workflowId, workflowName: $workflowName, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowRunId: $workflowRunId, needs: $needs, failureSummary: $failureSummary, failureSummaryModel: $failureSummaryModel, failureSummaryStatus: $failureSummaryStatus, failureSummaryDurationMs: $failureSummaryDurationMs, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
 }
 

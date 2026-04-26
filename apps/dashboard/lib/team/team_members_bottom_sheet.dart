@@ -48,7 +48,7 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
 
   final functions = FirebaseFunctions.instance;
   final result = await functions
-      .httpsCallableFromUrl(dartFunctionUrl('get-team-members'))
+      .httpsCallableFromUrl(dartFunctionUrl('getteammembers'))
       .call<Map<String, dynamic>>({'teamId': team.id});
 
   final data = result.data;

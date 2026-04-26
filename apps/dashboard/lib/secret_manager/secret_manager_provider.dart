@@ -1,7 +1,6 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -20,15 +19,24 @@ class SecretManager extends _$SecretManager {
   Stream<List<Secret>> secretsStream() {
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
-    return firestore
-        .collection(secretsCollection)
-        .withConverter(
-          fromFirestore: (snapshot, _) => Secret.fromJson(snapshot.data()!),
-          toFirestore: (secret, _) => secret.toJson(),
-        )
-        .where('teamId', isEqualTo: teamId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+    return dataConnector
+        .listSecretsForTeam(teamId: teamId)
+        .ref()
+        .subscribe()
+        .map(
+          (result) => result.data.secrets
+              .map(
+                (secret) => Secret(
+                  id: secret.id,
+                  name: secret.name,
+                  teamId: secret.teamId,
+                  pathToSecret: secret.pathToSecret,
+                  createdAt: dateTimeFromDataConnect(secret.createdAt),
+                  updatedAt: dateTimeFromDataConnect(secret.updatedAt),
+                ),
+              )
+              .toList(),
+        );
   }
 
   Future<void> addSecret(String name, String value) async {
@@ -36,7 +44,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('create-secret-v1'))
+        .httpsCallableFromUrl(dartFunctionUrl('createsecretv1'))
         .call({
           'name': name,
           'value': value,
@@ -53,7 +61,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('update-secret-v1'))
+        .httpsCallableFromUrl(dartFunctionUrl('updatesecretv1'))
         .call({
           'documentId': documentId,
           'name': name,
@@ -67,7 +75,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('delete-secret-v1'))
+        .httpsCallableFromUrl(dartFunctionUrl('deletesecretv1'))
         .call({
           'documentId': documentId,
           'teamId': teamId,
@@ -79,7 +87,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('generate-certificate-key-v1'))
+        .httpsCallableFromUrl(dartFunctionUrl('generatecertificatekeyv1'))
         .call({
           'teamId': teamId,
         });

@@ -1,10 +1,10 @@
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 part 'team_provider.freezed.dart';
 part 'team_provider.g.dart';
@@ -70,15 +70,22 @@ class TeamList extends _$TeamList {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    return firestore
-        .collection(teamsCollection)
-        .where('members', arrayContains: currentUserId)
-        .withConverter(
-          fromFirestore: (snapshot, _) => Team.fromJson(snapshot.data()!),
-          toFirestore: (model, _) => model.toJson(),
-        )
-        .snapshots()
-        .map((qs) => qs.docs.map((d) => d.data()).toList());
+    return dataConnector.listMyTeams().ref().subscribe().map((result) {
+      return result.data.teamMembers
+          .map((membership) => membership.team)
+          .map(
+            (team) => Team(
+              id: team.id,
+              name: team.name,
+              members: team.members ?? const [],
+              installationIds: team.installationIds ?? const [],
+              aiEnabled: team.aiEnabled ?? true,
+              createdAt: dateTimeFromDataConnect(team.createdAt),
+              updatedAt: dateTimeFromDataConnect(team.updatedAt),
+            ),
+          )
+          .toList();
+    });
   }
 
   Future<void> createTeam(String teamName) async {
@@ -87,33 +94,25 @@ class TeamList extends _$TeamList {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    final docRef = firestore.collection(teamsCollection).doc();
-    await docRef.set(
-      Team(
-        id: docRef.id,
-        name: teamName,
-        members: [currentUserId],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ).toJson(),
-    );
+    await dataConnector
+        .createTeamForCurrentUser(
+          id: const Uuid().v4(),
+          name: teamName,
+        )
+        .execute();
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    await firestore.collection(teamsCollection).doc(teamId).update({
-      'name': newName,
-      'updatedAt': DateTime.now(),
-    });
+    await dataConnector.updateTeamName(teamId: teamId, name: newName).execute();
   }
 
   Future<void> updateAiEnabled(String teamId, bool enabled) async {
-    await firestore.collection(teamsCollection).doc(teamId).update({
-      'aiEnabled': enabled,
-      'updatedAt': DateTime.now(),
-    });
+    await dataConnector
+        .updateTeamAiEnabled(teamId: teamId, aiEnabled: enabled)
+        .execute();
   }
 
   Future<void> deleteTeam(String teamId) async {
-    await firestore.collection(teamsCollection).doc(teamId).delete();
+    await dataConnector.deleteTeam(teamId: teamId).execute();
   }
 }

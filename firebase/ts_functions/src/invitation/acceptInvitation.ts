@@ -13,6 +13,7 @@ interface AcceptInvitationRequest {
 }
 
 export interface AcceptInvitationResponse {
+  status: "accepted";
   teamId: string;
   teamName: string;
 }
@@ -90,6 +91,7 @@ export const acceptInvitation = onCall<AcceptInvitationRequest, Promise<AcceptIn
     });
 
     return {
+      status: "accepted",
       teamId: invitation.team.id,
       teamName: invitation.team.name,
     };

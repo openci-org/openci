@@ -25,7 +25,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-
 enum _ActionState { idle, loading, done }
 
 // ── ui.sh zinc-neutral palette ──────────────────────────────────────────────
@@ -79,345 +78,346 @@ class BuildLogsDetailPage extends HookConsumerWidget {
 
     return SyncedSpinnerScope(
       child: Scaffold(
-      backgroundColor: AppColors.of(context).scaffold,
-      appBar: AppBar(
-        backgroundColor: AppColors.of(context).surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 16,
-            color: AppColors.of(context).textSecondary,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: workflowNameAsync.when(
-          data: (name) => Text(
-            name ?? '${buildJob.owner}/${buildJob.repo}',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: AppColors.of(context).textPrimary,
-              letterSpacing: -0.3,
+        backgroundColor: AppColors.of(context).scaffold,
+        appBar: AppBar(
+          backgroundColor: AppColors.of(context).surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: AppColors.of(context).textSecondary,
             ),
+            onPressed: () => Navigator.pop(context),
           ),
-          loading: () => SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.of(context).textTertiary,
+          title: workflowNameAsync.when(
+            data: (name) => Text(
+              name ?? '${buildJob.owner}/${buildJob.repo}',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: AppColors.of(context).textPrimary,
+                letterSpacing: -0.3,
+              ),
             ),
+            loading: () => SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.of(context).textTertiary,
+              ),
+            ),
+            error: asyncErrorWidget,
           ),
-          error: asyncErrorWidget,
-        ),
-        actions: [
-          if (canCancel)
-            IconButton(
-              onPressed: () async {
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: AppColors.of(context).surfaceHover,
-                    surfaceTintColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: AppColors.of(context).border,
+          actions: [
+            if (canCancel)
+              IconButton(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: AppColors.of(context).surfaceHover,
+                      surfaceTintColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: AppColors.of(context).border,
+                        ),
                       ),
-                    ),
-                    title: Text(
-                      detailT.cancelBuild,
-                      style: TextStyle(
-                        color: AppColors.of(context).textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      title: Text(
+                        detailT.cancelBuild,
+                        style: TextStyle(
+                          color: AppColors.of(context).textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    content: Text(
-                      detailT.cancelConfirm,
-                      style: TextStyle(
-                        color: AppColors.of(context).textSecondary,
-                        fontSize: 14,
+                      content: Text(
+                        detailT.cancelConfirm,
+                        style: TextStyle(
+                          color: AppColors.of(context).textSecondary,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: Text(
-                          detailT.cancelNo,
-                          style: TextStyle(
-                            color: AppColors.of(context).textSecondary,
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text(
+                            detailT.cancelNo,
+                            style: TextStyle(
+                              color: AppColors.of(context).textSecondary,
+                            ),
                           ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFFF85149),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFF85149),
+                          ),
+                          child: Text(detailT.cancelBuild),
                         ),
-                        child: Text(detailT.cancelBuild),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed != true) return;
-                try {
-                  if (!context.mounted) return;
-                  context.showSnackBarMessage(detailT.cancelling);
-                  await ref
-                      .read(buildJobsProvider.notifier)
-                      .cancelBuildJob(buildJob.id);
-                  if (context.mounted) {
-                    context.showSnackBarMessage(detailT.buildCancelled);
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
+                  try {
+                    if (!context.mounted) return;
+                    context.showSnackBarMessage(detailT.cancelling);
+                    await ref
+                        .read(buildJobsProvider.notifier)
+                        .cancelBuildJob(buildJob.id);
+                    if (context.mounted) {
+                      context.showSnackBarMessage(detailT.buildCancelled);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      context.showSnackBarMessage(
+                        detailT.failedToCancel(error: e.toString()),
+                      );
+                    }
                   }
-                } catch (e) {
-                  if (context.mounted) {
-                    context.showSnackBarMessage(
-                      detailT.failedToCancel(error: e.toString()),
-                    );
-                  }
-                }
-              },
-              icon: Icon(
-                Icons.cancel_outlined,
-                size: 18,
-                color: const Color(0xFFD29922).withValues(alpha: 0.7),
+                },
+                icon: Icon(
+                  Icons.cancel_outlined,
+                  size: 18,
+                  color: const Color(0xFFD29922).withValues(alpha: 0.7),
+                ),
+                tooltip: t.common.cancel,
               ),
-              tooltip: t.common.cancel,
-            ),
-          IconButton(
-            onPressed: retryState.value != _ActionState.idle
-                ? null
-                : () async {
-                    retryState.value = _ActionState.loading;
-                    try {
-                      await ref
-                          .read(buildJobsProvider.notifier)
-                          .retryBuildJob(buildJob.id);
-                      retryState.value = _ActionState.done;
-                      Future.delayed(const Duration(milliseconds: 1500), () {
+            IconButton(
+              onPressed: retryState.value != _ActionState.idle
+                  ? null
+                  : () async {
+                      retryState.value = _ActionState.loading;
+                      try {
+                        await ref
+                            .read(buildJobsProvider.notifier)
+                            .retryBuildJob(buildJob.id);
+                        retryState.value = _ActionState.done;
+                        Future.delayed(const Duration(milliseconds: 1500), () {
+                          if (context.mounted) {
+                            retryState.value = _ActionState.idle;
+                          }
+                        });
+                        if (context.mounted) {
+                          context.showSnackBarMessage(detailT.retrySuccess);
+                        }
+                      } catch (e) {
                         if (context.mounted) {
                           retryState.value = _ActionState.idle;
                         }
-                      });
-                      if (context.mounted) {
-                        context.showSnackBarMessage(detailT.retrySuccess);
+                        if (context.mounted) {
+                          context.showSnackBarMessage(
+                            detailT.failedToRetry(error: e.toString()),
+                          );
+                        }
                       }
-                    } catch (e) {
-                      if (context.mounted) {
-                        retryState.value = _ActionState.idle;
-                      }
-                      if (context.mounted) {
-                        context.showSnackBarMessage(
-                          detailT.failedToRetry(error: e.toString()),
-                        );
-                      }
-                    }
-                  },
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: switch (retryState.value) {
-                _ActionState.loading => SizedBox(
-                  key: const ValueKey('retry-loading'),
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
-                    color: AppColors.of(context).textTertiary,
+                    },
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: switch (retryState.value) {
+                  _ActionState.loading => SizedBox(
+                    key: const ValueKey('retry-loading'),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AppColors.of(context).textTertiary,
+                    ),
                   ),
-                ),
-                _ActionState.done => const Icon(
-                  Icons.check_rounded,
-                  key: ValueKey('retry-check'),
-                  size: 18,
-                  color: Color(0xFF3FB950),
-                ),
-                _ActionState.idle => Icon(
-                  Icons.replay_rounded,
-                  key: const ValueKey('retry-icon'),
-                  size: 18,
-                  color: AppColors.of(context).textSecondary,
-                ),
-              },
+                  _ActionState.done => const Icon(
+                    Icons.check_rounded,
+                    key: ValueKey('retry-check'),
+                    size: 18,
+                    color: Color(0xFF3FB950),
+                  ),
+                  _ActionState.idle => Icon(
+                    Icons.replay_rounded,
+                    key: const ValueKey('retry-icon'),
+                    size: 18,
+                    color: AppColors.of(context).textSecondary,
+                  ),
+                },
+              ),
+              tooltip: 'Retry',
             ),
-            tooltip: 'Retry',
-          ),
-          const SizedBox(width: 8),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: AppColors.of(context).divider,
+            const SizedBox(width: 8),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              color: AppColors.of(context).divider,
+            ),
           ),
         ),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Status bar ────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.of(context).surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: AppColors.of(context).divider,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Status bar ────────────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.of(context).surface,
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.of(context).divider,
+                  ),
                 ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Status pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.25),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // Status pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (buildJob.status == 'in_progress')
+                              SyncedSpinner(
+                                size: 14,
+                                strokeWidth: 1.5,
+                                color: statusColor,
+                              )
+                            else
+                              Icon(statusIcon, color: statusColor, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              statusLabel,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      const Spacer(),
+                      Text(
+                        '${buildJob.owner}/${buildJob.repo}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          color: AppColors.of(context).textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (buildJob.branch != null)
+                        _DetailGitChip(
+                          icon: FontAwesomeIcons.codeBranch,
+                          label: buildJob.branch!,
+                          color: const Color(0xFFBC8CFF),
+                        ),
+                      if (buildJob.pullRequestNumber != null)
+                        _DetailGitChip(
+                          icon: FontAwesomeIcons.codePullRequest,
+                          label: '#${buildJob.pullRequestNumber}',
+                          color: const Color(0xFF3FB950),
+                        ),
+                      if (buildJob.tagName != null)
+                        _DetailGitChip(
+                          icon: FontAwesomeIcons.tag,
+                          label: buildJob.tagName!,
+                          color: const Color(0xFFD29922),
+                        ),
+                      if (buildJob.commitSha != null)
+                        _DetailGitChip(
+                          icon: FontAwesomeIcons.codeCommit,
+                          label: buildJob.commitSha!.substring(0, 7),
+                          color: AppColors.of(context).textTertiary,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // ── AI Failure Summary ─────────────────────────────────────────
+            Consumer(
+              builder: (context, ref, _) {
+                final aiEnabled =
+                    ref.watch(teamStateProvider).value?.aiEnabled ?? true;
+                if (!aiEnabled) return const SizedBox.shrink();
+                if (buildJob.status != 'failure' ||
+                    buildJob.failureSummaryStatus == null) {
+                  return const SizedBox.shrink();
+                }
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
+                  child: _FailureSummaryCard(
+                    status: buildJob.failureSummaryStatus!,
+                    summary: buildJob.failureSummary,
+                    model: buildJob.failureSummaryModel,
+                    durationMs: buildJob.failureSummaryDurationMs,
+                  ),
+                );
+              },
+            ),
+            // ── Log content ───────────────────────────────────────────────
+            Expanded(
+              child: buildJob.latestRunId != null
+                  ? _DetailLogsView(
+                      buildJobId: buildJob.id,
+                      runId: buildJob.latestRunId!,
+                      buildStatus: buildJob.status,
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (buildJob.status == 'in_progress')
-                            SyncedSpinner(
-                              size: 14,
-                              strokeWidth: 1.5,
-                              color: statusColor,
-                            )
-                          else
-                            Icon(statusIcon, color: statusColor, size: 14),
-                          const SizedBox(width: 6),
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: AppColors.of(context).borderSubtle,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.hourglass_empty_rounded,
+                              size: 28,
+                              color: AppColors.of(context).border,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           Text(
-                            statusLabel,
+                            detailT.noRuns,
                             style: TextStyle(
-                              color: statusColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.2,
+                              color: AppColors.of(context).textTertiary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      '${buildJob.owner}/${buildJob.repo}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        color: AppColors.of(context).textTertiary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (buildJob.branch != null)
-                      _DetailGitChip(
-                        icon: FontAwesomeIcons.codeBranch,
-                        label: buildJob.branch!,
-                        color: const Color(0xFFBC8CFF),
-                      ),
-                    if (buildJob.pullRequestNumber != null)
-                      _DetailGitChip(
-                        icon: FontAwesomeIcons.codePullRequest,
-                        label: '#${buildJob.pullRequestNumber}',
-                        color: const Color(0xFF3FB950),
-                      ),
-                    if (buildJob.tagName != null)
-                      _DetailGitChip(
-                        icon: FontAwesomeIcons.tag,
-                        label: buildJob.tagName!,
-                        color: const Color(0xFFD29922),
-                      ),
-                    if (buildJob.commitSha != null)
-                      _DetailGitChip(
-                        icon: FontAwesomeIcons.codeCommit,
-                        label: buildJob.commitSha!.substring(0, 7),
-                        color: AppColors.of(context).textTertiary,
-                      ),
-                  ],
-                ),
-              ],
             ),
-          ),
-          // ── AI Failure Summary ─────────────────────────────────────────
-          Consumer(
-            builder: (context, ref, _) {
-              final aiEnabled =
-                  ref.watch(teamStateProvider).value?.aiEnabled ?? true;
-              if (!aiEnabled) return const SizedBox.shrink();
-              if (buildJob.status != 'failure' ||
-                  buildJob.failureSummaryStatus == null) {
-                return const SizedBox.shrink();
-              }
-              return ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.4,
-                ),
-                child: _FailureSummaryCard(
-                  status: buildJob.failureSummaryStatus!,
-                  summary: buildJob.failureSummary,
-                  model: buildJob.failureSummaryModel,
-                  durationMs: buildJob.failureSummaryDurationMs,
-                ),
-              );
-            },
-          ),
-          // ── Log content ───────────────────────────────────────────────
-          Expanded(
-            child: buildJob.latestRunId != null
-                ? _DetailLogsView(
-                    buildJobId: buildJob.id,
-                    runId: buildJob.latestRunId!,
-                  )
-                : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: AppColors.of(context).borderSubtle,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.hourglass_empty_rounded,
-                            size: 28,
-                            color: AppColors.of(context).border,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          detailT.noRuns,
-                          style: TextStyle(
-                            color: AppColors.of(context).textTertiary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -473,10 +473,12 @@ class _DetailLogsView extends HookConsumerWidget {
   const _DetailLogsView({
     required this.buildJobId,
     required this.runId,
+    required this.buildStatus,
   });
 
   final String buildJobId;
   final String runId;
+  final String buildStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -521,22 +523,34 @@ class _DetailLogsView extends HookConsumerWidget {
         }
 
         if (logs.isEmpty) {
+          final isTerminal =
+              buildStatus == 'success' ||
+              buildStatus == 'failure' ||
+              buildStatus == 'cancelled' ||
+              buildStatus == 'skipped';
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
+                if (isTerminal)
+                  Icon(
+                    Icons.subject_rounded,
+                    size: 22,
                     color: AppColors.of(context).textTertiary,
+                  )
+                else
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AppColors.of(context).textTertiary,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 14),
                 Text(
-                  detailT.waitingForLogs,
+                  isTerminal ? detailT.noLogsAvailable : detailT.waitingForLogs,
                   style: TextStyle(
                     color: AppColors.of(context).textTertiary,
                     fontSize: 13,
@@ -1238,8 +1252,7 @@ class _FailureSummaryCard extends HookWidget {
                                 fontSize: 12,
                                 fontFamily: 'monospace',
                                 color: const Color(0xFF58A6FF),
-                                backgroundColor:
-                                    AppColors.of(context).divider,
+                                backgroundColor: AppColors.of(context).divider,
                               ),
                               codeblockDecoration: BoxDecoration(
                                 color: AppColors.of(context).scaffold,

@@ -1,4 +1,4 @@
-import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/workflow/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -49,25 +49,21 @@ class InitialWorkflowSetup extends _$InitialWorkflowSetup {
     if (team == null) throw StateError('team is not loaded yet');
     final teamId = team.id;
 
-    await firestore
-        .collection('workflows_v1')
-        .doc(documentId)
-        .set(
-          Workflow(
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-            documentId: documentId,
-            teamId: teamId,
-            name: name,
-            workflowConfig: WorkflowConfig(
-              selectedRepository: selectedRepository,
-              selectedWorkingDirectory: selectedWorkingDirectory,
-              triggers: state.triggers,
-            ),
-            workflowSteps: [],
-            isEditing: true,
-          ).toJson(),
-        );
+    final config = WorkflowConfig(
+      selectedRepository: selectedRepository,
+      selectedWorkingDirectory: selectedWorkingDirectory,
+      triggers: state.triggers,
+    );
+    await dataConnector
+        .createWorkflow(
+          id: documentId,
+          teamId: teamId,
+          name: name,
+          workflowConfig: anyValue(config.toJson()),
+          workflowSteps: anyValue(const []),
+          isEditing: true,
+        )
+        .execute();
   }
 }
 

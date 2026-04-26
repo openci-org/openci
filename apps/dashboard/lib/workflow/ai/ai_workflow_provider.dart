@@ -93,7 +93,7 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
 
       final functions = FirebaseFunctions.instance;
       final result = await functions
-          .httpsCallableFromUrl(dartFunctionUrl('list-directories'))
+          .httpsCallableFromUrl(dartFunctionUrl('listdirectories'))
           .call({
             'teamId': team.id,
             'repository': _repository,
@@ -138,7 +138,7 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
 
       final result = await functions
           .httpsCallableFromUrl(
-            dartFunctionUrl('generate-ai-workflow-response'),
+            dartFunctionUrl('generateaiworkflowresponse'),
             options: HttpsCallableOptions(timeout: const Duration(seconds: 60)),
           )
           .call({

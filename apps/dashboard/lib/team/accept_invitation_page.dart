@@ -25,7 +25,7 @@ class AcceptInvitationPage extends HookConsumerWidget {
         try {
           final response = await FirebaseFunctions.instance
               .httpsCallableFromUrl(
-                dartFunctionUrl('accept-invitation'),
+                dartFunctionUrl('acceptinvitation'),
               )
               .call({'token': token});
 

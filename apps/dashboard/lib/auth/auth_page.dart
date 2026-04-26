@@ -1,11 +1,10 @@
 import 'dart:convert';
 
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
@@ -21,12 +20,12 @@ import 'package:url_launcher/url_launcher.dart';
 void _processInvitations() {
   FirebaseFunctions.instance
       .httpsCallableFromUrl(
-        dartFunctionUrl('process-invitations-on-sign-up'),
+        dartFunctionUrl('acceptinvitations'),
       )
       .call<void>()
       .then((_) {})
       .catchError((Object e) {
-        debugPrint('processInvitationsOnSignUp failed: $e');
+        debugPrint('acceptInvitations failed: $e');
       });
 }
 
@@ -47,7 +46,11 @@ class AuthPage extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Check if a self-hosted Firebase config is active
-    final configFuture = useMemoized(() => loadSelfHostedConfig());
+    final configReloadKey = useState(0);
+    final configFuture = useMemoized(
+      () => loadSelfHostedConfig(),
+      [configReloadKey.value],
+    );
     final configSnapshot = useFuture(configFuture);
 
     return Scaffold(
@@ -340,32 +343,13 @@ class AuthPage extends HookConsumerWidget {
                                                   );
                                               final userId =
                                                   credential.user!.uid;
-                                              final db = firestore;
-                                              final teamsRef = db
-                                                  .collection(teamsCollection)
-                                                  .doc();
-                                              final teamId = teamsRef.id;
-                                              final batch = db.batch();
-                                              final now = DateTime.now()
-                                                  .toUtc()
-                                                  .toIso8601String();
-                                              batch.set(teamsRef, {
-                                                'id': teamId,
-                                                'name': teamId,
-                                                'members': [userId],
-                                                'createdAt': now,
-                                                'updatedAt': now,
-                                              });
-                                              final userRef = db
-                                                  .collection(usersCollection)
-                                                  .doc(userId);
-                                              batch.set(userRef, {
-                                                'id': userId,
-                                                'selectedTeamId': teamId,
-                                                'createdAt': now,
-                                                'updatedAt': now,
-                                              });
-                                              await batch.commit();
+                                              final teamId = userId;
+                                              await dataConnector
+                                                  .createTeamForCurrentUser(
+                                                    id: teamId,
+                                                    name: teamId,
+                                                  )
+                                                  .execute();
                                               ref.invalidate(authProvider);
                                               _processInvitations();
                                             } catch (e) {
@@ -414,6 +398,7 @@ class AuthPage extends HookConsumerWidget {
                                   return FirebaseFormSheet();
                                 },
                               );
+                              configReloadKey.value++;
                             },
                             child: Text(authT.useYourFirebase),
                           ),
@@ -424,6 +409,7 @@ class AuthPage extends HookConsumerWidget {
                             ),
                             onPressed: () async {
                               await clearSelfHostedConfig();
+                              configReloadKey.value++;
                               if (!context.mounted) return;
                               context.showSnackBarMessage(authT.resetSuccess);
                             },
@@ -513,10 +499,19 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
+    final configReloadKey = useState(0);
 
     // Check if config is already saved
-    final configFuture = useMemoized(() => loadSelfHostedConfig());
+    final configFuture = useMemoized(
+      () => loadSelfHostedConfig(),
+      [configReloadKey.value],
+    );
     final configSnapshot = useFuture(configFuture);
+    final configsFuture = useMemoized(
+      () => loadSelfHostedConfigs(),
+      [configReloadKey.value],
+    );
+    final configsSnapshot = useFuture(configsFuture);
 
     void applyConfig(SelfHostedConfig config) {
       apiKeyController.text = config.apiKey;
@@ -524,6 +519,8 @@ class FirebaseFormSheet extends HookConsumerWidget {
       messagingSenderIdController.text = config.messagingSenderId;
       projectIdController.text = config.projectId;
       storageBucketController.text = config.storageBucket;
+      cloudRunHashController.text = config.cloudRunHash;
+      cloudRunRegionCodeController.text = config.cloudRunRegionCode;
     }
 
     Future<void> pickConfigFile() async {
@@ -618,6 +615,117 @@ class FirebaseFormSheet extends HookConsumerWidget {
             Expanded(
               child: ListView(
                 children: [
+                  if (configsSnapshot.data?.isNotEmpty == true) ...[
+                    Text(
+                      formT.savedProjects,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final config in configsSnapshot.data!)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    config.projectId,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if (configSnapshot.data?.projectId ==
+                                    config.projectId)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      formT.active,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              config.appId,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () async {
+                                    await activateSelfHostedConfig(
+                                      config.projectId,
+                                    );
+                                    configReloadKey.value++;
+                                    if (context.mounted) {
+                                      context.showSnackBarMessage(
+                                        formT.configSaved,
+                                      );
+                                    }
+                                  },
+                                  child: Text(formT.useProject),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    applyConfig(config);
+                                  },
+                                  child: Text(formT.editProject),
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  tooltip: t.common.delete,
+                                  onPressed: () async {
+                                    await deleteSelfHostedConfig(
+                                      config.projectId,
+                                    );
+                                    configReloadKey.value++;
+                                  },
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
                   // ── Import from file button ──
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -764,6 +872,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                 : 'an',
                           );
                           await saveSelfHostedConfig(config);
+                          ref.invalidate(selfHostedConfigProvider);
                           if (!context.mounted) return;
                           Navigator.pop(context);
                           context.showSnackBarMessage(formT.configSaved);

@@ -1,10 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart' as cloud;
-import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 part 'environment_variable_provider.freezed.dart';
 part 'environment_variable_provider.g.dart';
@@ -16,17 +15,25 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
 
-    return firestore
-        .collection(environmentVariablesCollection)
-        .withConverter(
-          fromFirestore: (snapshot, _) =>
-              EnvironmentVariable.fromJson(snapshot.data()!),
-          toFirestore: (envVar, _) => envVar.toJson(),
-        )
-        .where('teamId', isEqualTo: teamId)
-        .orderBy('key')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+    return dataConnector
+        .listEnvironmentVariablesForTeam(teamId: teamId)
+        .ref()
+        .subscribe()
+        .map(
+          (result) => result.data.environmentVariables
+              .map(
+                (envVar) => EnvironmentVariable(
+                  id: envVar.id,
+                  key: envVar.key,
+                  value: envVar.value,
+                  teamId: envVar.teamId,
+                  autoIncrement: envVar.autoIncrement.value ?? false,
+                  createdAt: dateTimeFromDataConnect(envVar.createdAt),
+                  updatedAt: dateTimeFromDataConnect(envVar.updatedAt),
+                ),
+              )
+              .toList(),
+        );
   }
 
   Future<void> addEnvironmentVariable(
@@ -35,17 +42,15 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
   ) async {
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    final docRef = firestore.collection(environmentVariablesCollection).doc();
-    await docRef.set(
-      EnvironmentVariable(
-        id: docRef.id,
-        key: key,
-        value: value,
-        teamId: teamId,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ).toJson(),
-    );
+    await dataConnector
+        .createEnvironmentVariable(
+          id: const Uuid().v4(),
+          envKey: key,
+          value: value,
+          teamId: teamId,
+        )
+        .autoIncrement(false)
+        .execute();
   }
 
   Future<void> updateEnvironmentVariable({
@@ -53,21 +58,24 @@ class EnvironmentVariableManager extends _$EnvironmentVariableManager {
     required String key,
     required String value,
   }) async {
-    await firestore
-        .collection(environmentVariablesCollection)
-        .doc(documentId)
-        .update({
-          'key': key,
-          'value': value,
-          'updatedAt': cloud.Timestamp.fromDate(DateTime.now()),
-        });
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+    await dataConnector
+        .updateEnvironmentVariable(
+          id: documentId,
+          teamId: teamId,
+          envKey: key,
+          value: value,
+        )
+        .execute();
   }
 
   Future<void> deleteEnvironmentVariable(String documentId) async {
-    await firestore
-        .collection(environmentVariablesCollection)
-        .doc(documentId)
-        .delete();
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+    await dataConnector
+        .deleteEnvironmentVariable(id: documentId, teamId: teamId)
+        .execute();
   }
 }
 

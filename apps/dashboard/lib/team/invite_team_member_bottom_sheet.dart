@@ -258,7 +258,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           try {
                             final result = await FirebaseFunctions.instance
                                 .httpsCallableFromUrl(
-                                  dartFunctionUrl('invite-team-member'),
+                                  dartFunctionUrl('inviteteammember'),
                                 )
                                 .call({
                               'email': emailController.text.trim(),

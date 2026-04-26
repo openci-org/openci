@@ -53,7 +53,11 @@
       "importFile": "Import from file",
       "importFileHint": "JSON (google-services.json) or plist (GoogleService-Info.plist)",
       "invalidFile": "Could not parse the selected file. Please check the format.",
-      "fileLoaded": "Config loaded from file. Review and save."
+      "fileLoaded": "Config loaded from file. Review and save.",
+      "savedProjects": "Saved projects",
+      "active": "Active",
+      "useProject": "Use project",
+      "editProject": "Edit project"
     }
   },
   "workflow": {
@@ -157,6 +161,7 @@
       "failedToRetry": "Failed to retry: $error",
       "noRuns": "No runs yet",
       "waitingForLogs": "Waiting for logs...",
+      "noLogsAvailable": "No logs available",
       "logEntries": "$count log entries",
       "copyAll": "Copy all logs",
       "logsCopied": "Logs copied to clipboard",

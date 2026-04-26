@@ -1,6 +1,5 @@
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -40,16 +39,24 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    return firestore
-        .collection(usersCollection)
-        .doc(currentUserId)
-        .withConverter(
-          fromFirestore: (snapshot, _) => OpenCIUser.fromJson(snapshot.data()!),
-          toFirestore: (model, _) => model.toJson(),
-        )
-        .snapshots()
-        .where((qs) => qs.data() != null)
-        .map((qs) => qs.data()!);
+    return dataConnector.getCurrentUser().ref().subscribe().map((result) {
+      final user = result.data.user;
+      if (user == null) throw Exception('User profile not found');
+      final selectedTeamId = user.selectedTeamId;
+      if (selectedTeamId == null || selectedTeamId.isEmpty) {
+        throw Exception('Selected team is not configured');
+      }
+      return OpenCIUser(
+        id: user.id,
+        selectedTeamId: selectedTeamId,
+        notificationPreference: NotificationPreference.values.byName(
+          user.notificationPreference ?? NotificationPreference.all.name,
+        ),
+        fcmTokens: user.fcmTokens ?? const [],
+        selectedRepository: user.selectedRepository,
+        selectedBranch: user.selectedBranch,
+      );
+    });
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
@@ -58,11 +65,7 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await firestore.collection(usersCollection).doc(currentUserId).update({
-      'selectedTeamId': teamId,
-      'selectedRepository': null,
-      'selectedBranch': null,
-    });
+    await dataConnector.updateCurrentUserSelectedTeam(teamId: teamId).execute();
   }
 
   Future<void> updateNotificationPreference(
@@ -73,9 +76,11 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await firestore.collection(usersCollection).doc(currentUserId).update({
-      'notificationPreference': preference.name,
-    });
+    await dataConnector
+        .updateCurrentUserNotificationPreference(
+          notificationPreference: preference.name,
+        )
+        .execute();
   }
 
   Future<void> addFcmToken(String token) async {
@@ -84,14 +89,7 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    final docRef = firestore.collection(usersCollection).doc(currentUserId);
-    final doc = await docRef.get();
-    final data = doc.data();
-    final existingTokens = List<String>.from(data?['fcmTokens'] as List? ?? []);
-    if (!existingTokens.contains(token)) {
-      existingTokens.add(token);
-      await docRef.update({'fcmTokens': existingTokens});
-    }
+    await dataConnector.addCurrentUserFcmToken(token: token).execute();
   }
 
   Future<void> updateSelectedRepository({
@@ -103,10 +101,12 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await firestore.collection(usersCollection).doc(currentUserId).update({
-      'selectedRepository': repository,
-      'selectedBranch': defaultBranch,
-    });
+    await dataConnector
+        .updateCurrentUserRepositorySelection(
+          repository: repository,
+          branch: defaultBranch,
+        )
+        .execute();
   }
 
   Future<void> updateSelectedBranch(String branch) async {
@@ -115,8 +115,8 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await firestore.collection(usersCollection).doc(currentUserId).update({
-      'selectedBranch': branch,
-    });
+    await dataConnector
+        .updateCurrentUserSelectedBranch(branch: branch)
+        .execute();
   }
 }

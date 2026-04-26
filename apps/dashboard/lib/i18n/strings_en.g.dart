@@ -1138,6 +1138,18 @@ class TranslationsAuthFirebaseFormEn {
 
 	/// en: 'Config loaded from file. Review and save.'
 	String get fileLoaded => 'Config loaded from file. Review and save.';
+
+	/// en: 'Saved projects'
+	String get savedProjects => 'Saved projects';
+
+	/// en: 'Active'
+	String get active => 'Active';
+
+	/// en: 'Use project'
+	String get useProject => 'Use project';
+
+	/// en: 'Edit project'
+	String get editProject => 'Edit project';
 }
 
 // Path: workflow.editor
@@ -1351,6 +1363,9 @@ class TranslationsBuildLogsDetailEn {
 
 	/// en: 'Waiting for logs...'
 	String get waitingForLogs => 'Waiting for logs...';
+
+	/// en: 'No logs available'
+	String get noLogsAvailable => 'No logs available';
 
 	/// en: '$count log entries'
 	String logEntries({required Object count}) => '${count} log entries';
@@ -1669,6 +1684,10 @@ extension on Translations {
 			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) or plist (GoogleService-Info.plist)',
 			'auth.firebaseForm.invalidFile' => 'Could not parse the selected file. Please check the format.',
 			'auth.firebaseForm.fileLoaded' => 'Config loaded from file. Review and save.',
+			'auth.firebaseForm.savedProjects' => 'Saved projects',
+			'auth.firebaseForm.active' => 'Active',
+			'auth.firebaseForm.useProject' => 'Use project',
+			'auth.firebaseForm.editProject' => 'Edit project',
 			'workflow.title' => 'Workflows',
 			'workflow.tabWorkflows' => 'Workflows',
 			'workflow.tabRuns' => 'Runs',
@@ -1760,6 +1779,7 @@ extension on Translations {
 			'buildLogs.detail.failedToRetry' => ({required Object error}) => 'Failed to retry: ${error}',
 			'buildLogs.detail.noRuns' => 'No runs yet',
 			'buildLogs.detail.waitingForLogs' => 'Waiting for logs...',
+			'buildLogs.detail.noLogsAvailable' => 'No logs available',
 			'buildLogs.detail.logEntries' => ({required Object count}) => '${count} log entries',
 			'buildLogs.detail.copyAll' => 'Copy all logs',
 			'buildLogs.detail.logsCopied' => 'Logs copied to clipboard',

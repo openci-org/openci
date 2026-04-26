@@ -1,16 +1,10 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="2.0.0"
 
 NUM_WORKERS=${1:-2}
 SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-workers"
-
-# Ensure dart pub global executables are on PATH
-DART_PUB_CACHE_BIN="${PUB_CACHE:-$HOME/.pub-cache}/bin"
-if ! echo ":$PATH:" | grep -q ":$DART_PUB_CACHE_BIN:"; then
-  export PATH="$PATH:$DART_PUB_CACHE_BIN"
-fi
 
 if ! command -v tmux &> /dev/null; then
   echo "Error: tmux is not installed. Install it with: brew install tmux"
@@ -19,7 +13,7 @@ fi
 
 if ! command -v openci_worker &> /dev/null; then
   echo "Error: openci_worker is not installed. Install it with:"
-  echo "  dart pub global activate openci_worker_cli"
+  echo "  npm install -g openci-worker-cli"
   exit 1
 fi
 

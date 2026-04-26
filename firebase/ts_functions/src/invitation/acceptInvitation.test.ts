@@ -208,6 +208,7 @@ describe("acceptInvitation", () => {
     });
 
     expect(result).toEqual({
+      status: "accepted",
       teamId: TEAM_ID,
       teamName: "Team Alpha",
     });
@@ -231,6 +232,7 @@ describe("acceptInvitation", () => {
     });
 
     expect(result).toEqual({
+      status: "accepted",
       teamId: TEAM_ID,
       teamName: "Team Alpha",
     });

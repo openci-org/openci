@@ -22,7 +22,7 @@ Future<List<String>> directories(Ref ref) async {
   final functions = FirebaseFunctions.instance;
 
   final result = await functions
-      .httpsCallableFromUrl(dartFunctionUrl('list-directories'))
+      .httpsCallableFromUrl(dartFunctionUrl('listdirectories'))
       .call({
     'teamId': team.id,
     'repository': selectedRepository,
