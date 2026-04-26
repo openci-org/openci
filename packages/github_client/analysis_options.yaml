@@ -1,6 +1,0 @@
-include: package:lints/recommended.yaml
-
-linter:
-  rules:
-    require_trailing_commas: true
-    unawaited_futures: true
