@@ -22,9 +22,20 @@ describe("GitHub URL helpers", () => {
     );
   });
 
+  it("normalizes GraphQL endpoint values to REST API base URLs", () => {
+    expect(getApiBaseUrlFromTeamData({ githubApiBaseUrl: "https://api.github.com/graphql" }))
+      .toBe(defaultGitHubApiBaseUrl);
+    expect(getApiBaseUrlFromTeamData({ githubApiBaseUrl: "https://github.example.com/api/graphql" }))
+      .toBe("https://github.example.com/api/v3");
+  });
+
   it("builds GitHub.com and enterprise GraphQL endpoints", () => {
     expect(graphqlEndpoint(defaultGitHubApiBaseUrl)).toBe("https://api.github.com/graphql");
+    expect(graphqlEndpoint("https://api.github.com/graphql")).toBe("https://api.github.com/graphql");
     expect(graphqlEndpoint("https://github.example.com/api/v3")).toBe(
+      "https://github.example.com/api/graphql",
+    );
+    expect(graphqlEndpoint("https://github.example.com/api/graphql")).toBe(
       "https://github.example.com/api/graphql",
     );
   });

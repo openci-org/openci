@@ -23,9 +23,21 @@ export async function getGitHubBaseUrl(teamId?: string | null): Promise<string> 
 
 export function getApiBaseUrlFromTeamData(teamData?: { githubApiBaseUrl?: string | null } | null): string {
   const apiBaseUrl = teamData?.githubApiBaseUrl;
-  return typeof apiBaseUrl === "string" && apiBaseUrl.length > 0
-    ? apiBaseUrl
-    : defaultGitHubApiBaseUrl;
+  if (typeof apiBaseUrl !== "string" || apiBaseUrl.length === 0) {
+    return defaultGitHubApiBaseUrl;
+  }
+
+  const normalized = apiBaseUrl.replace(/\/+$/u, "");
+  if (normalized === `${defaultGitHubApiBaseUrl}/graphql`) {
+    return defaultGitHubApiBaseUrl;
+  }
+  if (normalized.endsWith("/api/graphql")) {
+    return `${new URL(normalized).origin}/api/v3`;
+  }
+  if (normalized.endsWith("/graphql")) {
+    return normalized.slice(0, -"/graphql".length);
+  }
+  return normalized;
 }
 
 export function getBaseUrlFromTeamData(teamData?: { githubBaseUrl?: string | null } | null): string {
@@ -34,11 +46,12 @@ export function getBaseUrlFromTeamData(teamData?: { githubBaseUrl?: string | nul
 }
 
 export function graphqlEndpoint(apiBaseUrl: string): string {
-  if (apiBaseUrl === defaultGitHubApiBaseUrl) {
-    return `${apiBaseUrl}/graphql`;
+  const normalizedApiBaseUrl = getApiBaseUrlFromTeamData({ githubApiBaseUrl: apiBaseUrl });
+  if (normalizedApiBaseUrl === defaultGitHubApiBaseUrl) {
+    return `${normalizedApiBaseUrl}/graphql`;
   }
 
-  const url = new URL(apiBaseUrl);
+  const url = new URL(normalizedApiBaseUrl);
   return `${url.protocol}//${url.host}/api/graphql`;
 }
 
