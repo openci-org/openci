@@ -28,6 +28,7 @@
     "@octokit/request": "^10.0.8",
     "@octokit/rest": "^22.0.1",
     "@octokit/webhooks": "^14.2.0",
+    "@openci/build-job-services": "file:../../packages/build_job_services",
     "@openci/dataconnect-admin": "file:src/generated/dataconnect",
     "firebase-admin": "^13.8.0",
     "firebase-functions": "^7.2.5",
