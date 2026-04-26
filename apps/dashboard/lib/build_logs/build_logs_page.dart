@@ -1054,7 +1054,7 @@ class _LiveDurationBadge extends HookConsumerWidget {
       );
     }
 
-    // Terminal: use run's actual duration from Firestore
+    // Terminal: use the run's actual duration when it is available.
     if (isTerminal) {
       final durationAsync = ref.watch(runDurationProvider(buildJob));
       return durationAsync.when(

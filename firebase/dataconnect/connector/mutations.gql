@@ -1,6 +1,6 @@
 mutation CreateInvitation(
   $email: String!
-  $teamId: UUID!
+  $teamId: String!
   $teamNameSnapshot: String!
   $token: String!
   $expiresAt: Timestamp!
@@ -25,8 +25,8 @@ mutation CreateInvitation(
 
 
 mutation ReinviteInvitation(
-  $id: UUID!
-  $teamId: UUID!
+  $id: String!
+  $teamId: String!
   $token: String!
   $expiresAt: Timestamp!
 ) @auth(level: USER) @transaction {
@@ -48,7 +48,7 @@ mutation ReinviteInvitation(
 }
 
 
-mutation AcceptInvitation($id: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
+mutation AcceptInvitation($id: String!) @auth(level: USER_EMAIL_VERIFIED) {
   invitation_update(
     key: { id: $id }
     data: {
@@ -61,7 +61,7 @@ mutation AcceptInvitation($id: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
 }
 
 
-mutation ExpireInvitation($id: UUID!) @auth(level: USER) {
+mutation ExpireInvitation($id: String!) @auth(level: USER) {
   invitation_update(
     key: { id: $id }
     data: {
@@ -72,7 +72,7 @@ mutation ExpireInvitation($id: UUID!) @auth(level: USER) {
 }
 
 
-mutation AcceptInvitationAndJoinTeam($id: UUID!, $teamId: UUID!)
+mutation AcceptInvitationAndJoinTeam($id: String!, $teamId: String!)
   @auth(level: USER_EMAIL_VERIFIED) {
 
   user_upsert(
@@ -97,6 +97,885 @@ mutation AcceptInvitationAndJoinTeam($id: UUID!, $teamId: UUID!)
     data: {
       teamId: $teamId
       userId_expr: "auth.uid"
+    }
+  )
+}
+
+
+mutation LinkGitHubInstallation($teamId: String!, $installationId: Int!)
+  @auth(level: NO_ACCESS) {
+  team_update(
+    id: $teamId
+    data: {
+      installationIds_update: { add: [$installationId] }
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpsertUserProfile(
+  $id: String!
+  $email: String!
+  $displayName: String
+  $photoUrl: String
+) @auth(level: NO_ACCESS) {
+  user_upsert(
+    data: {
+      id: $id
+      email: $email
+      displayName: $displayName
+      photoUrl: $photoUrl
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateCurrentUserSelectedTeam($teamId: String!)
+  @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      selectedTeamId: $teamId
+      selectedRepository: null
+      selectedBranch: null
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateCurrentUserNotificationPreference($notificationPreference: String!)
+  @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      notificationPreference: $notificationPreference
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateCurrentUserFcmTokens($fcmTokens: [String!]!)
+  @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      fcmTokens: $fcmTokens
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateCurrentUserRepositorySelection($repository: String!, $branch: String!)
+  @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      selectedRepository: $repository
+      selectedBranch: $branch
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateCurrentUserSelectedBranch($branch: String!)
+  @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      selectedBranch: $branch
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpsertUserFromFirestore(
+  $id: String!
+  $email: String!
+  $displayName: String
+  $photoUrl: String
+  $notificationPreference: String
+  $fcmTokens: [String!]
+  $selectedTeamId: String
+  $selectedRepository: String
+  $selectedBranch: String
+) @auth(level: NO_ACCESS) {
+  user_upsert(
+    data: {
+      id: $id
+      email: $email
+      displayName: $displayName
+      photoUrl: $photoUrl
+      notificationPreference: $notificationPreference
+      fcmTokens: $fcmTokens
+      selectedTeamId: $selectedTeamId
+      selectedRepository: $selectedRepository
+      selectedBranch: $selectedBranch
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpsertTeamFromFirestore(
+  $id: String!
+  $name: String!
+  $aiEnabled: Boolean
+  $githubApiBaseUrl: String
+  $githubBaseUrl: String
+  $installationIds: [Int!]
+  $members: [String!]
+) @auth(level: NO_ACCESS) {
+  team_upsert(
+    data: {
+      id: $id
+      name: $name
+      aiEnabled: $aiEnabled
+      githubApiBaseUrl: $githubApiBaseUrl
+      githubBaseUrl: $githubBaseUrl
+      installationIds: $installationIds
+      members: $members
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation CreateTeamForCurrentUser($id: String!, $name: String!, $userId: String!)
+  @auth(level: USER) @transaction {
+  user_upsert(
+    data: {
+      id_expr: "auth.uid"
+      email_expr: "auth.token.email"
+      selectedTeamId: $id
+      updatedAt_expr: "request.time"
+    }
+  )
+  team_insert(
+    data: {
+      id: $id
+      name: $name
+      members: [$userId]
+    }
+  )
+  teamMember_upsert(
+    data: {
+      teamId: $id
+      userId_expr: "auth.uid"
+    }
+  )
+}
+
+
+mutation UpdateTeamName($teamId: String!, $name: String!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  team_update(id: $teamId, data: { name: $name, updatedAt_expr: "request.time" })
+}
+
+
+mutation UpdateTeamAiEnabled($teamId: String!, $aiEnabled: Boolean!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  team_update(id: $teamId, data: { aiEnabled: $aiEnabled, updatedAt_expr: "request.time" })
+}
+
+
+mutation DeleteTeam($teamId: String!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  team_delete(id: $teamId)
+}
+
+
+mutation UpsertTeamMemberFromFirestore($teamId: String!, $userId: String!, $email: String!)
+  @auth(level: NO_ACCESS) {
+  user_upsert(data: { id: $userId, email: $email, updatedAt_expr: "request.time" })
+  teamMember_upsert(data: { teamId: $teamId, userId: $userId })
+}
+
+
+mutation UpdateUserFcmTokens($id: String!, $fcmTokens: [String!]!) @auth(level: NO_ACCESS) {
+  user_update(id: $id, data: { fcmTokens: $fcmTokens, updatedAt_expr: "request.time" })
+}
+
+
+mutation AddTeamMember($teamId: String!, $userId: String!, $email: String!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  user_upsert(data: { id: $userId, email: $email, updatedAt_expr: "request.time" })
+  teamMember_upsert(data: { teamId: $teamId, userId: $userId })
+}
+
+
+mutation CreateSecretMetadata($id: String!, $name: String!, $teamId: String!, $pathToSecret: String!)
+  @auth(level: NO_ACCESS) {
+  secret_insert(
+    data: {
+      id: $id
+      name: $name
+      teamId: $teamId
+      pathToSecret: $pathToSecret
+    }
+  )
+}
+
+
+mutation UpsertSecretMetadataFromFirestore(
+  $id: String!
+  $name: String!
+  $teamId: String!
+  $pathToSecret: String
+) @auth(level: NO_ACCESS) {
+  secret_upsert(
+    data: {
+      id: $id
+      name: $name
+      teamId: $teamId
+      pathToSecret: $pathToSecret
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpsertEnvironmentVariableFromFirestore(
+  $id: String!
+  $envKey: String!
+  $value: String!
+  $teamId: String!
+  $autoIncrement: Boolean
+) @auth(level: NO_ACCESS) {
+  environmentVariable_upsert(
+    data: {
+      id: $id
+      key: $envKey
+      value: $value
+      teamId: $teamId
+      autoIncrement: $autoIncrement
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation CreateEnvironmentVariable(
+  $id: String!
+  $envKey: String!
+  $value: String!
+  $teamId: String!
+  $autoIncrement: Boolean
+) @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  environmentVariable_insert(
+    data: {
+      id: $id
+      key: $envKey
+      value: $value
+      teamId: $teamId
+      autoIncrement: $autoIncrement
+    }
+  )
+}
+
+
+mutation UpdateEnvironmentVariable(
+  $id: String!
+  $teamId: String!
+  $envKey: String!
+  $value: String!
+) @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  environmentVariable_update(
+    id: $id
+    data: {
+      key: $envKey
+      value: $value
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation DeleteEnvironmentVariable($id: String!, $teamId: String!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  environmentVariable_delete(id: $id)
+}
+
+
+mutation UpsertInvitationFromFirestore(
+  $id: String!
+  $email: String!
+  $teamId: String!
+  $teamNameSnapshot: String!
+  $token: String!
+  $status: InvitationStatus!
+  $expiresAt: Timestamp!
+  $invitedById: String
+  $acceptedById: String
+  $acceptedAt: Timestamp
+) @auth(level: NO_ACCESS) {
+  invitation_upsert(
+    data: {
+      id: $id
+      email: $email
+      teamId: $teamId
+      teamNameSnapshot: $teamNameSnapshot
+      token: $token
+      status: $status
+      expiresAt: $expiresAt
+      invitedById: $invitedById
+      acceptedById: $acceptedById
+      acceptedAt: $acceptedAt
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateSecretMetadata($id: String!, $name: String!) @auth(level: NO_ACCESS) {
+  secret_update(id: $id, data: { name: $name, updatedAt_expr: "request.time" })
+}
+
+
+mutation DeleteSecretMetadata($id: String!) @auth(level: NO_ACCESS) {
+  secret_delete(id: $id)
+}
+
+
+mutation UpdateWorkflowSecretKeys($id: String!, $workflowSteps: Any!)
+  @auth(level: NO_ACCESS) {
+  workflow_update(
+    id: $id
+    data: { workflowSteps: $workflowSteps, updatedAt_expr: "request.time" }
+  )
+}
+
+
+mutation UpsertWorkflowFromFirestore(
+  $id: String!
+  $teamId: String!
+  $name: String
+  $workflowConfig: Any
+  $workflowSteps: Any
+  $isEditing: Boolean
+)
+  @auth(level: NO_ACCESS) {
+  workflow_upsert(
+    data: {
+      id: $id
+      teamId: $teamId
+      name: $name
+      workflowConfig: $workflowConfig
+      workflowSteps: $workflowSteps
+      isEditing: $isEditing
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation CreateWorkflow(
+  $id: String!
+  $teamId: String!
+  $name: String!
+  $workflowConfig: Any!
+  $workflowSteps: Any!
+  $isEditing: Boolean!
+) @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  workflow_insert(
+    data: {
+      id: $id
+      teamId: $teamId
+      name: $name
+      workflowConfig: $workflowConfig
+      workflowSteps: $workflowSteps
+      isEditing: $isEditing
+    }
+  )
+}
+
+
+mutation UpdateWorkflowName($id: String!, $teamId: String!, $name: String!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  workflow_update(id: $id, data: { name: $name, updatedAt_expr: "request.time" })
+}
+
+
+mutation UpdateWorkflowConfig($id: String!, $teamId: String!, $workflowConfig: Any!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  workflow_update(id: $id, data: { workflowConfig: $workflowConfig, updatedAt_expr: "request.time" })
+}
+
+
+mutation UpdateWorkflowSteps($id: String!, $teamId: String!, $workflowSteps: Any!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  workflow_update(id: $id, data: { workflowSteps: $workflowSteps, updatedAt_expr: "request.time" })
+}
+
+
+mutation DeleteWorkflow($id: String!, $teamId: String!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  workflow_delete(id: $id)
+}
+
+
+mutation UpsertWorkflowFile(
+  $id: String!
+  $teamId: String!
+  $repository: String!
+  $branch: String!
+  $fileName: String!
+  $filePath: String!
+  $content: String!
+  $enabled: Boolean
+) @auth(level: NO_ACCESS) {
+  workflowFile_upsert(
+    data: {
+      id: $id
+      teamId: $teamId
+      repository: $repository
+      branch: $branch
+      fileName: $fileName
+      filePath: $filePath
+      content: $content
+      enabled: $enabled
+      syncedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation DeleteWorkflowFile($id: String!) @auth(level: NO_ACCESS) {
+  workflowFile_delete(id: $id)
+}
+
+
+mutation UpdateWorkflowFileEnabled($id: String!, $teamId: String!, $enabled: Boolean!)
+  @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  workflowFile_update(id: $id, data: { enabled: $enabled, updatedAt_expr: "request.time" })
+}
+
+
+mutation CreateBuildJob(
+  $id: String!
+  $status: String!
+  $owner: String!
+  $repo: String!
+  $teamId: String
+  $workflowId: String
+  $workflowFileName: String
+  $workflowName: String
+  $jobKey: String
+  $workflowRunId: String
+  $needs: [String!]
+  $resolvedNeeds: Any
+  $installationId: Int64
+  $installationToken: String
+  $tokenExpiresAt: Timestamp
+  $checkRunId: Int64
+  $commitSha: String
+  $pullRequestNumber: Int
+  $event: String
+  $action: String
+  $sender: String
+  $repository: String
+  $tagName: String
+  $branch: String
+  $releaseName: String
+  $runsOn: String
+  $runCount: Int
+  $latestRunId: String
+  $retriedFromBuildJobId: String
+  $retriedFromWorkflowRunId: String
+  $githubApiBaseUrl: String
+  $githubBaseUrl: String
+) @auth(level: NO_ACCESS) {
+  buildJob_insert(
+    data: {
+      id: $id
+      status: $status
+      owner: $owner
+      repo: $repo
+      teamId: $teamId
+      workflowId: $workflowId
+      workflowFileName: $workflowFileName
+      workflowName: $workflowName
+      jobKey: $jobKey
+      workflowRunId: $workflowRunId
+      needs: $needs
+      resolvedNeeds: $resolvedNeeds
+      installationId: $installationId
+      installationToken: $installationToken
+      tokenExpiresAt: $tokenExpiresAt
+      checkRunId: $checkRunId
+      commitSha: $commitSha
+      pullRequestNumber: $pullRequestNumber
+      event: $event
+      action: $action
+      sender: $sender
+      repository: $repository
+      tagName: $tagName
+      branch: $branch
+      releaseName: $releaseName
+      runsOn: $runsOn
+      runCount: $runCount
+      latestRunId: $latestRunId
+      retriedFromBuildJobId: $retriedFromBuildJobId
+      retriedFromWorkflowRunId: $retriedFromWorkflowRunId
+      githubApiBaseUrl: $githubApiBaseUrl
+      githubBaseUrl: $githubBaseUrl
+    }
+  )
+}
+
+
+mutation UpsertBuildJobFromFirestore(
+  $id: String!
+  $status: String!
+  $owner: String!
+  $repo: String!
+  $teamId: String
+  $workflowId: String
+  $workflowFileName: String
+  $workflowName: String
+  $jobKey: String
+  $workflowRunId: String
+  $needs: [String!]
+  $resolvedNeeds: Any
+  $installationId: Int64
+  $installationToken: String
+  $tokenExpiresAt: Timestamp
+  $checkRunId: Int64
+  $commitSha: String
+  $pullRequestNumber: Int
+  $event: String
+  $action: String
+  $sender: String
+  $repository: String
+  $tagName: String
+  $branch: String
+  $releaseName: String
+  $runsOn: String
+  $runCount: Int
+  $latestRunId: String
+  $retriedFromBuildJobId: String
+  $retriedFromWorkflowRunId: String
+  $githubApiBaseUrl: String
+  $githubBaseUrl: String
+  $failureSummaryStatus: String
+  $failureSummary: String
+  $failureSummaryModel: String
+  $failureSummaryDurationMs: Int
+  $completedAt: Timestamp
+) @auth(level: NO_ACCESS) {
+  buildJob_upsert(
+    data: {
+      id: $id
+      status: $status
+      owner: $owner
+      repo: $repo
+      teamId: $teamId
+      workflowId: $workflowId
+      workflowFileName: $workflowFileName
+      workflowName: $workflowName
+      jobKey: $jobKey
+      workflowRunId: $workflowRunId
+      needs: $needs
+      resolvedNeeds: $resolvedNeeds
+      installationId: $installationId
+      installationToken: $installationToken
+      tokenExpiresAt: $tokenExpiresAt
+      checkRunId: $checkRunId
+      commitSha: $commitSha
+      pullRequestNumber: $pullRequestNumber
+      event: $event
+      action: $action
+      sender: $sender
+      repository: $repository
+      tagName: $tagName
+      branch: $branch
+      releaseName: $releaseName
+      runsOn: $runsOn
+      runCount: $runCount
+      latestRunId: $latestRunId
+      retriedFromBuildJobId: $retriedFromBuildJobId
+      retriedFromWorkflowRunId: $retriedFromWorkflowRunId
+      githubApiBaseUrl: $githubApiBaseUrl
+      githubBaseUrl: $githubBaseUrl
+      failureSummaryStatus: $failureSummaryStatus
+      failureSummary: $failureSummary
+      failureSummaryModel: $failureSummaryModel
+      failureSummaryDurationMs: $failureSummaryDurationMs
+      completedAt: $completedAt
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpsertBuildRunFromFirestore($buildJobId: String!, $id: String!)
+  @auth(level: NO_ACCESS) {
+  buildRun_upsert(data: { buildJobId: $buildJobId, id: $id, updatedAt_expr: "request.time" })
+}
+
+
+mutation UpsertBuildLogFromFirestore(
+  $buildJobId: String!
+  $runId: String!
+  $id: String!
+  $message: String!
+  $timestamp: Timestamp!
+) @auth(level: NO_ACCESS) {
+  buildLog_upsert(
+    data: {
+      buildRunBuildJobId: $buildJobId
+      buildRunId: $runId
+      id: $id
+      message: $message
+      timestamp: $timestamp
+    }
+  )
+}
+
+
+mutation ClaimQueuedBuildJob($runsOnPattern: String!) @auth(level: NO_ACCESS) {
+  job: _executeReturningFirst(
+    sql: """
+      UPDATE build_job
+      SET status = 'in_progress', updated_at = NOW()
+      WHERE id = (
+        SELECT id
+        FROM build_job
+        WHERE status = 'queued' AND runs_on LIKE $1
+        ORDER BY created_at ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING
+        id,
+        status,
+        owner,
+        repo,
+        team_id AS "teamId",
+        workflow_id AS "workflowId",
+        workflow_file_name AS "workflowFileName",
+        workflow_name AS "workflowName",
+        job_key AS "jobKey",
+        workflow_run_id AS "workflowRunId",
+        needs,
+        resolved_needs AS "resolvedNeeds",
+        installation_id::text AS "installationId",
+        installation_token AS "installationToken",
+        token_expires_at AS "tokenExpiresAt",
+        check_run_id::text AS "checkRunId",
+        commit_sha AS "commitSha",
+        pull_request_number AS "pullRequestNumber",
+        event,
+        action,
+        sender,
+        repository,
+        tag_name AS "tagName",
+        branch,
+        release_name AS "releaseName",
+        runs_on AS "runsOn",
+        run_count AS "runCount",
+        latest_run_id AS "latestRunId",
+        github_api_base_url AS "githubApiBaseUrl",
+        github_base_url AS "githubBaseUrl",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt",
+        completed_at AS "completedAt"
+    """
+    params: [$runsOnPattern]
+  )
+}
+
+
+mutation CreateBuildRunForWorker($buildJobId: String!, $id: String!) @auth(level: NO_ACCESS) @transaction {
+  buildRun_upsert(
+    data: {
+      buildJobId: $buildJobId
+      id: $id
+      status: "in_progress"
+      updatedAt_expr: "request.time"
+    }
+  )
+  buildJob_update(
+    id: $buildJobId
+    data: {
+      latestRunId: $id
+      runCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateBuildRunStatusForWorker(
+  $buildJobId: String!
+  $runId: String!
+  $status: String!
+  $conclusion: String
+) @auth(level: NO_ACCESS) {
+  buildRun_update(
+    key: { buildJobId: $buildJobId, id: $runId }
+    data: {
+      status: $status
+      conclusion: $conclusion
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation AppendBuildLogForWorker(
+  $buildJobId: String!
+  $runId: String!
+  $id: String!
+  $message: String!
+  $level: String!
+  $timestamp: Timestamp!
+  $stackTrace: String
+) @auth(level: NO_ACCESS) {
+  buildLog_upsert(
+    data: {
+      buildRunBuildJobId: $buildJobId
+      buildRunId: $runId
+      id: $id
+      message: $message
+      level: $level
+      timestamp: $timestamp
+      stackTrace: $stackTrace
+    }
+  )
+}
+
+
+mutation CompleteBuildJobForWorker($id: String!, $status: String!, $completedAt: Timestamp!)
+  @auth(level: NO_ACCESS) {
+  buildJob_update(
+    id: $id
+    data: {
+      status: $status
+      completedAt: $completedAt
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateEnvironmentVariableValueForWorker($id: String!, $value: String!)
+  @auth(level: NO_ACCESS) {
+  environmentVariable_update(
+    id: $id
+    data: {
+      value: $value
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
+mutation UpdateBuildJobStatus($id: String!, $status: String!) @auth(level: NO_ACCESS) {
+  buildJob_update(id: $id, data: { status: $status, updatedAt_expr: "request.time" })
+}
+
+
+mutation UpdateBuildJobFailureSummary(
+  $id: String!
+  $failureSummaryStatus: String!
+  $failureSummary: String
+  $failureSummaryModel: String
+  $failureSummaryDurationMs: Int
+) @auth(level: NO_ACCESS) {
+  buildJob_update(
+    id: $id
+    data: {
+      failureSummaryStatus: $failureSummaryStatus
+      failureSummary: $failureSummary
+      failureSummaryModel: $failureSummaryModel
+      failureSummaryDurationMs: $failureSummaryDurationMs
+      updatedAt_expr: "request.time"
     }
   )
 }

@@ -28,7 +28,7 @@ Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
   final functions = FirebaseFunctions.instance;
 
   final result = await functions
-      .httpsCallableFromUrl(dartFunctionUrl('list-repositories'))
+      .httpsCallableFromUrl(dartFunctionUrl('listrepositories'))
       .call({
     'teamId': team.id,
   });
@@ -50,7 +50,7 @@ Future<List<String>> gitHubBranches(Ref ref, String repoFullName) async {
   final functions = FirebaseFunctions.instance;
 
   final result = await functions
-      .httpsCallableFromUrl(dartFunctionUrl('list-branches'))
+      .httpsCallableFromUrl(dartFunctionUrl('listbranches'))
       .call({
     'teamId': team.id,
     'repository': repoFullName,

@@ -28,7 +28,7 @@ Future<List<GitHubRepository>> repositories(Ref ref) async {
   final functions = FirebaseFunctions.instance;
 
   final result = await functions
-      .httpsCallableFromUrl(dartFunctionUrl('list-repositories'))
+      .httpsCallableFromUrl(dartFunctionUrl('listrepositories'))
       .call({
     'teamId': team.id,
   });

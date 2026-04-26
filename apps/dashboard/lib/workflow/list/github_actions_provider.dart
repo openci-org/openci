@@ -52,7 +52,7 @@ Future<List<GitHubAction>> searchGitHubActions(
   try {
     final functions = FirebaseFunctions.instance;
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
+        .httpsCallableFromUrl(dartFunctionUrl('searchgithubactions'))
         .call({
           'teamId': teamId,
           'type': 'search',
@@ -146,7 +146,7 @@ Future<List<String>> actionTags(
   try {
     final functions = FirebaseFunctions.instance;
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
+        .httpsCallableFromUrl(dartFunctionUrl('searchgithubactions'))
         .call({
           'teamId': teamId,
           'type': 'tags',
@@ -170,7 +170,7 @@ Future<String> fetchLatestTag({
 }) async {
   try {
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('search-git-hub-actions'))
+        .httpsCallableFromUrl(dartFunctionUrl('searchgithubactions'))
         .call({
           'teamId': teamId,
           'type': 'tags',

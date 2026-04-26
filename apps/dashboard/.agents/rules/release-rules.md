@@ -42,4 +42,4 @@ Release notes MUST include a ## What's New section with a bulleted list of chang
 8. Create GitHub release with the binary attached
 9. Update homebrew-tap/Formula/openci-worker.rb (version, url, sha256)
 10. Commit and push homebrew-tap to main
-11. Update Firestore config/workerCli document: set latestVersion to the new version
+11. Update SQL Connect worker config: set latestVersion to the new version

@@ -1,11 +1,10 @@
 import 'dart:convert';
 
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
@@ -21,12 +20,12 @@ import 'package:url_launcher/url_launcher.dart';
 void _processInvitations() {
   FirebaseFunctions.instance
       .httpsCallableFromUrl(
-        dartFunctionUrl('process-invitations-on-sign-up'),
+        dartFunctionUrl('acceptinvitations'),
       )
       .call<void>()
       .then((_) {})
       .catchError((Object e) {
-        debugPrint('processInvitationsOnSignUp failed: $e');
+        debugPrint('acceptInvitations failed: $e');
       });
 }
 
@@ -340,32 +339,14 @@ class AuthPage extends HookConsumerWidget {
                                                   );
                                               final userId =
                                                   credential.user!.uid;
-                                              final db = firestore;
-                                              final teamsRef = db
-                                                  .collection(teamsCollection)
-                                                  .doc();
-                                              final teamId = teamsRef.id;
-                                              final batch = db.batch();
-                                              final now = DateTime.now()
-                                                  .toUtc()
-                                                  .toIso8601String();
-                                              batch.set(teamsRef, {
-                                                'id': teamId,
-                                                'name': teamId,
-                                                'members': [userId],
-                                                'createdAt': now,
-                                                'updatedAt': now,
-                                              });
-                                              final userRef = db
-                                                  .collection(usersCollection)
-                                                  .doc(userId);
-                                              batch.set(userRef, {
-                                                'id': userId,
-                                                'selectedTeamId': teamId,
-                                                'createdAt': now,
-                                                'updatedAt': now,
-                                              });
-                                              await batch.commit();
+                                              final teamId = userId;
+                                              await dataConnector
+                                                  .createTeamForCurrentUser(
+                                                    id: teamId,
+                                                    name: teamId,
+                                                    userId: userId,
+                                                  )
+                                                  .execute();
                                               ref.invalidate(authProvider);
                                               _processInvitations();
                                             } catch (e) {

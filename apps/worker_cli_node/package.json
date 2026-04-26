@@ -1,0 +1,42 @@
+{
+  "name": "@openci/worker-cli",
+  "version": "0.1.0",
+  "description": "OpenCI Worker CLI",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/openci-org/openci",
+  "main": "lib/bin/openci_worker.js",
+  "bin": {
+    "openci_worker": "lib/bin/openci_worker.js"
+  },
+  "files": [
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "check": "vp check",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.1",
+    "@openci/dataconnect-admin": "file:../../firebase/ts_functions/src/generated/dataconnect",
+    "@sentry/node": "^10.29.0",
+    "firebase-admin": "^13.8.0",
+    "google-auth-library": "^10.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.1.19",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "packageManager": "npm@11.13.0"
+}

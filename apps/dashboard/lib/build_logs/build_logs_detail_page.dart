@@ -385,6 +385,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 ? _DetailLogsView(
                     buildJobId: buildJob.id,
                     runId: buildJob.latestRunId!,
+                    buildStatus: buildJob.status,
                   )
                 : Center(
                     child: Column(
@@ -473,10 +474,12 @@ class _DetailLogsView extends HookConsumerWidget {
   const _DetailLogsView({
     required this.buildJobId,
     required this.runId,
+    required this.buildStatus,
   });
 
   final String buildJobId;
   final String runId;
+  final String buildStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -521,22 +524,34 @@ class _DetailLogsView extends HookConsumerWidget {
         }
 
         if (logs.isEmpty) {
+          final isTerminal =
+              buildStatus == 'success' ||
+              buildStatus == 'failure' ||
+              buildStatus == 'cancelled' ||
+              buildStatus == 'skipped';
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
+                if (isTerminal)
+                  Icon(
+                    Icons.subject_rounded,
+                    size: 22,
                     color: AppColors.of(context).textTertiary,
+                  )
+                else
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AppColors.of(context).textTertiary,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 14),
                 Text(
-                  detailT.waitingForLogs,
+                  isTerminal ? 'No logs available' : detailT.waitingForLogs,
                   style: TextStyle(
                     color: AppColors.of(context).textTertiary,
                     fontSize: 13,

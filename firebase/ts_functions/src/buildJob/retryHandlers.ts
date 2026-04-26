@@ -1,0 +1,231 @@
+import { randomUUID } from "node:crypto";
+
+import { logger } from "firebase-functions/v2";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
+
+import { createCheckRun, getInstallationToken } from "../github/githubApp";
+import { buildDashboardRunUrl } from "../github/githubUrls";
+import {
+  createBuildJob,
+  getBuildJob as getBuildJobOperation,
+  listBuildJobsByWorkflowRun,
+} from "@openci/dataconnect-admin";
+import { verifyTeamMembership } from "../team/teamAuth";
+
+interface RetryBuildJobRequest {
+  buildJobId: string;
+}
+
+interface RetryWorkflowRunRequest {
+  workflowRunId: string;
+}
+
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new HttpsError("invalid-argument", `${field} is required`);
+  }
+  return value;
+}
+
+async function getBuildJobData(buildJobId: string): Promise<Record<string, unknown>> {
+  const result = await getBuildJobOperation({ id: buildJobId });
+  if (!result.data.buildJob) {
+    throw new HttpsError("not-found", "Build job not found");
+  }
+  return result.data.buildJob as unknown as Record<string, unknown>;
+}
+
+function copyRetryJobFields(
+  originalJob: FirebaseFirestore.DocumentData,
+  overrides: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    owner: originalJob.owner,
+    repo: originalJob.repo,
+    teamId: originalJob.teamId,
+    workflowId: originalJob.workflowId,
+    workflowFileName: originalJob.workflowFileName,
+    workflowName: originalJob.workflowName,
+    jobKey: originalJob.jobKey,
+    installationId: originalJob.installationId,
+    commitSha: originalJob.commitSha,
+    pullRequestNumber: originalJob.pullRequestNumber,
+    event: originalJob.event,
+    action: originalJob.action,
+    sender: originalJob.sender,
+    repository: originalJob.repository,
+    tagName: originalJob.tagName,
+    branch: originalJob.branch,
+    releaseName: originalJob.releaseName,
+    runsOn: originalJob.runsOn,
+    ...overrides,
+  };
+}
+
+export const retryBuildJob = onCall<
+  RetryBuildJobRequest,
+  Promise<{ success: true; newBuildJobId: string }>
+>(async (request) => {
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Unauthenticated");
+  }
+
+  const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
+  const originalJob = await getBuildJobData(buildJobId);
+  const teamId = typeof originalJob.teamId === "string" ? originalJob.teamId : undefined;
+  if (teamId) {
+    await verifyTeamMembership(auth, teamId);
+  }
+
+  const newDocumentId = randomUUID();
+  const installationId =
+    typeof originalJob.installationId === "number" ? originalJob.installationId : undefined;
+  let installationToken: string | undefined;
+  let tokenExpiresAt: string | undefined;
+  let checkRunId = typeof originalJob.checkRunId === "number" ? originalJob.checkRunId : undefined;
+
+  if (installationId !== undefined) {
+    try {
+      const tokenData = await getInstallationToken(installationId);
+      installationToken = tokenData.token;
+      tokenExpiresAt = tokenData.expiresAt;
+
+      if (typeof originalJob.commitSha === "string") {
+        const workflowName = requireNonEmptyString(originalJob.workflowName, "workflowName");
+        checkRunId = await createCheckRun({
+          token: installationToken,
+          owner: requireNonEmptyString(originalJob.owner, "owner"),
+          repo: requireNonEmptyString(originalJob.repo, "repo"),
+          name: workflowName,
+          headSha: originalJob.commitSha,
+          status: "in_progress",
+          detailsUrl: buildDashboardRunUrl(newDocumentId),
+        }) ?? undefined;
+      }
+    } catch (error) {
+      logger.error("Failed to authenticate with GitHub for retry", { buildJobId, error });
+      throw new HttpsError("internal", "Failed to authenticate with GitHub");
+    }
+  }
+
+  await createBuildJob(
+    copyRetryJobFields(originalJob, {
+      id: newDocumentId,
+      status: "queued",
+      workflowRunId: null,
+      needs: null,
+      resolvedNeeds: null,
+      installationToken,
+      tokenExpiresAt,
+      checkRunId,
+      runCount: 0,
+      latestRunId: null,
+      retriedFromBuildJobId: buildJobId,
+    }) as never,
+  );
+
+  logger.info("Build job retried", { buildJobId, newDocumentId, callerUid: auth.uid, teamId });
+  return { success: true, newBuildJobId: newDocumentId };
+});
+
+export const retryWorkflowRun = onCall<
+  RetryWorkflowRunRequest,
+  Promise<{ success: true; newWorkflowRunId: string; newBuildJobIds: string[] }>
+>(async (request) => {
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Unauthenticated");
+  }
+
+  const workflowRunId = requireNonEmptyString(request.data?.workflowRunId, "workflowRunId");
+  const jobsResult = await listBuildJobsByWorkflowRun({ workflowRunId });
+
+  if (jobsResult.data.buildJobs.length === 0) {
+    throw new HttpsError("not-found", "No jobs found for this workflow run");
+  }
+
+  const originalJobs = jobsResult.data.buildJobs;
+  const teamId = typeof originalJobs[0]?.teamId === "string" ? originalJobs[0].teamId : undefined;
+  if (teamId) {
+    await verifyTeamMembership(auth, teamId);
+  }
+
+  const installationId =
+    typeof originalJobs[0]?.installationId === "number" ? originalJobs[0].installationId : undefined;
+  let installationToken: string | undefined;
+  let tokenExpiresAt: string | undefined;
+  if (installationId !== undefined) {
+    try {
+      const tokenData = await getInstallationToken(installationId);
+      installationToken = tokenData.token;
+      tokenExpiresAt = tokenData.expiresAt;
+    } catch (error) {
+      logger.error("Failed to authenticate with GitHub for workflow retry", { workflowRunId, error });
+      throw new HttpsError("internal", "Failed to authenticate with GitHub");
+    }
+  }
+
+  const newWorkflowRunId = randomUUID();
+  const newJobDocIds = new Map<string, string>();
+  for (const job of originalJobs) {
+    if (typeof job.jobKey === "string") {
+      newJobDocIds.set(job.jobKey, randomUUID());
+    }
+  }
+
+  const createdJobIds: string[] = [];
+
+  for (const originalJob of originalJobs) {
+    const jobKey = typeof originalJob.jobKey === "string" ? originalJob.jobKey : undefined;
+    const newDocumentId = jobKey ? newJobDocIds.get(jobKey)! : randomUUID();
+    const originalNeeds = Array.isArray(originalJob.needs)
+      ? originalJob.needs.filter((need): need is string => typeof need === "string")
+      : undefined;
+    const hasNeeds = Boolean(originalNeeds?.length);
+    const resolvedNeeds: Record<string, string> | undefined = hasNeeds ? {} : undefined;
+    for (const needKey of originalNeeds ?? []) {
+      const newNeedId = newJobDocIds.get(needKey);
+      if (newNeedId && resolvedNeeds) {
+        resolvedNeeds[needKey] = newNeedId;
+      }
+    }
+
+    let checkRunId: number | undefined;
+    if (installationToken && typeof originalJob.commitSha === "string") {
+      const workflowName = typeof originalJob.workflowName === "string" ? originalJob.workflowName : undefined;
+      if (workflowName) {
+        const checkRunName = originalJobs.length > 1 && jobKey ? `${workflowName} / ${jobKey}` : workflowName;
+        checkRunId = await createCheckRun({
+          token: installationToken,
+          owner: requireNonEmptyString(originalJob.owner, "owner"),
+          repo: requireNonEmptyString(originalJob.repo, "repo"),
+          name: checkRunName,
+          headSha: originalJob.commitSha,
+          status: hasNeeds ? "queued" : "in_progress",
+          detailsUrl: buildDashboardRunUrl(newDocumentId),
+        }) ?? undefined;
+      }
+    }
+
+    await createBuildJob(
+      copyRetryJobFields(originalJob, {
+        id: newDocumentId,
+        status: hasNeeds ? "waiting" : "queued",
+        workflowRunId: newWorkflowRunId,
+        needs: originalNeeds,
+        resolvedNeeds,
+        installationToken,
+        tokenExpiresAt,
+        checkRunId,
+        runCount: 0,
+        latestRunId: null,
+        retriedFromWorkflowRunId: workflowRunId,
+      }) as never,
+    );
+    createdJobIds.push(newDocumentId);
+  }
+
+  logger.info("Workflow run retried", { workflowRunId, newWorkflowRunId, count: createdJobIds.length });
+  return { success: true, newWorkflowRunId, newBuildJobIds: createdJobIds };
+});

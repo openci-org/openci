@@ -1,7 +1,6 @@
 import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:dashboard/firebase/firestore_paths.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -95,12 +94,21 @@ class IsAscConfigured extends _$IsAscConfigured {
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value(false);
 
-    return firestore
-        .collection(secretsCollection)
-        .where('teamId', isEqualTo: teamId)
-        .where('name', isEqualTo: 'OPENCI_ASC_ISSUER_ID')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.isNotEmpty);
+    return _isAscConfigured(teamId);
+  }
+
+  Stream<bool> _isAscConfigured(String teamId) async* {
+    final query = dataConnector
+        .getSecretsByNamesForTeam(
+          teamId: teamId,
+          names: ['OPENCI_ASC_ISSUER_ID'],
+        )
+        .ref();
+
+    final initial = await query.execute();
+    yield initial.data.secrets.isNotEmpty;
+
+    yield* query.subscribe().map((result) => result.data.secrets.isNotEmpty);
   }
 }
 
@@ -113,7 +121,7 @@ class AscApps extends _$AscApps {
     final teamId = _requireTeamId(ref);
 
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-list-apps'))
+        .httpsCallableFromUrl(dartFunctionUrl('asclistapps'))
         .call({
           'teamId': teamId,
         });
@@ -135,7 +143,7 @@ class AscBuilds extends _$AscBuilds {
     final teamId = _requireTeamId(ref);
 
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-list-builds'))
+        .httpsCallableFromUrl(dartFunctionUrl('asclistbuilds'))
         .call({
           'teamId': teamId,
           'appId': appId,
@@ -160,7 +168,7 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
     final teamId = _requireTeamId(ref);
 
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-to-test-flight'))
+        .httpsCallableFromUrl(dartFunctionUrl('ascsubmittotestflight'))
         .call({
           'teamId': teamId,
           'buildId': buildId,
@@ -188,7 +196,7 @@ class SubmitForReview extends _$SubmitForReview {
     final teamId = _requireTeamId(ref);
 
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-for-review'))
+        .httpsCallableFromUrl(dartFunctionUrl('ascsubmitforreview'))
         .call({
           'teamId': teamId,
           'appId': appId,
@@ -215,7 +223,7 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     final teamId = _requireTeamId(ref);
 
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
+        .httpsCallableFromUrl(dartFunctionUrl('setupascapikeyv1'))
         .call({
           'teamId': teamId,
           'issuerId': issuerId,
