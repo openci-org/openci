@@ -131,7 +131,7 @@ class ListEnvironmentVariablesForTeamEnvironmentVariables {
 
 @immutable
 class ListEnvironmentVariablesForTeamData {
-  final ListEnvironmentVariablesForTeamTeamMember? teamMember;
+  late final Optional<ListEnvironmentVariablesForTeamTeamMember>teamMember;
   final List<ListEnvironmentVariablesForTeamEnvironmentVariables> environmentVariables;
   ListEnvironmentVariablesForTeamData.fromJson(dynamic json):
   

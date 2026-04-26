@@ -119,7 +119,7 @@ function makeAuth(): AuthData {
 
 describe("listRepositories", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({
       installationIds: [101],
       githubApiBaseUrl: "https://github.example.com/api/v3",
@@ -174,7 +174,7 @@ describe("listRepositories", () => {
 
 describe("listBranches", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({ installationIds: [101] });
     mockGetInstallationToken.mockResolvedValue({ token: "installation-token", expiresAt: "" });
   });
@@ -188,22 +188,10 @@ describe("listBranches", () => {
     ).rejects.toThrow(expect.objectContaining({ code: "invalid-argument" }));
   });
 
-  it("sorts the default branch first and the rest by commit date", async () => {
-    mockGithubGraphql.mockResolvedValue({
-      data: {
-        repository: {
-          defaultBranchRef: { name: "main" },
-          refs: {
-            nodes: [
-              { name: "old", target: { committedDate: "2024-01-01T00:00:00Z" } },
-              { name: "main", target: { committedDate: "2023-01-01T00:00:00Z" } },
-              { name: "new", target: { committedDate: "2025-01-01T00:00:00Z" } },
-            ],
-            pageInfo: { hasNextPage: false },
-          },
-        },
-      },
-    });
+  it("sorts the default branch first and the rest by name", async () => {
+    mockGithubGet
+      .mockResolvedValueOnce({ default_branch: "main" })
+      .mockResolvedValueOnce([{ name: "old" }, { name: "main" }, { name: "new" }]);
 
     const result = await wrappedListBranches({
       data: { teamId: "team-1", repository: "openci/openci" },
@@ -211,11 +199,17 @@ describe("listBranches", () => {
     });
 
     expect(result).toEqual({ branches: ["main", "new", "old"] });
-    expect(mockGithubGraphql).toHaveBeenCalledWith(
-      expect.stringContaining("query"),
+    expect(mockGithubGet).toHaveBeenCalledWith(
+      "/repos/openci/openci",
+      "installation-token",
+      expect.objectContaining({ apiBaseUrl: "https://api.github.com" }),
+    );
+    expect(mockGithubGet).toHaveBeenCalledWith(
+      "/repos/openci/openci/branches",
       "installation-token",
       expect.objectContaining({
-        variables: { owner: "openci", repo: "openci", cursor: undefined },
+        apiBaseUrl: "https://api.github.com",
+        queryParameters: { per_page: 100, page: 1 },
       }),
     );
   });
@@ -225,17 +219,10 @@ describe("listBranches", () => {
     mockGetInstallationToken
       .mockResolvedValueOnce({ token: "first-token", expiresAt: "" })
       .mockResolvedValueOnce({ token: "second-token", expiresAt: "" });
-    mockGithubGraphql.mockRejectedValueOnce(new Error("not found")).mockResolvedValueOnce({
-      data: {
-        repository: {
-          defaultBranchRef: { name: "main" },
-          refs: {
-            nodes: [{ name: "main", target: { committedDate: "2025-01-01T00:00:00Z" } }],
-            pageInfo: { hasNextPage: false },
-          },
-        },
-      },
-    });
+    mockGithubGet
+      .mockRejectedValueOnce(new Error("not found"))
+      .mockResolvedValueOnce({ default_branch: "main" })
+      .mockResolvedValueOnce([{ name: "main" }]);
 
     const result = await wrappedListBranches({
       data: { teamId: "team-1", repository: "openci/openci" },
@@ -249,7 +236,7 @@ describe("listBranches", () => {
 
 describe("listDirectories", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({ installationIds: [101] });
     mockGetInstallationToken.mockResolvedValue({ token: "installation-token", expiresAt: "" });
   });
@@ -293,7 +280,7 @@ describe("listDirectories", () => {
 
 describe("listWorkflowFiles", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({ installationIds: [101] });
     mockGetInstallationToken.mockResolvedValue({ token: "installation-token", expiresAt: "" });
   });
@@ -347,7 +334,7 @@ describe("listWorkflowFiles", () => {
 
 describe("createWorkflowFile", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({ installationIds: [101] });
     mockGetInstallationToken.mockResolvedValue({ token: "installation-token", expiresAt: "" });
   });
@@ -381,7 +368,7 @@ describe("createWorkflowFile", () => {
 
 describe("syncWorkflowFiles", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({ installationIds: [101] });
     mockGetInstallationToken.mockResolvedValue({ token: "installation-token", expiresAt: "" });
     mockUpsertWorkflowFile.mockResolvedValue({});
