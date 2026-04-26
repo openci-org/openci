@@ -46,7 +46,11 @@ class AuthPage extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Check if a self-hosted Firebase config is active
-    final configFuture = useMemoized(() => loadSelfHostedConfig());
+    final configReloadKey = useState(0);
+    final configFuture = useMemoized(
+      () => loadSelfHostedConfig(),
+      [configReloadKey.value],
+    );
     final configSnapshot = useFuture(configFuture);
 
     return Scaffold(
@@ -344,7 +348,6 @@ class AuthPage extends HookConsumerWidget {
                                                   .createTeamForCurrentUser(
                                                     id: teamId,
                                                     name: teamId,
-                                                    userId: userId,
                                                   )
                                                   .execute();
                                               ref.invalidate(authProvider);
@@ -395,6 +398,7 @@ class AuthPage extends HookConsumerWidget {
                                   return FirebaseFormSheet();
                                 },
                               );
+                              configReloadKey.value++;
                             },
                             child: Text(authT.useYourFirebase),
                           ),
@@ -405,6 +409,7 @@ class AuthPage extends HookConsumerWidget {
                             ),
                             onPressed: () async {
                               await clearSelfHostedConfig();
+                              configReloadKey.value++;
                               if (!context.mounted) return;
                               context.showSnackBarMessage(authT.resetSuccess);
                             },
@@ -494,10 +499,19 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
+    final configReloadKey = useState(0);
 
     // Check if config is already saved
-    final configFuture = useMemoized(() => loadSelfHostedConfig());
+    final configFuture = useMemoized(
+      () => loadSelfHostedConfig(),
+      [configReloadKey.value],
+    );
     final configSnapshot = useFuture(configFuture);
+    final configsFuture = useMemoized(
+      () => loadSelfHostedConfigs(),
+      [configReloadKey.value],
+    );
+    final configsSnapshot = useFuture(configsFuture);
 
     void applyConfig(SelfHostedConfig config) {
       apiKeyController.text = config.apiKey;
@@ -505,6 +519,8 @@ class FirebaseFormSheet extends HookConsumerWidget {
       messagingSenderIdController.text = config.messagingSenderId;
       projectIdController.text = config.projectId;
       storageBucketController.text = config.storageBucket;
+      cloudRunHashController.text = config.cloudRunHash;
+      cloudRunRegionCodeController.text = config.cloudRunRegionCode;
     }
 
     Future<void> pickConfigFile() async {
@@ -599,6 +615,117 @@ class FirebaseFormSheet extends HookConsumerWidget {
             Expanded(
               child: ListView(
                 children: [
+                  if (configsSnapshot.data?.isNotEmpty == true) ...[
+                    Text(
+                      formT.savedProjects,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final config in configsSnapshot.data!)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    config.projectId,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if (configSnapshot.data?.projectId ==
+                                    config.projectId)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      formT.active,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              config.appId,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () async {
+                                    await activateSelfHostedConfig(
+                                      config.projectId,
+                                    );
+                                    configReloadKey.value++;
+                                    if (context.mounted) {
+                                      context.showSnackBarMessage(
+                                        formT.configSaved,
+                                      );
+                                    }
+                                  },
+                                  child: Text(formT.useProject),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    applyConfig(config);
+                                  },
+                                  child: Text(formT.editProject),
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  tooltip: t.common.delete,
+                                  onPressed: () async {
+                                    await deleteSelfHostedConfig(
+                                      config.projectId,
+                                    );
+                                    configReloadKey.value++;
+                                  },
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
                   // ── Import from file button ──
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -745,6 +872,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                 : 'an',
                           );
                           await saveSelfHostedConfig(config);
+                          ref.invalidate(selfHostedConfigProvider);
                           if (!context.mounted) return;
                           Navigator.pop(context);
                           context.showSnackBarMessage(formT.configSaved);

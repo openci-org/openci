@@ -2032,6 +2032,48 @@ ref.execute();
 ```
 
 
+### AddCurrentUserFcmToken
+#### Required Arguments
+```dart
+String token = ...;
+DefaultConnector.instance.addCurrentUserFcmToken(
+  token: token,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `OperationResult<AddCurrentUserFcmTokenData, AddCurrentUserFcmTokenVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await DefaultConnector.instance.addCurrentUserFcmToken(
+  token: token,
+);
+AddCurrentUserFcmTokenData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String token = ...;
+
+final ref = DefaultConnector.instance.addCurrentUserFcmToken(
+  token: token,
+).ref();
+ref.execute();
+```
+
+
 ### UpdateCurrentUserRepositorySelection
 #### Required Arguments
 ```dart
@@ -2308,11 +2350,9 @@ ref.execute();
 ```dart
 String id = ...;
 String name = ...;
-String userId = ...;
 DefaultConnector.instance.createTeamForCurrentUser(
   id: id,
   name: name,
-  userId: userId,
 ).execute();
 ```
 
@@ -2332,7 +2372,6 @@ class OperationResult<Data, Variables> {
 final result = await DefaultConnector.instance.createTeamForCurrentUser(
   id: id,
   name: name,
-  userId: userId,
 );
 CreateTeamForCurrentUserData data = result.data;
 final ref = result.ref;
@@ -2344,12 +2383,10 @@ An example of how to use the `Ref` object is shown below:
 ```dart
 String id = ...;
 String name = ...;
-String userId = ...;
 
 final ref = DefaultConnector.instance.createTeamForCurrentUser(
   id: id,
   name: name,
-  userId: userId,
 ).ref();
 ref.execute();
 ```

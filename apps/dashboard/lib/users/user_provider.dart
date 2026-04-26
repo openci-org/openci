@@ -89,16 +89,7 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    final result = await dataConnector.getCurrentUser().execute();
-    final existingTokens = List<String>.from(
-      result.data.user?.fcmTokens ?? const [],
-    );
-    if (!existingTokens.contains(token)) {
-      existingTokens.add(token);
-      await dataConnector
-          .updateCurrentUserFcmTokens(fcmTokens: existingTokens)
-          .execute();
-    }
+    await dataConnector.addCurrentUserFcmToken(token: token).execute();
   }
 
   Future<void> updateSelectedRepository({
@@ -124,6 +115,8 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await dataConnector.updateCurrentUserSelectedBranch(branch: branch).execute();
+    await dataConnector
+        .updateCurrentUserSelectedBranch(branch: branch)
+        .execute();
   }
 }

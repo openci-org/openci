@@ -102,7 +102,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('setupascapikeyv1'))
+        .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
         .call({
           'teamId': teamId,
           'issuerId': issuerId,

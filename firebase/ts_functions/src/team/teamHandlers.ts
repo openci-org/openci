@@ -149,7 +149,6 @@ export const inviteTeamMember = onCall<
   const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
   const email = requireNonEmptyString(request.data?.email, "email").trim().toLowerCase();
   const teamData = await verifyTeamMembership(auth, teamId);
-  const impersonate = { authClaims: auth.token } as const;
 
   const callerUser = await getAuth()
     .getUser(auth.uid)
@@ -161,14 +160,12 @@ export const inviteTeamMember = onCall<
     .getUserByEmail(email)
     .catch(() => undefined);
   if (existingUser) {
-    await addTeamMember({ teamId, userId: existingUser.uid, email }, { impersonate }).catch(
-      (error) => {
-        if (String(error).includes("already")) {
-          throw new HttpsError("already-exists", "User is already a member of this team");
-        }
-        throw error;
-      },
-    );
+    await addTeamMember({ teamId, userId: existingUser.uid, email }).catch((error) => {
+      if (String(error).includes("already")) {
+        throw new HttpsError("already-exists", "User is already a member of this team");
+      }
+      throw error;
+    });
 
     await sendTeamAddedEmail({ to: email, teamName, inviterEmail });
     return { status: "added", inviteeUid: existingUser.uid };
@@ -178,7 +175,7 @@ export const inviteTeamMember = onCall<
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const existingInvitations = await findExistingPendingInvitation(
     { email, teamId },
-    { impersonate },
+    { impersonate: { authClaims: auth.token } },
   );
 
   if (existingInvitations.data.invitations.length > 0) {
@@ -189,7 +186,7 @@ export const inviteTeamMember = onCall<
         token,
         expiresAt,
       },
-      { impersonate },
+      { impersonate: { authClaims: auth.token } },
     );
   } else {
     await createInvitation(
@@ -200,7 +197,7 @@ export const inviteTeamMember = onCall<
         token,
         expiresAt,
       },
-      { impersonate },
+      { impersonate: { authClaims: auth.token } },
     );
   }
 

@@ -49,6 +49,7 @@ query GetCurrentUser
   @refresh(onMutationExecuted: { operation: "UpdateCurrentUserSelectedTeam", condition: "request.auth.uid == mutation.auth.uid" })
   @refresh(onMutationExecuted: { operation: "UpdateCurrentUserNotificationPreference", condition: "request.auth.uid == mutation.auth.uid" })
   @refresh(onMutationExecuted: { operation: "UpdateCurrentUserFcmTokens", condition: "request.auth.uid == mutation.auth.uid" })
+  @refresh(onMutationExecuted: { operation: "AddCurrentUserFcmToken", condition: "request.auth.uid == mutation.auth.uid" })
   @refresh(onMutationExecuted: { operation: "UpdateCurrentUserRepositorySelection", condition: "request.auth.uid == mutation.auth.uid" })
   @refresh(onMutationExecuted: { operation: "UpdateCurrentUserSelectedBranch", condition: "request.auth.uid == mutation.auth.uid" }) {
   user(id_expr: "auth.uid") {
@@ -277,7 +278,7 @@ query ListEnvironmentVariablesForTeam($teamId: String!)
   @refresh(onMutationExecuted: { operation: "CreateEnvironmentVariable", condition: "request.variables.teamId == mutation.variables.teamId" })
   @refresh(onMutationExecuted: { operation: "UpdateEnvironmentVariable" })
   @refresh(onMutationExecuted: { operation: "DeleteEnvironmentVariable" }) {
-  teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+  teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" }) @redact
     @check(expr: "this != null", message: "You are not a member of this team") {
     teamId
   }

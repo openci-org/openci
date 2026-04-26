@@ -53,7 +53,11 @@
       "importFile": "ファイルから読み込み",
       "importFileHint": "JSON (google-services.json) または plist (GoogleService-Info.plist)",
       "invalidFile": "選択されたファイルを解析できませんでした。形式を確認してください。",
-      "fileLoaded": "ファイルから設定を読み込みました。内容を確認して保存してください。"
+      "fileLoaded": "ファイルから設定を読み込みました。内容を確認して保存してください。",
+      "savedProjects": "保存済みプロジェクト",
+      "active": "有効",
+      "useProject": "このプロジェクトを使用",
+      "editProject": "プロジェクトを編集"
     }
   },
   "workflow": {
@@ -157,6 +161,7 @@
       "failedToRetry": "再実行に失敗: $error",
       "noRuns": "まだ実行がありません",
       "waitingForLogs": "ログを待機中...",
+      "noLogsAvailable": "利用可能なログはありません",
       "logEntries": "$count件のログ",
       "copyAll": "すべてのログをコピー",
       "logsCopied": "ログがクリップボードにコピーされました",

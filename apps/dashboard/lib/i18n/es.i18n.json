@@ -53,7 +53,11 @@
       "importFile": "Importar desde archivo",
       "importFileHint": "JSON (google-services.json) o plist (GoogleService-Info.plist)",
       "invalidFile": "No se pudo analizar el archivo seleccionado. Verifica el formato.",
-      "fileLoaded": "Configuración cargada desde archivo. Revisa y guarda."
+      "fileLoaded": "Configuración cargada desde archivo. Revisa y guarda.",
+      "savedProjects": "Proyectos guardados",
+      "active": "Activa",
+      "useProject": "Usar proyecto",
+      "editProject": "Editar proyecto"
     }
   },
   "workflow": {
@@ -155,6 +159,7 @@
       "failedToRetry": "Error al reintentar: $error",
       "noRuns": "Sin ejecuciones aún",
       "waitingForLogs": "Esperando registros...",
+      "noLogsAvailable": "No hay registros disponibles",
       "logEntries": "$count entradas de registro",
       "copyAll": "Copiar todos los registros",
       "logsCopied": "Registros copiados al portapapeles",

@@ -170,6 +170,18 @@ mutation UpdateCurrentUserFcmTokens($fcmTokens: [String!]!)
 }
 
 
+mutation AddCurrentUserFcmToken($token: String!)
+  @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      fcmTokens_update: { add: [$token] }
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
 mutation UpdateCurrentUserRepositorySelection($repository: String!, $branch: String!)
   @auth(level: USER) {
   user_update(
@@ -247,28 +259,28 @@ mutation UpsertTeamFromFirestore(
 }
 
 
-mutation CreateTeamForCurrentUser($id: String!, $name: String!, $userId: String!)
-  @auth(level: USER) @transaction {
-  user_upsert(
-    data: {
-      id_expr: "auth.uid"
-      email_expr: "auth.token.email"
-      selectedTeamId: $id
-      updatedAt_expr: "request.time"
-    }
-  )
-  team_insert(
-    data: {
-      id: $id
-      name: $name
-      members: [$userId]
-    }
-  )
-  teamMember_upsert(
-    data: {
-      teamId: $id
-      userId_expr: "auth.uid"
-    }
+mutation CreateTeamForCurrentUser($id: String!, $name: String!)
+  @auth(level: USER) {
+  createTeam: _execute(
+    sql: """
+      WITH upsert_user AS (
+        INSERT INTO "user" (id, email, selected_team_id, created_at, updated_at)
+        VALUES ($1, $2, $3, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE
+        SET
+          email = EXCLUDED.email,
+          selected_team_id = EXCLUDED.selected_team_id,
+          updated_at = NOW()
+      ),
+      insert_team AS (
+        INSERT INTO team (id, name, members, created_at, updated_at)
+        VALUES ($3, $4, ARRAY[$1]::text[], NOW(), NOW())
+      )
+      INSERT INTO team_member (team_id, user_id, joined_at)
+      VALUES ($3, $1, NOW())
+      ON CONFLICT (team_id, user_id) DO NOTHING
+    """
+    params: [{ _expr: "auth.uid" }, { _expr: "auth.token.email" }, $id, $name]
   )
 }
 
@@ -322,13 +334,7 @@ mutation UpdateUserFcmTokens($id: String!, $fcmTokens: [String!]!) @auth(level: 
 
 
 mutation AddTeamMember($teamId: String!, $userId: String!, $email: String!)
-  @auth(level: USER) @transaction {
-  query @redact {
-    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
-      @check(expr: "this != null", message: "You are not a member of this team") {
-      teamId
-    }
-  }
+  @auth(level: NO_ACCESS) {
   user_upsert(data: { id: $userId, email: $email, updatedAt_expr: "request.time" })
   teamMember_upsert(data: { teamId: $teamId, userId: $userId })
 }
@@ -685,7 +691,7 @@ mutation CreateBuildJob(
       needs: $needs
       resolvedNeeds: $resolvedNeeds
       installationId: $installationId
-      installationToken: $installationToken
+      installationToken: null
       tokenExpiresAt: $tokenExpiresAt
       checkRunId: $checkRunId
       commitSha: $commitSha
@@ -763,7 +769,7 @@ mutation UpsertBuildJobFromFirestore(
       needs: $needs
       resolvedNeeds: $resolvedNeeds
       installationId: $installationId
-      installationToken: $installationToken
+      installationToken: null
       tokenExpiresAt: $tokenExpiresAt
       checkRunId: $checkRunId
       commitSha: $commitSha

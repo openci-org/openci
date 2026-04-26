@@ -4,16 +4,28 @@ class GetBuildJobVariablesBuilder {
   String id;
 
   final FirebaseDataConnect _dataConnect;
-  GetBuildJobVariablesBuilder(this._dataConnect, {required  this.id,});
-  Deserializer<GetBuildJobData> dataDeserializer = (dynamic json)  => GetBuildJobData.fromJson(jsonDecode(json));
-  Serializer<GetBuildJobVariables> varsSerializer = (GetBuildJobVariables vars) => jsonEncode(vars.toJson());
+  GetBuildJobVariablesBuilder(
+    this._dataConnect, {
+    required this.id,
+  });
+  Deserializer<GetBuildJobData> dataDeserializer = (dynamic json) =>
+      GetBuildJobData.fromJson(jsonDecode(json));
+  Serializer<GetBuildJobVariables> varsSerializer =
+      (GetBuildJobVariables vars) => jsonEncode(vars.toJson());
   Future<QueryResult<GetBuildJobData, GetBuildJobVariables>> execute() {
     return ref().execute();
   }
 
   QueryRef<GetBuildJobData, GetBuildJobVariables> ref() {
-    GetBuildJobVariables vars= GetBuildJobVariables(id: id,);
-    return _dataConnect.query("GetBuildJob", dataDeserializer, varsSerializer, vars);
+    GetBuildJobVariables vars = GetBuildJobVariables(
+      id: id,
+    );
+    return _dataConnect.query(
+      "GetBuildJob",
+      dataDeserializer,
+      varsSerializer,
+      vars,
+    );
   }
 }
 
@@ -56,99 +68,197 @@ class GetBuildJobBuildJob {
   final String? failureSummary;
   final String? failureSummaryModel;
   final int? failureSummaryDurationMs;
-  GetBuildJobBuildJob.fromJson(dynamic json):
-  
-  id = nativeFromJson<String>(json['id']),
-  status = nativeFromJson<String>(json['status']),
-  owner = nativeFromJson<String>(json['owner']),
-  repo = nativeFromJson<String>(json['repo']),
-  teamId = json['teamId'] == null ? null : nativeFromJson<String>(json['teamId']),
-  workflowId = json['workflowId'] == null ? null : nativeFromJson<String>(json['workflowId']),
-  workflowFileName = json['workflowFileName'] == null ? null : nativeFromJson<String>(json['workflowFileName']),
-  workflowName = json['workflowName'] == null ? null : nativeFromJson<String>(json['workflowName']),
-  jobKey = json['jobKey'] == null ? null : nativeFromJson<String>(json['jobKey']),
-  workflowRunId = json['workflowRunId'] == null ? null : nativeFromJson<String>(json['workflowRunId']),
-  needs = json['needs'] == null ? null : (json['needs'] as List<dynamic>)
-        .map((e) => nativeFromJson<String>(e))
-        .toList(),
-  resolvedNeeds = json['resolvedNeeds'] == null ? null : AnyValue.fromJson(json['resolvedNeeds']),
-  installationId = json['installationId'] == null ? null : bigIntFromJson(json['installationId']),
-  installationToken = json['installationToken'] == null ? null : nativeFromJson<String>(json['installationToken']),
-  tokenExpiresAt = json['tokenExpiresAt'] == null ? null : Timestamp.fromJson(json['tokenExpiresAt']),
-  checkRunId = json['checkRunId'] == null ? null : bigIntFromJson(json['checkRunId']),
-  commitSha = json['commitSha'] == null ? null : nativeFromJson<String>(json['commitSha']),
-  pullRequestNumber = json['pullRequestNumber'] == null ? null : nativeFromJson<int>(json['pullRequestNumber']),
-  event = json['event'] == null ? null : nativeFromJson<String>(json['event']),
-  action = json['action'] == null ? null : nativeFromJson<String>(json['action']),
-  sender = json['sender'] == null ? null : nativeFromJson<String>(json['sender']),
-  repository = json['repository'] == null ? null : nativeFromJson<String>(json['repository']),
-  tagName = json['tagName'] == null ? null : nativeFromJson<String>(json['tagName']),
-  branch = json['branch'] == null ? null : nativeFromJson<String>(json['branch']),
-  releaseName = json['releaseName'] == null ? null : nativeFromJson<String>(json['releaseName']),
-  runsOn = json['runsOn'] == null ? null : nativeFromJson<String>(json['runsOn']),
-  runCount = json['runCount'] == null ? null : nativeFromJson<int>(json['runCount']),
-  latestRunId = json['latestRunId'] == null ? null : nativeFromJson<String>(json['latestRunId']),
-  githubApiBaseUrl = json['githubApiBaseUrl'] == null ? null : nativeFromJson<String>(json['githubApiBaseUrl']),
-  githubBaseUrl = json['githubBaseUrl'] == null ? null : nativeFromJson<String>(json['githubBaseUrl']),
-  createdAt = Timestamp.fromJson(json['createdAt']),
-  updatedAt = Timestamp.fromJson(json['updatedAt']),
-  completedAt = json['completedAt'] == null ? null : Timestamp.fromJson(json['completedAt']),
-  failureSummaryStatus = json['failureSummaryStatus'] == null ? null : nativeFromJson<String>(json['failureSummaryStatus']),
-  failureSummary = json['failureSummary'] == null ? null : nativeFromJson<String>(json['failureSummary']),
-  failureSummaryModel = json['failureSummaryModel'] == null ? null : nativeFromJson<String>(json['failureSummaryModel']),
-  failureSummaryDurationMs = json['failureSummaryDurationMs'] == null ? null : nativeFromJson<int>(json['failureSummaryDurationMs']);
+  GetBuildJobBuildJob.fromJson(dynamic json)
+    : id = nativeFromJson<String>(json['id']),
+      status = nativeFromJson<String>(json['status']),
+      owner = nativeFromJson<String>(json['owner']),
+      repo = nativeFromJson<String>(json['repo']),
+      teamId = json['teamId'] == null
+          ? null
+          : nativeFromJson<String>(json['teamId']),
+      workflowId = json['workflowId'] == null
+          ? null
+          : nativeFromJson<String>(json['workflowId']),
+      workflowFileName = json['workflowFileName'] == null
+          ? null
+          : nativeFromJson<String>(json['workflowFileName']),
+      workflowName = json['workflowName'] == null
+          ? null
+          : nativeFromJson<String>(json['workflowName']),
+      jobKey = json['jobKey'] == null
+          ? null
+          : nativeFromJson<String>(json['jobKey']),
+      workflowRunId = json['workflowRunId'] == null
+          ? null
+          : nativeFromJson<String>(json['workflowRunId']),
+      needs = json['needs'] == null
+          ? null
+          : (json['needs'] as List<dynamic>)
+                .map((e) => nativeFromJson<String>(e))
+                .toList(),
+      resolvedNeeds = json['resolvedNeeds'] == null
+          ? null
+          : AnyValue.fromJson(json['resolvedNeeds']),
+      installationId = json['installationId'] == null
+          ? null
+          : bigIntFromJson(json['installationId']),
+      installationToken = json['installationToken'] == null
+          ? null
+          : nativeFromJson<String>(json['installationToken']),
+      tokenExpiresAt = json['tokenExpiresAt'] == null
+          ? null
+          : Timestamp.fromJson(json['tokenExpiresAt']),
+      checkRunId = json['checkRunId'] == null
+          ? null
+          : bigIntFromJson(json['checkRunId']),
+      commitSha = json['commitSha'] == null
+          ? null
+          : nativeFromJson<String>(json['commitSha']),
+      pullRequestNumber = json['pullRequestNumber'] == null
+          ? null
+          : nativeFromJson<int>(json['pullRequestNumber']),
+      event = json['event'] == null
+          ? null
+          : nativeFromJson<String>(json['event']),
+      action = json['action'] == null
+          ? null
+          : nativeFromJson<String>(json['action']),
+      sender = json['sender'] == null
+          ? null
+          : nativeFromJson<String>(json['sender']),
+      repository = json['repository'] == null
+          ? null
+          : nativeFromJson<String>(json['repository']),
+      tagName = json['tagName'] == null
+          ? null
+          : nativeFromJson<String>(json['tagName']),
+      branch = json['branch'] == null
+          ? null
+          : nativeFromJson<String>(json['branch']),
+      releaseName = json['releaseName'] == null
+          ? null
+          : nativeFromJson<String>(json['releaseName']),
+      runsOn = json['runsOn'] == null
+          ? null
+          : nativeFromJson<String>(json['runsOn']),
+      runCount = json['runCount'] == null
+          ? null
+          : nativeFromJson<int>(json['runCount']),
+      latestRunId = json['latestRunId'] == null
+          ? null
+          : nativeFromJson<String>(json['latestRunId']),
+      githubApiBaseUrl = json['githubApiBaseUrl'] == null
+          ? null
+          : nativeFromJson<String>(json['githubApiBaseUrl']),
+      githubBaseUrl = json['githubBaseUrl'] == null
+          ? null
+          : nativeFromJson<String>(json['githubBaseUrl']),
+      createdAt = Timestamp.fromJson(json['createdAt']),
+      updatedAt = Timestamp.fromJson(json['updatedAt']),
+      completedAt = json['completedAt'] == null
+          ? null
+          : Timestamp.fromJson(json['completedAt']),
+      failureSummaryStatus = json['failureSummaryStatus'] == null
+          ? null
+          : nativeFromJson<String>(json['failureSummaryStatus']),
+      failureSummary = json['failureSummary'] == null
+          ? null
+          : nativeFromJson<String>(json['failureSummary']),
+      failureSummaryModel = json['failureSummaryModel'] == null
+          ? null
+          : nativeFromJson<String>(json['failureSummaryModel']),
+      failureSummaryDurationMs = json['failureSummaryDurationMs'] == null
+          ? null
+          : nativeFromJson<int>(json['failureSummaryDurationMs']);
   @override
   bool operator ==(Object other) {
-    if(identical(this, other)) {
+    if (identical(this, other)) {
       return true;
     }
-    if(other.runtimeType != runtimeType) {
+    if (other.runtimeType != runtimeType) {
       return false;
     }
 
     final GetBuildJobBuildJob otherTyped = other as GetBuildJobBuildJob;
-    return id == otherTyped.id && 
-    status == otherTyped.status && 
-    owner == otherTyped.owner && 
-    repo == otherTyped.repo && 
-    teamId == otherTyped.teamId && 
-    workflowId == otherTyped.workflowId && 
-    workflowFileName == otherTyped.workflowFileName && 
-    workflowName == otherTyped.workflowName && 
-    jobKey == otherTyped.jobKey && 
-    workflowRunId == otherTyped.workflowRunId && 
-    needs == otherTyped.needs && 
-    resolvedNeeds == otherTyped.resolvedNeeds && 
-    installationId == otherTyped.installationId && 
-    installationToken == otherTyped.installationToken && 
-    tokenExpiresAt == otherTyped.tokenExpiresAt && 
-    checkRunId == otherTyped.checkRunId && 
-    commitSha == otherTyped.commitSha && 
-    pullRequestNumber == otherTyped.pullRequestNumber && 
-    event == otherTyped.event && 
-    action == otherTyped.action && 
-    sender == otherTyped.sender && 
-    repository == otherTyped.repository && 
-    tagName == otherTyped.tagName && 
-    branch == otherTyped.branch && 
-    releaseName == otherTyped.releaseName && 
-    runsOn == otherTyped.runsOn && 
-    runCount == otherTyped.runCount && 
-    latestRunId == otherTyped.latestRunId && 
-    githubApiBaseUrl == otherTyped.githubApiBaseUrl && 
-    githubBaseUrl == otherTyped.githubBaseUrl && 
-    createdAt == otherTyped.createdAt && 
-    updatedAt == otherTyped.updatedAt && 
-    completedAt == otherTyped.completedAt && 
-    failureSummaryStatus == otherTyped.failureSummaryStatus && 
-    failureSummary == otherTyped.failureSummary && 
-    failureSummaryModel == otherTyped.failureSummaryModel && 
-    failureSummaryDurationMs == otherTyped.failureSummaryDurationMs;
-    
+    return id == otherTyped.id &&
+        status == otherTyped.status &&
+        owner == otherTyped.owner &&
+        repo == otherTyped.repo &&
+        teamId == otherTyped.teamId &&
+        workflowId == otherTyped.workflowId &&
+        workflowFileName == otherTyped.workflowFileName &&
+        workflowName == otherTyped.workflowName &&
+        jobKey == otherTyped.jobKey &&
+        workflowRunId == otherTyped.workflowRunId &&
+        needs == otherTyped.needs &&
+        resolvedNeeds == otherTyped.resolvedNeeds &&
+        installationId == otherTyped.installationId &&
+        installationToken == otherTyped.installationToken &&
+        tokenExpiresAt == otherTyped.tokenExpiresAt &&
+        checkRunId == otherTyped.checkRunId &&
+        commitSha == otherTyped.commitSha &&
+        pullRequestNumber == otherTyped.pullRequestNumber &&
+        event == otherTyped.event &&
+        action == otherTyped.action &&
+        sender == otherTyped.sender &&
+        repository == otherTyped.repository &&
+        tagName == otherTyped.tagName &&
+        branch == otherTyped.branch &&
+        releaseName == otherTyped.releaseName &&
+        runsOn == otherTyped.runsOn &&
+        runCount == otherTyped.runCount &&
+        latestRunId == otherTyped.latestRunId &&
+        githubApiBaseUrl == otherTyped.githubApiBaseUrl &&
+        githubBaseUrl == otherTyped.githubBaseUrl &&
+        createdAt == otherTyped.createdAt &&
+        updatedAt == otherTyped.updatedAt &&
+        completedAt == otherTyped.completedAt &&
+        failureSummaryStatus == otherTyped.failureSummaryStatus &&
+        failureSummary == otherTyped.failureSummary &&
+        failureSummaryModel == otherTyped.failureSummaryModel &&
+        failureSummaryDurationMs == otherTyped.failureSummaryDurationMs;
   }
+
   @override
-  int get hashCode => Object.hashAll([id.hashCode, status.hashCode, owner.hashCode, repo.hashCode, teamId.hashCode, workflowId.hashCode, workflowFileName.hashCode, workflowName.hashCode, jobKey.hashCode, workflowRunId.hashCode, needs.hashCode, resolvedNeeds.hashCode, installationId.hashCode, installationToken.hashCode, tokenExpiresAt.hashCode, checkRunId.hashCode, commitSha.hashCode, pullRequestNumber.hashCode, event.hashCode, action.hashCode, sender.hashCode, repository.hashCode, tagName.hashCode, branch.hashCode, releaseName.hashCode, runsOn.hashCode, runCount.hashCode, latestRunId.hashCode, githubApiBaseUrl.hashCode, githubBaseUrl.hashCode, createdAt.hashCode, updatedAt.hashCode, completedAt.hashCode, failureSummaryStatus.hashCode, failureSummary.hashCode, failureSummaryModel.hashCode, failureSummaryDurationMs.hashCode]);
-  
+  int get hashCode => Object.hashAll([
+    id.hashCode,
+    status.hashCode,
+    owner.hashCode,
+    repo.hashCode,
+    teamId.hashCode,
+    workflowId.hashCode,
+    workflowFileName.hashCode,
+    workflowName.hashCode,
+    jobKey.hashCode,
+    workflowRunId.hashCode,
+    needs.hashCode,
+    resolvedNeeds.hashCode,
+    installationId.hashCode,
+    installationToken.hashCode,
+    tokenExpiresAt.hashCode,
+    checkRunId.hashCode,
+    commitSha.hashCode,
+    pullRequestNumber.hashCode,
+    event.hashCode,
+    action.hashCode,
+    sender.hashCode,
+    repository.hashCode,
+    tagName.hashCode,
+    branch.hashCode,
+    releaseName.hashCode,
+    runsOn.hashCode,
+    runCount.hashCode,
+    latestRunId.hashCode,
+    githubApiBaseUrl.hashCode,
+    githubBaseUrl.hashCode,
+    createdAt.hashCode,
+    updatedAt.hashCode,
+    completedAt.hashCode,
+    failureSummaryStatus.hashCode,
+    failureSummary.hashCode,
+    failureSummaryModel.hashCode,
+    failureSummaryDurationMs.hashCode,
+  ]);
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
@@ -181,7 +291,7 @@ class GetBuildJobBuildJob {
       json['resolvedNeeds'] = resolvedNeeds!.toJson();
     }
     if (installationId != null) {
-      json['installationId'] = bigIntToJson(installationId);
+      json['installationId'] = bigIntToJson(installationId!);
     }
     if (installationToken != null) {
       json['installationToken'] = nativeToJson<String?>(installationToken);
@@ -190,7 +300,7 @@ class GetBuildJobBuildJob {
       json['tokenExpiresAt'] = tokenExpiresAt!.toJson();
     }
     if (checkRunId != null) {
-      json['checkRunId'] = bigIntToJson(checkRunId);
+      json['checkRunId'] = bigIntToJson(checkRunId!);
     }
     if (commitSha != null) {
       json['commitSha'] = nativeToJson<String?>(commitSha);
@@ -240,7 +350,9 @@ class GetBuildJobBuildJob {
       json['completedAt'] = completedAt!.toJson();
     }
     if (failureSummaryStatus != null) {
-      json['failureSummaryStatus'] = nativeToJson<String?>(failureSummaryStatus);
+      json['failureSummaryStatus'] = nativeToJson<String?>(
+        failureSummaryStatus,
+      );
     }
     if (failureSummary != null) {
       json['failureSummary'] = nativeToJson<String?>(failureSummary);
@@ -249,7 +361,9 @@ class GetBuildJobBuildJob {
       json['failureSummaryModel'] = nativeToJson<String?>(failureSummaryModel);
     }
     if (failureSummaryDurationMs != null) {
-      json['failureSummaryDurationMs'] = nativeToJson<int?>(failureSummaryDurationMs);
+      json['failureSummaryDurationMs'] = nativeToJson<int?>(
+        failureSummaryDurationMs,
+      );
     }
     return json;
   }
@@ -298,25 +412,25 @@ class GetBuildJobBuildJob {
 @immutable
 class GetBuildJobData {
   final GetBuildJobBuildJob? buildJob;
-  GetBuildJobData.fromJson(dynamic json):
-  
-  buildJob = json['buildJob'] == null ? null : GetBuildJobBuildJob.fromJson(json['buildJob']);
+  GetBuildJobData.fromJson(dynamic json)
+    : buildJob = json['buildJob'] == null
+          ? null
+          : GetBuildJobBuildJob.fromJson(json['buildJob']);
   @override
   bool operator ==(Object other) {
-    if(identical(this, other)) {
+    if (identical(this, other)) {
       return true;
     }
-    if(other.runtimeType != runtimeType) {
+    if (other.runtimeType != runtimeType) {
       return false;
     }
 
     final GetBuildJobData otherTyped = other as GetBuildJobData;
     return buildJob == otherTyped.buildJob;
-    
   }
+
   @override
   int get hashCode => buildJob.hashCode;
-  
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
@@ -334,26 +448,26 @@ class GetBuildJobData {
 @immutable
 class GetBuildJobVariables {
   final String id;
-  @Deprecated('fromJson is deprecated for Variable classes as they are no longer required for deserialization.')
-  GetBuildJobVariables.fromJson(Map<String, dynamic> json):
-  
-  id = nativeFromJson<String>(json['id']);
+  @Deprecated(
+    'fromJson is deprecated for Variable classes as they are no longer required for deserialization.',
+  )
+  GetBuildJobVariables.fromJson(Map<String, dynamic> json)
+    : id = nativeFromJson<String>(json['id']);
   @override
   bool operator ==(Object other) {
-    if(identical(this, other)) {
+    if (identical(this, other)) {
       return true;
     }
-    if(other.runtimeType != runtimeType) {
+    if (other.runtimeType != runtimeType) {
       return false;
     }
 
     final GetBuildJobVariables otherTyped = other as GetBuildJobVariables;
     return id == otherTyped.id;
-    
   }
+
   @override
   int get hashCode => id.hashCode;
-  
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
@@ -365,4 +479,3 @@ class GetBuildJobVariables {
     required this.id,
   });
 }
-

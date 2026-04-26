@@ -41,7 +41,7 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
 
     try {
       final result = await functions
-          .httpsCallableFromUrl(dartFunctionUrl('createworkflowfile'))
+          .httpsCallableFromUrl(dartFunctionUrl('createWorkflowFile'))
           .call({
             'teamId': team.id,
             'repository': repository,

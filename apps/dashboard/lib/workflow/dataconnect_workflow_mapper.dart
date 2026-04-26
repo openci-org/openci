@@ -13,6 +13,11 @@ Workflow workflowFromDataConnect({
   required Timestamp updatedAt,
 }) {
   final config = anyMap(workflowConfig);
+  final normalizedConfig = {
+    'selectedRepository': '',
+    'selectedWorkingDirectory': '',
+    ...config,
+  };
   final steps = anyList(workflowSteps)
       .whereType<Map>()
       .map((step) => WorkflowStep.fromJson(step.cast<String, Object?>()))
@@ -24,12 +29,7 @@ Workflow workflowFromDataConnect({
     documentId: id,
     name: name ?? 'Untitled Workflow',
     teamId: teamId,
-    workflowConfig: config.isEmpty
-        ? const WorkflowConfig(
-            selectedRepository: '',
-            selectedWorkingDirectory: '',
-          )
-        : WorkflowConfig.fromJson(config),
+    workflowConfig: WorkflowConfig.fromJson(normalizedConfig),
     workflowSteps: steps,
     isEditing: isEditing ?? false,
   );

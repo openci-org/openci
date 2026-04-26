@@ -98,7 +98,6 @@ class TeamList extends _$TeamList {
         .createTeamForCurrentUser(
           id: const Uuid().v4(),
           name: teamName,
-          userId: currentUserId,
         )
         .execute();
   }

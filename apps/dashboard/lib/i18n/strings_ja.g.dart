@@ -522,6 +522,10 @@ class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn 
 	@override String get importFileHint => 'JSON (google-services.json) または plist (GoogleService-Info.plist)';
 	@override String get invalidFile => '選択されたファイルを解析できませんでした。形式を確認してください。';
 	@override String get fileLoaded => 'ファイルから設定を読み込みました。内容を確認して保存してください。';
+	@override String get savedProjects => '保存済みプロジェクト';
+	@override String get active => '有効';
+	@override String get useProject => 'このプロジェクトを使用';
+	@override String get editProject => 'プロジェクトを編集';
 }
 
 // Path: workflow.editor
@@ -611,6 +615,7 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	@override String failedToRetry({required Object error}) => '再実行に失敗: ${error}';
 	@override String get noRuns => 'まだ実行がありません';
 	@override String get waitingForLogs => 'ログを待機中...';
+	@override String get noLogsAvailable => '利用可能なログはありません';
 	@override String logEntries({required Object count}) => '${count}件のログ';
 	@override String get copyAll => 'すべてのログをコピー';
 	@override String get logsCopied => 'ログがクリップボードにコピーされました';
@@ -803,6 +808,10 @@ extension on TranslationsJa {
 			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) または plist (GoogleService-Info.plist)',
 			'auth.firebaseForm.invalidFile' => '選択されたファイルを解析できませんでした。形式を確認してください。',
 			'auth.firebaseForm.fileLoaded' => 'ファイルから設定を読み込みました。内容を確認して保存してください。',
+			'auth.firebaseForm.savedProjects' => '保存済みプロジェクト',
+			'auth.firebaseForm.active' => '有効',
+			'auth.firebaseForm.useProject' => 'このプロジェクトを使用',
+			'auth.firebaseForm.editProject' => 'プロジェクトを編集',
 			'workflow.title' => 'ワークフロー',
 			'workflow.tabWorkflows' => 'ワークフロー',
 			'workflow.tabRuns' => '実行履歴',
@@ -894,6 +903,7 @@ extension on TranslationsJa {
 			'buildLogs.detail.failedToRetry' => ({required Object error}) => '再実行に失敗: ${error}',
 			'buildLogs.detail.noRuns' => 'まだ実行がありません',
 			'buildLogs.detail.waitingForLogs' => 'ログを待機中...',
+			'buildLogs.detail.noLogsAvailable' => '利用可能なログはありません',
 			'buildLogs.detail.logEntries' => ({required Object count}) => '${count}件のログ',
 			'buildLogs.detail.copyAll' => 'すべてのログをコピー',
 			'buildLogs.detail.logsCopied' => 'ログがクリップボードにコピーされました',

@@ -26,9 +26,6 @@ Stream<List<BuildLog>> buildLogs(
       )
       .ref();
 
-  final initial = await query.execute();
-  yield _buildLogsFromResult(initial.data.buildLogs);
-
   yield* query.subscribe().map(
     (result) => _buildLogsFromResult(result.data.buildLogs),
   );

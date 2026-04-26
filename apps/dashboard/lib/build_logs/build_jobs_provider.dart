@@ -1,7 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
-import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:flutter/foundation.dart';
@@ -17,20 +16,13 @@ class BuildJobs extends _$BuildJobs {
   Stream<List<BuildJob>> build() async* {
     final teamId = ref.watch(userProvider).value?.selectedTeamId;
     if (teamId == null) {
-      yield [];
+      yield const [];
       return;
     }
 
     final query = dataConnector
         .listBuildJobsForTeam(teamId: teamId, limit: 20)
         .ref();
-
-    final initial = await query.execute();
-    final initialJobs = _sortedBuildJobs(
-      initial.data.buildJobs.map(_buildJobFromList),
-    );
-    _debugBuildJobsResult('execute', teamId, initialJobs);
-    yield initialJobs;
 
     yield* query.subscribe().map(
       (result) {
@@ -73,7 +65,7 @@ class BuildJobs extends _$BuildJobs {
 
 @riverpod
 Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
-  final teamId = ref.watch(teamStateProvider).value?.id;
+  final teamId = ref.watch(userProvider).value?.selectedTeamId;
   if (teamId == null) {
     yield null;
     return;
@@ -81,9 +73,6 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
   final query = dataConnector
       .getBuildJobForTeam(id: buildJobId, teamId: teamId)
       .ref();
-
-  final initial = await query.execute();
-  yield _buildJobFromTeamResult(initial.data.buildJob);
 
   yield* query.subscribe().map(
     (result) => _buildJobFromTeamResult(result.data.buildJob),

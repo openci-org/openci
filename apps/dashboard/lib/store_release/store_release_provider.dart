@@ -105,9 +105,6 @@ class IsAscConfigured extends _$IsAscConfigured {
         )
         .ref();
 
-    final initial = await query.execute();
-    yield initial.data.secrets.isNotEmpty;
-
     yield* query.subscribe().map((result) => result.data.secrets.isNotEmpty);
   }
 }
@@ -121,7 +118,7 @@ class AscApps extends _$AscApps {
     final teamId = _requireTeamId(ref);
 
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asclistapps'))
+        .httpsCallableFromUrl(dartFunctionUrl('asc-list-apps'))
         .call({
           'teamId': teamId,
         });
@@ -143,7 +140,7 @@ class AscBuilds extends _$AscBuilds {
     final teamId = _requireTeamId(ref);
 
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asclistbuilds'))
+        .httpsCallableFromUrl(dartFunctionUrl('asc-list-builds'))
         .call({
           'teamId': teamId,
           'appId': appId,
@@ -168,7 +165,7 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
     final teamId = _requireTeamId(ref);
 
     final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('ascsubmittotestflight'))
+        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-to-test-flight'))
         .call({
           'teamId': teamId,
           'buildId': buildId,
@@ -196,7 +193,7 @@ class SubmitForReview extends _$SubmitForReview {
     final teamId = _requireTeamId(ref);
 
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('ascsubmitforreview'))
+        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-for-review'))
         .call({
           'teamId': teamId,
           'appId': appId,
@@ -223,7 +220,7 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     final teamId = _requireTeamId(ref);
 
     await functions
-        .httpsCallableFromUrl(dartFunctionUrl('setupascapikeyv1'))
+        .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
         .call({
           'teamId': teamId,
           'issuerId': issuerId,

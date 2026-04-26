@@ -522,6 +522,10 @@ class _TranslationsAuthFirebaseFormEs implements TranslationsAuthFirebaseFormEn 
 	@override String get importFileHint => 'JSON (google-services.json) o plist (GoogleService-Info.plist)';
 	@override String get invalidFile => 'No se pudo analizar el archivo seleccionado. Verifica el formato.';
 	@override String get fileLoaded => 'Configuración cargada desde archivo. Revisa y guarda.';
+	@override String get savedProjects => 'Proyectos guardados';
+	@override String get active => 'Activa';
+	@override String get useProject => 'Usar proyecto';
+	@override String get editProject => 'Editar proyecto';
 }
 
 // Path: workflow.editor
@@ -611,6 +615,7 @@ class _TranslationsBuildLogsDetailEs implements TranslationsBuildLogsDetailEn {
 	@override String failedToRetry({required Object error}) => 'Error al reintentar: ${error}';
 	@override String get noRuns => 'Sin ejecuciones aún';
 	@override String get waitingForLogs => 'Esperando registros...';
+	@override String get noLogsAvailable => 'No hay registros disponibles';
 	@override String logEntries({required Object count}) => '${count} entradas de registro';
 	@override String get copyAll => 'Copiar todos los registros';
 	@override String get logsCopied => 'Registros copiados al portapapeles';
@@ -803,6 +808,10 @@ extension on TranslationsEs {
 			'auth.firebaseForm.importFileHint' => 'JSON (google-services.json) o plist (GoogleService-Info.plist)',
 			'auth.firebaseForm.invalidFile' => 'No se pudo analizar el archivo seleccionado. Verifica el formato.',
 			'auth.firebaseForm.fileLoaded' => 'Configuración cargada desde archivo. Revisa y guarda.',
+			'auth.firebaseForm.savedProjects' => 'Proyectos guardados',
+			'auth.firebaseForm.active' => 'Activa',
+			'auth.firebaseForm.useProject' => 'Usar proyecto',
+			'auth.firebaseForm.editProject' => 'Editar proyecto',
 			'workflow.title' => 'Flujos de trabajo',
 			'workflow.tabWorkflows' => 'Flujos de trabajo',
 			'workflow.tabRuns' => 'Ejecuciones',
@@ -894,6 +903,7 @@ extension on TranslationsEs {
 			'buildLogs.detail.failedToRetry' => ({required Object error}) => 'Error al reintentar: ${error}',
 			'buildLogs.detail.noRuns' => 'Sin ejecuciones aún',
 			'buildLogs.detail.waitingForLogs' => 'Esperando registros...',
+			'buildLogs.detail.noLogsAvailable' => 'No hay registros disponibles',
 			'buildLogs.detail.logEntries' => ({required Object count}) => '${count} entradas de registro',
 			'buildLogs.detail.copyAll' => 'Copiar todos los registros',
 			'buildLogs.detail.logsCopied' => 'Registros copiados al portapapeles',

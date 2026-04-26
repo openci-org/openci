@@ -18,40 +18,6 @@ class ListEnvironmentVariablesForTeamVariablesBuilder {
 }
 
 @immutable
-class ListEnvironmentVariablesForTeamTeamMember {
-  final String teamId;
-  ListEnvironmentVariablesForTeamTeamMember.fromJson(dynamic json):
-  
-  teamId = nativeFromJson<String>(json['teamId']);
-  @override
-  bool operator ==(Object other) {
-    if(identical(this, other)) {
-      return true;
-    }
-    if(other.runtimeType != runtimeType) {
-      return false;
-    }
-
-    final ListEnvironmentVariablesForTeamTeamMember otherTyped = other as ListEnvironmentVariablesForTeamTeamMember;
-    return teamId == otherTyped.teamId;
-    
-  }
-  @override
-  int get hashCode => teamId.hashCode;
-  
-
-  Map<String, dynamic> toJson() {
-    Map<String, dynamic> json = {};
-    json['teamId'] = nativeToJson<String>(teamId);
-    return json;
-  }
-
-  ListEnvironmentVariablesForTeamTeamMember({
-    required this.teamId,
-  });
-}
-
-@immutable
 class ListEnvironmentVariablesForTeamEnvironmentVariables {
   final String id;
   final String key;
@@ -131,11 +97,9 @@ class ListEnvironmentVariablesForTeamEnvironmentVariables {
 
 @immutable
 class ListEnvironmentVariablesForTeamData {
-  late final Optional<ListEnvironmentVariablesForTeamTeamMember>teamMember;
   final List<ListEnvironmentVariablesForTeamEnvironmentVariables> environmentVariables;
   ListEnvironmentVariablesForTeamData.fromJson(dynamic json):
   
-  teamMember = json['teamMember'] == null ? null : ListEnvironmentVariablesForTeamTeamMember.fromJson(json['teamMember']),
   environmentVariables = (json['environmentVariables'] as List<dynamic>)
         .map((e) => ListEnvironmentVariablesForTeamEnvironmentVariables.fromJson(e))
         .toList();
@@ -149,25 +113,20 @@ class ListEnvironmentVariablesForTeamData {
     }
 
     final ListEnvironmentVariablesForTeamData otherTyped = other as ListEnvironmentVariablesForTeamData;
-    return teamMember == otherTyped.teamMember && 
-    environmentVariables == otherTyped.environmentVariables;
+    return environmentVariables == otherTyped.environmentVariables;
     
   }
   @override
-  int get hashCode => Object.hashAll([teamMember.hashCode, environmentVariables.hashCode]);
+  int get hashCode => environmentVariables.hashCode;
   
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
-    if (teamMember != null) {
-      json['teamMember'] = teamMember!.toJson();
-    }
     json['environmentVariables'] = environmentVariables.map((e) => e.toJson()).toList();
     return json;
   }
 
   ListEnvironmentVariablesForTeamData({
-    this.teamMember,
     required this.environmentVariables,
   });
 }
