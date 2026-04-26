@@ -36,7 +36,7 @@ final class IsAscConfiguredProvider
   IsAscConfigured create() => IsAscConfigured();
 }
 
-String _$isAscConfiguredHash() => r'c53386cd251b1afcd30c8c6eb1131bcbb51d8521';
+String _$isAscConfiguredHash() => r'd64d2189e898354eef0663b0156285f1faf3e5a5';
 
 /// Whether ASC API credentials are configured for the current team.
 
@@ -86,7 +86,7 @@ final class AscAppsProvider
   AscApps create() => AscApps();
 }
 
-String _$ascAppsHash() => r'e8a9fc4e6213ce2be659ca2144b31406d7906646';
+String _$ascAppsHash() => r'7a2ea3576921120b5a0b9a45c29507d922c4b15a';
 
 /// Fetch the list of apps from App Store Connect.
 
@@ -153,7 +153,7 @@ final class AscBuildsProvider
   }
 }
 
-String _$ascBuildsHash() => r'14246eb0d9468da870af77c7498a1a688b173614';
+String _$ascBuildsHash() => r'31591109ad9da89d8838c67e2e1a573dacf7b8f1';
 
 /// Fetch builds for a specific app.
 
@@ -236,7 +236,7 @@ final class SubmitToTestFlightProvider
 }
 
 String _$submitToTestFlightHash() =>
-    r'bac3080f84adf5ebe1ae0ebda8ef96e9ae1627d1';
+    r'fc60fc7599173f6c9f62d59d0294ca44916adca9';
 
 /// Submit a build to TestFlight (external beta testing).
 
@@ -286,7 +286,7 @@ final class SubmitForReviewProvider
   SubmitForReview create() => SubmitForReview();
 }
 
-String _$submitForReviewHash() => r'd020a7cfbe136ecf0f45125c97d5403ea72beee4';
+String _$submitForReviewHash() => r'000be5c2a410124f89b69ab62e99de242bcde00c';
 
 /// Submit a build for App Store Review.
 
@@ -337,7 +337,7 @@ final class SetupAscCredentialsProvider
 }
 
 String _$setupAscCredentialsHash() =>
-    r'd9c11db2b9b56845fa4dc6c5e65fedbf78fb3a58';
+    r'e7dcf13b60d2fd873af317b728ca058112c66756';
 
 /// Setup ASC API credentials.
 

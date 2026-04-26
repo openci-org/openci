@@ -1,8 +1,10 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,26 +14,42 @@ part 'build_jobs_provider.g.dart';
 @riverpod
 class BuildJobs extends _$BuildJobs {
   @override
-  Stream<List<BuildJob>> build() {
-    final teamId = ref.watch(teamStateProvider).value?.id;
-    if (teamId == null) return Stream.value([]);
+  Stream<List<BuildJob>> build() async* {
+    final teamId = ref.watch(userProvider).value?.selectedTeamId;
+    if (teamId == null) {
+      yield [];
+      return;
+    }
 
-    return dataConnector
+    final query = dataConnector
         .listBuildJobsForTeam(teamId: teamId, limit: 20)
-        .ref()
-        .subscribe()
-        .map(
-          (result) => result.data.buildJobs.map(_buildJobFromList).toList(),
+        .ref();
+
+    final initial = await query.execute();
+    final initialJobs = _sortedBuildJobs(
+      initial.data.buildJobs.map(_buildJobFromList),
+    );
+    _debugBuildJobsResult('execute', teamId, initialJobs);
+    yield initialJobs;
+
+    yield* query.subscribe().map(
+      (result) {
+        final jobs = _sortedBuildJobs(
+          result.data.buildJobs.map(_buildJobFromList),
         );
+        _debugBuildJobsResult('subscribe', teamId, jobs);
+        return jobs;
+      },
+    );
   }
 
   Future<void> retryBuildJob(String buildJobId) async {
     final functions = FirebaseFunctions.instance;
-    await functions
-        .httpsCallableFromUrl(dartFunctionUrl('retrybuildjob'))
-        .call({
-          'buildJobId': buildJobId,
-        });
+    await functions.httpsCallableFromUrl(dartFunctionUrl('retrybuildjob')).call(
+      {
+        'buildJobId': buildJobId,
+      },
+    );
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
@@ -145,6 +163,19 @@ BuildJob _buildJobFromList(ListBuildJobsForTeamBuildJobs job) {
     completedAt: job.completedAt == null
         ? null
         : dateTimeFromDataConnect(job.completedAt!),
+  );
+}
+
+List<BuildJob> _sortedBuildJobs(Iterable<BuildJob> jobs) {
+  return jobs.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+}
+
+void _debugBuildJobsResult(String source, String teamId, List<BuildJob> jobs) {
+  if (!kDebugMode) return;
+  final first = jobs.isEmpty ? null : jobs.first;
+  debugPrint(
+    '[OpenCI] ListBuildJobsForTeam $source teamId=$teamId '
+    'count=${jobs.length} first=${first?.id} firstCreatedAt=${first?.createdAt.toIso8601String()}',
   );
 }
 
