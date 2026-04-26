@@ -14,7 +14,8 @@ interface NpmPackageMetadata {
 
 export type AutoUpdateResult = "current" | "updated" | "failed";
 
-const updateLockPath = process.env.OPENCI_WORKER_UPDATE_LOCK ?? "/tmp/openci-worker-cli-update.lock";
+const updateLockPath =
+  process.env.OPENCI_WORKER_UPDATE_LOCK ?? "/tmp/openci-worker-cli-update.lock";
 const staleLockMs = 10 * 60 * 1000;
 const peerUpdateWaitMs = 5 * 60 * 1000;
 
@@ -31,9 +32,12 @@ function compareSemver(remote: string, current: string): number {
 }
 
 async function latestPublishedVersion(): Promise<string | null> {
-  const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(defaultPackageName)}`, {
-    headers: { Accept: "application/vnd.npm.install-v1+json" },
-  });
+  const response = await fetch(
+    `https://registry.npmjs.org/${encodeURIComponent(defaultPackageName)}`,
+    {
+      headers: { Accept: "application/vnd.npm.install-v1+json" },
+    },
+  );
   if (!response.ok) {
     console.warn(`Auto-update check failed: npm registry returned ${response.status}`);
     return null;
@@ -63,10 +67,14 @@ function npmExecutable(): string {
 
 async function installVersion(nextVersion: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(npmExecutable(), ["install", "-g", `${defaultPackageName}@${nextVersion}`], {
-      stdio: "inherit",
-      env: process.env,
-    });
+    const child = spawn(
+      npmExecutable(),
+      ["install", "-g", `${defaultPackageName}@${nextVersion}`],
+      {
+        stdio: "inherit",
+        env: process.env,
+      },
+    );
     child.on("error", reject);
     child.on("close", (code) => {
       if (code === 0) resolve();
@@ -78,11 +86,14 @@ async function installVersion(nextVersion: string): Promise<void> {
 async function acquireUpdateLock(): Promise<boolean> {
   try {
     const handle = await open(updateLockPath, "wx");
-    await handle.writeFile(JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }));
+    await handle.writeFile(
+      JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }),
+    );
     await handle.close();
     return true;
   } catch (error) {
-    const code = error instanceof Error && "code" in error ? (error as NodeJS.ErrnoException).code : undefined;
+    const code =
+      error instanceof Error && "code" in error ? (error as NodeJS.ErrnoException).code : undefined;
     if (code !== "EEXIST") throw error;
 
     try {
@@ -126,7 +137,9 @@ export async function checkAndUpdate(): Promise<AutoUpdateResult> {
 
     console.log(`New worker version available: ${version} -> ${latestVersion}`);
     if (!(await acquireUpdateLock())) {
-      console.log(`Another worker is installing ${defaultPackageName}@${latestVersion}; waiting for restart`);
+      console.log(
+        `Another worker is installing ${defaultPackageName}@${latestVersion}; waiting for restart`,
+      );
       return (await waitForPeerUpdate(latestVersion)) ? "updated" : "failed";
     }
 
@@ -146,4 +159,3 @@ export async function checkAndUpdate(): Promise<AutoUpdateResult> {
 export function exitForUpdate(): never {
   process.exit(exitCodeUpdateRequested);
 }
-

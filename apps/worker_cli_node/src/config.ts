@@ -55,7 +55,9 @@ export function parseConfig(args: string[]): WorkerConfig | null {
   if (!projectId) throw new Error("project_id not found in service account file");
 
   const pollIntervalRaw = readOption(args, "poll-interval");
-  const pollIntervalMs = pollIntervalRaw ? Number.parseInt(pollIntervalRaw, 10) : defaultPollIntervalMs;
+  const pollIntervalMs = pollIntervalRaw
+    ? Number.parseInt(pollIntervalRaw, 10)
+    : defaultPollIntervalMs;
   if (!Number.isFinite(pollIntervalMs) || pollIntervalMs <= 0) {
     throw new Error("--poll-interval must be a positive integer");
   }
@@ -70,4 +72,3 @@ export function parseConfig(args: string[]): WorkerConfig | null {
     once: args.includes("--once"),
   };
 }
-

@@ -1,6 +1,6 @@
 {
   "name": "openci-worker-cli",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "OpenCI Worker CLI",
   "license": "Apache-2.0",
   "repository": {
@@ -8,8 +8,6 @@
     "url": "git+https://github.com/openci-org/openci.git",
     "directory": "apps/worker_cli_node"
   },
-  "type": "module",
-  "main": "dist/index.js",
   "bin": {
     "openci_worker": "dist/index.js"
   },
@@ -17,13 +15,11 @@
     "dist",
     "README.md"
   ],
+  "type": "module",
+  "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
-  "bundledDependencies": [
-    "@openci/build-job-services",
-    "@openci/dataconnect-admin"
-  ],
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
@@ -51,6 +47,10 @@
     "vite-plus": "^0.1.19",
     "vitest": "^4.1.5"
   },
+  "bundledDependencies": [
+    "@openci/build-job-services",
+    "@openci/dataconnect-admin"
+  ],
   "engines": {
     "node": "22"
   },

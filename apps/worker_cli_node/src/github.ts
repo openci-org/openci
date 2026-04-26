@@ -40,7 +40,10 @@ async function createGitHubAppJwt(projectId: string): Promise<string> {
   return `${signingInput}.${base64UrlEncode(signature)}`;
 }
 
-export async function resolveInstallationToken(buildJob: BuildJob, projectId: string): Promise<string> {
+export async function resolveInstallationToken(
+  buildJob: BuildJob,
+  projectId: string,
+): Promise<string> {
   if (buildJob.installationId === null || buildJob.installationId === undefined) {
     if (buildJob.installationToken) return buildJob.installationToken;
     throw new Error("installationToken and installationId are missing");
@@ -62,15 +65,19 @@ export async function resolveInstallationToken(buildJob: BuildJob, projectId: st
   );
   const data = (await response.json()) as { token?: string; message?: string };
   if (!response.ok || typeof data.token !== "string") {
-    throw new Error(data.message ?? `Failed to create GitHub installation token: ${response.status}`);
+    throw new Error(
+      data.message ?? `Failed to create GitHub installation token: ${response.status}`,
+    );
   }
   return data.token;
 }
 
-export async function withInstallationToken(buildJob: BuildJob, projectId: string): Promise<BuildJob> {
+export async function withInstallationToken(
+  buildJob: BuildJob,
+  projectId: string,
+): Promise<BuildJob> {
   return {
     ...buildJob,
     installationToken: await resolveInstallationToken(buildJob, projectId),
   };
 }
-

@@ -34,4 +34,3 @@ export interface WorkerConfig {
   pollIntervalMs: number;
   once: boolean;
 }
-

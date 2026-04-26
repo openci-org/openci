@@ -5,12 +5,7 @@ import {
   handleBuildJobStatusChange,
   updateCheckRun,
 } from "@openci/build-job-services";
-import {
-  claimNextJob,
-  completeJob,
-  createRun,
-  updateRunStatus,
-} from "./dataconnect.js";
+import { claimNextJob, completeJob, createRun, updateRunStatus } from "./dataconnect.js";
 import { checkAndUpdate, exitForUpdate } from "./auto_updater.js";
 import { buildEnvVars, buildSecretVars } from "./env.js";
 import { withInstallationToken } from "./github.js";
@@ -58,7 +53,12 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
       conclusion: "success",
     });
     await completeJob(buildJob.id, "success");
-    const completedJob = { ...buildJob, status: "success", latestRunId: runId, completedAt: new Date().toISOString() };
+    const completedJob = {
+      ...buildJob,
+      status: "success",
+      latestRunId: runId,
+      completedAt: new Date().toISOString(),
+    };
     await updateCheckRun(completedJob, "completed", "success");
     await handleBuildJobStatusChange(completedJob, "success");
   } catch (error) {
@@ -72,7 +72,12 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
       conclusion: "failure",
     });
     await completeJob(buildJob.id, "failure");
-    const completedJob = { ...buildJob, status: "failure", latestRunId: runId, completedAt: new Date().toISOString() };
+    const completedJob = {
+      ...buildJob,
+      status: "failure",
+      latestRunId: runId,
+      completedAt: new Date().toISOString(),
+    };
     await updateCheckRun(completedJob, "completed", "failure");
     await handleBuildJobStatusChange(completedJob, "failure");
     await generateFailureSummary(completedJob, config.projectId);
@@ -86,7 +91,9 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
 
 export async function pollForJobs(config: WorkerConfig): Promise<void> {
   console.log(`Worker started. Worker ID: ${config.workerId}`);
-  console.log(`Platform: ${process.platform} (${process.platform === "linux" ? "ubuntu jobs" : "macos jobs"})`);
+  console.log(
+    `Platform: ${process.platform} (${process.platform === "linux" ? "ubuntu jobs" : "macos jobs"})`,
+  );
 
   let lastUpdateCheckAt = 0;
   while (true) {
@@ -113,4 +120,3 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
     }
   }
 }
-

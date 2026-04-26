@@ -18,7 +18,9 @@ import type { BuildJob } from "./types.js";
 
 export function initFirebase(serviceAccountPath: string): void {
   if (getApps().length > 0) return;
-  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as Parameters<typeof cert>[0];
+  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as Parameters<
+    typeof cert
+  >[0];
   initializeApp({
     credential: cert(serviceAccount),
   });
@@ -110,4 +112,3 @@ export async function getSecrets(teamId: string): Promise<
   const response = await listWorkerSecrets({ teamId });
   return response.data.secrets;
 }
-

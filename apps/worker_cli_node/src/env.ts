@@ -87,4 +87,3 @@ export function envFileContent(values: Record<string, string>): string {
     .map(([key, value]) => `${key}=${value.replaceAll("\n", "\\n")}`)
     .join("\n");
 }
-

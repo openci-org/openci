@@ -48,4 +48,3 @@ The dry run should list `@openci/dataconnect-admin` and `@openci/build-job-servi
 - `act` available in the worker runtime
 - Linux workers: Docker and the `openci-ubuntu:latest` image
 - macOS workers: Lume and the `tahoe-base_v1.1.1` base VM
-

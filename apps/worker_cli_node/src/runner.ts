@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 
 import { isJobCancelled } from "./dataconnect.js";
 import { envFileContent } from "./env.js";
@@ -100,6 +100,10 @@ async function runSimple(command: string, args: string[], errorMessage: string):
   return Buffer.concat(stdout).toString("utf8");
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function buildEventPayload(buildJob: BuildJob): string {
   const owner = buildJob.owner;
   const repo = buildJob.repo;
@@ -164,12 +168,20 @@ function shortJobId(buildJobId: string): string {
   return buildJobId.length >= 8 ? buildJobId.slice(0, 8) : buildJobId;
 }
 
-async function writeFileToContainer(name: string, remotePath: string, content: string): Promise<void> {
+async function writeFileToContainer(
+  name: string,
+  remotePath: string,
+  content: string,
+): Promise<void> {
   const workDir = await mkdtemp(join(tmpdir(), "openci-copy-"));
   const localPath = join(workDir, "file");
   try {
     await writeFile(localPath, content);
-    await runSimple("docker", ["cp", localPath, `${name}:${remotePath}`], `Failed to copy ${remotePath}`);
+    await runSimple(
+      "docker",
+      ["cp", localPath, `${name}:${remotePath}`],
+      `Failed to copy ${remotePath}`,
+    );
   } finally {
     await rm(workDir, { recursive: true, force: true });
   }
@@ -186,7 +198,11 @@ async function runDockerBuild(input: {
   const name = `openci-${workerId}-${shortJobId(buildJob.id)}`;
   try {
     await logInfo(buildJob.id, runId, `Creating container ${name} from ${dockerImage}...`);
-    await runSimple("docker", ["create", "--name", name, dockerImage], `Failed to create container ${name}`);
+    await runSimple(
+      "docker",
+      ["create", "--name", name, dockerImage],
+      `Failed to create container ${name}`,
+    );
     await runSimple("docker", ["start", name], `Failed to start container ${name}`);
 
     await writeFileToContainer(name, "/tmp/openci-env", envFileContent(envVars));
@@ -232,8 +248,9 @@ async function runDockerBuild(input: {
       }),
     );
   } finally {
-    await runSimple("docker", ["rm", "-f", name], `Failed to remove container ${name}`).catch((error: unknown) =>
-      logWarning(buildJob.id, runId, `Error removing container: ${String(error)}`),
+    await runSimple("docker", ["rm", "-f", name], `Failed to remove container ${name}`).catch(
+      (error: unknown) =>
+        logWarning(buildJob.id, runId, `Error removing container: ${String(error)}`),
     );
   }
 }
@@ -255,7 +272,11 @@ function lumeSshArgs(vmName: string, remoteCommand: string): string[] {
 
 async function writeFileToVm(vmName: string, remotePath: string, content: string): Promise<void> {
   const encoded = Buffer.from(content, "utf8").toString("base64");
-  await runSimple("lume", lumeSshArgs(vmName, `rm -f ${remotePath} ${remotePath}.b64`), `Failed to reset ${remotePath}`);
+  await runSimple(
+    "lume",
+    lumeSshArgs(vmName, `rm -f ${remotePath} ${remotePath}.b64`),
+    `Failed to reset ${remotePath}`,
+  );
   for (let i = 0; i < encoded.length; i += 4096) {
     const chunk = encoded.slice(i, i + 4096);
     await runSimple(
@@ -283,11 +304,44 @@ async function waitForVmReady(vmName: string): Promise<void> {
   throw new Error("VM boot timeout: VM did not respond");
 }
 
+async function killVmProcessGroup(vmProcess: ChildProcess | undefined): Promise<void> {
+  if (!vmProcess?.pid) return;
+  try {
+    process.kill(-vmProcess.pid, "SIGTERM");
+  } catch {
+    return;
+  }
+  await delay(3_000);
+  try {
+    process.kill(-vmProcess.pid, "SIGKILL");
+  } catch {
+    // The VM process exited after SIGTERM.
+  }
+}
+
+async function killLumeRunByName(vmName: string): Promise<void> {
+  await runSimple(
+    "pkill",
+    ["-TERM", "-f", `lume run ${vmName}`],
+    `Failed to terminate VM process ${vmName}`,
+  ).catch(() => undefined);
+  await delay(3_000);
+  await runSimple(
+    "pkill",
+    ["-KILL", "-f", `lume run ${vmName}`],
+    `Failed to kill VM process ${vmName}`,
+  ).catch(() => undefined);
+}
+
 async function setupDirectSsh(vmName: string): Promise<void> {
   try {
     await runSimple("test", ["-f", sshKeyPath], "SSH key not found");
   } catch {
-    await runSimple("ssh-keygen", ["-t", "ed25519", "-f", sshKeyPath, "-N", "", "-q"], "Failed to generate SSH key");
+    await runSimple(
+      "ssh-keygen",
+      ["-t", "ed25519", "-f", sshKeyPath, "-N", "", "-q"],
+      "Failed to generate SSH key",
+    );
   }
   const publicKey = await runSimple("cat", [`${sshKeyPath}.pub`], "Failed to read SSH public key");
   await runSimple(
@@ -345,11 +399,12 @@ async function runMacVmBuild(input: {
 }): Promise<void> {
   const { buildJob, runId, envVars, secretVars, workerId } = input;
   const vmName = `openci-vm-${workerId}-${shortJobId(buildJob.id)}`;
+  let vmProcess: ChildProcess | undefined;
   try {
     await logInfo(buildJob.id, runId, `Cloning VM ${baseVmName} to ${vmName}...`);
     await runSimple("lume", ["clone", baseVmName, vmName], `Failed to clone VM ${vmName}`);
 
-    const vmProcess = spawn("lume", ["run", vmName, "--no-display"], {
+    vmProcess = spawn("lume", ["run", vmName, "--no-display"], {
       stdio: "ignore",
       detached: true,
     });
@@ -403,9 +458,18 @@ async function runMacVmBuild(input: {
       }),
     );
   } finally {
-    await runSimple("lume", ["stop", vmName], `Failed to stop VM ${vmName}`).catch((error: unknown) =>
-      logWarning(buildJob.id, runId, `Error stopping VM: ${String(error)}`),
+    let stopped = true;
+    await runSimple("lume", ["stop", vmName], `Failed to stop VM ${vmName}`).catch(
+      (error: unknown) => {
+        stopped = false;
+        return logWarning(buildJob.id, runId, `Error stopping VM: ${String(error)}`);
+      },
     );
+    if (!stopped) {
+      await logWarning(buildJob.id, runId, `Force-killing VM process for ${vmName}`);
+      await killVmProcessGroup(vmProcess);
+      await killLumeRunByName(vmName);
+    }
     await runSimple("lume", ["delete", vmName, "--force"], `Failed to delete VM ${vmName}`).catch(
       (error: unknown) => logWarning(buildJob.id, runId, `Error deleting VM: ${String(error)}`),
     );
@@ -427,7 +491,9 @@ async function fetchAndCheckout(
       runId,
       `Direct fetch failed, trying PR ref pull/${buildJob.pullRequestNumber}/head...`,
     );
-    await exec(`git -C ${buildJob.repo} fetch --depth 1 origin pull/${buildJob.pullRequestNumber}/head`);
+    await exec(
+      `git -C ${buildJob.repo} fetch --depth 1 origin pull/${buildJob.pullRequestNumber}/head`,
+    );
   }
   await exec(`git -C ${buildJob.repo} checkout ${buildJob.commitSha}`);
   await logInfo(buildJob.id, runId, "Repository cloned successfully");
@@ -470,4 +536,3 @@ export async function runBuildJob(input: {
     await runMacVmBuild({ buildJob, runId, envVars, secretVars, workerId });
   }
 }
-

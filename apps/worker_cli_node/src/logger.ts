@@ -39,7 +39,11 @@ export async function logInfo(buildJobId: string, runId: string, message: string
   await writeBuildLog(buildJobId, runId, "info", message);
 }
 
-export async function logWarning(buildJobId: string, runId: string, message: string): Promise<void> {
+export async function logWarning(
+  buildJobId: string,
+  runId: string,
+  message: string,
+): Promise<void> {
   console.warn(message);
   await writeBuildLog(buildJobId, runId, "warning", message);
 }
@@ -54,4 +58,3 @@ export async function logError(
   if (stackTrace) console.error(stackTrace);
   await writeBuildLog(buildJobId, runId, "error", message, stackTrace);
 }
-
