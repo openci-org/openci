@@ -75,37 +75,34 @@ function requireNonEmptyString(value: unknown, field: string): string {
 export const generateAiWorkflowResponse = onCall<
   GenerateAiWorkflowRequest,
   Promise<{ message: string; yaml?: string }>
->(
-  { timeoutSeconds: 60 },
-  async (request) => {
-    const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
-    if (!Array.isArray(request.data?.messages) || request.data.messages.length === 0) {
-      throw new HttpsError("invalid-argument", "messages is required");
-    }
-    await verifyTeamMembership(request.auth, teamId);
+>({ timeoutSeconds: 60 }, async (request) => {
+  const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
+  if (!Array.isArray(request.data?.messages) || request.data.messages.length === 0) {
+    throw new HttpsError("invalid-argument", "messages is required");
+  }
+  await verifyTeamMembership(request.auth, teamId);
 
-    try {
-      const prompt = request.data.repoContext
-        ? `${systemPrompt}\n\n--- Repository Context ---\nThe user is working on the following repository. Use this information to suggest appropriate workflow steps and commands.\n\n${request.data.repoContext}`
-        : systemPrompt;
-      const responseText = await createAnthropicMessage({
-        model: "claude-opus-4-6",
-        maxTokens: 4096,
-        system: prompt,
-        messages: request.data.messages.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
-      });
+  try {
+    const prompt = request.data.repoContext
+      ? `${systemPrompt}\n\n--- Repository Context ---\nThe user is working on the following repository. Use this information to suggest appropriate workflow steps and commands.\n\n${request.data.repoContext}`
+      : systemPrompt;
+    const responseText = await createAnthropicMessage({
+      model: "claude-opus-4-6",
+      maxTokens: 4096,
+      system: prompt,
+      messages: request.data.messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+    });
 
-      const yamlMatch = /<<<YAML>>>\s*([\s\S]*?)\s*<<<END_YAML>>>/u.exec(responseText);
-      const yaml = yamlMatch?.[1]?.trim();
-      const message = responseText.replace(/<<<YAML>>>[\s\S]*?<<<END_YAML>>>/u, "").trim();
-      return { message, ...(yaml ? { yaml } : {}) };
-    } catch (error) {
-      if (error instanceof HttpsError) throw error;
-      logger.error("Failed to generate workflow", { teamId, error });
-      throw new HttpsError("internal", `Failed to generate workflow: ${String(error)}`);
-    }
-  },
-);
+    const yamlMatch = /<<<YAML>>>\s*([\s\S]*?)\s*<<<END_YAML>>>/u.exec(responseText);
+    const yaml = yamlMatch?.[1]?.trim();
+    const message = responseText.replace(/<<<YAML>>>[\s\S]*?<<<END_YAML>>>/u, "").trim();
+    return { message, ...(yaml ? { yaml } : {}) };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    logger.error("Failed to generate workflow", { teamId, error });
+    throw new HttpsError("internal", `Failed to generate workflow: ${String(error)}`);
+  }
+});

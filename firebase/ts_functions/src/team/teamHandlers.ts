@@ -151,18 +151,24 @@ export const inviteTeamMember = onCall<
   const teamData = await verifyTeamMembership(auth, teamId);
   const impersonate = { authClaims: auth.token } as const;
 
-  const callerUser = await getAuth().getUser(auth.uid).catch(() => undefined);
+  const callerUser = await getAuth()
+    .getUser(auth.uid)
+    .catch(() => undefined);
   const inviterEmail = callerUser?.email ?? "A team member";
   const teamName = typeof teamData.name === "string" ? teamData.name : "";
 
-  const existingUser = await getAuth().getUserByEmail(email).catch(() => undefined);
+  const existingUser = await getAuth()
+    .getUserByEmail(email)
+    .catch(() => undefined);
   if (existingUser) {
-    await addTeamMember({ teamId, userId: existingUser.uid, email }, { impersonate }).catch((error) => {
-      if (String(error).includes("already")) {
-        throw new HttpsError("already-exists", "User is already a member of this team");
-      }
-      throw error;
-    });
+    await addTeamMember({ teamId, userId: existingUser.uid, email }, { impersonate }).catch(
+      (error) => {
+        if (String(error).includes("already")) {
+          throw new HttpsError("already-exists", "User is already a member of this team");
+        }
+        throw error;
+      },
+    );
 
     await sendTeamAddedEmail({ to: email, teamName, inviterEmail });
     return { status: "added", inviteeUid: existingUser.uid };
@@ -176,20 +182,26 @@ export const inviteTeamMember = onCall<
   );
 
   if (existingInvitations.data.invitations.length > 0) {
-    await reinviteInvitation({
-      id: existingInvitations.data.invitations[0]!.id,
-      teamId,
-      token,
-      expiresAt,
-    }, { impersonate });
+    await reinviteInvitation(
+      {
+        id: existingInvitations.data.invitations[0]!.id,
+        teamId,
+        token,
+        expiresAt,
+      },
+      { impersonate },
+    );
   } else {
-    await createInvitation({
-      email,
-      teamId,
-      teamNameSnapshot: teamName,
-      token,
-      expiresAt,
-    }, { impersonate });
+    await createInvitation(
+      {
+        email,
+        teamId,
+        teamNameSnapshot: teamName,
+        token,
+        expiresAt,
+      },
+      { impersonate },
+    );
   }
 
   await sendInvitationEmail({ to: email, token, teamName, inviterEmail });

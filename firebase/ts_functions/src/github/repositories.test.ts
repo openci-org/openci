@@ -22,17 +22,17 @@ const {
   mockListWorkflowFilesForBranch,
   mockDeleteWorkflowFile,
 } = vi.hoisted(() => ({
-    mockVerifyTeamMembership: vi.fn(),
-    mockGetInstallationToken: vi.fn(),
-    mockGithubGet: vi.fn(),
-    mockGithubGraphql: vi.fn(),
-    mockGithubPost: vi.fn(),
-    mockGithubPatch: vi.fn(),
-    mockGithubPut: vi.fn(),
-    mockUpsertWorkflowFile: vi.fn(),
-    mockListWorkflowFilesForBranch: vi.fn(),
-    mockDeleteWorkflowFile: vi.fn(),
-  }));
+  mockVerifyTeamMembership: vi.fn(),
+  mockGetInstallationToken: vi.fn(),
+  mockGithubGet: vi.fn(),
+  mockGithubGraphql: vi.fn(),
+  mockGithubPost: vi.fn(),
+  mockGithubPatch: vi.fn(),
+  mockGithubPut: vi.fn(),
+  mockUpsertWorkflowFile: vi.fn(),
+  mockListWorkflowFilesForBranch: vi.fn(),
+  mockDeleteWorkflowFile: vi.fn(),
+}));
 
 vi.mock("../team/teamAuth", () => ({
   verifyTeamMembership: (...args: unknown[]) => mockVerifyTeamMembership(...args),
@@ -165,14 +165,10 @@ describe("listRepositories", () => {
     expect(mockGetInstallationToken).toHaveBeenCalledWith(101, {
       apiBaseUrl: "https://github.example.com/api/v3",
     });
-    expect(mockGithubGet).toHaveBeenCalledWith(
-      "/installation/repositories",
-      "installation-token",
-      {
-        queryParameters: { per_page: 100 },
-        apiBaseUrl: "https://github.example.com/api/v3",
-      },
-    );
+    expect(mockGithubGet).toHaveBeenCalledWith("/installation/repositories", "installation-token", {
+      queryParameters: { per_page: 100 },
+      apiBaseUrl: "https://github.example.com/api/v3",
+    });
   });
 });
 
@@ -229,19 +225,17 @@ describe("listBranches", () => {
     mockGetInstallationToken
       .mockResolvedValueOnce({ token: "first-token", expiresAt: "" })
       .mockResolvedValueOnce({ token: "second-token", expiresAt: "" });
-    mockGithubGraphql
-      .mockRejectedValueOnce(new Error("not found"))
-      .mockResolvedValueOnce({
-        data: {
-          repository: {
-            defaultBranchRef: { name: "main" },
-            refs: {
-              nodes: [{ name: "main", target: { committedDate: "2025-01-01T00:00:00Z" } }],
-              pageInfo: { hasNextPage: false },
-            },
+    mockGithubGraphql.mockRejectedValueOnce(new Error("not found")).mockResolvedValueOnce({
+      data: {
+        repository: {
+          defaultBranchRef: { name: "main" },
+          refs: {
+            nodes: [{ name: "main", target: { committedDate: "2025-01-01T00:00:00Z" } }],
+            pageInfo: { hasNextPage: false },
           },
         },
-      });
+      },
+    });
 
     const result = await wrappedListBranches({
       data: { teamId: "team-1", repository: "openci/openci" },

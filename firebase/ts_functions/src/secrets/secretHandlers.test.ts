@@ -52,9 +52,8 @@ vi.mock("@openci/dataconnect-admin", () => ({
 
 const testEnv = firebaseFunctionsTest();
 
-const { createSecretV1, deleteSecretV1, setupAscApiKeyV1, updateSecretV1 } = await import(
-  "./secretHandlers"
-);
+const { createSecretV1, deleteSecretV1, setupAscApiKeyV1, updateSecretV1 } =
+  await import("./secretHandlers");
 
 function makeAuth(): AuthData {
   return {

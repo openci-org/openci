@@ -87,15 +87,20 @@ export function ascBuildFromJsonApi(
   const preReleaseVersionId = relationshipId(json, "preReleaseVersion");
   const betaDetailId = relationshipId(json, "buildBetaDetail");
   const appStoreVersionId = relationshipId(json, "appStoreVersion");
-  const preRelease = preReleaseVersionId ? resources.preReleaseVersions[preReleaseVersionId] : undefined;
+  const preRelease = preReleaseVersionId
+    ? resources.preReleaseVersions[preReleaseVersionId]
+    : undefined;
   const betaDetail = betaDetailId ? resources.buildBetaDetails[betaDetailId] : undefined;
-  const appStoreVersion = appStoreVersionId ? resources.appStoreVersions[appStoreVersionId] : undefined;
+  const appStoreVersion = appStoreVersionId
+    ? resources.appStoreVersions[appStoreVersionId]
+    : undefined;
 
   const iconToken =
     typeof attributes.iconAssetToken === "object" && attributes.iconAssetToken !== null
       ? (attributes.iconAssetToken as JsonMap)
       : undefined;
-  const templateUrl = typeof iconToken?.templateUrl === "string" ? iconToken.templateUrl : undefined;
+  const templateUrl =
+    typeof iconToken?.templateUrl === "string" ? iconToken.templateUrl : undefined;
 
   return {
     id: String(json.id ?? ""),
@@ -105,16 +110,19 @@ export function ascBuildFromJsonApi(
     uploadedDate: typeof attributes.uploadedDate === "string" ? attributes.uploadedDate : undefined,
     processingState:
       typeof attributes.processingState === "string" ? attributes.processingState : undefined,
-    iconUrl: templateUrl
-      ?.replaceAll("{w}", "64")
-      .replaceAll("{h}", "64")
-      .replaceAll("{f}", "png"),
+    iconUrl: templateUrl?.replaceAll("{w}", "64").replaceAll("{h}", "64").replaceAll("{f}", "png"),
     externalBuildState:
-      typeof betaDetail?.externalBuildState === "string" ? betaDetail.externalBuildState : undefined,
+      typeof betaDetail?.externalBuildState === "string"
+        ? betaDetail.externalBuildState
+        : undefined,
     internalBuildState:
-      typeof betaDetail?.internalBuildState === "string" ? betaDetail.internalBuildState : undefined,
+      typeof betaDetail?.internalBuildState === "string"
+        ? betaDetail.internalBuildState
+        : undefined,
     appStoreState:
-      typeof appStoreVersion?.appStoreState === "string" ? appStoreVersion.appStoreState : undefined,
+      typeof appStoreVersion?.appStoreState === "string"
+        ? appStoreVersion.appStoreState
+        : undefined,
   };
 }
 

@@ -58,7 +58,11 @@ export function extractJobs(parsed: JsonMap): JobInfo[] {
       const name = typeof stepMap.name === "string" ? stepMap.name : "";
       if (typeof stepMap.uses === "string") {
         let withParams: Record<string, string> | undefined;
-        if (typeof stepMap.with === "object" && stepMap.with !== null && !Array.isArray(stepMap.with)) {
+        if (
+          typeof stepMap.with === "object" &&
+          stepMap.with !== null &&
+          !Array.isArray(stepMap.with)
+        ) {
           withParams = Object.fromEntries(
             Object.entries(stepMap.with as JsonMap).map(([key, value]) => [key, String(value)]),
           );

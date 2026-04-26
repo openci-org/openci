@@ -6,7 +6,7 @@ import { getTeamForMember } from "@openci/dataconnect-admin";
 export async function verifyTeamMembership(
   auth: CallableRequest["auth"],
   teamId: string,
-): Promise<NonNullable<(Awaited<ReturnType<typeof getTeamForMember>>["data"])["team"]>> {
+): Promise<NonNullable<Awaited<ReturnType<typeof getTeamForMember>>["data"]["team"]>> {
   if (!auth) {
     throw new HttpsError("unauthenticated", "Unauthenticated");
   }

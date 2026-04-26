@@ -302,7 +302,9 @@ export const listBranches = onCall<RepoRequest, Promise<ListBranchesResponse>>(a
           { apiBaseUrl },
         );
         const defaultBranchName =
-          typeof repositoryData.default_branch === "string" ? repositoryData.default_branch : undefined;
+          typeof repositoryData.default_branch === "string"
+            ? repositoryData.default_branch
+            : undefined;
         const branches: string[] = [];
         let page = 1;
 

@@ -21,10 +21,7 @@ export function buildSecretPath(projectId: string, secretId: string): string {
   return `projects/${projectId}/secrets/${secretId}/versions/latest`;
 }
 
-export function extractSecretData(
-  response: AccessSecretVersionResponse,
-  secretId: string,
-): string {
+export function extractSecretData(response: AccessSecretVersionResponse, secretId: string): string {
   const data = response.payload?.data;
   if (!data) {
     throw new Error(`Secret "${secretId}" has no data.`);

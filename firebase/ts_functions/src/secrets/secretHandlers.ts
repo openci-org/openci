@@ -65,11 +65,7 @@ async function assertSecretNameAvailable(teamId: string, name: string): Promise<
   }
 }
 
-async function createStoredSecret(
-  teamId: string,
-  name: string,
-  value: string,
-): Promise<string> {
+async function createStoredSecret(teamId: string, name: string, value: string): Promise<string> {
   const secretId = randomUUID();
   const pathToSecret = await createSecretWithValue(secretId, value);
   const documentId = randomUUID();
@@ -96,25 +92,26 @@ async function getSecretForTeam(
   return { data: secret };
 }
 
-export const createSecretV1 = onCall<CreateSecretRequest, Promise<SuccessResponse & { documentId: string }>>(
-  async (request) => {
-    const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
-    const name = requireNonEmptyString(request.data?.name, "name");
-    const value = requireNonEmptyString(request.data?.value, "value");
-    await verifyTeamMembership(request.auth, teamId);
-    await assertSecretNameAvailable(teamId, name);
+export const createSecretV1 = onCall<
+  CreateSecretRequest,
+  Promise<SuccessResponse & { documentId: string }>
+>(async (request) => {
+  const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
+  const name = requireNonEmptyString(request.data?.name, "name");
+  const value = requireNonEmptyString(request.data?.value, "value");
+  await verifyTeamMembership(request.auth, teamId);
+  await assertSecretNameAvailable(teamId, name);
 
-    try {
-      const documentId = await createStoredSecret(teamId, name, value);
-      logger.info("Secret created", { teamId, name, documentId });
-      return { success: true, documentId };
-    } catch (error) {
-      if (error instanceof HttpsError) throw error;
-      logger.error("Failed to create secret", { teamId, name, error });
-      throw new HttpsError("internal", `Failed to create secret: ${String(error)}`);
-    }
-  },
-);
+  try {
+    const documentId = await createStoredSecret(teamId, name, value);
+    logger.info("Secret created", { teamId, name, documentId });
+    return { success: true, documentId };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    logger.error("Failed to create secret", { teamId, name, error });
+    throw new HttpsError("internal", `Failed to create secret: ${String(error)}`);
+  }
+});
 
 export const deleteSecretV1 = onCall<DeleteSecretRequest, Promise<SuccessResponse>>(
   async (request) => {
@@ -128,7 +125,10 @@ export const deleteSecretV1 = onCall<DeleteSecretRequest, Promise<SuccessRespons
         try {
           await deleteSecretByPath(data.pathToSecret);
         } catch (error) {
-          logger.warn("Failed to delete from Secret Manager", { pathToSecret: data.pathToSecret, error });
+          logger.warn("Failed to delete from Secret Manager", {
+            pathToSecret: data.pathToSecret,
+            error,
+          });
         }
       }
 
@@ -171,13 +171,16 @@ export const updateSecretV1 = onCall<UpdateSecretRequest, Promise<SuccessRespons
           const steps = Array.isArray(workflowData.workflowSteps) ? workflowData.workflowSteps : [];
           let hasChanges = false;
           const updatedSteps = steps.map((step) => {
-            const stepMap = typeof step === "object" && step !== null ? (step as Record<string, unknown>) : {};
+            const stepMap =
+              typeof step === "object" && step !== null ? (step as Record<string, unknown>) : {};
             const requiredSecrets = Array.isArray(stepMap.requiredSecrets)
               ? stepMap.requiredSecrets
               : [];
             const updatedSecrets = requiredSecrets.map((secret) => {
               const secretMap =
-                typeof secret === "object" && secret !== null ? (secret as Record<string, unknown>) : {};
+                typeof secret === "object" && secret !== null
+                  ? (secret as Record<string, unknown>)
+                  : {};
               if (secretMap.secretDocumentId === documentId) {
                 hasChanges = true;
                 return { ...secretMap, key: name };
@@ -238,11 +241,7 @@ export const setupAscApiKeyV1 = onCall<
   const privateKey = requireNonEmptyString(request.data?.privateKey, "privateKey");
   await verifyTeamMembership(request.auth, teamId);
 
-  const ascSecretNames = [
-    "OPENCI_ASC_ISSUER_ID",
-    "OPENCI_ASC_KEY_ID",
-    "OPENCI_ASC_PRIVATE_KEY",
-  ];
+  const ascSecretNames = ["OPENCI_ASC_ISSUER_ID", "OPENCI_ASC_KEY_ID", "OPENCI_ASC_PRIVATE_KEY"];
   const existingSecrets = await Promise.all(
     ascSecretNames.map((name) => findSecretByName({ teamId, name })),
   );

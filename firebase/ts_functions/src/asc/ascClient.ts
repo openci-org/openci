@@ -72,11 +72,7 @@ function derToJose(signature: Buffer): Buffer {
   return Buffer.concat([r, s]);
 }
 
-export function generateAscJwt({
-  issuerId,
-  keyId,
-  privateKey,
-}: AscCredentials): string {
+export function generateAscJwt({ issuerId, keyId, privateKey }: AscCredentials): string {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const header = { alg: "ES256", kid: keyId, typ: "JWT" };
   const payload = {
@@ -107,11 +103,7 @@ export async function getAscCredentials(
   const result = await getSecretsByNamesForTeam(
     {
       teamId,
-      names: [
-        "OPENCI_ASC_ISSUER_ID",
-        "OPENCI_ASC_KEY_ID",
-        "OPENCI_ASC_PRIVATE_KEY",
-      ],
+      names: ["OPENCI_ASC_ISSUER_ID", "OPENCI_ASC_KEY_ID", "OPENCI_ASC_PRIVATE_KEY"],
     },
     { impersonate: { authClaims } },
   );

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ascAppFromJsonApi, ascBetaGroupFromJsonApi, ascBuildFromJsonApi, parseIncludedResources } from "./ascModels";
+import {
+  ascAppFromJsonApi,
+  ascBetaGroupFromJsonApi,
+  ascBuildFromJsonApi,
+  parseIncludedResources,
+} from "./ascModels";
 
 describe("ASC models", () => {
   it("maps apps from ASC JSON:API", () => {
@@ -18,7 +23,11 @@ describe("ASC models", () => {
 
   it("maps included build resources", () => {
     const resources = parseIncludedResources([
-      { type: "preReleaseVersions", id: "pre-1", attributes: { version: "1.0.0", platform: "IOS" } },
+      {
+        type: "preReleaseVersions",
+        id: "pre-1",
+        attributes: { version: "1.0.0", platform: "IOS" },
+      },
       { type: "buildBetaDetails", id: "beta-1", attributes: { externalBuildState: "READY" } },
       { type: "appStoreVersions", id: "store-1", attributes: { appStoreState: "READY" } },
     ]);

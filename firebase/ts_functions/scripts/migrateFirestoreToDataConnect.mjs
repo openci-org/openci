@@ -41,9 +41,7 @@ const LOG_PROGRESS_INTERVAL = Number.parseInt(
 
 initializeApp({ projectId: PROJECT_ID });
 const db =
-  FIRESTORE_DATABASE_ID === "(default)"
-    ? getFirestore()
-    : getFirestore(FIRESTORE_DATABASE_ID);
+  FIRESTORE_DATABASE_ID === "(default)" ? getFirestore() : getFirestore(FIRESTORE_DATABASE_ID);
 const auth = getAuth();
 
 const stats = {
@@ -168,7 +166,11 @@ async function* streamBuildJobs() {
   let lastDoc = null;
   while (true) {
     let query = since
-      ? db.collection("build_jobs_v0").where("createdAt", ">=", since).orderBy("createdAt").limit(PAGE_SIZE)
+      ? db
+          .collection("build_jobs_v0")
+          .where("createdAt", ">=", since)
+          .orderBy("createdAt")
+          .limit(PAGE_SIZE)
       : db.collection("build_jobs_v0").orderBy(FieldPath.documentId()).limit(PAGE_SIZE);
     if (lastDoc) query = query.startAfter(lastDoc);
     const snap = await query.get();
@@ -270,7 +272,13 @@ async function migrateTeamMembers() {
 async function migrateInvitations() {
   for await (const doc of streamCollection(db.collection("invitations_v0"))) {
     const data = doc.data();
-    if (!data.email || !data.teamId || !data.token || !data.expiresAt || !knownTeamIds.has(data.teamId)) {
+    if (
+      !data.email ||
+      !data.teamId ||
+      !data.token ||
+      !data.expiresAt ||
+      !knownTeamIds.has(data.teamId)
+    ) {
       stats.skipped += 1;
       continue;
     }
@@ -470,7 +478,10 @@ async function migrateBuildJobsAndLogs() {
         for await (const logDoc of streamCollection(runDoc.ref.collection("logs"))) {
           logPage.push(logDoc);
           if (logPage.length < PAGE_SIZE) continue;
-          await runWithConcurrency(logPage.splice(0), migrateBuildLog.bind(null, doc.id, runDoc.id));
+          await runWithConcurrency(
+            logPage.splice(0),
+            migrateBuildLog.bind(null, doc.id, runDoc.id),
+          );
         }
         if (logPage.length > 0) {
           await runWithConcurrency(logPage, migrateBuildLog.bind(null, doc.id, runDoc.id));
@@ -511,7 +522,8 @@ async function main() {
   if (DRY_RUN) console.log("DRY RUN: no writes will be performed");
   if (SKIP_BUILD_LOGS) console.log("Skipping build logs");
   if (ONLY_BUILD_LOGS) console.log(`Migrating only build logs with concurrency ${CONCURRENCY}`);
-  if (ONLY_BUILD_JOBS_AND_LOGS) console.log(`Migrating only build jobs/runs/logs with concurrency ${CONCURRENCY}`);
+  if (ONLY_BUILD_JOBS_AND_LOGS)
+    console.log(`Migrating only build jobs/runs/logs with concurrency ${CONCURRENCY}`);
   if (ONLY_ENVIRONMENT_VARIABLES) console.log("Migrating only environment variables");
   if (BUILD_JOBS_SINCE_HOURS > 0) {
     console.log(`Migrating build jobs created in the last ${BUILD_JOBS_SINCE_HOURS} hours`);
@@ -524,19 +536,19 @@ async function main() {
     ? [migrateEnvironmentVariables]
     : ONLY_BUILD_JOBS_AND_LOGS
       ? [migrateBuildJobsAndLogs]
-    : ONLY_BUILD_LOGS
-      ? [migrateBuildJobsAndLogs]
-      : [
-        migrateTeams,
-        migrateUsers,
-        migrateTeamMembers,
-        migrateInvitations,
-        migrateSecrets,
-        migrateEnvironmentVariables,
-        migrateWorkflows,
-        migrateWorkflowFiles,
-        migrateBuildJobsAndLogs,
-      ];
+      : ONLY_BUILD_LOGS
+        ? [migrateBuildJobsAndLogs]
+        : [
+            migrateTeams,
+            migrateUsers,
+            migrateTeamMembers,
+            migrateInvitations,
+            migrateSecrets,
+            migrateEnvironmentVariables,
+            migrateWorkflows,
+            migrateWorkflowFiles,
+            migrateBuildJobsAndLogs,
+          ];
 
   for (const step of steps) {
     try {

@@ -7,19 +7,14 @@ import {
   githubPost,
 } from "./githubApp";
 
-const {
-  mockAccessSecret,
-  mockCreateAppAuth,
-  mockRequestDefaults,
-  mockOctokitRequest,
-  mockFetch,
-} = vi.hoisted(() => ({
-  mockAccessSecret: vi.fn(),
-  mockCreateAppAuth: vi.fn(),
-  mockRequestDefaults: vi.fn(),
-  mockOctokitRequest: vi.fn(),
-  mockFetch: vi.fn(),
-}));
+const { mockAccessSecret, mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest, mockFetch } =
+  vi.hoisted(() => ({
+    mockAccessSecret: vi.fn(),
+    mockCreateAppAuth: vi.fn(),
+    mockRequestDefaults: vi.fn(),
+    mockOctokitRequest: vi.fn(),
+    mockFetch: vi.fn(),
+  }));
 
 vi.mock("../secretManager", () => ({
   accessSecret: (secretId: string) => mockAccessSecret(secretId),

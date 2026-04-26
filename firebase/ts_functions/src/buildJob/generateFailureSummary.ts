@@ -15,12 +15,8 @@ function requireNonEmptyString(value: unknown, field: string): string {
 export const generateFailureSummary = onCall<
   GenerateFailureSummaryRequest,
   Promise<{ success: true }>
->(
-  { timeoutSeconds: 120 },
-  async (request) => {
-    const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
-    await generateFailureSummaryById(buildJobId);
-    return { success: true };
-  },
-);
-
+>({ timeoutSeconds: 120 }, async (request) => {
+  const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
+  await generateFailureSummaryById(buildJobId);
+  return { success: true };
+});

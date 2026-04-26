@@ -21,8 +21,7 @@ const { mockListMyPendingInvitations, mockExpireInvitation, mockAcceptInvitation
 vi.mock("@openci/dataconnect-admin", () => ({
   listMyPendingInvitations: (...args: unknown[]) => mockListMyPendingInvitations(...args),
   expireInvitation: (...args: unknown[]) => mockExpireInvitation(...args),
-  acceptInvitationAndJoinTeam: (...args: unknown[]) =>
-    mockAcceptInvitationAndJoinTeam(...args),
+  acceptInvitationAndJoinTeam: (...args: unknown[]) => mockAcceptInvitationAndJoinTeam(...args),
 }));
 
 const testEnv = firebaseFunctionsTest();

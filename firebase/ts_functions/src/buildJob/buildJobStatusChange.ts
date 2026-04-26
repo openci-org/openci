@@ -13,12 +13,11 @@ function requireNonEmptyString(value: unknown, field: string): string {
   return value;
 }
 
-export const buildJobStatusChange = onCall<
-  BuildJobStatusChangeRequest,
-  Promise<{ success: true }>
->(async (request) => {
-  const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
-  const status = requireNonEmptyString(request.data?.status, "status");
-  await handleBuildJobStatusChangeById(buildJobId, status);
-  return { success: true };
-});
+export const buildJobStatusChange = onCall<BuildJobStatusChangeRequest, Promise<{ success: true }>>(
+  async (request) => {
+    const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
+    const status = requireNonEmptyString(request.data?.status, "status");
+    await handleBuildJobStatusChangeById(buildJobId, status);
+    return { success: true };
+  },
+);

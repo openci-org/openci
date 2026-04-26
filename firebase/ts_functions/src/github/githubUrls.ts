@@ -21,7 +21,9 @@ export async function getGitHubBaseUrl(teamId?: string | null): Promise<string> 
   return getBaseUrlFromTeamData(result.data.team);
 }
 
-export function getApiBaseUrlFromTeamData(teamData?: { githubApiBaseUrl?: string | null } | null): string {
+export function getApiBaseUrlFromTeamData(
+  teamData?: { githubApiBaseUrl?: string | null } | null,
+): string {
   const apiBaseUrl = teamData?.githubApiBaseUrl;
   if (typeof apiBaseUrl !== "string" || apiBaseUrl.length === 0) {
     return defaultGitHubApiBaseUrl;
@@ -40,7 +42,9 @@ export function getApiBaseUrlFromTeamData(teamData?: { githubApiBaseUrl?: string
   return normalized;
 }
 
-export function getBaseUrlFromTeamData(teamData?: { githubBaseUrl?: string | null } | null): string {
+export function getBaseUrlFromTeamData(
+  teamData?: { githubBaseUrl?: string | null } | null,
+): string {
   const baseUrl = teamData?.githubBaseUrl;
   return typeof baseUrl === "string" && baseUrl.length > 0 ? baseUrl : defaultGitHubBaseUrl;
 }

@@ -75,8 +75,8 @@ describe("cancelBuildJob", () => {
       data: { buildJob: { status: "success", teamId: "team-1" } },
     });
 
-    await expect(
-      wrapped({ data: { buildJobId: "job-1" }, auth: makeAuth() }),
-    ).rejects.toThrow(expect.objectContaining({ code: "failed-precondition" }));
+    await expect(wrapped({ data: { buildJobId: "job-1" }, auth: makeAuth() })).rejects.toThrow(
+      expect.objectContaining({ code: "failed-precondition" }),
+    );
   });
 });

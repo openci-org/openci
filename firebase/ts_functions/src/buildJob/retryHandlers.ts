@@ -93,15 +93,16 @@ export const retryBuildJob = onCall<
 
       if (typeof originalJob.commitSha === "string") {
         const workflowName = requireNonEmptyString(originalJob.workflowName, "workflowName");
-        checkRunId = await createCheckRun({
-          token: installationToken,
-          owner: requireNonEmptyString(originalJob.owner, "owner"),
-          repo: requireNonEmptyString(originalJob.repo, "repo"),
-          name: workflowName,
-          headSha: originalJob.commitSha,
-          status: "in_progress",
-          detailsUrl: buildDashboardRunUrl(newDocumentId),
-        }) ?? undefined;
+        checkRunId =
+          (await createCheckRun({
+            token: installationToken,
+            owner: requireNonEmptyString(originalJob.owner, "owner"),
+            repo: requireNonEmptyString(originalJob.repo, "repo"),
+            name: workflowName,
+            headSha: originalJob.commitSha,
+            status: "in_progress",
+            detailsUrl: buildDashboardRunUrl(newDocumentId),
+          })) ?? undefined;
       }
     } catch (error) {
       logger.error("Failed to authenticate with GitHub for retry", { buildJobId, error });
@@ -152,7 +153,9 @@ export const retryWorkflowRun = onCall<
   }
 
   const installationId =
-    typeof originalJobs[0]?.installationId === "number" ? originalJobs[0].installationId : undefined;
+    typeof originalJobs[0]?.installationId === "number"
+      ? originalJobs[0].installationId
+      : undefined;
   let installationToken: string | undefined;
   let tokenExpiresAt: string | undefined;
   if (installationId !== undefined) {
@@ -161,7 +164,10 @@ export const retryWorkflowRun = onCall<
       installationToken = tokenData.token;
       tokenExpiresAt = tokenData.expiresAt;
     } catch (error) {
-      logger.error("Failed to authenticate with GitHub for workflow retry", { workflowRunId, error });
+      logger.error("Failed to authenticate with GitHub for workflow retry", {
+        workflowRunId,
+        error,
+      });
       throw new HttpsError("internal", "Failed to authenticate with GitHub");
     }
   }
@@ -193,18 +199,21 @@ export const retryWorkflowRun = onCall<
 
     let checkRunId: number | undefined;
     if (installationToken && typeof originalJob.commitSha === "string") {
-      const workflowName = typeof originalJob.workflowName === "string" ? originalJob.workflowName : undefined;
+      const workflowName =
+        typeof originalJob.workflowName === "string" ? originalJob.workflowName : undefined;
       if (workflowName) {
-        const checkRunName = originalJobs.length > 1 && jobKey ? `${workflowName} / ${jobKey}` : workflowName;
-        checkRunId = await createCheckRun({
-          token: installationToken,
-          owner: requireNonEmptyString(originalJob.owner, "owner"),
-          repo: requireNonEmptyString(originalJob.repo, "repo"),
-          name: checkRunName,
-          headSha: originalJob.commitSha,
-          status: hasNeeds ? "queued" : "in_progress",
-          detailsUrl: buildDashboardRunUrl(newDocumentId),
-        }) ?? undefined;
+        const checkRunName =
+          originalJobs.length > 1 && jobKey ? `${workflowName} / ${jobKey}` : workflowName;
+        checkRunId =
+          (await createCheckRun({
+            token: installationToken,
+            owner: requireNonEmptyString(originalJob.owner, "owner"),
+            repo: requireNonEmptyString(originalJob.repo, "repo"),
+            name: checkRunName,
+            headSha: originalJob.commitSha,
+            status: hasNeeds ? "queued" : "in_progress",
+            detailsUrl: buildDashboardRunUrl(newDocumentId),
+          })) ?? undefined;
       }
     }
 
@@ -226,6 +235,10 @@ export const retryWorkflowRun = onCall<
     createdJobIds.push(newDocumentId);
   }
 
-  logger.info("Workflow run retried", { workflowRunId, newWorkflowRunId, count: createdJobIds.length });
+  logger.info("Workflow run retried", {
+    workflowRunId,
+    newWorkflowRunId,
+    count: createdJobIds.length,
+  });
   return { success: true, newWorkflowRunId, newBuildJobIds: createdJobIds };
 });

@@ -3,11 +3,7 @@ import { randomUUID } from "node:crypto";
 import { logger } from "firebase-functions/v2";
 import YAML from "yaml";
 
-import {
-  createBuildJob,
-  findTeamByInstallation,
-  getWorkflowFile,
-} from "@openci/dataconnect-admin";
+import { createBuildJob, findTeamByInstallation, getWorkflowFile } from "@openci/dataconnect-admin";
 import { createCheckRun, getInstallationToken, githubGet, githubGraphql } from "./githubApp";
 import {
   buildDashboardRunUrl,
@@ -92,32 +88,43 @@ interface OpenciDirResponse {
   };
 }
 
-export function webhookEventFromRequest(event: string, body: Record<string, unknown>): WebhookEvent {
-  const repository = typeof body.repository === "object" && body.repository !== null
-    ? (body.repository as Record<string, unknown>)
-    : undefined;
+export function webhookEventFromRequest(
+  event: string,
+  body: Record<string, unknown>,
+): WebhookEvent {
+  const repository =
+    typeof body.repository === "object" && body.repository !== null
+      ? (body.repository as Record<string, unknown>)
+      : undefined;
   const fullName = typeof repository?.full_name === "string" ? repository.full_name : "";
-  const pullRequest = typeof body.pull_request === "object" && body.pull_request !== null
-    ? (body.pull_request as Record<string, unknown>)
-    : undefined;
-  const prHead = typeof pullRequest?.head === "object" && pullRequest.head !== null
-    ? (pullRequest.head as Record<string, unknown>)
-    : undefined;
-  const prBase = typeof pullRequest?.base === "object" && pullRequest.base !== null
-    ? (pullRequest.base as Record<string, unknown>)
-    : undefined;
-  const installation = typeof body.installation === "object" && body.installation !== null
-    ? (body.installation as Record<string, unknown>)
-    : undefined;
-  const sender = typeof body.sender === "object" && body.sender !== null
-    ? (body.sender as Record<string, unknown>)
-    : undefined;
-  const release = typeof body.release === "object" && body.release !== null
-    ? (body.release as Record<string, unknown>)
-    : undefined;
-  const comment = typeof body.comment === "object" && body.comment !== null
-    ? (body.comment as Record<string, unknown>)
-    : undefined;
+  const pullRequest =
+    typeof body.pull_request === "object" && body.pull_request !== null
+      ? (body.pull_request as Record<string, unknown>)
+      : undefined;
+  const prHead =
+    typeof pullRequest?.head === "object" && pullRequest.head !== null
+      ? (pullRequest.head as Record<string, unknown>)
+      : undefined;
+  const prBase =
+    typeof pullRequest?.base === "object" && pullRequest.base !== null
+      ? (pullRequest.base as Record<string, unknown>)
+      : undefined;
+  const installation =
+    typeof body.installation === "object" && body.installation !== null
+      ? (body.installation as Record<string, unknown>)
+      : undefined;
+  const sender =
+    typeof body.sender === "object" && body.sender !== null
+      ? (body.sender as Record<string, unknown>)
+      : undefined;
+  const release =
+    typeof body.release === "object" && body.release !== null
+      ? (body.release as Record<string, unknown>)
+      : undefined;
+  const comment =
+    typeof body.comment === "object" && body.comment !== null
+      ? (body.comment as Record<string, unknown>)
+      : undefined;
 
   return {
     event: ["pull_request", "push", "create", "release", "issue_comment"].includes(event)
@@ -174,9 +181,10 @@ function extractTriggerInfo(event: WebhookEvent): TriggerInfo | undefined {
     return { triggerType: "tag", tagName: event.ref };
   }
   if (event.event === "release") {
-    const rawRelease = typeof event.raw.release === "object" && event.raw.release !== null
-      ? (event.raw.release as Record<string, unknown>)
-      : {};
+    const rawRelease =
+      typeof event.raw.release === "object" && event.raw.release !== null
+        ? (event.raw.release as Record<string, unknown>)
+        : {};
     return {
       triggerType: "release",
       tagName: event.release?.tagName,
@@ -199,9 +207,10 @@ async function resolveCommitSha(
 ): Promise<string | undefined> {
   if (event.event === "pull_request") return event.pullRequest?.headSha;
   if (event.event === "push") {
-    const headCommit = typeof event.raw.head_commit === "object" && event.raw.head_commit !== null
-      ? (event.raw.head_commit as Record<string, unknown>)
-      : {};
+    const headCommit =
+      typeof event.raw.head_commit === "object" && event.raw.head_commit !== null
+        ? (event.raw.head_commit as Record<string, unknown>)
+        : {};
     return typeof headCommit.id === "string"
       ? headCommit.id
       : typeof event.raw.after === "string"
@@ -264,7 +273,8 @@ export async function handleBuildTrigger(event: WebhookEvent): Promise<void> {
   const githubBaseUrl = await getGitHubBaseUrl(teamId);
   const { token, expiresAt } = await getInstallationToken(installationId, { apiBaseUrl });
   const commitSha = await resolveCommitSha(event, triggerInfo, token, apiBaseUrl);
-  const queryRef = commitSha ?? (triggerInfo.triggerBranch ? `heads/${triggerInfo.triggerBranch}` : undefined);
+  const queryRef =
+    commitSha ?? (triggerInfo.triggerBranch ? `heads/${triggerInfo.triggerBranch}` : undefined);
   if (!queryRef) return;
 
   const entries = await fetchOpenciDir(
@@ -367,7 +377,8 @@ export async function handleBuildTrigger(event: WebhookEvent): Promise<void> {
 
 export async function routeWebhookEvent(event: WebhookEvent): Promise<void> {
   if (event.event === "pull_request") {
-    if (event.action === "opened" || event.action === "synchronize") await handleBuildTrigger(event);
+    if (event.action === "opened" || event.action === "synchronize")
+      await handleBuildTrigger(event);
     return;
   }
   if (event.event === "push") {

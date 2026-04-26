@@ -25,14 +25,14 @@ function normalizeConclusion(value: unknown): "success" | "failure" | undefined 
   throw new HttpsError("invalid-argument", `Unknown conclusion: ${String(value)}`);
 }
 
-export const checkRunUpdate = onCall<
-  CheckRunUpdateRequest,
-  Promise<{ success: true }>
->(async (request) => {
-  const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
-  const runStatus = normalizeRunStatus(requireNonEmptyString(request.data?.runStatus, "runStatus"));
-  const conclusion = normalizeConclusion(request.data?.conclusion);
-  await updateCheckRunById(buildJobId, runStatus, conclusion);
-  return { success: true };
-});
-
+export const checkRunUpdate = onCall<CheckRunUpdateRequest, Promise<{ success: true }>>(
+  async (request) => {
+    const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
+    const runStatus = normalizeRunStatus(
+      requireNonEmptyString(request.data?.runStatus, "runStatus"),
+    );
+    const conclusion = normalizeConclusion(request.data?.conclusion);
+    await updateCheckRunById(buildJobId, runStatus, conclusion);
+    return { success: true };
+  },
+);

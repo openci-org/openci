@@ -50,7 +50,10 @@ function requireNonEmptyString(value: unknown, field: string): string {
   return value;
 }
 
-async function getAscToken(teamId: string, auth: NonNullable<CallableRequest["auth"]>): Promise<string> {
+async function getAscToken(
+  teamId: string,
+  auth: NonNullable<CallableRequest["auth"]>,
+): Promise<string> {
   await verifyTeamMembership(auth, teamId);
   const creds = await getAscCredentials(teamId, auth.token);
   return generateAscJwt(creds);
@@ -220,7 +223,9 @@ async function setWhatsNew({
       data: {
         type: "appStoreVersionLocalizations",
         attributes: { locale: "en-US", whatsNew },
-        relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: appStoreVersionId } } },
+        relationships: {
+          appStoreVersion: { data: { type: "appStoreVersions", id: appStoreVersionId } },
+        },
       },
     },
   });

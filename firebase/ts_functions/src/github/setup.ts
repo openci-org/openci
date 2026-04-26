@@ -24,10 +24,7 @@ export const githubSetup = onRequest(async (request, response) => {
 
     const newId = Number.parseInt(installationId, 10);
     await linkGitHubInstallation({ teamId, installationId: newId });
-    response
-      .status(200)
-      .set("Content-Type", "text/html")
-      .send(`<!DOCTYPE html>
+    response.status(200).set("Content-Type", "text/html").send(`<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
