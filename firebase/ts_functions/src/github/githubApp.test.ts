@@ -12,15 +12,13 @@ const {
   mockCreateAppAuth,
   mockRequestDefaults,
   mockOctokitRequest,
-  mockGraphqlDefaults,
-  mockGraphqlWithAuth,
+  mockFetch,
 } = vi.hoisted(() => ({
   mockAccessSecret: vi.fn(),
   mockCreateAppAuth: vi.fn(),
   mockRequestDefaults: vi.fn(),
   mockOctokitRequest: vi.fn(),
-  mockGraphqlDefaults: vi.fn(),
-  mockGraphqlWithAuth: vi.fn(),
+  mockFetch: vi.fn(),
 }));
 
 vi.mock("../secretManager", () => ({
@@ -43,15 +41,10 @@ vi.mock("@octokit/rest", () => ({
   },
 }));
 
-vi.mock("@octokit/graphql", () => ({
-  graphql: {
-    defaults: (...args: unknown[]) => mockGraphqlDefaults(...args),
-  },
-}));
-
 describe("GitHub API helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", mockFetch);
     mockRequestDefaults.mockReturnValue("request-with-base-url");
     mockCreateAppAuth.mockReturnValue(
       vi.fn().mockResolvedValue({
@@ -60,8 +53,12 @@ describe("GitHub API helpers", () => {
       }),
     );
     mockOctokitRequest.mockResolvedValue({ data: { ok: true } });
-    mockGraphqlDefaults.mockReturnValue(mockGraphqlWithAuth);
-    mockGraphqlWithAuth.mockResolvedValue({ data: {} });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: () => Promise.resolve({ data: {} }),
+    });
   });
 
   it("requests an installation token using GitHub App credentials", async () => {
@@ -122,15 +119,17 @@ describe("GitHub API helpers", () => {
       variables: { owner: "openci" },
     });
 
-    expect(mockGraphqlDefaults).toHaveBeenCalledWith(
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://github.example.com/api/graphql",
       expect.objectContaining({
-        baseUrl: "https://github.example.com/api/graphql",
-        headers: { authorization: "bearer token-123" },
+        method: "POST",
+        headers: expect.objectContaining({ authorization: "bearer token-123" }),
+        body: JSON.stringify({
+          query: "query { viewer { login } }",
+          variables: { owner: "openci" },
+        }),
       }),
     );
-    expect(mockGraphqlWithAuth).toHaveBeenCalledWith("query { viewer { login } }", {
-      owner: "openci",
-    });
   });
 
   it("returns null when check run creation fails", async () => {

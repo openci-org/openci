@@ -160,12 +160,19 @@ export async function githubGraphql<T>(
     apiBaseUrl = defaultGitHubApiBaseUrl,
   }: { variables?: Record<string, unknown>; apiBaseUrl?: string } = {},
 ): Promise<T> {
-  const { graphql } = await import("@octokit/graphql");
-  const graphqlWithAuth = graphql.defaults({
-    baseUrl: graphqlEndpoint(apiBaseUrl),
+  const response = await fetch(graphqlEndpoint(apiBaseUrl), {
+    method: "POST",
     headers: {
+      accept: "application/vnd.github.v3+json",
       authorization: `bearer ${token}`,
+      "content-type": "application/json; charset=utf-8",
+      "user-agent": "OpenCI-Functions",
     },
+    body: JSON.stringify({ query, variables: variables ?? {} }),
   });
-  return graphqlWithAuth<T>(query, variables ?? {});
+  const data = (await response.json()) as T & { errors?: unknown };
+  if (!response.ok || data.errors !== undefined) {
+    throw new Error(`GitHub GraphQL request failed: ${response.status} ${response.statusText}`);
+  }
+  return data;
 }
