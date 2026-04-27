@@ -1,62 +1,35 @@
 import 'dart:async';
 
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/data_connect_service_id_page.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/settings/settings_page.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/team/create_team_bottom_sheet.dart';
+import 'package:dashboard/team/delete_team_bottom_sheet.dart';
+import 'package:dashboard/team/edit_team_bottom_sheet.dart';
+import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
+import 'package:dashboard/team/switch_team_bottom_sheet.dart';
+import 'package:dashboard/team/team_members_bottom_sheet.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/theme/theme_provider.dart';
-
-import 'package:dashboard/build_logs/build_logs_page.dart';
-
-import 'package:dashboard/firebase/firebase_config_provider.dart';
-
-import 'package:dashboard/i18n/strings.g.dart';
-
-import 'package:dashboard/settings/settings_page.dart';
-
-import 'package:dashboard/store_release/store_release_page.dart';
-
-import 'package:dashboard/variables/variables_page.dart';
-
-import 'package:dashboard/team/create_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/delete_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/edit_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
-
-import 'package:dashboard/team/switch_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/team_members_bottom_sheet.dart';
-
-import 'package:dashboard/team/team_provider.dart';
-
 import 'package:dashboard/users/user_provider.dart';
-
 import 'package:dashboard/utilities/async_error_widget.dart';
-
+import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
-
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
-
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
-
 import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
-
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
-
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:swipeable_page_route/swipeable_page_route.dart';
-
 import 'package:yaml/yaml.dart';
 
 import 'status_dot.dart';

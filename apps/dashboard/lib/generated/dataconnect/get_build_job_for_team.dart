@@ -213,13 +213,13 @@ class GetBuildJobForTeamBuildJob {
       json['resolvedNeeds'] = resolvedNeeds!.toJson();
     }
     if (installationId != null) {
-      json['installationId'] = bigIntToJson(installationId);
+      json['installationId'] = bigIntToJson(installationId!);
     }
     if (tokenExpiresAt != null) {
       json['tokenExpiresAt'] = tokenExpiresAt!.toJson();
     }
     if (checkRunId != null) {
-      json['checkRunId'] = bigIntToJson(checkRunId);
+      json['checkRunId'] = bigIntToJson(checkRunId!);
     }
     if (commitSha != null) {
       json['commitSha'] = nativeToJson<String?>(commitSha);
