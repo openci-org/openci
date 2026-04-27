@@ -25,7 +25,9 @@ jobs:
           run-install: false
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          vp install
+          git restore package.json package-lock.json npm-shrinkwrap.json
 
       - name: Check
         run: vp check
