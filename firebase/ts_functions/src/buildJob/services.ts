@@ -118,7 +118,9 @@ export async function updateCheckRun(
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to update GitHub check run: ${response.status} ${await response.text()}`);
+    throw new Error(
+      `Failed to update GitHub check run: ${response.status} ${await response.text()}`,
+    );
   }
 }
 
@@ -136,7 +138,9 @@ async function resolveDependencies(completedJob: BuildJob, completedStatus: stri
   const isSuccess = completedStatus === "success";
 
   for (const job of waitingJobs.data.buildJobs) {
-    const needs = Array.isArray(job.needs) ? job.needs.filter((need): need is string => typeof need === "string") : [];
+    const needs = Array.isArray(job.needs)
+      ? job.needs.filter((need): need is string => typeof need === "string")
+      : [];
     if (!needs.includes(completedJob.jobKey)) continue;
 
     if (!isSuccess) {
@@ -171,7 +175,10 @@ async function failureLogLine(buildJobId: string, latestRunId?: string | null): 
   return logs.data.buildLogs[1]?.message ?? "Unknown error";
 }
 
-async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "failure"): Promise<void> {
+async function sendBuildNotifications(
+  buildJob: BuildJob,
+  status: "success" | "failure",
+): Promise<void> {
   if (!buildJob.teamId) return;
   const users = await listTeamNotificationUsers({ teamId: buildJob.teamId });
   if (users.data.teamMembers.length === 0) return;
@@ -189,7 +196,11 @@ async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "f
   const invalidTokens = new Set<string>();
   for (const member of users.data.teamMembers) {
     const preference = member.user.notificationPreference ?? "all";
-    if (preference === "none" || (preference === "successOnly" && !isSuccess) || (preference === "failureOnly" && isSuccess)) {
+    if (
+      preference === "none" ||
+      (preference === "successOnly" && !isSuccess) ||
+      (preference === "failureOnly" && isSuccess)
+    ) {
       continue;
     }
     for (const token of member.user.fcmTokens ?? []) {
@@ -210,7 +221,10 @@ async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "f
         });
       } catch (error) {
         const message = String(error);
-        if (message.includes("registration-token-not-registered") || message.includes("invalid-argument")) {
+        if (
+          message.includes("registration-token-not-registered") ||
+          message.includes("invalid-argument")
+        ) {
           invalidTokens.add(token);
         }
       }
@@ -219,7 +233,9 @@ async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "f
 
   if (invalidTokens.size > 0) {
     for (const member of users.data.teamMembers) {
-      const validTokens = (member.user.fcmTokens ?? []).filter((token) => !invalidTokens.has(token));
+      const validTokens = (member.user.fcmTokens ?? []).filter(
+        (token) => !invalidTokens.has(token),
+      );
       if (validTokens.length !== (member.user.fcmTokens ?? []).length) {
         await updateUserFcmTokens({ id: member.user.id, fcmTokens: validTokens });
       }
@@ -227,7 +243,10 @@ async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "f
   }
 }
 
-export async function handleBuildJobStatusChange(buildJob: BuildJob, status: string): Promise<void> {
+export async function handleBuildJobStatusChange(
+  buildJob: BuildJob,
+  status: string,
+): Promise<void> {
   if (["success", "failure", "cancelled", "timed_out", "skipped"].includes(status)) {
     await resolveDependencies(buildJob, status);
   }
@@ -236,11 +255,17 @@ export async function handleBuildJobStatusChange(buildJob: BuildJob, status: str
   }
 }
 
-export async function handleBuildJobStatusChangeById(buildJobId: string, status: string): Promise<void> {
+export async function handleBuildJobStatusChangeById(
+  buildJobId: string,
+  status: string,
+): Promise<void> {
   await handleBuildJobStatusChange(await getBuildJobOrThrow(buildJobId), status);
 }
 
-async function accessProjectSecret(projectIdOverride: string | undefined, name: string): Promise<string> {
+async function accessProjectSecret(
+  projectIdOverride: string | undefined,
+  name: string,
+): Promise<string> {
   const projectId = resolveProjectId(projectIdOverride);
   const client = new SecretManagerServiceClient();
   const [version] = await client.accessSecretVersion({
@@ -251,7 +276,10 @@ async function accessProjectSecret(projectIdOverride: string | undefined, name: 
   return Buffer.from(data).toString("utf8");
 }
 
-async function createAnthropicMessage(projectId: string | undefined, logLines: string): Promise<string> {
+async function createAnthropicMessage(
+  projectId: string | undefined,
+  logLines: string,
+): Promise<string> {
   const apiKey = await accessProjectSecret(projectId, "ANTHROPIC_API_KEY");
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -284,7 +312,10 @@ async function createAnthropicMessage(projectId: string | undefined, logLines: s
     .join("");
 }
 
-export async function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void> {
+export async function generateFailureSummary(
+  buildJob: BuildJob,
+  projectId?: string,
+): Promise<void> {
   if (buildJob.status !== "failure") return;
   if (buildJob.teamId) {
     const team = await getTeamById({ teamId: buildJob.teamId });
@@ -303,7 +334,11 @@ export async function generateFailureSummary(buildJob: BuildJob, projectId?: str
   });
 
   try {
-    const logs = await listLatestBuildLogs({ buildJobId: buildJob.id, runId: latestRunId, limit: 50 });
+    const logs = await listLatestBuildLogs({
+      buildJobId: buildJob.id,
+      runId: latestRunId,
+      limit: 50,
+    });
     if (logs.data.buildLogs.length === 0) {
       await updateBuildJobFailureSummary({
         id: buildJob.id,
@@ -339,6 +374,9 @@ export async function generateFailureSummary(buildJob: BuildJob, projectId?: str
   }
 }
 
-export async function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void> {
+export async function generateFailureSummaryById(
+  buildJobId: string,
+  projectId?: string,
+): Promise<void> {
   await generateFailureSummary(await getBuildJobOrThrow(buildJobId), projectId);
 }

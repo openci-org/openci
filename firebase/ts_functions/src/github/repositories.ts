@@ -1,32 +1,21 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { githubGet, githubGraphql, getInstallationToken } from "./githubApp";
-import { githubPatch, githubPost, githubPut } from "./githubApp";
-import { getApiBaseUrlFromTeamData } from "./githubUrls";
 import {
   deleteWorkflowFile,
   listWorkflowFilesForBranch,
   upsertWorkflowFile,
 } from "@openci/dataconnect-admin";
 import { verifyTeamMembership } from "../team/teamAuth";
-
-const branchesQuery = `
-  query($owner: String!, $repo: String!, $cursor: String) {
-    repository(owner: $owner, name: $repo) {
-      defaultBranchRef { name }
-      refs(refPrefix: "refs/heads/", first: 100, after: $cursor, orderBy: {field: TAG_COMMIT_DATE, direction: DESC}) {
-        nodes {
-          name
-          target {
-            ... on Commit { committedDate }
-          }
-        }
-        pageInfo { hasNextPage endCursor }
-      }
-    }
-  }
-`;
+import {
+  getInstallationToken,
+  githubGet,
+  githubGraphql,
+  githubPatch,
+  githubPost,
+  githubPut,
+} from "./githubApp";
+import { getApiBaseUrlFromTeamData } from "./githubUrls";
 
 function buildDirectoryTreeFragment(depth: number): string {
   if (depth === 0) {
@@ -140,34 +129,12 @@ interface GitHubInstallationRepositoriesResponse extends Record<string, unknown>
   }>;
 }
 
-interface BranchNode {
-  name?: unknown;
-  target?: {
-    committedDate?: unknown;
-  } | null;
-}
-
 interface BranchRestResponse {
   name?: unknown;
 }
 
 interface RepositoryRestResponse {
   default_branch?: unknown;
-}
-
-interface BranchesGraphqlResponse extends Record<string, unknown> {
-  data?: {
-    repository?: {
-      defaultBranchRef?: { name?: unknown } | null;
-      refs?: {
-        nodes?: BranchNode[];
-        pageInfo?: {
-          hasNextPage?: unknown;
-          endCursor?: unknown;
-        };
-      };
-    } | null;
-  };
 }
 
 interface TreeEntry {

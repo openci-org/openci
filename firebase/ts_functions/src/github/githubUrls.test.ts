@@ -27,9 +27,9 @@ describe("GitHub URL helpers", () => {
     expect(getApiBaseUrlFromTeamData({ githubBaseUrl: "https://github.example.com" })).toBe(
       "https://github.example.com/api/v3",
     );
-    expect(
-      getApiBaseUrlFromTeamData({ githubApiBaseUrl: " https://github.example.com/ " }),
-    ).toBe("https://github.example.com/api/v3");
+    expect(getApiBaseUrlFromTeamData({ githubApiBaseUrl: " https://github.example.com/ " })).toBe(
+      "https://github.example.com/api/v3",
+    );
     expect(getApiBaseUrlFromTeamData({ githubApiBaseUrl: "https://github.com" })).toBe(
       defaultGitHubApiBaseUrl,
     );
