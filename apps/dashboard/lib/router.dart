@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/data_connect_service_id_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
@@ -131,8 +130,7 @@ class HomeRoutePage extends HookConsumerWidget {
     final user = authState.asData?.value;
     final configAsync = ref.watch(selfHostedConfigProvider);
     final configReadyForData = configAsync.maybeWhen(
-      data: (config) =>
-          config == null || config.dataConnectServiceId.trim().isNotEmpty,
+      data: (_) => true,
       orElse: () => false,
     );
 
@@ -153,10 +151,7 @@ class HomeRoutePage extends HookConsumerWidget {
             body: Center(child: CircularProgressIndicator.adaptive()),
           ),
           error: asyncErrorWidget,
-          data: (config) {
-            if (config != null && config.dataConnectServiceId.trim().isEmpty) {
-              return DataConnectServiceIdPage(config: config);
-            }
+          data: (_) {
             return const WorkflowListPage();
           },
         );

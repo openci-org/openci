@@ -9,227 +9,10 @@ exports.InvitationStatus = InvitationStatus;
 
 const connectorConfig = {
   connector: 'default',
-  serviceId: 'openci-dmis-a6d69-service',
+  serviceId: 'openci',
   location: 'asia-northeast1'
 };
 exports.connectorConfig = connectorConfig;
-
-function getInvitationByToken(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetInvitationByToken', inputVars, inputOpts);
-}
-exports.getInvitationByToken = getInvitationByToken;
-
-function listMyPendingInvitations(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListMyPendingInvitations', undefined, inputOpts);
-}
-exports.listMyPendingInvitations = listMyPendingInvitations;
-
-function getCurrentUser(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetCurrentUser', undefined, inputOpts);
-}
-exports.getCurrentUser = getCurrentUser;
-
-function listMyTeams(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListMyTeams', undefined, inputOpts);
-}
-exports.listMyTeams = listMyTeams;
-
-function listTeamPendingInvitations(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListTeamPendingInvitations', inputVars, inputOpts);
-}
-exports.listTeamPendingInvitations = listTeamPendingInvitations;
-
-function findExistingPendingInvitation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('FindExistingPendingInvitation', inputVars, inputOpts);
-}
-exports.findExistingPendingInvitation = findExistingPendingInvitation;
-
-function getTeamForMember(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetTeamForMember', inputVars, inputOpts);
-}
-exports.getTeamForMember = getTeamForMember;
-
-function listTeamMembers(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListTeamMembers', inputVars, inputOpts);
-}
-exports.listTeamMembers = listTeamMembers;
-
-function listTeamNotificationUsers(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListTeamNotificationUsers', inputVars, inputOpts);
-}
-exports.listTeamNotificationUsers = listTeamNotificationUsers;
-
-function getTeamById(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetTeamById', inputVars, inputOpts);
-}
-exports.getTeamById = getTeamById;
-
-function findTeamByInstallation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('FindTeamByInstallation', inputVars, inputOpts);
-}
-exports.findTeamByInstallation = findTeamByInstallation;
-
-function getSecretsByNames(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetSecretsByNames', inputVars, inputOpts);
-}
-exports.getSecretsByNames = getSecretsByNames;
-
-function getSecretsByNamesForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetSecretsByNamesForTeam', inputVars, inputOpts);
-}
-exports.getSecretsByNamesForTeam = getSecretsByNamesForTeam;
-
-function findSecretByName(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('FindSecretByName', inputVars, inputOpts);
-}
-exports.findSecretByName = findSecretByName;
-
-function getSecretForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetSecretForTeam', inputVars, inputOpts);
-}
-exports.getSecretForTeam = getSecretForTeam;
-
-function getSecretPathForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetSecretPathForTeam', inputVars, inputOpts);
-}
-exports.getSecretPathForTeam = getSecretPathForTeam;
-
-function listSecretsForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListSecretsForTeam', inputVars, inputOpts);
-}
-exports.listSecretsForTeam = listSecretsForTeam;
-
-function listEnvironmentVariablesForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListEnvironmentVariablesForTeam', inputVars, inputOpts);
-}
-exports.listEnvironmentVariablesForTeam = listEnvironmentVariablesForTeam;
-
-function listWorkerEnvironmentVariables(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListWorkerEnvironmentVariables', inputVars, inputOpts);
-}
-exports.listWorkerEnvironmentVariables = listWorkerEnvironmentVariables;
-
-function listWorkerSecrets(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListWorkerSecrets', inputVars, inputOpts);
-}
-exports.listWorkerSecrets = listWorkerSecrets;
-
-function listWorkflowsForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListWorkflowsForTeam', inputVars, inputOpts);
-}
-exports.listWorkflowsForTeam = listWorkflowsForTeam;
-
-function getWorkflow(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetWorkflow', inputVars, inputOpts);
-}
-exports.getWorkflow = getWorkflow;
-
-function getWorkflowFile(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetWorkflowFile', inputVars, inputOpts);
-}
-exports.getWorkflowFile = getWorkflowFile;
-
-function listWorkflowFilesForBranch(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListWorkflowFilesForBranch', inputVars, inputOpts);
-}
-exports.listWorkflowFilesForBranch = listWorkflowFilesForBranch;
-
-function getBuildJob(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetBuildJob', inputVars, inputOpts);
-}
-exports.getBuildJob = getBuildJob;
-
-function getBuildJobForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetBuildJobForTeam', inputVars, inputOpts);
-}
-exports.getBuildJobForTeam = getBuildJobForTeam;
-
-function listBuildJobsForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListBuildJobsForTeam', inputVars, inputOpts);
-}
-exports.listBuildJobsForTeam = listBuildJobsForTeam;
-
-function listBuildJobsByWorkflowRun(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListBuildJobsByWorkflowRun', inputVars, inputOpts);
-}
-exports.listBuildJobsByWorkflowRun = listBuildJobsByWorkflowRun;
-
-function listWaitingBuildJobs(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListWaitingBuildJobs', inputVars, inputOpts);
-}
-exports.listWaitingBuildJobs = listWaitingBuildJobs;
-
-function listBuildLogsForRun(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListBuildLogsForRun', inputVars, inputOpts);
-}
-exports.listBuildLogsForRun = listBuildLogsForRun;
-
-function listLatestBuildLogs(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListLatestBuildLogs', inputVars, inputOpts);
-}
-exports.listLatestBuildLogs = listLatestBuildLogs;
 
 function createInvitation(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -609,6 +392,48 @@ function updateBuildJobFailureSummary(dcOrVarsOrOptions, varsOrOptions, options)
 }
 exports.updateBuildJobFailureSummary = updateBuildJobFailureSummary;
 
+function getInvitationByToken(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetInvitationByToken', inputVars, inputOpts);
+}
+exports.getInvitationByToken = getInvitationByToken;
+
+function listMyPendingInvitations(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListMyPendingInvitations', undefined, inputOpts);
+}
+exports.listMyPendingInvitations = listMyPendingInvitations;
+
+function getCurrentUser(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetCurrentUser', undefined, inputOpts);
+}
+exports.getCurrentUser = getCurrentUser;
+
+function listMyTeams(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListMyTeams', undefined, inputOpts);
+}
+exports.listMyTeams = listMyTeams;
+
+function listTeamPendingInvitations(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListTeamPendingInvitations', inputVars, inputOpts);
+}
+exports.listTeamPendingInvitations = listTeamPendingInvitations;
+
+function findExistingPendingInvitation(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('FindExistingPendingInvitation', inputVars, inputOpts);
+}
+exports.findExistingPendingInvitation = findExistingPendingInvitation;
+
 function getTeamForMember(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -671,6 +496,13 @@ function getSecretForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery('GetSecretForTeam', inputVars, inputOpts);
 }
 exports.getSecretForTeam = getSecretForTeam;
+
+function getSecretPathForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetSecretPathForTeam', inputVars, inputOpts);
+}
+exports.getSecretPathForTeam = getSecretPathForTeam;
 
 function listSecretsForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);

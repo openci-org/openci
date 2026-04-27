@@ -519,7 +519,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
       dataConnectServiceIdController.text =
           config.dataConnectServiceId.trim().isNotEmpty
           ? config.dataConnectServiceId
-          : '${config.projectId}-service';
+          : 'openci';
     }
 
     Future<void> pickConfigFile() async {

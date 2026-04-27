@@ -1,12 +1,13 @@
 specVersion: v1
-serviceId: openci-dmis-a6d69-service
+serviceId: openci
 location: asia-northeast1
+schemaValidation: "COMPATIBLE"
 schema:
   source: ./schema
   datasource:
     postgresql:
-      database: openci-dmis-a6d69-database
+      database: openci
       cloudSql:
-        instanceId: openci-dmis-a6d69-instance
+        instanceId: openci
 connectorDirs:
   - ./connector

@@ -1,6 +1,6 @@
 {
   "name": "openci-worker-cli",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "OpenCI Worker CLI",
   "license": "Apache-2.0",
   "repository": {

@@ -11,22 +11,21 @@ npm install -g openci-worker-cli
 openci_worker --service-account /path/to/service-account.json --worker-id worker-1
 ```
 
-By default, the worker derives the SQL Connect service ID from the Firebase
-service account `project_id` for self-hosted `openci-dmis-*` projects. You can
-override it explicitly when needed:
+By default, the worker uses the generated SQL Connect SDK configuration
+(`openci` in `asia-northeast1`). You can override it explicitly when needed:
 
 ```sh
 openci_worker \
   --service-account /path/to/service-account.json \
   --worker-id worker-1 \
-  --dataconnect-service-id openci-dmis-a6d69-service \
+  --dataconnect-service-id openci \
   --dataconnect-location asia-northeast1
 ```
 
 The same override is also available via environment variables:
 
 ```sh
-OPENCI_DATACONNECT_SERVICE_ID=openci-dmis-a6d69-service \
+OPENCI_DATACONNECT_SERVICE_ID=openci \
 OPENCI_DATACONNECT_LOCATION=asia-northeast1 \
 openci_worker --service-account /path/to/service-account.json --worker-id worker-1
 ```

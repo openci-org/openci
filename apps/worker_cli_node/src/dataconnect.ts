@@ -18,11 +18,6 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 
 import type { BuildJob } from "./types.js";
 
-function deriveServiceId(projectId: string): string | undefined {
-  if (projectId.startsWith("openci-dmis-")) return `${projectId}-service`;
-  return undefined;
-}
-
 export function initFirebase(
   serviceAccountPath: string,
   options: { dataConnectServiceId?: string; dataConnectLocation?: string } = {},
@@ -32,9 +27,7 @@ export function initFirebase(
     typeof cert
   >[0] & { project_id?: string };
   const dataConnectServiceId =
-    options.dataConnectServiceId ??
-    process.env.OPENCI_DATACONNECT_SERVICE_ID ??
-    (serviceAccount.project_id ? deriveServiceId(serviceAccount.project_id) : undefined);
+    options.dataConnectServiceId ?? process.env.OPENCI_DATACONNECT_SERVICE_ID;
   if (dataConnectServiceId) connectorConfig.serviceId = dataConnectServiceId;
   connectorConfig.location =
     options.dataConnectLocation ?? process.env.OPENCI_DATACONNECT_LOCATION ?? connectorConfig.location;

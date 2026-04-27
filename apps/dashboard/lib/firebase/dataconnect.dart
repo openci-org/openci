@@ -14,10 +14,10 @@ DefaultConnector get dataConnector {
 
 void initDataConnector(SelfHostedConfig? selfHostedConfig) {
   final serviceId = selfHostedConfig == null
-      ? 'openci-b1b91-3-service'
+      ? 'openci'
       : selfHostedConfig.dataConnectServiceId.isNotEmpty
       ? selfHostedConfig.dataConnectServiceId
-      : '${selfHostedConfig.projectId}-service';
+      : 'openci';
 
   // Keep this visible while self-hosted setup is being configured.
   // It is the quickest way to confirm which backend the generated SDK targets.
