@@ -1,5 +1,4 @@
-import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -37,21 +36,19 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
 
     final team = ref.read(teamStateProvider).value;
     if (team == null) throw StateError('team is not loaded yet');
-    final functions = FirebaseFunctions.instance;
+    final functions = firebaseFunctions;
 
     try {
-      final result = await functions
-          .httpsCallableFromUrl(dartFunctionUrl('createWorkflowFile'))
-          .call({
-            'teamId': team.id,
-            'repository': repository,
-            'branch': branch,
-            'fileName': fileName,
-            'content': content,
-            'commitMode': commitMode.toApiValue(),
-            if (commitMessage != null && commitMessage.isNotEmpty)
-              'commitMessage': commitMessage,
-          });
+      final result = await functions.httpsCallable('createWorkflowFile').call({
+        'teamId': team.id,
+        'repository': repository,
+        'branch': branch,
+        'fileName': fileName,
+        'content': content,
+        'commitMode': commitMode.toApiValue(),
+        if (commitMessage != null && commitMessage.isNotEmpty)
+          'commitMessage': commitMessage,
+      });
 
       final data = Map<String, dynamic>.from(result.data as Map);
       if (ref.mounted) state = const AsyncData(null);

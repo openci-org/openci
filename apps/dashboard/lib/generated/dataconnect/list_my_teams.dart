@@ -57,6 +57,8 @@ class ListMyTeamsTeamMembersTeam {
   final List<String>? members;
   final List<int>? installationIds;
   final bool? aiEnabled;
+  final String? githubApiBaseUrl;
+  final String? githubBaseUrl;
   final Timestamp createdAt;
   final Timestamp updatedAt;
   ListMyTeamsTeamMembersTeam.fromJson(dynamic json):
@@ -70,6 +72,8 @@ class ListMyTeamsTeamMembersTeam {
         .map((e) => nativeFromJson<int>(e))
         .toList(),
   aiEnabled = json['aiEnabled'] == null ? null : nativeFromJson<bool>(json['aiEnabled']),
+  githubApiBaseUrl = json['githubApiBaseUrl'] == null ? null : nativeFromJson<String>(json['githubApiBaseUrl']),
+  githubBaseUrl = json['githubBaseUrl'] == null ? null : nativeFromJson<String>(json['githubBaseUrl']),
   createdAt = Timestamp.fromJson(json['createdAt']),
   updatedAt = Timestamp.fromJson(json['updatedAt']);
   @override
@@ -87,12 +91,14 @@ class ListMyTeamsTeamMembersTeam {
     members == otherTyped.members && 
     installationIds == otherTyped.installationIds && 
     aiEnabled == otherTyped.aiEnabled && 
+    githubApiBaseUrl == otherTyped.githubApiBaseUrl && 
+    githubBaseUrl == otherTyped.githubBaseUrl && 
     createdAt == otherTyped.createdAt && 
     updatedAt == otherTyped.updatedAt;
     
   }
   @override
-  int get hashCode => Object.hashAll([id.hashCode, name.hashCode, members.hashCode, installationIds.hashCode, aiEnabled.hashCode, createdAt.hashCode, updatedAt.hashCode]);
+  int get hashCode => Object.hashAll([id.hashCode, name.hashCode, members.hashCode, installationIds.hashCode, aiEnabled.hashCode, githubApiBaseUrl.hashCode, githubBaseUrl.hashCode, createdAt.hashCode, updatedAt.hashCode]);
   
 
   Map<String, dynamic> toJson() {
@@ -108,6 +114,12 @@ class ListMyTeamsTeamMembersTeam {
     if (aiEnabled != null) {
       json['aiEnabled'] = nativeToJson<bool?>(aiEnabled);
     }
+    if (githubApiBaseUrl != null) {
+      json['githubApiBaseUrl'] = nativeToJson<String?>(githubApiBaseUrl);
+    }
+    if (githubBaseUrl != null) {
+      json['githubBaseUrl'] = nativeToJson<String?>(githubBaseUrl);
+    }
     json['createdAt'] = createdAt.toJson();
     json['updatedAt'] = updatedAt.toJson();
     return json;
@@ -119,6 +131,8 @@ class ListMyTeamsTeamMembersTeam {
     this.members,
     this.installationIds,
     this.aiEnabled,
+    this.githubApiBaseUrl,
+    this.githubBaseUrl,
     required this.createdAt,
     required this.updatedAt,
   });

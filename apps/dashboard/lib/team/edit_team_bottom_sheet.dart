@@ -13,7 +13,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-
 class EditTeamBottomSheet extends HookConsumerWidget {
   const EditTeamBottomSheet({super.key});
 
@@ -21,6 +20,9 @@ class EditTeamBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final teamListStream = ref.watch(teamListProvider);
     final teamNameController = useTextEditingController();
+    final githubBaseUrlController = useTextEditingController();
+    final githubApiBaseUrlController = useTextEditingController();
+    final installationIdsController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final selectedTeamId = useState<String?>(null);
     final isLoading = useState(false);
@@ -74,6 +76,14 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                           onTap: () {
                             selectedTeamId.value = teams[i].id;
                             teamNameController.text = teams[i].name;
+                            githubBaseUrlController.text =
+                                teams[i].githubBaseUrl ?? '';
+                            githubApiBaseUrlController.text =
+                                teams[i].githubApiBaseUrl ?? '';
+                            installationIdsController.text = teams[i]
+                                .installationIds
+                                .map((id) => id.toString())
+                                .join(', ');
                           },
                           hoverColor: AppColors.of(context).borderSubtle,
                           splashColor: AppColors.of(context).borderSubtle,
@@ -89,8 +99,9 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                   height: 32,
                                   decoration: BoxDecoration(
                                     color: selectedTeamId.value == teams[i].id
-                                        ? AppColors.of(context).accent
-                                            .withValues(alpha: 0.15)
+                                        ? AppColors.of(
+                                            context,
+                                          ).accent.withValues(alpha: 0.15)
                                         : AppColors.of(context).surfaceTertiary,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -104,10 +115,12 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                         fontWeight: FontWeight.w600,
                                         color:
                                             selectedTeamId.value == teams[i].id
-                                                ? AppColors.of(context).accent
-                                                : AppColors.of(context).textPrimary.withValues(
-                                                    alpha: 0.6,
-                                                  ),
+                                            ? AppColors.of(context).accent
+                                            : AppColors.of(
+                                                context,
+                                              ).textPrimary.withValues(
+                                                alpha: 0.6,
+                                              ),
                                       ),
                                     ),
                                   ),
@@ -120,12 +133,11 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                       fontSize: 14,
                                       fontWeight:
                                           selectedTeamId.value == teams[i].id
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                      color:
-                                          selectedTeamId.value == teams[i].id
-                                              ? AppColors.of(context).accent
-                                              : AppColors.of(context).textPrimary,
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      color: selectedTeamId.value == teams[i].id
+                                          ? AppColors.of(context).accent
+                                          : AppColors.of(context).textPrimary,
                                     ),
                                   ),
                                 ),
@@ -174,8 +186,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                           ),
                           border: InputBorder.none,
                           prefixIcon: Padding(
-                            padding:
-                                const EdgeInsets.only(left: 12, right: 8),
+                            padding: const EdgeInsets.only(left: 12, right: 8),
                             child: Icon(
                               Icons.edit_outlined,
                               size: 18,
@@ -197,6 +208,32 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  _EnterpriseTextField(
+                    controller: githubBaseUrlController,
+                    label: 'GitHub Base URL',
+                    hintText: 'https://github.ibm.com',
+                  ),
+                  const SizedBox(height: 8),
+                  _EnterpriseTextField(
+                    controller: githubApiBaseUrlController,
+                    label: 'GitHub API Base URL',
+                    hintText: 'https://github.ibm.com/api/v3',
+                  ),
+                  const SizedBox(height: 8),
+                  _EnterpriseTextField(
+                    controller: installationIdsController,
+                    label: 'Installation IDs',
+                    hintText: '123456, 789012',
+                    validator: (value) {
+                      try {
+                        _parseInstallationIds(value ?? '');
+                        return null;
+                      } on FormatException catch (e) {
+                        return e.message;
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
@@ -214,20 +251,32 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                               if (!formKey.currentState!.validate()) return;
                               isLoading.value = true;
                               try {
-                                Navigator.of(context).pop();
                                 await ref
                                     .read(teamListProvider.notifier)
                                     .updateTeamName(
                                       selectedTeamId.value!,
                                       teamNameController.text,
                                     );
+                                await ref
+                                    .read(teamListProvider.notifier)
+                                    .updateGitHubSettings(
+                                      teamId: selectedTeamId.value!,
+                                      githubBaseUrl:
+                                          githubBaseUrlController.text,
+                                      githubApiBaseUrl:
+                                          githubApiBaseUrlController.text,
+                                      installationIds: _parseInstallationIds(
+                                        installationIdsController.text,
+                                      ),
+                                    );
                                 if (!context.mounted) return;
                                 context.showSnackBarMessage(
                                   teamT.updatedSuccess,
                                 );
+                                Navigator.of(context).pop();
                               } catch (e) {
-                                isLoading.value = false;
                                 if (!context.mounted) return;
+                                isLoading.value = false;
                                 context.showSnackBarMessage(e.toString());
                               }
                             },
@@ -261,4 +310,71 @@ class EditTeamBottomSheet extends HookConsumerWidget {
       ),
     );
   }
+}
+
+class _EnterpriseTextField extends StatelessWidget {
+  const _EnterpriseTextField({
+    required this.controller,
+    required this.label,
+    required this.hintText,
+    this.validator,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+  final String? Function(String?)? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.of(context).surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.of(context).border,
+        ),
+      ),
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.of(context).textPrimary,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hintText,
+          hintStyle: TextStyle(
+            color: AppColors.of(context).textTertiary,
+            fontSize: 14,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+}
+
+List<int> _parseInstallationIds(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return const [];
+
+  final ids = <int>[];
+  for (final part in trimmed.split(',')) {
+    final value = part.trim();
+    if (value.isEmpty) continue;
+    final id = int.tryParse(value);
+    if (id == null) {
+      throw const FormatException(
+        'Installation IDs must be comma-separated numbers.',
+      );
+    }
+    ids.add(id);
+  }
+  return ids;
 }

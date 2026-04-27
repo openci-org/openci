@@ -1,12 +1,13 @@
 specVersion: v1
-serviceId: openci-b1b91-3-service
+serviceId: openci
 location: asia-northeast1
+schemaValidation: "COMPATIBLE"
 schema:
   source: ./schema
   datasource:
     postgresql:
-      database: openci-b1b91-3-database
+      database: openci
       cloudSql:
-        instanceId: openci-b1b91-2-instance
+        instanceId: openci
 connectorDirs:
   - ./connector

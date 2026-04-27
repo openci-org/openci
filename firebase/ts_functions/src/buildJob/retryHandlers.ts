@@ -48,6 +48,8 @@ function copyRetryJobFields(
     workflowName: originalJob.workflowName,
     jobKey: originalJob.jobKey,
     installationId: originalJob.installationId,
+    installationToken: originalJob.installationToken,
+    tokenExpiresAt: originalJob.tokenExpiresAt,
     commitSha: originalJob.commitSha,
     pullRequestNumber: originalJob.pullRequestNumber,
     event: originalJob.event,
@@ -58,8 +60,30 @@ function copyRetryJobFields(
     branch: originalJob.branch,
     releaseName: originalJob.releaseName,
     runsOn: originalJob.runsOn,
+    githubApiBaseUrl: originalJob.githubApiBaseUrl,
+    githubBaseUrl: originalJob.githubBaseUrl,
     ...overrides,
   };
+}
+
+function numberFromDataConnectInt64(value: unknown): number | undefined {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function stringFromUnknown(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function isInstallationTokenValid(expiresAt: unknown): boolean {
+  if (typeof expiresAt !== "string" || expiresAt.length === 0) return false;
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMs)) return false;
+  return expiresAtMs > Date.now() + 5 * 60 * 1000;
 }
 
 export const retryBuildJob = onCall<
@@ -79,35 +103,38 @@ export const retryBuildJob = onCall<
   }
 
   const newDocumentId = randomUUID();
-  const installationId =
-    typeof originalJob.installationId === "number" ? originalJob.installationId : undefined;
-  let installationToken: string | undefined;
-  let tokenExpiresAt: string | undefined;
-  let checkRunId = typeof originalJob.checkRunId === "number" ? originalJob.checkRunId : undefined;
+  const installationId = numberFromDataConnectInt64(originalJob.installationId);
+  const apiBaseUrl = stringFromUnknown(originalJob.githubApiBaseUrl);
+  let installationToken = stringFromUnknown(originalJob.installationToken);
+  let tokenExpiresAt = stringFromUnknown(originalJob.tokenExpiresAt);
+  let checkRunId = numberFromDataConnectInt64(originalJob.checkRunId);
 
-  if (installationId !== undefined) {
+  if (
+    installationId !== undefined &&
+    (!installationToken || !isInstallationTokenValid(tokenExpiresAt))
+  ) {
     try {
-      const tokenData = await getInstallationToken(installationId);
+      const tokenData = await getInstallationToken(installationId, { apiBaseUrl });
       installationToken = tokenData.token;
       tokenExpiresAt = tokenData.expiresAt;
-
-      if (typeof originalJob.commitSha === "string") {
-        const workflowName = requireNonEmptyString(originalJob.workflowName, "workflowName");
-        checkRunId =
-          (await createCheckRun({
-            token: installationToken,
-            owner: requireNonEmptyString(originalJob.owner, "owner"),
-            repo: requireNonEmptyString(originalJob.repo, "repo"),
-            name: workflowName,
-            headSha: originalJob.commitSha,
-            status: "in_progress",
-            detailsUrl: buildDashboardRunUrl(newDocumentId),
-          })) ?? undefined;
-      }
     } catch (error) {
       logger.error("Failed to authenticate with GitHub for retry", { buildJobId, error });
       throw new HttpsError("internal", "Failed to authenticate with GitHub");
     }
+  }
+  if (installationToken && typeof originalJob.commitSha === "string") {
+    const workflowName = requireNonEmptyString(originalJob.workflowName, "workflowName");
+    checkRunId =
+      (await createCheckRun({
+        token: installationToken,
+        owner: requireNonEmptyString(originalJob.owner, "owner"),
+        repo: requireNonEmptyString(originalJob.repo, "repo"),
+        name: workflowName,
+        headSha: originalJob.commitSha,
+        status: "in_progress",
+        detailsUrl: buildDashboardRunUrl(newDocumentId),
+        apiBaseUrl,
+      })) ?? undefined;
   }
 
   await createBuildJob(
@@ -152,15 +179,16 @@ export const retryWorkflowRun = onCall<
     await verifyTeamMembership(auth, teamId);
   }
 
-  const installationId =
-    typeof originalJobs[0]?.installationId === "number"
-      ? originalJobs[0].installationId
-      : undefined;
-  let installationToken: string | undefined;
-  let tokenExpiresAt: string | undefined;
-  if (installationId !== undefined) {
+  const installationId = numberFromDataConnectInt64(originalJobs[0]?.installationId);
+  const apiBaseUrl = stringFromUnknown(originalJobs[0]?.githubApiBaseUrl);
+  let installationToken = stringFromUnknown(originalJobs[0]?.installationToken);
+  let tokenExpiresAt = stringFromUnknown(originalJobs[0]?.tokenExpiresAt);
+  if (
+    installationId !== undefined &&
+    (!installationToken || !isInstallationTokenValid(tokenExpiresAt))
+  ) {
     try {
-      const tokenData = await getInstallationToken(installationId);
+      const tokenData = await getInstallationToken(installationId, { apiBaseUrl });
       installationToken = tokenData.token;
       tokenExpiresAt = tokenData.expiresAt;
     } catch (error) {
@@ -213,6 +241,7 @@ export const retryWorkflowRun = onCall<
             headSha: originalJob.commitSha,
             status: hasNeeds ? "queued" : "in_progress",
             detailsUrl: buildDashboardRunUrl(newDocumentId),
+            apiBaseUrl,
           })) ?? undefined;
       }
     }

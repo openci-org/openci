@@ -5,6 +5,8 @@ import { normalizeGitHubApiBaseUrl } from "@openci/build-job-services";
 
 import type { BuildJob } from "./types.js";
 
+const tokenRefreshBufferMs = 5 * 60 * 1000;
+
 function base64UrlEncode(input: string | Buffer): string {
   return Buffer.from(input)
     .toString("base64")
@@ -40,10 +42,20 @@ async function createGitHubAppJwt(projectId: string): Promise<string> {
   return `${signingInput}.${base64UrlEncode(signature)}`;
 }
 
+function isInstallationTokenFresh(expiresAt?: string | null): boolean {
+  if (!expiresAt) return false;
+  const expiresAtMs = new Date(expiresAt).getTime();
+  return Number.isFinite(expiresAtMs) && expiresAtMs - Date.now() > tokenRefreshBufferMs;
+}
+
 export async function resolveInstallationToken(
   buildJob: BuildJob,
   projectId: string,
 ): Promise<string> {
+  if (buildJob.installationToken && isInstallationTokenFresh(buildJob.tokenExpiresAt)) {
+    return buildJob.installationToken;
+  }
+
   if (buildJob.installationId === null || buildJob.installationId === undefined) {
     if (buildJob.installationToken) return buildJob.installationToken;
     throw new Error("installationToken and installationId are missing");

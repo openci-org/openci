@@ -22,6 +22,12 @@ jobs:
         with:
           node-version: "22"
           working-directory: firebase/ts_functions
+          run-install: false
+
+      - name: Install dependencies
+        run: |
+          vp install
+          git restore package.json package-lock.json npm-shrinkwrap.json
 
       - name: Check
         run: vp check

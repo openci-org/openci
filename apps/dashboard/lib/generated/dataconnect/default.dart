@@ -41,6 +41,8 @@ part 'update_team_name.dart';
 
 part 'update_team_ai_enabled.dart';
 
+part 'update_team_git_hub_settings.dart';
+
 part 'delete_team.dart';
 
 part 'upsert_team_member_from_firestore.dart';
@@ -141,6 +143,8 @@ part 'find_secret_by_name.dart';
 
 part 'get_secret_for_team.dart';
 
+part 'get_secret_path_for_team.dart';
+
 part 'list_secrets_for_team.dart';
 
 part 'list_environment_variables_for_team.dart';
@@ -171,8 +175,8 @@ part 'list_build_logs_for_run.dart';
 
 part 'list_latest_build_logs.dart';
 
-String bigIntToJson(BigInt value) {
-  return value.toString();
+String? bigIntToJson(BigInt? value) {
+  return value?.toString();
 }
 
 BigInt bigIntFromJson(dynamic value) {
@@ -448,6 +452,15 @@ class DefaultConnector {
       dataConnect,
       teamId: teamId,
       aiEnabled: aiEnabled,
+    );
+  }
+
+  UpdateTeamGitHubSettingsVariablesBuilder updateTeamGitHubSettings({
+    required String teamId,
+  }) {
+    return UpdateTeamGitHubSettingsVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
     );
   }
 
@@ -1051,6 +1064,17 @@ class DefaultConnector {
     );
   }
 
+  GetSecretPathForTeamVariablesBuilder getSecretPathForTeam({
+    required String id,
+    required String teamId,
+  }) {
+    return GetSecretPathForTeamVariablesBuilder(
+      dataConnect,
+      id: id,
+      teamId: teamId,
+    );
+  }
+
   ListSecretsForTeamVariablesBuilder listSecretsForTeam({
     required String teamId,
   }) {
@@ -1209,7 +1233,7 @@ class DefaultConnector {
   static ConnectorConfig connectorConfig = ConnectorConfig(
     'asia-northeast1',
     'default',
-    'openci-b1b91-3-service',
+    'openci',
   );
 
   DefaultConnector({required this.dataConnect});

@@ -37,12 +37,6 @@ if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
   echo 'export PATH="$PATH":"$HOME/.local/bin"' >> ~/.zshrc
   export PATH="$PATH":"$HOME/.local/bin"
 fi
-DART_PUB_CACHE_BIN="${PUB_CACHE:-$HOME/.pub-cache}/bin"
-if ! echo ":$PATH:" | grep -q ":$DART_PUB_CACHE_BIN:"; then
-  NEED_PATH_UPDATE=true
-  echo 'export PATH="$PATH":"${PUB_CACHE:-$HOME/.pub-cache}/bin"' >> ~/.zshrc
-  export PATH="$PATH:$DART_PUB_CACHE_BIN"
-fi
 if [ "$NEED_PATH_UPDATE" = true ]; then
   echo "🔧 PATH configured"
 else
@@ -93,17 +87,16 @@ else
 fi
 
 # 7. Worker CLI
-if ! command -v dart &> /dev/null; then
-  echo "📦 Installing Dart SDK..."
-  brew tap dart-lang/dart
-  brew install dart
+if ! command -v npm &> /dev/null; then
+  echo "📦 Installing Node.js..."
+  brew install node
 fi
 
 if command -v openci_worker &> /dev/null; then
   echo "✅ openci_worker already installed"
 else
   echo "📦 Installing Worker CLI..."
-  dart pub global activate openci_worker_cli
+  npm install -g openci-worker-cli
 fi
 
 echo ""

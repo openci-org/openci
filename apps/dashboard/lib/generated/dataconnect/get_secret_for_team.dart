@@ -57,13 +57,11 @@ class GetSecretForTeamSecret {
   final String id;
   final String name;
   final String teamId;
-  final String? pathToSecret;
   GetSecretForTeamSecret.fromJson(dynamic json):
   
   id = nativeFromJson<String>(json['id']),
   name = nativeFromJson<String>(json['name']),
-  teamId = nativeFromJson<String>(json['teamId']),
-  pathToSecret = json['pathToSecret'] == null ? null : nativeFromJson<String>(json['pathToSecret']);
+  teamId = nativeFromJson<String>(json['teamId']);
   @override
   bool operator ==(Object other) {
     if(identical(this, other)) {
@@ -76,12 +74,11 @@ class GetSecretForTeamSecret {
     final GetSecretForTeamSecret otherTyped = other as GetSecretForTeamSecret;
     return id == otherTyped.id && 
     name == otherTyped.name && 
-    teamId == otherTyped.teamId && 
-    pathToSecret == otherTyped.pathToSecret;
+    teamId == otherTyped.teamId;
     
   }
   @override
-  int get hashCode => Object.hashAll([id.hashCode, name.hashCode, teamId.hashCode, pathToSecret.hashCode]);
+  int get hashCode => Object.hashAll([id.hashCode, name.hashCode, teamId.hashCode]);
   
 
   Map<String, dynamic> toJson() {
@@ -89,9 +86,6 @@ class GetSecretForTeamSecret {
     json['id'] = nativeToJson<String>(id);
     json['name'] = nativeToJson<String>(name);
     json['teamId'] = nativeToJson<String>(teamId);
-    if (pathToSecret != null) {
-      json['pathToSecret'] = nativeToJson<String?>(pathToSecret);
-    }
     return json;
   }
 
@@ -99,7 +93,6 @@ class GetSecretForTeamSecret {
     required this.id,
     required this.name,
     required this.teamId,
-    this.pathToSecret,
   });
 }
 

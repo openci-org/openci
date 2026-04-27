@@ -1,20 +1,148 @@
-import { onRequest } from "firebase-functions/v2/https";
-import { logger } from "firebase-functions/v2";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { getTeamById, linkGitHubInstallation } from "@openci/dataconnect-admin";
+import { onRequest } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions/v2";
+
+import { accessSecret } from "../secretManager";
+import { verifyTeamMembership } from "../team/teamAuth";
+import { getBaseUrlFromTeamData } from "./githubUrls";
+
+const stateTtlMs = 10 * 60 * 1000;
+const githubSetupStateSecretName = "GITHUB_WEBHOOK_SECRET";
+const githubAppSlug = "openci-org";
+
+interface CreateGitHubSetupUrlRequest {
+  teamId: string;
+}
+
+interface CreateGitHubSetupUrlResponse {
+  url: string;
+}
+
+interface GitHubSetupStatePayload {
+  teamId: string;
+  uid: string;
+  expiresAt: number;
+  nonce: string;
+}
+
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new HttpsError("invalid-argument", `${field} is required`);
+  }
+  return value;
+}
+
+function signStatePayload(encodedPayload: string, secret: string): string {
+  return createHmac("sha256", secret).update(encodedPayload).digest("base64url");
+}
+
+async function createSetupState(payload: GitHubSetupStatePayload): Promise<string> {
+  const secret = await accessSecret(githubSetupStateSecretName);
+  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${encodedPayload}.${signStatePayload(encodedPayload, secret)}`;
+}
+
+async function verifySetupState(state: string): Promise<GitHubSetupStatePayload> {
+  const [encodedPayload, signature, ...extra] = state.split(".");
+  if (!encodedPayload || !signature || extra.length > 0) {
+    throw new HttpsError("invalid-argument", "Invalid setup state");
+  }
+
+  const secret = await accessSecret(githubSetupStateSecretName);
+  const expectedSignature = signStatePayload(encodedPayload, secret);
+  const signatureBuffer = Buffer.from(signature, "base64url");
+  const expectedBuffer = Buffer.from(expectedSignature, "base64url");
+  if (
+    signatureBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(signatureBuffer, expectedBuffer)
+  ) {
+    throw new HttpsError("permission-denied", "Invalid setup state signature");
+  }
+
+  let payload: Partial<GitHubSetupStatePayload>;
+  try {
+    payload = JSON.parse(
+      Buffer.from(encodedPayload, "base64url").toString("utf8"),
+    ) as Partial<GitHubSetupStatePayload>;
+  } catch {
+    throw new HttpsError("invalid-argument", "Invalid setup state payload");
+  }
+  if (
+    typeof payload.teamId !== "string" ||
+    payload.teamId.length === 0 ||
+    typeof payload.uid !== "string" ||
+    payload.uid.length === 0 ||
+    typeof payload.expiresAt !== "number" ||
+    typeof payload.nonce !== "string" ||
+    payload.nonce.length === 0
+  ) {
+    throw new HttpsError("invalid-argument", "Invalid setup state payload");
+  }
+  if (payload.expiresAt <= Date.now()) {
+    throw new HttpsError("deadline-exceeded", "Setup state has expired");
+  }
+
+  return {
+    teamId: payload.teamId,
+    uid: payload.uid,
+    expiresAt: payload.expiresAt,
+    nonce: payload.nonce,
+  };
+}
+
+function statusCodeForHttpsError(error: HttpsError): number {
+  switch (error.code) {
+    case "invalid-argument":
+      return 400;
+    case "deadline-exceeded":
+      return 410;
+    case "permission-denied":
+    case "unauthenticated":
+      return 403;
+    default:
+      return 500;
+  }
+}
+
+export const createGitHubSetupUrl = onCall<
+  CreateGitHubSetupUrlRequest,
+  Promise<CreateGitHubSetupUrlResponse>
+>(async (request) => {
+  const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
+  const team = await verifyTeamMembership(request.auth, teamId);
+  const state = await createSetupState({
+    teamId,
+    uid: request.auth!.uid,
+    expiresAt: Date.now() + stateTtlMs,
+    nonce: randomUUID(),
+  });
+  const url = new URL(`/apps/${githubAppSlug}/installations/new`, getBaseUrlFromTeamData(team));
+  url.searchParams.set("state", state);
+  return { url: url.toString() };
+});
 
 export const githubSetup = onRequest(async (request, response) => {
   try {
     const installationId = request.query.installation_id;
-    const teamId = request.query.state;
+    const state = request.query.state;
     const setupAction = request.query.setup_action;
 
-    logger.info("GitHub Setup callback received", { installationId, teamId, setupAction });
-
-    if (typeof installationId !== "string" || typeof teamId !== "string") {
-      response.status(400).send("Missing installation_id or state (teamId)");
+    if (typeof installationId !== "string" || typeof state !== "string") {
+      response.status(400).send("Missing installation_id or state");
       return;
     }
+
+    const setupState = await verifySetupState(state);
+    const { teamId } = setupState;
+    logger.info("GitHub Setup callback received", {
+      installationId,
+      teamId,
+      setupAction,
+      requestedByUid: setupState.uid,
+    });
 
     const team = await getTeamById({ teamId });
     if (!team.data.team) {
@@ -23,6 +151,11 @@ export const githubSetup = onRequest(async (request, response) => {
     }
 
     const newId = Number.parseInt(installationId, 10);
+    if (!Number.isInteger(newId) || newId <= 0) {
+      response.status(400).send("Invalid installation_id");
+      return;
+    }
+
     await linkGitHubInstallation({ teamId, installationId: newId });
     response.status(200).set("Content-Type", "text/html").send(`<!DOCTYPE html>
 <html>
@@ -45,6 +178,11 @@ export const githubSetup = onRequest(async (request, response) => {
   </body>
 </html>`);
   } catch (error) {
+    if (error instanceof HttpsError) {
+      logger.warn("Rejected GitHub setup callback", { code: error.code, message: error.message });
+      response.status(statusCodeForHttpsError(error)).send(error.message);
+      return;
+    }
     logger.error("Failed to link GitHub installation", { error });
     response.status(500).send("Internal server error");
   }

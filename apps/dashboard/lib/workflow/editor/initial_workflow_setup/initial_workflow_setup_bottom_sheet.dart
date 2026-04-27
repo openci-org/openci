@@ -1,4 +1,3 @@
-import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/directories_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
@@ -9,7 +8,6 @@ import 'package:dashboard/workflow/workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
   const InitialWorkflowSetupBottomSheet({super.key});
@@ -20,7 +18,6 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(initialWorkflowSetupProvider);
     final controller = ref.read(initialWorkflowSetupProvider.notifier);
-    final team = ref.watch(teamStateProvider).value;
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
     final nameController = useTextEditingController();
@@ -70,10 +67,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                     width: _width,
                     child: GitHubConnectionBanner(
                       onConnectPressed: () async {
-                        final url = Uri.parse(
-                          'https://github.com/apps/openci-org/installations/new',
-                        ).replace(queryParameters: {'state': team?.id ?? ''});
-                        await url_launcher.launchUrl(url);
+                        await launchGitHubSetup(ref);
                       },
                     ),
                   )

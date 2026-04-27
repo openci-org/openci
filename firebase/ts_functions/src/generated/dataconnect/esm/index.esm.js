@@ -8,7 +8,7 @@ export const InvitationStatus = {
 
 export const connectorConfig = {
   connector: 'default',
-  serviceId: 'openci-b1b91-3-service',
+  serviceId: 'openci',
   location: 'asia-northeast1'
 };
 
@@ -118,6 +118,12 @@ export function updateTeamAiEnabled(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeMutation('UpdateTeamAiEnabled', inputVars, inputOpts);
+}
+
+export function updateTeamGitHubSettings(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateTeamGitHubSettings', inputVars, inputOpts);
 }
 
 export function deleteTeam(dcOrVarsOrOptions, varsOrOptions, options) {
@@ -418,6 +424,12 @@ export function getSecretForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('GetSecretForTeam', inputVars, inputOpts);
+}
+
+export function getSecretPathForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetSecretPathForTeam', inputVars, inputOpts);
 }
 
 export function listSecretsForTeam(dcOrVarsOrOptions, varsOrOptions, options) {

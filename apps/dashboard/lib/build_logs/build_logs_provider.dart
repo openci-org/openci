@@ -24,10 +24,11 @@ Stream<List<BuildLog>> buildLogs(
         runId: runId,
         teamId: teamId,
       )
+      .limit(1000)
       .ref();
 
   yield* query.subscribe().map(
-    (result) => _buildLogsFromResult(result.data.buildLogs),
+    (result) => _buildLogsFromResult(result.data.buildLogs.reversed.toList()),
   );
 }
 

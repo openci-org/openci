@@ -1,6 +1,5 @@
-import 'package:dashboard/firebase/dart_function_urls.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -114,14 +113,12 @@ class IsAscConfigured extends _$IsAscConfigured {
 class AscApps extends _$AscApps {
   @override
   Future<List<AscApp>> build() async {
-    final functions = FirebaseFunctions.instance;
+    final functions = firebaseFunctions;
     final teamId = _requireTeamId(ref);
 
-    final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-list-apps'))
-        .call({
-          'teamId': teamId,
-        });
+    final result = await functions.httpsCallable('ascListApps').call({
+      'teamId': teamId,
+    });
 
     final data = result.data as Map<String, dynamic>;
     final apps = (data['apps'] as List<dynamic>)
@@ -136,15 +133,13 @@ class AscApps extends _$AscApps {
 class AscBuilds extends _$AscBuilds {
   @override
   Future<List<AscBuild>> build(String appId) async {
-    final functions = FirebaseFunctions.instance;
+    final functions = firebaseFunctions;
     final teamId = _requireTeamId(ref);
 
-    final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-list-builds'))
-        .call({
-          'teamId': teamId,
-          'appId': appId,
-        });
+    final result = await functions.httpsCallable('ascListBuilds').call({
+      'teamId': teamId,
+      'appId': appId,
+    });
 
     final data = result.data as Map<String, dynamic>;
     final builds = (data['builds'] as List<dynamic>)
@@ -161,15 +156,13 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
   FutureOr<void> build() {}
 
   Future<String> submit(String buildId) async {
-    final functions = FirebaseFunctions.instance;
+    final functions = firebaseFunctions;
     final teamId = _requireTeamId(ref);
 
-    final result = await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-to-test-flight'))
-        .call({
-          'teamId': teamId,
-          'buildId': buildId,
-        });
+    final result = await functions.httpsCallable('ascSubmitToTestFlight').call({
+      'teamId': teamId,
+      'buildId': buildId,
+    });
 
     final data = result.data as Map<String, dynamic>;
     return data['betaGroupName'] as String? ?? 'External Testers';
@@ -189,19 +182,17 @@ class SubmitForReview extends _$SubmitForReview {
     required String whatsNew,
     String platform = 'IOS',
   }) async {
-    final functions = FirebaseFunctions.instance;
+    final functions = firebaseFunctions;
     final teamId = _requireTeamId(ref);
 
-    await functions
-        .httpsCallableFromUrl(dartFunctionUrl('asc-submit-for-review'))
-        .call({
-          'teamId': teamId,
-          'appId': appId,
-          'buildId': buildId,
-          'versionString': versionString,
-          'whatsNew': whatsNew,
-          'platform': platform,
-        });
+    await functions.httpsCallable('ascSubmitForReview').call({
+      'teamId': teamId,
+      'appId': appId,
+      'buildId': buildId,
+      'versionString': versionString,
+      'whatsNew': whatsNew,
+      'platform': platform,
+    });
   }
 }
 
@@ -216,16 +207,14 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     required String keyId,
     required String privateKey,
   }) async {
-    final functions = FirebaseFunctions.instance;
+    final functions = firebaseFunctions;
     final teamId = _requireTeamId(ref);
 
-    await functions
-        .httpsCallableFromUrl(dartFunctionUrl('setup-asc-api-key-v1'))
-        .call({
-          'teamId': teamId,
-          'issuerId': issuerId,
-          'keyId': keyId,
-          'privateKey': privateKey,
-        });
+    await functions.httpsCallable('setupAscApiKeyV1').call({
+      'teamId': teamId,
+      'issuerId': issuerId,
+      'keyId': keyId,
+      'privateKey': privateKey,
+    });
   }
 }

@@ -11,7 +11,7 @@ const {
   mockAddSecretVersionByPath,
   mockFindSecretByName,
   mockCreateSecretMetadata,
-  mockGetSecretForTeam,
+  mockGetSecretPathForTeam,
   mockDeleteSecretMetadata,
   mockUpdateSecretMetadata,
   mockListWorkflowsForTeam,
@@ -23,7 +23,7 @@ const {
   mockAddSecretVersionByPath: vi.fn(),
   mockFindSecretByName: vi.fn(),
   mockCreateSecretMetadata: vi.fn(),
-  mockGetSecretForTeam: vi.fn(),
+  mockGetSecretPathForTeam: vi.fn(),
   mockDeleteSecretMetadata: vi.fn(),
   mockUpdateSecretMetadata: vi.fn(),
   mockListWorkflowsForTeam: vi.fn(),
@@ -43,7 +43,7 @@ vi.mock("../secretManager", () => ({
 vi.mock("@openci/dataconnect-admin", () => ({
   findSecretByName: (...args: unknown[]) => mockFindSecretByName(...args),
   createSecretMetadata: (...args: unknown[]) => mockCreateSecretMetadata(...args),
-  getSecretForTeam: (...args: unknown[]) => mockGetSecretForTeam(...args),
+  getSecretPathForTeam: (...args: unknown[]) => mockGetSecretPathForTeam(...args),
   deleteSecretMetadata: (...args: unknown[]) => mockDeleteSecretMetadata(...args),
   updateSecretMetadata: (...args: unknown[]) => mockUpdateSecretMetadata(...args),
   listWorkflowsForTeam: (...args: unknown[]) => mockListWorkflowsForTeam(...args),
@@ -80,7 +80,7 @@ describe("secret handlers", () => {
     mockAddSecretVersionByPath.mockResolvedValue(undefined);
     mockFindSecretByName.mockResolvedValue({ data: { secrets: [] } });
     mockCreateSecretMetadata.mockResolvedValue({});
-    mockGetSecretForTeam.mockResolvedValue({
+    mockGetSecretPathForTeam.mockResolvedValue({
       data: {
         secret: {
           id: "doc-1",

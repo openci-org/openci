@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/workflow/list/github_actions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -154,7 +154,7 @@ class SearchActionsSheet extends HookConsumerWidget {
                             child: CircularProgressIndicator(),
                           ),
                         );
-                        final functions = FirebaseFunctions.instance;
+                        final functions = firebaseFunctions;
                         final tag = await fetchLatestTag(
                           fullName: action.fullName,
                           teamId: teamId,

@@ -4,8 +4,13 @@ class ListBuildLogsForRunVariablesBuilder {
   String buildJobId;
   String runId;
   String teamId;
+  Optional<int> _limit = Optional.optional(nativeFromJson, nativeToJson);
 
-  final FirebaseDataConnect _dataConnect;
+  final FirebaseDataConnect _dataConnect;  ListBuildLogsForRunVariablesBuilder limit(int? t) {
+   _limit.value = t;
+   return this;
+  }
+
   ListBuildLogsForRunVariablesBuilder(this._dataConnect, {required  this.buildJobId,required  this.runId,required  this.teamId,});
   Deserializer<ListBuildLogsForRunData> dataDeserializer = (dynamic json)  => ListBuildLogsForRunData.fromJson(jsonDecode(json));
   Serializer<ListBuildLogsForRunVariables> varsSerializer = (ListBuildLogsForRunVariables vars) => jsonEncode(vars.toJson());
@@ -14,7 +19,7 @@ class ListBuildLogsForRunVariablesBuilder {
   }
 
   QueryRef<ListBuildLogsForRunData, ListBuildLogsForRunVariables> ref() {
-    ListBuildLogsForRunVariables vars= ListBuildLogsForRunVariables(buildJobId: buildJobId,runId: runId,teamId: teamId,);
+    ListBuildLogsForRunVariables vars= ListBuildLogsForRunVariables(buildJobId: buildJobId,runId: runId,teamId: teamId,limit: _limit,);
     return _dataConnect.query("ListBuildLogsForRun", dataDeserializer, varsSerializer, vars);
   }
 }
@@ -152,12 +157,22 @@ class ListBuildLogsForRunVariables {
   final String buildJobId;
   final String runId;
   final String teamId;
+  late final Optional<int>limit;
   @Deprecated('fromJson is deprecated for Variable classes as they are no longer required for deserialization.')
   ListBuildLogsForRunVariables.fromJson(Map<String, dynamic> json):
   
   buildJobId = nativeFromJson<String>(json['buildJobId']),
   runId = nativeFromJson<String>(json['runId']),
-  teamId = nativeFromJson<String>(json['teamId']);
+  teamId = nativeFromJson<String>(json['teamId']) {
+  
+  
+  
+  
+  
+    limit = Optional.optional(nativeFromJson, nativeToJson);
+    limit.value = json['limit'] == null ? null : nativeFromJson<int>(json['limit']);
+  
+  }
   @override
   bool operator ==(Object other) {
     if(identical(this, other)) {
@@ -170,11 +185,12 @@ class ListBuildLogsForRunVariables {
     final ListBuildLogsForRunVariables otherTyped = other as ListBuildLogsForRunVariables;
     return buildJobId == otherTyped.buildJobId && 
     runId == otherTyped.runId && 
-    teamId == otherTyped.teamId;
+    teamId == otherTyped.teamId && 
+    limit == otherTyped.limit;
     
   }
   @override
-  int get hashCode => Object.hashAll([buildJobId.hashCode, runId.hashCode, teamId.hashCode]);
+  int get hashCode => Object.hashAll([buildJobId.hashCode, runId.hashCode, teamId.hashCode, limit.hashCode]);
   
 
   Map<String, dynamic> toJson() {
@@ -182,6 +198,9 @@ class ListBuildLogsForRunVariables {
     json['buildJobId'] = nativeToJson<String>(buildJobId);
     json['runId'] = nativeToJson<String>(runId);
     json['teamId'] = nativeToJson<String>(teamId);
+    if(limit.state == OptionalState.set) {
+      json['limit'] = limit.toJson();
+    }
     return json;
   }
 
@@ -189,6 +208,7 @@ class ListBuildLogsForRunVariables {
     required this.buildJobId,
     required this.runId,
     required this.teamId,
+    required this.limit,
   });
 }
 

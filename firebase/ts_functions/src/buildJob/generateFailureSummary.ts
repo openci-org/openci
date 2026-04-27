@@ -1,5 +1,7 @@
-import { generateFailureSummaryById } from "@openci/build-job-services";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+
+import { verifyBuildJobMembership } from "./auth";
+import { generateFailureSummary as generateFailureSummaryForBuildJob } from "./services";
 
 interface GenerateFailureSummaryRequest {
   buildJobId: string;
@@ -17,6 +19,7 @@ export const generateFailureSummary = onCall<
   Promise<{ success: true }>
 >({ timeoutSeconds: 120 }, async (request) => {
   const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
-  await generateFailureSummaryById(buildJobId);
+  const buildJob = await verifyBuildJobMembership(request.auth, buildJobId);
+  await generateFailureSummaryForBuildJob(buildJob);
   return { success: true };
 });

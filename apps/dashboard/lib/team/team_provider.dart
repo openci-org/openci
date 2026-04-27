@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/users/user_provider.dart';
@@ -18,6 +20,8 @@ abstract class Team with _$Team {
     @Default([]) List<int> installationIds,
     @Default(1) int runNumber,
     @Default(true) bool aiEnabled,
+    String? githubBaseUrl,
+    String? githubApiBaseUrl,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Team;
@@ -60,32 +64,31 @@ class TeamState extends _$TeamState {
 @riverpod
 class TeamList extends _$TeamList {
   @override
-  Stream<List<Team>> build() {
-    return fetchTeamList();
+  Stream<List<Team>> build() async* {
+    yield await fetchTeamList().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => throw TimeoutException(
+        'Timed out while loading teams from Data Connect',
+      ),
+    );
+
+    yield* watchTeamList();
   }
 
-  Stream<List<Team>> fetchTeamList() {
+  Future<List<Team>> fetchTeamList() async {
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    return dataConnector.listMyTeams().ref().subscribe().map((result) {
-      return result.data.teamMembers
-          .map((membership) => membership.team)
-          .map(
-            (team) => Team(
-              id: team.id,
-              name: team.name,
-              members: team.members ?? const [],
-              installationIds: team.installationIds ?? const [],
-              aiEnabled: team.aiEnabled ?? true,
-              createdAt: dateTimeFromDataConnect(team.createdAt),
-              updatedAt: dateTimeFromDataConnect(team.updatedAt),
-            ),
-          )
-          .toList();
-    });
+    final result = await dataConnector.listMyTeams().execute();
+    return _teamsFromData(result.data);
+  }
+
+  Stream<List<Team>> watchTeamList() {
+    return dataConnector.listMyTeams().ref().subscribe().map(
+      (result) => _teamsFromData(result.data),
+    );
   }
 
   Future<void> createTeam(String teamName) async {
@@ -112,7 +115,45 @@ class TeamList extends _$TeamList {
         .execute();
   }
 
+  Future<void> updateGitHubSettings({
+    required String teamId,
+    String? githubBaseUrl,
+    String? githubApiBaseUrl,
+    required List<int> installationIds,
+  }) async {
+    await dataConnector
+        .updateTeamGitHubSettings(teamId: teamId)
+        .githubBaseUrl(_emptyToNull(githubBaseUrl))
+        .githubApiBaseUrl(_emptyToNull(githubApiBaseUrl))
+        .installationIds(installationIds)
+        .execute();
+  }
+
   Future<void> deleteTeam(String teamId) async {
     await dataConnector.deleteTeam(teamId: teamId).execute();
   }
+}
+
+String? _emptyToNull(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+List<Team> _teamsFromData(ListMyTeamsData data) {
+  return data.teamMembers
+      .map((membership) => membership.team)
+      .map(
+        (team) => Team(
+          id: team.id,
+          name: team.name,
+          members: team.members ?? const [],
+          installationIds: team.installationIds ?? const [],
+          aiEnabled: team.aiEnabled ?? true,
+          githubBaseUrl: team.githubBaseUrl,
+          githubApiBaseUrl: team.githubApiBaseUrl,
+          createdAt: dateTimeFromDataConnect(team.createdAt),
+          updatedAt: dateTimeFromDataConnect(team.updatedAt),
+        ),
+      )
+      .toList();
 }

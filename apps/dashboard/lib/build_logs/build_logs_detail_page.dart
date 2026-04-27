@@ -27,6 +27,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 enum _ActionState { idle, loading, done }
 
+SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return SnackBar(
+    backgroundColor: colorScheme.inverseSurface,
+    content: Text(
+      message,
+      style: TextStyle(color: colorScheme.onInverseSurface),
+    ),
+  );
+}
+
 // ── ui.sh zinc-neutral palette ──────────────────────────────────────────────
 
 class BuildLogsDetailPage extends HookConsumerWidget {
@@ -202,15 +213,23 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           }
                         });
                         if (context.mounted) {
-                          context.showSnackBarMessage(detailT.retrySuccess);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            _materialDefaultSnackBar(
+                              context,
+                              detailT.retrySuccess,
+                            ),
+                          );
                         }
                       } catch (e) {
                         if (context.mounted) {
                           retryState.value = _ActionState.idle;
                         }
                         if (context.mounted) {
-                          context.showSnackBarMessage(
-                            detailT.failedToRetry(error: e.toString()),
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            _materialDefaultSnackBar(
+                              context,
+                              detailT.failedToRetry(error: e.toString()),
+                            ),
                           );
                         }
                       }

@@ -332,7 +332,6 @@ export interface FindSecretByNameData {
       id: string;
       name: string;
       teamId: string;
-      pathToSecret?: string | null;
     } & Secret_Key)[];
 }
 
@@ -371,7 +370,6 @@ export interface GetBuildJobData {
     needs?: string[] | null;
     resolvedNeeds?: unknown | null;
     installationId?: Int64String | null;
-    installationToken?: string | null;
     tokenExpiresAt?: TimestampString | null;
     checkRunId?: Int64String | null;
     commitSha?: string | null;
@@ -416,7 +414,6 @@ export interface GetBuildJobForTeamData {
       needs?: string[] | null;
       resolvedNeeds?: unknown | null;
       installationId?: Int64String | null;
-      installationToken?: string | null;
       tokenExpiresAt?: TimestampString | null;
       checkRunId?: Int64String | null;
       commitSha?: string | null;
@@ -494,11 +491,24 @@ export interface GetSecretForTeamData {
       id: string;
       name: string;
       teamId: string;
-      pathToSecret?: string | null;
     } & Secret_Key;
 }
 
 export interface GetSecretForTeamVariables {
+  id: string;
+  teamId: string;
+}
+
+export interface GetSecretPathForTeamData {
+  secret?: {
+    id: string;
+    name: string;
+    teamId: string;
+    pathToSecret?: string | null;
+  } & Secret_Key;
+}
+
+export interface GetSecretPathForTeamVariables {
   id: string;
   teamId: string;
 }
@@ -508,7 +518,6 @@ export interface GetSecretsByNamesData {
     id: string;
     name: string;
     teamId: string;
-    pathToSecret?: string | null;
   } & Secret_Key)[];
 }
 
@@ -714,6 +723,7 @@ export interface ListBuildLogsForRunVariables {
   buildJobId: string;
   runId: string;
   teamId: string;
+  limit?: number | null;
 }
 
 export interface ListEnvironmentVariablesForTeamData {
@@ -767,6 +777,8 @@ export interface ListMyTeamsData {
       members?: string[] | null;
       installationIds?: number[] | null;
       aiEnabled?: boolean | null;
+      githubApiBaseUrl?: string | null;
+      githubBaseUrl?: string | null;
       createdAt: TimestampString;
       updatedAt: TimestampString;
     } & Team_Key;
@@ -781,7 +793,6 @@ export interface ListSecretsForTeamData {
       id: string;
       name: string;
       teamId: string;
-      pathToSecret?: string | null;
       createdAt: TimestampString;
       updatedAt: TimestampString;
     } & Secret_Key)[];
@@ -1086,6 +1097,19 @@ export interface UpdateTeamAiEnabledData {
 export interface UpdateTeamAiEnabledVariables {
   teamId: string;
   aiEnabled: boolean;
+}
+
+export interface UpdateTeamGitHubSettingsData {
+  team_update?: {
+    id: string;
+  };
+}
+
+export interface UpdateTeamGitHubSettingsVariables {
+  teamId: string;
+  githubBaseUrl?: string | null;
+  githubApiBaseUrl?: string | null;
+  installationIds?: number[] | null;
 }
 
 export interface UpdateTeamNameData {
@@ -1489,6 +1513,11 @@ export function updateTeamAiEnabled(dc: DataConnect, vars: UpdateTeamAiEnabledVa
 /** Generated Node Admin SDK operation action function for the 'UpdateTeamAiEnabled' Mutation. Allow users to pass in custom DataConnect instances. */
 export function updateTeamAiEnabled(vars: UpdateTeamAiEnabledVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateTeamAiEnabledData>>;
 
+/** Generated Node Admin SDK operation action function for the 'UpdateTeamGitHubSettings' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateTeamGitHubSettings(dc: DataConnect, vars: UpdateTeamGitHubSettingsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateTeamGitHubSettingsData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateTeamGitHubSettings' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateTeamGitHubSettings(vars: UpdateTeamGitHubSettingsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateTeamGitHubSettingsData>>;
+
 /** Generated Node Admin SDK operation action function for the 'DeleteTeam' Mutation. Allow users to execute without passing in DataConnect. */
 export function deleteTeam(dc: DataConnect, vars: DeleteTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteTeamData>>;
 /** Generated Node Admin SDK operation action function for the 'DeleteTeam' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -1738,6 +1767,11 @@ export function findSecretByName(vars: FindSecretByNameVariables, options?: Oper
 export function getSecretForTeam(dc: DataConnect, vars: GetSecretForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetSecretForTeamData>>;
 /** Generated Node Admin SDK operation action function for the 'GetSecretForTeam' Query. Allow users to pass in custom DataConnect instances. */
 export function getSecretForTeam(vars: GetSecretForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetSecretForTeamData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetSecretPathForTeam' Query. Allow users to execute without passing in DataConnect. */
+export function getSecretPathForTeam(dc: DataConnect, vars: GetSecretPathForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetSecretPathForTeamData>>;
+/** Generated Node Admin SDK operation action function for the 'GetSecretPathForTeam' Query. Allow users to pass in custom DataConnect instances. */
+export function getSecretPathForTeam(vars: GetSecretPathForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetSecretPathForTeamData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListSecretsForTeam' Query. Allow users to execute without passing in DataConnect. */
 export function listSecretsForTeam(dc: DataConnect, vars: ListSecretsForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSecretsForTeamData>>;

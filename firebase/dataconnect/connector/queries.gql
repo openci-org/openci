@@ -68,6 +68,7 @@ query ListMyTeams
   @refresh(onMutationExecuted: { operation: "CreateTeamForCurrentUser", condition: "request.auth.uid == mutation.auth.uid" })
   @refresh(onMutationExecuted: { operation: "UpdateTeamName" })
   @refresh(onMutationExecuted: { operation: "UpdateTeamAiEnabled" })
+  @refresh(onMutationExecuted: { operation: "UpdateTeamGitHubSettings" })
   @refresh(onMutationExecuted: { operation: "DeleteTeam" }) {
   teamMembers(where: { userId: { eq_expr: "auth.uid" } }) {
     team {
@@ -76,6 +77,8 @@ query ListMyTeams
       members
       installationIds
       aiEnabled
+      githubApiBaseUrl
+      githubBaseUrl
       createdAt
       updatedAt
     }
@@ -202,7 +205,6 @@ query GetSecretsByNames($teamId: String!, $names: [String!]!) @auth(level: NO_AC
     id
     name
     teamId
-    pathToSecret
   }
 }
 
@@ -234,7 +236,6 @@ query FindSecretByName($teamId: String!, $name: String!) @auth(level: USER) {
     id
     name
     teamId
-    pathToSecret
   }
 }
 
@@ -244,6 +245,15 @@ query GetSecretForTeam($id: String!, $teamId: String!) @auth(level: USER) {
     @check(expr: "this != null", message: "You are not a member of this team") {
     teamId
   }
+  secret(id: $id) @check(expr: "this.teamId == vars.teamId", message: "Secret does not belong to this team") {
+    id
+    name
+    teamId
+  }
+}
+
+
+query GetSecretPathForTeam($id: String!, $teamId: String!) @auth(level: NO_ACCESS) {
   secret(id: $id) @check(expr: "this.teamId == vars.teamId", message: "Secret does not belong to this team") {
     id
     name
@@ -266,7 +276,6 @@ query ListSecretsForTeam($teamId: String!)
     id
     name
     teamId
-    pathToSecret
     createdAt
     updatedAt
   }
@@ -422,7 +431,6 @@ query GetBuildJob($id: String!) @auth(level: NO_ACCESS) {
     needs
     resolvedNeeds
     installationId
-    installationToken
     tokenExpiresAt
     checkRunId
     commitSha
@@ -474,7 +482,6 @@ query GetBuildJobForTeam($id: String!, $teamId: String!)
     needs
     resolvedNeeds
     installationId
-    installationToken
     tokenExpiresAt
     checkRunId
     commitSha
@@ -595,7 +602,7 @@ query ListWaitingBuildJobs($workflowRunId: String!) @auth(level: NO_ACCESS) {
 }
 
 
-query ListBuildLogsForRun($buildJobId: String!, $runId: String!, $teamId: String!)
+query ListBuildLogsForRun($buildJobId: String!, $runId: String!, $teamId: String!, $limit: Int = 1000)
   @auth(level: USER)
   @refresh(onMutationExecuted: { operation: "UpsertBuildLogFromFirestore", condition: "request.variables.buildJobId == mutation.variables.buildJobId && request.variables.runId == mutation.variables.runId" })
   @refresh(onMutationExecuted: { operation: "AppendBuildLogForWorker", condition: "request.variables.buildJobId == mutation.variables.buildJobId && request.variables.runId == mutation.variables.runId" }) {
@@ -610,7 +617,8 @@ query ListBuildLogsForRun($buildJobId: String!, $runId: String!, $teamId: String
         { buildRunId: { eq: $runId } }
       ]
     }
-    orderBy: [{ timestamp: ASC }]
+    orderBy: [{ timestamp: DESC }]
+    limit: $limit
   ) {
     id
     message

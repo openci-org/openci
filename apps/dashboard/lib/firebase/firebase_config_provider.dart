@@ -22,8 +22,7 @@ abstract class SelfHostedConfig with _$SelfHostedConfig {
     @Default('') String messagingSenderId,
     required String projectId,
     @Default('') String storageBucket,
-    @Default('') String cloudRunHash,
-    @Default('an') String cloudRunRegionCode,
+    @Default('') String dataConnectServiceId,
   }) = _SelfHostedConfig;
 
   factory SelfHostedConfig.fromJson(Map<String, dynamic> json) =>

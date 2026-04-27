@@ -22,16 +22,28 @@ export async function getGitHubBaseUrl(teamId?: string | null): Promise<string> 
 }
 
 export function getApiBaseUrlFromTeamData(
-  teamData?: { githubApiBaseUrl?: string | null } | null,
+  teamData?: { githubApiBaseUrl?: string | null; githubBaseUrl?: string | null } | null,
 ): string {
-  const apiBaseUrl = teamData?.githubApiBaseUrl;
-  if (typeof apiBaseUrl !== "string" || apiBaseUrl.length === 0) {
+  const apiBaseUrl =
+    typeof teamData?.githubApiBaseUrl === "string" && teamData.githubApiBaseUrl.trim().length > 0
+      ? teamData.githubApiBaseUrl
+      : teamData?.githubBaseUrl;
+  if (typeof apiBaseUrl !== "string" || apiBaseUrl.trim().length === 0) {
     return defaultGitHubApiBaseUrl;
   }
 
-  const normalized = apiBaseUrl.replace(/\/+$/u, "");
+  const normalized = apiBaseUrl.trim().replace(/\/+$/u, "");
+  if (normalized === defaultGitHubApiBaseUrl) {
+    return defaultGitHubApiBaseUrl;
+  }
+  if (normalized === defaultGitHubBaseUrl) {
+    return defaultGitHubApiBaseUrl;
+  }
   if (normalized === `${defaultGitHubApiBaseUrl}/graphql`) {
     return defaultGitHubApiBaseUrl;
+  }
+  if (normalized.endsWith("/api/v3")) {
+    return normalized;
   }
   if (normalized.endsWith("/api/graphql")) {
     return `${new URL(normalized).origin}/api/v3`;
@@ -39,7 +51,7 @@ export function getApiBaseUrlFromTeamData(
   if (normalized.endsWith("/graphql")) {
     return normalized.slice(0, -"/graphql".length);
   }
-  return normalized;
+  return `${normalized}/api/v3`;
 }
 
 export function getBaseUrlFromTeamData(

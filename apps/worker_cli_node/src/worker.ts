@@ -12,6 +12,7 @@ import { withInstallationToken } from "./github.js";
 import { flushLogs, logError, logInfo } from "./logger.js";
 import { runBuildJob } from "./runner.js";
 import type { WorkerConfig } from "./types.js";
+import { version } from "./version.js";
 
 export async function processOneJob(config: WorkerConfig): Promise<boolean> {
   const claimedJob = await claimNextJob();
@@ -91,6 +92,7 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
 
 export async function pollForJobs(config: WorkerConfig): Promise<void> {
   console.log(`Worker started. Worker ID: ${config.workerId}`);
+  console.log(`Worker version: ${version}`);
   console.log(
     `Platform: ${process.platform} (${process.platform === "linux" ? "ubuntu jobs" : "macos jobs"})`,
   );

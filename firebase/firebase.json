@@ -1,18 +1,6 @@
 {
   "functions": [
     {
-      "codebase": "default",
-      "source": "dart_functions",
-      "runtime": "dart3",
-      "ignore": [
-        ".dart_tool",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    },
-    {
       "codebase": "ts",
       "source": "ts_functions",
       "runtime": "nodejs22",
@@ -20,20 +8,9 @@
         "npm --prefix \"$RESOURCE_DIR\" install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
+      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"]
     }
   ],
-  "firestore": {
-    "database": "openci-enterprise",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
   "dataconnect": {
     "source": "dataconnect"
   },
@@ -59,10 +36,7 @@
   "hosting": {
     "public": "public",
     "cleanUrls": true,
-    "ignore": [
-      "firebase.json",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/node_modules/**"],
     "headers": [
       {
         "source": "/.well-known/apple-app-site-association",

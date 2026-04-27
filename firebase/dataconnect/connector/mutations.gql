@@ -309,6 +309,30 @@ mutation UpdateTeamAiEnabled($teamId: String!, $aiEnabled: Boolean!)
 }
 
 
+mutation UpdateTeamGitHubSettings(
+  $teamId: String!
+  $githubBaseUrl: String
+  $githubApiBaseUrl: String
+  $installationIds: [Int!]
+) @auth(level: USER) @transaction {
+  query @redact {
+    teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
+      @check(expr: "this != null", message: "You are not a member of this team") {
+      teamId
+    }
+  }
+  team_update(
+    id: $teamId
+    data: {
+      githubBaseUrl: $githubBaseUrl
+      githubApiBaseUrl: $githubApiBaseUrl
+      installationIds: $installationIds
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+
 mutation DeleteTeam($teamId: String!)
   @auth(level: USER) @transaction {
   query @redact {
@@ -691,7 +715,7 @@ mutation CreateBuildJob(
       needs: $needs
       resolvedNeeds: $resolvedNeeds
       installationId: $installationId
-      installationToken: null
+      installationToken: $installationToken
       tokenExpiresAt: $tokenExpiresAt
       checkRunId: $checkRunId
       commitSha: $commitSha
@@ -769,7 +793,7 @@ mutation UpsertBuildJobFromFirestore(
       needs: $needs
       resolvedNeeds: $resolvedNeeds
       installationId: $installationId
-      installationToken: null
+      installationToken: $installationToken
       tokenExpiresAt: $tokenExpiresAt
       checkRunId: $checkRunId
       commitSha: $commitSha

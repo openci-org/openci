@@ -42,7 +42,7 @@ final class CreateWorkflowFileNotifierProvider
 }
 
 String _$createWorkflowFileNotifierHash() =>
-    r'23cda3dc644c79708c8c39f4cf38043f3f74fc90';
+    r'a37541e5af6c77b164ef653e300ee00d46a5cca6';
 
 abstract class _$CreateWorkflowFileNotifier
     extends $Notifier<AsyncValue<void>> {

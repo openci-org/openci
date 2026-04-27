@@ -1,5 +1,7 @@
-import { updateCheckRunById } from "@openci/build-job-services";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+
+import { verifyBuildJobMembership } from "./auth";
+import { updateCheckRun } from "./services";
 
 interface CheckRunUpdateRequest {
   buildJobId: string;
@@ -32,7 +34,8 @@ export const checkRunUpdate = onCall<CheckRunUpdateRequest, Promise<{ success: t
       requireNonEmptyString(request.data?.runStatus, "runStatus"),
     );
     const conclusion = normalizeConclusion(request.data?.conclusion);
-    await updateCheckRunById(buildJobId, runStatus, conclusion);
+    const buildJob = await verifyBuildJobMembership(request.auth, buildJobId);
+    await updateCheckRun(buildJob, runStatus, conclusion);
     return { success: true };
   },
 );

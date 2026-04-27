@@ -1,10 +1,9 @@
 import 'dart:convert';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
-import 'package:dashboard/firebase/dart_function_urls.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
@@ -18,10 +17,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void _processInvitations() {
-  FirebaseFunctions.instance
-      .httpsCallableFromUrl(
-        dartFunctionUrl('acceptinvitations'),
-      )
+  firebaseFunctions
+      .httpsCallable('acceptInvitations')
       .call<void>()
       .then((_) {})
       .catchError((Object e) {
@@ -409,6 +406,7 @@ class AuthPage extends HookConsumerWidget {
                             ),
                             onPressed: () async {
                               await clearSelfHostedConfig();
+                              ref.invalidate(selfHostedConfigProvider);
                               configReloadKey.value++;
                               if (!context.mounted) return;
                               context.showSnackBarMessage(authT.resetSuccess);
@@ -494,8 +492,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
-    final cloudRunHashController = useTextEditingController();
-    final cloudRunRegionCodeController = useTextEditingController(text: 'an');
+    final dataConnectServiceIdController = useTextEditingController();
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
@@ -519,8 +516,9 @@ class FirebaseFormSheet extends HookConsumerWidget {
       messagingSenderIdController.text = config.messagingSenderId;
       projectIdController.text = config.projectId;
       storageBucketController.text = config.storageBucket;
-      cloudRunHashController.text = config.cloudRunHash;
-      cloudRunRegionCodeController.text = config.cloudRunRegionCode;
+      dataConnectServiceIdController.text = dataConnectServiceIdForConfig(
+        config,
+      );
     }
 
     Future<void> pickConfigFile() async {
@@ -630,8 +628,9 @@ class FirebaseFormSheet extends HookConsumerWidget {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.45),
+                          color: colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.45,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: colorScheme.outlineVariant,
@@ -690,6 +689,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                     await activateSelfHostedConfig(
                                       config.projectId,
                                     );
+                                    ref.invalidate(selfHostedConfigProvider);
                                     configReloadKey.value++;
                                     if (context.mounted) {
                                       context.showSnackBarMessage(
@@ -712,6 +712,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                     await deleteSelfHostedConfig(
                                       config.projectId,
                                     );
+                                    ref.invalidate(selfHostedConfigProvider);
                                     configReloadKey.value++;
                                   },
                                   icon: Icon(
@@ -825,16 +826,9 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    controller: cloudRunHashController,
+                    controller: dataConnectServiceIdController,
                     decoration: InputDecoration(
-                      labelText: formT.cloudRunHash,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: cloudRunRegionCodeController,
-                    decoration: InputDecoration(
-                      labelText: formT.cloudRunRegionCode,
+                      labelText: formT.dataConnectServiceId,
                     ),
                   ),
                 ],
@@ -865,11 +859,8 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             messagingSenderId: messagingSenderIdController.text,
                             projectId: projectIdController.text,
                             storageBucket: storageBucketController.text,
-                            cloudRunHash: cloudRunHashController.text,
-                            cloudRunRegionCode:
-                                cloudRunRegionCodeController.text.isNotEmpty
-                                ? cloudRunRegionCodeController.text
-                                : 'an',
+                            dataConnectServiceId:
+                                dataConnectServiceIdController.text,
                           );
                           await saveSelfHostedConfig(config);
                           ref.invalidate(selfHostedConfigProvider);

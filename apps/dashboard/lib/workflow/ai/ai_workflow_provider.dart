@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/firebase/dart_function_urls.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -91,13 +91,11 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
       final team = ref.read(teamStateProvider).value;
       if (team == null) return;
 
-      final functions = FirebaseFunctions.instance;
-      final result = await functions
-          .httpsCallableFromUrl(dartFunctionUrl('listdirectories'))
-          .call({
-            'teamId': team.id,
-            'repository': _repository,
-          });
+      final functions = firebaseFunctions;
+      final result = await functions.httpsCallable('listDirectories').call({
+        'teamId': team.id,
+        'repository': _repository,
+      });
 
       final data = result.data as Map<String, dynamic>;
       final directories = (data['directories'] as List<dynamic>)
@@ -125,7 +123,7 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
       final team = ref.read(teamStateProvider).value;
       if (team == null) throw StateError('Team not loaded');
 
-      final functions = FirebaseFunctions.instance;
+      final functions = firebaseFunctions;
 
       final messagesPayload = state.messages
           .map(
@@ -137,8 +135,8 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
           .toList();
 
       final result = await functions
-          .httpsCallableFromUrl(
-            dartFunctionUrl('generateaiworkflowresponse'),
+          .httpsCallable(
+            'generateAiWorkflowResponse',
             options: HttpsCallableOptions(timeout: const Duration(seconds: 60)),
           )
           .call({

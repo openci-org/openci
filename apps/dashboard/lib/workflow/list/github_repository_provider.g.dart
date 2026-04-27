@@ -68,7 +68,7 @@ final class GitHubRepositoriesProvider
 }
 
 String _$gitHubRepositoriesHash() =>
-    r'4c4b05b46c0d14c576da724e0097d474a9e5c0a8';
+    r'ec53b08bebccb3f6e5c5f0df4a944478d6d7efa5';
 
 @ProviderFor(gitHubBranches)
 final gitHubBranchesProvider = GitHubBranchesFamily._();
@@ -125,7 +125,7 @@ final class GitHubBranchesProvider
   }
 }
 
-String _$gitHubBranchesHash() => r'18f9ea22fb9999a4f169b37c99e702385b552131';
+String _$gitHubBranchesHash() => r'd556b48f60aa59be69c2bc0d9f12451030795c52';
 
 final class GitHubBranchesFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<String>>, String> {

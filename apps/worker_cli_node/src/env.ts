@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
 import { getEnvironmentVariables, getSecrets, updateEnvironmentVariable } from "./dataconnect.js";
@@ -52,11 +50,12 @@ export async function buildSecretVars(input: {
   buildJobId: string;
   runId: string;
 }): Promise<Record<string, string>> {
-  const { buildJob, serviceAccountPath, buildJobId, runId } = input;
-  const serviceAccountJson = JSON.stringify(JSON.parse(readFileSync(serviceAccountPath, "utf8")));
+  const { buildJob, buildJobId, runId } = input;
   const secrets: Record<string, string> = {
-    OPENCI_GCP_SA_JSON: serviceAccountJson,
-    ...(buildJob.installationToken ? { GITHUB_TOKEN: buildJob.installationToken } : {}),
+    ...(buildJob.installationToken ? { OPENCI_GITHUB_TOKEN: buildJob.installationToken } : {}),
+    ...(!buildJob.githubBaseUrl && buildJob.installationToken
+      ? { GITHUB_TOKEN: buildJob.installationToken }
+      : {}),
   };
 
   if (!buildJob.teamId) return secrets;

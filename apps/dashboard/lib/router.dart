@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
@@ -90,7 +91,13 @@ Page<void> _responsivePage({
 }) {
   // WidgetsBindingで画面幅を取得（BuildContext外で判定するため）
   final width =
-      WidgetsBinding.instance.platformDispatcher.views.first.physicalSize.width /
+      WidgetsBinding
+          .instance
+          .platformDispatcher
+          .views
+          .first
+          .physicalSize
+          .width /
       WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
 
   if (width > 800) {
@@ -121,20 +128,33 @@ class HomeRoutePage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.asData?.value;
+    final configAsync = ref.watch(selfHostedConfigProvider);
+    final configReadyForData = configAsync.maybeWhen(
+      data: (_) => true,
+      orElse: () => false,
+    );
 
     useEffect(() {
-      if (user != null) {
+      if (user != null && configReadyForData) {
         ref.read(notificationServiceProvider);
       }
       return null;
-    }, [user?.uid]);
+    }, [user?.uid, configReadyForData]);
 
     return authState.when(
       data: (user) {
         if (user == null) {
           return const AuthPage();
         }
-        return const WorkflowListPage();
+        return configAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          ),
+          error: asyncErrorWidget,
+          data: (_) {
+            return const WorkflowListPage();
+          },
+        );
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),

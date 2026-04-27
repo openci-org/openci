@@ -56,7 +56,6 @@ class ListSecretsForTeamSecrets {
   final String id;
   final String name;
   final String teamId;
-  final String? pathToSecret;
   final Timestamp createdAt;
   final Timestamp updatedAt;
   ListSecretsForTeamSecrets.fromJson(dynamic json):
@@ -64,7 +63,6 @@ class ListSecretsForTeamSecrets {
   id = nativeFromJson<String>(json['id']),
   name = nativeFromJson<String>(json['name']),
   teamId = nativeFromJson<String>(json['teamId']),
-  pathToSecret = json['pathToSecret'] == null ? null : nativeFromJson<String>(json['pathToSecret']),
   createdAt = Timestamp.fromJson(json['createdAt']),
   updatedAt = Timestamp.fromJson(json['updatedAt']);
   @override
@@ -80,13 +78,12 @@ class ListSecretsForTeamSecrets {
     return id == otherTyped.id && 
     name == otherTyped.name && 
     teamId == otherTyped.teamId && 
-    pathToSecret == otherTyped.pathToSecret && 
     createdAt == otherTyped.createdAt && 
     updatedAt == otherTyped.updatedAt;
     
   }
   @override
-  int get hashCode => Object.hashAll([id.hashCode, name.hashCode, teamId.hashCode, pathToSecret.hashCode, createdAt.hashCode, updatedAt.hashCode]);
+  int get hashCode => Object.hashAll([id.hashCode, name.hashCode, teamId.hashCode, createdAt.hashCode, updatedAt.hashCode]);
   
 
   Map<String, dynamic> toJson() {
@@ -94,9 +91,6 @@ class ListSecretsForTeamSecrets {
     json['id'] = nativeToJson<String>(id);
     json['name'] = nativeToJson<String>(name);
     json['teamId'] = nativeToJson<String>(teamId);
-    if (pathToSecret != null) {
-      json['pathToSecret'] = nativeToJson<String?>(pathToSecret);
-    }
     json['createdAt'] = createdAt.toJson();
     json['updatedAt'] = updatedAt.toJson();
     return json;
@@ -106,7 +100,6 @@ class ListSecretsForTeamSecrets {
     required this.id,
     required this.name,
     required this.teamId,
-    this.pathToSecret,
     required this.createdAt,
     required this.updatedAt,
   });

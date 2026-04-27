@@ -166,9 +166,50 @@ describe("listRepositories", () => {
       apiBaseUrl: "https://github.example.com/api/v3",
     });
     expect(mockGithubGet).toHaveBeenCalledWith("/installation/repositories", "installation-token", {
-      queryParameters: { per_page: 100 },
+      queryParameters: { per_page: 100, page: 1 },
       apiBaseUrl: "https://github.example.com/api/v3",
     });
+  });
+
+  it("lists repositories across all pages", async () => {
+    mockGithubGet
+      .mockResolvedValueOnce({
+        repositories: Array.from({ length: 100 }, (_, index) => ({
+          full_name: `openci/repo-${index}`,
+          name: `repo-${index}`,
+          owner: { login: "openci" },
+          private: false,
+          default_branch: "main",
+        })),
+      })
+      .mockResolvedValueOnce({
+        repositories: [
+          {
+            full_name: "openci/repo-100",
+            name: "repo-100",
+            owner: { login: "openci" },
+            private: false,
+            default_branch: "main",
+          },
+        ],
+      });
+
+    const result = await wrappedListRepositories({
+      data: { teamId: "team-1" },
+      auth: makeAuth(),
+    });
+
+    expect(result.repositories).toHaveLength(101);
+    expect(result.repositories.at(-1)?.fullName).toBe("openci/repo-100");
+    expect(mockGithubGet).toHaveBeenNthCalledWith(
+      2,
+      "/installation/repositories",
+      "installation-token",
+      {
+        queryParameters: { per_page: 100, page: 2 },
+        apiBaseUrl: "https://github.example.com/api/v3",
+      },
+    );
   });
 });
 
