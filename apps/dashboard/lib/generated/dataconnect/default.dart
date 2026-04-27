@@ -1,4 +1,5 @@
 library openci_dataconnect;
+
 import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
@@ -183,52 +184,96 @@ BigInt bigIntFromJson(dynamic value) {
   return BigInt.parse(value);
 }
 
+part 'list_team_members.dart';
 
-  enum InvitationStatus {
-    
-      PENDING,
-    
-      ACCEPTED,
-    
-      EXPIRED,
-    
-  }
-  
-  String invitationStatusSerializer(EnumValue<InvitationStatus> e) {
-    return e.stringValue;
-  }
-  EnumValue<InvitationStatus> invitationStatusDeserializer(dynamic data) {
-    switch (data) {
-      
-      case 'PENDING':
-        return const Known(InvitationStatus.PENDING);
-      
-      case 'ACCEPTED':
-        return const Known(InvitationStatus.ACCEPTED);
-      
-      case 'EXPIRED':
-        return const Known(InvitationStatus.EXPIRED);
-      
-      default:
-        return Unknown(data);
-    }
-  }
-  
+part 'list_team_notification_users.dart';
 
+part 'get_team_by_id.dart';
 
+part 'find_team_by_installation.dart';
+
+part 'get_secrets_by_names.dart';
+
+part 'get_secrets_by_names_for_team.dart';
+
+part 'find_secret_by_name.dart';
+
+part 'get_secret_for_team.dart';
+
+part 'list_secrets_for_team.dart';
+
+part 'list_environment_variables_for_team.dart';
+
+part 'list_worker_environment_variables.dart';
+
+part 'list_worker_secrets.dart';
+
+part 'list_workflows_for_team.dart';
+
+part 'get_workflow.dart';
+
+part 'get_workflow_file.dart';
+
+part 'list_workflow_files_for_branch.dart';
+
+part 'get_build_job.dart';
+
+part 'get_build_job_for_team.dart';
+
+part 'list_build_jobs_for_team.dart';
+
+part 'list_build_jobs_by_workflow_run.dart';
+
+part 'list_waiting_build_jobs.dart';
+
+part 'list_build_logs_for_run.dart';
+
+part 'list_latest_build_logs.dart';
+
+String bigIntToJson(BigInt value) {
+  return value.toString();
+}
+
+BigInt bigIntFromJson(dynamic value) {
+  return BigInt.parse(value);
+}
+
+enum InvitationStatus {
+  PENDING,
+
+  ACCEPTED,
+
+  EXPIRED,
+}
+
+String invitationStatusSerializer(EnumValue<InvitationStatus> e) {
+  return e.stringValue;
+}
+
+EnumValue<InvitationStatus> invitationStatusDeserializer(dynamic data) {
+  switch (data) {
+    case 'PENDING':
+      return const Known(InvitationStatus.PENDING);
+
+    case 'ACCEPTED':
+      return const Known(InvitationStatus.ACCEPTED);
+
+    case 'EXPIRED':
+      return const Known(InvitationStatus.EXPIRED);
+
+    default:
+      return Unknown(data);
+  }
+}
 
 String enumSerializer(Enum e) {
   return e.name;
 }
 
-
-
 /// A sealed class representing either a known enum value or an unknown string value.
 @immutable
 sealed class EnumValue<T extends Enum> {
   const EnumValue();
-
-  
 
   /// The string representation of the value.
   String get stringValue;
@@ -253,6 +298,7 @@ class Known<T extends Enum> extends EnumValue<T> {
     return "Known($stringValue)";
   }
 }
+
 /// Represents an unknown or unrecognized enum value.
 class Unknown extends EnumValue<Never> {
   /// The raw string value that couldn't be mapped to a known enum.
@@ -427,25 +473,49 @@ class DefaultConnector {
   CreateInvitationVariablesBuilder createInvitation ({required String email, required String teamId, required String teamNameSnapshot, required String token, required Timestamp expiresAt, }) {
     return CreateInvitationVariablesBuilder(dataConnect, email: email,teamId: teamId,teamNameSnapshot: teamNameSnapshot,token: token,expiresAt: expiresAt,);
   }
-  
-  
-  ReinviteInvitationVariablesBuilder reinviteInvitation ({required String id, required String teamId, required String token, required Timestamp expiresAt, }) {
-    return ReinviteInvitationVariablesBuilder(dataConnect, id: id,teamId: teamId,token: token,expiresAt: expiresAt,);
+
+  ReinviteInvitationVariablesBuilder reinviteInvitation({
+    required String id,
+    required String teamId,
+    required String token,
+    required Timestamp expiresAt,
+  }) {
+    return ReinviteInvitationVariablesBuilder(
+      dataConnect,
+      id: id,
+      teamId: teamId,
+      token: token,
+      expiresAt: expiresAt,
+    );
   }
-  
-  
-  AcceptInvitationVariablesBuilder acceptInvitation ({required String id, }) {
-    return AcceptInvitationVariablesBuilder(dataConnect, id: id,);
+
+  AcceptInvitationVariablesBuilder acceptInvitation({
+    required String id,
+  }) {
+    return AcceptInvitationVariablesBuilder(
+      dataConnect,
+      id: id,
+    );
   }
-  
-  
-  ExpireInvitationVariablesBuilder expireInvitation ({required String id, }) {
-    return ExpireInvitationVariablesBuilder(dataConnect, id: id,);
+
+  ExpireInvitationVariablesBuilder expireInvitation({
+    required String id,
+  }) {
+    return ExpireInvitationVariablesBuilder(
+      dataConnect,
+      id: id,
+    );
   }
-  
-  
-  AcceptInvitationAndJoinTeamVariablesBuilder acceptInvitationAndJoinTeam ({required String id, required String teamId, }) {
-    return AcceptInvitationAndJoinTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
+
+  AcceptInvitationAndJoinTeamVariablesBuilder acceptInvitationAndJoinTeam({
+    required String id,
+    required String teamId,
+  }) {
+    return AcceptInvitationAndJoinTeamVariablesBuilder(
+      dataConnect,
+      id: id,
+      teamId: teamId,
+    );
   }
   
   
@@ -692,7 +762,6 @@ class DefaultConnector {
   UpdateBuildJobFailureSummaryVariablesBuilder updateBuildJobFailureSummary ({required String id, required String failureSummaryStatus, }) {
     return UpdateBuildJobFailureSummaryVariablesBuilder(dataConnect, id: id,failureSummaryStatus: failureSummaryStatus,);
   }
-  
 
   static ConnectorConfig connectorConfig = ConnectorConfig(
     'asia-northeast1',
@@ -702,12 +771,13 @@ class DefaultConnector {
 
   DefaultConnector({required this.dataConnect});
   static DefaultConnector get instance {
-    
     return DefaultConnector(
-        dataConnect: FirebaseDataConnect.instanceFor(
-            connectorConfig: connectorConfig,
-            
-            sdkType: CallerSDKType.generated));
+      dataConnect: FirebaseDataConnect.instanceFor(
+        connectorConfig: connectorConfig,
+
+        sdkType: CallerSDKType.generated,
+      ),
+    );
   }
 
   FirebaseDataConnect dataConnect;
