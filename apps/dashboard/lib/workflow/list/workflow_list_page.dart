@@ -125,7 +125,7 @@ class WorkflowListPage extends HookConsumerWidget {
         }
 
         final tabChildren = [
-          buildRepoRequiredTab(const LogsBody()),
+          const LogsBody(),
           const StoreReleaseBody(),
           buildRepoRequiredTab(
             _WorkflowBody(
@@ -323,68 +323,16 @@ class WorkflowListPage extends HookConsumerWidget {
                     ],
                   )
                 : null,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.of(context).divider,
-                    ),
-                  ),
-                ),
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List.generate(4, (index) {
-                      final labels = [
-                        wfT.tabRuns,
-                        t.storeRelease.title,
-                        wfT.tabWorkflows,
-                        t.variables.title,
-                      ];
-                      final isSelected = tabController.index == index;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 2),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () => tabController.animateTo(index),
-                            hoverColor: AppColors.of(context).borderSubtle,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              curve: Curves.easeOut,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 7,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.of(context).border
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                labels[index],
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected
-                                      ? AppColors.of(context).textPrimary
-                                      : AppColors.of(context).textTertiary,
-                                  letterSpacing: -0.1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
+            bottom: TabBar(
+              controller: tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              tabs: [
+                Tab(text: wfT.tabRuns),
+                Tab(text: t.storeRelease.title),
+                Tab(text: wfT.tabWorkflows),
+                Tab(text: t.variables.title),
+              ],
             ),
             actions: [
               Consumer(

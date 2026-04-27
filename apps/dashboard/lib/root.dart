@@ -3,6 +3,7 @@ import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/theme/theme_provider.dart';
+import 'package:dashboard/themes/tab_bar_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -166,23 +167,7 @@ ThemeData _buildTheme(Brightness brightness) {
         ),
       ),
     ),
-    tabBarTheme: TabBarThemeData(
-      labelStyle: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        letterSpacing: -0.1,
-      ),
-      unselectedLabelStyle: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: colors.textTertiary,
-      ),
-      indicatorSize: TabBarIndicatorSize.tab,
-      dividerColor: Colors.transparent,
-      indicatorColor: Colors.transparent,
-      labelColor: colors.textPrimary,
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-    ),
+    tabBarTheme: tabBarThemeData,
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: isDark ? colors.surface : colors.scaffold,
       shape: const RoundedRectangleBorder(
