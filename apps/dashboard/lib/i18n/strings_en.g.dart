@@ -1112,6 +1112,9 @@ class TranslationsAuthFirebaseFormEn {
 	/// en: 'Storage Bucket'
 	String get storageBucket => 'Storage Bucket';
 
+	/// en: 'Data Connect Service ID'
+	String get dataConnectServiceId => 'Data Connect Service ID';
+
 	/// en: 'Save configuration'
 	String get pickConfig => 'Save configuration';
 
@@ -1669,6 +1672,7 @@ extension on Translations {
 			'auth.firebaseForm.messagingSenderId' => 'Messaging Sender ID',
 			'auth.firebaseForm.projectId' => 'Project ID',
 			'auth.firebaseForm.storageBucket' => 'Storage Bucket',
+			'auth.firebaseForm.dataConnectServiceId' => 'Data Connect Service ID',
 			'auth.firebaseForm.pickConfig' => 'Save configuration',
 			'auth.firebaseForm.configSaved' => 'Configuration saved. Please restart the app to apply.',
 			'auth.firebaseForm.configActive' => 'Custom Firebase project is configured. Restart to apply.',

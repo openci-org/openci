@@ -4,6 +4,7 @@ import "./dataConnect";
 setGlobalOptions({
   region: "asia-northeast1",
   maxInstances: 10,
+  secrets: ["GITHUB_APP_ID", "GITHUB_PRIVATE_KEY", "GITHUB_WEBHOOK_SECRET"],
 });
 
 export { acceptInvitation } from "./invitation/acceptInvitation";
@@ -17,7 +18,7 @@ export {
   syncWorkflowFiles,
 } from "./github/repositories";
 export { searchGitHubActions } from "./github/actions";
-export { githubSetup } from "./github/setup";
+export { createGitHubSetupUrl, githubSetup } from "./github/setup";
 export { githubWebhook } from "./github/webhook";
 export {
   ascListApps,

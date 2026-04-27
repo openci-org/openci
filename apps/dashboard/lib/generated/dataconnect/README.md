@@ -757,6 +757,60 @@ ref.subscribe(...);
 ```
 
 
+### GetSecretPathForTeam
+#### Required Arguments
+```dart
+String id = ...;
+String teamId = ...;
+DefaultConnector.instance.getSecretPathForTeam(
+  id: id,
+  teamId: teamId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetSecretPathForTeamData, GetSecretPathForTeamVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await DefaultConnector.instance.getSecretPathForTeam(
+  id: id,
+  teamId: teamId,
+);
+GetSecretPathForTeamData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String id = ...;
+String teamId = ...;
+
+final ref = DefaultConnector.instance.getSecretPathForTeam(
+  id: id,
+  teamId: teamId,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
 ### ListSecretsForTeam
 #### Required Arguments
 ```dart
@@ -1432,7 +1486,27 @@ DefaultConnector.instance.listBuildLogsForRun(
 ).execute();
 ```
 
+#### Optional Arguments
+We return a builder for each query. For ListBuildLogsForRun, we created `ListBuildLogsForRunBuilder`. For queries and mutations with optional parameters, we return a builder class.
+The builder pattern allows Data Connect to distinguish between fields that haven't been set and fields that have been set to null. A field can be set by calling its respective setter method like below:
+```dart
+class ListBuildLogsForRunVariablesBuilder {
+  ...
+   ListBuildLogsForRunVariablesBuilder limit(int? t) {
+   _limit.value = t;
+   return this;
+  }
 
+  ...
+}
+DefaultConnector.instance.listBuildLogsForRun(
+  buildJobId: buildJobId,
+  runId: runId,
+  teamId: teamId,
+)
+.limit(limit)
+.execute();
+```
 
 #### Return Type
 `execute()` returns a `QueryResult<ListBuildLogsForRunData, ListBuildLogsForRunVariables>`
@@ -2481,6 +2555,76 @@ bool aiEnabled = ...;
 final ref = DefaultConnector.instance.updateTeamAiEnabled(
   teamId: teamId,
   aiEnabled: aiEnabled,
+).ref();
+ref.execute();
+```
+
+
+### UpdateTeamGitHubSettings
+#### Required Arguments
+```dart
+String teamId = ...;
+DefaultConnector.instance.updateTeamGitHubSettings(
+  teamId: teamId,
+).execute();
+```
+
+#### Optional Arguments
+We return a builder for each query. For UpdateTeamGitHubSettings, we created `UpdateTeamGitHubSettingsBuilder`. For queries and mutations with optional parameters, we return a builder class.
+The builder pattern allows Data Connect to distinguish between fields that haven't been set and fields that have been set to null. A field can be set by calling its respective setter method like below:
+```dart
+class UpdateTeamGitHubSettingsVariablesBuilder {
+  ...
+   UpdateTeamGitHubSettingsVariablesBuilder githubBaseUrl(String? t) {
+   _githubBaseUrl.value = t;
+   return this;
+  }
+  UpdateTeamGitHubSettingsVariablesBuilder githubApiBaseUrl(String? t) {
+   _githubApiBaseUrl.value = t;
+   return this;
+  }
+  UpdateTeamGitHubSettingsVariablesBuilder installationIds(List<int>? t) {
+   _installationIds.value = t;
+   return this;
+  }
+
+  ...
+}
+DefaultConnector.instance.updateTeamGitHubSettings(
+  teamId: teamId,
+)
+.githubBaseUrl(githubBaseUrl)
+.githubApiBaseUrl(githubApiBaseUrl)
+.installationIds(installationIds)
+.execute();
+```
+
+#### Return Type
+`execute()` returns a `OperationResult<UpdateTeamGitHubSettingsData, UpdateTeamGitHubSettingsVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await DefaultConnector.instance.updateTeamGitHubSettings(
+  teamId: teamId,
+);
+UpdateTeamGitHubSettingsData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+
+final ref = DefaultConnector.instance.updateTeamGitHubSettings(
+  teamId: teamId,
 ).ref();
 ref.execute();
 ```

@@ -29,7 +29,6 @@ class SecretManager extends _$SecretManager {
                   id: secret.id,
                   name: secret.name,
                   teamId: secret.teamId,
-                  pathToSecret: secret.pathToSecret,
                   createdAt: dateTimeFromDataConnect(secret.createdAt),
                   updatedAt: dateTimeFromDataConnect(secret.updatedAt),
                 ),
@@ -107,7 +106,6 @@ abstract class Secret with _$Secret {
     required String id,
     required String name,
     required String teamId,
-    String? pathToSecret,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Secret;

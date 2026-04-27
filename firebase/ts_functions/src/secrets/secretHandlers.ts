@@ -7,7 +7,7 @@ import {
   createSecretMetadata,
   deleteSecretMetadata,
   findSecretByName,
-  getSecretForTeam as getSecretForTeamOperation,
+  getSecretPathForTeam,
   listWorkflowsForTeam,
   updateSecretMetadata,
   updateWorkflowSecretKeys,
@@ -84,7 +84,7 @@ async function getSecretForTeam(
     pathToSecret?: string | null;
   };
 }> {
-  const result = await getSecretForTeamOperation({ id: documentId, teamId });
+  const result = await getSecretPathForTeam({ id: documentId, teamId });
   const secret = result.data.secret;
   if (!secret) {
     throw new HttpsError("not-found", "Secret not found");

@@ -492,6 +492,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
+    final dataConnectServiceIdController = useTextEditingController();
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
@@ -515,6 +516,10 @@ class FirebaseFormSheet extends HookConsumerWidget {
       messagingSenderIdController.text = config.messagingSenderId;
       projectIdController.text = config.projectId;
       storageBucketController.text = config.storageBucket;
+      dataConnectServiceIdController.text =
+          config.dataConnectServiceId.trim().isNotEmpty
+          ? config.dataConnectServiceId
+          : '${config.projectId}-service';
     }
 
     Future<void> pickConfigFile() async {
@@ -820,6 +825,13 @@ class FirebaseFormSheet extends HookConsumerWidget {
                       labelText: formT.storageBucket,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: dataConnectServiceIdController,
+                    decoration: InputDecoration(
+                      labelText: formT.dataConnectServiceId,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -848,6 +860,8 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             messagingSenderId: messagingSenderIdController.text,
                             projectId: projectIdController.text,
                             storageBucket: storageBucketController.text,
+                            dataConnectServiceId:
+                                dataConnectServiceIdController.text,
                           );
                           await saveSelfHostedConfig(config);
                           ref.invalidate(selfHostedConfigProvider);

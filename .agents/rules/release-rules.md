@@ -26,7 +26,7 @@ Release notes MUST include a ## What's New section with a bulleted list of chang
 
 ## Tag Naming
 
-- Worker CLI: worker-v<version> (e.g., worker-v0.9.9) — triggers OpenCI publish to pub.dev
+- Worker CLI: worker-node-v<version> (e.g., worker-node-v0.1.14) — npm package release marker
 - Shared Package: shared-v<version> (e.g., shared-v0.1.1) — triggers OpenCI publish to pub.dev
 - Dashboard: dashboard/v<version> (e.g., dashboard/v1.5.0)
 - Web: web/v<version> (e.g., web/v0.4.0)
@@ -34,10 +34,9 @@ Release notes MUST include a ## What's New section with a bulleted list of chang
 
 ## Worker CLI Release Checklist
 
-1. Update version in apps/openci_worker_cli/pubspec.yaml
-2. Update version constant in apps/openci_worker_cli/lib/constants.dart
-3. Update CHANGELOG.md
-4. Run dart analyze on the worker CLI
-5. Commit and push to develop
-6. Tag with `worker-vX.Y.Z` and push — OpenCI auto-publishes to pub.dev
-7. (Optional) Create GitHub Release for changelog visibility
+1. Update version in `apps/worker_cli_node/package.json` and `apps/worker_cli_node/package-lock.json` (prefer `npm version X.Y.Z --no-git-tag-version` from `apps/worker_cli_node`).
+2. Run `npm run check`, `npm run build`, and `npm run pack:dry-run` in `apps/worker_cli_node`.
+3. Commit and push to develop.
+4. Publish from `apps/worker_cli_node` with `npm publish`.
+5. Tag with `worker-node-vX.Y.Z` and push for release traceability.
+6. (Optional) Create GitHub Release for changelog visibility.

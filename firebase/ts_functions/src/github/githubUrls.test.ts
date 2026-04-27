@@ -23,6 +23,18 @@ describe("GitHub URL helpers", () => {
     );
   });
 
+  it("derives enterprise API URLs from web base URLs", () => {
+    expect(getApiBaseUrlFromTeamData({ githubBaseUrl: "https://github.example.com" })).toBe(
+      "https://github.example.com/api/v3",
+    );
+    expect(
+      getApiBaseUrlFromTeamData({ githubApiBaseUrl: " https://github.example.com/ " }),
+    ).toBe("https://github.example.com/api/v3");
+    expect(getApiBaseUrlFromTeamData({ githubApiBaseUrl: "https://github.com" })).toBe(
+      defaultGitHubApiBaseUrl,
+    );
+  });
+
   it("normalizes GraphQL endpoint values to REST API base URLs", () => {
     expect(getApiBaseUrlFromTeamData({ githubApiBaseUrl: "https://api.github.com/graphql" })).toBe(
       defaultGitHubApiBaseUrl,

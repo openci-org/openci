@@ -1,6 +1,6 @@
 {
   "name": "openci-worker-cli",
-  "version": "0.1.12",
+  "version": "0.1.15",
   "description": "OpenCI Worker CLI",
   "license": "Apache-2.0",
   "repository": {
@@ -9,20 +9,20 @@
     "directory": "apps/worker_cli_node"
   },
   "bin": {
-    "openci_worker": "dist/index.js"
+    "openci_worker": "dist/index.cjs"
   },
   "files": [
     "dist",
     "README.md"
   ],
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && node scripts/build.mjs",
     "check": "tsc --noEmit",
     "dev": "tsx src/index.ts",
     "fmt": "vp fmt",
@@ -35,22 +35,19 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
-    "@openci/build-job-services": "file:../../packages/build_job_services",
-    "@openci/dataconnect-admin": "file:../../firebase/ts_functions/src/generated/dataconnect",
     "@sentry/node": "^10.29.0",
     "firebase-admin": "^13.8.0",
     "google-auth-library": "^10.5.0"
   },
   "devDependencies": {
+    "@openci/build-job-services": "file:../../packages/build_job_services",
+    "@openci/dataconnect-admin": "file:../../firebase/ts_functions/src/generated/dataconnect",
     "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
     "typescript": "^6.0.3",
     "vite-plus": "^0.1.19",
     "vitest": "^4.1.5"
   },
-  "bundledDependencies": [
-    "@openci/build-job-services",
-    "@openci/dataconnect-admin"
-  ],
   "engines": {
     "node": "22"
   },

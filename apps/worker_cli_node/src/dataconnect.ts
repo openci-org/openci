@@ -4,6 +4,7 @@ import {
   appendBuildLogForWorker,
   claimQueuedBuildJob,
   completeBuildJobForWorker,
+  connectorConfig,
   createBuildRunForWorker,
   getBuildJob,
   listWorkerEnvironmentVariables,
@@ -12,18 +13,42 @@ import {
   updateBuildRunStatusForWorker,
   updateEnvironmentVariableValueForWorker,
 } from "@openci/dataconnect-admin";
+import { configureDataConnect as configureBuildJobServicesDataConnect } from "@openci/build-job-services";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 
 import type { BuildJob } from "./types.js";
 
-export function initFirebase(serviceAccountPath: string): void {
+function deriveServiceId(projectId: string): string | undefined {
+  if (projectId.startsWith("openci-dmis-")) return `${projectId}-service`;
+  return undefined;
+}
+
+export function initFirebase(
+  serviceAccountPath: string,
+  options: { dataConnectServiceId?: string; dataConnectLocation?: string } = {},
+): void {
   if (getApps().length > 0) return;
   const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as Parameters<
     typeof cert
-  >[0];
+  >[0] & { project_id?: string };
+  const dataConnectServiceId =
+    options.dataConnectServiceId ??
+    process.env.OPENCI_DATACONNECT_SERVICE_ID ??
+    (serviceAccount.project_id ? deriveServiceId(serviceAccount.project_id) : undefined);
+  if (dataConnectServiceId) connectorConfig.serviceId = dataConnectServiceId;
+  connectorConfig.location =
+    options.dataConnectLocation ?? process.env.OPENCI_DATACONNECT_LOCATION ?? connectorConfig.location;
+  configureBuildJobServicesDataConnect({
+    serviceId: connectorConfig.serviceId,
+    location: connectorConfig.location,
+  });
+
   initializeApp({
     credential: cert(serviceAccount),
   });
+  console.log(
+    `Data Connect: ${connectorConfig.serviceId}/${connectorConfig.connector} (${connectorConfig.location})`,
+  );
 }
 
 function normalizeJob(job: unknown): BuildJob | null {

@@ -25,21 +25,16 @@ Release notes MUST include a ## What's New section with a bulleted list of chang
 
 ## Tag Naming
 
-- Worker CLI: v<version> (e.g., v0.7.16)
+- Worker CLI: worker-node-v<version> (e.g., worker-node-v0.1.14)
 - Dashboard: dashboard/v<version> (e.g., dashboard/v1.5.0)
 - Web: web/v<version> (e.g., web/v0.4.0)
 - Firebase Functions: functions/v<version> (e.g., functions/v1.0.0)
 
 ## Worker CLI Release Checklist
 
-1. Update version in apps/openci_worker_cli/pubspec.yaml
-2. Update version constant in apps/openci_worker_cli/lib/constants.dart
-3. Run flutter analyze on the worker CLI
-4. Commit and push to develop
-5. Build binary: dart compile exe bin/openci_worker_cli.dart -o /tmp/openci-worker
-6. Archive: tar czf /tmp/openci-worker-v<version>-darwin-arm64.tar.gz -C /tmp openci-worker
-7. Get sha256: shasum -a 256 /tmp/openci-worker-v<version>-darwin-arm64.tar.gz
-8. Create GitHub release with the binary attached
-9. Update homebrew-tap/Formula/openci-worker.rb (version, url, sha256)
-10. Commit and push homebrew-tap to main
-11. Update SQL Connect worker config: set latestVersion to the new version
+1. Update version in `apps/worker_cli_node/package.json` and `apps/worker_cli_node/package-lock.json` (prefer `npm version X.Y.Z --no-git-tag-version` from `apps/worker_cli_node`).
+2. Run `npm run check`, `npm run build`, and `npm run pack:dry-run` in `apps/worker_cli_node`.
+3. Commit and push to develop.
+4. Publish from `apps/worker_cli_node` with `npm publish`.
+5. Tag with `worker-node-vX.Y.Z` and push for release traceability.
+6. (Optional) Create GitHub Release for changelog visibility.

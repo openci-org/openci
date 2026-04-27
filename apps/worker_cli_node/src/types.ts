@@ -31,6 +31,8 @@ export interface WorkerConfig {
   serviceAccountPath: string;
   workerId: string;
   projectId: string;
+  dataConnectServiceId?: string;
+  dataConnectLocation?: string;
   pollIntervalMs: number;
   once: boolean;
 }

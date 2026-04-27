@@ -17,6 +17,8 @@ _Team _$TeamFromJson(Map<String, dynamic> json) => _Team(
       const [],
   runNumber: (json['runNumber'] as num?)?.toInt() ?? 1,
   aiEnabled: json['aiEnabled'] as bool? ?? true,
+  githubBaseUrl: json['githubBaseUrl'] as String?,
+  githubApiBaseUrl: json['githubApiBaseUrl'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
 );
@@ -28,6 +30,8 @@ Map<String, dynamic> _$TeamToJson(_Team instance) => <String, dynamic>{
   'installationIds': instance.installationIds,
   'runNumber': instance.runNumber,
   'aiEnabled': instance.aiEnabled,
+  'githubBaseUrl': instance.githubBaseUrl,
+  'githubApiBaseUrl': instance.githubApiBaseUrl,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
 };
@@ -106,7 +110,7 @@ final class TeamListProvider
   TeamList create() => TeamList();
 }
 
-String _$teamListHash() => r'b4db49736ee1b7240a0bccd04f13d01e77331995';
+String _$teamListHash() => r'ee0b8fb49aaf11281b82142409de8d379e25a104';
 
 abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();

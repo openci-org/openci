@@ -1,26 +1,15 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
-
 import 'package:dashboard/build_logs/synced_spinner.dart';
-
 import 'package:dashboard/extensions/date_time_extensions.dart';
-
 import 'package:dashboard/i18n/strings.g.dart';
-
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'package:go_router/go_router.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:skeletonizer/skeletonizer.dart';
-
 
 // ── Curated status palette ──────────────────────────────────────────────────
 
@@ -187,7 +176,8 @@ class BuildJobCard extends HookConsumerWidget {
                             child: workflowNameAsync.when(
                               data: (name) {
                                 final title =
-                                    name ?? '${buildJob.owner}/${buildJob.repo}';
+                                    name ??
+                                    '${buildJob.owner}/${buildJob.repo}';
                                 final displayTitle = buildJob.jobKey != null
                                     ? '$title (${buildJob.jobKey})'
                                     : title;
@@ -288,6 +278,7 @@ class BuildJobCard extends HookConsumerWidget {
                           }
                         } catch (e) {
                           if (context.mounted) {
+                            debugPrint('failed to retry: $e');
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -353,7 +344,9 @@ class BuildJobCard extends HookConsumerWidget {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(t.buildLogs.detail.buildCancelled),
+                                content: Text(
+                                  t.buildLogs.detail.buildCancelled,
+                                ),
                               ),
                             );
                           }

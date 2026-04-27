@@ -10,7 +10,6 @@ _Secret _$SecretFromJson(Map<String, dynamic> json) => _Secret(
   id: json['id'] as String,
   name: json['name'] as String,
   teamId: json['teamId'] as String,
-  pathToSecret: json['pathToSecret'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
 );
@@ -19,7 +18,6 @@ Map<String, dynamic> _$SecretToJson(_Secret instance) => <String, dynamic>{
   'id': instance.id,
   'name': instance.name,
   'teamId': instance.teamId,
-  'pathToSecret': instance.pathToSecret,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
 };
@@ -55,7 +53,7 @@ final class SecretManagerProvider
   SecretManager create() => SecretManager();
 }
 
-String _$secretManagerHash() => r'3554ec90d6ba676d2aa896ab34a4b8f946e148ac';
+String _$secretManagerHash() => r'84828a08e45c03346bc6d79856d170b172f8aeb3';
 
 abstract class _$SecretManager extends $StreamNotifier<List<Secret>> {
   Stream<List<Secret>> build();

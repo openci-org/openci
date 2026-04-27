@@ -11,35 +11,54 @@ npm install -g openci-worker-cli
 openci_worker --service-account /path/to/service-account.json --worker-id worker-1
 ```
 
+By default, the worker derives the SQL Connect service ID from the Firebase
+service account `project_id` for self-hosted `openci-dmis-*` projects. You can
+override it explicitly when needed:
+
+```sh
+openci_worker \
+  --service-account /path/to/service-account.json \
+  --worker-id worker-1 \
+  --dataconnect-service-id openci-dmis-a6d69-service \
+  --dataconnect-location asia-northeast1
+```
+
+The same override is also available via environment variables:
+
+```sh
+OPENCI_DATACONNECT_SERVICE_ID=openci-dmis-a6d69-service \
+OPENCI_DATACONNECT_LOCATION=asia-northeast1 \
+openci_worker --service-account /path/to/service-account.json --worker-id worker-1
+```
+
 Run from source:
 
 ```sh
 npm install
 npm run build
-node dist/index.js --service-account /path/to/service-account.json --worker-id worker-1
+node dist/index.cjs --service-account /path/to/service-account.json --worker-id worker-1
 ```
 
 For a single-job smoke test:
 
 ```sh
-node dist/index.js --service-account /path/to/service-account.json --worker-id worker-1 --once
+node dist/index.cjs --service-account /path/to/service-account.json --worker-id worker-1 --once
 ```
 
 The worker claims `ubuntu` jobs on Linux and runs them inside `openci-ubuntu:latest`. On macOS it claims `macos` jobs and runs them inside a cloned Lume VM.
 
 ## Publishing
 
-The worker bundles the generated Data Connect Admin SDK and shared build-job services so it can be installed from npm without repository-local `file:` dependencies.
+The worker build bundles the generated Data Connect Admin SDK and shared build-job services into `dist/index.cjs` so it can be installed from npm without repository-local `file:` dependencies.
 
 Before publishing from this package directory:
 
 ```sh
-npm install --install-links
 npm run pack:dry-run
 npm publish
 ```
 
-The dry run should list `@openci/dataconnect-admin` and `@openci/build-job-services` as bundled dependencies.
+The dry run should only include `dist`, `README.md`, and `package.json`; it should not list `../../packages/...` paths or bundled dependencies.
 
 ## Requirements
 

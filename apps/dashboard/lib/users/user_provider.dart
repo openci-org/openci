@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -31,32 +33,31 @@ abstract class OpenCIUser with _$OpenCIUser {
 @riverpod
 class User extends _$User {
   @override
-  Stream<OpenCIUser> build() => fetchUser();
+  Stream<OpenCIUser> build() async* {
+    yield await fetchUser().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => throw TimeoutException(
+        'Timed out while loading user from Data Connect',
+      ),
+    );
 
-  Stream<OpenCIUser> fetchUser() {
+    yield* watchUser();
+  }
+
+  Future<OpenCIUser> fetchUser() async {
     final auth = ref.read(authProvider);
     final currentUserId = auth.value?.uid;
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    return dataConnector.getCurrentUser().ref().subscribe().map((result) {
-      final user = result.data.user;
-      if (user == null) throw Exception('User profile not found');
-      final selectedTeamId = user.selectedTeamId;
-      if (selectedTeamId == null || selectedTeamId.isEmpty) {
-        throw Exception('Selected team is not configured');
-      }
-      return OpenCIUser(
-        id: user.id,
-        selectedTeamId: selectedTeamId,
-        notificationPreference: NotificationPreference.values.byName(
-          user.notificationPreference ?? NotificationPreference.all.name,
-        ),
-        fcmTokens: user.fcmTokens ?? const [],
-        selectedRepository: user.selectedRepository,
-        selectedBranch: user.selectedBranch,
-      );
-    });
+    final result = await dataConnector.getCurrentUser().execute();
+    return _openCIUserFromData(result.data);
+  }
+
+  Stream<OpenCIUser> watchUser() {
+    return dataConnector.getCurrentUser().ref().subscribe().map(
+      (result) => _openCIUserFromData(result.data),
+    );
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
@@ -119,4 +120,23 @@ class User extends _$User {
         .updateCurrentUserSelectedBranch(branch: branch)
         .execute();
   }
+}
+
+OpenCIUser _openCIUserFromData(GetCurrentUserData data) {
+  final user = data.user;
+  if (user == null) throw Exception('User profile not found');
+  final selectedTeamId = user.selectedTeamId;
+  if (selectedTeamId == null || selectedTeamId.isEmpty) {
+    throw Exception('Selected team is not configured');
+  }
+  return OpenCIUser(
+    id: user.id,
+    selectedTeamId: selectedTeamId,
+    notificationPreference: NotificationPreference.values.byName(
+      user.notificationPreference ?? NotificationPreference.all.name,
+    ),
+    fcmTokens: user.fcmTokens ?? const [],
+    selectedRepository: user.selectedRepository,
+    selectedBranch: user.selectedBranch,
+  );
 }

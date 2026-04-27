@@ -104,6 +104,25 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function runSimpleWithRetry(
+  command: string,
+  args: string[],
+  errorMessage: string,
+  attempts = 8,
+): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await runSimple(command, args, errorMessage);
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      await delay(2_000);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 function buildEventPayload(buildJob: BuildJob): string {
   const owner = buildJob.owner;
   const repo = buildJob.repo;
@@ -344,11 +363,11 @@ async function setupDirectSsh(vmName: string): Promise<void> {
     );
   }
   const publicKey = await runSimple("cat", [`${sshKeyPath}.pub`], "Failed to read SSH public key");
-  await runSimple(
+  await runSimpleWithRetry(
     "lume",
     lumeSshArgs(
       vmName,
-      `mkdir -p ~/.ssh && printf '%s\\n' '${publicKey.trim()}' >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys`,
+      `mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF '${publicKey.trim()}' ~/.ssh/authorized_keys || printf '%s\\n' '${publicKey.trim()}' >> ~/.ssh/authorized_keys; chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys`,
     ),
     "Failed to install SSH key",
   );

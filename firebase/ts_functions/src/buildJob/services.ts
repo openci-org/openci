@@ -1,6 +1,5 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import {
-  connectorConfig,
   getBuildJob,
   getTeamById,
   listLatestBuildLogs,
@@ -42,11 +41,6 @@ export interface BuildJob {
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
 const failureSummaryModel = "claude-opus-4-7";
-
-export function configureDataConnect(options: { serviceId?: string; location?: string }): void {
-  if (options.serviceId) connectorConfig.serviceId = options.serviceId;
-  if (options.location) connectorConfig.location = options.location;
-}
 
 function asBuildJob(value: unknown): BuildJob | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -348,4 +342,3 @@ export async function generateFailureSummary(buildJob: BuildJob, projectId?: str
 export async function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void> {
   await generateFailureSummary(await getBuildJobOrThrow(buildJobId), projectId);
 }
-

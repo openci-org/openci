@@ -4,6 +4,7 @@ const ascSubmitToTestFlightFunction = 'ascSubmitToTestFlight';
 const ascSubmitForReviewFunction = 'ascSubmitForReview';
 const cancelBuildJobFunction = 'cancelBuildJob';
 const createSecretFunction = 'createSecretV1';
+const createGitHubSetupUrlFunction = 'createGitHubSetupUrl';
 const createWorkflowFileFunction = 'createWorkflowFile';
 const generateAiWorkflowResponseFunction = 'generateAiWorkflowResponse';
 const deleteSecretFunction = 'deleteSecretV1';

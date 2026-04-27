@@ -1,6 +1,6 @@
-import { createRequire } from "node:module";
+declare const __PACKAGE_VERSION__: string | undefined;
 
-const require = createRequire(import.meta.url);
-const packageJson = require("../package.json") as { version?: string };
-
-export const version = packageJson.version ?? "0.0.0";
+export const version =
+  typeof __PACKAGE_VERSION__ === "string" && __PACKAGE_VERSION__.length > 0
+    ? __PACKAGE_VERSION__
+    : "0.0.0";

@@ -249,23 +249,33 @@ export const listRepositories = onCall<TeamIdRequest, Promise<ListRepositoriesRe
 
       for (const installationId of installationIds) {
         const { token } = await getInstallationToken(installationId, { apiBaseUrl });
-        const data = await githubGet<GitHubInstallationRepositoriesResponse>(
-          "/installation/repositories",
-          token,
-          {
-            queryParameters: { per_page: 100 },
-            apiBaseUrl,
-          },
-        );
+        let page = 1;
 
-        for (const repo of data.repositories ?? []) {
-          allRepositories.push({
-            fullName: String(repo.full_name ?? ""),
-            name: String(repo.name ?? ""),
-            owner: String(repo.owner?.login ?? ""),
-            private: repo.private === true,
-            defaultBranch: String(repo.default_branch ?? ""),
-          });
+        while (true) {
+          const data = await githubGet<GitHubInstallationRepositoriesResponse>(
+            "/installation/repositories",
+            token,
+            {
+              queryParameters: { per_page: 100, page },
+              apiBaseUrl,
+            },
+          );
+          const repositories = data.repositories ?? [];
+
+          for (const repo of repositories) {
+            allRepositories.push({
+              fullName: String(repo.full_name ?? ""),
+              name: String(repo.name ?? ""),
+              owner: String(repo.owner?.login ?? ""),
+              private: repo.private === true,
+              defaultBranch: String(repo.default_branch ?? ""),
+            });
+          }
+
+          if (repositories.length < 100) {
+            break;
+          }
+          page += 1;
         }
       }
 

@@ -44,8 +44,9 @@ export async function resolveInstallationToken(
   buildJob: BuildJob,
   projectId: string,
 ): Promise<string> {
+  if (buildJob.installationToken) return buildJob.installationToken;
+
   if (buildJob.installationId === null || buildJob.installationId === undefined) {
-    if (buildJob.installationToken) return buildJob.installationToken;
     throw new Error("installationToken and installationId are missing");
   }
 

@@ -45,6 +45,7 @@
       "messagingSenderId": "メッセージ送信者ID",
       "projectId": "プロジェクトID",
       "storageBucket": "ストレージバケット",
+      "dataConnectServiceId": "Data ConnectサービスID",
       "pickConfig": "設定を保存",
       "configSaved": "設定を保存しました。アプリを再起動してください。",
       "configActive": "カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。",

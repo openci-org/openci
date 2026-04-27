@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/data_connect_service_id_page.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/theme/theme_provider.dart';
 
@@ -54,13 +57,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
-import 'package:url_launcher/url_launcher.dart' as url_launcher;
-
 import 'package:yaml/yaml.dart';
 
-
 import 'status_dot.dart';
-
 
 String getInitials(String name) {
   final words = name.trim().split(RegExp(r'\s+'));
@@ -96,6 +95,8 @@ class WorkflowListPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProvider);
+    final selfHostedConfig = ref.watch(selfHostedConfigProvider).value;
+    final showDataConnectSettings = useState(false);
     final wfT = t.workflow;
     final tabController = useTabController(initialLength: 4);
     useListenable(tabController);
@@ -103,11 +104,43 @@ class WorkflowListPage extends HookConsumerWidget {
 
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
+    useEffect(() {
+      showDataConnectSettings.value = false;
+      if (!userAsync.isLoading || selfHostedConfig == null) return null;
+
+      final timer = Timer(const Duration(seconds: 4), () {
+        showDataConnectSettings.value = true;
+      });
+      return timer.cancel;
+    }, [userAsync.isLoading, selfHostedConfig?.projectId]);
+
     return userAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator.adaptive()),
-      ),
-      error: asyncErrorWidget,
+      loading: () {
+        final config = selfHostedConfig;
+        if (showDataConnectSettings.value && config != null) {
+          return DataConnectServiceIdPage(
+            config: config,
+            title: 'Data Connect is still loading',
+            message:
+                'Check the Data Connect service ID for ${config.projectId}.',
+          );
+        }
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator.adaptive()),
+        );
+      },
+      error: (error, stackTrace) {
+        final config = selfHostedConfig;
+        if (config != null) {
+          return DataConnectServiceIdPage(
+            config: config,
+            title: 'Data Connect failed to load',
+            message:
+                'Check the Data Connect service ID for ${config.projectId}.\n$error',
+          );
+        }
+        return asyncErrorWidget(error, stackTrace);
+      },
       data: (user) {
         final selectedRepo = user.selectedRepository;
         final selectedBranch = user.selectedBranch;
@@ -642,7 +675,9 @@ class _WorkflowBody extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.of(context).textPrimary,
+                                        color: AppColors.of(
+                                          context,
+                                        ).textPrimary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -693,7 +728,9 @@ class _WorkflowBody extends ConsumerWidget {
                                           vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.of(context).borderSubtle,
+                                          color: AppColors.of(
+                                            context,
+                                          ).borderSubtle,
                                           borderRadius: BorderRadius.circular(
                                             6,
                                           ),
@@ -707,7 +744,9 @@ class _WorkflowBody extends ConsumerWidget {
                                             Icon(
                                               icon,
                                               size: 11,
-                                              color: AppColors.of(context).textTertiary,
+                                              color: AppColors.of(
+                                                context,
+                                              ).textTertiary,
                                             ),
                                             const SizedBox(width: 4),
                                             Flexible(
@@ -717,7 +756,9 @@ class _WorkflowBody extends ConsumerWidget {
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,
                                                   fontFamily: 'monospace',
-                                                  color: AppColors.of(context).textSecondary,
+                                                  color: AppColors.of(
+                                                    context,
+                                                  ).textSecondary,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
                                                 maxLines: 1,
@@ -752,7 +793,6 @@ class ConnectGitHub extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final githubT = t.github;
-    final team = ref.watch(teamStateProvider).value;
 
     return Center(
       child: Padding(
@@ -799,13 +839,7 @@ class ConnectGitHub extends ConsumerWidget {
             const SizedBox(height: 20),
             TextButton.icon(
               onPressed: () async {
-                final url =
-                    Uri.parse(
-                      'https://github.com/apps/openci-org/installations/new',
-                    ).replace(
-                      queryParameters: {'state': team?.id ?? ''},
-                    );
-                await url_launcher.launchUrl(url);
+                await launchGitHubSetup(ref);
               },
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.of(context).divider,
@@ -1195,24 +1229,35 @@ class _TeamMenuButton extends StatelessWidget {
                               final mode = ref.watch(themeModeProvider);
                               final isDark = mode == ThemeMode.dark;
                               return InkWell(
-                                onTap: () => ref.read(themeModeProvider.notifier).toggle(),
+                                onTap: () => ref
+                                    .read(themeModeProvider.notifier)
+                                    .toggle(),
                                 borderRadius: BorderRadius.circular(8),
                                 hoverColor: AppColors.of(context).divider,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 9,
+                                  ),
                                   child: Row(
                                     children: [
                                       Icon(
-                                        isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                                        isDark
+                                            ? Icons.dark_mode_outlined
+                                            : Icons.light_mode_outlined,
                                         size: 18,
-                                        color: AppColors.of(context).textPrimary.withValues(alpha: 0.6),
+                                        color: AppColors.of(
+                                          context,
+                                        ).textPrimary.withValues(alpha: 0.6),
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           isDark ? 'Dark Mode' : 'Light Mode',
                                           style: TextStyle(
-                                            color: AppColors.of(context).textPrimary,
+                                            color: AppColors.of(
+                                              context,
+                                            ).textPrimary,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -1222,20 +1267,30 @@ class _TeamMenuButton extends StatelessWidget {
                                         width: 36,
                                         height: 20,
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10),
-                                          color: isDark ? AppColors.of(context).accent : AppColors.of(context).border,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          color: isDark
+                                              ? AppColors.of(context).accent
+                                              : AppColors.of(context).border,
                                         ),
                                         child: AnimatedAlign(
-                                          duration: const Duration(milliseconds: 200),
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
                                           curve: Curves.easeInOut,
-                                          alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
+                                          alignment: isDark
+                                              ? Alignment.centerRight
+                                              : Alignment.centerLeft,
                                           child: Container(
                                             width: 16,
                                             height: 16,
                                             margin: const EdgeInsets.all(2),
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              color: AppColors.of(context).textPrimary,
+                                              color: AppColors.of(
+                                                context,
+                                              ).textPrimary,
                                             ),
                                           ),
                                         ),

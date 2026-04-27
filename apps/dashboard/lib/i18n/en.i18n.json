@@ -45,6 +45,7 @@
       "messagingSenderId": "Messaging Sender ID",
       "projectId": "Project ID",
       "storageBucket": "Storage Bucket",
+      "dataConnectServiceId": "Data Connect Service ID",
       "pickConfig": "Save configuration",
       "configSaved": "Configuration saved. Please restart the app to apply.",
       "configActive": "Custom Firebase project is configured. Restart to apply.",

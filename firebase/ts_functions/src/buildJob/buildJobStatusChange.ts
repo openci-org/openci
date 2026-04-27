@@ -1,5 +1,7 @@
-import { handleBuildJobStatusChangeById } from "@openci/build-job-services";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+
+import { verifyBuildJobMembership } from "./auth";
+import { handleBuildJobStatusChange } from "./services";
 
 interface BuildJobStatusChangeRequest {
   buildJobId: string;
@@ -17,7 +19,8 @@ export const buildJobStatusChange = onCall<BuildJobStatusChangeRequest, Promise<
   async (request) => {
     const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
     const status = requireNonEmptyString(request.data?.status, "status");
-    await handleBuildJobStatusChangeById(buildJobId, status);
+    const buildJob = await verifyBuildJobMembership(request.auth, buildJobId);
+    await handleBuildJobStatusChange(buildJob, status);
     return { success: true };
   },
 );

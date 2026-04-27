@@ -8,7 +8,10 @@ async function main(): Promise<void> {
   const config = parseConfig(process.argv.slice(2));
   if (!config) return;
 
-  initFirebase(config.serviceAccountPath);
+  initFirebase(config.serviceAccountPath, {
+    dataConnectServiceId: config.dataConnectServiceId,
+    dataConnectLocation: config.dataConnectLocation,
+  });
   await pollForJobs(config);
 }
 

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultGitHubApiBaseUrl = void 0;
+exports.configureDataConnect = configureDataConnect;
 exports.normalizeGitHubApiBaseUrl = normalizeGitHubApiBaseUrl;
 exports.buildDashboardRunUrl = buildDashboardRunUrl;
 exports.getBuildJobOrThrow = getBuildJobOrThrow;
@@ -16,6 +17,12 @@ const messaging_1 = require("firebase-admin/messaging");
 exports.defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
 const failureSummaryModel = "claude-opus-4-7";
+function configureDataConnect(options) {
+    if (options.serviceId)
+        dataconnect_admin_1.connectorConfig.serviceId = options.serviceId;
+    if (options.location)
+        dataconnect_admin_1.connectorConfig.location = options.location;
+}
 function asBuildJob(value) {
     if (!value || typeof value !== "object")
         return undefined;
