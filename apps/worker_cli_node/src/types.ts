@@ -12,6 +12,7 @@ export interface BuildJob {
   resolvedNeeds?: unknown | null;
   installationId?: string | number | null;
   installationToken?: string | null;
+  tokenExpiresAt?: string | null;
   checkRunId?: string | number | null;
   commitSha?: string | null;
   pullRequestNumber?: number | null;
