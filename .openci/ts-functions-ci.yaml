@@ -22,9 +22,13 @@ jobs:
         with:
           node-version: "22"
           working-directory: firebase/ts_functions
+          run-install: false
 
       - name: Check
         run: vp check
+
+      - name: Install dependencies
+        run: vp install
 
       - name: Build
         run: npm run build
