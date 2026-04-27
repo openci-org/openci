@@ -175,8 +175,8 @@ part 'list_build_logs_for_run.dart';
 
 part 'list_latest_build_logs.dart';
 
-String? bigIntToJson(BigInt? value) {
-  return value?.toString();
+String bigIntToJson(BigInt value) {
+  return value.toString();
 }
 
 BigInt bigIntFromJson(dynamic value) {
