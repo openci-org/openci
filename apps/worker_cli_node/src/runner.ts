@@ -13,6 +13,8 @@ const sshUser = "admin";
 const sshPassword = "admin";
 const dockerImage = "openci-ubuntu:latest";
 const sshKeyPath = "/tmp/openci-ssh-key";
+const defaultLumeSshTimeoutSeconds = 10;
+const gitLumeSshTimeoutSeconds = 120;
 
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
@@ -274,7 +276,11 @@ async function runDockerBuild(input: {
   }
 }
 
-function lumeSshArgs(vmName: string, remoteCommand: string): string[] {
+function lumeSshArgs(
+  vmName: string,
+  remoteCommand: string,
+  timeoutSeconds = defaultLumeSshTimeoutSeconds,
+): string[] {
   return [
     "ssh",
     vmName,
@@ -283,7 +289,7 @@ function lumeSshArgs(vmName: string, remoteCommand: string): string[] {
     "--password",
     sshPassword,
     "--timeout",
-    "10",
+    String(timeoutSeconds),
     "--",
     remoteCommand,
   ];
@@ -442,16 +448,20 @@ async function runMacVmBuild(input: {
     const cloneUrl = `https://x-access-token:${buildJob.installationToken}@${githubHost(buildJob)}/${buildJob.owner}/${buildJob.repo}.git`;
     await runProcess({
       command: "lume",
-      args: lumeSshArgs(vmName, `git clone --depth 1 --no-checkout ${cloneUrl}`),
+      args: lumeSshArgs(
+        vmName,
+        `git clone --depth 1 --no-checkout ${cloneUrl}`,
+        gitLumeSshTimeoutSeconds,
+      ),
       buildJob,
       runId,
       logOutput: true,
     });
 
-    await fetchAndCheckout(buildJob, runId, (command) =>
+    await fetchAndCheckout(buildJob, runId, (command, timeoutSeconds) =>
       runProcess({
         command: "lume",
-        args: lumeSshArgs(vmName, command),
+        args: lumeSshArgs(vmName, command, timeoutSeconds),
         buildJob,
         runId,
         logOutput: true,
@@ -498,11 +508,14 @@ async function runMacVmBuild(input: {
 async function fetchAndCheckout(
   buildJob: BuildJob,
   runId: string,
-  exec: (command: string) => Promise<void>,
+  exec: (command: string, timeoutSeconds?: number) => Promise<void>,
 ): Promise<void> {
   await logInfo(buildJob.id, runId, `Fetching commit ${buildJob.commitSha}...`);
   try {
-    await exec(`git -C ${buildJob.repo} fetch --depth 1 origin ${buildJob.commitSha}`);
+    await exec(
+      `git -C ${buildJob.repo} fetch --depth 1 origin ${buildJob.commitSha}`,
+      gitLumeSshTimeoutSeconds,
+    );
   } catch (error) {
     if (!buildJob.pullRequestNumber) throw error;
     await logInfo(
@@ -512,6 +525,7 @@ async function fetchAndCheckout(
     );
     await exec(
       `git -C ${buildJob.repo} fetch --depth 1 origin pull/${buildJob.pullRequestNumber}/head`,
+      gitLumeSshTimeoutSeconds,
     );
   }
   await exec(`git -C ${buildJob.repo} checkout ${buildJob.commitSha}`);

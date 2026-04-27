@@ -6,6 +6,7 @@ const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 
 await build({
   bundle: true,
+  conditions: ["require", "node"],
   define: {
     __PACKAGE_VERSION__: JSON.stringify(packageJson.version),
   },
