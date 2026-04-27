@@ -79,6 +79,13 @@ function stringFromUnknown(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+function isInstallationTokenValid(expiresAt: unknown): boolean {
+  if (typeof expiresAt !== "string" || expiresAt.length === 0) return false;
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMs)) return false;
+  return expiresAtMs > Date.now() + 5 * 60 * 1000;
+}
+
 export const retryBuildJob = onCall<
   RetryBuildJobRequest,
   Promise<{ success: true; newBuildJobId: string }>
@@ -102,7 +109,10 @@ export const retryBuildJob = onCall<
   let tokenExpiresAt = stringFromUnknown(originalJob.tokenExpiresAt);
   let checkRunId = numberFromDataConnectInt64(originalJob.checkRunId);
 
-  if (installationId !== undefined && !installationToken) {
+  if (
+    installationId !== undefined &&
+    (!installationToken || !isInstallationTokenValid(tokenExpiresAt))
+  ) {
     try {
       const tokenData = await getInstallationToken(installationId, { apiBaseUrl });
       installationToken = tokenData.token;
@@ -173,7 +183,10 @@ export const retryWorkflowRun = onCall<
   const apiBaseUrl = stringFromUnknown(originalJobs[0]?.githubApiBaseUrl);
   let installationToken = stringFromUnknown(originalJobs[0]?.installationToken);
   let tokenExpiresAt = stringFromUnknown(originalJobs[0]?.tokenExpiresAt);
-  if (installationId !== undefined && !installationToken) {
+  if (
+    installationId !== undefined &&
+    (!installationToken || !isInstallationTokenValid(tokenExpiresAt))
+  ) {
     try {
       const tokenData = await getInstallationToken(installationId, { apiBaseUrl });
       installationToken = tokenData.token;

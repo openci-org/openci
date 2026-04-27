@@ -41,6 +41,7 @@ class BuildJobs extends _$BuildJobs {
         'buildJobId': buildJobId,
       },
     );
+    ref.invalidateSelf();
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
@@ -48,6 +49,7 @@ class BuildJobs extends _$BuildJobs {
     await functions.httpsCallable('cancelBuildJob').call({
       'buildJobId': buildJobId,
     });
+    ref.invalidateSelf();
   }
 
   Future<void> retryWorkflowRun(String workflowRunId) async {
@@ -55,6 +57,7 @@ class BuildJobs extends _$BuildJobs {
     await functions.httpsCallable('retryWorkflowRun').call({
       'workflowRunId': workflowRunId,
     });
+    ref.invalidateSelf();
   }
 }
 

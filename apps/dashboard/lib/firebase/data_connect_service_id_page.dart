@@ -24,9 +24,7 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = useTextEditingController(
-      text: config.dataConnectServiceId.trim().isNotEmpty
-          ? config.dataConnectServiceId
-          : 'openci',
+      text: dataConnectServiceIdForConfig(config),
     );
     final isSaving = useState(false);
     final canInitializeWorkspace = useState(false);

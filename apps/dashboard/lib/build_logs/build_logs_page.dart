@@ -45,6 +45,17 @@ String _statusLabel(String status) => switch (status) {
   _ => status,
 };
 
+SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return SnackBar(
+    backgroundColor: colorScheme.inverseSurface,
+    content: Text(
+      message,
+      style: TextStyle(color: colorScheme.onInverseSurface),
+    ),
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 class LogsBody extends HookConsumerWidget {
@@ -271,8 +282,9 @@ class BuildJobCard extends HookConsumerWidget {
                               .retryBuildJob(buildJob.id);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(t.buildLogs.detail.retrySuccess),
+                              _materialDefaultSnackBar(
+                                context,
+                                t.buildLogs.detail.retrySuccess,
                               ),
                             );
                           }
@@ -280,11 +292,10 @@ class BuildJobCard extends HookConsumerWidget {
                           if (context.mounted) {
                             debugPrint('failed to retry: $e');
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  t.buildLogs.detail.failedToRetry(
-                                    error: e.toString(),
-                                  ),
+                              _materialDefaultSnackBar(
+                                context,
+                                t.buildLogs.detail.failedToRetry(
+                                  error: e.toString(),
                                 ),
                               ),
                             );
@@ -532,21 +543,19 @@ class WorkflowRunCard extends HookConsumerWidget {
                                 );
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    t.buildLogs.detail.retrySuccess,
-                                  ),
+                                _materialDefaultSnackBar(
+                                  context,
+                                  t.buildLogs.detail.retrySuccess,
                                 ),
                               );
                             }
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    t.buildLogs.detail.failedToRetry(
-                                      error: e.toString(),
-                                    ),
+                                _materialDefaultSnackBar(
+                                  context,
+                                  t.buildLogs.detail.failedToRetry(
+                                    error: e.toString(),
                                   ),
                                 ),
                               );
