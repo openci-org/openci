@@ -94,6 +94,24 @@ function enumInvitationStatus(status) {
   return ["PENDING", "ACCEPTED", "EXPIRED"].includes(normalized) ? normalized : "PENDING";
 }
 
+function enumBuildJobStatus(status) {
+  const normalized = String(status ?? "queued").toUpperCase();
+  if (normalized === "IN-PROGRESS") return "IN_PROGRESS";
+  if (normalized === "TIMED-OUT") return "TIMED_OUT";
+  return [
+    "WAITING",
+    "QUEUED",
+    "IN_PROGRESS",
+    "SUCCESS",
+    "FAILURE",
+    "CANCELLED",
+    "SKIPPED",
+    "TIMED_OUT",
+  ].includes(normalized)
+    ? normalized
+    : "QUEUED";
+}
+
 async function maybe(operationName, vars, fn) {
   if (DRY_RUN) {
     if (VERBOSE) {
@@ -403,7 +421,7 @@ function buildJobVars(doc) {
   const data = doc.data();
   return {
     id: doc.id,
-    status: String(data.status ?? "queued"),
+    status: enumBuildJobStatus(data.status),
     owner: String(data.owner ?? ""),
     repo: String(data.repo ?? ""),
     teamId: typeof data.teamId === "string" && knownTeamIds.has(data.teamId) ? data.teamId : null,

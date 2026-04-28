@@ -6,6 +6,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { createCheckRun, getInstallationToken } from "../github/githubApp";
 import { buildDashboardRunUrl } from "../github/githubUrls";
 import {
+  BuildJobStatus,
   createBuildJob,
   getBuildJob as getBuildJobOperation,
   listBuildJobsByWorkflowRun,
@@ -140,7 +141,7 @@ export const retryBuildJob = onCall<
   await createBuildJob(
     copyRetryJobFields(originalJob, {
       id: newDocumentId,
-      status: "queued",
+      status: BuildJobStatus.QUEUED,
       workflowRunId: null,
       needs: null,
       resolvedNeeds: null,
@@ -249,7 +250,7 @@ export const retryWorkflowRun = onCall<
     await createBuildJob(
       copyRetryJobFields(originalJob, {
         id: newDocumentId,
-        status: hasNeeds ? "waiting" : "queued",
+        status: hasNeeds ? BuildJobStatus.WAITING : BuildJobStatus.QUEUED,
         workflowRunId: newWorkflowRunId,
         needs: originalNeeds,
         resolvedNeeds,

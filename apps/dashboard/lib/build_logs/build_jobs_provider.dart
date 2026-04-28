@@ -93,7 +93,7 @@ Future<String?> workflowName(Ref ref, BuildJob buildJob) async {
 abstract class BuildJob with _$BuildJob {
   const factory BuildJob({
     required String id,
-    required String status,
+    required BuildJobStatus status,
     required String owner,
     required String repo,
     String? teamId,
@@ -132,7 +132,7 @@ Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
 BuildJob _buildJobFromList(ListBuildJobsForTeamBuildJobs job) {
   return BuildJob(
     id: job.id,
-    status: job.status,
+    status: _knownBuildJobStatus(job.status),
     owner: job.owner,
     repo: job.repo,
     teamId: job.teamId,
@@ -160,6 +160,28 @@ BuildJob _buildJobFromList(ListBuildJobsForTeamBuildJobs job) {
   );
 }
 
+BuildJobStatus _knownBuildJobStatus(EnumValue<BuildJobStatus> status) {
+  if (status is Known<BuildJobStatus>) {
+    return status.value;
+  }
+  final legacyStatus = _legacyBuildJobStatusValues[status.stringValue];
+  if (legacyStatus != null) {
+    return legacyStatus;
+  }
+  throw StateError('Unknown BuildJobStatus: ${status.stringValue}');
+}
+
+const _legacyBuildJobStatusValues = {
+  'waiting': BuildJobStatus.WAITING,
+  'queued': BuildJobStatus.QUEUED,
+  'in_progress': BuildJobStatus.IN_PROGRESS,
+  'success': BuildJobStatus.SUCCESS,
+  'failure': BuildJobStatus.FAILURE,
+  'cancelled': BuildJobStatus.CANCELLED,
+  'skipped': BuildJobStatus.SKIPPED,
+  'timed_out': BuildJobStatus.TIMED_OUT,
+};
+
 List<BuildJob> _sortedBuildJobs(Iterable<BuildJob> jobs) {
   return jobs.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }
@@ -177,7 +199,7 @@ BuildJob? _buildJobFromTeamResult(GetBuildJobForTeamBuildJob? job) {
   if (job == null) return null;
   return BuildJob(
     id: job.id,
-    status: job.status,
+    status: _knownBuildJobStatus(job.status),
     owner: job.owner,
     repo: job.repo,
     teamId: job.teamId,

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BuildJob implements DiagnosticableTreeMixin {
 
- String get id; String get status; String get owner; String get repo; String? get teamId; String? get workflowId; String? get workflowName; String? get workflowFileName; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId; String? get tagName; String? get branch; String? get jobKey; String? get workflowRunId; List<String>? get needs; String? get failureSummary; String? get failureSummaryModel; String? get failureSummaryStatus; int? get failureSummaryDurationMs;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;@DateTimeConverter() DateTime? get completedAt;
+ String get id; BuildJobStatus get status; String get owner; String get repo; String? get teamId; String? get workflowId; String? get workflowName; String? get workflowFileName; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId; String? get tagName; String? get branch; String? get jobKey; String? get workflowRunId; List<String>? get needs; String? get failureSummary; String? get failureSummaryModel; String? get failureSummaryStatus; int? get failureSummaryDurationMs;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;@DateTimeConverter() DateTime? get completedAt;
 /// Create a copy of BuildJob
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -54,7 +54,7 @@ abstract mixin class $BuildJobCopyWith<$Res>  {
   factory $BuildJobCopyWith(BuildJob value, $Res Function(BuildJob) _then) = _$BuildJobCopyWithImpl;
 @useResult
 $Res call({
- String id, String status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs, String? failureSummary, String? failureSummaryModel, String? failureSummaryStatus, int? failureSummaryDurationMs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
+ String id, BuildJobStatus status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs, String? failureSummary, String? failureSummaryModel, String? failureSummaryStatus, int? failureSummaryDurationMs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
 });
 
 
@@ -75,7 +75,7 @@ class _$BuildJobCopyWithImpl<$Res>
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String,owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
+as BuildJobStatus,owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
 as String,repo: null == repo ? _self.repo : repo // ignore: cast_nullable_to_non_nullable
 as String,teamId: freezed == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String?,workflowId: freezed == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
@@ -182,7 +182,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  BuildJobStatus status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
 return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.failureSummary,_that.failureSummaryModel,_that.failureSummaryStatus,_that.failureSummaryDurationMs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
@@ -203,7 +203,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  BuildJobStatus status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob():
 return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.failureSummary,_that.failureSummaryModel,_that.failureSummaryStatus,_that.failureSummaryDurationMs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
@@ -223,7 +223,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  BuildJobStatus status,  String owner,  String repo,  String? teamId,  String? workflowId,  String? workflowName,  String? workflowFileName,  String? commitSha,  int? pullRequestNumber,  int? runCount,  String? latestRunId,  String? tagName,  String? branch,  String? jobKey,  String? workflowRunId,  List<String>? needs,  String? failureSummary,  String? failureSummaryModel,  String? failureSummaryStatus,  int? failureSummaryDurationMs, @DateTimeConverter()  DateTime createdAt, @DateTimeConverter()  DateTime updatedAt, @DateTimeConverter()  DateTime? completedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _BuildJob() when $default != null:
 return $default(_that.id,_that.status,_that.owner,_that.repo,_that.teamId,_that.workflowId,_that.workflowName,_that.workflowFileName,_that.commitSha,_that.pullRequestNumber,_that.runCount,_that.latestRunId,_that.tagName,_that.branch,_that.jobKey,_that.workflowRunId,_that.needs,_that.failureSummary,_that.failureSummaryModel,_that.failureSummaryStatus,_that.failureSummaryDurationMs,_that.createdAt,_that.updatedAt,_that.completedAt);case _:
@@ -242,7 +242,7 @@ class _BuildJob with DiagnosticableTreeMixin implements BuildJob {
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
 @override final  String id;
-@override final  String status;
+@override final  BuildJobStatus status;
 @override final  String owner;
 @override final  String repo;
 @override final  String? teamId;
@@ -313,7 +313,7 @@ abstract mixin class _$BuildJobCopyWith<$Res> implements $BuildJobCopyWith<$Res>
   factory _$BuildJobCopyWith(_BuildJob value, $Res Function(_BuildJob) _then) = __$BuildJobCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs, String? failureSummary, String? failureSummaryModel, String? failureSummaryStatus, int? failureSummaryDurationMs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
+ String id, BuildJobStatus status, String owner, String repo, String? teamId, String? workflowId, String? workflowName, String? workflowFileName, String? commitSha, int? pullRequestNumber, int? runCount, String? latestRunId, String? tagName, String? branch, String? jobKey, String? workflowRunId, List<String>? needs, String? failureSummary, String? failureSummaryModel, String? failureSummaryStatus, int? failureSummaryDurationMs,@DateTimeConverter() DateTime createdAt,@DateTimeConverter() DateTime updatedAt,@DateTimeConverter() DateTime? completedAt
 });
 
 
@@ -334,7 +334,7 @@ class __$BuildJobCopyWithImpl<$Res>
   return _then(_BuildJob(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String,owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
+as BuildJobStatus,owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
 as String,repo: null == repo ? _self.repo : repo // ignore: cast_nullable_to_non_nullable
 as String,teamId: freezed == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String?,workflowId: freezed == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable

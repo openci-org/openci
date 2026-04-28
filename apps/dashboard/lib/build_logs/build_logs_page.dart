@@ -1,6 +1,7 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
+import 'package:dashboard/firebase/dataconnect.dart' show BuildJobStatus;
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -11,37 +12,48 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-Color _statusColor(String status) => switch (status) {
-  'success' => const Color(0xFF2DA44E),
-  'failure' => const Color(0xFFCF222E),
-  'in_progress' => const Color(0xFF1F6FEB),
-  'queued' => const Color(0xFF6E40C9),
-  'cancelled' => const Color(0xFFBF8700),
-  'waiting' => const Color(0xFFBF8700),
-  'skipped' => const Color(0xFFA1A1AA),
-  _ => const Color(0xFFA1A1AA),
+Color _statusColor(BuildJobStatus status) => switch (status) {
+  BuildJobStatus.SUCCESS => const Color(0xFF2DA44E),
+  BuildJobStatus.FAILURE => const Color(0xFFCF222E),
+  BuildJobStatus.IN_PROGRESS => const Color(0xFF1F6FEB),
+  BuildJobStatus.QUEUED => const Color(0xFF6E40C9),
+  BuildJobStatus.CANCELLED => const Color(0xFFBF8700),
+  BuildJobStatus.WAITING => const Color(0xFFBF8700),
+  BuildJobStatus.SKIPPED => const Color(0xFFA1A1AA),
+  BuildJobStatus.TIMED_OUT => const Color(0xFFCF222E),
 };
 
-IconData _statusIcon(String status) => switch (status) {
-  'success' => Icons.check_circle_rounded,
-  'failure' => Icons.cancel_rounded,
-  'queued' => Icons.schedule_rounded,
-  'cancelled' => Icons.block_rounded,
-  'waiting' => Icons.adjust_rounded,
-  'skipped' => Icons.skip_next_rounded,
-  _ => Icons.help_outline_rounded,
+IconData _statusIcon(BuildJobStatus status) => switch (status) {
+  BuildJobStatus.SUCCESS => Icons.check_circle_rounded,
+  BuildJobStatus.FAILURE => Icons.cancel_rounded,
+  BuildJobStatus.IN_PROGRESS => Icons.help_outline_rounded,
+  BuildJobStatus.QUEUED => Icons.schedule_rounded,
+  BuildJobStatus.CANCELLED => Icons.block_rounded,
+  BuildJobStatus.WAITING => Icons.adjust_rounded,
+  BuildJobStatus.SKIPPED => Icons.skip_next_rounded,
+  BuildJobStatus.TIMED_OUT => Icons.timer_off_rounded,
 };
 
-String _statusLabel(String status) => switch (status) {
-  'success' => t.buildLogs.status.success,
-  'failure' => t.buildLogs.status.failed,
-  'in_progress' => t.buildLogs.status.inProgress,
-  'queued' => t.buildLogs.status.queued,
-  'cancelled' => t.buildLogs.status.cancelled,
-  'waiting' => 'Waiting',
-  'skipped' => 'Skipped',
-  _ => status,
+String _statusLabel(BuildJobStatus status) => switch (status) {
+  BuildJobStatus.SUCCESS => t.buildLogs.status.success,
+  BuildJobStatus.FAILURE => t.buildLogs.status.failed,
+  BuildJobStatus.IN_PROGRESS => t.buildLogs.status.inProgress,
+  BuildJobStatus.QUEUED => t.buildLogs.status.queued,
+  BuildJobStatus.CANCELLED => t.buildLogs.status.cancelled,
+  BuildJobStatus.WAITING => 'Waiting',
+  BuildJobStatus.SKIPPED => 'Skipped',
+  BuildJobStatus.TIMED_OUT => 'Timed out',
 };
+
+bool _isRunningStatus(BuildJobStatus status) =>
+    status == BuildJobStatus.IN_PROGRESS || status == BuildJobStatus.QUEUED;
+
+bool _isTerminalStatus(BuildJobStatus status) =>
+    status == BuildJobStatus.SUCCESS ||
+    status == BuildJobStatus.FAILURE ||
+    status == BuildJobStatus.CANCELLED ||
+    status == BuildJobStatus.SKIPPED ||
+    status == BuildJobStatus.TIMED_OUT;
 
 SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
   final colorScheme = Theme.of(context).colorScheme;
@@ -148,8 +160,7 @@ class BuildJobCard extends HookConsumerWidget {
 
     final color = _statusColor(buildJob.status);
     final statusLabel = _statusLabel(buildJob.status);
-    final isRunning =
-        buildJob.status == 'in_progress' || buildJob.status == 'queued';
+    final isRunning = _isRunningStatus(buildJob.status);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -454,23 +465,27 @@ class WorkflowRunCard extends HookConsumerWidget {
     final mainJob = jobs.first;
     final workflowNameAsync = ref.watch(workflowNameProvider(mainJob));
 
-    String overallStatus = 'unknown';
-    if (jobs.any((j) => j.status == 'in_progress')) {
-      overallStatus = 'in_progress';
-    } else if (jobs.any((j) => j.status == 'queued')) {
-      overallStatus = 'queued';
-    } else if (jobs.any((j) => j.status == 'failure')) {
-      overallStatus = 'failure';
-    } else if (jobs.any((j) => j.status == 'waiting')) {
-      overallStatus = 'waiting';
-    } else if (jobs.any((j) => j.status == 'cancelled')) {
-      overallStatus = 'cancelled';
-    } else if (jobs.every((j) => j.status == 'skipped')) {
-      overallStatus = 'skipped';
+    BuildJobStatus overallStatus = BuildJobStatus.SUCCESS;
+    if (jobs.any((j) => j.status == BuildJobStatus.IN_PROGRESS)) {
+      overallStatus = BuildJobStatus.IN_PROGRESS;
+    } else if (jobs.any((j) => j.status == BuildJobStatus.QUEUED)) {
+      overallStatus = BuildJobStatus.QUEUED;
+    } else if (jobs.any((j) => j.status == BuildJobStatus.FAILURE)) {
+      overallStatus = BuildJobStatus.FAILURE;
+    } else if (jobs.any((j) => j.status == BuildJobStatus.TIMED_OUT)) {
+      overallStatus = BuildJobStatus.TIMED_OUT;
+    } else if (jobs.any((j) => j.status == BuildJobStatus.WAITING)) {
+      overallStatus = BuildJobStatus.WAITING;
+    } else if (jobs.any((j) => j.status == BuildJobStatus.CANCELLED)) {
+      overallStatus = BuildJobStatus.CANCELLED;
+    } else if (jobs.every((j) => j.status == BuildJobStatus.SKIPPED)) {
+      overallStatus = BuildJobStatus.SKIPPED;
     } else if (jobs.every(
-      (j) => j.status == 'success' || j.status == 'skipped',
+      (j) =>
+          j.status == BuildJobStatus.SUCCESS ||
+          j.status == BuildJobStatus.SKIPPED,
     )) {
-      overallStatus = 'success';
+      overallStatus = BuildJobStatus.SUCCESS;
     }
 
     final color = _statusColor(overallStatus);
@@ -638,7 +653,7 @@ class _StatusBadge extends StatelessWidget {
     required this.label,
   });
 
-  final String status;
+  final BuildJobStatus status;
   final Color color;
   final String label;
 
@@ -656,7 +671,7 @@ class _StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (status == 'in_progress')
+          if (status == BuildJobStatus.IN_PROGRESS)
             SyncedSpinner(color: color, size: 10)
           else
             Icon(_statusIcon(status), color: color, size: 12),
@@ -685,14 +700,14 @@ class _StatusIndicator extends StatelessWidget {
     this.size = 18,
   });
 
-  final String status;
+  final BuildJobStatus status;
   final Color color;
   final String tooltip;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    if (status == 'in_progress') {
+    if (status == BuildJobStatus.IN_PROGRESS) {
       return Tooltip(
         message: tooltip,
         child: SyncedSpinner(
@@ -920,7 +935,7 @@ class _JobTreeRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final jobColor = _statusColor(job.status);
     final jobLabel = _statusLabel(job.status);
-    final isRunning = job.status == 'in_progress' || job.status == 'queued';
+    final isRunning = _isRunningStatus(job.status);
 
     return InkWell(
       borderRadius: isFirst
@@ -974,7 +989,7 @@ class _JobTreeRow extends ConsumerWidget {
                   Row(
                     children: [
                       _LiveDurationBadge(buildJob: job),
-                      if (job.status == 'failure' &&
+                      if (job.status == BuildJobStatus.FAILURE &&
                           job.failureSummaryStatus == 'generating') ...[
                         const SizedBox(width: 8),
                         _AiGeneratingBadge(),
@@ -1025,11 +1040,8 @@ class _LiveDurationBadge extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isRunning = buildJob.status == 'in_progress';
-    final isTerminal =
-        buildJob.status == 'success' ||
-        buildJob.status == 'failure' ||
-        buildJob.status == 'cancelled';
+    final isRunning = buildJob.status == BuildJobStatus.IN_PROGRESS;
+    final isTerminal = _isTerminalStatus(buildJob.status);
 
     // Tick every second while running
     final tick = useState(0);
@@ -1078,16 +1090,12 @@ class _WorkflowDurationBadge extends HookWidget {
     required this.overallStatus,
   });
   final List<BuildJob> jobs;
-  final String overallStatus;
+  final BuildJobStatus overallStatus;
 
   @override
   Widget build(BuildContext context) {
-    final isRunning =
-        overallStatus == 'in_progress' || overallStatus == 'queued';
-    final isTerminal =
-        overallStatus == 'success' ||
-        overallStatus == 'failure' ||
-        overallStatus == 'cancelled';
+    final isRunning = _isRunningStatus(overallStatus);
+    final isTerminal = _isTerminalStatus(overallStatus);
 
     // Tick every second while running
     final tick = useState(0);

@@ -5,6 +5,7 @@ import {
   handleBuildJobStatusChange,
   updateCheckRun,
 } from "@openci/build-job-services";
+import { BuildJobStatus } from "@openci/dataconnect-admin";
 import { claimNextJob, completeJob, createRun, updateRunStatus } from "./dataconnect.js";
 import { checkAndUpdate, exitForUpdate } from "./auto_updater.js";
 import { buildEnvVars, buildSecretVars } from "./env.js";
@@ -53,15 +54,15 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
       status: "completed",
       conclusion: "success",
     });
-    await completeJob(buildJob.id, "success");
+    await completeJob(buildJob.id, BuildJobStatus.SUCCESS);
     const completedJob = {
       ...buildJob,
-      status: "success",
+      status: BuildJobStatus.SUCCESS,
       latestRunId: runId,
       completedAt: new Date().toISOString(),
     };
     await updateCheckRun(completedJob, "completed", "success");
-    await handleBuildJobStatusChange(completedJob, "success");
+    await handleBuildJobStatusChange(completedJob, BuildJobStatus.SUCCESS);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
@@ -72,15 +73,15 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
       status: "completed",
       conclusion: "failure",
     });
-    await completeJob(buildJob.id, "failure");
+    await completeJob(buildJob.id, BuildJobStatus.FAILURE);
     const completedJob = {
       ...buildJob,
-      status: "failure",
+      status: BuildJobStatus.FAILURE,
       latestRunId: runId,
       completedAt: new Date().toISOString(),
     };
     await updateCheckRun(completedJob, "completed", "failure");
-    await handleBuildJobStatusChange(completedJob, "failure");
+    await handleBuildJobStatusChange(completedJob, BuildJobStatus.FAILURE);
     await generateFailureSummary(completedJob, config.projectId);
     throw error;
   } finally {

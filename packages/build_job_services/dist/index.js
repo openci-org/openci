@@ -101,14 +101,14 @@ async function resolveDependencies(completedJob, completedStatus) {
     if (!completedJob.workflowRunId || !completedJob.jobKey)
         return;
     const waitingJobs = await (0, dataconnect_admin_1.listWaitingBuildJobs)({ workflowRunId: completedJob.workflowRunId });
-    const isSuccess = completedStatus === "success";
+    const isSuccess = completedStatus === dataconnect_admin_1.BuildJobStatus.SUCCESS;
     for (const job of waitingJobs.data.buildJobs) {
         const needs = Array.isArray(job.needs) ? job.needs.filter((need) => typeof need === "string") : [];
         if (!needs.includes(completedJob.jobKey))
             continue;
         if (!isSuccess) {
-            await (0, dataconnect_admin_1.updateBuildJobStatus)({ id: job.id, status: "skipped" });
-            await resolveDependencies(job, "skipped");
+            await (0, dataconnect_admin_1.updateBuildJobStatus)({ id: job.id, status: dataconnect_admin_1.BuildJobStatus.SKIPPED });
+            await resolveDependencies(job, dataconnect_admin_1.BuildJobStatus.SKIPPED);
             continue;
         }
         const resolvedNeeds = typeof job.resolvedNeeds === "object" && job.resolvedNeeds !== null
@@ -119,13 +119,13 @@ async function resolveDependencies(completedJob, completedStatus) {
         let allSatisfied = true;
         for (const needBuildJobId of Object.values(resolvedNeeds)) {
             const need = await (0, dataconnect_admin_1.getBuildJob)({ id: needBuildJobId });
-            if (!need.data.buildJob || need.data.buildJob.status !== "success") {
+            if (!need.data.buildJob || need.data.buildJob.status !== dataconnect_admin_1.BuildJobStatus.SUCCESS) {
                 allSatisfied = false;
                 break;
             }
         }
         if (allSatisfied) {
-            await (0, dataconnect_admin_1.updateBuildJobStatus)({ id: job.id, status: "queued" });
+            await (0, dataconnect_admin_1.updateBuildJobStatus)({ id: job.id, status: dataconnect_admin_1.BuildJobStatus.QUEUED });
         }
     }
 }
@@ -141,7 +141,7 @@ async function sendBuildNotifications(buildJob, status) {
     const users = await (0, dataconnect_admin_1.listTeamNotificationUsers)({ teamId: buildJob.teamId });
     if (users.data.teamMembers.length === 0)
         return;
-    const isSuccess = status === "success";
+    const isSuccess = status === dataconnect_admin_1.BuildJobStatus.SUCCESS;
     const title = isSuccess ? "✅ Build Succeeded" : "❌ Build Failed";
     const duration = formatDuration(buildJob.createdAt, buildJob.completedAt);
     const bodyLines = [
@@ -191,10 +191,16 @@ async function sendBuildNotifications(buildJob, status) {
     }
 }
 async function handleBuildJobStatusChange(buildJob, status) {
-    if (["success", "failure", "cancelled", "timed_out", "skipped"].includes(status)) {
+    if ([
+        dataconnect_admin_1.BuildJobStatus.SUCCESS,
+        dataconnect_admin_1.BuildJobStatus.FAILURE,
+        dataconnect_admin_1.BuildJobStatus.CANCELLED,
+        dataconnect_admin_1.BuildJobStatus.TIMED_OUT,
+        dataconnect_admin_1.BuildJobStatus.SKIPPED,
+    ].includes(status)) {
         await resolveDependencies(buildJob, status);
     }
-    if (status === "success" || status === "failure") {
+    if (status === dataconnect_admin_1.BuildJobStatus.SUCCESS || status === dataconnect_admin_1.BuildJobStatus.FAILURE) {
         await sendBuildNotifications(buildJob, status);
     }
 }
@@ -242,7 +248,7 @@ async function createAnthropicMessage(projectId, logLines) {
         .join("");
 }
 async function generateFailureSummary(buildJob, projectId) {
-    if (buildJob.status !== "failure")
+    if (buildJob.status !== dataconnect_admin_1.BuildJobStatus.FAILURE)
         return;
     if (buildJob.teamId) {
         const team = await (0, dataconnect_admin_1.getTeamById)({ teamId: buildJob.teamId });
