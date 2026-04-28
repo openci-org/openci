@@ -139,7 +139,7 @@ class _SpinnerPainter extends CustomPainter {
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      startAngle - 1.5708, // offset by -90° so it starts at top
+      startAngle - 1.5708,
       sweepAngle,
       false,
       arcPaint,
