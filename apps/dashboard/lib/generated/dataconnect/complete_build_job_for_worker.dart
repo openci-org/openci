@@ -2,7 +2,7 @@ part of 'default.dart';
 
 class CompleteBuildJobForWorkerVariablesBuilder {
   String id;
-  String status;
+  BuildJobStatus status;
   Timestamp completedAt;
 
   final FirebaseDataConnect _dataConnect;
@@ -92,13 +92,13 @@ class CompleteBuildJobForWorkerData {
 @immutable
 class CompleteBuildJobForWorkerVariables {
   final String id;
-  final String status;
+  final BuildJobStatus status;
   final Timestamp completedAt;
   @Deprecated('fromJson is deprecated for Variable classes as they are no longer required for deserialization.')
   CompleteBuildJobForWorkerVariables.fromJson(Map<String, dynamic> json):
   
   id = nativeFromJson<String>(json['id']),
-  status = nativeFromJson<String>(json['status']),
+  status = BuildJobStatus.values.byName(json['status']),
   completedAt = Timestamp.fromJson(json['completedAt']);
   @override
   bool operator ==(Object other) {
@@ -122,7 +122,9 @@ class CompleteBuildJobForWorkerVariables {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
     json['id'] = nativeToJson<String>(id);
-    json['status'] = nativeToJson<String>(status);
+    json['status'] = 
+    status.name
+    ;
     json['completedAt'] = completedAt.toJson();
     return json;
   }

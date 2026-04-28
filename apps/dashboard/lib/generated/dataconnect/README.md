@@ -3999,7 +3999,7 @@ ref.execute();
 #### Required Arguments
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 String owner = ...;
 String repo = ...;
 DefaultConnector.instance.createBuildJob(
@@ -4194,7 +4194,7 @@ Each builder returns an `execute` function, which is a helper function that crea
 An example of how to use the `Ref` object is shown below:
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 String owner = ...;
 String repo = ...;
 
@@ -4212,7 +4212,7 @@ ref.execute();
 #### Required Arguments
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 String owner = ...;
 String repo = ...;
 DefaultConnector.instance.upsertBuildJobFromFirestore(
@@ -4432,7 +4432,7 @@ Each builder returns an `execute` function, which is a helper function that crea
 An example of how to use the `Ref` object is shown below:
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 String owner = ...;
 String repo = ...;
 
@@ -4810,7 +4810,7 @@ ref.execute();
 #### Required Arguments
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 Timestamp completedAt = ...;
 DefaultConnector.instance.completeBuildJobForWorker(
   id: id,
@@ -4846,7 +4846,7 @@ Each builder returns an `execute` function, which is a helper function that crea
 An example of how to use the `Ref` object is shown below:
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 Timestamp completedAt = ...;
 
 final ref = DefaultConnector.instance.completeBuildJobForWorker(
@@ -4909,7 +4909,7 @@ ref.execute();
 #### Required Arguments
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 DefaultConnector.instance.updateBuildJobStatus(
   id: id,
   status: status,
@@ -4942,7 +4942,7 @@ Each builder returns an `execute` function, which is a helper function that crea
 An example of how to use the `Ref` object is shown below:
 ```dart
 String id = ...;
-String status = ...;
+BuildJobStatus status = ...;
 
 final ref = DefaultConnector.instance.updateBuildJobStatus(
   id: id,

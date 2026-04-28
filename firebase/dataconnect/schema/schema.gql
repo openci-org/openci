@@ -1,6 +1,5 @@
 type User @table(key: "id") {
   id: String!
-
   email: String! @col(dataType: "text")
   displayName: String
   photoUrl: String
@@ -9,21 +8,18 @@ type User @table(key: "id") {
   selectedTeam: Team
   selectedRepository: String
   selectedBranch: String
-
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
 type Team @table(key: "id") {
   id: String! @default(expr: "uuidV4()")
-
   name: String!
   aiEnabled: Boolean
   githubApiBaseUrl: String
   githubBaseUrl: String
   installationIds: [Int!]
   members: [String!]
-
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -43,24 +39,15 @@ enum InvitationStatus {
 
 type Invitation @table(key: "id") {
   id: String! @default(expr: "uuidV4()")
-
   email: String! @index
-
   token: String! @col(dataType: "text") @unique
-
   team: Team!
-
   teamNameSnapshot: String!
-
   invitedBy: User
-
   acceptedBy: User
   acceptedAt: Timestamp
-
   status: InvitationStatus! @default(value: PENDING)
-
   expiresAt: Timestamp!
-
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -116,10 +103,20 @@ type WorkflowFile @table(key: "id") {
   syncedAt: Timestamp
 }
 
+enum BuildJobStatus {
+  WAITING
+  QUEUED
+  IN_PROGRESS
+  SUCCESS
+  FAILURE
+  CANCELLED
+  SKIPPED
+  TIMED_OUT
+}
+
 type BuildJob @table(key: "id") {
   id: String!
-
-  status: String!
+  status: BuildJobStatus! @default(value: QUEUED)
   owner: String!
   repo: String!
   team: Team
@@ -155,7 +152,6 @@ type BuildJob @table(key: "id") {
   failureSummaryModel: String
   failureSummaryDurationMs: Int
   completedAt: Timestamp
-
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -165,7 +161,6 @@ type BuildRun @table(key: ["buildJob", "id"]) {
   id: String!
   status: String
   conclusion: String
-
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -173,7 +168,6 @@ type BuildRun @table(key: ["buildJob", "id"]) {
 type BuildLog @table(key: ["buildRun", "id"]) {
   buildRun: BuildRun!
   id: String!
-
   message: String! @col(dataType: "text")
   level: String
   timestamp: Timestamp!

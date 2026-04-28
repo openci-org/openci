@@ -11,8 +11,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-// ── Curated status palette ──────────────────────────────────────────────────
-
 Color _statusColor(String status) => switch (status) {
   'success' => const Color(0xFF2DA44E),
   'failure' => const Color(0xFFCF222E),
@@ -55,8 +53,6 @@ SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
     ),
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 class LogsBody extends HookConsumerWidget {
   const LogsBody({super.key});

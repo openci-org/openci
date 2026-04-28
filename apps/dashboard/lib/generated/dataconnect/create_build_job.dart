@@ -2,7 +2,7 @@ part of 'default.dart';
 
 class CreateBuildJobVariablesBuilder {
   String id;
-  String status;
+  BuildJobStatus status;
   String owner;
   String repo;
   Optional<String> _teamId = Optional.optional(nativeFromJson, nativeToJson);
@@ -231,7 +231,7 @@ class CreateBuildJobData {
 @immutable
 class CreateBuildJobVariables {
   final String id;
-  final String status;
+  final BuildJobStatus status;
   final String owner;
   final String repo;
   late final Optional<String>teamId;
@@ -266,7 +266,7 @@ class CreateBuildJobVariables {
   CreateBuildJobVariables.fromJson(Map<String, dynamic> json):
   
   id = nativeFromJson<String>(json['id']),
-  status = nativeFromJson<String>(json['status']),
+  status = BuildJobStatus.values.byName(json['status']),
   owner = nativeFromJson<String>(json['owner']),
   repo = nativeFromJson<String>(json['repo']) {
   
@@ -440,7 +440,9 @@ class CreateBuildJobVariables {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
     json['id'] = nativeToJson<String>(id);
-    json['status'] = nativeToJson<String>(status);
+    json['status'] = 
+    status.name
+    ;
     json['owner'] = nativeToJson<String>(owner);
     json['repo'] = nativeToJson<String>(repo);
     if(teamId.state == OptionalState.set) {

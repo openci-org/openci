@@ -668,7 +668,7 @@ mutation UpdateWorkflowFileEnabled($id: String!, $teamId: String!, $enabled: Boo
 
 mutation CreateBuildJob(
   $id: String!
-  $status: String!
+  $status: BuildJobStatus!
   $owner: String!
   $repo: String!
   $teamId: String
@@ -741,7 +741,7 @@ mutation CreateBuildJob(
 
 mutation UpsertBuildJobFromFirestore(
   $id: String!
-  $status: String!
+  $status: BuildJobStatus!
   $owner: String!
   $repo: String!
   $teamId: String
@@ -852,11 +852,11 @@ mutation ClaimQueuedBuildJob($runsOnPattern: String!) @auth(level: NO_ACCESS) {
   job: _executeReturningFirst(
     sql: """
       UPDATE build_job
-      SET status = 'in_progress', updated_at = NOW()
+      SET status = 'IN_PROGRESS', updated_at = NOW()
       WHERE id = (
         SELECT id
         FROM build_job
-        WHERE status = 'queued' AND runs_on LIKE $1
+        WHERE status = 'QUEUED' AND runs_on LIKE $1
         ORDER BY created_at ASC
         LIMIT 1
         FOR UPDATE SKIP LOCKED
@@ -961,7 +961,7 @@ mutation AppendBuildLogForWorker(
 }
 
 
-mutation CompleteBuildJobForWorker($id: String!, $status: String!, $completedAt: Timestamp!)
+mutation CompleteBuildJobForWorker($id: String!, $status: BuildJobStatus!, $completedAt: Timestamp!)
   @auth(level: NO_ACCESS) {
   buildJob_update(
     id: $id
@@ -986,7 +986,7 @@ mutation UpdateEnvironmentVariableValueForWorker($id: String!, $value: String!)
 }
 
 
-mutation UpdateBuildJobStatus($id: String!, $status: String!) @auth(level: NO_ACCESS) {
+mutation UpdateBuildJobStatus($id: String!, $status: BuildJobStatus!) @auth(level: NO_ACCESS) {
   buildJob_update(id: $id, data: { status: $status, updatedAt_expr: "request.time" })
 }
 
