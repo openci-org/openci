@@ -1,4 +1,4 @@
-name: Jaspr Landing Page CI/CD (Web)
+name: Landing Page CI/CD (Web)
 
 on:
   push:
@@ -15,27 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
-
       - name: Install dependencies
-        run: cd apps/landing_page && flutter pub get
+        run: cd apps/landing_page && npm ci
         
-      - name: Analyze
-        run: cd apps/landing_page && flutter analyze
+      - name: Lint
+        run: cd apps/landing_page && npm run lint
 
-      - name: Activate jaspr_cli
-        run: flutter pub global activate jaspr_cli
-
-      - name: Build jaspr (static)
-        run: cd apps/landing_page && flutter pub global run jaspr_cli:jaspr build
+      - name: Build Next.js (static)
+        run: cd apps/landing_page && npm run build
 
       - name: Sync build output to firebase/public
         run: |
           rm -rf firebase/public
           mkdir -p firebase/public
-          cp -R apps/landing_page/build/jaspr/. firebase/public/
+          cp -R apps/landing_page/out/. firebase/public/
 
       - uses: openci-org/save-secret-file@v1
         with:
