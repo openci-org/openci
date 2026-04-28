@@ -3,7 +3,12 @@ import { randomUUID } from "node:crypto";
 import { logger } from "firebase-functions/v2";
 import YAML from "yaml";
 
-import { createBuildJob, findTeamByInstallation, getWorkflowFile } from "@openci/dataconnect-admin";
+import {
+  BuildJobStatus,
+  createBuildJob,
+  findTeamByInstallation,
+  getWorkflowFile,
+} from "@openci/dataconnect-admin";
 import { createCheckRun, getInstallationToken, githubGet, githubGraphql } from "./githubApp";
 import {
   buildDashboardRunUrl,
@@ -336,7 +341,7 @@ export async function handleBuildTrigger(event: WebhookEvent): Promise<void> {
           : null;
         await createBuildJob({
           id: documentId,
-          status: hasNeeds ? "waiting" : "queued",
+          status: hasNeeds ? BuildJobStatus.WAITING : BuildJobStatus.QUEUED,
           owner: event.repository.owner,
           repo: event.repository.name,
           teamId: teamId ?? null,

@@ -20,7 +20,7 @@ class GetBuildJobVariablesBuilder {
 @immutable
 class GetBuildJobBuildJob {
   final String id;
-  final String status;
+  final EnumValue<BuildJobStatus> status;
   final String owner;
   final String repo;
   final String? teamId;
@@ -58,7 +58,7 @@ class GetBuildJobBuildJob {
   GetBuildJobBuildJob.fromJson(dynamic json):
   
   id = nativeFromJson<String>(json['id']),
-  status = nativeFromJson<String>(json['status']),
+  status = buildJobStatusDeserializer(json['status']),
   owner = nativeFromJson<String>(json['owner']),
   repo = nativeFromJson<String>(json['repo']),
   teamId = json['teamId'] == null ? null : nativeFromJson<String>(json['teamId']),
@@ -150,7 +150,9 @@ class GetBuildJobBuildJob {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
     json['id'] = nativeToJson<String>(id);
-    json['status'] = nativeToJson<String>(status);
+    json['status'] = 
+    buildJobStatusSerializer(status)
+    ;
     json['owner'] = nativeToJson<String>(owner);
     json['repo'] = nativeToJson<String>(repo);
     if (teamId != null) {
@@ -178,13 +180,13 @@ class GetBuildJobBuildJob {
       json['resolvedNeeds'] = resolvedNeeds!.toJson();
     }
     if (installationId != null) {
-      json['installationId'] = bigIntToJson(installationId!);
+      json['installationId'] = bigIntToJson(installationId);
     }
     if (tokenExpiresAt != null) {
       json['tokenExpiresAt'] = tokenExpiresAt!.toJson();
     }
     if (checkRunId != null) {
-      json['checkRunId'] = bigIntToJson(checkRunId!);
+      json['checkRunId'] = bigIntToJson(checkRunId);
     }
     if (commitSha != null) {
       json['commitSha'] = nativeToJson<String?>(commitSha);

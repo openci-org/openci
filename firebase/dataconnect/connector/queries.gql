@@ -593,7 +593,7 @@ query ListBuildJobsByWorkflowRun($workflowRunId: String!) @auth(level: NO_ACCESS
 
 
 query ListWaitingBuildJobs($workflowRunId: String!) @auth(level: NO_ACCESS) {
-  buildJobs(where: { _and: [{ workflowRunId: { eq: $workflowRunId } }, { status: { eq: "waiting" } }] }) {
+  buildJobs(where: { _and: [{ workflowRunId: { eq: $workflowRunId } }, { status: { eq: WAITING } }] }) {
     id
     jobKey
     needs

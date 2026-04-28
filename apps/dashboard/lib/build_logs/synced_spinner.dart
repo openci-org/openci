@@ -1,17 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// A synchronized spinning indicator similar to GitHub Actions.
-///
-/// All instances share the same animation phase via an [InheritedWidget]
-/// ([SyncedSpinnerScope]), so every spinner on screen rotates in lockstep.
-///
-/// Wrap a subtree with [SyncedSpinnerScope] once (e.g. at page level),
-/// then use [SyncedSpinner] anywhere below it.
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Scope – provides a shared AnimationController to all descendants
-// ─────────────────────────────────────────────────────────────────────────────
-
 class SyncedSpinnerScope extends StatefulWidget {
   const SyncedSpinnerScope({super.key, required this.child});
   final Widget child;
@@ -67,10 +55,6 @@ class _SyncedSpinnerInherited extends InheritedWidget {
       controller != oldWidget.controller;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Spinner widget
-// ─────────────────────────────────────────────────────────────────────────────
-
 class SyncedSpinner extends StatelessWidget {
   const SyncedSpinner({
     super.key,
@@ -118,10 +102,6 @@ class SyncedSpinner extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Custom painter – draws a spinning arc (similar to GitHub Actions)
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _SpinnerPainter extends CustomPainter {
   _SpinnerPainter({
     required this.progress,
@@ -159,7 +139,7 @@ class _SpinnerPainter extends CustomPainter {
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      startAngle - 1.5708, // offset by -90° so it starts at top
+      startAngle - 1.5708,
       sweepAngle,
       false,
       arcPaint,

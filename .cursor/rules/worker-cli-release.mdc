@@ -1,0 +1,17 @@
+---
+description: Worker CLI release and auto-update expectations
+globs: apps/worker_cli_node/**/*,packages/build_job_services/**/*,firebase/ts_functions/src/generated/dataconnect/**/*
+alwaysApply: false
+---
+
+# Worker CLI Release
+
+When changing the worker CLI, shared build job services, or generated Data Connect Admin SDK contracts used by the worker:
+
+- Bump `apps/worker_cli_node/package.json` version before publishing.
+- Run the worker build/check before release.
+- Publish `openci-worker-cli` to npm when the change must reach running workers.
+- Remember that running workers check npm `latest` about once per minute, install the newer global package, then exit with the update-requested code.
+- The actual restart depends on the host supervisor (systemd, launchd, Docker, etc.); mention this when giving rollout instructions.
+
+For Data Connect contract changes, deploy Data Connect and Functions before relying on worker auto-update.

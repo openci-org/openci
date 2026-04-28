@@ -1,6 +1,7 @@
+import { BuildJobStatus } from "@openci/dataconnect-admin";
 export interface BuildJob {
     id: string;
-    status: string;
+    status: BuildJobStatus;
     owner: string;
     repo: string;
     teamId?: string | null;
@@ -34,7 +35,7 @@ export declare function buildDashboardRunUrl(buildJobId: string): string;
 export declare function getBuildJobOrThrow(buildJobId: string): Promise<BuildJob>;
 export declare function updateCheckRun(buildJob: BuildJob, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
 export declare function updateCheckRunById(buildJobId: string, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
-export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: string): Promise<void>;
-export declare function handleBuildJobStatusChangeById(buildJobId: string, status: string): Promise<void>;
+export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: BuildJobStatus): Promise<void>;
+export declare function handleBuildJobStatusChangeById(buildJobId: string, status: BuildJobStatus): Promise<void>;
 export declare function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void>;
 export declare function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void>;

@@ -1,6 +1,8 @@
+import type { BuildJobStatus } from "@openci/dataconnect-admin";
+
 export interface BuildJob {
   id: string;
-  status: string;
+  status: BuildJobStatus;
   owner: string;
   repo: string;
   teamId?: string | null;

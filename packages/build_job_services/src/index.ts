@@ -1,5 +1,6 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import {
+  BuildJobStatus,
   connectorConfig,
   getBuildJob,
   getTeamById,
@@ -14,7 +15,7 @@ import { getMessaging } from "firebase-admin/messaging";
 
 export interface BuildJob {
   id: string;
-  status: string;
+  status: BuildJobStatus;
   owner: string;
   repo: string;
   teamId?: string | null;
@@ -136,18 +137,21 @@ export async function updateCheckRunById(
   await updateCheckRun(await getBuildJobOrThrow(buildJobId), runStatus, conclusion);
 }
 
-async function resolveDependencies(completedJob: BuildJob, completedStatus: string): Promise<void> {
+async function resolveDependencies(
+  completedJob: BuildJob,
+  completedStatus: BuildJobStatus,
+): Promise<void> {
   if (!completedJob.workflowRunId || !completedJob.jobKey) return;
   const waitingJobs = await listWaitingBuildJobs({ workflowRunId: completedJob.workflowRunId });
-  const isSuccess = completedStatus === "success";
+  const isSuccess = completedStatus === BuildJobStatus.SUCCESS;
 
   for (const job of waitingJobs.data.buildJobs) {
     const needs = Array.isArray(job.needs) ? job.needs.filter((need): need is string => typeof need === "string") : [];
     if (!needs.includes(completedJob.jobKey)) continue;
 
     if (!isSuccess) {
-      await updateBuildJobStatus({ id: job.id, status: "skipped" });
-      await resolveDependencies(job as BuildJob, "skipped");
+      await updateBuildJobStatus({ id: job.id, status: BuildJobStatus.SKIPPED });
+      await resolveDependencies(job as BuildJob, BuildJobStatus.SKIPPED);
       continue;
     }
 
@@ -160,13 +164,13 @@ async function resolveDependencies(completedJob: BuildJob, completedStatus: stri
     let allSatisfied = true;
     for (const needBuildJobId of Object.values(resolvedNeeds)) {
       const need = await getBuildJob({ id: needBuildJobId });
-      if (!need.data.buildJob || need.data.buildJob.status !== "success") {
+      if (!need.data.buildJob || need.data.buildJob.status !== BuildJobStatus.SUCCESS) {
         allSatisfied = false;
         break;
       }
     }
     if (allSatisfied) {
-      await updateBuildJobStatus({ id: job.id, status: "queued" });
+      await updateBuildJobStatus({ id: job.id, status: BuildJobStatus.QUEUED });
     }
   }
 }
@@ -177,12 +181,15 @@ async function failureLogLine(buildJobId: string, latestRunId?: string | null): 
   return logs.data.buildLogs[1]?.message ?? "Unknown error";
 }
 
-async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "failure"): Promise<void> {
+async function sendBuildNotifications(
+  buildJob: BuildJob,
+  status: BuildJobStatus.SUCCESS | BuildJobStatus.FAILURE,
+): Promise<void> {
   if (!buildJob.teamId) return;
   const users = await listTeamNotificationUsers({ teamId: buildJob.teamId });
   if (users.data.teamMembers.length === 0) return;
 
-  const isSuccess = status === "success";
+  const isSuccess = status === BuildJobStatus.SUCCESS;
   const title = isSuccess ? "✅ Build Succeeded" : "❌ Build Failed";
   const duration = formatDuration(buildJob.createdAt, buildJob.completedAt);
   const bodyLines = [
@@ -233,16 +240,30 @@ async function sendBuildNotifications(buildJob: BuildJob, status: "success" | "f
   }
 }
 
-export async function handleBuildJobStatusChange(buildJob: BuildJob, status: string): Promise<void> {
-  if (["success", "failure", "cancelled", "timed_out", "skipped"].includes(status)) {
+export async function handleBuildJobStatusChange(
+  buildJob: BuildJob,
+  status: BuildJobStatus,
+): Promise<void> {
+  if (
+    [
+      BuildJobStatus.SUCCESS,
+      BuildJobStatus.FAILURE,
+      BuildJobStatus.CANCELLED,
+      BuildJobStatus.TIMED_OUT,
+      BuildJobStatus.SKIPPED,
+    ].includes(status)
+  ) {
     await resolveDependencies(buildJob, status);
   }
-  if (status === "success" || status === "failure") {
+  if (status === BuildJobStatus.SUCCESS || status === BuildJobStatus.FAILURE) {
     await sendBuildNotifications(buildJob, status);
   }
 }
 
-export async function handleBuildJobStatusChangeById(buildJobId: string, status: string): Promise<void> {
+export async function handleBuildJobStatusChangeById(
+  buildJobId: string,
+  status: BuildJobStatus,
+): Promise<void> {
   await handleBuildJobStatusChange(await getBuildJobOrThrow(buildJobId), status);
 }
 
@@ -291,7 +312,7 @@ async function createAnthropicMessage(projectId: string | undefined, logLines: s
 }
 
 export async function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void> {
-  if (buildJob.status !== "failure") return;
+  if (buildJob.status !== BuildJobStatus.FAILURE) return;
   if (buildJob.teamId) {
     const team = await getTeamById({ teamId: buildJob.teamId });
     if (team.data.team?.aiEnabled === false) return;

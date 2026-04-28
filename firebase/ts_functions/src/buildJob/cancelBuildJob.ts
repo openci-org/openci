@@ -1,7 +1,7 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { getBuildJob, updateBuildJobStatus } from "@openci/dataconnect-admin";
+import { BuildJobStatus, getBuildJob, updateBuildJobStatus } from "@openci/dataconnect-admin";
 import { verifyTeamMembership } from "../team/teamAuth";
 
 interface CancelBuildJobRequest {
@@ -29,8 +29,8 @@ export const cancelBuildJob = onCall<CancelBuildJobRequest, Promise<{ success: t
       throw new HttpsError("not-found", "Build job not found");
     }
 
-    const currentStatus = typeof jobData.status === "string" ? jobData.status : undefined;
-    if (currentStatus !== "queued" && currentStatus !== "in_progress") {
+    const currentStatus = jobData.status;
+    if (currentStatus !== BuildJobStatus.QUEUED && currentStatus !== BuildJobStatus.IN_PROGRESS) {
       throw new HttpsError(
         "failed-precondition",
         `Cannot cancel a build job with status '${currentStatus}'`,
@@ -42,7 +42,7 @@ export const cancelBuildJob = onCall<CancelBuildJobRequest, Promise<{ success: t
       await verifyTeamMembership(auth, teamId);
     }
 
-    await updateBuildJobStatus({ id: buildJobId, status: "cancelled" });
+    await updateBuildJobStatus({ id: buildJobId, status: BuildJobStatus.CANCELLED });
     logger.info("Build job cancelled", {
       buildJobId,
       callerUid: auth.uid,

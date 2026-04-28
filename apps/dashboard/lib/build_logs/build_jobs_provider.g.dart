@@ -8,7 +8,7 @@ part of 'build_jobs_provider.dart';
 
 _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   id: json['id'] as String,
-  status: json['status'] as String,
+  status: $enumDecode(_$BuildJobStatusEnumMap, json['status']),
   owner: json['owner'] as String,
   repo: json['repo'] as String,
   teamId: json['teamId'] as String?,
@@ -38,7 +38,7 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
 
 Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'id': instance.id,
-  'status': instance.status,
+  'status': _$BuildJobStatusEnumMap[instance.status]!,
   'owner': instance.owner,
   'repo': instance.repo,
   'teamId': instance.teamId,
@@ -64,6 +64,17 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
     instance.completedAt,
     const DateTimeConverter().toJson,
   ),
+};
+
+const _$BuildJobStatusEnumMap = {
+  BuildJobStatus.WAITING: 'WAITING',
+  BuildJobStatus.QUEUED: 'QUEUED',
+  BuildJobStatus.IN_PROGRESS: 'IN_PROGRESS',
+  BuildJobStatus.SUCCESS: 'SUCCESS',
+  BuildJobStatus.FAILURE: 'FAILURE',
+  BuildJobStatus.CANCELLED: 'CANCELLED',
+  BuildJobStatus.SKIPPED: 'SKIPPED',
+  BuildJobStatus.TIMED_OUT: 'TIMED_OUT',
 };
 
 Value? _$JsonConverterFromJson<Json, Value>(
@@ -107,7 +118,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'94f1c29d54cf4101ef7f13aa6c8c55e7b639b8c6';
+String _$buildJobsHash() => r'78183a21831ffc68877d23282b03432578ffb03a';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();

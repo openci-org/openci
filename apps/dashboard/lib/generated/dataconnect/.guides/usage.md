@@ -1,16 +1,16 @@
 # Basic Usage
 
 ```dart
-DefaultConnector.instance.GetInvitationByToken(getInvitationByTokenVariables).execute();
-DefaultConnector.instance.ListMyPendingInvitations().execute();
-DefaultConnector.instance.GetCurrentUser().execute();
-DefaultConnector.instance.ListMyTeams().execute();
-DefaultConnector.instance.ListTeamPendingInvitations(listTeamPendingInvitationsVariables).execute();
-DefaultConnector.instance.FindExistingPendingInvitation(findExistingPendingInvitationVariables).execute();
-DefaultConnector.instance.GetTeamForMember(getTeamForMemberVariables).execute();
-DefaultConnector.instance.ListTeamMembers(listTeamMembersVariables).execute();
-DefaultConnector.instance.ListTeamNotificationUsers(listTeamNotificationUsersVariables).execute();
-DefaultConnector.instance.GetTeamById(getTeamByIdVariables).execute();
+DefaultConnector.instance.CreateInvitation(createInvitationVariables).execute();
+DefaultConnector.instance.ReinviteInvitation(reinviteInvitationVariables).execute();
+DefaultConnector.instance.AcceptInvitation(acceptInvitationVariables).execute();
+DefaultConnector.instance.ExpireInvitation(expireInvitationVariables).execute();
+DefaultConnector.instance.AcceptInvitationAndJoinTeam(acceptInvitationAndJoinTeamVariables).execute();
+DefaultConnector.instance.LinkGitHubInstallation(linkGitHubInstallationVariables).execute();
+DefaultConnector.instance.UpsertUserProfile(upsertUserProfileVariables).execute();
+DefaultConnector.instance.UpdateCurrentUserSelectedTeam(updateCurrentUserSelectedTeamVariables).execute();
+DefaultConnector.instance.UpdateCurrentUserNotificationPreference(updateCurrentUserNotificationPreferenceVariables).execute();
+DefaultConnector.instance.UpdateCurrentUserFcmTokens(updateCurrentUserFcmTokensVariables).execute();
 
 ```
 
@@ -23,8 +23,8 @@ Optional fields can be discovered based on classes that have `Optional` object t
 This is an example of a mutation with an optional field:
 
 ```dart
-await DefaultConnector.instance.UpdateBuildJobFailureSummary({ ... })
-.failureSummary(...)
+await DefaultConnector.instance.ListBuildLogsForRun({ ... })
+.limit(...)
 .execute();
 ```
 

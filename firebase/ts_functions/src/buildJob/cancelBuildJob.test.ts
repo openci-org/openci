@@ -4,13 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type AuthData = NonNullable<CallableRequest["auth"]>;
 
-const { mockGetBuildJob, mockUpdateBuildJobStatus, mockVerifyTeamMembership } = vi.hoisted(() => ({
-  mockGetBuildJob: vi.fn(),
-  mockUpdateBuildJobStatus: vi.fn(),
-  mockVerifyTeamMembership: vi.fn(),
-}));
+const { BuildJobStatus, mockGetBuildJob, mockUpdateBuildJobStatus, mockVerifyTeamMembership } =
+  vi.hoisted(() => ({
+    BuildJobStatus: {
+      QUEUED: "QUEUED",
+      IN_PROGRESS: "IN_PROGRESS",
+      SUCCESS: "SUCCESS",
+      CANCELLED: "CANCELLED",
+    } as const,
+    mockGetBuildJob: vi.fn(),
+    mockUpdateBuildJobStatus: vi.fn(),
+    mockVerifyTeamMembership: vi.fn(),
+  }));
 
 vi.mock("@openci/dataconnect-admin", () => ({
+  BuildJobStatus,
   getBuildJob: (...args: unknown[]) => mockGetBuildJob(...args),
   updateBuildJobStatus: (...args: unknown[]) => mockUpdateBuildJobStatus(...args),
 }));
@@ -58,7 +66,7 @@ describe("cancelBuildJob", () => {
 
   it("cancels queued build jobs for team members", async () => {
     mockGetBuildJob.mockResolvedValue({
-      data: { buildJob: { status: "queued", teamId: "team-1" } },
+      data: { buildJob: { status: BuildJobStatus.QUEUED, teamId: "team-1" } },
     });
 
     const result = await wrapped({ data: { buildJobId: "job-1" }, auth: makeAuth() });
@@ -66,13 +74,13 @@ describe("cancelBuildJob", () => {
     expect(result).toEqual({ success: true });
     expect(mockUpdateBuildJobStatus).toHaveBeenCalledWith({
       id: "job-1",
-      status: "cancelled",
+      status: BuildJobStatus.CANCELLED,
     });
   });
 
   it("rejects completed build jobs", async () => {
     mockGetBuildJob.mockResolvedValue({
-      data: { buildJob: { status: "success", teamId: "team-1" } },
+      data: { buildJob: { status: BuildJobStatus.SUCCESS, teamId: "team-1" } },
     });
 
     await expect(wrapped({ data: { buildJobId: "job-1" }, auth: makeAuth() })).rejects.toThrow(

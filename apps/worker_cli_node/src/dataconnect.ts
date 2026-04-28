@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import {
   appendBuildLogForWorker,
+  BuildJobStatus,
   claimQueuedBuildJob,
   completeBuildJobForWorker,
   connectorConfig,
@@ -30,7 +31,9 @@ export function initFirebase(
     options.dataConnectServiceId ?? process.env.OPENCI_DATACONNECT_SERVICE_ID;
   if (dataConnectServiceId) connectorConfig.serviceId = dataConnectServiceId;
   connectorConfig.location =
-    options.dataConnectLocation ?? process.env.OPENCI_DATACONNECT_LOCATION ?? connectorConfig.location;
+    options.dataConnectLocation ??
+    process.env.OPENCI_DATACONNECT_LOCATION ??
+    connectorConfig.location;
   configureBuildJobServicesDataConnect({
     serviceId: connectorConfig.serviceId,
     location: connectorConfig.location,
@@ -77,7 +80,10 @@ export async function appendLog(input: {
   await appendBuildLogForWorker(input);
 }
 
-export async function completeJob(id: string, status: "success" | "failure"): Promise<void> {
+export async function completeJob(
+  id: string,
+  status: BuildJobStatus.SUCCESS | BuildJobStatus.FAILURE,
+): Promise<void> {
   await completeBuildJobForWorker({
     id,
     status,
@@ -85,7 +91,7 @@ export async function completeJob(id: string, status: "success" | "failure"): Pr
   });
 }
 
-export async function setJobStatus(id: string, status: string): Promise<void> {
+export async function setJobStatus(id: string, status: BuildJobStatus): Promise<void> {
   await updateBuildJobStatus({ id, status });
 }
 
@@ -101,7 +107,7 @@ export async function updateRunStatus(input: {
 export async function isJobCancelled(buildJobId: string): Promise<boolean> {
   const response = await getBuildJob({ id: buildJobId });
   const status = response.data.buildJob?.status;
-  return status === "cancelled";
+  return status === BuildJobStatus.CANCELLED;
 }
 
 export async function getEnvironmentVariables(teamId: string): Promise<

@@ -1,28 +1,17 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
-
-import 'package:dashboard/build_logs/synced_spinner.dart';
-
 import 'package:dashboard/build_logs/build_logs_provider.dart';
-
+import 'package:dashboard/build_logs/synced_spinner.dart';
+import 'package:dashboard/firebase/dataconnect.dart' show BuildJobStatus;
 import 'package:dashboard/i18n/strings.g.dart';
-
 import 'package:dashboard/team/team_provider.dart';
-
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter/services.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:flutter_markdown/flutter_markdown.dart';
-
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 enum _ActionState { idle, loading, done }
@@ -53,39 +42,41 @@ class BuildLogsDetailPage extends HookConsumerWidget {
     final retryState = useState(_ActionState.idle);
 
     final statusColor = switch (buildJob.status) {
-      'success' => const Color(0xFF3FB950),
-      'failure' => const Color(0xFFF85149),
-      'in_progress' => const Color(0xFF58A6FF),
-      'queued' => const Color(0xFFBC8CFF),
-      'cancelled' => const Color(0xFFD29922),
-      'waiting' => const Color(0xFFD29922),
-      'skipped' => AppColors.of(context).textTertiary,
-      _ => AppColors.of(context).textTertiary,
+      BuildJobStatus.SUCCESS => const Color(0xFF3FB950),
+      BuildJobStatus.FAILURE => const Color(0xFFF85149),
+      BuildJobStatus.IN_PROGRESS => const Color(0xFF58A6FF),
+      BuildJobStatus.QUEUED => const Color(0xFFBC8CFF),
+      BuildJobStatus.CANCELLED => const Color(0xFFD29922),
+      BuildJobStatus.WAITING => const Color(0xFFD29922),
+      BuildJobStatus.SKIPPED => AppColors.of(context).textTertiary,
+      BuildJobStatus.TIMED_OUT => const Color(0xFFF85149),
     };
 
     final statusIcon = switch (buildJob.status) {
-      'success' => Icons.check_circle_rounded,
-      'failure' => Icons.cancel_rounded,
-      'queued' => Icons.schedule_rounded,
-      'cancelled' => Icons.block_rounded,
-      'waiting' => Icons.adjust_rounded,
-      'skipped' => Icons.skip_next_rounded,
-      _ => Icons.help_outline_rounded,
+      BuildJobStatus.SUCCESS => Icons.check_circle_rounded,
+      BuildJobStatus.FAILURE => Icons.cancel_rounded,
+      BuildJobStatus.IN_PROGRESS => Icons.help_outline_rounded,
+      BuildJobStatus.QUEUED => Icons.schedule_rounded,
+      BuildJobStatus.CANCELLED => Icons.block_rounded,
+      BuildJobStatus.WAITING => Icons.adjust_rounded,
+      BuildJobStatus.SKIPPED => Icons.skip_next_rounded,
+      BuildJobStatus.TIMED_OUT => Icons.timer_off_rounded,
     };
 
     final statusLabel = switch (buildJob.status) {
-      'success' => t.buildLogs.status.success,
-      'failure' => t.buildLogs.status.failed,
-      'in_progress' => t.buildLogs.status.inProgress,
-      'queued' => t.buildLogs.status.queued,
-      'cancelled' => t.buildLogs.status.cancelled,
-      'waiting' => 'Waiting',
-      'skipped' => 'Skipped',
-      _ => buildJob.status,
+      BuildJobStatus.SUCCESS => t.buildLogs.status.success,
+      BuildJobStatus.FAILURE => t.buildLogs.status.failed,
+      BuildJobStatus.IN_PROGRESS => t.buildLogs.status.inProgress,
+      BuildJobStatus.QUEUED => t.buildLogs.status.queued,
+      BuildJobStatus.CANCELLED => t.buildLogs.status.cancelled,
+      BuildJobStatus.WAITING => 'Waiting',
+      BuildJobStatus.SKIPPED => 'Skipped',
+      BuildJobStatus.TIMED_OUT => 'Timed out',
     };
 
     final canCancel =
-        buildJob.status == 'queued' || buildJob.status == 'in_progress';
+        buildJob.status == BuildJobStatus.QUEUED ||
+        buildJob.status == BuildJobStatus.IN_PROGRESS;
 
     return SyncedSpinnerScope(
       child: Scaffold(
@@ -308,7 +299,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (buildJob.status == 'in_progress')
+                            if (buildJob.status == BuildJobStatus.IN_PROGRESS)
                               SyncedSpinner(
                                 size: 14,
                                 strokeWidth: 1.5,
@@ -380,7 +371,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 final aiEnabled =
                     ref.watch(teamStateProvider).value?.aiEnabled ?? true;
                 if (!aiEnabled) return const SizedBox.shrink();
-                if (buildJob.status != 'failure' ||
+                if (buildJob.status != BuildJobStatus.FAILURE ||
                     buildJob.failureSummaryStatus == null) {
                   return const SizedBox.shrink();
                 }
@@ -497,7 +488,7 @@ class _DetailLogsView extends HookConsumerWidget {
 
   final String buildJobId;
   final String runId;
-  final String buildStatus;
+  final BuildJobStatus buildStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -543,10 +534,11 @@ class _DetailLogsView extends HookConsumerWidget {
 
         if (logs.isEmpty) {
           final isTerminal =
-              buildStatus == 'success' ||
-              buildStatus == 'failure' ||
-              buildStatus == 'cancelled' ||
-              buildStatus == 'skipped';
+              buildStatus == BuildJobStatus.SUCCESS ||
+              buildStatus == BuildJobStatus.FAILURE ||
+              buildStatus == BuildJobStatus.CANCELLED ||
+              buildStatus == BuildJobStatus.SKIPPED ||
+              buildStatus == BuildJobStatus.TIMED_OUT;
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
