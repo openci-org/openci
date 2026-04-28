@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { StudioHomePage } from '../../components/site';
+import { StudioHomePage } from '../../../components/site';
 
 export const metadata: Metadata = {
   title: 'OpenCI Studio',

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { StudioAboutPage } from '../../../components/site';
+import { StudioAboutPage } from '../../../../components/site';
 
 export const metadata: Metadata = {
   title: '会社概要 - OpenCI Studio',

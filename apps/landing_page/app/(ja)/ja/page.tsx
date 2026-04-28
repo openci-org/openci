@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { CicdPage } from '../../components/site';
+import { CicdPage } from '../../../components/site';
 
 export const metadata: Metadata = {
   title: 'OpenCI — CI/CDを、もっと安く、もっと速く。',
