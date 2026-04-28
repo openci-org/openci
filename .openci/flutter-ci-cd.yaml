@@ -44,7 +44,7 @@ jobs:
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
-          
+
       - uses: openci-org/flutter-cd@v2
         with:
           platform: "ios"

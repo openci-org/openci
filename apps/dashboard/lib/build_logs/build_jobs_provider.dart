@@ -23,6 +23,13 @@ class BuildJobs extends _$BuildJobs {
         .listBuildJobsForTeam(teamId: teamId, limit: 20)
         .ref();
 
+    final initialResult = await query.execute();
+    final initialJobs = _sortedBuildJobs(
+      initialResult.data.buildJobs.map(_buildJobFromList),
+    );
+    _debugBuildJobsResult('execute', teamId, initialJobs);
+    yield initialJobs;
+
     yield* query.subscribe().map(
       (result) {
         final jobs = _sortedBuildJobs(

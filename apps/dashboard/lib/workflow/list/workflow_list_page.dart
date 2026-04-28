@@ -1,62 +1,35 @@
 import 'dart:async';
 
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/data_connect_service_id_page.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
+import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/settings/settings_page.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/team/create_team_bottom_sheet.dart';
+import 'package:dashboard/team/delete_team_bottom_sheet.dart';
+import 'package:dashboard/team/edit_team_bottom_sheet.dart';
+import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
+import 'package:dashboard/team/switch_team_bottom_sheet.dart';
+import 'package:dashboard/team/team_members_bottom_sheet.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/theme/theme_provider.dart';
-
-import 'package:dashboard/build_logs/build_logs_page.dart';
-
-import 'package:dashboard/firebase/firebase_config_provider.dart';
-
-import 'package:dashboard/i18n/strings.g.dart';
-
-import 'package:dashboard/settings/settings_page.dart';
-
-import 'package:dashboard/store_release/store_release_page.dart';
-
-import 'package:dashboard/variables/variables_page.dart';
-
-import 'package:dashboard/team/create_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/delete_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/edit_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
-
-import 'package:dashboard/team/switch_team_bottom_sheet.dart';
-
-import 'package:dashboard/team/team_members_bottom_sheet.dart';
-
-import 'package:dashboard/team/team_provider.dart';
-
 import 'package:dashboard/users/user_provider.dart';
-
 import 'package:dashboard/utilities/async_error_widget.dart';
-
+import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
-
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
-
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
-
 import 'package:dashboard/workflow/list/select_branch_bottom_sheet.dart';
-
 import 'package:dashboard/workflow/list/select_repository_bottom_sheet.dart';
-
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:swipeable_page_route/swipeable_page_route.dart';
-
 import 'package:yaml/yaml.dart';
 
 import 'status_dot.dart';
@@ -152,7 +125,7 @@ class WorkflowListPage extends HookConsumerWidget {
         }
 
         final tabChildren = [
-          buildRepoRequiredTab(const LogsBody()),
+          const LogsBody(),
           const StoreReleaseBody(),
           buildRepoRequiredTab(
             _WorkflowBody(
@@ -350,68 +323,16 @@ class WorkflowListPage extends HookConsumerWidget {
                     ],
                   )
                 : null,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.of(context).divider,
-                    ),
-                  ),
-                ),
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List.generate(4, (index) {
-                      final labels = [
-                        wfT.tabRuns,
-                        t.storeRelease.title,
-                        wfT.tabWorkflows,
-                        t.variables.title,
-                      ];
-                      final isSelected = tabController.index == index;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 2),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () => tabController.animateTo(index),
-                            hoverColor: AppColors.of(context).borderSubtle,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              curve: Curves.easeOut,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 7,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.of(context).border
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                labels[index],
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected
-                                      ? AppColors.of(context).textPrimary
-                                      : AppColors.of(context).textTertiary,
-                                  letterSpacing: -0.1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
+            bottom: TabBar(
+              controller: tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              tabs: [
+                Tab(text: wfT.tabRuns),
+                Tab(text: t.storeRelease.title),
+                Tab(text: wfT.tabWorkflows),
+                Tab(text: t.variables.title),
+              ],
             ),
             actions: [
               Consumer(

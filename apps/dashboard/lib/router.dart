@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/team/accept_invitation_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
