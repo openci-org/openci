@@ -1,9 +1,9 @@
-# Files and directories created by pub.
-**/doc/api/
-.dart_tool/
-.packages
+# Dependencies
+/node_modules/
 
-# Conventional directory for build output.
+# Next.js build output
+/.next/
+/out/
 /build/
 
 # Miscellaneous
