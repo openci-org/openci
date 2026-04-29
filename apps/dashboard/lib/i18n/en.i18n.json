@@ -205,6 +205,7 @@
     "newSecretValue": "New Secret Value (leave empty to keep current)",
     "enterSecretName": "Please enter a secret name",
     "enterSecretValue": "Please enter a secret value",
+    "adding": "Adding secret...",
     "addedSuccess": "Secret added successfully",
     "updatedSuccess": "Secret updated successfully",
     "deleteConfirm": "Are you sure you want to delete this secret? This action cannot be undone.",

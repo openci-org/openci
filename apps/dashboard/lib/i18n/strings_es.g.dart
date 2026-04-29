@@ -203,6 +203,7 @@ class _TranslationsSecretsEs implements TranslationsSecretsEn {
 	@override String get newSecretValue => 'Nuevo valor del secreto (dejar vacío para mantener el actual)';
 	@override String get enterSecretName => 'Por favor, ingresa un nombre de secreto';
 	@override String get enterSecretValue => 'Por favor, ingresa un valor de secreto';
+	@override String get adding => 'Agregando secreto...';
 	@override String get addedSuccess => 'Secreto agregado exitosamente';
 	@override String get updatedSuccess => 'Secreto actualizado exitosamente';
 	@override String get deleteConfirm => '¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.';
@@ -960,6 +961,7 @@ extension on TranslationsEs {
 			'secrets.newSecretValue' => 'Nuevo valor del secreto (dejar vacío para mantener el actual)',
 			'secrets.enterSecretName' => 'Por favor, ingresa un nombre de secreto',
 			'secrets.enterSecretValue' => 'Por favor, ingresa un valor de secreto',
+			'secrets.adding' => 'Agregando secreto...',
 			'secrets.addedSuccess' => 'Secreto agregado exitosamente',
 			'secrets.updatedSuccess' => 'Secreto actualizado exitosamente',
 			'secrets.deleteConfirm' => '¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.',

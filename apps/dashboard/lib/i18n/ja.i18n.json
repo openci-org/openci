@@ -205,6 +205,7 @@
     "newSecretValue": "新しいシークレット値（空欄で現在の値を維持）",
     "enterSecretName": "シークレット名を入力してください",
     "enterSecretValue": "シークレット値を入力してください",
+    "adding": "シークレットを追加中...",
     "addedSuccess": "シークレットが追加されました",
     "updatedSuccess": "シークレットが更新されました",
     "deleteConfirm": "このシークレットを削除しますか？この操作は元に戻せません。",

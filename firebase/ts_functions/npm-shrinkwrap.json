@@ -1609,42 +1609,30 @@
     },
     "node_modules/@oxfmt/binding-darwin-arm64": {
       "version": "0.45.0",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": "^20.19.0 || >=22.12.0"
       }
     },
     "node_modules/@oxlint-tsgolint/darwin-arm64": {
       "version": "0.21.1",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ]
+      "os": ["darwin"]
     },
     "node_modules/@oxlint/binding-darwin-arm64": {
       "version": "1.60.0",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": "^20.19.0 || >=22.12.0"
       }
@@ -1720,15 +1708,11 @@
     },
     "node_modules/@rolldown/binding-darwin-arm64": {
       "version": "1.0.0-rc.17",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": "^20.19.0 || >=22.12.0"
       }
@@ -2020,15 +2004,11 @@
     },
     "node_modules/@unrs/resolver-binding-darwin-arm64": {
       "version": "1.11.1",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "peer": true
     },
     "node_modules/@vitest/coverage-v8": {
@@ -2262,15 +2242,11 @@
     },
     "node_modules/@voidzero-dev/vite-plus-darwin-arm64": {
       "version": "0.1.19",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": "^20.19.0 || >=22.12.0"
       }
@@ -2450,9 +2426,7 @@
       "dev": true,
       "license": "BSD-3-Clause",
       "peer": true,
-      "workspaces": [
-        "test/babel-8"
-      ],
+      "workspaces": ["test/babel-8"],
       "dependencies": {
         "@babel/helper-plugin-utils": "^7.0.0",
         "@istanbuljs/load-nyc-config": "^1.0.0",
@@ -3594,9 +3568,7 @@
       "dev": true,
       "license": "MIT",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
       }
@@ -3630,10 +3602,7 @@
     },
     "node_modules/gaxios/node_modules/uuid": {
       "version": "9.0.1",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
+      "funding": ["https://github.com/sponsors/broofa", "https://github.com/sponsors/ctavan"],
       "license": "MIT",
       "optional": true,
       "bin": {
@@ -3872,10 +3841,7 @@
     },
     "node_modules/google-gax/node_modules/uuid": {
       "version": "9.0.1",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
+      "funding": ["https://github.com/sponsors/broofa", "https://github.com/sponsors/ctavan"],
       "license": "MIT",
       "optional": true,
       "bin": {
@@ -5046,15 +5012,11 @@
     },
     "node_modules/lightningcss-darwin-arm64": {
       "version": "1.32.0",
-      "cpu": [
-        "arm64"
-      ],
+      "cpu": ["arm64"],
       "dev": true,
       "license": "MPL-2.0",
       "optional": true,
-      "os": [
-        "darwin"
-      ],
+      "os": ["darwin"],
       "engines": {
         "node": ">= 12.0.0"
       },
@@ -5463,10 +5425,7 @@
     "node_modules/obug": {
       "version": "2.1.1",
       "dev": true,
-      "funding": [
-        "https://github.com/sponsors/sxzz",
-        "https://opencollective.com/debug"
-      ],
+      "funding": ["https://github.com/sponsors/sxzz", "https://opencollective.com/debug"],
       "license": "MIT"
     },
     "node_modules/on-finished": {
@@ -6593,10 +6552,7 @@
     },
     "node_modules/teeny-request/node_modules/uuid": {
       "version": "9.0.1",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
+      "funding": ["https://github.com/sponsors/broofa", "https://github.com/sponsors/ctavan"],
       "license": "MIT",
       "optional": true,
       "bin": {
@@ -6885,10 +6841,7 @@
     },
     "node_modules/uuid": {
       "version": "11.1.0",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
+      "funding": ["https://github.com/sponsors/broofa", "https://github.com/sponsors/ctavan"],
       "license": "MIT",
       "bin": {
         "uuid": "dist/esm/bin/uuid"

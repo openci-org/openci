@@ -203,6 +203,7 @@ class _TranslationsSecretsJa implements TranslationsSecretsEn {
 	@override String get newSecretValue => '新しいシークレット値（空欄で現在の値を維持）';
 	@override String get enterSecretName => 'シークレット名を入力してください';
 	@override String get enterSecretValue => 'シークレット値を入力してください';
+	@override String get adding => 'シークレットを追加中...';
 	@override String get addedSuccess => 'シークレットが追加されました';
 	@override String get updatedSuccess => 'シークレットが更新されました';
 	@override String get deleteConfirm => 'このシークレットを削除しますか？この操作は元に戻せません。';
@@ -960,6 +961,7 @@ extension on TranslationsJa {
 			'secrets.newSecretValue' => '新しいシークレット値（空欄で現在の値を維持）',
 			'secrets.enterSecretName' => 'シークレット名を入力してください',
 			'secrets.enterSecretValue' => 'シークレット値を入力してください',
+			'secrets.adding' => 'シークレットを追加中...',
 			'secrets.addedSuccess' => 'シークレットが追加されました',
 			'secrets.updatedSuccess' => 'シークレットが更新されました',
 			'secrets.deleteConfirm' => 'このシークレットを削除しますか？この操作は元に戻せません。',

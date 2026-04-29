@@ -355,6 +355,9 @@ class TranslationsSecretsEn {
 	/// en: 'Please enter a secret value'
 	String get enterSecretValue => 'Please enter a secret value';
 
+	/// en: 'Adding secret...'
+	String get adding => 'Adding secret...';
+
 	/// en: 'Secret added successfully'
 	String get addedSuccess => 'Secret added successfully';
 
@@ -1861,6 +1864,7 @@ extension on Translations {
 			'secrets.newSecretValue' => 'New Secret Value (leave empty to keep current)',
 			'secrets.enterSecretName' => 'Please enter a secret name',
 			'secrets.enterSecretValue' => 'Please enter a secret value',
+			'secrets.adding' => 'Adding secret...',
 			'secrets.addedSuccess' => 'Secret added successfully',
 			'secrets.updatedSuccess' => 'Secret updated successfully',
 			'secrets.deleteConfirm' => 'Are you sure you want to delete this secret? This action cannot be undone.',

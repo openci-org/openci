@@ -1,22 +1,15 @@
 import 'dart:convert';
+
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/theme/app_colors.dart';
-
 import 'package:dashboard/i18n/strings.g.dart';
-
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
-
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
-
 import 'package:file_picker/file_picker.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Extract secret names referenced in workflow YAML content.
@@ -534,7 +527,6 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
     final inputMode = useState(_InputMode.text);
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
-    final isLoading = useState(false);
 
     return SafeArea(
       child: Padding(
@@ -837,68 +829,81 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: isLoading.value
-                          ? null
-                          : () async {
-                              if (inputMode.value == _InputMode.file &&
-                                  fileContent.value == null) {
-                                context.showSnackBarMessage(
-                                  secretsT.enterValueOrUpload,
-                                );
-                                return;
-                              }
-                              if (!formKey.currentState!.validate()) return;
+                      onPressed: () async {
+                        if (inputMode.value == _InputMode.file &&
+                            fileContent.value == null) {
+                          context.showSnackBarMessage(
+                            secretsT.enterValueOrUpload,
+                          );
+                          return;
+                        }
+                        if (!formKey.currentState!.validate()) return;
 
-                              final value = inputMode.value == _InputMode.file
-                                  ? fileContent.value!
-                                  : secretValueController.text;
+                        final name = secretNameController.text.trim();
+                        final value = inputMode.value == _InputMode.file
+                            ? fileContent.value!
+                            : secretValueController.text;
+                        final secretManager = ref.read(
+                          secretManagerProvider.notifier,
+                        );
+                        final messenger = ScaffoldMessenger.of(context);
 
-                              isLoading.value = true;
-                              try {
-                                await ref
-                                    .read(secretManagerProvider.notifier)
-                                    .addSecret(
-                                      secretNameController.text.trim(),
-                                      value,
-                                    );
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage(
-                                  secretsT.addedSuccess,
-                                );
-                                Navigator.of(context).pop();
-                              } on FirebaseFunctionsException catch (e, s) {
-                                final errorMessage =
-                                    await FunctionErrorMessage.capture(
-                                      e,
-                                      stackTrace: s,
-                                    );
-                                isLoading.value = false;
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage(
-                                  errorMessage.message,
-                                );
-                              } catch (e) {
-                                isLoading.value = false;
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage('$e');
-                              }
-                            },
-                      child: isLoading.value
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.of(context).textPrimary,
-                              ),
-                            )
-                          : Text(
-                              secretsT.addSecret,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        Navigator.of(context).pop();
+                        messenger
+                          ..removeCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(secretsT.adding),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(days: 1),
                             ),
+                          );
+
+                        try {
+                          await secretManager.addSecret(name, value);
+                          if (!messenger.mounted) return;
+                          messenger
+                            ..removeCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text(secretsT.addedSuccess),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          if (!messenger.mounted) return;
+                          messenger
+                            ..removeCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text(errorMessage.message),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                        } catch (e) {
+                          if (!messenger.mounted) return;
+                          messenger
+                            ..removeCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text('$e'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                        }
+                      },
+                      child: Text(
+                        secretsT.addSecret,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
