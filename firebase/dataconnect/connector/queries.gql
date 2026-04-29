@@ -240,6 +240,15 @@ query FindSecretByName($teamId: String!, $name: String!) @auth(level: USER) {
 }
 
 
+query FindSecretByNameForTeam($teamId: String!, $name: String!) @auth(level: NO_ACCESS) {
+  secrets(where: { _and: [{ teamId: { eq: $teamId } }, { name: { eq: $name } }] }, limit: 1) {
+    id
+    name
+    teamId
+  }
+}
+
+
 query GetSecretForTeam($id: String!, $teamId: String!) @auth(level: USER) {
   teamMember(key: { teamId: $teamId, userId_expr: "auth.uid" })
     @check(expr: "this != null", message: "You are not a member of this team") {

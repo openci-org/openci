@@ -70,6 +70,7 @@ class _TranslationsCommonJa implements TranslationsCommonEn {
 	@override String error({required Object error}) => 'エラー: ${error}';
 	@override String get loading => '読み込み中...';
 	@override String get invite => '招待';
+	@override late final _TranslationsCommonFunctionErrorsJa functionErrors = _TranslationsCommonFunctionErrorsJa._(_root);
 }
 
 // Path: timeAgo
@@ -499,6 +500,28 @@ class _TranslationsStoreReleaseJa implements TranslationsStoreReleaseEn {
 	@override String get viewInAsc => 'App Store Connectで確認';
 }
 
+// Path: common.functionErrors
+class _TranslationsCommonFunctionErrorsJa implements TranslationsCommonFunctionErrorsEn {
+	_TranslationsCommonFunctionErrorsJa._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get cancelled => '操作がキャンセルされました。';
+	@override String get invalidArgument => '入力内容を確認してください。';
+	@override String get failedPrecondition => '操作を完了できません。状態を確認してください。';
+	@override String get notFound => '対象のデータが見つかりません。再読み込みしてください。';
+	@override String get alreadyExists => 'すでに存在しています。';
+	@override String get unauthenticated => 'ログインが必要です。もう一度ログインしてください。';
+	@override String get permissionDenied => 'この操作を実行する権限がありません。';
+	@override String get resourceExhausted => 'しばらく時間をおいてから再試行してください。';
+	@override String get aborted => '処理が競合しました。もう一度お試しください。';
+	@override String get unavailable => '一時的に接続できません。しばらくしてから再試行してください。';
+	@override String get internal => 'サーバーで予期しないエラーが発生しました。時間をおいて再試行してください。';
+	@override String get unknown => '原因不明のエラーが発生しました。時間をおいて再試行してください。';
+	@override String get unexpected => '予期しないエラーが発生しました。時間をおいて再試行してください。';
+}
+
 // Path: auth.firebaseForm
 class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn {
 	_TranslationsAuthFirebaseFormJa._(this._root);
@@ -768,6 +791,19 @@ extension on TranslationsJa {
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			'common.loading' => '読み込み中...',
 			'common.invite' => '招待',
+			'common.functionErrors.cancelled' => '操作がキャンセルされました。',
+			'common.functionErrors.invalidArgument' => '入力内容を確認してください。',
+			'common.functionErrors.failedPrecondition' => '操作を完了できません。状態を確認してください。',
+			'common.functionErrors.notFound' => '対象のデータが見つかりません。再読み込みしてください。',
+			'common.functionErrors.alreadyExists' => 'すでに存在しています。',
+			'common.functionErrors.unauthenticated' => 'ログインが必要です。もう一度ログインしてください。',
+			'common.functionErrors.permissionDenied' => 'この操作を実行する権限がありません。',
+			'common.functionErrors.resourceExhausted' => 'しばらく時間をおいてから再試行してください。',
+			'common.functionErrors.aborted' => '処理が競合しました。もう一度お試しください。',
+			'common.functionErrors.unavailable' => '一時的に接続できません。しばらくしてから再試行してください。',
+			'common.functionErrors.internal' => 'サーバーで予期しないエラーが発生しました。時間をおいて再試行してください。',
+			'common.functionErrors.unknown' => '原因不明のエラーが発生しました。時間をおいて再試行してください。',
+			'common.functionErrors.unexpected' => '予期しないエラーが発生しました。時間をおいて再試行してください。',
 			'timeAgo.secsAgo' => ({required Object count}) => '${count}秒前',
 			'timeAgo.secsAgoPlural' => ({required Object count}) => '${count}秒前',
 			'timeAgo.minsAgo' => ({required Object count}) => '${count}分前',

@@ -42,6 +42,10 @@ ThemeData _buildTheme(Brightness brightness) {
   final baseTextTheme = isDark
       ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
       : GoogleFonts.interTextTheme(ThemeData.light().textTheme);
+  final snackBarBackground = isDark
+      ? colors.surfaceSecondary
+      : AppColors.dark.surfaceSecondary;
+  final snackBarForeground = AppColors.dark.textPrimary;
 
   return ThemeData(
     extensions: [colors],
@@ -177,9 +181,18 @@ ThemeData _buildTheme(Brightness brightness) {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: colors.surfaceSecondary,
+      backgroundColor: snackBarBackground,
+      contentTextStyle: baseTextTheme.bodyMedium?.copyWith(
+        color: snackBarForeground,
+        fontWeight: FontWeight.w500,
+      ),
+      actionTextColor: AppColors.dark.accent,
+      disabledActionTextColor: AppColors.dark.textTertiary,
+      closeIconColor: snackBarForeground,
+      elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: AppColors.dark.border),
       ),
     ),
     dialogTheme: DialogThemeData(

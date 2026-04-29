@@ -141,6 +141,8 @@ part 'get_secrets_by_names_for_team.dart';
 
 part 'find_secret_by_name.dart';
 
+part 'find_secret_by_name_for_team.dart';
+
 part 'get_secret_for_team.dart';
 
 part 'get_secret_path_for_team.dart';
@@ -1100,6 +1102,17 @@ class DefaultConnector {
     required String name,
   }) {
     return FindSecretByNameVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      name: name,
+    );
+  }
+
+  FindSecretByNameForTeamVariablesBuilder findSecretByNameForTeam({
+    required String teamId,
+    required String name,
+  }) {
+    return FindSecretByNameForTeamVariablesBuilder(
       dataConnect,
       teamId: teamId,
       name: name,

@@ -70,6 +70,7 @@ class _TranslationsCommonEs implements TranslationsCommonEn {
 	@override String error({required Object error}) => 'Error: ${error}';
 	@override String get loading => 'Cargando...';
 	@override String get invite => 'Invitar';
+	@override late final _TranslationsCommonFunctionErrorsEs functionErrors = _TranslationsCommonFunctionErrorsEs._(_root);
 }
 
 // Path: timeAgo
@@ -499,6 +500,28 @@ class _TranslationsStoreReleaseEs implements TranslationsStoreReleaseEn {
 	@override String get viewInAsc => 'Ver en App Store Connect';
 }
 
+// Path: common.functionErrors
+class _TranslationsCommonFunctionErrorsEs implements TranslationsCommonFunctionErrorsEn {
+	_TranslationsCommonFunctionErrorsEs._(this._root);
+
+	final TranslationsEs _root; // ignore: unused_field
+
+	// Translations
+	@override String get cancelled => 'La operación fue cancelada.';
+	@override String get invalidArgument => 'Por favor, revisa los datos ingresados.';
+	@override String get failedPrecondition => 'No se pudo completar la operación. Revisa el estado actual.';
+	@override String get notFound => 'No se encontraron los datos solicitados. Actualiza e inténtalo de nuevo.';
+	@override String get alreadyExists => 'Ya existe.';
+	@override String get unauthenticated => 'Debes iniciar sesión. Inicia sesión de nuevo.';
+	@override String get permissionDenied => 'No tienes permiso para realizar esta operación.';
+	@override String get resourceExhausted => 'Espera un momento e inténtalo de nuevo.';
+	@override String get aborted => 'La operación entró en conflicto con otro cambio. Inténtalo de nuevo.';
+	@override String get unavailable => 'No se puede conectar temporalmente. Inténtalo de nuevo más tarde.';
+	@override String get internal => 'Ocurrió un error inesperado en el servidor. Inténtalo de nuevo más tarde.';
+	@override String get unknown => 'Ocurrió un error desconocido. Inténtalo de nuevo más tarde.';
+	@override String get unexpected => 'Ocurrió un error inesperado. Inténtalo de nuevo más tarde.';
+}
+
 // Path: auth.firebaseForm
 class _TranslationsAuthFirebaseFormEs implements TranslationsAuthFirebaseFormEn {
 	_TranslationsAuthFirebaseFormEs._(this._root);
@@ -768,6 +791,19 @@ extension on TranslationsEs {
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			'common.loading' => 'Cargando...',
 			'common.invite' => 'Invitar',
+			'common.functionErrors.cancelled' => 'La operación fue cancelada.',
+			'common.functionErrors.invalidArgument' => 'Por favor, revisa los datos ingresados.',
+			'common.functionErrors.failedPrecondition' => 'No se pudo completar la operación. Revisa el estado actual.',
+			'common.functionErrors.notFound' => 'No se encontraron los datos solicitados. Actualiza e inténtalo de nuevo.',
+			'common.functionErrors.alreadyExists' => 'Ya existe.',
+			'common.functionErrors.unauthenticated' => 'Debes iniciar sesión. Inicia sesión de nuevo.',
+			'common.functionErrors.permissionDenied' => 'No tienes permiso para realizar esta operación.',
+			'common.functionErrors.resourceExhausted' => 'Espera un momento e inténtalo de nuevo.',
+			'common.functionErrors.aborted' => 'La operación entró en conflicto con otro cambio. Inténtalo de nuevo.',
+			'common.functionErrors.unavailable' => 'No se puede conectar temporalmente. Inténtalo de nuevo más tarde.',
+			'common.functionErrors.internal' => 'Ocurrió un error inesperado en el servidor. Inténtalo de nuevo más tarde.',
+			'common.functionErrors.unknown' => 'Ocurrió un error desconocido. Inténtalo de nuevo más tarde.',
+			'common.functionErrors.unexpected' => 'Ocurrió un error inesperado. Inténtalo de nuevo más tarde.',
 			'timeAgo.secsAgo' => ({required Object count}) => 'hace ${count} seg',
 			'timeAgo.secsAgoPlural' => ({required Object count}) => 'hace ${count} segs',
 			'timeAgo.minsAgo' => ({required Object count}) => 'hace ${count} min',

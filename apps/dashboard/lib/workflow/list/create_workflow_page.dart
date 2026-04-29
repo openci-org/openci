@@ -1,6 +1,8 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
 
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 
 import 'package:dashboard/variables/variables_page.dart';
@@ -33,9 +35,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
-
 import 'status_dot.dart';
-
 
 class CreateWorkflowPage extends HookConsumerWidget {
   const CreateWorkflowPage({
@@ -450,8 +450,9 @@ class _EditorTab extends HookConsumerWidget {
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children:
-                        ['push', 'pull_request', 'release', 'tag'].map((type) {
+                    children: ['push', 'pull_request', 'release', 'tag'].map((
+                      type,
+                    ) {
                       IconData icon;
                       switch (type) {
                         case 'push':
@@ -596,54 +597,57 @@ class _EditorTab extends HookConsumerWidget {
                               ),
                             );
                           },
-                          fieldViewBuilder: (
-                            context,
-                            controller,
-                            focusNode,
-                            onFieldSubmitted,
-                          ) {
-                            return TextFormField(
-                              controller: controller,
-                              focusNode: focusNode,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: InputDecoration(
-                                labelText: t.workflow.triggerBranch(
-                                  type: type,
-                                ),
-                                labelStyle: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.of(context).textTertiary,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: AppColors.of(context).border,
+                          fieldViewBuilder:
+                              (
+                                context,
+                                controller,
+                                focusNode,
+                                onFieldSubmitted,
+                              ) {
+                                return TextFormField(
+                                  controller: controller,
+                                  focusNode: focusNode,
+                                  style: const TextStyle(fontSize: 14),
+                                  decoration: InputDecoration(
+                                    labelText: t.workflow.triggerBranch(
+                                      type: type,
+                                    ),
+                                    labelStyle: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.of(context).textTertiary,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: AppColors.of(context).border,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: AppColors.of(context).border,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: AppColors.of(
+                                          context,
+                                        ).textTertiary,
+                                      ),
+                                    ),
+                                    suffixIcon: Icon(
+                                      Icons.search,
+                                      size: 18,
+                                      color: AppColors.of(context).textTertiary,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
                                   ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: AppColors.of(context).border,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: AppColors.of(context).textTertiary,
-                                  ),
-                                ),
-                                suffixIcon: Icon(
-                                  Icons.search,
-                                  size: 18,
-                                  color: AppColors.of(context).textTertiary,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 12,
-                                ),
-                              ),
-                            );
-                          },
+                                );
+                              },
                           onSelected: (value) {
                             final current = Map<String, String?>.from(
                               triggers.value,
@@ -830,8 +834,7 @@ class _EditorTab extends HookConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontFamily: 'monospace',
-                                      color:
-                                          AppColors.of(context).textTertiary,
+                                      color: AppColors.of(context).textTertiary,
                                     ),
                                   ),
                                 ],
@@ -864,8 +867,9 @@ class _EditorTab extends HookConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
-                                      color:
-                                          Colors.amber.withValues(alpha: 0.7),
+                                      color: Colors.amber.withValues(
+                                        alpha: 0.7,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -890,24 +894,23 @@ class _EditorTab extends HookConsumerWidget {
                     allJobIds: jobs.value.map((j) => j.id).toList(),
                     teamId: teamId,
                     onUpdateJob: (updated) {
-                      final newJobs =
-                          List<WorkflowYamlJob>.from(jobs.value);
+                      final newJobs = List<WorkflowYamlJob>.from(jobs.value);
                       newJobs[jobIndex] = updated;
                       jobs.value = newJobs;
                       onChanged();
                     },
                     onDeleteJob: jobs.value.length > 1
                         ? () {
-                            final newJobs =
-                                List<WorkflowYamlJob>.from(jobs.value);
+                            final newJobs = List<WorkflowYamlJob>.from(
+                              jobs.value,
+                            );
                             final removedId = newJobs[jobIndex].id;
                             newJobs.removeAt(jobIndex);
                             // Clean up needs references
                             for (var i = 0; i < newJobs.length; i++) {
                               if (newJobs[i].needs.contains(removedId)) {
                                 newJobs[i] = newJobs[i].copyWith(
-                                  needs: newJobs[i]
-                                      .needs
+                                  needs: newJobs[i].needs
                                       .where((n) => n != removedId)
                                       .toList(),
                                 );
@@ -927,8 +930,7 @@ class _EditorTab extends HookConsumerWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {
-                  final existingIds =
-                      jobs.value.map((j) => j.id).toSet();
+                  final existingIds = jobs.value.map((j) => j.id).toSet();
                   var newId = 'job_${jobs.value.length + 1}';
                   var counter = 1;
                   while (existingIds.contains(newId)) {
@@ -936,8 +938,7 @@ class _EditorTab extends HookConsumerWidget {
                     newId = 'job_$counter';
                   }
                   final lastJobId = jobs.value.last.id;
-                  final newJobs =
-                      List<WorkflowYamlJob>.from(jobs.value);
+                  final newJobs = List<WorkflowYamlJob>.from(jobs.value);
                   newJobs.add(
                     WorkflowYamlJob(
                       id: newId,
@@ -1181,7 +1182,9 @@ class _JobSectionCard extends HookWidget {
                                       size: 16,
                                       color: job.needs.contains(id)
                                           ? Colors.blue
-                                          : AppColors.of(context).textPrimary.withValues(
+                                          : AppColors.of(
+                                              context,
+                                            ).textPrimary.withValues(
                                               alpha: 0.3,
                                             ),
                                     ),
@@ -1247,8 +1250,9 @@ class _JobSectionCard extends HookWidget {
                         if (stepIndex > 0)
                           _StepConnectorLine(
                             onInsert: () {
-                              final newSteps =
-                                  List<WorkflowYamlStep>.from(job.steps);
+                              final newSteps = List<WorkflowYamlStep>.from(
+                                job.steps,
+                              );
                               newSteps.insert(
                                 stepIndex,
                                 WorkflowYamlStep(
@@ -1264,14 +1268,16 @@ class _JobSectionCard extends HookWidget {
                           stepIndex: stepIndex,
                           teamId: teamId,
                           onUpdate: (updated) {
-                            final newSteps =
-                                List<WorkflowYamlStep>.from(job.steps);
+                            final newSteps = List<WorkflowYamlStep>.from(
+                              job.steps,
+                            );
                             newSteps[stepIndex] = updated;
                             onUpdateJob(job.copyWith(steps: newSteps));
                           },
                           onDelete: () {
-                            final newSteps =
-                                List<WorkflowYamlStep>.from(job.steps);
+                            final newSteps = List<WorkflowYamlStep>.from(
+                              job.steps,
+                            );
                             newSteps.removeAt(stepIndex);
                             onUpdateJob(job.copyWith(steps: newSteps));
                           },
@@ -1283,8 +1289,7 @@ class _JobSectionCard extends HookWidget {
                   InkWell(
                     borderRadius: BorderRadius.circular(6),
                     onTap: () {
-                      final newSteps =
-                          List<WorkflowYamlStep>.from(job.steps);
+                      final newSteps = List<WorkflowYamlStep>.from(job.steps);
                       newSteps.add(
                         WorkflowYamlStep(
                           name: 'New Step',
@@ -1477,9 +1482,7 @@ class _StepEditorCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            step.type == StepType.uses
-                                ? step.uses
-                                : step.run,
+                            step.type == StepType.uses ? step.uses : step.run,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -1522,8 +1525,7 @@ class _StepEditorCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color:
-                                      AppColors.of(context).textTertiary,
+                                  color: AppColors.of(context).textTertiary,
                                   fontFamily: 'monospace',
                                 ),
                               ),
@@ -1552,8 +1554,7 @@ class _StepEditorCard extends StatelessWidget {
                       FilledButton(
                         onPressed: () => Navigator.of(ctx).pop(true),
                         style: FilledButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.error,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                         child: Text(t.common.delete),
                       ),
@@ -1727,8 +1728,9 @@ class _EditStepSheet extends HookConsumerWidget {
                               onTap: () => stepType.value = type,
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 150),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.of(context).border
@@ -1745,10 +1747,11 @@ class _EditStepSheet extends HookConsumerWidget {
                                           : Icons.extension,
                                       size: 14,
                                       color: isSelected
-                                          ? AppColors.of(context).textPrimary
-                                              .withValues(alpha: 0.7)
+                                          ? AppColors.of(
+                                              context,
+                                            ).textPrimary.withValues(alpha: 0.7)
                                           : AppColors.of(context).textPrimary
-                                              .withValues(alpha: 0.3),
+                                                .withValues(alpha: 0.3),
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
@@ -1758,9 +1761,9 @@ class _EditStepSheet extends HookConsumerWidget {
                                         fontWeight: FontWeight.w500,
                                         color: isSelected
                                             ? AppColors.of(context).textPrimary
-                                                .withValues(alpha: 0.8)
+                                                  .withValues(alpha: 0.8)
                                             : AppColors.of(context).textPrimary
-                                                .withValues(alpha: 0.35),
+                                                  .withValues(alpha: 0.35),
                                       ),
                                     ),
                                   ],
@@ -1880,8 +1883,9 @@ class _EditStepSheet extends HookConsumerWidget {
                                     enabledBorder: inputBorder,
                                     focusedBorder: focusedBorder,
                                     filled: true,
-                                    fillColor:
-                                        AppColors.of(context).borderSubtle,
+                                    fillColor: AppColors.of(
+                                      context,
+                                    ).borderSubtle,
                                     isDense: true,
                                     contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 12,
@@ -1946,8 +1950,7 @@ class _EditStepSheet extends HookConsumerWidget {
                                   t.workflow.editor.noInputs,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color:
-                                        AppColors.of(context).textTertiary,
+                                    color: AppColors.of(context).textTertiary,
                                   ),
                                 ),
                               );
@@ -1971,7 +1974,8 @@ class _EditStepSheet extends HookConsumerWidget {
                                             child: Checkbox(
                                               value: isEnabled,
                                               side: BorderSide(
-                                                color: AppColors.of(context).textPrimary
+                                                color: AppColors.of(context)
+                                                    .textPrimary
                                                     .withValues(alpha: 0.2),
                                               ),
                                               onChanged: (v) {
@@ -2010,11 +2014,13 @@ class _EditStepSheet extends HookConsumerWidget {
                                                     vertical: 2,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: Colors.red
-                                                    .withValues(alpha: 0.12),
+                                                color: Colors.red.withValues(
+                                                  alpha: 0.12,
+                                                ),
                                                 border: Border.all(
-                                                  color: Colors.red
-                                                      .withValues(alpha: 0.2),
+                                                  color: Colors.red.withValues(
+                                                    alpha: 0.2,
+                                                  ),
                                                 ),
                                                 borderRadius:
                                                     BorderRadius.circular(4),
@@ -2024,8 +2030,9 @@ class _EditStepSheet extends HookConsumerWidget {
                                                 style: TextStyle(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.w500,
-                                                  color: Colors.red
-                                                      .withValues(alpha: 0.7),
+                                                  color: Colors.red.withValues(
+                                                    alpha: 0.7,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -2041,7 +2048,8 @@ class _EditStepSheet extends HookConsumerWidget {
                                             input.description,
                                             style: TextStyle(
                                               fontSize: 11,
-                                              color: AppColors.of(context).textPrimary
+                                              color: AppColors.of(context)
+                                                  .textPrimary
                                                   .withValues(alpha: 0.35),
                                             ),
                                           ),
@@ -2065,14 +2073,16 @@ class _EditStepSheet extends HookConsumerWidget {
                                                   input.defaultValue ?? '',
                                               hintStyle: TextStyle(
                                                 fontSize: 13,
-                                                color: AppColors.of(context).textPrimary
+                                                color: AppColors.of(context)
+                                                    .textPrimary
                                                     .withValues(alpha: 0.2),
                                               ),
                                               border: inputBorder,
                                               enabledBorder: inputBorder,
                                               focusedBorder: focusedBorder,
                                               filled: true,
-                                              fillColor: AppColors.of(context).textPrimary
+                                              fillColor: AppColors.of(context)
+                                                  .textPrimary
                                                   .withValues(alpha: 0.03),
                                               contentPadding:
                                                   const EdgeInsets.symmetric(
@@ -2130,15 +2140,13 @@ class _EditStepSheet extends HookConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.15),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.15),
                       border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -2367,28 +2375,26 @@ class _CommitBottomSheet extends HookConsumerWidget {
                   onTap: isLoading.value
                       ? null
                       : () => _onSubmit(
-                            context: context,
-                            ref: ref,
-                            fileName: fileNameController.text.trim(),
-                            commitMode: commitMode.value,
-                          ),
+                          context: context,
+                          ref: ref,
+                          fileName: fileNameController.text.trim(),
+                          commitMode: commitMode.value,
+                        ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       color: isLoading.value
                           ? AppColors.of(context).borderSubtle
-                          : Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.15),
+                          : Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.15),
                       border: Border.all(
                         color: isLoading.value
                             ? AppColors.of(context).border
-                            : Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.3),
+                            : Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -2410,21 +2416,19 @@ class _CommitBottomSheet extends HookConsumerWidget {
                                     ? Icons.commit
                                     : Icons.call_merge,
                                 size: 16,
-                                color:
-                                    Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 commitMode.value == CommitMode.direct
-                                    ? t.workflow.editor
-                                        .commitToBranchButton(branch: branch)
+                                    ? t.workflow.editor.commitToBranchButton(
+                                        branch: branch,
+                                      )
                                     : t.workflow.editor.createPRButton,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -2517,6 +2521,13 @@ class _CommitBottomSheet extends HookConsumerWidget {
             : t.workflow.editor.prCreatedSuccess,
       );
       Navigator.of(context).pop();
+    } on FirebaseFunctionsException catch (e, s) {
+      final errorMessage = await FunctionErrorMessage.capture(
+        e,
+        stackTrace: s,
+      );
+      if (!context.mounted) return;
+      context.showSnackBarMessage(errorMessage.message);
     } catch (e) {
       debugPrint('Create workflow error: $e');
       if (!context.mounted) return;
@@ -2602,13 +2613,9 @@ class _CommitModeCard extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected
-                    ? primary
-                    : Colors.transparent,
+                color: isSelected ? primary : Colors.transparent,
                 border: Border.all(
-                  color: isSelected
-                      ? primary
-                      : AppColors.of(context).border,
+                  color: isSelected ? primary : AppColors.of(context).border,
                   width: isSelected ? 0 : 1.5,
                 ),
               ),

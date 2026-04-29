@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
@@ -5,6 +6,7 @@ import 'package:dashboard/firebase/dataconnect.dart' show BuildJobStatus;
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -56,13 +58,8 @@ bool _isTerminalStatus(BuildJobStatus status) =>
     status == BuildJobStatus.TIMED_OUT;
 
 SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  final colorScheme = Theme.of(context).colorScheme;
   return SnackBar(
-    backgroundColor: colorScheme.inverseSurface,
-    content: Text(
-      message,
-      style: TextStyle(color: colorScheme.onInverseSurface),
-    ),
+    content: Text(message),
   );
 }
 
@@ -295,6 +292,20 @@ class BuildJobCard extends HookConsumerWidget {
                               ),
                             );
                           }
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              _materialDefaultSnackBar(
+                                context,
+                                errorMessage.message,
+                              ),
+                            );
+                          }
                         } catch (e) {
                           if (context.mounted) {
                             debugPrint('failed to retry: $e');
@@ -365,6 +376,19 @@ class BuildJobCard extends HookConsumerWidget {
                                 content: Text(
                                   t.buildLogs.detail.buildCancelled,
                                 ),
+                              ),
+                            );
+                          }
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(errorMessage.message),
                               ),
                             );
                           }
@@ -557,6 +581,20 @@ class WorkflowRunCard extends HookConsumerWidget {
                                 _materialDefaultSnackBar(
                                   context,
                                   t.buildLogs.detail.retrySuccess,
+                                ),
+                              );
+                            }
+                          } on FirebaseFunctionsException catch (e, s) {
+                            final errorMessage =
+                                await FunctionErrorMessage.capture(
+                                  e,
+                                  stackTrace: s,
+                                );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                _materialDefaultSnackBar(
+                                  context,
+                                  errorMessage.message,
                                 ),
                               );
                             }

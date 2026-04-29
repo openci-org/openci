@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/data_connect_service_id_page.dart';
@@ -18,6 +19,7 @@ import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/theme/theme_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
@@ -760,7 +762,18 @@ class ConnectGitHub extends ConsumerWidget {
             const SizedBox(height: 20),
             TextButton.icon(
               onPressed: () async {
-                await launchGitHubSetup(ref);
+                try {
+                  await launchGitHubSetup(ref);
+                } on FirebaseFunctionsException catch (e, s) {
+                  final errorMessage = await FunctionErrorMessage.capture(
+                    e,
+                    stackTrace: s,
+                  );
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(errorMessage.message)),
+                  );
+                }
               },
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.of(context).divider,

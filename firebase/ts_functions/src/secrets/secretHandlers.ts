@@ -6,7 +6,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import {
   createSecretMetadata,
   deleteSecretMetadata,
-  findSecretByName,
+  findSecretByNameForTeam,
   getSecretPathForTeam,
   listWorkflowsForTeam,
   updateSecretMetadata,
@@ -58,7 +58,7 @@ function requireNonEmptyString(value: unknown, field: string): string {
 }
 
 async function assertSecretNameAvailable(teamId: string, name: string): Promise<void> {
-  const duplicateCheck = await findSecretByName({ teamId, name });
+  const duplicateCheck = await findSecretByNameForTeam({ teamId, name });
 
   if (duplicateCheck.data.secrets.length > 0) {
     throw new HttpsError("already-exists", `Secret with name "${name}" already exists`);
@@ -243,7 +243,7 @@ export const setupAscApiKeyV1 = onCall<
 
   const ascSecretNames = ["OPENCI_ASC_ISSUER_ID", "OPENCI_ASC_KEY_ID", "OPENCI_ASC_PRIVATE_KEY"];
   const existingSecrets = await Promise.all(
-    ascSecretNames.map((name) => findSecretByName({ teamId, name })),
+    ascSecretNames.map((name) => findSecretByNameForTeam({ teamId, name })),
   );
   const existingNames = existingSecrets.flatMap((result) =>
     result.data.secrets.map((secret) => secret.name),

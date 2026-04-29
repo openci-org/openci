@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
@@ -7,6 +9,7 @@ import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,13 +20,21 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void _processInvitations() {
-  firebaseFunctions
-      .httpsCallable('acceptInvitations')
-      .call<void>()
-      .then((_) {})
-      .catchError((Object e) {
-        debugPrint('acceptInvitations failed: $e');
-      });
+  unawaited(_processInvitationsAsync());
+}
+
+Future<void> _processInvitationsAsync() async {
+  try {
+    await firebaseFunctions.httpsCallable('acceptInvitations').call<void>();
+  } on FirebaseFunctionsException catch (e, s) {
+    final errorMessage = await FunctionErrorMessage.capture(
+      e,
+      stackTrace: s,
+    );
+    debugPrint('acceptInvitations failed: ${errorMessage.message}');
+  } catch (e) {
+    debugPrint('acceptInvitations failed: $e');
+  }
 }
 
 class AuthPage extends HookConsumerWidget {

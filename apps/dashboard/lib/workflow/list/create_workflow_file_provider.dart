@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -53,6 +54,9 @@ class CreateWorkflowFileNotifier extends _$CreateWorkflowFileNotifier {
       final data = Map<String, dynamic>.from(result.data as Map);
       if (ref.mounted) state = const AsyncData(null);
       return data;
+    } on FirebaseFunctionsException catch (e, st) {
+      if (ref.mounted) state = AsyncError(e, st);
+      rethrow;
     } catch (e, st) {
       if (ref.mounted) state = AsyncError(e, st);
       rethrow;

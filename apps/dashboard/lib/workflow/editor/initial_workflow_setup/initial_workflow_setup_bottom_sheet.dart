@@ -1,3 +1,5 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/directories_provider.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_banner.dart';
@@ -67,7 +69,17 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                     width: _width,
                     child: GitHubConnectionBanner(
                       onConnectPressed: () async {
-                        await launchGitHubSetup(ref);
+                        try {
+                          await launchGitHubSetup(ref);
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(errorMessage.message);
+                        }
                       },
                     ),
                   )
