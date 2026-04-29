@@ -4,7 +4,46 @@ import { appendLog } from "./dataconnect.js";
 
 type LogLevel = "info" | "warning" | "error";
 
-const queue: Promise<void>[] = [];
+interface PendingLogEntry {
+  buildJobId: string;
+  runId: string;
+  level: LogLevel;
+  message: string;
+  stackTrace?: string;
+}
+
+const maxWriteAttempts = 5;
+const initialRetryDelayMs = 500;
+
+let pendingWrites = 0;
+let logWriteTail: Promise<void> = Promise.resolve();
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function appendLogWithRetry(entry: PendingLogEntry): Promise<void> {
+  for (let attempt = 1; attempt <= maxWriteAttempts; attempt++) {
+    try {
+      await appendLog({
+        buildJobId: entry.buildJobId,
+        runId: entry.runId,
+        id: randomUUID(),
+        message: entry.message,
+        level: entry.level,
+        timestamp: new Date().toISOString(),
+        ...(entry.stackTrace ? { stackTrace: entry.stackTrace } : {}),
+      });
+      return;
+    } catch (error) {
+      if (attempt === maxWriteAttempts) {
+        console.warn(`[BuildLog] Failed to write log: ${String(error)}`);
+        return;
+      }
+      await delay(initialRetryDelayMs * 2 ** (attempt - 1));
+    }
+  }
+}
 
 async function writeBuildLog(
   buildJobId: string,
@@ -13,24 +52,18 @@ async function writeBuildLog(
   message: string,
   stackTrace?: string,
 ): Promise<void> {
-  const task = appendLog({
-    buildJobId,
-    runId,
-    id: randomUUID(),
-    message,
-    level,
-    timestamp: new Date().toISOString(),
-    ...(stackTrace ? { stackTrace } : {}),
-  }).catch((error: unknown) => {
-    console.warn(`[BuildLog] Failed to write log: ${String(error)}`);
-  });
-  queue.push(task);
+  pendingWrites++;
+  logWriteTail = logWriteTail
+    .then(() => appendLogWithRetry({ buildJobId, runId, level, message, stackTrace }))
+    .finally(() => {
+      pendingWrites--;
+    });
+  await Promise.resolve();
 }
 
 export async function flushLogs(): Promise<void> {
-  while (queue.length > 0) {
-    const batch = queue.splice(0, queue.length);
-    await Promise.all(batch);
+  while (pendingWrites > 0) {
+    await logWriteTail;
   }
 }
 

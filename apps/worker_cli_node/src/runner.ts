@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -15,6 +15,9 @@ const dockerImage = "openci-ubuntu:latest";
 const sshKeyPath = "/tmp/openci-ssh-key";
 const defaultLumeSshTimeoutSeconds = 10;
 const gitLumeSshTimeoutSeconds = 120;
+const macVmLockPath = process.env.OPENCI_MACOS_VM_LOCK ?? "/tmp/openci-macos-vm.lock";
+const macVmLockStaleMs = 6 * 60 * 60 * 1000;
+const macVmLockRetryMs = 5_000;
 
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
@@ -106,6 +109,8 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+type WarningLogger = (message: string) => Promise<void>;
+
 async function runSimpleWithRetry(
   command: string,
   args: string[],
@@ -123,6 +128,116 @@ async function runSimpleWithRetry(
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+interface LumeVm {
+  name: string;
+  status: string;
+}
+
+interface VmHostLock {
+  release: () => Promise<void>;
+}
+
+interface VmLockFile {
+  pid: number;
+  workerId: string;
+  createdAt: number;
+}
+
+function parseLumeVmList(output: string): LumeVm[] {
+  return output
+    .split(/\r?\n/u)
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const parts = line.split(/\s+/u);
+      return { name: parts[0] ?? "", status: parts[6] ?? "" };
+    })
+    .filter((vm) => vm.name.length > 0);
+}
+
+async function listLumeVms(): Promise<LumeVm[]> {
+  const output = await runSimple("lume", ["ls"], "Failed to list Lume VMs");
+  return parseLumeVmList(output);
+}
+
+async function getLumeVmStatus(vmName: string): Promise<string | undefined> {
+  const vms = await listLumeVms();
+  return vms.find((vm) => vm.name === vmName)?.status;
+}
+
+function processExists(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readVmLockFile(): Promise<VmLockFile | undefined> {
+  try {
+    const content = await readFile(macVmLockPath, "utf8");
+    const parsed = JSON.parse(content) as Partial<VmLockFile>;
+    if (
+      typeof parsed.pid === "number" &&
+      typeof parsed.workerId === "string" &&
+      typeof parsed.createdAt === "number"
+    ) {
+      return parsed as VmLockFile;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+async function removeStaleVmLock(lock: VmLockFile | undefined): Promise<boolean> {
+  if (!lock) {
+    await unlink(macVmLockPath).catch(() => undefined);
+    return true;
+  }
+  const ageMs = Date.now() - lock.createdAt;
+  if (ageMs <= macVmLockStaleMs && processExists(lock.pid)) return false;
+  await unlink(macVmLockPath).catch(() => undefined);
+  return true;
+}
+
+async function acquireVmHostLock(workerId: string, warn: WarningLogger): Promise<VmHostLock> {
+  const lock: VmLockFile = { pid: process.pid, workerId, createdAt: Date.now() };
+  let lastNoticeAt = 0;
+
+  while (true) {
+    try {
+      const handle = await open(macVmLockPath, "wx");
+      await handle.writeFile(JSON.stringify(lock));
+      await handle.close();
+      return {
+        release: async () => {
+          const current = await readVmLockFile();
+          if (current?.pid === lock.pid && current.workerId === lock.workerId) {
+            await unlink(macVmLockPath).catch(() => undefined);
+          }
+        },
+      };
+    } catch (error) {
+      if (!(error instanceof Error) || !("code" in error) || error.code !== "EEXIST") {
+        throw error;
+      }
+      const current = await readVmLockFile();
+      if (await removeStaleVmLock(current)) continue;
+      if (Date.now() - lastNoticeAt > 60_000) {
+        lastNoticeAt = Date.now();
+        await warn(
+          `Waiting for macOS VM host lock held by ${current?.workerId ?? "unknown"} ` +
+            `(pid ${current?.pid ?? "unknown"})`,
+        );
+      }
+      await delay(macVmLockRetryMs);
+    }
+  }
 }
 
 function buildEventPayload(buildJob: BuildJob): string {
@@ -317,12 +432,27 @@ async function writeFileToVm(vmName: string, remotePath: string, content: string
   );
 }
 
-async function waitForVmReady(vmName: string): Promise<void> {
+interface ProcessExit {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+}
+
+async function waitForVmReady(
+  vmName: string,
+  getVmProcessExit: () => ProcessExit | undefined = () => undefined,
+): Promise<void> {
   for (let attempt = 0; attempt < 120; attempt++) {
     try {
       await runSimple("lume", lumeSshArgs(vmName, "echo ready"), "VM not ready");
       return;
     } catch {
+      const exit = getVmProcessExit();
+      if (exit) {
+        throw new Error(
+          `VM boot failed: ${vmName} lume run exited before becoming ready ` +
+            `(code=${exit.code}, signal=${exit.signal})`,
+        );
+      }
       await new Promise((resolve) => setTimeout(resolve, 2_000));
     }
   }
@@ -356,6 +486,50 @@ async function killLumeRunByName(vmName: string): Promise<void> {
     ["-KILL", "-f", `lume run ${vmName}`],
     `Failed to kill VM process ${vmName}`,
   ).catch(() => undefined);
+}
+
+async function cleanupVm(
+  vmName: string,
+  warn: WarningLogger,
+  vmProcess?: ChildProcess,
+): Promise<void> {
+  const status = await getLumeVmStatus(vmName).catch(() => undefined);
+  if (status === undefined) {
+    await killVmProcessGroup(vmProcess);
+    await killLumeRunByName(vmName);
+    return;
+  }
+  let stopped = true;
+  await runSimpleWithRetry("lume", ["stop", vmName], `Failed to stop VM ${vmName}`, 3).catch(
+    async (error: unknown) => {
+      stopped = false;
+      await warn(`Error stopping VM: ${String(error)}`);
+    },
+  );
+  if (!stopped) {
+    await warn(`Force-killing VM process for ${vmName}`);
+    await killVmProcessGroup(vmProcess);
+    await killLumeRunByName(vmName);
+  }
+  await runSimpleWithRetry(
+    "lume",
+    ["delete", vmName, "--force"],
+    `Failed to delete VM ${vmName}`,
+    3,
+  ).catch((error: unknown) => warn(`Error deleting VM: ${String(error)}`));
+}
+
+async function cleanupWorkerVms(workerId: string, warn: WarningLogger): Promise<void> {
+  const prefix = `openci-vm-${workerId}-`;
+  const vms = await listLumeVms().catch(async (error: unknown) => {
+    await warn(`Error listing stale VMs: ${String(error)}`);
+    return [];
+  });
+  for (const vm of vms) {
+    if (!vm.name.startsWith(prefix)) continue;
+    await warn(`Cleaning up stale VM ${vm.name} (${vm.status}) before starting a new job`);
+    await cleanupVm(vm.name, warn);
+  }
 }
 
 async function setupDirectSsh(vmName: string): Promise<void> {
@@ -425,17 +599,40 @@ async function runMacVmBuild(input: {
   const { buildJob, runId, envVars, secretVars, workerId } = input;
   const vmName = `openci-vm-${workerId}-${shortJobId(buildJob.id)}`;
   let vmProcess: ChildProcess | undefined;
+  const warn = (message: string) => logWarning(buildJob.id, runId, message);
+  const lock = await acquireVmHostLock(workerId, warn);
   try {
+    await cleanupWorkerVms(workerId, warn);
     await logInfo(buildJob.id, runId, `Cloning VM ${baseVmName} to ${vmName}...`);
     await runSimple("lume", ["clone", baseVmName, vmName], `Failed to clone VM ${vmName}`);
 
+    const vmRunOutput: string[] = [];
+    let vmReady = false;
+    let vmProcessExit: ProcessExit | undefined;
     vmProcess = spawn("lume", ["run", vmName, "--no-display"], {
-      stdio: "ignore",
+      stdio: ["ignore", "pipe", "pipe"],
       detached: true,
+    });
+    const recordVmRunOutput = (chunk: Buffer) => {
+      for (const line of chunk.toString("utf8").split(/\r?\n/u)) {
+        if (line.length === 0) continue;
+        vmRunOutput.push(line);
+        if (vmRunOutput.length > 20) vmRunOutput.shift();
+        console.warn(`[lume:${vmName}] ${line}`);
+      }
+    };
+    vmProcess.stdout?.on("data", recordVmRunOutput);
+    vmProcess.stderr?.on("data", recordVmRunOutput);
+    vmProcess.on("exit", (code, signal) => {
+      vmProcessExit = { code, signal };
+      if (vmReady) return;
+      const output = vmRunOutput.length > 0 ? ` Recent output: ${vmRunOutput.join(" | ")}` : "";
+      void warn(`Lume run exited before VM was ready (code=${code}, signal=${signal}).${output}`);
     });
     vmProcess.unref();
     await logInfo(buildJob.id, runId, "Waiting for VM to be ready...");
-    await waitForVmReady(vmName);
+    await waitForVmReady(vmName, () => vmProcessExit);
+    vmReady = true;
     await setupDirectSsh(vmName);
     const vmIp = await getVmIp(vmName);
     await logInfo(buildJob.id, runId, "VM is ready!");
@@ -487,21 +684,8 @@ async function runMacVmBuild(input: {
       }),
     );
   } finally {
-    let stopped = true;
-    await runSimple("lume", ["stop", vmName], `Failed to stop VM ${vmName}`).catch(
-      (error: unknown) => {
-        stopped = false;
-        return logWarning(buildJob.id, runId, `Error stopping VM: ${String(error)}`);
-      },
-    );
-    if (!stopped) {
-      await logWarning(buildJob.id, runId, `Force-killing VM process for ${vmName}`);
-      await killVmProcessGroup(vmProcess);
-      await killLumeRunByName(vmName);
-    }
-    await runSimple("lume", ["delete", vmName, "--force"], `Failed to delete VM ${vmName}`).catch(
-      (error: unknown) => logWarning(buildJob.id, runId, `Error deleting VM: ${String(error)}`),
-    );
+    await cleanupVm(vmName, warn, vmProcess);
+    await lock.release();
   }
 }
 
@@ -540,9 +724,13 @@ async function runCancellableAct(
   await logInfo(buildJob.id, runId, "Running workflow with act...");
   const abortController = new AbortController();
   const cancelTimer = setInterval(() => {
-    void isJobCancelled(buildJob.id).then((cancelled) => {
-      if (cancelled) abortController.abort();
-    });
+    void isJobCancelled(buildJob.id)
+      .then((cancelled) => {
+        if (cancelled) abortController.abort();
+      })
+      .catch((error: unknown) => {
+        console.warn(`Failed to check build cancellation: ${String(error)}`);
+      });
   }, 5_000);
   try {
     await run(abortController.signal);
