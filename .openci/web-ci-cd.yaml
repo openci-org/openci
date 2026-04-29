@@ -1,0 +1,61 @@
+name: Web CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "22"
+          cache: true
+
+      - name: Install dependencies
+        working-directory: apps/landing_page
+        run: vp install
+
+      - name: Lint
+        working-directory: apps/landing_page
+        run: vp run lint
+
+      - name: Build Next.js (static)
+        working-directory: apps/landing_page
+        run: vp run build
+
+      - name: Sync build output to firebase/public
+        run: |
+          rm -rf firebase/public
+          mkdir -p firebase/public
+          cp -R apps/landing_page/out/. firebase/public/
+
+      - name: Deploy to Firebase Hosting (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          entryPoint: firebase
+          channelId: live
+
+      - name: Deploy to Firebase Hosting (preview)
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          entryPoint: firebase
+          expires: 7d
