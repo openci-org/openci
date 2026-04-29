@@ -5,6 +5,7 @@ import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -89,7 +90,8 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                           final serviceId = controller.text.trim();
                           if (serviceId.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              responsiveSnackBar(
+                                context,
                                 content: Text(
                                   'Data Connect Service ID is required',
                                 ),
@@ -142,7 +144,8 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                             );
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              responsiveSnackBar(
+                                context,
                                 content: Text('Data Connect settings saved'),
                               ),
                             );
@@ -153,7 +156,10 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                             statusMessage.value = 'Data Connect failed: $e';
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
+                              responsiveSnackBar(
+                                context,
+                                content: Text(e.toString()),
+                              ),
                             );
                           } finally {
                             isSaving.value = false;

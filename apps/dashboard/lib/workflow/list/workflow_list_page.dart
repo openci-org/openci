@@ -20,6 +20,7 @@ import 'package:dashboard/theme/theme_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/ai/ai_workflow_page.dart';
 import 'package:dashboard/workflow/editor/initial_workflow_setup/github_connection_provider.dart';
@@ -771,7 +772,10 @@ class ConnectGitHub extends ConsumerWidget {
                   );
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(errorMessage.message)),
+                    responsiveSnackBar(
+                      context,
+                      content: Text(errorMessage.message),
+                    ),
                   );
                 }
               },

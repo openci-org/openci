@@ -71,11 +71,31 @@ jobs:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
-      - uses: openci-org/flutter-cd@v2
+      - name: Build Flutter web
+        working-directory: apps/dashboard
+        env:
+          REVENUE_CAT_API_KEY: ${{ secrets.REVENUE_CAT_API_KEY }}
+          REVENUE_CAT_WEB_API_KEY: ${{ secrets.REVENUE_CAT_WEB_API_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          flutter build web \
+            --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
+            --dart-define=REVENUE_CAT_WEB_API_KEY="$REVENUE_CAT_WEB_API_KEY" \
+            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+
+      - name: Deploy to Firebase Hosting (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          platform: "web"
-          working-directory: "apps/dashboard"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
-          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=REVENUE_CAT_WEB_API_KEY=${{ secrets.REVENUE_CAT_WEB_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
-          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          preview: ${{ github.event_name == 'pull_request' }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          entryPoint: apps/dashboard
+          channelId: live
+
+      - name: Deploy to Firebase Hosting (preview)
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          entryPoint: apps/dashboard
+          expires: 7d
