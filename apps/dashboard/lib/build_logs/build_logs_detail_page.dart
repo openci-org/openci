@@ -19,7 +19,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 enum _ActionState { idle, loading, done }
 
 SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  return SnackBar(
+  return responsiveSnackBar(
+    context,
     content: Text(message),
   );
 }

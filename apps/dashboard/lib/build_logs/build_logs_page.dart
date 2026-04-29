@@ -7,6 +7,7 @@ import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -58,7 +59,8 @@ bool _isTerminalStatus(BuildJobStatus status) =>
     status == BuildJobStatus.TIMED_OUT;
 
 SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  return SnackBar(
+  return responsiveSnackBar(
+    context,
     content: Text(message),
   );
 }
@@ -372,7 +374,8 @@ class BuildJobCard extends HookConsumerWidget {
                               .cancelBuildJob(buildJob.id);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              responsiveSnackBar(
+                                context,
                                 content: Text(
                                   t.buildLogs.detail.buildCancelled,
                                 ),
@@ -387,7 +390,8 @@ class BuildJobCard extends HookConsumerWidget {
                               );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              responsiveSnackBar(
+                                context,
                                 content: Text(errorMessage.message),
                               ),
                             );
@@ -395,7 +399,8 @@ class BuildJobCard extends HookConsumerWidget {
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              responsiveSnackBar(
+                                context,
                                 content: Text(
                                   t.buildLogs.detail.failedToCancel(
                                     error: e.toString(),

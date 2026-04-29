@@ -852,9 +852,9 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         messenger
                           ..removeCurrentSnackBar()
                           ..showSnackBar(
-                            SnackBar(
+                            responsiveSnackBar(
+                              messenger.context,
                               content: Text(secretsT.adding),
-                              behavior: SnackBarBehavior.floating,
                               duration: const Duration(days: 1),
                             ),
                           );
@@ -865,9 +865,9 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           messenger
                             ..removeCurrentSnackBar()
                             ..showSnackBar(
-                              SnackBar(
+                              responsiveSnackBar(
+                                messenger.context,
                                 content: Text(secretsT.addedSuccess),
-                                behavior: SnackBarBehavior.floating,
                               ),
                             );
                         } on FirebaseFunctionsException catch (e, s) {
@@ -880,9 +880,9 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           messenger
                             ..removeCurrentSnackBar()
                             ..showSnackBar(
-                              SnackBar(
+                              responsiveSnackBar(
+                                messenger.context,
                                 content: Text(errorMessage.message),
-                                behavior: SnackBarBehavior.floating,
                               ),
                             );
                         } catch (e) {
@@ -890,9 +890,9 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           messenger
                             ..removeCurrentSnackBar()
                             ..showSnackBar(
-                              SnackBar(
+                              responsiveSnackBar(
+                                messenger.context,
                                 content: Text('$e'),
-                                behavior: SnackBarBehavior.floating,
                               ),
                             );
                         }
