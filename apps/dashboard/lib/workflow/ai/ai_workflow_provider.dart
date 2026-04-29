@@ -2,6 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -108,6 +109,12 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
           'Directory structure:\n${directories.join('\n')}';
 
       state = state.copyWith(repoContext: contextString);
+    } on FirebaseFunctionsException catch (e, s) {
+      final errorMessage = await FunctionErrorMessage.capture(
+        e,
+        stackTrace: s,
+      );
+      debugPrint('Failed to fetch repo context: ${errorMessage.message}');
     } catch (e) {
       debugPrint('Failed to fetch repo context: $e');
     }
@@ -157,6 +164,22 @@ class AiWorkflowNotifier extends Notifier<AiWorkflowState> {
 
       state = state.copyWith(isGenerating: false);
       _addAssistantMessage(message, suggestions: suggestions);
+    } on FirebaseFunctionsException catch (e, s) {
+      final errorMessage = await FunctionErrorMessage.capture(
+        e,
+        stackTrace: s,
+      );
+      debugPrint('AI workflow error: ${errorMessage.message}');
+      state = state.copyWith(
+        isGenerating: false,
+        error: errorMessage.message,
+      );
+      _addAssistantMessage(
+        t.aiWorkflow.chat.errorMessage,
+        suggestions: [
+          ChatSuggestion(t.aiWorkflow.suggestion.startOver, 'start_over'),
+        ],
+      );
     } catch (e) {
       debugPrint('AI workflow error: $e');
       state = state.copyWith(

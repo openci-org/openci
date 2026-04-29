@@ -89,6 +89,8 @@ class TranslationsCommonEn {
 
 	/// en: 'Invite'
 	String get invite => 'Invite';
+
+	late final TranslationsCommonFunctionErrorsEn functionErrors = TranslationsCommonFunctionErrorsEn._(_root);
 }
 
 // Path: timeAgo
@@ -352,6 +354,9 @@ class TranslationsSecretsEn {
 
 	/// en: 'Please enter a secret value'
 	String get enterSecretValue => 'Please enter a secret value';
+
+	/// en: 'Adding secret...'
+	String get adding => 'Adding secret...';
 
 	/// en: 'Secret added successfully'
 	String get addedSuccess => 'Secret added successfully';
@@ -1083,6 +1088,54 @@ class TranslationsStoreReleaseEn {
 	String get viewInAsc => 'View in App Store Connect';
 }
 
+// Path: common.functionErrors
+class TranslationsCommonFunctionErrorsEn {
+	TranslationsCommonFunctionErrorsEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'The operation was cancelled.'
+	String get cancelled => 'The operation was cancelled.';
+
+	/// en: 'Please check your input.'
+	String get invalidArgument => 'Please check your input.';
+
+	/// en: 'The operation could not be completed. Please check the current state.'
+	String get failedPrecondition => 'The operation could not be completed. Please check the current state.';
+
+	/// en: 'The requested data was not found. Please refresh and try again.'
+	String get notFound => 'The requested data was not found. Please refresh and try again.';
+
+	/// en: 'It already exists.'
+	String get alreadyExists => 'It already exists.';
+
+	/// en: 'You need to sign in. Please sign in again.'
+	String get unauthenticated => 'You need to sign in. Please sign in again.';
+
+	/// en: 'You do not have permission to perform this operation.'
+	String get permissionDenied => 'You do not have permission to perform this operation.';
+
+	/// en: 'Please wait a moment and try again.'
+	String get resourceExhausted => 'Please wait a moment and try again.';
+
+	/// en: 'The operation conflicted with another change. Please try again.'
+	String get aborted => 'The operation conflicted with another change. Please try again.';
+
+	/// en: 'Temporarily unable to connect. Please try again later.'
+	String get unavailable => 'Temporarily unable to connect. Please try again later.';
+
+	/// en: 'An unexpected server error occurred. Please try again later.'
+	String get internal => 'An unexpected server error occurred. Please try again later.';
+
+	/// en: 'An unknown error occurred. Please try again later.'
+	String get unknown => 'An unknown error occurred. Please try again later.';
+
+	/// en: 'An unexpected error occurred. Please try again later.'
+	String get unexpected => 'An unexpected error occurred. Please try again later.';
+}
+
 // Path: auth.firebaseForm
 class TranslationsAuthFirebaseFormEn {
 	TranslationsAuthFirebaseFormEn._(this._root);
@@ -1642,6 +1695,19 @@ extension on Translations {
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			'common.loading' => 'Loading...',
 			'common.invite' => 'Invite',
+			'common.functionErrors.cancelled' => 'The operation was cancelled.',
+			'common.functionErrors.invalidArgument' => 'Please check your input.',
+			'common.functionErrors.failedPrecondition' => 'The operation could not be completed. Please check the current state.',
+			'common.functionErrors.notFound' => 'The requested data was not found. Please refresh and try again.',
+			'common.functionErrors.alreadyExists' => 'It already exists.',
+			'common.functionErrors.unauthenticated' => 'You need to sign in. Please sign in again.',
+			'common.functionErrors.permissionDenied' => 'You do not have permission to perform this operation.',
+			'common.functionErrors.resourceExhausted' => 'Please wait a moment and try again.',
+			'common.functionErrors.aborted' => 'The operation conflicted with another change. Please try again.',
+			'common.functionErrors.unavailable' => 'Temporarily unable to connect. Please try again later.',
+			'common.functionErrors.internal' => 'An unexpected server error occurred. Please try again later.',
+			'common.functionErrors.unknown' => 'An unknown error occurred. Please try again later.',
+			'common.functionErrors.unexpected' => 'An unexpected error occurred. Please try again later.',
 			'timeAgo.secsAgo' => ({required Object count}) => '${count} sec ago',
 			'timeAgo.secsAgoPlural' => ({required Object count}) => '${count} secs ago',
 			'timeAgo.minsAgo' => ({required Object count}) => '${count} min ago',
@@ -1798,6 +1864,7 @@ extension on Translations {
 			'secrets.newSecretValue' => 'New Secret Value (leave empty to keep current)',
 			'secrets.enterSecretName' => 'Please enter a secret name',
 			'secrets.enterSecretValue' => 'Please enter a secret value',
+			'secrets.adding' => 'Adding secret...',
 			'secrets.addedSuccess' => 'Secret added successfully',
 			'secrets.updatedSuccess' => 'Secret updated successfully',
 			'secrets.deleteConfirm' => 'Are you sure you want to delete this secret? This action cannot be undone.',

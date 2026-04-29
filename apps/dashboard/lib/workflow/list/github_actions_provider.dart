@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -73,6 +74,11 @@ Future<List<GitHubAction>> searchGitHubActions(
         isOfficial: map['isOfficial'] as bool? ?? false,
       );
     }).toList();
+  } on FirebaseFunctionsException catch (e, st) {
+    await FunctionErrorMessage.capture(e, stackTrace: st);
+    debugPrint('searchGitHubActions error: $e');
+    debugPrint('stackTrace: $st');
+    rethrow;
   } catch (e, st) {
     debugPrint('searchGitHubActions error: $e');
     debugPrint('stackTrace: $st');
@@ -152,6 +158,11 @@ Future<List<String>> actionTags(
     final data = Map<String, dynamic>.from(result.data as Map);
     final tags = (data['tags'] as List<dynamic>).cast<String>();
     return tags;
+  } on FirebaseFunctionsException catch (e, st) {
+    await FunctionErrorMessage.capture(e, stackTrace: st);
+    debugPrint('actionTags error: $e');
+    debugPrint('stackTrace: $st');
+    rethrow;
   } catch (e, st) {
     debugPrint('actionTags error: $e');
     debugPrint('stackTrace: $st');
@@ -174,6 +185,9 @@ Future<String> fetchLatestTag({
     final data = Map<String, dynamic>.from(result.data as Map);
     final tags = (data['tags'] as List<dynamic>).cast<String>();
     if (tags.isNotEmpty) return tags.first;
+  } on FirebaseFunctionsException catch (e, st) {
+    await FunctionErrorMessage.capture(e, stackTrace: st);
+    debugPrint('fetchLatestTag error: $e');
   } catch (e) {
     debugPrint('fetchLatestTag error: $e');
   }

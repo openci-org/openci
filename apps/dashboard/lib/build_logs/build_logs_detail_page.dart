@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
@@ -6,6 +7,7 @@ import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,13 +19,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 enum _ActionState { idle, loading, done }
 
 SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  final colorScheme = Theme.of(context).colorScheme;
   return SnackBar(
-    backgroundColor: colorScheme.inverseSurface,
-    content: Text(
-      message,
-      style: TextStyle(color: colorScheme.onInverseSurface),
-    ),
+    content: Text(message),
   );
 }
 
@@ -173,6 +170,14 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     if (context.mounted) {
                       context.showSnackBarMessage(detailT.buildCancelled);
                     }
+                  } on FirebaseFunctionsException catch (e, s) {
+                    final errorMessage = await FunctionErrorMessage.capture(
+                      e,
+                      stackTrace: s,
+                    );
+                    if (context.mounted) {
+                      context.showSnackBarMessage(errorMessage.message);
+                    }
                   } catch (e) {
                     if (context.mounted) {
                       context.showSnackBarMessage(
@@ -208,6 +213,22 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                             _materialDefaultSnackBar(
                               context,
                               detailT.retrySuccess,
+                            ),
+                          );
+                        }
+                      } on FirebaseFunctionsException catch (e, s) {
+                        final errorMessage = await FunctionErrorMessage.capture(
+                          e,
+                          stackTrace: s,
+                        );
+                        if (context.mounted) {
+                          retryState.value = _ActionState.idle;
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            _materialDefaultSnackBar(
+                              context,
+                              errorMessage.message,
                             ),
                           );
                         }

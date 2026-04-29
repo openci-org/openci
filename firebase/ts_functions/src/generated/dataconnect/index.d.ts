@@ -345,6 +345,19 @@ export interface FindSecretByNameData {
     } & Secret_Key)[];
 }
 
+export interface FindSecretByNameForTeamData {
+  secrets: ({
+    id: string;
+    name: string;
+    teamId: string;
+  } & Secret_Key)[];
+}
+
+export interface FindSecretByNameForTeamVariables {
+  teamId: string;
+  name: string;
+}
+
 export interface FindSecretByNameVariables {
   teamId: string;
   name: string;
@@ -1772,6 +1785,11 @@ export function getSecretsByNamesForTeam(vars: GetSecretsByNamesForTeamVariables
 export function findSecretByName(dc: DataConnect, vars: FindSecretByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindSecretByNameData>>;
 /** Generated Node Admin SDK operation action function for the 'FindSecretByName' Query. Allow users to pass in custom DataConnect instances. */
 export function findSecretByName(vars: FindSecretByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindSecretByNameData>>;
+
+/** Generated Node Admin SDK operation action function for the 'FindSecretByNameForTeam' Query. Allow users to execute without passing in DataConnect. */
+export function findSecretByNameForTeam(dc: DataConnect, vars: FindSecretByNameForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindSecretByNameForTeamData>>;
+/** Generated Node Admin SDK operation action function for the 'FindSecretByNameForTeam' Query. Allow users to pass in custom DataConnect instances. */
+export function findSecretByNameForTeam(vars: FindSecretByNameForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<FindSecretByNameForTeamData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetSecretForTeam' Query. Allow users to execute without passing in DataConnect. */
 export function getSecretForTeam(dc: DataConnect, vars: GetSecretForTeamVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetSecretForTeamData>>;

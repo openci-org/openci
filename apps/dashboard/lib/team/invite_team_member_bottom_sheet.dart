@@ -6,6 +6,7 @@ import 'package:dashboard/i18n/strings.g.dart';
 
 import 'package:dashboard/team/team_provider.dart';
 
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 
 import 'package:flutter/material.dart';
@@ -281,14 +282,16 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                 );
                               }
                               Navigator.of(context).pop();
-                            } on FirebaseFunctionsException catch (e) {
-                              debugPrint(
-                                'FirebaseFunctionsException: ${e.code} ${e.message}',
-                              );
+                            } on FirebaseFunctionsException catch (e, s) {
+                              final errorMessage =
+                                  await FunctionErrorMessage.capture(
+                                    e,
+                                    stackTrace: s,
+                                  );
                               isLoading.value = false;
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                e.message ?? t.common.error(error: e.code),
+                                errorMessage.message,
                               );
                             } catch (e, s) {
                               debugPrint(e.toString());

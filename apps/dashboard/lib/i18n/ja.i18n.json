@@ -7,7 +7,22 @@
     "edit": "編集",
     "error": "エラー: $error",
     "loading": "読み込み中...",
-    "invite": "招待"
+    "invite": "招待",
+    "functionErrors": {
+      "cancelled": "操作がキャンセルされました。",
+      "invalidArgument": "入力内容を確認してください。",
+      "failedPrecondition": "操作を完了できません。状態を確認してください。",
+      "notFound": "対象のデータが見つかりません。再読み込みしてください。",
+      "alreadyExists": "すでに存在しています。",
+      "unauthenticated": "ログインが必要です。もう一度ログインしてください。",
+      "permissionDenied": "この操作を実行する権限がありません。",
+      "resourceExhausted": "しばらく時間をおいてから再試行してください。",
+      "aborted": "処理が競合しました。もう一度お試しください。",
+      "unavailable": "一時的に接続できません。しばらくしてから再試行してください。",
+      "internal": "サーバーで予期しないエラーが発生しました。時間をおいて再試行してください。",
+      "unknown": "原因不明のエラーが発生しました。時間をおいて再試行してください。",
+      "unexpected": "予期しないエラーが発生しました。時間をおいて再試行してください。"
+    }
   },
   "timeAgo": {
     "secsAgo": "${count}秒前",
@@ -190,6 +205,7 @@
     "newSecretValue": "新しいシークレット値（空欄で現在の値を維持）",
     "enterSecretName": "シークレット名を入力してください",
     "enterSecretValue": "シークレット値を入力してください",
+    "adding": "シークレットを追加中...",
     "addedSuccess": "シークレットが追加されました",
     "updatedSuccess": "シークレットが更新されました",
     "deleteConfirm": "このシークレットを削除しますか？この操作は元に戻せません。",

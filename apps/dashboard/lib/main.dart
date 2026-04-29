@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -56,9 +57,33 @@ Future<void> main() async {
   }
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  runApp(
-    TranslationProvider(
-      child: ProviderScope(child: Root()),
+  final app = TranslationProvider(
+    child: ProviderScope(child: Root()),
+  );
+
+  if (kDebugMode) {
+    runApp(app);
+    return;
+  }
+
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = const String.fromEnvironment('SENTRY_DSN');
+      options.sendDefaultPii = true;
+      options.enableLogs = true;
+      options.tracesSampleRate = 1.0;
+      // ignore: experimental_member_use
+      options.profilesSampleRate = 1.0;
+      options.replay.sessionSampleRate = 1.0;
+      options.replay.onErrorSampleRate = 1.0;
+      options.attachScreenshot = true;
+      options.privacy.maskAllText = false;
+      options.privacy.maskAllImages = false;
+    },
+    appRunner: () => runApp(
+      SentryWidget(
+        child: app,
+      ),
     ),
   );
 }

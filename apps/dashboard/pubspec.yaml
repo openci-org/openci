@@ -12,6 +12,7 @@ environment:
 resolution: workspace
 
 dependencies:
+  sentry_flutter: ^9.19.0
   cloud_functions: ^6.1.0
   cupertino_icons: ^1.0.9
   file_picker: ^10.3.9
@@ -59,6 +60,7 @@ dependencies:
       path: packages/firebase_data_connect/firebase_data_connect
 
 dev_dependencies:
+  sentry_dart_plugin: ^3.3.0
   build_runner: ^2.13.1
   flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
@@ -81,3 +83,9 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter
+  org: openci-inc

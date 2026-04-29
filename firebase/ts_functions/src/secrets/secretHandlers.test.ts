@@ -9,7 +9,7 @@ const {
   mockCreateSecretWithValue,
   mockDeleteSecretByPath,
   mockAddSecretVersionByPath,
-  mockFindSecretByName,
+  mockFindSecretByNameForTeam,
   mockCreateSecretMetadata,
   mockGetSecretPathForTeam,
   mockDeleteSecretMetadata,
@@ -21,7 +21,7 @@ const {
   mockCreateSecretWithValue: vi.fn(),
   mockDeleteSecretByPath: vi.fn(),
   mockAddSecretVersionByPath: vi.fn(),
-  mockFindSecretByName: vi.fn(),
+  mockFindSecretByNameForTeam: vi.fn(),
   mockCreateSecretMetadata: vi.fn(),
   mockGetSecretPathForTeam: vi.fn(),
   mockDeleteSecretMetadata: vi.fn(),
@@ -41,7 +41,7 @@ vi.mock("../secretManager", () => ({
 }));
 
 vi.mock("@openci/dataconnect-admin", () => ({
-  findSecretByName: (...args: unknown[]) => mockFindSecretByName(...args),
+  findSecretByNameForTeam: (...args: unknown[]) => mockFindSecretByNameForTeam(...args),
   createSecretMetadata: (...args: unknown[]) => mockCreateSecretMetadata(...args),
   getSecretPathForTeam: (...args: unknown[]) => mockGetSecretPathForTeam(...args),
   deleteSecretMetadata: (...args: unknown[]) => mockDeleteSecretMetadata(...args),
@@ -78,7 +78,7 @@ describe("secret handlers", () => {
     mockCreateSecretWithValue.mockResolvedValue("projects/test/secrets/secret-id");
     mockDeleteSecretByPath.mockResolvedValue(undefined);
     mockAddSecretVersionByPath.mockResolvedValue(undefined);
-    mockFindSecretByName.mockResolvedValue({ data: { secrets: [] } });
+    mockFindSecretByNameForTeam.mockResolvedValue({ data: { secrets: [] } });
     mockCreateSecretMetadata.mockResolvedValue({});
     mockGetSecretPathForTeam.mockResolvedValue({
       data: {
@@ -120,7 +120,7 @@ describe("secret handlers", () => {
   });
 
   it("rejects duplicate secret names", async () => {
-    mockFindSecretByName.mockResolvedValue({ data: { secrets: [{ name: "API_KEY" }] } });
+    mockFindSecretByNameForTeam.mockResolvedValue({ data: { secrets: [{ name: "API_KEY" }] } });
     const wrapped = testEnv.wrap(createSecretV1) as (req: {
       data: { teamId: string; name: string; value: string };
       auth?: AuthData;

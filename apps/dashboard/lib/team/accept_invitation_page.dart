@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -32,8 +33,12 @@ class AcceptInvitationPage extends HookConsumerWidget {
           final teamName = data['teamName'] as String? ?? '';
 
           result.value = _InviteResult(status: status, teamName: teamName);
-        } on FirebaseFunctionsException catch (e) {
-          error.value = e.message ?? e.code;
+        } on FirebaseFunctionsException catch (e, s) {
+          final errorMessage = await FunctionErrorMessage.capture(
+            e,
+            stackTrace: s,
+          );
+          error.value = errorMessage.message;
         } catch (e) {
           error.value = e.toString();
         } finally {

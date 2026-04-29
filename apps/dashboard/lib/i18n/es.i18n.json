@@ -7,7 +7,22 @@
     "edit": "Editar",
     "error": "Error: $error",
     "loading": "Cargando...",
-    "invite": "Invitar"
+    "invite": "Invitar",
+    "functionErrors": {
+      "cancelled": "La operación fue cancelada.",
+      "invalidArgument": "Por favor, revisa los datos ingresados.",
+      "failedPrecondition": "No se pudo completar la operación. Revisa el estado actual.",
+      "notFound": "No se encontraron los datos solicitados. Actualiza e inténtalo de nuevo.",
+      "alreadyExists": "Ya existe.",
+      "unauthenticated": "Debes iniciar sesión. Inicia sesión de nuevo.",
+      "permissionDenied": "No tienes permiso para realizar esta operación.",
+      "resourceExhausted": "Espera un momento e inténtalo de nuevo.",
+      "aborted": "La operación entró en conflicto con otro cambio. Inténtalo de nuevo.",
+      "unavailable": "No se puede conectar temporalmente. Inténtalo de nuevo más tarde.",
+      "internal": "Ocurrió un error inesperado en el servidor. Inténtalo de nuevo más tarde.",
+      "unknown": "Ocurrió un error desconocido. Inténtalo de nuevo más tarde.",
+      "unexpected": "Ocurrió un error inesperado. Inténtalo de nuevo más tarde."
+    }
   },
   "timeAgo": {
     "secsAgo": "hace ${count} seg",
@@ -188,6 +203,7 @@
     "newSecretValue": "Nuevo valor del secreto (dejar vacío para mantener el actual)",
     "enterSecretName": "Por favor, ingresa un nombre de secreto",
     "enterSecretValue": "Por favor, ingresa un valor de secreto",
+    "adding": "Agregando secreto...",
     "addedSuccess": "Secreto agregado exitosamente",
     "updatedSuccess": "Secreto actualizado exitosamente",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar este secreto? Esta acción no se puede deshacer.",

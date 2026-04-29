@@ -502,6 +502,13 @@ function findSecretByName(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.findSecretByName = findSecretByName;
 
+function findSecretByNameForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('FindSecretByNameForTeam', inputVars, inputOpts);
+}
+exports.findSecretByNameForTeam = findSecretByNameForTeam;
+
 function getSecretForTeam(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
