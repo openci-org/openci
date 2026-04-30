@@ -25,8 +25,6 @@ SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
   );
 }
 
-// ── ui.sh zinc-neutral palette ──────────────────────────────────────────────
-
 class BuildLogsDetailPage extends HookConsumerWidget {
   const BuildLogsDetailPage({super.key, required this.buildJob});
   final BuildJob buildJob;
