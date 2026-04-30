@@ -125,7 +125,7 @@ class AuthPage extends HookConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Sign in to your account',
+                            authT.signInSubtitle,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: AppColors.of(context).textSecondary,

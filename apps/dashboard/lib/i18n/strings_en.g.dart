@@ -155,6 +155,9 @@ class TranslationsAuthEn {
 
 	// Translations
 
+	/// en: 'Sign in to your account'
+	String get signInSubtitle => 'Sign in to your account';
+
 	/// en: 'Email'
 	String get email => 'Email';
 
@@ -1720,6 +1723,7 @@ extension on Translations {
 			'nav.logs' => 'Logs',
 			'nav.release' => 'Release',
 			'nav.settings' => 'Settings',
+			'auth.signInSubtitle' => 'Sign in to your account',
 			'auth.email' => 'Email',
 			'auth.password' => 'Password',
 			'auth.login' => 'Log in',

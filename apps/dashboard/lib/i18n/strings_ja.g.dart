@@ -110,6 +110,7 @@ class _TranslationsAuthJa implements TranslationsAuthEn {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
+	@override String get signInSubtitle => 'アカウントにサインイン';
 	@override String get email => 'メールアドレス';
 	@override String get password => 'パスワード';
 	@override String get login => 'ログイン';
@@ -817,6 +818,7 @@ extension on TranslationsJa {
 			'nav.logs' => 'ログ',
 			'nav.release' => 'リリース',
 			'nav.settings' => '設定',
+			'auth.signInSubtitle' => 'アカウントにサインイン',
 			'auth.email' => 'メールアドレス',
 			'auth.password' => 'パスワード',
 			'auth.login' => 'ログイン',

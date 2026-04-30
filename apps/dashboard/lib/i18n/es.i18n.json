@@ -41,6 +41,7 @@
     "settings": "Configuración"
   },
   "auth": {
+    "signInSubtitle": "Inicia sesión en tu cuenta",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "login": "Iniciar sesión",

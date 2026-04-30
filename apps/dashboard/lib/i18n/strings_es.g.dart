@@ -110,6 +110,7 @@ class _TranslationsAuthEs implements TranslationsAuthEn {
 	final TranslationsEs _root; // ignore: unused_field
 
 	// Translations
+	@override String get signInSubtitle => 'Inicia sesión en tu cuenta';
 	@override String get email => 'Correo electrónico';
 	@override String get password => 'Contraseña';
 	@override String get login => 'Iniciar sesión';
@@ -817,6 +818,7 @@ extension on TranslationsEs {
 			'nav.logs' => 'Registros',
 			'nav.release' => 'Lanzamiento',
 			'nav.settings' => 'Configuración',
+			'auth.signInSubtitle' => 'Inicia sesión en tu cuenta',
 			'auth.email' => 'Correo electrónico',
 			'auth.password' => 'Contraseña',
 			'auth.login' => 'Iniciar sesión',
