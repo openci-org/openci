@@ -41,6 +41,7 @@
     "settings": "Settings"
   },
   "auth": {
+    "signInSubtitle": "Sign in to your account",
     "email": "Email",
     "password": "Password",
     "login": "Log in",

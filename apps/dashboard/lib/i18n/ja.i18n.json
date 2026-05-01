@@ -41,6 +41,7 @@
     "settings": "設定"
   },
   "auth": {
+    "signInSubtitle": "アカウントにサインイン",
     "email": "メールアドレス",
     "password": "パスワード",
     "login": "ログイン",
