@@ -77,43 +77,6 @@ class AuthPage extends HookConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // ── Branded logo ──
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  colorScheme.primary,
-                                  colorScheme.primary.withValues(alpha: 0.6),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                'CI',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.of(context).textPrimary,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
                           Text(
                             'OpenCI',
                             style: Theme.of(context).textTheme.headlineSmall
