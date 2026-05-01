@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -1380,7 +1382,7 @@ class DropIndicator extends StatelessWidget {
   }
 }
 
-class IssueCardDraggable extends StatelessWidget {
+class IssueCardDraggable extends StatefulWidget {
   const IssueCardDraggable({
     super.key,
     required this.issue,
@@ -1393,35 +1395,184 @@ class IssueCardDraggable extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<IssueCardDraggable> createState() => _IssueCardDraggableState();
+}
+
+class _IssueCardDraggableState extends State<IssueCardDraggable> {
+  static const _liftPreviewDelay = Duration(milliseconds: 280);
+  static const _liftPreviewCancelSlop = 8.0;
+
+  Timer? _liftPreviewTimer;
+  Timer? _tapSuppressionTimer;
+  Offset? _pressStartPosition;
+  bool _isLiftPreviewVisible = false;
+  bool _suppressNextTap = false;
+
+  @override
+  void dispose() {
+    _liftPreviewTimer?.cancel();
+    _tapSuppressionTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startLiftPreviewTimer(PointerDownEvent event) {
+    _liftPreviewTimer?.cancel();
+    _pressStartPosition = event.position;
+    _liftPreviewTimer = Timer(_liftPreviewDelay, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLiftPreviewVisible = true;
+        _suppressNextTap = true;
+      });
+    });
+  }
+
+  void _cancelLiftPreview() {
+    _liftPreviewTimer?.cancel();
+    _liftPreviewTimer = null;
+    _pressStartPosition = null;
+
+    if (!_isLiftPreviewVisible || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isLiftPreviewVisible = false;
+    });
+  }
+
+  void _handlePointerUp() {
+    final shouldSuppressTap = _suppressNextTap;
+    _cancelLiftPreview();
+
+    if (!shouldSuppressTap) {
+      return;
+    }
+
+    _tapSuppressionTimer?.cancel();
+    _tapSuppressionTimer = Timer(const Duration(milliseconds: 250), () {
+      _suppressNextTap = false;
+      _tapSuppressionTimer = null;
+    });
+  }
+
+  void _clearTapSuppression() {
+    _tapSuppressionTimer?.cancel();
+    _tapSuppressionTimer = null;
+    _suppressNextTap = false;
+  }
+
+  void _handleTap() {
+    final shouldSuppressTap = _suppressNextTap;
+    _clearTapSuppression();
+
+    if (shouldSuppressTap) {
+      return;
+    }
+
+    widget.onTap();
+  }
+
+  void _finishDragInteraction() {
+    _cancelLiftPreview();
+    _clearTapSuppression();
+  }
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    final startPosition = _pressStartPosition;
+    if (startPosition == null || _isLiftPreviewVisible) {
+      return;
+    }
+
+    if ((event.position - startPosition).distance > _liftPreviewCancelSlop) {
+      _liftPreviewTimer?.cancel();
+      _liftPreviewTimer = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Draggable<IssueDragData>(
-      data: IssueDragData(issueId: issue.id, sourceColumnId: sourceColumnId),
-      hitTestBehavior: HitTestBehavior.opaque,
-      feedback: Material(
-        color: Colors.transparent,
-        child: SizedBox(
-          width: 290,
-          child: Transform.rotate(
-            angle: -0.035,
-            child: IssueCard(issue: issue, isDragging: true),
+    return Listener(
+      onPointerDown: _startLiftPreviewTimer,
+      onPointerMove: _handlePointerMove,
+      onPointerUp: (_) => _handlePointerUp(),
+      onPointerCancel: (_) => _finishDragInteraction(),
+      child: Draggable<IssueDragData>(
+        data: IssueDragData(
+          issueId: widget.issue.id,
+          sourceColumnId: widget.sourceColumnId,
+        ),
+        hitTestBehavior: HitTestBehavior.opaque,
+        onDragStarted: _finishDragInteraction,
+        onDragCompleted: _finishDragInteraction,
+        onDraggableCanceled: (_, _) => _finishDragInteraction(),
+        onDragEnd: (_) => _finishDragInteraction(),
+        feedback: Material(
+          color: Colors.transparent,
+          child: SizedBox(
+            width: 290,
+            child: Opacity(
+              opacity: 0.96,
+              child: Transform.translate(
+                offset: const Offset(0, -8),
+                child: Transform.rotate(
+                  angle: -0.035,
+                  child: Transform.scale(
+                    scale: 1.04,
+                    child: IssueCard(issue: widget.issue, isDragging: true),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-      ),
-      childWhenDragging: Opacity(opacity: 0.35, child: IssueCard(issue: issue)),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: IssueCard(issue: issue),
+        childWhenDragging: Transform.scale(
+          scale: 0.98,
+          child: Opacity(
+            opacity: 0.28,
+            child: IssueCard(issue: widget.issue, isDragPlaceholder: true),
+          ),
+        ),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _handleTap,
+          child: AnimatedScale(
+            scale: _isLiftPreviewVisible ? 1.025 : 1,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic,
+              transform: Matrix4.translationValues(
+                0,
+                _isLiftPreviewVisible ? -6 : 0,
+                0,
+              ),
+              child: IssueCard(
+                issue: widget.issue,
+                isDragging: _isLiftPreviewVisible,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
 class IssueCard extends StatelessWidget {
-  const IssueCard({super.key, required this.issue, this.isDragging = false});
+  const IssueCard({
+    super.key,
+    required this.issue,
+    this.isDragging = false,
+    this.isDragPlaceholder = false,
+  });
 
   final Issue issue;
   final bool isDragging;
+  final bool isDragPlaceholder;
 
   @override
   Widget build(BuildContext context) {
@@ -1429,14 +1580,24 @@ class IssueCard extends StatelessWidget {
       duration: const Duration(milliseconds: 140),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: isDragPlaceholder ? const Color(0xFFF8FAFC) : Colors.white,
+        border: Border.all(
+          color: isDragging || isDragPlaceholder
+              ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
+              : const Color(0xFFE2E8F0),
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDragging ? 0.16 : 0.04),
-            blurRadius: isDragging ? 22 : 10,
-            offset: Offset(0, isDragging ? 12 : 4),
+            color: Colors.black.withValues(
+              alpha: isDragging
+                  ? 0.22
+                  : isDragPlaceholder
+                  ? 0
+                  : 0.04,
+            ),
+            blurRadius: isDragging ? 30 : 10,
+            offset: Offset(0, isDragging ? 18 : 4),
           ),
         ],
       ),
