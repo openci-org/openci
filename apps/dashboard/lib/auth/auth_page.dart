@@ -77,43 +77,6 @@ class AuthPage extends HookConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // ── Branded logo ──
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  colorScheme.primary,
-                                  colorScheme.primary.withValues(alpha: 0.6),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                'CI',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.of(context).textPrimary,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
                           Text(
                             'OpenCI',
                             style: Theme.of(context).textTheme.headlineSmall
@@ -387,42 +350,118 @@ class AuthPage extends HookConsumerWidget {
                           const SizedBox(height: 24),
 
                           // ── Tertiary actions ──
-                          Text(
-                            'Advanced',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: AppColors.of(context).textTertiary,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.3,
                                 ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () async {
-                              await showModalBottomSheet(
-                                isScrollControlled: true,
-                                context: context,
-                                builder: (context) {
-                                  return FirebaseFormSheet();
-                                },
-                              );
-                              configReloadKey.value++;
-                            },
-                            child: Text(authT.useYourFirebase),
-                          ),
-                          const SizedBox(height: 2),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: colorScheme.error,
+                              ),
                             ),
-                            onPressed: () async {
-                              await clearSelfHostedConfig();
-                              ref.invalidate(selfHostedConfigProvider);
-                              configReloadKey.value++;
-                              if (!context.mounted) return;
-                              context.showSnackBarMessage(authT.resetSuccess);
-                            },
-                            child: Text(authT.resetFirebase),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.tune_rounded,
+                                      size: 16,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Advanced Options',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.5,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    alignment: Alignment.centerLeft,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    foregroundColor: colorScheme.onSurface,
+                                    side: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withValues(alpha: 0.5),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.dns_outlined,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    authT.useYourFirebase,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  onPressed: () async {
+                                    await showModalBottomSheet(
+                                      isScrollControlled: true,
+                                      context: context,
+                                      builder: (context) {
+                                        return const FirebaseFormSheet();
+                                      },
+                                    );
+                                    configReloadKey.value++;
+                                  },
+                                ),
+                                if (configSnapshot.data != null) ...[
+                                  const SizedBox(height: 8),
+                                  OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      alignment: Alignment.centerLeft,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      foregroundColor: colorScheme.error,
+                                      side: BorderSide(
+                                        color: colorScheme.error.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.cloud_off_outlined,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      authT.resetFirebase,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                    onPressed: () async {
+                                      await clearSelfHostedConfig();
+                                      ref.invalidate(selfHostedConfigProvider);
+                                      configReloadKey.value++;
+                                      if (!context.mounted) return;
+                                      context.showSnackBarMessage(
+                                        authT.resetSuccess,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
