@@ -193,6 +193,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     _addIssue(draft);
+    _showSavedSnackBar();
   }
 
   Future<void> _openEditIssueDialog(String issueId) async {
@@ -217,6 +218,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     _updateIssue(issueId: issueId, draft: draft);
+    _showSavedSnackBar();
   }
 
   void _addIssue(NewIssueDraft draft) {
@@ -282,6 +284,26 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     );
 
     return 'IMA-${100 + totalIssues + 1}';
+  }
+
+  void _showSavedSnackBar() {
+    if (!mounted) {
+      return;
+    }
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final snackBarWidth = screenWidth < 420 ? screenWidth - 32 : 320.0;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          width: snackBarWidth,
+          content: const Text('Saved'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(milliseconds: 1400),
+        ),
+      );
   }
 
   @override
@@ -591,112 +613,129 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.86;
     final isEditing = widget.initialIssue != null;
 
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Material(
-            color: Colors.white,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _DialogHeader(
-                      title: isEditing
-                          ? 'Edit GitHub issue'
-                          : 'New GitHub issue',
-                      description: isEditing
-                          ? '${widget.initialIssue!.id}を編集します。'
-                          : '同期前提のmock ticketをボードへ追加します。⌘Tでも開けます。',
-                    ),
-                    const SizedBox(height: 20),
-                    _TitleField(
-                      controller: _titleController,
-                      decoration: _inputDecoration(
-                        label: 'Title',
-                        hint: '例: issueの同期ステータスを表示する',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _bodyController,
-                      minLines: 7,
-                      maxLines: 12,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline,
-                      decoration: _inputDecoration(
-                        label: 'Body',
-                        hint: '背景、やりたいこと、受け入れ条件などをMarkdownっぽく書けます。',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _RepoAndAssigneeFields(
-                      repoController: _repoController,
-                      assigneeController: _assigneeController,
-                      decorationBuilder: _inputDecoration,
-                    ),
-                    const SizedBox(height: 14),
-                    _StatusAndPriorityFields(
-                      columns: widget.columns,
-                      selectedColumnId: _selectedColumnId,
-                      priority: _priority,
-                      decorationBuilder: _inputDecoration,
-                      priorityLabelBuilder: _priorityLabel,
-                      onColumnChanged: (value) {
-                        setState(() => _selectedColumnId = value);
-                      },
-                      onPriorityChanged: (value) {
-                        setState(() => _priority = value);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _labelsController,
-                      textInputAction: TextInputAction.done,
-                      decoration: _inputDecoration(
-                        label: 'Labels',
-                        hint: 'feature, github, mobile',
-                      ),
-                      onFieldSubmitted: (_) => _saveIssue(),
-                    ),
-                    const SizedBox(height: 22),
-                    Row(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): _saveIssue,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          backgroundColor: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Material(
+                color: Colors.white,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Cancel'),
+                        _DialogHeader(
+                          title: isEditing
+                              ? 'Edit GitHub issue'
+                              : 'New GitHub issue',
+                          description: isEditing
+                              ? '${widget.initialIssue!.id}を編集します。⌘Enterで保存できます。'
+                              : '同期前提のmock ticketをボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。',
+                        ),
+                        const SizedBox(height: 20),
+                        _TitleField(
+                          controller: _titleController,
+                          decoration: _inputDecoration(
+                            label: 'Title',
+                            hint: '例: issueの同期ステータスを表示する',
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: _saveIssue,
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: Text(
-                              isEditing ? 'Save changes' : 'Add issue',
-                            ),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _bodyController,
+                          minLines: 7,
+                          maxLines: 12,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          decoration: _inputDecoration(
+                            label: 'Body',
+                            hint: '背景、やりたいこと、受け入れ条件などをMarkdownっぽく書けます。',
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _RepoAndAssigneeFields(
+                          repoController: _repoController,
+                          assigneeController: _assigneeController,
+                          decorationBuilder: _inputDecoration,
+                        ),
+                        const SizedBox(height: 14),
+                        _StatusAndPriorityFields(
+                          columns: widget.columns,
+                          selectedColumnId: _selectedColumnId,
+                          priority: _priority,
+                          decorationBuilder: _inputDecoration,
+                          priorityLabelBuilder: _priorityLabel,
+                          onColumnChanged: (value) {
+                            setState(() => _selectedColumnId = value);
+                          },
+                          onPriorityChanged: (value) {
+                            setState(() => _priority = value);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _labelsController,
+                          textInputAction: TextInputAction.done,
+                          decoration: _inputDecoration(
+                            label: 'Labels',
+                            hint: 'feature, github, mobile',
+                          ),
+                          onFieldSubmitted: (_) => _saveIssue(),
+                        ),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                ),
+                                child: const Text('Cancel'),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _saveIssue,
+                                icon: const Icon(Icons.add_rounded, size: 18),
+                                label: Text(
+                                  isEditing
+                                      ? 'Save changes  ⌘Enter'
+                                      : 'Add issue  ⌘Enter',
+                                ),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -958,15 +997,12 @@ class BoardColumnView extends StatelessWidget {
                       index < column.issues.length;
                       index++
                     ) ...[
-                      IssueDropSlot(
-                        columnId: column.id,
-                        index: index,
-                        onIssueDropped: onIssueDropped,
-                      ),
-                      IssueCardDraggable(
+                      IssueCardDropTarget(
                         issue: column.issues[index],
                         sourceColumnId: column.id,
+                        index: index,
                         onTap: () => onIssueTapped(column.issues[index].id),
+                        onIssueDropped: onIssueDropped,
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -1116,6 +1152,124 @@ class IssueDropSlot extends StatelessWidget {
               : null,
         );
       },
+    );
+  }
+}
+
+class IssueCardDropTarget extends StatefulWidget {
+  const IssueCardDropTarget({
+    super.key,
+    required this.issue,
+    required this.sourceColumnId,
+    required this.index,
+    required this.onTap,
+    required this.onIssueDropped,
+  });
+
+  final Issue issue;
+  final String sourceColumnId;
+  final int index;
+  final VoidCallback onTap;
+  final IssueDropCallback onIssueDropped;
+
+  @override
+  State<IssueCardDropTarget> createState() => _IssueCardDropTargetState();
+}
+
+class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
+  final _cardKey = GlobalKey();
+  bool _isHovering = false;
+  bool _insertAfter = false;
+
+  void _updateDropPosition(Offset globalPosition) {
+    final renderObject = _cardKey.currentContext?.findRenderObject();
+
+    if (renderObject is! RenderBox) {
+      return;
+    }
+
+    final localPosition = renderObject.globalToLocal(globalPosition);
+    final nextInsertAfter = localPosition.dy > renderObject.size.height / 2;
+
+    if (_isHovering == true && _insertAfter == nextInsertAfter) {
+      return;
+    }
+
+    setState(() {
+      _isHovering = true;
+      _insertAfter = nextInsertAfter;
+    });
+  }
+
+  void _clearDropPosition() {
+    if (!_isHovering) {
+      return;
+    }
+
+    setState(() => _isHovering = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<IssueDragData>(
+      onWillAcceptWithDetails: (details) {
+        _updateDropPosition(details.offset);
+        return true;
+      },
+      onMove: (details) => _updateDropPosition(details.offset),
+      onLeave: (_) => _clearDropPosition(),
+      onAcceptWithDetails: (details) {
+        widget.onIssueDropped(
+          issueId: details.data.issueId,
+          targetColumnId: widget.sourceColumnId,
+          targetIndex: widget.index + (_insertAfter ? 1 : 0),
+        );
+        _clearDropPosition();
+      },
+      builder: (context, candidateData, rejectedData) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            KeyedSubtree(
+              key: _cardKey,
+              child: IssueCardDraggable(
+                issue: widget.issue,
+                sourceColumnId: widget.sourceColumnId,
+                onTap: widget.onTap,
+              ),
+            ),
+            if (_isHovering)
+              Positioned(
+                left: 10,
+                right: 10,
+                top: _insertAfter ? null : -3,
+                bottom: _insertAfter ? -3 : null,
+                child: const DropIndicator(),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class DropIndicator extends StatelessWidget {
+  const DropIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 6,
+      decoration: BoxDecoration(
+        color: const Color(0xFF38BDF8),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF38BDF8).withValues(alpha: 0.32),
+            blurRadius: 10,
+          ),
+        ],
+      ),
     );
   }
 }
