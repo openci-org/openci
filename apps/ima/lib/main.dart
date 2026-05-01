@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const IssueBoardApp());
@@ -13,6 +14,9 @@ class IssueBoardApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'IssuePilot',
+      locale: const Locale('ja', 'JP'),
+      supportedLocales: const [Locale('ja', 'JP')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2563EB),
@@ -33,6 +37,7 @@ class IssueBoardPage extends StatefulWidget {
 }
 
 class _IssueBoardPageState extends State<IssueBoardPage> {
+  final _boardScrollController = ScrollController();
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
@@ -48,6 +53,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['feature', 'github'],
           comments: 8,
           priority: Priority.high,
+          dueDate: DateTime.now().add(const Duration(days: 2)),
         ),
         Issue(
           id: 'IMA-16',
@@ -57,6 +63,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['mobile'],
           comments: 3,
           priority: Priority.medium,
+          dueDate: DateTime.now().add(const Duration(days: 7)),
         ),
       ],
     ),
@@ -74,6 +81,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['worker', 'logs'],
           comments: 12,
           priority: Priority.high,
+          dueDate: DateTime.now().subtract(const Duration(days: 1)),
         ),
         Issue(
           id: 'OPS-54',
@@ -83,6 +91,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['sync', 'api'],
           comments: 5,
           priority: Priority.medium,
+          dueDate: DateTime.now().add(const Duration(days: 12)),
         ),
       ],
     ),
@@ -100,6 +109,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['prototype', 'flutter'],
           comments: 2,
           priority: Priority.high,
+          dueDate: DateTime.now(),
         ),
         Issue(
           id: 'DASH-33',
@@ -109,6 +119,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['perf'],
           comments: 6,
           priority: Priority.low,
+          dueDate: DateTime.now().add(const Duration(days: 4)),
         ),
       ],
     ),
@@ -126,6 +137,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: ['copy'],
           comments: 4,
           priority: Priority.medium,
+          dueDate: DateTime.now().add(const Duration(days: 5)),
         ),
       ],
     ),
@@ -238,6 +250,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           labels: draft.labels,
           comments: 0,
           priority: draft.priority,
+          dueDate: draft.dueDate,
         ),
       );
     });
@@ -265,6 +278,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         labels: draft.labels,
         comments: currentIssue.comments,
         priority: draft.priority,
+        dueDate: draft.dueDate,
       );
 
       if (sourceColumn.id == targetColumn.id) {
@@ -307,6 +321,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 
   @override
+  void dispose() {
+    _boardScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final totalIssues = _columns.fold<int>(
       0,
@@ -335,8 +355,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                           : constraints.maxHeight;
 
                       return Scrollbar(
+                        controller: _boardScrollController,
                         thumbVisibility: true,
                         child: SingleChildScrollView(
+                          controller: _boardScrollController,
                           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                           scrollDirection: Axis.horizontal,
                           child: SizedBox(
@@ -556,6 +578,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   final _labelsController = TextEditingController(text: 'feature, mobile');
   late String _selectedColumnId;
   Priority _priority = Priority.medium;
+  DateTime? _dueDate;
 
   @override
   void initState() {
@@ -571,6 +594,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       _assigneeController.text = issue.assignee;
       _labelsController.text = issue.labels.join(', ');
       _priority = issue.priority;
+      _dueDate = issue.dueDate;
     }
   }
 
@@ -604,8 +628,26 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         labels: labels,
         columnId: _selectedColumnId,
         priority: _priority,
+        dueDate: _dueDate,
       ),
     );
+  }
+
+  Future<void> _pickDueDate() async {
+    final now = DateTime.now();
+    final initialDate = _dueDate ?? now;
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 3),
+    );
+
+    if (selectedDate == null) {
+      return;
+    }
+
+    setState(() => _dueDate = _dateOnly(selectedDate));
   }
 
   @override
@@ -686,6 +728,12 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                           onPriorityChanged: (value) {
                             setState(() => _priority = value);
                           },
+                        ),
+                        const SizedBox(height: 14),
+                        DueDateField(
+                          dueDate: _dueDate,
+                          onPick: _pickDueDate,
+                          onClear: () => setState(() => _dueDate = null),
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
@@ -937,6 +985,64 @@ class _StatusAndPriorityFields extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class DueDateField extends StatelessWidget {
+  const DueDateField({
+    super.key,
+    required this.dueDate,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final DateTime? dueDate;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: '締切',
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.calendar_today_outlined,
+            size: 18,
+            color: Color(0xFF64748B),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              dueDate == null ? '締切なし' : _formatDate(dueDate!),
+              style: const TextStyle(
+                color: Color(0xFF334155),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          TextButton(onPressed: onPick, child: const Text('日付を選択')),
+          if (dueDate != null)
+            IconButton(
+              tooltip: '締切をクリア',
+              onPressed: onClear,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1396,6 +1502,10 @@ class IssueCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (issue.dueDate != null) ...[
+                const SizedBox(width: 8),
+                DueDatePill(dueDate: issue.dueDate!),
+              ],
               const Spacer(),
               const Icon(
                 Icons.chat_bubble_outline_rounded,
@@ -1472,6 +1582,58 @@ class LabelPill extends StatelessWidget {
   }
 }
 
+class DueDatePill extends StatelessWidget {
+  const DueDatePill({super.key, required this.dueDate});
+
+  final DateTime dueDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _dueDateStatus(dueDate);
+    final colors = switch (status) {
+      DueDateStatus.overdue => (
+        background: const Color(0xFFFEE2E2),
+        foreground: const Color(0xFFB91C1C),
+      ),
+      DueDateStatus.today => (
+        background: const Color(0xFFFFEDD5),
+        foreground: const Color(0xFFC2410C),
+      ),
+      DueDateStatus.soon => (
+        background: const Color(0xFFFEF3C7),
+        foreground: const Color(0xFF92400E),
+      ),
+      DueDateStatus.later => (
+        background: const Color(0xFFEFF6FF),
+        foreground: const Color(0xFF1D4ED8),
+      ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.event_outlined, size: 13, color: colors.foreground),
+          const SizedBox(width: 4),
+          Text(
+            _dueDateLabel(dueDate),
+            style: TextStyle(
+              color: colors.foreground,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PriorityDot extends StatelessWidget {
   const PriorityDot({super.key, required this.priority});
 
@@ -1524,6 +1686,7 @@ class NewIssueDraft {
     required this.labels,
     required this.columnId,
     required this.priority,
+    required this.dueDate,
   });
 
   final String title;
@@ -1533,6 +1696,7 @@ class NewIssueDraft {
   final List<String> labels;
   final String columnId;
   final Priority priority;
+  final DateTime? dueDate;
 }
 
 class BoardColumn {
@@ -1561,6 +1725,7 @@ class Issue {
     required this.labels,
     required this.comments,
     required this.priority,
+    this.dueDate,
   });
 
   final String id;
@@ -1571,6 +1736,48 @@ class Issue {
   final List<String> labels;
   final int comments;
   final Priority priority;
+  final DateTime? dueDate;
 }
+
+DateTime _dateOnly(DateTime date) {
+  return DateTime(date.year, date.month, date.day);
+}
+
+String _formatDate(DateTime date) {
+  return '${date.month}月${date.day}日';
+}
+
+String _dueDateLabel(DateTime date) {
+  final status = _dueDateStatus(date);
+
+  return switch (status) {
+    DueDateStatus.overdue => '期限切れ',
+    DueDateStatus.today => '今日',
+    DueDateStatus.soon => _formatDate(date),
+    DueDateStatus.later => _formatDate(date),
+  };
+}
+
+DueDateStatus _dueDateStatus(DateTime date) {
+  final today = _dateOnly(DateTime.now());
+  final dueDate = _dateOnly(date);
+  final daysUntilDue = dueDate.difference(today).inDays;
+
+  if (daysUntilDue < 0) {
+    return DueDateStatus.overdue;
+  }
+
+  if (daysUntilDue == 0) {
+    return DueDateStatus.today;
+  }
+
+  if (daysUntilDue <= 3) {
+    return DueDateStatus.soon;
+  }
+
+  return DueDateStatus.later;
+}
+
+enum DueDateStatus { overdue, today, soon, later }
 
 enum Priority { high, medium, low }
