@@ -1,10 +1,16 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const IssueBoardApp());
 }
 
@@ -26,7 +32,237 @@ class IssueBoardApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const IssueBoardPage(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF8FAFC),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const EmailAuthPage();
+        }
+
+        return const IssueBoardPage();
+      },
+    );
+  }
+}
+
+class EmailAuthPage extends StatefulWidget {
+  const EmailAuthPage({super.key});
+
+  @override
+  State<EmailAuthPage> createState() => _EmailAuthPageState();
+}
+
+class _EmailAuthPageState extends State<EmailAuthPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  var _isCreatingAccount = false;
+  var _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      if (_isCreatingAccount) {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } else {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      }
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = _friendlyAuthMessage(error);
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  String _friendlyAuthMessage(FirebaseAuthException error) {
+    return switch (error.code) {
+      'invalid-email' => 'メールアドレスの形式を確認してください。',
+      'user-disabled' => 'このユーザーは無効化されています。',
+      'user-not-found' => 'このメールアドレスのユーザーが見つかりません。',
+      'wrong-password' || 'invalid-credential' => 'メールアドレスまたはパスワードが違います。',
+      'email-already-in-use' => 'このメールアドレスはすでに登録されています。',
+      'weak-password' => 'パスワードは6文字以上で入力してください。',
+      'operation-not-allowed' => 'Firebase Consoleでメール/パスワード認証を有効にしてください。',
+      _ => '認証に失敗しました。${error.code}: ${error.message ?? '詳細不明'}',
+    };
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _isCreatingAccount = !_isCreatingAccount;
+      _errorMessage = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'IssuePilot',
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _isCreatingAccount
+                              ? 'メールアドレスでアカウントを作成します。'
+                              : 'メールアドレスでログインしてください。',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'メールアドレス',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                          validator: (value) {
+                            final email = value?.trim() ?? '';
+                            if (email.isEmpty || !email.contains('@')) {
+                              return 'メールアドレスを入力してください。';
+                            }
+
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: const InputDecoration(
+                            labelText: 'パスワード',
+                            border: OutlineInputBorder(),
+                          ),
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onFieldSubmitted: (_) => _submit(),
+                          validator: (value) {
+                            if ((value ?? '').length < 6) {
+                              return '6文字以上で入力してください。';
+                            }
+
+                            return null;
+                          },
+                        ),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage!,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _isSubmitting ? null : _submit,
+                          child: _isSubmitting
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(_isCreatingAccount ? '登録する' : 'ログイン'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: _isSubmitting ? null : _toggleMode,
+                          child: Text(
+                            _isCreatingAccount ? '既存アカウントでログイン' : '新しいアカウントを作成',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -347,7 +583,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           body: SafeArea(
             child: Column(
               children: [
-                BoardHeader(totalIssues: totalIssues),
+                BoardHeader(
+                  totalIssues: totalIssues,
+                  userEmail: FirebaseAuth.instance.currentUser?.email,
+                  onSignOut: FirebaseAuth.instance.signOut,
+                ),
                 BoardToolbar(onAddIssue: _openAddIssueDialog),
                 Expanded(
                   child: LayoutBuilder(
@@ -394,9 +634,16 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 }
 
 class BoardHeader extends StatelessWidget {
-  const BoardHeader({super.key, required this.totalIssues});
+  const BoardHeader({
+    super.key,
+    required this.totalIssues,
+    required this.userEmail,
+    required this.onSignOut,
+  });
 
   final int totalIssues;
+  final String? userEmail;
+  final Future<void> Function() onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -429,7 +676,23 @@ class BoardHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          IssueCountBadge(totalIssues: totalIssues),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              IssueCountBadge(totalIssues: totalIssues),
+              const SizedBox(height: 10),
+              Text(
+                userEmail ?? 'ログイン中',
+                style: textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+              TextButton(
+                onPressed: () => unawaited(onSignOut()),
+                child: const Text('サインアウト'),
+              ),
+            ],
+          ),
         ],
       ),
     );
