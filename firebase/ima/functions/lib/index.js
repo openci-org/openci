@@ -21,6 +21,7 @@ const db = (0, firestore_1.getFirestore)();
 const anthropicApiKey = (0, params_1.defineSecret)("ANTHROPIC_API_KEY");
 const githubWebhookSecret = (0, params_1.defineSecret)("GITHUB_WEBHOOK_SECRET");
 const closedStatusId = "done";
+const reviewStatusId = "review";
 const inProgressStatusIds = new Set(["doing", "review"]);
 const issueWeightModel = "claude-opus-4-6";
 function requireNonEmptyString(value, field) {
@@ -880,7 +881,7 @@ function requestRawBody(request) {
 function parseWebhookPayload(rawBody) {
     return JSON.parse(rawBody.toString("utf8"));
 }
-async function upsertPullRequestLink({ workspaceId, issueId, pullRequest, repoFullName, branch, }) {
+async function upsertPullRequestLink({ workspaceId, issueId, action, pullRequest, repoFullName, branch, }) {
     const [owner, repo] = repoFullName.split("/");
     const number = asNumber(pullRequest.number);
     if (!owner || !repo || number <= 0) {
@@ -892,6 +893,14 @@ async function upsertPullRequestLink({ workspaceId, issueId, pullRequest, repoFu
         const currentPullRequests = Array.isArray(issue.get("pullRequests"))
             ? issue.get("pullRequests")
             : [];
+        const currentStatusId = asString(issue.get("statusId"), "triage");
+        const nextStatusId = (0, issueLinkingHelpers_1.issueStatusForPullRequest)({
+            action,
+            merged: asBoolean(pullRequest.merged),
+            currentStatusId,
+            reviewStatusId,
+            doneStatusId: closedStatusId,
+        });
         const linkId = pullRequestLinkId(owner, repo, number);
         const now = firestore_1.Timestamp.now();
         const existingLink = currentPullRequests.find((item) => asString(item.id) === linkId);
@@ -911,6 +920,7 @@ async function upsertPullRequestLink({ workspaceId, issueId, pullRequest, repoFu
         });
         transaction.set(issueRef, {
             pullRequests: nextPullRequests,
+            ...(nextStatusId === null ? {} : { statusId: nextStatusId }),
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         }, { merge: true });
     });
@@ -979,6 +989,7 @@ async function linkPullRequestToImaIssues(payload) {
             await upsertPullRequestLink({
                 workspaceId,
                 issueId: issueDoc.id,
+                action,
                 pullRequest,
                 repoFullName,
                 branch,
