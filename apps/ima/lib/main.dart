@@ -471,6 +471,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       _isImportingIssues ||
       _isSyncingIssues;
 
+  List<String> get _enabledRepositoryOptions =>
+      (_enabledRepoFullNames.toList()..sort());
+
   @override
   void initState() {
     super.initState();
@@ -725,8 +728,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   Future<void> _openAddIssueDialog({String? initialColumnId}) async {
     final draft = await showDialog<NewIssueDraft>(
       context: context,
-      builder: (context) =>
-          AddIssueDialog(columns: _columns, initialColumnId: initialColumnId),
+      builder: (context) => AddIssueDialog(
+        columns: _columns,
+        repositoryOptions: _enabledRepositoryOptions,
+        initialColumnId: initialColumnId,
+      ),
     );
 
     if (draft == null) {
@@ -753,6 +759,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       context: context,
       builder: (context) => AddIssueDialog(
         columns: _columns,
+        repositoryOptions: _enabledRepositoryOptions,
         initialIssue: issue,
         initialColumnId: sourceColumn.id,
       ),
@@ -1548,11 +1555,13 @@ class AddIssueDialog extends StatefulWidget {
   const AddIssueDialog({
     super.key,
     required this.columns,
+    required this.repositoryOptions,
     this.initialIssue,
     this.initialColumnId,
   });
 
   final List<BoardColumn> columns;
+  final List<String> repositoryOptions;
   final Issue? initialIssue;
   final String? initialColumnId;
 
@@ -1564,9 +1573,9 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
-  final _repoController = TextEditingController(text: 'openci/ima');
   final _assigneeController = TextEditingController(text: 'MF');
   final _labelsController = TextEditingController(text: 'feature, mobile');
+  String? _selectedRepo;
   late String _selectedColumnId;
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
@@ -1577,11 +1586,16 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final issue = widget.initialIssue;
 
     _selectedColumnId = widget.initialColumnId ?? widget.columns.first.id;
+    _selectedRepo = widget.repositoryOptions.isEmpty
+        ? null
+        : widget.repositoryOptions.first;
 
     if (issue != null) {
       _titleController.text = issue.title;
       _bodyController.text = issue.body;
-      _repoController.text = issue.repo;
+      _selectedRepo = widget.repositoryOptions.contains(issue.repo)
+          ? issue.repo
+          : null;
       _assigneeController.text = issue.assignee;
       _labelsController.text = issue.labels.join(', ');
       _priority = issue.priority;
@@ -1593,7 +1607,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
-    _repoController.dispose();
     _assigneeController.dispose();
     _labelsController.dispose();
     super.dispose();
@@ -1614,7 +1627,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       NewIssueDraft(
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
-        repo: _repoController.text.trim(),
+        repo: _selectedRepo ?? '',
         assignee: _assigneeController.text.trim(),
         labels: labels,
         columnId: _selectedColumnId,
@@ -1708,7 +1721,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                         ),
                         const SizedBox(height: 14),
                         _RepoAndAssigneeFields(
-                          repoController: _repoController,
+                          repositories: widget.repositoryOptions,
+                          selectedRepository: _selectedRepo,
+                          onRepositoryChanged: (value) {
+                            setState(() => _selectedRepo = value);
+                          },
                           assigneeController: _assigneeController,
                           decorationBuilder: _inputDecoration,
                         ),
@@ -1931,12 +1948,16 @@ class _TitleField extends StatelessWidget {
 
 class _RepoAndAssigneeFields extends StatelessWidget {
   const _RepoAndAssigneeFields({
-    required this.repoController,
+    required this.repositories,
+    required this.selectedRepository,
+    required this.onRepositoryChanged,
     required this.assigneeController,
     required this.decorationBuilder,
   });
 
-  final TextEditingController repoController;
+  final List<String> repositories;
+  final String? selectedRepository;
+  final ValueChanged<String> onRepositoryChanged;
   final TextEditingController assigneeController;
   final InputDecoration Function({required String label, String? hint})
   decorationBuilder;
@@ -1946,15 +1967,31 @@ class _RepoAndAssigneeFields extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: TextFormField(
-            controller: repoController,
-            textInputAction: TextInputAction.next,
+          child: DropdownButtonFormField<String>(
+            initialValue: selectedRepository,
             decoration: decorationBuilder(
               label: 'Repository',
-              hint: 'owner/repo',
+              hint: '連携済みrepoから選択',
             ),
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'repoを入力してください' : null,
+            items: [
+              for (final repository in repositories)
+                DropdownMenuItem(
+                  value: repository,
+                  child: Text(repository, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: repositories.isEmpty
+                ? null
+                : (value) {
+                    if (value == null) {
+                      return;
+                    }
+
+                    onRepositoryChanged(value);
+                  },
+            validator: (value) => value == null || value.trim().isEmpty
+                ? '先にrepoを選択してください'
+                : null,
           ),
         ),
         const SizedBox(width: 12),
