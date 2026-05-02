@@ -52,6 +52,34 @@ void main() {
     expect(closeTapped, isTrue);
   });
 
+  testWidgets('Issue card renders LLM weight badge', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: IssueCard(
+            issue: Issue(
+              id: 'IMA-4',
+              repo: 'openci/ima',
+              title: 'Show estimated weight',
+              assignee: 'MF',
+              labels: ['ai'],
+              comments: 0,
+              priority: Priority.medium,
+              weightEstimate: IssueWeightEstimate(
+                status: 'done',
+                value: 3,
+                confidence: 0.8,
+                reason: 'UIの小変更',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('W3'), findsOneWidget);
+  });
+
   testWidgets('Board column header creates issue in that column', (
     tester,
   ) async {
@@ -153,6 +181,7 @@ void main() {
                   context: context,
                   builder: (context) => AddIssueDialog(
                     columns: columns,
+                    repositoryOptions: const ['openci/ima'],
                     initialIssue: const Issue(
                       id: 'IMA-3',
                       repo: 'openci/ima',

@@ -53,6 +53,11 @@ service cloud.firestore {
                 allow read, create, update, delete: if canAccessWorkspace(workspaceId);
             }
 
+            match /issueEvents/{eventId} {
+                allow read: if canAccessWorkspace(workspaceId);
+                allow write: if false;
+            }
+
             match /githubConnections/{connectionId} {
                 allow read: if canAccessWorkspace(workspaceId);
                 allow write: if false;

@@ -338,6 +338,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   Timestamp? _lastImportedAt;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
+  final Set<String> _estimatingIssueIds = {};
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
@@ -762,6 +763,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         repositoryOptions: _enabledRepositoryOptions,
         initialIssue: issue,
         initialColumnId: sourceColumn.id,
+        isEstimatingWeight: _estimatingIssueIds.contains(issueId),
+        onEstimateIssueWeight: _estimateIssueWeight,
       ),
     );
 
@@ -798,6 +801,28 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'createGitHubIssue',
       _issueDraftToFunctionData(draft, rank: rank),
     );
+  }
+
+  Future<void> _estimateIssueWeight(String issueId) async {
+    if (_estimatingIssueIds.contains(issueId)) {
+      return;
+    }
+
+    setState(() => _estimatingIssueIds.add(issueId));
+    try {
+      await _callFunction('estimateIssueWeight', {
+        'workspaceId': _workspaceId,
+        'issueId': issueId,
+        'force': true,
+      });
+      _showSavedSnackBar('Weight estimated');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _estimatingIssueIds.remove(issueId));
+      }
+    }
   }
 
   Map<String, Object?> _issueDraftToFunctionData(
@@ -1558,12 +1583,16 @@ class AddIssueDialog extends StatefulWidget {
     required this.repositoryOptions,
     this.initialIssue,
     this.initialColumnId,
+    this.isEstimatingWeight = false,
+    this.onEstimateIssueWeight,
   });
 
   final List<BoardColumn> columns;
   final List<String> repositoryOptions;
   final Issue? initialIssue;
   final String? initialColumnId;
+  final bool isEstimatingWeight;
+  final Future<void> Function(String issueId)? onEstimateIssueWeight;
 
   @override
   State<AddIssueDialog> createState() => _AddIssueDialogState();
@@ -1579,6 +1608,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   late String _selectedColumnId;
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
+  var _isEstimatingWeight = false;
 
   @override
   void initState() {
@@ -1639,6 +1669,23 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
 
   void _closeIssue() {
     Navigator.of(context).pop(const CloseIssueDialogResult());
+  }
+
+  Future<void> _estimateIssueWeight() async {
+    final issue = widget.initialIssue;
+    final onEstimate = widget.onEstimateIssueWeight;
+    if (issue == null || onEstimate == null || _isEstimatingWeight) {
+      return;
+    }
+
+    setState(() => _isEstimatingWeight = true);
+    try {
+      await onEstimate(issue.id);
+    } finally {
+      if (mounted) {
+        setState(() => _isEstimatingWeight = false);
+      }
+    }
   }
 
   Future<void> _pickDueDate() async {
@@ -1759,6 +1806,17 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                           ),
                           onFieldSubmitted: (_) => _saveIssue(),
                         ),
+                        if (isEditing) ...[
+                          const SizedBox(height: 14),
+                          IssueWeightPanel(
+                            issue: widget.initialIssue!,
+                            isEstimating:
+                                widget.isEstimatingWeight || _isEstimatingWeight,
+                            onEstimate: widget.onEstimateIssueWeight == null
+                                ? null
+                                : _estimateIssueWeight,
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         _DialogActions(
                           isEditing: isEditing,
@@ -2813,6 +2871,10 @@ class IssueCard extends StatelessWidget {
           Row(
             children: [
               RepoBadge(repo: issue.repo),
+              if (issue.weightEstimate?.value != null) ...[
+                const SizedBox(width: 6),
+                WeightBadge(estimate: issue.weightEstimate!),
+              ],
               const Spacer(),
               PriorityDot(priority: issue.priority),
               if (showCloseAction) ...[
@@ -3041,6 +3103,134 @@ class DueDatePill extends StatelessWidget {
   }
 }
 
+class WeightBadge extends StatelessWidget {
+  const WeightBadge({super.key, required this.estimate});
+
+  final IssueWeightEstimate estimate;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = estimate.value;
+    return Tooltip(
+      message: value == null
+          ? 'Weight estimate ${estimate.status}'
+          : 'Weight $value / confidence ${(estimate.confidence * 100).round()}%',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEF2FF),
+          border: Border.all(color: const Color(0xFFC7D2FE)),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          value == null ? 'W?' : 'W$value',
+          style: const TextStyle(
+            color: Color(0xFF4338CA),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class IssueWeightPanel extends StatelessWidget {
+  const IssueWeightPanel({
+    super.key,
+    required this.issue,
+    required this.isEstimating,
+    this.onEstimate,
+  });
+
+  final Issue issue;
+  final bool isEstimating;
+  final Future<void> Function()? onEstimate;
+
+  @override
+  Widget build(BuildContext context) {
+    final estimate = issue.weightEstimate;
+    final value = estimate?.value;
+    final subtitle = switch (estimate?.status) {
+      'done' when value != null =>
+        '${(estimate!.confidence * 100).round()}% confidence'
+            '${estimate.estimatedAt == null ? '' : ' / ${_formatDate(estimate.estimatedAt!)}'}',
+      'failed' => estimate?.error ?? 'Weight estimation failed',
+      'estimating' => 'Estimating weight...',
+      _ => 'Not estimated yet',
+    };
+    final reason = estimate?.reason;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF2FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: isEstimating
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    value == null ? 'W?' : 'W$value',
+                    style: const TextStyle(
+                      color: Color(0xFF4338CA),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'LLM weight',
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Color(0xFF64748B)),
+                ),
+                if (reason != null && reason.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    reason,
+                    style: const TextStyle(color: Color(0xFF475569)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: isEstimating ? null : onEstimate,
+            icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+            label: Text(value == null ? 'Estimate' : 'Re-estimate'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PriorityDot extends StatelessWidget {
   const PriorityDot({super.key, required this.priority});
 
@@ -3140,6 +3330,7 @@ class Issue {
     this.dueDate,
     this.statusId = 'triage',
     this.rank = 0,
+    this.weightEstimate,
   }) : displayId = displayId ?? id;
 
   factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -3161,6 +3352,9 @@ class Issue {
       dueDate: _asDate(data['dueDate']),
       statusId: _asString(data['statusId'], 'triage'),
       rank: _asDouble(data['rank']),
+      weightEstimate: IssueWeightEstimate.fromMap(
+        _asMap(data['weightEstimate']),
+      ),
     );
   }
 
@@ -3176,6 +3370,49 @@ class Issue {
   final DateTime? dueDate;
   final String statusId;
   final double rank;
+  final IssueWeightEstimate? weightEstimate;
+}
+
+class IssueWeightEstimate {
+  const IssueWeightEstimate({
+    required this.status,
+    this.value,
+    this.confidence = 0,
+    this.reason = '',
+    this.model = '',
+    this.promptVersion = '',
+    this.inputHash = '',
+    this.estimatedAt,
+    this.error,
+  });
+
+  static IssueWeightEstimate? fromMap(Map<String, dynamic> data) {
+    if (data.isEmpty) {
+      return null;
+    }
+    final value = _asInt(data['value']);
+    return IssueWeightEstimate(
+      status: _asString(data['status'], value > 0 ? 'done' : 'unknown'),
+      value: value > 0 ? value : null,
+      confidence: _asDouble(data['confidence']),
+      reason: _asString(data['reason']),
+      model: _asString(data['model']),
+      promptVersion: _asString(data['promptVersion']),
+      inputHash: _asString(data['inputHash']),
+      estimatedAt: _asDate(data['estimatedAt']),
+      error: _asString(data['error']).isEmpty ? null : _asString(data['error']),
+    );
+  }
+
+  final String status;
+  final int? value;
+  final double confidence;
+  final String reason;
+  final String model;
+  final String promptVersion;
+  final String inputHash;
+  final DateTime? estimatedAt;
+  final String? error;
 }
 
 class GitHubRepository {

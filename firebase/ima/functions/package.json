@@ -5,7 +5,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "build:watch": "tsc --watch"
+    "build:watch": "tsc --watch",
+    "test": "npm run build && rm -rf /tmp/ima-functions-test-lib && tsc -p tsconfig.test.json && NODE_PATH=$(pwd)/node_modules node --test \"/tmp/ima-functions-test-lib/**/*.test.js\""
   },
   "keywords": [],
   "author": "",

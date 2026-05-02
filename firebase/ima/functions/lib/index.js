@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.autoSyncIssueToGitHub = exports.syncGitHubIssues = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
+exports.autoSyncIssueToGitHub = exports.autoEstimateIssueWeight = exports.issueLifecycleLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
+const params_1 = require("firebase-functions/params");
 const v2_1 = require("firebase-functions/v2");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const issueWeightHelpers_1 = require("./issueWeightHelpers");
 if ((0, app_1.getApps)().length === 0) {
     (0, app_1.initializeApp)();
 }
@@ -14,6 +16,10 @@ if ((0, app_1.getApps)().length === 0) {
     maxInstances: 10,
 });
 const db = (0, firestore_1.getFirestore)();
+const anthropicApiKey = (0, params_1.defineSecret)("ANTHROPIC_API_KEY");
+const closedStatusId = "done";
+const inProgressStatusIds = new Set(["doing", "review"]);
+const issueWeightModel = "claude-opus-4-6";
 function requireNonEmptyString(value, field) {
     if (typeof value !== "string" || value.trim().length === 0) {
         throw new https_1.HttpsError("invalid-argument", `${field} is required`);
@@ -92,12 +98,82 @@ function asString(value, fallback = "") {
 function asNumber(value, fallback = 0) {
     return typeof value === "number" ? value : fallback;
 }
+function asBoolean(value, fallback = false) {
+    return typeof value === "boolean" ? value : fallback;
+}
+function asStringList(value) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.filter((item) => typeof item === "string" && item.length > 0);
+}
 function asTimestamp(value) {
     if (typeof value !== "string") {
         return null;
     }
     const date = new Date(value);
     return Number.isNaN(date.valueOf()) ? null : firestore_1.Timestamp.fromDate(date);
+}
+function timestampFromValue(value) {
+    if (value instanceof firestore_1.Timestamp) {
+        return value;
+    }
+    if (value instanceof Date) {
+        return firestore_1.Timestamp.fromDate(value);
+    }
+    return asTimestamp(value);
+}
+function roundedHours(milliseconds) {
+    if (milliseconds === null) {
+        return null;
+    }
+    return Math.round((milliseconds / 3_600_000) * 10) / 10;
+}
+function median(values) {
+    if (values.length === 0) {
+        return null;
+    }
+    const sorted = values.slice().sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    const middleValue = sorted[middle];
+    if (middleValue === undefined) {
+        return null;
+    }
+    if (sorted.length % 2 === 1) {
+        return middleValue;
+    }
+    const previousValue = sorted[middle - 1];
+    return previousValue === undefined ? middleValue : (previousValue + middleValue) / 2;
+}
+function issueWeightEstimateMap(issue) {
+    const estimate = issue.weightEstimate;
+    return typeof estimate === "object" && estimate !== null ? estimate : {};
+}
+function normalizeIssueWeightEstimate(estimate) {
+    const value = asNumber(estimate.value);
+    const confidence = asNumber(estimate.confidence);
+    const reason = asString(estimate.reason);
+    const model = asString(estimate.model);
+    const inputHash = asString(estimate.inputHash);
+    if (value < 1 ||
+        value > 8 ||
+        confidence < 0 ||
+        confidence > 1 ||
+        reason.length === 0 ||
+        model.length === 0 ||
+        inputHash.length === 0) {
+        return null;
+    }
+    return {
+        value,
+        confidence,
+        reason,
+        model,
+        promptVersion: asString(estimate.promptVersion, issueWeightHelpers_1.issueWeightPromptVersion),
+        inputHash,
+        source: "llm",
+        status: "done",
+    };
 }
 function issueLabels(issue) {
     return (issue.labels ?? [])
@@ -129,6 +205,238 @@ async function selectedRepositories(workspaceId) {
         defaultBranch: asString(repo.defaultBranch, "main"),
     }))
         .filter((repo) => repo.fullName.includes("/"));
+}
+function issueEventDocId(eventId, issueId, type) {
+    const source = eventId && eventId.length > 0 ? eventId : `${issueId}_${type}_${Date.now()}`;
+    return `${source}_${type}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
+}
+async function writeIssueEvent({ workspaceId, issueId, type, eventId, data, }) {
+    await db
+        .doc(`workspaces/${workspaceId}/issueEvents/${issueEventDocId(eventId, issueId, type)}`)
+        .set({
+        issueId,
+        type,
+        ...data,
+        createdAt: firestore_1.FieldValue.serverTimestamp(),
+    }, { merge: true });
+}
+function closedIssueStatsEvent(data) {
+    if (asString(data.type) !== "closed") {
+        return null;
+    }
+    return {
+        title: asString(data.title),
+        repo: asString(data.repo),
+        labels: asStringList(data.labels),
+        weightValue: typeof data.weightValue === "number" ? data.weightValue : null,
+        leadTimeMs: typeof data.leadTimeMs === "number" ? data.leadTimeMs : null,
+        cycleTimeMs: typeof data.cycleTimeMs === "number" ? data.cycleTimeMs : null,
+        closedAt: timestampFromValue(data.closedAt),
+    };
+}
+function bucketMedian(events, keyForEvent) {
+    const buckets = new Map();
+    for (const event of events) {
+        if (event.leadTimeMs === null) {
+            continue;
+        }
+        for (const key of keyForEvent(event)) {
+            const existing = buckets.get(key) ?? [];
+            existing.push(event.leadTimeMs);
+            buckets.set(key, existing);
+        }
+    }
+    return Object.fromEntries([...buckets.entries()]
+        .sort((left, right) => right[1].length - left[1].length)
+        .slice(0, 20)
+        .map(([key, values]) => [
+        key,
+        {
+            count: values.length,
+            medianLeadTimeHours: roundedHours(median(values)),
+        },
+    ]));
+}
+async function collectResolutionStats(workspaceId) {
+    const snapshot = await db
+        .collection(`workspaces/${workspaceId}/issueEvents`)
+        .orderBy("createdAt", "desc")
+        .limit(200)
+        .get();
+    const closedEvents = snapshot.docs
+        .map((doc) => closedIssueStatsEvent(doc.data()))
+        .filter((event) => event !== null);
+    const now = Date.now();
+    const withinDays = (days) => closedEvents.filter((event) => {
+        const closedAt = event.closedAt?.toMillis();
+        return closedAt !== undefined && now - closedAt <= days * 24 * 60 * 60 * 1000;
+    });
+    const recent30 = withinDays(30);
+    const selected = recent30.length >= 10 ? recent30 : withinDays(90);
+    const recentWindowDays = recent30.length >= 10 ? 30 : 90;
+    const leadTimes = selected
+        .map((event) => event.leadTimeMs)
+        .filter((value) => value !== null);
+    const cycleTimes = selected
+        .map((event) => event.cycleTimeMs)
+        .filter((value) => value !== null);
+    return {
+        recentWindowDays,
+        resolvedCount: selected.length,
+        medianLeadTimeHours: roundedHours(median(leadTimes)),
+        medianCycleTimeHours: roundedHours(median(cycleTimes)),
+        byWeight: bucketMedian(selected, (event) => event.weightValue === null ? [] : [String(event.weightValue)]),
+        byLabel: bucketMedian(selected, (event) => event.labels),
+        recentExamples: selected.slice(0, 30).map((event) => ({
+            title: (0, issueWeightHelpers_1.truncateText)(event.title, 120),
+            repo: event.repo,
+            labels: event.labels.slice(0, 8),
+            weight: event.weightValue,
+            leadTimeHours: roundedHours(event.leadTimeMs),
+            cycleTimeHours: roundedHours(event.cycleTimeMs),
+        })),
+    };
+}
+async function createAnthropicMessage(system, content) {
+    const apiKey = anthropicApiKey.value();
+    if (apiKey.length === 0) {
+        throw new Error("ANTHROPIC_API_KEY is not configured");
+    }
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: issueWeightModel,
+            max_tokens: 700,
+            system,
+            messages: [{ role: "user", content }],
+        }),
+    });
+    const data = (await response.json());
+    if (!response.ok) {
+        throw new Error(data.error?.message ?? `Anthropic API error: ${response.status}`);
+    }
+    return (data.content ?? [])
+        .filter((block) => block.type === "text" && typeof block.text === "string")
+        .map((block) => block.text)
+        .join("");
+}
+async function estimateIssueWeightWithLlm(workspaceId, issue) {
+    const resolutionStats = await collectResolutionStats(workspaceId);
+    const system = [
+        "You estimate issue weight for a software team's issue board.",
+        "Return only JSON with keys: value, confidence, reason.",
+        "value must be an integer from 1 to 8 where 1 is tiny and 8 is very large.",
+        "confidence must be a number from 0 to 1.",
+        "reason must be short Japanese text, within 80 characters.",
+        "Use the team's recent resolution speed statistics when available.",
+    ].join("\n");
+    const content = JSON.stringify({
+        issue: (0, issueWeightHelpers_1.issueWeightInput)(issue),
+        resolutionStats,
+    }, null, 2);
+    return (0, issueWeightHelpers_1.parseWeightEstimateResponse)(await createAnthropicMessage(system, content));
+}
+async function estimateAndSaveIssueWeight({ workspaceId, issueId, issue, force, requestedBy, }) {
+    const inputHash = (0, issueWeightHelpers_1.issueWeightInputHash)(issue);
+    const existing = issueWeightEstimateMap(issue);
+    const existingStatus = asString(existing.status);
+    const existingInputHash = asString(existing.inputHash);
+    if (!force && existingInputHash === inputHash) {
+        if (existingStatus === "done") {
+            const normalized = normalizeIssueWeightEstimate(existing);
+            if (normalized !== null) {
+                return normalized;
+            }
+        }
+        if (existingStatus === "estimating" || existingStatus === "failed") {
+            throw new Error(`Issue weight estimate is already ${existingStatus}`);
+        }
+    }
+    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    await issueRef.set({
+        weightEstimate: {
+            status: "estimating",
+            inputHash,
+            promptVersion: issueWeightHelpers_1.issueWeightPromptVersion,
+            model: issueWeightModel,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        },
+    }, { merge: true });
+    const start = Date.now();
+    try {
+        const parsed = await estimateIssueWeightWithLlm(workspaceId, issue);
+        const estimate = {
+            ...parsed,
+            model: issueWeightModel,
+            promptVersion: issueWeightHelpers_1.issueWeightPromptVersion,
+            inputHash,
+            source: "llm",
+            status: "done",
+        };
+        const durationMs = Date.now() - start;
+        await issueRef.set({
+            weightEstimate: {
+                ...estimate,
+                durationMs,
+                requestedBy: requestedBy ?? null,
+                estimatedAt: firestore_1.FieldValue.serverTimestamp(),
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            },
+        }, { merge: true });
+        await writeIssueEvent({
+            workspaceId,
+            issueId,
+            type: "weight_estimated",
+            data: {
+                title: asString(issue.title),
+                repo: asString(issue.repo),
+                labels: asStringList(issue.labels),
+                weightValue: estimate.value,
+                confidence: estimate.confidence,
+                model: estimate.model,
+                promptVersion: estimate.promptVersion,
+                inputHash,
+                durationMs,
+                requestedBy: requestedBy ?? null,
+            },
+        });
+        return estimate;
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await issueRef.set({
+            weightEstimate: {
+                status: "failed",
+                inputHash,
+                promptVersion: issueWeightHelpers_1.issueWeightPromptVersion,
+                model: issueWeightModel,
+                error: (0, issueWeightHelpers_1.truncateText)(message, 500),
+                failedAt: firestore_1.FieldValue.serverTimestamp(),
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            },
+        }, { merge: true });
+        await writeIssueEvent({
+            workspaceId,
+            issueId,
+            type: "weight_estimation_failed",
+            data: {
+                title: asString(issue.title),
+                repo: asString(issue.repo),
+                labels: asStringList(issue.labels),
+                model: issueWeightModel,
+                promptVersion: issueWeightHelpers_1.issueWeightPromptVersion,
+                inputHash,
+                error: (0, issueWeightHelpers_1.truncateText)(message, 500),
+                requestedBy: requestedBy ?? null,
+            },
+        });
+        throw error;
+    }
 }
 exports.connectGitHub = (0, https_1.onCall)(async (request) => {
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
@@ -542,6 +850,165 @@ exports.syncGitHubIssues = (0, https_1.onCall)(async (request) => {
         }
     }
     return { synced, failed };
+});
+exports.estimateIssueWeight = (0, https_1.onCall)({ timeoutSeconds: 120, secrets: [anthropicApiKey] }, async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const issueDoc = await db.doc(`workspaces/${workspaceId}/issues/${issueId}`).get();
+    const issue = issueDoc.data();
+    if (!issue) {
+        throw new https_1.HttpsError("not-found", "Issue was not found");
+    }
+    try {
+        const weightEstimate = await estimateAndSaveIssueWeight({
+            workspaceId,
+            issueId,
+            issue,
+            force: asBoolean(request.data?.force),
+            requestedBy: uid,
+        });
+        return { issueId, weightEstimate };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        v2_1.logger.error("Failed to estimate Ima issue weight", { workspaceId, issueId, uid, message });
+        throw new https_1.HttpsError("internal", "Failed to estimate issue weight");
+    }
+});
+exports.issueLifecycleLogger = (0, firestore_2.onDocumentWritten)("workspaces/{workspaceId}/issues/{issueId}", async (event) => {
+    const after = event.data?.after?.data();
+    const before = event.data?.before?.data();
+    if (!after) {
+        return;
+    }
+    const workspaceId = event.params.workspaceId;
+    const issueId = event.params.issueId;
+    const eventId = event.id;
+    const beforeStatus = before ? asString(before.statusId, "triage") : null;
+    const afterStatus = asString(after.statusId, "triage");
+    const now = firestore_1.Timestamp.now();
+    const updates = {};
+    if (!before) {
+        await writeIssueEvent({
+            workspaceId,
+            issueId,
+            type: "created",
+            eventId,
+            data: {
+                title: asString(after.title),
+                repo: asString(after.repo),
+                labels: asStringList(after.labels),
+                statusId: afterStatus,
+                githubCreatedAt: timestampFromValue(after.githubCreatedAt),
+            },
+        });
+    }
+    if (before && beforeStatus !== afterStatus) {
+        await writeIssueEvent({
+            workspaceId,
+            issueId,
+            type: "status_changed",
+            eventId,
+            data: {
+                title: asString(after.title),
+                repo: asString(after.repo),
+                labels: asStringList(after.labels),
+                fromStatusId: beforeStatus,
+                toStatusId: afterStatus,
+            },
+        });
+    }
+    if (inProgressStatusIds.has(afterStatus) && timestampFromValue(after.firstInProgressAt) === null) {
+        updates.firstInProgressAt = now;
+    }
+    if (beforeStatus !== afterStatus && afterStatus === closedStatusId) {
+        const createdAt = timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
+        const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
+        const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
+        const cycleTimeMs = firstInProgressAt === null ? null : now.toMillis() - firstInProgressAt.toMillis();
+        const weightEstimate = issueWeightEstimateMap(after);
+        const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
+        updates.closedAt = now;
+        updates.resolution = {
+            closedAt: now,
+            leadTimeMs,
+            cycleTimeMs,
+            weightValue,
+        };
+        await writeIssueEvent({
+            workspaceId,
+            issueId,
+            type: "closed",
+            eventId,
+            data: {
+                title: asString(after.title),
+                repo: asString(after.repo),
+                labels: asStringList(after.labels),
+                closedAt: now,
+                leadTimeMs,
+                cycleTimeMs,
+                weightValue,
+            },
+        });
+    }
+    if (beforeStatus === closedStatusId && afterStatus !== closedStatusId) {
+        updates.closedAt = firestore_1.FieldValue.delete();
+        updates.resolution = firestore_1.FieldValue.delete();
+        updates.reopenedAt = now;
+        await writeIssueEvent({
+            workspaceId,
+            issueId,
+            type: "reopened",
+            eventId,
+            data: {
+                title: asString(after.title),
+                repo: asString(after.repo),
+                labels: asStringList(after.labels),
+                fromStatusId: beforeStatus,
+                toStatusId: afterStatus,
+                reopenedAt: now,
+            },
+        });
+    }
+    if (Object.keys(updates).length > 0) {
+        await event.data?.after.ref.set(updates, { merge: true });
+    }
+});
+exports.autoEstimateIssueWeight = (0, firestore_2.onDocumentWritten)({
+    document: "workspaces/{workspaceId}/issues/{issueId}",
+    timeoutSeconds: 120,
+    secrets: [anthropicApiKey],
+}, async (event) => {
+    const after = event.data?.after?.data();
+    if (!after) {
+        return;
+    }
+    const before = event.data?.before?.data();
+    const afterInputHash = (0, issueWeightHelpers_1.issueWeightInputHash)(after);
+    if (before && (0, issueWeightHelpers_1.issueWeightInputHash)(before) === afterInputHash) {
+        return;
+    }
+    const existing = issueWeightEstimateMap(after);
+    const existingStatus = asString(existing.status);
+    if (asString(existing.inputHash) === afterInputHash &&
+        (existingStatus === "done" || existingStatus === "estimating" || existingStatus === "failed")) {
+        return;
+    }
+    const workspaceId = event.params.workspaceId;
+    const issueId = event.params.issueId;
+    try {
+        await estimateAndSaveIssueWeight({
+            workspaceId,
+            issueId,
+            issue: after,
+            force: false,
+        });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        v2_1.logger.error("autoEstimateIssueWeight: failed", { workspaceId, issueId, message });
+    }
 });
 exports.autoSyncIssueToGitHub = (0, firestore_2.onDocumentWritten)("workspaces/{workspaceId}/issues/{issueId}", async (event) => {
     const after = event.data?.after?.data();
