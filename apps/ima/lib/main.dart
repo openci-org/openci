@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
+
+const _functionsRegion = 'asia-northeast1';
+const _githubOAuthClientId = String.fromEnvironment('GITHUB_OAUTH_CLIENT_ID');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -276,6 +281,21 @@ class IssueBoardPage extends StatefulWidget {
 
 class _IssueBoardPageState extends State<IssueBoardPage> {
   final _boardScrollController = ScrollController();
+  late final String _workspaceId;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _issuesSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _githubConnectionSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _reposSubscription;
+  var _isBootstrapping = true;
+  var _isConnectingGitHub = false;
+  var _isLoadingRepositories = false;
+  var _isImportingIssues = false;
+  var _isSyncingIssues = false;
+  String? _githubLogin;
+  String? _loadError;
+  int _enabledRepoCount = 0;
+  Timestamp? _lastImportedAt;
+  Set<String> _enabledRepoFullNames = {};
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
@@ -398,11 +418,191 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     ),
   ];
 
-  void _moveIssue({
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  FirebaseFunctions get _functions =>
+      FirebaseFunctions.instanceFor(region: _functionsRegion);
+
+  bool get _isBusy =>
+      _isConnectingGitHub ||
+      _isLoadingRepositories ||
+      _isImportingIssues ||
+      _isSyncingIssues;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    _workspaceId = user?.uid ?? '';
+    unawaited(_bootstrapWorkspace());
+  }
+
+  Future<void> _bootstrapWorkspace() async {
+    if (_workspaceId.isEmpty) {
+      return;
+    }
+
+    try {
+      await _ensurePersonalWorkspace();
+      _listenToWorkspace();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isBootstrapping = false;
+        _loadError = _friendlyError(error);
+      });
+    }
+  }
+
+  Future<void> _ensurePersonalWorkspace() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    final batch = _firestore.batch();
+    final now = FieldValue.serverTimestamp();
+    final workspaceRef = _firestore.doc('workspaces/$_workspaceId');
+    batch.set(workspaceRef, {
+      'ownerUid': user.uid,
+      'name': user.email ?? 'Personal workspace',
+      'updatedAt': now,
+      'createdAt': now,
+    }, SetOptions(merge: true));
+    batch.set(workspaceRef.collection('members').doc(user.uid), {
+      'role': 'owner',
+      'updatedAt': now,
+      'createdAt': now,
+    }, SetOptions(merge: true));
+
+    for (final column in _columns) {
+      batch.set(
+        workspaceRef.collection('statuses').doc(column.id),
+        {
+          'title': column.title,
+          'description': column.description,
+          'updatedAt': now,
+          'createdAt': now,
+        },
+        SetOptions(merge: true),
+      );
+    }
+
+    await batch.commit();
+  }
+
+  void _listenToWorkspace() {
+    final workspaceRef = _firestore.doc('workspaces/$_workspaceId');
+    _issuesSubscription = workspaceRef
+        .collection('issues')
+        .orderBy('rank')
+        .snapshots()
+        .listen(_replaceIssuesFromSnapshot, onError: _handleStreamError);
+    _githubConnectionSubscription = workspaceRef
+        .collection('githubConnections')
+        .doc('default')
+        .snapshots()
+        .listen(_replaceGitHubConnection, onError: _handleStreamError);
+    _reposSubscription = workspaceRef
+        .collection('githubRepos')
+        .snapshots()
+        .listen(_replaceRepositories, onError: _handleStreamError);
+  }
+
+  void _replaceIssuesFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final nextColumns = [
+      for (final column in _columns)
+        BoardColumn(
+          id: column.id,
+          title: column.title,
+          description: column.description,
+          color: column.color,
+          issues: [],
+        ),
+    ];
+
+    for (final doc in snapshot.docs) {
+      final issue = Issue.fromDocument(doc);
+      final column = nextColumns.firstWhere(
+        (column) => column.id == issue.statusId,
+        orElse: () => nextColumns.first,
+      );
+      column.issues.add(issue);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _columns
+        ..clear()
+        ..addAll(nextColumns);
+      _isBootstrapping = false;
+      _loadError = null;
+    });
+  }
+
+  void _replaceGitHubConnection(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _githubLogin = data?['connected'] == true
+          ? _asString(data?['login'])
+          : null;
+    });
+  }
+
+  void _replaceRepositories(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final enabledDocs = snapshot.docs
+        .where((doc) => doc.data()['enabled'] == true)
+        .toList();
+    final lastImportedAt = enabledDocs
+        .map((doc) => doc.data()['lastImportedAt'])
+        .whereType<Timestamp>()
+        .fold<Timestamp?>(null, (latest, current) {
+          if (latest == null || current.compareTo(latest) > 0) {
+            return current;
+          }
+          return latest;
+        });
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _enabledRepoCount = enabledDocs.length;
+      _enabledRepoFullNames = {
+        for (final doc in enabledDocs) _asString(doc.data()['fullName']),
+      }..remove('');
+      _lastImportedAt = lastImportedAt;
+    });
+  }
+
+  void _handleStreamError(Object error) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isBootstrapping = false;
+      _loadError = _friendlyError(error);
+    });
+  }
+
+  Future<void> _moveIssue({
     required String issueId,
     required String targetColumnId,
     required int targetIndex,
-  }) {
+  }) async {
     final sourceColumn = _columns.firstWhere(
       (column) => column.issues.any((issue) => issue.id == issueId),
     );
@@ -417,19 +617,30 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    setState(() {
-      final issue = sourceColumn.issues.removeAt(sourceIndex);
-      var insertIndex = targetIndex;
+    final movingIssue = sourceColumn.issues[sourceIndex];
+    final targetIssues = [
+      for (final issue in targetColumn.issues)
+        if (issue.id != issueId) issue,
+    ];
+    final normalizedTargetIndex =
+        sourceColumn.id == targetColumnId && sourceIndex < targetIndex
+        ? targetIndex - 1
+        : targetIndex;
+    final insertIndex = normalizedTargetIndex.clamp(0, targetIssues.length);
+    final previousRank = insertIndex == 0
+        ? null
+        : targetIssues[insertIndex - 1].rank;
+    final nextRank = insertIndex >= targetIssues.length
+        ? null
+        : targetIssues[insertIndex].rank;
 
-      if (sourceColumn.id == targetColumnId && sourceIndex < targetIndex) {
-        insertIndex -= 1;
-      }
-
-      targetColumn.issues.insert(
-        insertIndex.clamp(0, targetColumn.issues.length),
-        issue,
-      );
-    });
+    await _firestore
+        .doc('workspaces/$_workspaceId/issues/${movingIssue.id}')
+        .update({
+          'statusId': targetColumnId,
+          'rank': _rankBetween(previousRank, nextRank),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
   Future<void> _openAddIssueDialog() async {
@@ -442,8 +653,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    _addIssue(draft);
-    _showSavedSnackBar();
+    try {
+      await _addIssue(draft);
+      _showSavedSnackBar('Saved');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    }
   }
 
   Future<void> _openEditIssueDialog(String issueId) async {
@@ -467,78 +682,65 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    _updateIssue(issueId: issueId, draft: draft);
-    _showSavedSnackBar();
+    try {
+      await _updateIssue(issueId: issueId, draft: draft);
+      _showSavedSnackBar('Saved');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    }
   }
 
-  void _addIssue(NewIssueDraft draft) {
+  Future<void> _addIssue(NewIssueDraft draft) async {
     final targetColumn = _columns.firstWhere(
       (column) => column.id == draft.columnId,
     );
+    final rank = targetColumn.issues.isEmpty
+        ? DateTime.now().millisecondsSinceEpoch.toDouble()
+        : targetColumn.issues.first.rank - 1000;
+    final data = _issueDraftToFirestore(draft, rank: rank);
 
-    setState(() {
-      targetColumn.issues.insert(
-        0,
-        Issue(
-          id: _nextIssueId(),
-          repo: draft.repo,
-          title: draft.title,
-          body: draft.body,
-          assignee: draft.assignee,
-          labels: draft.labels,
-          comments: 0,
-          priority: draft.priority,
-          dueDate: draft.dueDate,
-        ),
-      );
-    });
+    await _firestore.collection('workspaces/$_workspaceId/issues').add(data);
   }
 
-  void _updateIssue({required String issueId, required NewIssueDraft draft}) {
-    final sourceColumn = _columns.firstWhere(
-      (column) => column.issues.any((issue) => issue.id == issueId),
-    );
-    final sourceIndex = sourceColumn.issues.indexWhere(
-      (issue) => issue.id == issueId,
-    );
-    final targetColumn = _columns.firstWhere(
-      (column) => column.id == draft.columnId,
-    );
+  Future<void> _updateIssue({
+    required String issueId,
+    required NewIssueDraft draft,
+  }) async {
+    final issue = _columns
+        .expand((column) => column.issues)
+        .firstWhere((issue) => issue.id == issueId);
+    final data = _issueDraftToFirestore(draft, rank: issue.rank)
+      ..remove('createdAt')
+      ..remove('comments');
 
-    setState(() {
-      final currentIssue = sourceColumn.issues[sourceIndex];
-      final updatedIssue = Issue(
-        id: currentIssue.id,
-        repo: draft.repo,
-        title: draft.title,
-        body: draft.body,
-        assignee: draft.assignee,
-        labels: draft.labels,
-        comments: currentIssue.comments,
-        priority: draft.priority,
-        dueDate: draft.dueDate,
-      );
-
-      if (sourceColumn.id == targetColumn.id) {
-        sourceColumn.issues[sourceIndex] = updatedIssue;
-        return;
-      }
-
-      sourceColumn.issues.removeAt(sourceIndex);
-      targetColumn.issues.insert(0, updatedIssue);
-    });
+    await _firestore
+        .doc('workspaces/$_workspaceId/issues/$issueId')
+        .update(data);
   }
 
-  String _nextIssueId() {
-    final totalIssues = _columns.fold<int>(
-      0,
-      (count, column) => count + column.issues.length,
-    );
-
-    return 'IMA-${100 + totalIssues + 1}';
+  Map<String, Object?> _issueDraftToFirestore(
+    NewIssueDraft draft, {
+    required double rank,
+  }) {
+    return {
+      'title': draft.title,
+      'body': draft.body,
+      'repo': draft.repo,
+      'assignee': draft.assignee,
+      'labels': draft.labels,
+      'comments': 0,
+      'priority': draft.priority.name,
+      'statusId': draft.columnId,
+      'rank': rank,
+      'dueDate': draft.dueDate == null
+          ? FieldValue.delete()
+          : Timestamp.fromDate(draft.dueDate!),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
   }
 
-  void _showSavedSnackBar() {
+  void _showSavedSnackBar(String message) {
     if (!mounted) {
       return;
     }
@@ -551,15 +753,215 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       ..showSnackBar(
         SnackBar(
           width: snackBarWidth,
-          content: const Text('Saved'),
+          content: Text(message),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(milliseconds: 1400),
         ),
       );
   }
 
+  Future<void> _connectGitHub() async {
+    if (_isConnectingGitHub) {
+      return;
+    }
+
+    setState(() => _isConnectingGitHub = true);
+    try {
+      if (_githubOAuthClientId.isEmpty) {
+        final token = await _openAccessTokenDialog();
+        if (token == null || token.isEmpty) {
+          return;
+        }
+        final data = await _callFunction('connectGitHub', {
+          'workspaceId': _workspaceId,
+          'accessToken': token,
+        });
+        _showSavedSnackBar('GitHub connected as ${_asString(data['login'])}');
+        return;
+      }
+
+      final flowData = await _callFunction('startGitHubDeviceFlow', {
+        'workspaceId': _workspaceId,
+        'clientId': _githubOAuthClientId,
+      });
+      final flow = GitHubDeviceFlow.fromMap(flowData);
+      if (!mounted) {
+        return;
+      }
+
+      final completed = await showDialog<bool>(
+        context: context,
+        builder: (context) => GitHubDeviceFlowDialog(flow: flow),
+      );
+      if (completed != true) {
+        return;
+      }
+
+      final data = await _callFunction('completeGitHubDeviceFlow', {
+        'workspaceId': _workspaceId,
+        'clientId': _githubOAuthClientId,
+        'deviceCode': flow.deviceCode,
+      });
+      _showSavedSnackBar('GitHub connected as ${_asString(data['login'])}');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isConnectingGitHub = false);
+      }
+    }
+  }
+
+  Future<String?> _openAccessTokenDialog() async {
+    final controller = TextEditingController();
+    try {
+      return showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('GitHub access token'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Personal access token',
+              helperText:
+                  '--dart-define=GITHUB_OAUTH_CLIENT_ID=... がないため、tokenで接続します。',
+            ),
+            onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Connect'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  Future<void> _selectRepositories() async {
+    if (_isLoadingRepositories) {
+      return;
+    }
+
+    setState(() => _isLoadingRepositories = true);
+    try {
+      final data = await _callFunction('listGitHubRepositories', {
+        'workspaceId': _workspaceId,
+      });
+      final repositories = _asList(data['repositories'])
+          .map((repo) => GitHubRepository.fromMap(_asMap(repo)))
+          .where((repo) => repo.fullName.isNotEmpty)
+          .toList();
+
+      if (!mounted) {
+        return;
+      }
+
+      final selected = await showDialog<Set<String>>(
+        context: context,
+        builder: (context) => RepositoryPickerDialog(
+          repositories: repositories,
+          initiallySelected: _enabledRepoFullNames,
+        ),
+      );
+      if (selected == null) {
+        return;
+      }
+
+      final batch = _firestore.batch();
+      final reposRef = _firestore.collection(
+        'workspaces/$_workspaceId/githubRepos',
+      );
+      for (final repo in repositories) {
+        batch.set(reposRef.doc(_repoDocId(repo.fullName)), {
+          ...repo.toFirestore(),
+          'enabled': selected.contains(repo.fullName),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+      await batch.commit();
+      _showSavedSnackBar('${selected.length} repos selected');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingRepositories = false);
+      }
+    }
+  }
+
+  Future<void> _importGitHubIssues() async {
+    if (_isImportingIssues) {
+      return;
+    }
+
+    if (_enabledRepoCount == 0) {
+      _showSavedSnackBar('先に同期するrepoを選択してください');
+      return;
+    }
+
+    setState(() => _isImportingIssues = true);
+    try {
+      final data = await _callFunction('importGitHubIssues', {
+        'workspaceId': _workspaceId,
+      });
+      _showSavedSnackBar(
+        '${_asInt(data['imported'])} issues imported from ${_asInt(data['repositories'])} repos',
+      );
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingIssues = false);
+      }
+    }
+  }
+
+  Future<void> _syncGitHubIssues() async {
+    if (_isSyncingIssues) {
+      return;
+    }
+
+    setState(() => _isSyncingIssues = true);
+    try {
+      final data = await _callFunction('syncGitHubIssues', {
+        'workspaceId': _workspaceId,
+      });
+      _showSavedSnackBar(
+        '${_asInt(data['synced'])} synced, ${_asInt(data['failed'])} failed',
+      );
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncingIssues = false);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _callFunction(
+    String name,
+    Map<String, Object?> data,
+  ) async {
+    final result = await _functions.httpsCallable(name).call(data);
+    return _asMap(result.data);
+  }
+
   @override
   void dispose() {
+    unawaited(_issuesSubscription?.cancel());
+    unawaited(_githubConnectionSubscription?.cancel());
+    unawaited(_reposSubscription?.cancel());
     _boardScrollController.dispose();
     super.dispose();
   }
@@ -568,7 +970,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   Widget build(BuildContext context) {
     final totalIssues = _columns.fold<int>(
       0,
-      (count, column) => count + column.issues.length,
+      (total, column) => total + column.issues.length,
     );
 
     return CallbackShortcuts(
@@ -588,7 +990,29 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   userEmail: FirebaseAuth.instance.currentUser?.email,
                   onSignOut: FirebaseAuth.instance.signOut,
                 ),
-                BoardToolbar(onAddIssue: _openAddIssueDialog),
+                if (_isBootstrapping) const LinearProgressIndicator(),
+                BoardToolbar(
+                  onAddIssue: _openAddIssueDialog,
+                  onConnectGitHub: _connectGitHub,
+                  onSelectRepositories: _selectRepositories,
+                  onImportIssues: _importGitHubIssues,
+                  onSyncIssues: _syncGitHubIssues,
+                  githubLogin: _githubLogin,
+                  repoCount: _enabledRepoCount,
+                  lastImportedAt: _lastImportedAt?.toDate(),
+                  isBusy: _isBusy,
+                ),
+                if (_loadError != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Text(
+                      _loadError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -733,12 +1157,33 @@ class IssueCountBadge extends StatelessWidget {
 }
 
 class BoardToolbar extends StatelessWidget {
-  const BoardToolbar({super.key, required this.onAddIssue});
+  const BoardToolbar({
+    super.key,
+    required this.onAddIssue,
+    required this.onConnectGitHub,
+    required this.onSelectRepositories,
+    required this.onImportIssues,
+    required this.onSyncIssues,
+    required this.githubLogin,
+    required this.repoCount,
+    required this.lastImportedAt,
+    required this.isBusy,
+  });
 
   final VoidCallback onAddIssue;
+  final VoidCallback onConnectGitHub;
+  final VoidCallback onSelectRepositories;
+  final VoidCallback onImportIssues;
+  final VoidCallback onSyncIssues;
+  final String? githubLogin;
+  final int repoCount;
+  final DateTime? lastImportedAt;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
+    final isConnected = githubLogin != null && githubLogin!.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: Wrap(
@@ -747,11 +1192,37 @@ class BoardToolbar extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           AddIssueButton(onPressed: onAddIssue),
-          const ToolbarChip(
-            icon: Icons.account_tree_outlined,
-            label: '10 repos',
+          FilledButton.icon(
+            onPressed: isBusy ? null : onConnectGitHub,
+            icon: Icon(
+              isConnected
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.link_rounded,
+              size: 18,
+            ),
+            label: Text(isConnected ? '@$githubLogin' : 'Connect GitHub'),
           ),
-          const ToolbarChip(icon: Icons.sync_outlined, label: 'Synced 2m ago'),
+          OutlinedButton.icon(
+            onPressed: isBusy || !isConnected ? null : onSelectRepositories,
+            icon: const Icon(Icons.account_tree_outlined, size: 18),
+            label: Text('$repoCount repos'),
+          ),
+          OutlinedButton.icon(
+            onPressed: isBusy || !isConnected ? null : onImportIssues,
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text('Import issues'),
+          ),
+          OutlinedButton.icon(
+            onPressed: isBusy || !isConnected ? null : onSyncIssues,
+            icon: const Icon(Icons.sync_outlined, size: 18),
+            label: const Text('Sync pending'),
+          ),
+          ToolbarChip(
+            icon: Icons.history_rounded,
+            label: lastImportedAt == null
+                ? 'Not imported'
+                : 'Imported ${_formatDate(lastImportedAt!)}',
+          ),
           const ToolbarChip(
             icon: Icons.filter_alt_outlined,
             label: 'All priorities',
@@ -814,6 +1285,137 @@ class ToolbarChip extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class GitHubDeviceFlowDialog extends StatelessWidget {
+  const GitHubDeviceFlowDialog({super.key, required this.flow});
+
+  final GitHubDeviceFlow flow;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('GitHub device login'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('GitHubで下のコードを入力して、認証が終わったら続行してください。'),
+            const SizedBox(height: 16),
+            SelectableText(
+              flow.userCode,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(flow.verificationUri),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      Clipboard.setData(ClipboardData(text: flow.userCode)),
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('Copy code'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => Clipboard.setData(
+                    ClipboardData(text: flow.verificationUri),
+                  ),
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('Copy URL'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('認証したので続行'),
+        ),
+      ],
+    );
+  }
+}
+
+class RepositoryPickerDialog extends StatefulWidget {
+  const RepositoryPickerDialog({
+    super.key,
+    required this.repositories,
+    required this.initiallySelected,
+  });
+
+  final List<GitHubRepository> repositories;
+  final Set<String> initiallySelected;
+
+  @override
+  State<RepositoryPickerDialog> createState() => _RepositoryPickerDialogState();
+}
+
+class _RepositoryPickerDialogState extends State<RepositoryPickerDialog> {
+  late final Set<String> _selected = {...widget.initiallySelected};
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Select GitHub repositories'),
+      content: SizedBox(
+        width: 520,
+        height: 480,
+        child: widget.repositories.isEmpty
+            ? const Center(child: Text('Repositoryが見つかりませんでした。'))
+            : ListView.builder(
+                itemCount: widget.repositories.length,
+                itemBuilder: (context, index) {
+                  final repo = widget.repositories[index];
+                  final selected = _selected.contains(repo.fullName);
+
+                  return CheckboxListTile(
+                    value: selected,
+                    title: Text(repo.fullName),
+                    subtitle: Text(
+                      '${repo.private ? 'private' : 'public'} / ${repo.defaultBranch}',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == true) {
+                          _selected.add(repo.fullName);
+                        } else {
+                          _selected.remove(repo.fullName);
+                        }
+                      });
+                    },
+                  );
+                },
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => setState(_selected.clear),
+          child: const Text('Clear'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_selected),
+          child: Text('Save ${_selected.length} repos'),
+        ),
+      ],
     );
   }
 }
@@ -1920,7 +2522,7 @@ class IssueCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                issue.id,
+                issue.displayId,
                 style: const TextStyle(
                   color: Color(0xFF64748B),
                   fontWeight: FontWeight.w700,
@@ -2142,6 +2744,7 @@ class BoardColumn {
 class Issue {
   const Issue({
     required this.id,
+    String? displayId,
     required this.repo,
     required this.title,
     this.body = '',
@@ -2150,9 +2753,34 @@ class Issue {
     required this.comments,
     required this.priority,
     this.dueDate,
-  });
+    this.statusId = 'triage',
+    this.rank = 0,
+  }) : displayId = displayId ?? id;
+
+  factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? {};
+    final githubIssue = _asMap(data['githubIssue']);
+    final number = _asInt(githubIssue['number']);
+    final repo = _asString(data['repo']);
+
+    return Issue(
+      id: doc.id,
+      displayId: number > 0 ? '#$number' : doc.id,
+      repo: repo,
+      title: _asString(data['title'], '#$number'),
+      body: _asString(data['body']),
+      assignee: _asString(data['assignee'], '-'),
+      labels: _asStringList(data['labels']),
+      comments: _asInt(data['comments']),
+      priority: _priorityFromString(_asString(data['priority'], 'medium')),
+      dueDate: _asDate(data['dueDate']),
+      statusId: _asString(data['statusId'], 'triage'),
+      rank: _asDouble(data['rank']),
+    );
+  }
 
   final String id;
+  final String displayId;
   final String repo;
   final String title;
   final String body;
@@ -2161,6 +2789,166 @@ class Issue {
   final int comments;
   final Priority priority;
   final DateTime? dueDate;
+  final String statusId;
+  final double rank;
+}
+
+class GitHubRepository {
+  const GitHubRepository({
+    required this.fullName,
+    required this.name,
+    required this.owner,
+    required this.private,
+    required this.defaultBranch,
+  });
+
+  factory GitHubRepository.fromMap(Map<String, dynamic> data) {
+    final fullName = _asString(data['fullName']);
+    final parts = fullName.split('/');
+
+    return GitHubRepository(
+      fullName: fullName,
+      name: _asString(data['name'], parts.length > 1 ? parts[1] : fullName),
+      owner: _asString(data['owner'], parts.isEmpty ? '' : parts.first),
+      private: data['private'] == true,
+      defaultBranch: _asString(data['defaultBranch'], 'main'),
+    );
+  }
+
+  final String fullName;
+  final String name;
+  final String owner;
+  final bool private;
+  final String defaultBranch;
+
+  Map<String, Object?> toFirestore() {
+    return {
+      'fullName': fullName,
+      'name': name,
+      'owner': owner,
+      'private': private,
+      'defaultBranch': defaultBranch,
+    };
+  }
+}
+
+class GitHubDeviceFlow {
+  const GitHubDeviceFlow({
+    required this.deviceCode,
+    required this.userCode,
+    required this.verificationUri,
+    required this.expiresIn,
+    required this.interval,
+  });
+
+  factory GitHubDeviceFlow.fromMap(Map<String, dynamic> data) {
+    return GitHubDeviceFlow(
+      deviceCode: _asString(data['deviceCode']),
+      userCode: _asString(data['userCode']),
+      verificationUri: _asString(data['verificationUri']),
+      expiresIn: _asInt(data['expiresIn'], 900),
+      interval: _asInt(data['interval'], 5),
+    );
+  }
+
+  final String deviceCode;
+  final String userCode;
+  final String verificationUri;
+  final int expiresIn;
+  final int interval;
+}
+
+Map<String, dynamic> _asMap(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.map((key, value) => MapEntry(key.toString(), value));
+  }
+  return {};
+}
+
+List<Object?> _asList(Object? value) {
+  return value is List ? value : const [];
+}
+
+String _asString(Object? value, [String fallback = '']) {
+  return value is String && value.isNotEmpty ? value : fallback;
+}
+
+int _asInt(Object? value, [int fallback = 0]) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return fallback;
+}
+
+double _asDouble(Object? value, [double fallback = 0]) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  return fallback;
+}
+
+List<String> _asStringList(Object? value) {
+  if (value is! List) {
+    return const [];
+  }
+
+  return value
+      .whereType<String>()
+      .where((label) => label.trim().isNotEmpty)
+      .toList();
+}
+
+DateTime? _asDate(Object? value) {
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+  if (value is DateTime) {
+    return value;
+  }
+  return null;
+}
+
+Priority _priorityFromString(String value) {
+  return Priority.values.firstWhere(
+    (priority) => priority.name == value,
+    orElse: () => Priority.medium,
+  );
+}
+
+double _rankBetween(double? previousRank, double? nextRank) {
+  if (previousRank != null && nextRank != null) {
+    return (previousRank + nextRank) / 2;
+  }
+  if (previousRank != null) {
+    return previousRank + 1000;
+  }
+  if (nextRank != null) {
+    return nextRank - 1000;
+  }
+  return DateTime.now().millisecondsSinceEpoch.toDouble();
+}
+
+String _repoDocId(String fullName) {
+  return fullName.replaceAll('/', '__');
+}
+
+String _friendlyError(Object error) {
+  if (error is FirebaseFunctionsException) {
+    return error.message ?? error.code;
+  }
+  if (error is FirebaseException) {
+    return error.message ?? error.code;
+  }
+  if (error is Error) {
+    return error.toString();
+  }
+  return '$error';
 }
 
 DateTime _dateOnly(DateTime date) {
