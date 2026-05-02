@@ -388,6 +388,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   var _isLoadingRepositories = false;
   var _isImportingIssues = false;
   var _isSyncingIssues = false;
+  var _isBackfillingIssueKeys = false;
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
@@ -526,7 +527,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       _isConnectingGitHub ||
       _isLoadingRepositories ||
       _isImportingIssues ||
-      _isSyncingIssues;
+      _isSyncingIssues ||
+      _isBackfillingIssueKeys;
 
   List<String> get _enabledRepositoryOptions =>
       (_enabledRepoFullNames.toList()..sort());
@@ -929,9 +931,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'priority': draft.priority.name,
       'statusId': draft.columnId,
       'rank': rank,
-      'githubIssue.url': draft.githubUrl == null
-          ? FieldValue.delete()
-          : draft.githubUrl,
+      'githubIssue.url': draft.githubUrl ?? FieldValue.delete(),
       'dueDate': draft.dueDate == null
           ? FieldValue.delete()
           : Timestamp.fromDate(draft.dueDate!),
@@ -1149,6 +1149,26 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
   }
 
+  Future<void> _backfillIssueKeys() async {
+    if (_isBackfillingIssueKeys) {
+      return;
+    }
+
+    setState(() => _isBackfillingIssueKeys = true);
+    try {
+      final data = await _callFunction('backfillIssueKeys', {
+        'workspaceId': _workspaceId,
+      });
+      _showSavedSnackBar('${_asInt(data['updated'])} issue IDs backfilled');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isBackfillingIssueKeys = false);
+      }
+    }
+  }
+
   Future<Map<String, dynamic>> _callFunction(
     String name,
     Map<String, Object?> data,
@@ -1198,6 +1218,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   onSelectRepositories: _selectRepositories,
                   onImportIssues: _importGitHubIssues,
                   onSyncIssues: _syncGitHubIssues,
+                  onBackfillIssueKeys: _backfillIssueKeys,
                   githubLogin: _githubLogin,
                   repoCount: _enabledRepoCount,
                   lastImportedAt: _lastImportedAt?.toDate(),
@@ -1378,6 +1399,7 @@ class BoardToolbar extends StatelessWidget {
     required this.onSelectRepositories,
     required this.onImportIssues,
     required this.onSyncIssues,
+    required this.onBackfillIssueKeys,
     required this.githubLogin,
     required this.repoCount,
     required this.lastImportedAt,
@@ -1389,6 +1411,7 @@ class BoardToolbar extends StatelessWidget {
   final VoidCallback onSelectRepositories;
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
+  final VoidCallback onBackfillIssueKeys;
   final String? githubLogin;
   final int repoCount;
   final DateTime? lastImportedAt;
@@ -1430,6 +1453,11 @@ class BoardToolbar extends StatelessWidget {
             onPressed: isBusy || !isConnected ? null : onSyncIssues,
             icon: const Icon(Icons.sync_outlined, size: 16),
             label: const Text('Sync pending'),
+          ),
+          OutlinedButton.icon(
+            onPressed: isBusy ? null : onBackfillIssueKeys,
+            icon: const Icon(Icons.tag_rounded, size: 16),
+            label: const Text('Backfill IDs'),
           ),
           ToolbarChip(
             icon: Icons.history_rounded,
@@ -1833,7 +1861,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                               ? 'Edit GitHub issue'
                               : 'New GitHub issue',
                           description: isEditing
-                              ? '${widget.initialIssue!.id}を編集します。⌘Enterで保存できます。'
+                              ? '${widget.initialIssue!.displayId}を編集します。⌘Enterで保存できます。'
                               : '同期前提のmock ticketをボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。',
                         ),
                         const SizedBox(height: 20),
@@ -3107,13 +3135,22 @@ class IssueCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Flexible(
-                child: Text(
-                  issue.displayId,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        issue.displayId,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    IssueIdCopyButton(issueId: issue.displayId),
+                  ],
                 ),
               ),
               if (issue.dueDate != null) ...[
@@ -3121,6 +3158,10 @@ class IssueCard extends StatelessWidget {
                 DueDatePill(dueDate: issue.dueDate!),
               ],
               const Spacer(),
+              if (issue.pullRequests.isNotEmpty) ...[
+                PullRequestBadge(pullRequests: issue.pullRequests),
+                const SizedBox(width: 8),
+              ],
               const Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 15,
@@ -3135,6 +3176,71 @@ class IssueCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class IssueIdCopyButton extends StatelessWidget {
+  const IssueIdCopyButton({super.key, required this.issueId});
+
+  final String issueId;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 22,
+      child: IconButton(
+        tooltip: 'Copy issue ID',
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        onPressed: () => unawaited(
+          _copyTextToClipboard(
+            context,
+            text: issueId,
+            successMessage: 'Issue ID copied',
+          ),
+        ),
+        icon: const Icon(
+          Icons.copy_rounded,
+          size: 13,
+          color: Color(0xFF94A3B8),
+        ),
+      ),
+    );
+  }
+}
+
+class PullRequestBadge extends StatelessWidget {
+  const PullRequestBadge({super.key, required this.pullRequests});
+
+  final List<IssuePullRequest> pullRequests;
+
+  @override
+  Widget build(BuildContext context) {
+    final latest = pullRequests.last;
+    final label = pullRequests.length == 1
+        ? 'PR #${latest.number}'
+        : '${pullRequests.length} PRs';
+    return Tooltip(
+      message: latest.url ?? 'Linked pull request',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.alt_route_rounded,
+            size: 15,
+            color: Color(0xFF0EA5E9),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF0369A1),
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -3523,6 +3629,7 @@ class Issue {
   const Issue({
     required this.id,
     String? displayId,
+    this.issueKey,
     required this.repo,
     required this.title,
     this.body = '',
@@ -3535,17 +3642,24 @@ class Issue {
     this.statusId = 'triage',
     this.rank = 0,
     this.weightEstimate,
-  }) : displayId = displayId ?? id;
+    this.pullRequests = const [],
+  }) : displayId = displayId ?? issueKey ?? id;
 
   factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     final githubIssue = _asMap(data['githubIssue']);
     final number = _asInt(githubIssue['number']);
     final repo = _asString(data['repo']);
+    final issueKey = _asString(data['issueKey']);
 
     return Issue(
       id: doc.id,
-      displayId: number > 0 ? '#$number' : doc.id,
+      issueKey: issueKey.isEmpty ? null : issueKey,
+      displayId: issueKey.isNotEmpty
+          ? issueKey
+          : number > 0
+          ? '#$number'
+          : doc.id,
       repo: repo,
       title: _asString(data['title'], '#$number'),
       body: _asString(data['body']),
@@ -3560,11 +3674,16 @@ class Issue {
       weightEstimate: IssueWeightEstimate.fromMap(
         _asMap(data['weightEstimate']),
       ),
+      pullRequests: _asList(data['pullRequests'])
+          .map((value) => IssuePullRequest.fromMap(_asMap(value)))
+          .where((pullRequest) => pullRequest.number > 0)
+          .toList(),
     );
   }
 
   final String id;
   final String displayId;
+  final String? issueKey;
   final String repo;
   final String title;
   final String body;
@@ -3577,6 +3696,36 @@ class Issue {
   final String statusId;
   final double rank;
   final IssueWeightEstimate? weightEstimate;
+  final List<IssuePullRequest> pullRequests;
+}
+
+class IssuePullRequest {
+  const IssuePullRequest({
+    required this.number,
+    required this.title,
+    this.url,
+    required this.state,
+    required this.merged,
+    required this.branch,
+  });
+
+  factory IssuePullRequest.fromMap(Map<String, dynamic> data) {
+    return IssuePullRequest(
+      number: _asInt(data['number']),
+      title: _asString(data['title'], 'Pull request'),
+      url: _normalizedOptionalUrl(_asString(data['url'])),
+      state: _asString(data['state'], 'open'),
+      merged: data['merged'] == true,
+      branch: _asString(data['branch']),
+    );
+  }
+
+  final int number;
+  final String title;
+  final String? url;
+  final String state;
+  final bool merged;
+  final String branch;
 }
 
 class IssueWeightEstimate {
