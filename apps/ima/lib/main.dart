@@ -18,6 +18,8 @@ const _boardHorizontalPadding = 16.0;
 const _boardBottomPadding = 18.0;
 const _boardColumnWidth = 280.0;
 const _boardColumnGap = 12.0;
+const _compactBoardBreakpoint = 640.0;
+const _compactColumnCollapsedLimit = 4;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +44,7 @@ class IssueBoardApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'IssuePilot',
+      title: 'イマ',
       locale: const Locale('ja', 'JP'),
       supportedLocales: const [Locale('ja', 'JP')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -402,119 +404,35 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       title: 'Triage',
       description: '新着と要件確認',
       color: const Color(0xFF6366F1),
-      issues: [
-        Issue(
-          id: 'OPN-142',
-          repo: 'openci/dashboard',
-          title: 'GitHub Appのインストール状態を一目で見たい',
-          assignee: 'MF',
-          labels: ['feature', 'github'],
-          comments: 8,
-          priority: Priority.high,
-          dueDate: DateTime.now().add(const Duration(days: 2)),
-        ),
-        Issue(
-          id: 'IMA-16',
-          repo: 'openci/ima',
-          title: 'iOSでも片手で列を切り替えやすくする',
-          assignee: 'AK',
-          labels: ['mobile'],
-          comments: 3,
-          priority: Priority.medium,
-          dueDate: DateTime.now().add(const Duration(days: 7)),
-        ),
-      ],
+      issues: [],
     ),
     BoardColumn(
       id: 'backlog',
       title: 'Backlog',
       description: '着手待ち',
       color: const Color(0xFF0EA5E9),
-      issues: [
-        Issue(
-          id: 'CLI-88',
-          repo: 'openci/worker_cli_node',
-          title: 'act実行ログから失敗ステップだけを抽出する',
-          assignee: 'YS',
-          labels: ['worker', 'logs'],
-          comments: 12,
-          priority: Priority.high,
-          dueDate: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-        Issue(
-          id: 'OPS-54',
-          repo: 'openci/firebase',
-          title: '複数repo横断でmilestoneを同期する',
-          assignee: 'MF',
-          labels: ['sync', 'api'],
-          comments: 5,
-          priority: Priority.medium,
-          dueDate: DateTime.now().add(const Duration(days: 12)),
-        ),
-      ],
+      issues: [],
     ),
     BoardColumn(
       id: 'doing',
       title: 'In Progress',
       description: '今やっていること',
       color: const Color(0xFFF59E0B),
-      issues: [
-        Issue(
-          id: 'IMA-21',
-          repo: 'openci/ima',
-          title: 'Kanbanカードのドラッグ&ドロップを検証する',
-          assignee: 'MF',
-          labels: ['prototype', 'flutter'],
-          comments: 2,
-          priority: Priority.high,
-          dueDate: DateTime.now(),
-        ),
-        Issue(
-          id: 'DASH-33',
-          repo: 'openci/dashboard',
-          title: 'ProjectV2 itemのフィールド差分をキャッシュする',
-          assignee: 'RN',
-          labels: ['perf'],
-          comments: 6,
-          priority: Priority.low,
-          dueDate: DateTime.now().add(const Duration(days: 4)),
-        ),
-      ],
+      issues: [],
     ),
     BoardColumn(
       id: 'review',
       title: 'Review',
       description: 'レビューと検証',
       color: const Color(0xFFA855F7),
-      issues: [
-        Issue(
-          id: 'WEB-19',
-          repo: 'openci/landing_page',
-          title: 'pricingページに個人開発者向けプランを追加する',
-          assignee: 'MM',
-          labels: ['copy'],
-          comments: 4,
-          priority: Priority.medium,
-          dueDate: DateTime.now().add(const Duration(days: 5)),
-        ),
-      ],
+      issues: [],
     ),
     BoardColumn(
       id: 'done',
       title: 'Done',
       description: '今週完了',
       color: const Color(0xFF22C55E),
-      issues: [
-        Issue(
-          id: 'AUTH-27',
-          repo: 'openci/firebase',
-          title: 'GitHub OAuthの権限説明を見直す',
-          assignee: 'MF',
-          labels: ['auth', 'docs'],
-          comments: 1,
-          priority: Priority.low,
-        ),
-      ],
+      issues: [],
     ),
   ];
 
@@ -737,12 +655,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final nextRank = insertIndex >= targetIssues.length
         ? null
         : targetIssues[insertIndex].rank;
+    final nextRankValue = _rankBetween(previousRank, nextRank);
 
     await _firestore
         .doc('workspaces/$_workspaceId/issues/${movingIssue.id}')
         .update({
           'statusId': targetColumnId,
-          'rank': _rankBetween(previousRank, nextRank),
+          'rank': nextRankValue,
           'updatedAt': FieldValue.serverTimestamp(),
         });
   }
@@ -781,12 +700,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 
   Future<void> _openAddIssueDialog({String? initialColumnId}) async {
-    final draft = await showDialog<NewIssueDraft>(
-      context: context,
+    final useBottomSheet = _usesBottomSheetEditor;
+    final draft = await _showIssueEditor<NewIssueDraft>(
+      useBottomSheet: useBottomSheet,
       builder: (context) => AddIssueDialog(
         columns: _columns,
         repositoryOptions: _enabledRepositoryOptions,
         initialColumnId: initialColumnId,
+        isBottomSheet: useBottomSheet,
       ),
     );
 
@@ -810,8 +731,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       (issue) => issue.id == issueId,
     );
 
-    final result = await showDialog<Object?>(
-      context: context,
+    final useBottomSheet = _usesBottomSheetEditor;
+    final result = await _showIssueEditor<Object?>(
+      useBottomSheet: useBottomSheet,
       builder: (context) => AddIssueDialog(
         columns: _columns,
         repositoryOptions: _enabledRepositoryOptions,
@@ -819,6 +741,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         initialColumnId: sourceColumn.id,
         isEstimatingWeight: _estimatingIssueIds.contains(issueId),
         onEstimateIssueWeight: _estimateIssueWeight,
+        isBottomSheet: useBottomSheet,
       ),
     );
 
@@ -841,6 +764,26 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     }
+  }
+
+  bool get _usesBottomSheetEditor =>
+      MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
+
+  Future<T?> _showIssueEditor<T>({
+    required bool useBottomSheet,
+    required WidgetBuilder builder,
+  }) {
+    if (useBottomSheet) {
+      return showModalBottomSheet<T>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: builder,
+      );
+    }
+
+    return showDialog<T>(context: context, builder: builder);
   }
 
   Future<void> _addIssue(NewIssueDraft draft) async {
@@ -904,6 +847,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final issue = _columns
         .expand((column) => column.issues)
         .firstWhere((issue) => issue.id == issueId);
+
     final data = _issueDraftToFirestore(draft, rank: issue.rank)
       ..remove('createdAt')
       ..remove('comments');
@@ -1189,6 +1133,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       (total, column) =>
           column.id == _closedStatusId ? total : total + column.issues.length,
     );
+    final isCompactLayout =
+        MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
+    final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
+    final onSignOut = FirebaseAuth.instance.signOut;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -1199,14 +1147,50 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         autofocus: true,
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
+          appBar: isCompactLayout
+              ? AppBar(
+                  title: const Text(
+                    'イマ',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  foregroundColor: const Color(0xFF0F172A),
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  actions: [
+                    CompactBoardMenuButton(
+                      isConnected: isConnected,
+                      isBusy: _isBusy,
+                      githubLogin: _githubLogin,
+                      repoCount: _enabledRepoCount,
+                      lastImportedAt: _lastImportedAt?.toDate(),
+                      onConnectGitHub: _connectGitHub,
+                      onSelectRepositories: _selectRepositories,
+                      onImportIssues: _importGitHubIssues,
+                      onSyncIssues: _syncGitHubIssues,
+                      onBackfillIssueKeys: _backfillIssueKeys,
+                      onSignOut: onSignOut,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                )
+              : null,
+          floatingActionButton: isCompactLayout
+              ? FloatingActionButton.extended(
+                  onPressed: () => unawaited(_openAddIssueDialog()),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('New'),
+                )
+              : null,
           body: SafeArea(
             child: Column(
               children: [
-                BoardHeader(
-                  openIssues: openIssues,
-                  userEmail: FirebaseAuth.instance.currentUser?.email,
-                  onSignOut: FirebaseAuth.instance.signOut,
-                ),
+                if (!isCompactLayout)
+                  BoardHeader(
+                    openIssues: openIssues,
+                    userEmail: FirebaseAuth.instance.currentUser?.email,
+                    onSignOut: onSignOut,
+                  ),
                 if (_isBootstrapping) const LinearProgressIndicator(),
                 BoardToolbar(
                   onAddIssue: () => unawaited(_openAddIssueDialog()),
@@ -1237,6 +1221,36 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                       final boardHeight = constraints.maxHeight > 32
                           ? constraints.maxHeight - 24
                           : constraints.maxHeight;
+                      final isCompactBoard =
+                          constraints.maxWidth < _compactBoardBreakpoint;
+
+                      if (isCompactBoard) {
+                        return ListView.separated(
+                          controller: _boardScrollController,
+                          padding: const EdgeInsets.fromLTRB(
+                            _boardHorizontalPadding,
+                            4,
+                            _boardHorizontalPadding,
+                            _boardBottomPadding + 72,
+                          ),
+                          itemCount: _columns.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: _boardColumnGap),
+                          itemBuilder: (context, index) {
+                            final column = _columns[index];
+                            return CompactBoardColumnView(
+                              column: column,
+                              closingIssueIds: _closingIssueIds,
+                              onIssueDropped: _moveIssue,
+                              onAddIssue: (columnId) => unawaited(
+                                _openAddIssueDialog(initialColumnId: columnId),
+                              ),
+                              onIssueTapped: _openEditIssueDialog,
+                              onIssueClosed: _closeIssue,
+                            );
+                          },
+                        );
+                      }
 
                       return Scrollbar(
                         controller: _boardScrollController,
@@ -1304,52 +1318,60 @@ class BoardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'IssuePilot',
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.8,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '複数repoのGitHub Issuesを同期して、macOSとiOSで軽く扱うためのKanbanプロトタイプ。',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+        final title = Text(
+          'イマ',
+          style:
+              (isCompact ? textTheme.headlineSmall : textTheme.headlineMedium)
+                  ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.8),
+        );
+        final description = Text(
+          '複数repoのGitHub Issuesを同期して、macOSとiOSで軽く扱うためのKanbanプロトタイプ。',
+          style: textTheme.bodyMedium?.copyWith(color: const Color(0xFF64748B)),
+        );
+
+        if (isCompact) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Align(alignment: Alignment.centerLeft, child: title),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IssueCountBadge(openIssues: openIssues),
-              const SizedBox(height: 6),
-              Text(
-                userEmail ?? 'ログイン中',
-                style: textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF64748B),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [title, const SizedBox(height: 6), description],
                 ),
               ),
-              TextButton(
-                onPressed: () => unawaited(onSignOut()),
-                child: const Text('サインアウト'),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IssueCountBadge(openIssues: openIssues),
+                  const SizedBox(height: 6),
+                  Text(
+                    userEmail ?? 'ログイン中',
+                    style: textTheme.labelMedium?.copyWith(
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => unawaited(onSignOut()),
+                    child: const Text('サインアウト'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1417,60 +1439,212 @@ class BoardToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isConnected = githubLogin != null && githubLogin!.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          AddIssueButton(onPressed: onAddIssue),
-          FilledButton.icon(
-            onPressed: isBusy ? null : onConnectGitHub,
-            icon: Icon(
-              isConnected
-                  ? Icons.check_circle_outline_rounded
-                  : Icons.link_rounded,
-              size: 16,
-            ),
-            label: Text(isConnected ? '@$githubLogin' : 'Connect GitHub'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _compactBoardBreakpoint) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              AddIssueButton(onPressed: onAddIssue),
+              FilledButton.icon(
+                onPressed: isBusy ? null : onConnectGitHub,
+                icon: Icon(
+                  isConnected
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.link_rounded,
+                  size: 16,
+                ),
+                label: Text(isConnected ? '@$githubLogin' : 'Connect GitHub'),
+              ),
+              OutlinedButton.icon(
+                onPressed: isBusy || !isConnected ? null : onSelectRepositories,
+                icon: const Icon(Icons.account_tree_outlined, size: 16),
+                label: Text('$repoCount repos'),
+              ),
+              OutlinedButton.icon(
+                onPressed: isBusy || !isConnected ? null : onImportIssues,
+                icon: const Icon(Icons.download_rounded, size: 16),
+                label: const Text('Import issues'),
+              ),
+              OutlinedButton.icon(
+                onPressed: isBusy || !isConnected ? null : onSyncIssues,
+                icon: const Icon(Icons.sync_outlined, size: 16),
+                label: const Text('Sync pending'),
+              ),
+              OutlinedButton.icon(
+                onPressed: isBusy ? null : onBackfillIssueKeys,
+                icon: const Icon(Icons.tag_rounded, size: 16),
+                label: const Text('Backfill IDs'),
+              ),
+              ToolbarChip(
+                icon: Icons.history_rounded,
+                label: lastImportedAt == null
+                    ? 'Not imported'
+                    : 'Imported ${_formatDate(lastImportedAt!)}',
+              ),
+              const ToolbarChip(
+                icon: Icons.filter_alt_outlined,
+                label: 'All priorities',
+              ),
+              const ToolbarChip(
+                icon: Icons.search_outlined,
+                label: 'Search issues',
+              ),
+            ],
           ),
-          OutlinedButton.icon(
-            onPressed: isBusy || !isConnected ? null : onSelectRepositories,
-            icon: const Icon(Icons.account_tree_outlined, size: 16),
-            label: Text('$repoCount repos'),
+        );
+      },
+    );
+  }
+}
+
+class CompactBoardMenuButton extends StatelessWidget {
+  const CompactBoardMenuButton({
+    super.key,
+    required this.isConnected,
+    required this.isBusy,
+    required this.githubLogin,
+    required this.repoCount,
+    required this.lastImportedAt,
+    required this.onConnectGitHub,
+    required this.onSelectRepositories,
+    required this.onImportIssues,
+    required this.onSyncIssues,
+    required this.onBackfillIssueKeys,
+    required this.onSignOut,
+  });
+
+  final bool isConnected;
+  final bool isBusy;
+  final String? githubLogin;
+  final int repoCount;
+  final DateTime? lastImportedAt;
+  final VoidCallback onConnectGitHub;
+  final VoidCallback onSelectRepositories;
+  final VoidCallback onImportIssues;
+  final VoidCallback onSyncIssues;
+  final VoidCallback onBackfillIssueKeys;
+  final Future<void> Function() onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'ボード操作',
+      icon: const Icon(Icons.menu_rounded),
+      onSelected: (value) {
+        switch (value) {
+          case 'github':
+            onConnectGitHub();
+          case 'repos':
+            onSelectRepositories();
+          case 'import':
+            onImportIssues();
+          case 'sync':
+            onSyncIssues();
+          case 'backfill':
+            onBackfillIssueKeys();
+          case 'signOut':
+            unawaited(onSignOut());
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'github',
+          enabled: !isBusy,
+          child: _CompactMenuItem(
+            icon: isConnected
+                ? Icons.check_circle_outline_rounded
+                : Icons.link_rounded,
+            label: isConnected ? '@$githubLogin' : 'Connect GitHub',
           ),
-          OutlinedButton.icon(
-            onPressed: isBusy || !isConnected ? null : onImportIssues,
-            icon: const Icon(Icons.download_rounded, size: 16),
-            label: const Text('Import issues'),
+        ),
+        PopupMenuItem(
+          value: 'repos',
+          enabled: !isBusy && isConnected,
+          child: _CompactMenuItem(
+            icon: Icons.account_tree_outlined,
+            label: '$repoCount repos',
           ),
-          OutlinedButton.icon(
-            onPressed: isBusy || !isConnected ? null : onSyncIssues,
-            icon: const Icon(Icons.sync_outlined, size: 16),
-            label: const Text('Sync pending'),
+        ),
+        PopupMenuItem(
+          value: 'import',
+          enabled: !isBusy && isConnected,
+          child: const _CompactMenuItem(
+            icon: Icons.download_rounded,
+            label: 'Import issues',
           ),
-          OutlinedButton.icon(
-            onPressed: isBusy ? null : onBackfillIssueKeys,
-            icon: const Icon(Icons.tag_rounded, size: 16),
-            label: const Text('Backfill IDs'),
+        ),
+        PopupMenuItem(
+          value: 'sync',
+          enabled: !isBusy && isConnected,
+          child: const _CompactMenuItem(
+            icon: Icons.sync_outlined,
+            label: 'Sync pending',
           ),
-          ToolbarChip(
+        ),
+        PopupMenuItem(
+          value: 'backfill',
+          enabled: !isBusy,
+          child: const _CompactMenuItem(
+            icon: Icons.tag_rounded,
+            label: 'Backfill IDs',
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          enabled: false,
+          child: _CompactMenuItem(
             icon: Icons.history_rounded,
             label: lastImportedAt == null
                 ? 'Not imported'
                 : 'Imported ${_formatDate(lastImportedAt!)}',
           ),
-          const ToolbarChip(
+        ),
+        const PopupMenuItem(
+          enabled: false,
+          child: _CompactMenuItem(
             icon: Icons.filter_alt_outlined,
             label: 'All priorities',
           ),
-          const ToolbarChip(
+        ),
+        const PopupMenuItem(
+          enabled: false,
+          child: _CompactMenuItem(
             icon: Icons.search_outlined,
             label: 'Search issues',
           ),
-        ],
-      ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'signOut',
+          child: _CompactMenuItem(icon: Icons.logout_rounded, label: 'サインアウト'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactMenuItem extends StatelessWidget {
+  const _CompactMenuItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 10),
+        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+      ],
     );
   }
 }
@@ -1668,6 +1842,7 @@ class AddIssueDialog extends StatefulWidget {
     this.initialColumnId,
     this.isEstimatingWeight = false,
     this.onEstimateIssueWeight,
+    this.isBottomSheet = false,
   });
 
   final List<BoardColumn> columns;
@@ -1676,6 +1851,7 @@ class AddIssueDialog extends StatefulWidget {
   final String? initialColumnId;
   final bool isEstimatingWeight;
   final Future<void> Function(String issueId)? onEstimateIssueWeight;
+  final bool isBottomSheet;
 
   @override
   State<AddIssueDialog> createState() => _AddIssueDialogState();
@@ -1821,10 +1997,157 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.86;
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompactDialog = screenSize.width < 560;
+    final maxHeight = screenSize.height * (isCompactDialog ? 0.92 : 0.86);
     final isEditing = widget.initialIssue != null;
     final canCloseIssue =
         isEditing && widget.initialIssue!.statusId != _closedStatusId;
+    final title = isEditing ? 'Edit GitHub issue' : 'New GitHub issue';
+    final description = isEditing
+        ? '${widget.initialIssue!.displayId}を編集します。⌘Enterで保存できます。'
+        : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!widget.isBottomSheet) ...[
+            _DialogHeader(title: title, description: description),
+            const SizedBox(height: 20),
+          ],
+          _TitleField(
+            controller: _titleController,
+            decoration: _inputDecoration(
+              label: 'Title',
+              hint: '例: issueの同期ステータスを表示する',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _bodyController,
+            minLines: 7,
+            maxLines: 12,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            decoration: _inputDecoration(
+              label: 'Body',
+              hint: '背景、やりたいこと、受け入れ条件などをMarkdownっぽく書けます。',
+            ),
+          ),
+          const SizedBox(height: 14),
+          _RepoAndAssigneeFields(
+            repositories: widget.repositoryOptions,
+            selectedRepository: _selectedRepo,
+            onRepositoryChanged: (value) {
+              setState(() => _selectedRepo = value);
+            },
+            assigneeController: _assigneeController,
+            decorationBuilder: _inputDecoration,
+          ),
+          if (isEditing) ...[
+            const SizedBox(height: 14),
+            _GitHubLinkField(
+              controller: _githubUrlController,
+              decoration: _inputDecoration(
+                label: 'GitHub link',
+                hint: 'https://github.com/openci/ima/issues/123',
+              ),
+              onCopy: _copyGitHubUrl,
+              onPaste: _pasteGitHubUrl,
+            ),
+          ],
+          const SizedBox(height: 14),
+          _StatusAndPriorityFields(
+            columns: widget.columns,
+            selectedColumnId: _selectedColumnId,
+            priority: _priority,
+            decorationBuilder: _inputDecoration,
+            priorityLabelBuilder: _priorityLabel,
+            onColumnChanged: (value) {
+              setState(() => _selectedColumnId = value);
+            },
+            onPriorityChanged: (value) {
+              setState(() => _priority = value);
+            },
+          ),
+          const SizedBox(height: 14),
+          DueDateField(
+            dueDate: _dueDate,
+            onPick: _pickDueDate,
+            onClear: () => setState(() => _dueDate = null),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _labelsController,
+            textInputAction: TextInputAction.done,
+            decoration: _inputDecoration(
+              label: 'Labels',
+              hint: 'feature, github, mobile',
+            ),
+            onFieldSubmitted: (_) => _saveIssue(),
+          ),
+          if (isEditing) ...[
+            const SizedBox(height: 14),
+            IssueWeightPanel(
+              issue: widget.initialIssue!,
+              isEstimating: widget.isEstimatingWeight || _isEstimatingWeight,
+              onEstimate: widget.onEstimateIssueWeight == null
+                  ? null
+                  : _estimateIssueWeight,
+            ),
+          ],
+          if (!widget.isBottomSheet) ...[
+            const SizedBox(height: 24),
+            _DialogActions(
+              isEditing: isEditing,
+              canCloseIssue: canCloseIssue,
+              onCancel: () => Navigator.of(context).pop(),
+              onCloseIssue: _closeIssue,
+              onSaveIssue: _saveIssue,
+            ),
+          ],
+        ],
+      ),
+    );
+    final content = ClipRRect(
+      borderRadius: widget.isBottomSheet
+          ? const BorderRadius.vertical(top: Radius.circular(28))
+          : BorderRadius.circular(isCompactDialog ? 22 : 28),
+      child: Material(
+        color: Colors.white,
+        child: widget.isBottomSheet
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _BottomSheetHeader(title: title),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                      child: formContent,
+                    ),
+                  ),
+                  _BottomSheetActions(
+                    isEditing: isEditing,
+                    canCloseIssue: canCloseIssue,
+                    onCloseIssue: _closeIssue,
+                    onSaveIssue: _saveIssue,
+                  ),
+                ],
+              )
+            : SingleChildScrollView(
+                padding: EdgeInsets.all(isCompactDialog ? 18 : 24),
+                child: formContent,
+              ),
+      ),
+    );
+    final framedContent = widget.isBottomSheet
+        ? SizedBox(width: double.infinity, height: maxHeight, child: content)
+        : ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
+            child: content,
+          );
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -1832,134 +2155,26 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       },
       child: Focus(
         autofocus: true,
-        child: Dialog(
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 24,
-          ),
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Material(
-                color: Colors.white,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _DialogHeader(
-                          title: isEditing
-                              ? 'Edit GitHub issue'
-                              : 'New GitHub issue',
-                          description: isEditing
-                              ? '${widget.initialIssue!.displayId}を編集します。⌘Enterで保存できます。'
-                              : '同期前提のmock ticketをボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。',
-                        ),
-                        const SizedBox(height: 20),
-                        _TitleField(
-                          controller: _titleController,
-                          decoration: _inputDecoration(
-                            label: 'Title',
-                            hint: '例: issueの同期ステータスを表示する',
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _bodyController,
-                          minLines: 7,
-                          maxLines: 12,
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          decoration: _inputDecoration(
-                            label: 'Body',
-                            hint: '背景、やりたいこと、受け入れ条件などをMarkdownっぽく書けます。',
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _RepoAndAssigneeFields(
-                          repositories: widget.repositoryOptions,
-                          selectedRepository: _selectedRepo,
-                          onRepositoryChanged: (value) {
-                            setState(() => _selectedRepo = value);
-                          },
-                          assigneeController: _assigneeController,
-                          decorationBuilder: _inputDecoration,
-                        ),
-                        if (isEditing) ...[
-                          const SizedBox(height: 14),
-                          _GitHubLinkField(
-                            controller: _githubUrlController,
-                            decoration: _inputDecoration(
-                              label: 'GitHub link',
-                              hint: 'https://github.com/openci/ima/issues/123',
-                            ),
-                            onCopy: _copyGitHubUrl,
-                            onPaste: _pasteGitHubUrl,
-                          ),
-                        ],
-                        const SizedBox(height: 14),
-                        _StatusAndPriorityFields(
-                          columns: widget.columns,
-                          selectedColumnId: _selectedColumnId,
-                          priority: _priority,
-                          decorationBuilder: _inputDecoration,
-                          priorityLabelBuilder: _priorityLabel,
-                          onColumnChanged: (value) {
-                            setState(() => _selectedColumnId = value);
-                          },
-                          onPriorityChanged: (value) {
-                            setState(() => _priority = value);
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        DueDateField(
-                          dueDate: _dueDate,
-                          onPick: _pickDueDate,
-                          onClear: () => setState(() => _dueDate = null),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _labelsController,
-                          textInputAction: TextInputAction.done,
-                          decoration: _inputDecoration(
-                            label: 'Labels',
-                            hint: 'feature, github, mobile',
-                          ),
-                          onFieldSubmitted: (_) => _saveIssue(),
-                        ),
-                        if (isEditing) ...[
-                          const SizedBox(height: 14),
-                          IssueWeightPanel(
-                            issue: widget.initialIssue!,
-                            isEstimating:
-                                widget.isEstimatingWeight ||
-                                _isEstimatingWeight,
-                            onEstimate: widget.onEstimateIssueWeight == null
-                                ? null
-                                : _estimateIssueWeight,
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        _DialogActions(
-                          isEditing: isEditing,
-                          canCloseIssue: canCloseIssue,
-                          onCancel: () => Navigator.of(context).pop(),
-                          onCloseIssue: _closeIssue,
-                          onSaveIssue: _saveIssue,
-                        ),
-                      ],
-                    ),
-                  ),
+        child: widget.isBottomSheet
+            ? AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
                 ),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: framedContent,
+                ),
+              )
+            : Dialog(
+                insetPadding: EdgeInsets.symmetric(
+                  horizontal: isCompactDialog ? 12 : 20,
+                  vertical: isCompactDialog ? 12 : 24,
+                ),
+                backgroundColor: Colors.transparent,
+                child: framedContent,
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -2070,6 +2285,112 @@ class _DialogActions extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _BottomSheetHeader extends StatelessWidget {
+  const _BottomSheetHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 10, 8, 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFCBD5E1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              IconButton(
+                tooltip: '閉じる',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomSheetActions extends StatelessWidget {
+  const _BottomSheetActions({
+    required this.isEditing,
+    required this.canCloseIssue,
+    required this.onCloseIssue,
+    required this.onSaveIssue,
+  });
+
+  final bool isEditing;
+  final bool canCloseIssue;
+  final VoidCallback onCloseIssue;
+  final VoidCallback onSaveIssue;
+
+  @override
+  Widget build(BuildContext context) {
+    final closeButton = OutlinedButton.icon(
+      onPressed: onCloseIssue,
+      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+      label: const Text('Close issue'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF15803D),
+        backgroundColor: const Color(0xFFF0FDF4),
+        side: const BorderSide(color: Color(0xFFBBF7D0)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+    final saveButton = FilledButton.icon(
+      onPressed: onSaveIssue,
+      icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
+      label: Text(isEditing ? 'Save changes' : 'Add issue'),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            if (canCloseIssue) ...[
+              Expanded(child: closeButton),
+              const SizedBox(width: 10),
+            ],
+            Expanded(child: saveButton),
+          ],
+        ),
       ),
     );
   }
@@ -2216,48 +2537,59 @@ class _RepoAndAssigneeFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: selectedRepository,
-            decoration: decorationBuilder(
-              label: 'Repository',
-              hint: '連携済みrepoから選択',
-            ),
-            items: [
-              for (final repository in repositories)
-                DropdownMenuItem(
-                  value: repository,
-                  child: Text(repository, overflow: TextOverflow.ellipsis),
-                ),
-            ],
-            onChanged: repositories.isEmpty
-                ? null
-                : (value) {
-                    if (value == null) {
-                      return;
-                    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final repositoryField = DropdownButtonFormField<String>(
+          initialValue: selectedRepository,
+          decoration: decorationBuilder(
+            label: 'Repository',
+            hint: '連携済みrepoから選択',
+          ),
+          items: [
+            for (final repository in repositories)
+              DropdownMenuItem(
+                value: repository,
+                child: Text(repository, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+          onChanged: repositories.isEmpty
+              ? null
+              : (value) {
+                  if (value == null) {
+                    return;
+                  }
 
-                    onRepositoryChanged(value);
-                  },
-            validator: (value) => value == null || value.trim().isEmpty
-                ? '先にrepoを選択してください'
-                : null,
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 170,
-          child: TextFormField(
-            controller: assigneeController,
-            textInputAction: TextInputAction.next,
-            decoration: decorationBuilder(label: 'Assignee', hint: 'MF'),
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? '担当者を入力してください' : null,
-          ),
-        ),
-      ],
+                  onRepositoryChanged(value);
+                },
+          validator: (value) =>
+              value == null || value.trim().isEmpty ? '先にrepoを選択してください' : null,
+        );
+        final assigneeField = TextFormField(
+          controller: assigneeController,
+          textInputAction: TextInputAction.next,
+          decoration: decorationBuilder(label: 'Assignee', hint: 'MF'),
+          validator: (value) =>
+              value == null || value.trim().isEmpty ? '担当者を入力してください' : null,
+        );
+
+        if (constraints.maxWidth < 560) {
+          return Column(
+            children: [
+              repositoryField,
+              const SizedBox(height: 12),
+              assigneeField,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: repositoryField),
+            const SizedBox(width: 12),
+            SizedBox(width: 170, child: assigneeField),
+          ],
+        );
+      },
     );
   }
 }
@@ -2284,47 +2616,56 @@ class _StatusAndPriorityFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: selectedColumnId,
-            decoration: decorationBuilder(label: 'Status'),
-            items: [
-              for (final column in columns)
-                DropdownMenuItem(value: column.id, child: Text(column.title)),
-            ],
-            onChanged: (value) {
-              if (value == null) {
-                return;
-              }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final statusField = DropdownButtonFormField<String>(
+          initialValue: selectedColumnId,
+          decoration: decorationBuilder(label: 'Status'),
+          items: [
+            for (final column in columns)
+              DropdownMenuItem(value: column.id, child: Text(column.title)),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
 
-              onColumnChanged(value);
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: DropdownButtonFormField<Priority>(
-            initialValue: priority,
-            decoration: decorationBuilder(label: 'Priority'),
-            items: [
-              for (final priority in Priority.values)
-                DropdownMenuItem(
-                  value: priority,
-                  child: Text(priorityLabelBuilder(priority)),
-                ),
-            ],
-            onChanged: (value) {
-              if (value == null) {
-                return;
-              }
+            onColumnChanged(value);
+          },
+        );
+        final priorityField = DropdownButtonFormField<Priority>(
+          initialValue: priority,
+          decoration: decorationBuilder(label: 'Priority'),
+          items: [
+            for (final priority in Priority.values)
+              DropdownMenuItem(
+                value: priority,
+                child: Text(priorityLabelBuilder(priority)),
+              ),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
 
-              onPriorityChanged(value);
-            },
-          ),
-        ),
-      ],
+            onPriorityChanged(value);
+          },
+        );
+
+        if (constraints.maxWidth < 560) {
+          return Column(
+            children: [statusField, const SizedBox(height: 12), priorityField],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: statusField),
+            const SizedBox(width: 12),
+            Expanded(child: priorityField),
+          ],
+        );
+      },
     );
   }
 }
@@ -2357,31 +2698,55 @@ class DueDateField extends StatelessWidget {
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
       ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.calendar_today_outlined,
-            size: 18,
-            color: Color(0xFF64748B),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              dueDate == null ? '締切なし' : _formatDate(dueDate!),
-              style: const TextStyle(
-                color: Color(0xFF334155),
-                fontWeight: FontWeight.w700,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dateLabel = Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+                color: Color(0xFF64748B),
               ),
-            ),
-          ),
-          TextButton(onPressed: onPick, child: const Text('日付を選択')),
-          if (dueDate != null)
-            IconButton(
-              tooltip: '締切をクリア',
-              onPressed: onClear,
-              icon: const Icon(Icons.close_rounded, size: 18),
-            ),
-        ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  dueDate == null ? '締切なし' : _formatDate(dueDate!),
+                  style: const TextStyle(
+                    color: Color(0xFF334155),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          );
+          final actions = Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton(onPressed: onPick, child: const Text('日付を選択')),
+              if (dueDate != null)
+                IconButton(
+                  tooltip: '締切をクリア',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                ),
+            ],
+          );
+
+          if (constraints.maxWidth < 360) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [dateLabel, const SizedBox(height: 8), actions],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: dateLabel),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }
@@ -2494,6 +2859,173 @@ class BoardColumnView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class CompactBoardColumnView extends StatefulWidget {
+  const CompactBoardColumnView({
+    super.key,
+    required this.column,
+    required this.closingIssueIds,
+    required this.onIssueDropped,
+    required this.onAddIssue,
+    required this.onIssueTapped,
+    required this.onIssueClosed,
+  });
+
+  final BoardColumn column;
+  final Set<String> closingIssueIds;
+  final IssueDropCallback onIssueDropped;
+  final ValueChanged<String> onAddIssue;
+  final ValueChanged<String> onIssueTapped;
+  final ValueChanged<String> onIssueClosed;
+
+  @override
+  State<CompactBoardColumnView> createState() => _CompactBoardColumnViewState();
+}
+
+class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
+  var _isShrunk = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleIssues = _visibleIssuesForColumn(widget.column);
+    final displayedIssues = _isShrunk
+        ? visibleIssues.take(_compactColumnCollapsedLimit).toList()
+        : visibleIssues;
+    final hiddenIssueCount = visibleIssues.length - displayedIssues.length;
+    final canToggleSize = visibleIssues.length > _compactColumnCollapsedLimit;
+
+    return DragTarget<IssueDragData>(
+      onWillAcceptWithDetails: (details) =>
+          details.data.sourceColumnId != widget.column.id,
+      onAcceptWithDetails: (details) {
+        widget.onIssueDropped(
+          issueId: details.data.issueId,
+          targetColumnId: widget.column.id,
+          targetIndex: widget.column.issues.length,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isHovering
+                ? widget.column.color.withValues(alpha: 0.08)
+                : Colors.white,
+            border: Border.all(
+              color: isHovering
+                  ? widget.column.color.withValues(alpha: 0.45)
+                  : const Color(0xFFE2E8F0),
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ColumnHeader(
+                column: widget.column,
+                onAddIssue: () => widget.onAddIssue(widget.column.id),
+              ),
+              const SizedBox(height: 10),
+              if (visibleIssues.isEmpty) ...[
+                EmptyColumnIssueCreator(
+                  columnTitle: widget.column.title,
+                  onPressed: () => widget.onAddIssue(widget.column.id),
+                ),
+                const SizedBox(height: 8),
+              ],
+              for (var index = 0; index < displayedIssues.length; index++) ...[
+                Builder(
+                  builder: (context) {
+                    final issue = displayedIssues[index];
+                    final rankIndex = widget.column.issues.indexWhere(
+                      (candidate) => candidate.id == issue.id,
+                    );
+
+                    return IssueCardDropTarget(
+                      issue: issue,
+                      sourceColumnId: widget.column.id,
+                      index: rankIndex < 0 ? index : rankIndex,
+                      isClosing: widget.closingIssueIds.contains(issue.id),
+                      onTap: () => widget.onIssueTapped(issue.id),
+                      onCloseIssue: () => widget.onIssueClosed(issue.id),
+                      onIssueDropped: widget.onIssueDropped,
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (canToggleSize) ...[
+                InlineColumnSizeButton(
+                  isShrunk: _isShrunk,
+                  hiddenIssueCount: hiddenIssueCount,
+                  totalIssueCount: visibleIssues.length,
+                  collapsedIssueCount: _compactColumnCollapsedLimit,
+                  onPressed: () => setState(() => _isShrunk = !_isShrunk),
+                ),
+                const SizedBox(height: 8),
+              ],
+              IssueDropSlot(
+                columnId: widget.column.id,
+                index: widget.column.issues.length,
+                onIssueDropped: widget.onIssueDropped,
+                isLast: true,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class InlineColumnSizeButton extends StatelessWidget {
+  const InlineColumnSizeButton({
+    super.key,
+    required this.isShrunk,
+    required this.hiddenIssueCount,
+    required this.totalIssueCount,
+    required this.collapsedIssueCount,
+    required this.onPressed,
+  });
+
+  final bool isShrunk;
+  final int hiddenIssueCount;
+  final int totalIssueCount;
+  final int collapsedIssueCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = isShrunk
+        ? 'さらに$hiddenIssueCount件表示（全$totalIssueCount件）'
+        : '縮小して先頭$collapsedIssueCount件だけ表示';
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          isShrunk
+              ? Icons.keyboard_arrow_down_rounded
+              : Icons.keyboard_arrow_up_rounded,
+          size: 20,
+        ),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          foregroundColor: const Color(0xFF2563EB),
+          backgroundColor: const Color(0xFFEFF6FF),
+          side: const BorderSide(color: Color(0xFFBFDBFE)),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
     );
   }
 }
@@ -3706,6 +4238,28 @@ class Issue {
           .map((value) => IssuePullRequest.fromMap(_asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
           .toList(),
+    );
+  }
+
+  Issue copyWith({String? statusId, double? rank, DateTime? closedAt}) {
+    return Issue(
+      id: id,
+      displayId: displayId,
+      issueKey: issueKey,
+      repo: repo,
+      title: title,
+      body: body,
+      githubUrl: githubUrl,
+      assignee: assignee,
+      labels: labels,
+      comments: comments,
+      priority: priority,
+      dueDate: dueDate,
+      statusId: statusId ?? this.statusId,
+      rank: rank ?? this.rank,
+      closedAt: closedAt,
+      weightEstimate: weightEstimate,
+      pullRequests: pullRequests,
     );
   }
 
