@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ima/main.dart';
@@ -138,6 +139,98 @@ void main() {
     expect(find.text('IMA-1423'), findsOneWidget);
     expect(find.byTooltip('Copy issue ID'), findsOneWidget);
     expect(find.text('PR #12'), findsOneWidget);
+  });
+
+  testWidgets('Issue board shortcuts trigger search with Cmd+K', (
+    tester,
+  ) async {
+    var searchCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: IssueBoardShortcuts(
+          onAddIssue: () {},
+          onSearchIssues: () => searchCount++,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+    expect(searchCount, 1);
+  });
+
+  testWidgets('Issue search dialog filters issues and returns selection', (
+    tester,
+  ) async {
+    String? selectedIssueId;
+    final columns = [
+      BoardColumn(
+        id: 'triage',
+        title: 'Triage',
+        description: '新着と要件確認',
+        color: Colors.indigo,
+        issues: const [
+          Issue(
+            id: 'IMA-10',
+            repo: 'openci/ima',
+            title: 'Add command palette search',
+            assignee: 'MF',
+            labels: ['mobile', 'feature'],
+            comments: 0,
+            priority: Priority.medium,
+          ),
+          Issue(
+            id: 'IMA-11',
+            repo: 'openci/dashboard',
+            title: 'Export billing report',
+            assignee: 'MF',
+            labels: ['finance'],
+            comments: 0,
+            priority: Priority.low,
+          ),
+        ],
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return TextButton(
+              onPressed: () async {
+                selectedIssueId = await showDialog<String>(
+                  context: context,
+                  builder: (context) => IssueSearchDialog(columns: columns),
+                );
+              },
+              child: const Text('Open search'),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open search'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add command palette search'), findsOneWidget);
+    expect(find.text('Export billing report'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'palette');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add command palette search'), findsOneWidget);
+    expect(find.text('Export billing report'), findsNothing);
+
+    await tester.tap(find.text('Add command palette search'));
+    await tester.pumpAndSettle();
+
+    expect(selectedIssueId, 'IMA-10');
   });
 
   testWidgets('Board column header creates issue in that column', (

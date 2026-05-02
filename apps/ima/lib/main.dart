@@ -764,6 +764,24 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
   }
 
+  Future<void> _openIssueSearchDialog() async {
+    final hasIssues = _columns.any((column) => column.issues.isNotEmpty);
+    if (!hasIssues) {
+      _showSavedSnackBar('検索できるIssueがありません');
+      return;
+    }
+
+    final issueId = await showDialog<String>(
+      context: context,
+      builder: (context) => IssueSearchDialog(columns: _columns),
+    );
+    if (issueId == null || !mounted) {
+      return;
+    }
+
+    await _openEditIssueDialog(issueId);
+  }
+
   bool get _usesBottomSheetEditor =>
       MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
 
@@ -1116,158 +1134,180 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final onSignOut = FirebaseAuth.instance.signOut;
 
-    return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): () =>
-            unawaited(_openAddIssueDialog()),
-      },
-      child: Focus(
-        autofocus: true,
-        child: Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
-          appBar: isCompactLayout
-              ? AppBar(
-                  title: const Text(
-                    'イマ',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  backgroundColor: const Color(0xFFF8FAFC),
-                  foregroundColor: const Color(0xFF0F172A),
-                  elevation: 0,
-                  scrolledUnderElevation: 0,
-                  actions: [
-                    CompactBoardMenuButton(
-                      isConnected: isConnected,
-                      isBusy: _isBusy,
-                      repoCount: _enabledRepoCount,
-                      lastImportedAt: _lastImportedAt?.toDate(),
-                      onConnectGitHub: _connectGitHub,
-                      onSelectRepositories: _selectRepositories,
-                      onImportIssues: _importGitHubIssues,
-                      onSyncIssues: _syncGitHubIssues,
-                      onSignOut: onSignOut,
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                )
-              : null,
-          floatingActionButton: isCompactLayout
-              ? FloatingActionButton.extended(
-                  onPressed: () => unawaited(_openAddIssueDialog()),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('New'),
-                )
-              : null,
-          body: SafeArea(
-            child: Column(
-              children: [
-                if (!isCompactLayout)
-                  BoardHeader(openIssues: openIssues, onSignOut: onSignOut),
-                if (_isBootstrapping) const LinearProgressIndicator(),
-                BoardToolbar(
-                  onConnectGitHub: _connectGitHub,
-                  onSelectRepositories: _selectRepositories,
-                  onImportIssues: _importGitHubIssues,
-                  onSyncIssues: _syncGitHubIssues,
-                  githubLogin: _githubLogin,
-                  repoCount: _enabledRepoCount,
-                  lastImportedAt: _lastImportedAt?.toDate(),
-                  isBusy: _isBusy,
+    return IssueBoardShortcuts(
+      onAddIssue: () => unawaited(_openAddIssueDialog()),
+      onSearchIssues: () => unawaited(_openIssueSearchDialog()),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: isCompactLayout
+            ? AppBar(
+                title: const Text(
+                  'イマ',
+                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
-                if (_loadError != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: Text(
-                      _loadError!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w700,
-                      ),
+                backgroundColor: const Color(0xFFF8FAFC),
+                foregroundColor: const Color(0xFF0F172A),
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                actions: [
+                  CompactBoardMenuButton(
+                    isConnected: isConnected,
+                    isBusy: _isBusy,
+                    repoCount: _enabledRepoCount,
+                    lastImportedAt: _lastImportedAt?.toDate(),
+                    onConnectGitHub: _connectGitHub,
+                    onSelectRepositories: _selectRepositories,
+                    onImportIssues: _importGitHubIssues,
+                    onSyncIssues: _syncGitHubIssues,
+                    onSearchIssues: _openIssueSearchDialog,
+                    onSignOut: onSignOut,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+              )
+            : null,
+        floatingActionButton: isCompactLayout
+            ? FloatingActionButton.extended(
+                onPressed: () => unawaited(_openAddIssueDialog()),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('New'),
+              )
+            : null,
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (!isCompactLayout)
+                BoardHeader(openIssues: openIssues, onSignOut: onSignOut),
+              if (_isBootstrapping) const LinearProgressIndicator(),
+              BoardToolbar(
+                onConnectGitHub: _connectGitHub,
+                onSelectRepositories: _selectRepositories,
+                onImportIssues: _importGitHubIssues,
+                onSyncIssues: _syncGitHubIssues,
+                onSearchIssues: _openIssueSearchDialog,
+                githubLogin: _githubLogin,
+                repoCount: _enabledRepoCount,
+                lastImportedAt: _lastImportedAt?.toDate(),
+                isBusy: _isBusy,
+              ),
+              if (_loadError != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Text(
+                    _loadError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final boardHeight = constraints.maxHeight > 32
-                          ? constraints.maxHeight - 24
-                          : constraints.maxHeight;
-                      final isCompactBoard =
-                          constraints.maxWidth < _compactBoardBreakpoint;
+                ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final boardHeight = constraints.maxHeight > 32
+                        ? constraints.maxHeight - 24
+                        : constraints.maxHeight;
+                    final isCompactBoard =
+                        constraints.maxWidth < _compactBoardBreakpoint;
 
-                      if (isCompactBoard) {
-                        return ListView.separated(
-                          controller: _boardScrollController,
-                          padding: const EdgeInsets.fromLTRB(
-                            _boardHorizontalPadding,
-                            4,
-                            _boardHorizontalPadding,
-                            _boardBottomPadding + 72,
-                          ),
-                          itemCount: _columns.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: _boardColumnGap),
-                          itemBuilder: (context, index) {
-                            final column = _columns[index];
-                            return CompactBoardColumnView(
-                              column: column,
-                              closingIssueIds: _closingIssueIds,
-                              onIssueDropped: _moveIssue,
-                              onAddIssue: (columnId) => unawaited(
-                                _openAddIssueDialog(initialColumnId: columnId),
-                              ),
-                              onIssueTapped: _openEditIssueDialog,
-                              onIssueClosed: _closeIssue,
-                            );
-                          },
-                        );
-                      }
-
-                      return Scrollbar(
+                    if (isCompactBoard) {
+                      return ListView.separated(
                         controller: _boardScrollController,
-                        thumbVisibility: true,
-                        child: SingleChildScrollView(
-                          controller: _boardScrollController,
-                          padding: const EdgeInsets.fromLTRB(
-                            _boardHorizontalPadding,
-                            6,
-                            _boardHorizontalPadding,
-                            _boardBottomPadding,
-                          ),
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            height: boardHeight,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (final column in _columns) ...[
-                                  BoardColumnView(
-                                    column: column,
-                                    closingIssueIds: _closingIssueIds,
-                                    onIssueDropped: _moveIssue,
-                                    onAddIssue: (columnId) => unawaited(
-                                      _openAddIssueDialog(
-                                        initialColumnId: columnId,
-                                      ),
-                                    ),
-                                    onIssueTapped: _openEditIssueDialog,
-                                    onIssueClosed: _closeIssue,
-                                  ),
-                                  if (column != _columns.last)
-                                    const SizedBox(width: _boardColumnGap),
-                                ],
-                              ],
+                        padding: const EdgeInsets.fromLTRB(
+                          _boardHorizontalPadding,
+                          4,
+                          _boardHorizontalPadding,
+                          _boardBottomPadding + 72,
+                        ),
+                        itemCount: _columns.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: _boardColumnGap),
+                        itemBuilder: (context, index) {
+                          final column = _columns[index];
+                          return CompactBoardColumnView(
+                            column: column,
+                            closingIssueIds: _closingIssueIds,
+                            onIssueDropped: _moveIssue,
+                            onAddIssue: (columnId) => unawaited(
+                              _openAddIssueDialog(initialColumnId: columnId),
                             ),
+                            onIssueTapped: _openEditIssueDialog,
+                            onIssueClosed: _closeIssue,
+                          );
+                        },
+                      );
+                    }
+
+                    return Scrollbar(
+                      controller: _boardScrollController,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _boardScrollController,
+                        padding: const EdgeInsets.fromLTRB(
+                          _boardHorizontalPadding,
+                          6,
+                          _boardHorizontalPadding,
+                          _boardBottomPadding,
+                        ),
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          height: boardHeight,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final column in _columns) ...[
+                                BoardColumnView(
+                                  column: column,
+                                  closingIssueIds: _closingIssueIds,
+                                  onIssueDropped: _moveIssue,
+                                  onAddIssue: (columnId) => unawaited(
+                                    _openAddIssueDialog(
+                                      initialColumnId: columnId,
+                                    ),
+                                  ),
+                                  onIssueTapped: _openEditIssueDialog,
+                                  onIssueClosed: _closeIssue,
+                                ),
+                                if (column != _columns.last)
+                                  const SizedBox(width: _boardColumnGap),
+                              ],
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class IssueBoardShortcuts extends StatelessWidget {
+  const IssueBoardShortcuts({
+    super.key,
+    required this.onAddIssue,
+    required this.onSearchIssues,
+    required this.child,
+  });
+
+  final VoidCallback onAddIssue;
+  final VoidCallback onSearchIssues;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): onAddIssue,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+            onSearchIssues,
+      },
+      child: Focus(autofocus: true, child: child),
     );
   }
 }
@@ -1378,6 +1418,7 @@ class BoardToolbar extends StatelessWidget {
     required this.onSelectRepositories,
     required this.onImportIssues,
     required this.onSyncIssues,
+    required this.onSearchIssues,
     required this.githubLogin,
     required this.repoCount,
     required this.lastImportedAt,
@@ -1388,6 +1429,7 @@ class BoardToolbar extends StatelessWidget {
   final VoidCallback onSelectRepositories;
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
+  final VoidCallback onSearchIssues;
   final String? githubLogin;
   final int repoCount;
   final DateTime? lastImportedAt;
@@ -1441,9 +1483,11 @@ class BoardToolbar extends StatelessWidget {
                 icon: Icons.filter_alt_outlined,
                 label: 'All priorities',
               ),
-              const ToolbarChip(
+              ToolbarChip(
                 icon: Icons.search_outlined,
                 label: 'Search issues',
+                tooltip: 'Search issues (⌘K)',
+                onPressed: onSearchIssues,
               ),
             ],
           ),
@@ -1464,6 +1508,7 @@ class CompactBoardMenuButton extends StatelessWidget {
     required this.onSelectRepositories,
     required this.onImportIssues,
     required this.onSyncIssues,
+    required this.onSearchIssues,
     required this.onSignOut,
   });
 
@@ -1475,6 +1520,7 @@ class CompactBoardMenuButton extends StatelessWidget {
   final VoidCallback onSelectRepositories;
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
+  final VoidCallback onSearchIssues;
   final Future<void> Function() onSignOut;
 
   @override
@@ -1492,6 +1538,8 @@ class CompactBoardMenuButton extends StatelessWidget {
             onImportIssues();
           case 'sync':
             onSyncIssues();
+          case 'search':
+            onSearchIssues();
           case 'signOut':
             unawaited(onSignOut());
         }
@@ -1548,7 +1596,7 @@ class CompactBoardMenuButton extends StatelessWidget {
           ),
         ),
         const PopupMenuItem(
-          enabled: false,
+          value: 'search',
           child: _CompactMenuItem(
             icon: Icons.search_outlined,
             label: 'Search issues',
@@ -1583,19 +1631,28 @@ class _CompactMenuItem extends StatelessWidget {
 }
 
 class ToolbarChip extends StatelessWidget {
-  const ToolbarChip({super.key, required this.icon, required this.label});
+  const ToolbarChip({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.tooltip,
+    this.onPressed,
+  });
 
   final IconData icon;
   final String label;
+  final String? tooltip;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final borderRadius = BorderRadius.circular(999);
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: borderRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1613,6 +1670,439 @@ class ToolbarChip extends StatelessWidget {
         ],
       ),
     );
+
+    if (onPressed == null) {
+      return chip;
+    }
+
+    return Tooltip(
+      message: tooltip ?? label,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: borderRadius,
+          onTap: onPressed,
+          child: chip,
+        ),
+      ),
+    );
+  }
+}
+
+class IssueSearchDialog extends StatefulWidget {
+  const IssueSearchDialog({super.key, required this.columns});
+
+  final List<BoardColumn> columns;
+
+  @override
+  State<IssueSearchDialog> createState() => _IssueSearchDialogState();
+}
+
+class _IssueSearchDialogState extends State<IssueSearchDialog> {
+  final _queryController = TextEditingController();
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  List<_IssueSearchEntry> get _entries => [
+    for (final column in widget.columns)
+      for (final issue in _visibleIssuesForColumn(column))
+        _IssueSearchEntry(issue: issue, column: column),
+  ];
+
+  List<_IssueSearchEntry> get _filteredEntries {
+    final tokens = _queryController.text
+        .trim()
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty)
+        .toList();
+    if (tokens.isEmpty) {
+      return _entries;
+    }
+
+    return [
+      for (final entry in _entries)
+        if (entry.matches(tokens)) entry,
+    ];
+  }
+
+  void _select(_IssueSearchEntry entry) {
+    Navigator.of(context).pop(entry.issue.id);
+  }
+
+  void _selectFirstMatch() {
+    final entries = _filteredEntries;
+    if (entries.isEmpty) {
+      return;
+    }
+
+    _select(entries.first);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final query = _queryController.text;
+    final entries = _filteredEntries;
+    final resultMaxHeight = (screenSize.height - 230)
+        .clamp(180.0, 420.0)
+        .toDouble();
+
+    return Dialog(
+      alignment: Alignment.topCenter,
+      insetPadding: const EdgeInsets.fromLTRB(16, 72, 16, 16),
+      backgroundColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 42,
+                offset: const Offset(0, 24),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+                    ),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.search_rounded,
+                          color: Color(0xFF2563EB),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _queryController,
+                          autofocus: true,
+                          textInputAction: TextInputAction.search,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                              ),
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: (_) => _selectFirstMatch(),
+                          decoration: const InputDecoration.collapsed(
+                            hintText: 'Search issues...',
+                            hintStyle: TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (query.isNotEmpty)
+                        IconButton(
+                          tooltip: 'Clear search',
+                          onPressed: () {
+                            _queryController.clear();
+                            setState(() {});
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                        )
+                      else
+                        const _IssueSearchShortcutPill(label: '⌘K'),
+                      IconButton(
+                        tooltip: 'Close search',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${entries.length} results',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      const _IssueSearchShortcutPill(label: 'Enter to open'),
+                    ],
+                  ),
+                ),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: resultMaxHeight),
+                  child: entries.isEmpty
+                      ? _IssueSearchEmptyState(hasQuery: query.isNotEmpty)
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+                          itemCount: entries.length,
+                          itemBuilder: (context, index) {
+                            final entry = entries[index];
+                            return _IssueSearchResultTile(
+                              entry: entry,
+                              onTap: () => _select(entry),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IssueSearchShortcutPill extends StatelessWidget {
+  const _IssueSearchShortcutPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _IssueSearchEmptyState extends StatelessWidget {
+  const _IssueSearchEmptyState({required this.hasQuery});
+
+  final bool hasQuery;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 34),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.search_off_rounded,
+              color: Color(0xFF94A3B8),
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            hasQuery ? '一致するIssueがありません' : '検索できるIssueがありません',
+            style: const TextStyle(
+              color: Color(0xFF334155),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'タイトル、repo、label、担当者で探せます',
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IssueSearchResultTile extends StatelessWidget {
+  const _IssueSearchResultTile({required this.entry, required this.onTap});
+
+  final _IssueSearchEntry entry;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final issue = entry.issue;
+    final labels = issue.labels.take(3).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: entry.column.color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.radio_button_unchecked_rounded,
+                    size: 16,
+                    color: entry.column.color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        issue.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _IssueSearchMetaPill(label: issue.displayId),
+                          _IssueSearchMetaPill(label: issue.repo),
+                          _IssueSearchMetaPill(label: entry.column.title),
+                          if (issue.assignee.trim().isNotEmpty)
+                            _IssueSearchMetaPill(label: issue.assignee),
+                          for (final label in labels)
+                            _IssueSearchMetaPill(label: label),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Icon(
+                    Icons.north_east_rounded,
+                    size: 16,
+                    color: Color(0xFFCBD5E1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IssueSearchMetaPill extends StatelessWidget {
+  const _IssueSearchMetaPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _IssueSearchEntry {
+  const _IssueSearchEntry({required this.issue, required this.column});
+
+  final Issue issue;
+  final BoardColumn column;
+
+  bool matches(List<String> tokens) {
+    final searchableText = [
+      issue.id,
+      issue.displayId,
+      issue.issueKey ?? '',
+      issue.repo,
+      issue.title,
+      issue.body,
+      issue.assignee,
+      issue.priority.name,
+      column.title,
+      ...issue.labels,
+      for (final pullRequest in issue.pullRequests) ...[
+        '${pullRequest.number}',
+        pullRequest.title,
+        pullRequest.branch,
+      ],
+    ].join(' ').toLowerCase();
+
+    return tokens.every(searchableText.contains);
   }
 }
 
