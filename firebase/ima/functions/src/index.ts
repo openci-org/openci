@@ -1,9 +1,11 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { logger, setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
+import { HttpsError, onCall, onRequest, type CallableRequest, type Request } from "firebase-functions/v2/https";
 
 import {
   issueWeightInput,
@@ -12,6 +14,7 @@ import {
   parseWeightEstimateResponse,
   truncateText,
 } from "./issueWeightHelpers";
+import { extractIssueKey, issueKey, normalizeIssueKeyPrefix, upsertLinkedIssueBlock } from "./issueLinkingHelpers";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -79,6 +82,10 @@ interface ImportGitHubIssuesResponse {
 interface SyncGitHubIssuesResponse {
   synced: number;
   failed: number;
+}
+
+interface BackfillIssueKeysResponse {
+  updated: number;
 }
 
 interface CreateGitHubIssueResponse {
@@ -150,8 +157,27 @@ interface GitHubIssueResponseItem {
   pull_request?: unknown;
 }
 
+interface GitHubPullRequestWebhookPayload {
+  action?: unknown;
+  repository?: {
+    full_name?: unknown;
+  };
+  pull_request?: {
+    number?: unknown;
+    title?: unknown;
+    body?: unknown;
+    html_url?: unknown;
+    state?: unknown;
+    merged?: unknown;
+    head?: {
+      ref?: unknown;
+    };
+  };
+}
+
 const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
+const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 const closedStatusId = "done";
 const inProgressStatusIds = new Set(["doing", "review"]);
 const issueWeightModel = "claude-opus-4-6";
@@ -259,6 +285,10 @@ function issueDocId(owner: string, repo: string, number: number): string {
   return `gh_${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
 }
 
+function pullRequestLinkId(owner: string, repo: string, number: number): string {
+  return `${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
+}
+
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.length > 0 ? value : fallback;
 }
@@ -269,6 +299,56 @@ function asNumber(value: unknown, fallback = 0): number {
 
 function asBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function issueKeyFieldsFromData(data: Record<string, unknown>): Record<string, unknown> | null {
+  const existingIssueKey = asString(data.issueKey);
+  if (existingIssueKey.length === 0) {
+    return null;
+  }
+
+  const existingNumber = asNumber(data.issueNumber);
+  const prefix = normalizeIssueKeyPrefix(asString(data.issueKeyPrefix, existingIssueKey.split("-")[0] ?? "IMA"));
+  return {
+    issueKeyPrefix: prefix,
+    issueNumber: existingNumber > 0 ? existingNumber : null,
+    issueKey: existingIssueKey.toUpperCase(),
+  };
+}
+
+async function nextIssueKeyFields(workspaceId: string): Promise<Record<string, unknown>> {
+  const workspaceRef = db.doc(`workspaces/${workspaceId}`);
+  const counterRef = workspaceRef.collection("counters").doc("issues");
+
+  return db.runTransaction(async (transaction) => {
+    const [workspace, counter] = await Promise.all([
+      transaction.get(workspaceRef),
+      transaction.get(counterRef),
+    ]);
+    const prefix = normalizeIssueKeyPrefix(asString(workspace.get("issueKeyPrefix"), "IMA"));
+    const nextNumber = asNumber(counter.get("lastIssueNumber")) + 1;
+    transaction.set(
+      counterRef,
+      {
+        issueKeyPrefix: prefix,
+        lastIssueNumber: nextNumber,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return {
+      issueKeyPrefix: prefix,
+      issueNumber: nextNumber,
+      issueKey: issueKey(prefix, nextNumber),
+    };
+  });
+}
+
+async function issueKeyFields(
+  workspaceId: string,
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  return issueKeyFieldsFromData(data) ?? nextIssueKeyFields(workspaceId);
 }
 
 function asStringList(value: unknown): string[] {
@@ -988,9 +1068,11 @@ export const importGitHubIssues = onCall<
             .doc(issueDocId(owner, repo, number));
           const existing = await docRef.get();
           const existingData = existing.data() ?? {};
+          const keyFields = await issueKeyFields(workspaceId, existingData);
           batch.set(
             docRef,
             {
+              ...keyFields,
               title: asString(issue.title, `#${number}`),
               body: asString(issue.body),
               repo: repository.fullName,
@@ -1097,8 +1179,10 @@ export const createGitHubIssue = onCall<
 
     const issueId = issueDocId(owner, repo, number);
     const docRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    const keyFields = await issueKeyFields(workspaceId, {});
     await docRef.set(
       {
+        ...keyFields,
         title: asString(issue.title, title),
         body: asString(issue.body, body),
         repo: repoFullName,
@@ -1140,6 +1224,237 @@ export const createGitHubIssue = onCall<
     throw new HttpsError("internal", `Failed to create GitHub issue: ${message}`);
   }
 });
+
+export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueKeysResponse>>(
+  async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    await verifyWorkspaceMember(request.auth, workspaceId);
+
+    const issues = await db
+      .collection(`workspaces/${workspaceId}/issues`)
+      .limit(500)
+      .get();
+
+    let updated = 0;
+    for (const issue of issues.docs) {
+      if (issueKeyFieldsFromData(issue.data()) !== null) {
+        continue;
+      }
+      await issue.ref.set(
+        {
+          ...(await nextIssueKeyFields(workspaceId)),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      updated += 1;
+    }
+
+    return { updated };
+  },
+);
+
+function verifyGitHubSignature(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
+  if (!signatureHeader.startsWith("sha256=") || secret.length === 0) {
+    return false;
+  }
+
+  const expected = `sha256=${createHmac("sha256", secret).update(rawBody).digest("hex")}`;
+  const actualBuffer = Buffer.from(signatureHeader, "utf8");
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+function requestRawBody(request: Request): Buffer {
+  const rawBody = (request as typeof request & { rawBody?: Buffer }).rawBody;
+  if (Buffer.isBuffer(rawBody)) {
+    return rawBody;
+  }
+  return Buffer.from(JSON.stringify(request.body ?? {}), "utf8");
+}
+
+function parseWebhookPayload(rawBody: Buffer): GitHubPullRequestWebhookPayload {
+  return JSON.parse(rawBody.toString("utf8")) as GitHubPullRequestWebhookPayload;
+}
+
+async function upsertPullRequestLink({
+  workspaceId,
+  issueId,
+  pullRequest,
+  repoFullName,
+  branch,
+}: {
+  workspaceId: string;
+  issueId: string;
+  pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>;
+  repoFullName: string;
+  branch: string;
+}): Promise<void> {
+  const [owner, repo] = repoFullName.split("/");
+  const number = asNumber(pullRequest.number);
+  if (!owner || !repo || number <= 0) {
+    return;
+  }
+
+  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+  await db.runTransaction(async (transaction) => {
+    const issue = await transaction.get(issueRef);
+    const currentPullRequests = Array.isArray(issue.get("pullRequests"))
+      ? (issue.get("pullRequests") as Array<Record<string, unknown>>)
+      : [];
+    const linkId = pullRequestLinkId(owner, repo, number);
+    const now = Timestamp.now();
+    const existingLink = currentPullRequests.find((item) => asString(item.id) === linkId);
+    const nextPullRequests = currentPullRequests.filter((item) => asString(item.id) !== linkId);
+    nextPullRequests.push({
+      id: linkId,
+      owner,
+      repo,
+      number,
+      url: asString(pullRequest.html_url),
+      title: asString(pullRequest.title),
+      branch,
+      state: asString(pullRequest.state, "open"),
+      merged: asBoolean(pullRequest.merged),
+      linkedAt: timestampFromValue(existingLink?.linkedAt) ?? now,
+      updatedAt: now,
+    });
+    transaction.set(
+      issueRef,
+      {
+        pullRequests: nextPullRequests,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+}
+
+async function linkPullRequestToImaIssues(payload: GitHubPullRequestWebhookPayload): Promise<number> {
+  const action = asString(payload.action);
+  if (!["opened", "edited", "synchronize", "reopened", "closed"].includes(action)) {
+    return 0;
+  }
+
+  const pullRequest = payload.pull_request;
+  const repoFullName = asString(payload.repository?.full_name);
+  const branch = asString(pullRequest?.head?.ref);
+  const parsedIssueKey = extractIssueKey(
+    branch,
+    asString(pullRequest?.title),
+    asString(pullRequest?.body),
+  );
+  if (!pullRequest || repoFullName.length === 0 || parsedIssueKey === null) {
+    return 0;
+  }
+
+  const repoDocs = await db
+    .collectionGroup("githubRepos")
+    .where("fullName", "==", repoFullName)
+    .where("enabled", "==", true)
+    .get();
+
+  let linked = 0;
+  for (const repoDoc of repoDocs.docs) {
+    const workspaceRef = repoDoc.ref.parent.parent;
+    const workspaceId = workspaceRef?.id;
+    if (!workspaceRef || !workspaceId) {
+      continue;
+    }
+
+    const issueDocs = await workspaceRef
+      .collection("issues")
+      .where("repo", "==", repoFullName)
+      .where("issueKey", "==", parsedIssueKey)
+      .limit(5)
+      .get();
+
+    for (const issueDoc of issueDocs.docs) {
+      const issue = issueDoc.data();
+      const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+      const githubIssueNumber = asNumber(githubIssue?.number);
+      if (githubIssueNumber <= 0) {
+        continue;
+      }
+
+      const workspace = await workspaceRef.get();
+      const ownerUid = asString(workspace.get("ownerUid"));
+      if (ownerUid.length > 0) {
+        try {
+          const token = await getGitHubToken(ownerUid);
+          const nextBody = upsertLinkedIssueBlock(
+            asString(pullRequest.body),
+            githubIssueNumber,
+            parsedIssueKey,
+          );
+          if (nextBody !== asString(pullRequest.body)) {
+            const [owner, repo] = repoFullName.split("/");
+            const prNumber = asNumber(pullRequest.number);
+            if (owner && repo && prNumber > 0) {
+              await githubRequest({
+                path: `/repos/${owner}/${repo}/pulls/${prNumber}`,
+                token,
+                method: "PATCH",
+                body: { body: nextBody },
+              });
+            }
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.warn("githubPullRequestWebhook: failed to update PR body", {
+            workspaceId,
+            repoFullName,
+            issueKey: parsedIssueKey,
+            message,
+          });
+        }
+      }
+
+      await upsertPullRequestLink({
+        workspaceId,
+        issueId: issueDoc.id,
+        pullRequest,
+        repoFullName,
+        branch,
+      });
+      linked += 1;
+    }
+  }
+
+  return linked;
+}
+
+export const githubPullRequestWebhook = onRequest(
+  { secrets: [githubWebhookSecret] },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    const event = asString(request.header("x-github-event"));
+    if (event !== "pull_request") {
+      response.status(204).send();
+      return;
+    }
+
+    const rawBody = requestRawBody(request);
+    const signature = asString(request.header("x-hub-signature-256"));
+    if (!verifyGitHubSignature(rawBody, signature, githubWebhookSecret.value())) {
+      response.status(401).send("Invalid signature");
+      return;
+    }
+
+    try {
+      const linked = await linkPullRequestToImaIssues(parseWebhookPayload(rawBody));
+      response.status(200).json({ linked });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("githubPullRequestWebhook: failed", { message });
+      response.status(500).send("Webhook processing failed");
+    }
+  },
+);
 
 export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>>(
   async (request) => {

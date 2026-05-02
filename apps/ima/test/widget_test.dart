@@ -103,6 +103,43 @@ void main() {
     expect(find.byTooltip('Copy GitHub link'), findsOneWidget);
   });
 
+  testWidgets('Issue card renders Ima issue key and linked PR badge', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: IssueCard(
+            issue: Issue(
+              id: 'gh_openci_ima_57',
+              issueKey: 'IMA-1423',
+              repo: 'openci/ima',
+              title: 'Link pull request from branch',
+              assignee: 'MF',
+              labels: ['github'],
+              comments: 0,
+              priority: Priority.medium,
+              pullRequests: [
+                IssuePullRequest(
+                  number: 12,
+                  title: 'Implement PR linking',
+                  url: 'https://github.com/openci/ima/pull/12',
+                  state: 'open',
+                  merged: false,
+                  branch: 'feature/ima-1423-link-pr',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('IMA-1423'), findsOneWidget);
+    expect(find.byTooltip('Copy issue ID'), findsOneWidget);
+    expect(find.text('PR #12'), findsOneWidget);
+  });
+
   testWidgets('Board column header creates issue in that column', (
     tester,
   ) async {

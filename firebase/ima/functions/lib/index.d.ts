@@ -47,6 +47,9 @@ interface SyncGitHubIssuesResponse {
     synced: number;
     failed: number;
 }
+interface BackfillIssueKeysResponse {
+    updated: number;
+}
 interface CreateGitHubIssueResponse {
     issueId: string;
     number: number;
@@ -76,6 +79,8 @@ export declare const completeGitHubDeviceFlow: import("firebase-functions/v2/htt
 export declare const listGitHubRepositories: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<ListGitHubRepositoriesResponse>, unknown>;
 export declare const importGitHubIssues: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<ImportGitHubIssuesResponse>, unknown>;
 export declare const createGitHubIssue: import("firebase-functions/v2/https").CallableFunction<CreateGitHubIssueRequest, Promise<CreateGitHubIssueResponse>, unknown>;
+export declare const backfillIssueKeys: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<BackfillIssueKeysResponse>, unknown>;
+export declare const githubPullRequestWebhook: import("firebase-functions/v2/https").HttpsFunction;
 export declare const syncGitHubIssues: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>, unknown>;
 export declare const estimateIssueWeight: import("firebase-functions/v2/https").CallableFunction<EstimateIssueWeightRequest, Promise<{
     issueId: string;
