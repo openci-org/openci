@@ -6,6 +6,7 @@ exports.issueKey = issueKey;
 exports.extractIssueKey = extractIssueKey;
 exports.linkedIssueBlock = linkedIssueBlock;
 exports.upsertLinkedIssueBlock = upsertLinkedIssueBlock;
+exports.issueStatusForPullRequest = issueStatusForPullRequest;
 exports.imaLinkedIssueBlockStart = "<!-- ima-linked-issue:start -->";
 exports.imaLinkedIssueBlockEnd = "<!-- ima-linked-issue:end -->";
 const issueKeyPattern = /(?:^|[^A-Z0-9])([A-Z][A-Z0-9]+-\d+)(?=$|[^A-Z0-9])/iu;
@@ -39,5 +40,17 @@ function upsertLinkedIssueBlock(body, githubIssueNumber, imaIssueKey) {
     const trimmedBody = (body ?? "").replace(managedBlockPattern, "").trim();
     const block = linkedIssueBlock(githubIssueNumber, imaIssueKey);
     return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
+}
+function issueStatusForPullRequest({ action, merged, currentStatusId, reviewStatusId = "review", doneStatusId = "done", }) {
+    if (action === "closed") {
+        return merged ? doneStatusId : null;
+    }
+    if (action === "reopened") {
+        return reviewStatusId;
+    }
+    if (currentStatusId === doneStatusId) {
+        return null;
+    }
+    return currentStatusId === reviewStatusId ? null : reviewStatusId;
 }
 //# sourceMappingURL=issueLinkingHelpers.js.map

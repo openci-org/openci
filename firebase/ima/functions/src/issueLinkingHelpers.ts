@@ -43,3 +43,31 @@ export function upsertLinkedIssueBlock(
   const block = linkedIssueBlock(githubIssueNumber, imaIssueKey);
   return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
 }
+
+export function issueStatusForPullRequest({
+  action,
+  merged,
+  currentStatusId,
+  reviewStatusId = "review",
+  doneStatusId = "done",
+}: {
+  action: string;
+  merged: boolean;
+  currentStatusId: string;
+  reviewStatusId?: string;
+  doneStatusId?: string;
+}): string | null {
+  if (action === "closed") {
+    return merged ? doneStatusId : null;
+  }
+
+  if (action === "reopened") {
+    return reviewStatusId;
+  }
+
+  if (currentStatusId === doneStatusId) {
+    return null;
+  }
+
+  return currentStatusId === reviewStatusId ? null : reviewStatusId;
+}

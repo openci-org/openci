@@ -5,3 +5,10 @@ export declare function issueKey(prefix: string, number: number): string;
 export declare function extractIssueKey(...sources: Array<string | undefined | null>): string | null;
 export declare function linkedIssueBlock(githubIssueNumber: number, imaIssueKey: string): string;
 export declare function upsertLinkedIssueBlock(body: string | undefined | null, githubIssueNumber: number, imaIssueKey: string): string;
+export declare function issueStatusForPullRequest({ action, merged, currentStatusId, reviewStatusId, doneStatusId, }: {
+    action: string;
+    merged: boolean;
+    currentStatusId: string;
+    reviewStatusId?: string;
+    doneStatusId?: string;
+}): string | null;

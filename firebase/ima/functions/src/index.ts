@@ -14,7 +14,13 @@ import {
   parseWeightEstimateResponse,
   truncateText,
 } from "./issueWeightHelpers";
-import { extractIssueKey, issueKey, normalizeIssueKeyPrefix, upsertLinkedIssueBlock } from "./issueLinkingHelpers";
+import {
+  extractIssueKey,
+  issueKey,
+  issueStatusForPullRequest,
+  normalizeIssueKeyPrefix,
+  upsertLinkedIssueBlock,
+} from "./issueLinkingHelpers";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -179,6 +185,7 @@ const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 const closedStatusId = "done";
+const reviewStatusId = "review";
 const inProgressStatusIds = new Set(["doing", "review"]);
 const issueWeightModel = "claude-opus-4-6";
 
@@ -1280,12 +1287,14 @@ function parseWebhookPayload(rawBody: Buffer): GitHubPullRequestWebhookPayload {
 async function upsertPullRequestLink({
   workspaceId,
   issueId,
+  action,
   pullRequest,
   repoFullName,
   branch,
 }: {
   workspaceId: string;
   issueId: string;
+  action: string;
   pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>;
   repoFullName: string;
   branch: string;
@@ -1302,6 +1311,14 @@ async function upsertPullRequestLink({
     const currentPullRequests = Array.isArray(issue.get("pullRequests"))
       ? (issue.get("pullRequests") as Array<Record<string, unknown>>)
       : [];
+    const currentStatusId = asString(issue.get("statusId"), "triage");
+    const nextStatusId = issueStatusForPullRequest({
+      action,
+      merged: asBoolean(pullRequest.merged),
+      currentStatusId,
+      reviewStatusId,
+      doneStatusId: closedStatusId,
+    });
     const linkId = pullRequestLinkId(owner, repo, number);
     const now = Timestamp.now();
     const existingLink = currentPullRequests.find((item) => asString(item.id) === linkId);
@@ -1323,6 +1340,7 @@ async function upsertPullRequestLink({
       issueRef,
       {
         pullRequests: nextPullRequests,
+        ...(nextStatusId === null ? {} : { statusId: nextStatusId }),
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -1409,6 +1427,7 @@ async function linkPullRequestToImaIssues(payload: GitHubPullRequestWebhookPaylo
       await upsertPullRequestLink({
         workspaceId,
         issueId: issueDoc.id,
+        action,
         pullRequest,
         repoFullName,
         branch,

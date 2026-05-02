@@ -8,6 +8,7 @@ import {
   imaLinkedIssueBlockEnd,
   imaLinkedIssueBlockStart,
   issueKey,
+  issueStatusForPullRequest,
   upsertLinkedIssueBlock,
 } from "./issueLinkingHelpers.js";
 
@@ -44,5 +45,62 @@ describe("issue linking helpers", () => {
     assert.equal(second.match(/ima-linked-issue:start/gu)?.length, 1);
     assert.match(second, /Fixes #58/u);
     assert.doesNotMatch(second, /Fixes #57/u);
+  });
+
+  it("moves linked pull requests into review", () => {
+    assert.equal(
+      issueStatusForPullRequest({
+        action: "opened",
+        merged: false,
+        currentStatusId: "doing",
+      }),
+      "review",
+    );
+    assert.equal(
+      issueStatusForPullRequest({
+        action: "synchronize",
+        merged: false,
+        currentStatusId: "review",
+      }),
+      null,
+    );
+  });
+
+  it("moves merged pull requests into done", () => {
+    assert.equal(
+      issueStatusForPullRequest({
+        action: "closed",
+        merged: true,
+        currentStatusId: "review",
+      }),
+      "done",
+    );
+    assert.equal(
+      issueStatusForPullRequest({
+        action: "closed",
+        merged: false,
+        currentStatusId: "review",
+      }),
+      null,
+    );
+  });
+
+  it("does not regress done issues except for reopened pull requests", () => {
+    assert.equal(
+      issueStatusForPullRequest({
+        action: "edited",
+        merged: false,
+        currentStatusId: "done",
+      }),
+      null,
+    );
+    assert.equal(
+      issueStatusForPullRequest({
+        action: "reopened",
+        merged: false,
+        currentStatusId: "done",
+      }),
+      "review",
+    );
   });
 });
