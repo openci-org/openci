@@ -390,7 +390,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   var _isLoadingRepositories = false;
   var _isImportingIssues = false;
   var _isSyncingIssues = false;
-  var _isBackfillingIssueKeys = false;
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
@@ -445,8 +444,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       _isConnectingGitHub ||
       _isLoadingRepositories ||
       _isImportingIssues ||
-      _isSyncingIssues ||
-      _isBackfillingIssueKeys;
+      _isSyncingIssues;
 
   List<String> get _enabledRepositoryOptions =>
       (_enabledRepoFullNames.toList()..sort());
@@ -1089,26 +1087,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
   }
 
-  Future<void> _backfillIssueKeys() async {
-    if (_isBackfillingIssueKeys) {
-      return;
-    }
-
-    setState(() => _isBackfillingIssueKeys = true);
-    try {
-      final data = await _callFunction('backfillIssueKeys', {
-        'workspaceId': _workspaceId,
-      });
-      _showSavedSnackBar('${_asInt(data['updated'])} issue IDs backfilled');
-    } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
-    } finally {
-      if (mounted) {
-        setState(() => _isBackfillingIssueKeys = false);
-      }
-    }
-  }
-
   Future<Map<String, dynamic>> _callFunction(
     String name,
     Map<String, Object?> data,
@@ -1161,14 +1139,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     CompactBoardMenuButton(
                       isConnected: isConnected,
                       isBusy: _isBusy,
-                      githubLogin: _githubLogin,
                       repoCount: _enabledRepoCount,
                       lastImportedAt: _lastImportedAt?.toDate(),
                       onConnectGitHub: _connectGitHub,
                       onSelectRepositories: _selectRepositories,
                       onImportIssues: _importGitHubIssues,
                       onSyncIssues: _syncGitHubIssues,
-                      onBackfillIssueKeys: _backfillIssueKeys,
                       onSignOut: onSignOut,
                     ),
                     const SizedBox(width: 4),
@@ -1186,19 +1162,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
             child: Column(
               children: [
                 if (!isCompactLayout)
-                  BoardHeader(
-                    openIssues: openIssues,
-                    userEmail: FirebaseAuth.instance.currentUser?.email,
-                    onSignOut: onSignOut,
-                  ),
+                  BoardHeader(openIssues: openIssues, onSignOut: onSignOut),
                 if (_isBootstrapping) const LinearProgressIndicator(),
                 BoardToolbar(
-                  onAddIssue: () => unawaited(_openAddIssueDialog()),
                   onConnectGitHub: _connectGitHub,
                   onSelectRepositories: _selectRepositories,
                   onImportIssues: _importGitHubIssues,
                   onSyncIssues: _syncGitHubIssues,
-                  onBackfillIssueKeys: _backfillIssueKeys,
                   githubLogin: _githubLogin,
                   repoCount: _enabledRepoCount,
                   lastImportedAt: _lastImportedAt?.toDate(),
@@ -1306,12 +1276,10 @@ class BoardHeader extends StatelessWidget {
   const BoardHeader({
     super.key,
     required this.openIssues,
-    required this.userEmail,
     required this.onSignOut,
   });
 
   final int openIssues;
-  final String? userEmail;
   final Future<void> Function() onSignOut;
 
   @override
@@ -1356,12 +1324,6 @@ class BoardHeader extends StatelessWidget {
                 children: [
                   IssueCountBadge(openIssues: openIssues),
                   const SizedBox(height: 6),
-                  Text(
-                    userEmail ?? 'ログイン中',
-                    style: textTheme.labelMedium?.copyWith(
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
                   TextButton(
                     onPressed: () => unawaited(onSignOut()),
                     child: const Text('サインアウト'),
@@ -1412,24 +1374,20 @@ class IssueCountBadge extends StatelessWidget {
 class BoardToolbar extends StatelessWidget {
   const BoardToolbar({
     super.key,
-    required this.onAddIssue,
     required this.onConnectGitHub,
     required this.onSelectRepositories,
     required this.onImportIssues,
     required this.onSyncIssues,
-    required this.onBackfillIssueKeys,
     required this.githubLogin,
     required this.repoCount,
     required this.lastImportedAt,
     required this.isBusy,
   });
 
-  final VoidCallback onAddIssue;
   final VoidCallback onConnectGitHub;
   final VoidCallback onSelectRepositories;
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
-  final VoidCallback onBackfillIssueKeys;
   final String? githubLogin;
   final int repoCount;
   final DateTime? lastImportedAt;
@@ -1452,17 +1410,12 @@ class BoardToolbar extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              AddIssueButton(onPressed: onAddIssue),
-              FilledButton.icon(
-                onPressed: isBusy ? null : onConnectGitHub,
-                icon: Icon(
-                  isConnected
-                      ? Icons.check_circle_outline_rounded
-                      : Icons.link_rounded,
-                  size: 16,
+              if (!isConnected)
+                FilledButton.icon(
+                  onPressed: isBusy ? null : onConnectGitHub,
+                  icon: const Icon(Icons.link_rounded, size: 16),
+                  label: const Text('Connect GitHub'),
                 ),
-                label: Text(isConnected ? '@$githubLogin' : 'Connect GitHub'),
-              ),
               OutlinedButton.icon(
                 onPressed: isBusy || !isConnected ? null : onSelectRepositories,
                 icon: const Icon(Icons.account_tree_outlined, size: 16),
@@ -1477,11 +1430,6 @@ class BoardToolbar extends StatelessWidget {
                 onPressed: isBusy || !isConnected ? null : onSyncIssues,
                 icon: const Icon(Icons.sync_outlined, size: 16),
                 label: const Text('Sync pending'),
-              ),
-              OutlinedButton.icon(
-                onPressed: isBusy ? null : onBackfillIssueKeys,
-                icon: const Icon(Icons.tag_rounded, size: 16),
-                label: const Text('Backfill IDs'),
               ),
               ToolbarChip(
                 icon: Icons.history_rounded,
@@ -1510,27 +1458,23 @@ class CompactBoardMenuButton extends StatelessWidget {
     super.key,
     required this.isConnected,
     required this.isBusy,
-    required this.githubLogin,
     required this.repoCount,
     required this.lastImportedAt,
     required this.onConnectGitHub,
     required this.onSelectRepositories,
     required this.onImportIssues,
     required this.onSyncIssues,
-    required this.onBackfillIssueKeys,
     required this.onSignOut,
   });
 
   final bool isConnected;
   final bool isBusy;
-  final String? githubLogin;
   final int repoCount;
   final DateTime? lastImportedAt;
   final VoidCallback onConnectGitHub;
   final VoidCallback onSelectRepositories;
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
-  final VoidCallback onBackfillIssueKeys;
   final Future<void> Function() onSignOut;
 
   @override
@@ -1548,23 +1492,20 @@ class CompactBoardMenuButton extends StatelessWidget {
             onImportIssues();
           case 'sync':
             onSyncIssues();
-          case 'backfill':
-            onBackfillIssueKeys();
           case 'signOut':
             unawaited(onSignOut());
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'github',
-          enabled: !isBusy,
-          child: _CompactMenuItem(
-            icon: isConnected
-                ? Icons.check_circle_outline_rounded
-                : Icons.link_rounded,
-            label: isConnected ? '@$githubLogin' : 'Connect GitHub',
+        if (!isConnected)
+          PopupMenuItem(
+            value: 'github',
+            enabled: !isBusy,
+            child: const _CompactMenuItem(
+              icon: Icons.link_rounded,
+              label: 'Connect GitHub',
+            ),
           ),
-        ),
         PopupMenuItem(
           value: 'repos',
           enabled: !isBusy && isConnected,
@@ -1587,14 +1528,6 @@ class CompactBoardMenuButton extends StatelessWidget {
           child: const _CompactMenuItem(
             icon: Icons.sync_outlined,
             label: 'Sync pending',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'backfill',
-          enabled: !isBusy,
-          child: const _CompactMenuItem(
-            icon: Icons.tag_rounded,
-            label: 'Backfill IDs',
           ),
         ),
         const PopupMenuDivider(),
@@ -1645,25 +1578,6 @@ class _CompactMenuItem extends StatelessWidget {
         const SizedBox(width: 10),
         Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
       ],
-    );
-  }
-}
-
-class AddIssueButton extends StatelessWidget {
-  const AddIssueButton({super.key, required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.add_rounded, size: 16),
-      label: const Text('New issue  ⌘T'),
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
-      ),
     );
   }
 }
