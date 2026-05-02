@@ -13,6 +13,11 @@ import 'firebase_options.dart';
 const _functionsRegion = 'asia-northeast1';
 const _githubOAuthClientId = String.fromEnvironment('GITHUB_OAUTH_CLIENT_ID');
 const _closedStatusId = 'done';
+const _compactTextScale = 0.94;
+const _boardHorizontalPadding = 16.0;
+const _boardBottomPadding = 18.0;
+const _boardColumnWidth = 280.0;
+const _boardColumnGap = 12.0;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,22 +30,57 @@ class IssueBoardApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF2563EB),
+        brightness: Brightness.light,
+      ),
+      useMaterial3: true,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'IssuePilot',
       locale: const Locale('ja', 'JP'),
       supportedLocales: const [Locale('ja', 'JP')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
+      theme: baseTheme.copyWith(
+        textTheme: _scaledTextTheme(baseTheme.textTheme),
+        primaryTextTheme: _scaledTextTheme(baseTheme.primaryTextTheme),
       ),
       home: const AuthGate(),
     );
   }
+}
+
+TextTheme _scaledTextTheme(TextTheme theme) {
+  return theme.copyWith(
+    displayLarge: _scaledTextStyle(theme.displayLarge),
+    displayMedium: _scaledTextStyle(theme.displayMedium),
+    displaySmall: _scaledTextStyle(theme.displaySmall),
+    headlineLarge: _scaledTextStyle(theme.headlineLarge),
+    headlineMedium: _scaledTextStyle(theme.headlineMedium),
+    headlineSmall: _scaledTextStyle(theme.headlineSmall),
+    titleLarge: _scaledTextStyle(theme.titleLarge),
+    titleMedium: _scaledTextStyle(theme.titleMedium),
+    titleSmall: _scaledTextStyle(theme.titleSmall),
+    bodyLarge: _scaledTextStyle(theme.bodyLarge),
+    bodyMedium: _scaledTextStyle(theme.bodyMedium),
+    bodySmall: _scaledTextStyle(theme.bodySmall),
+    labelLarge: _scaledTextStyle(theme.labelLarge),
+    labelMedium: _scaledTextStyle(theme.labelMedium),
+    labelSmall: _scaledTextStyle(theme.labelSmall),
+  );
+}
+
+TextStyle? _scaledTextStyle(TextStyle? style) {
+  final fontSize = style?.fontSize;
+  if (style == null || fontSize == null) {
+    return style;
+  }
+  return style.copyWith(fontSize: fontSize * _compactTextScale);
 }
 
 class AuthGate extends StatelessWidget {
@@ -1087,7 +1127,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final boardHeight = constraints.maxHeight > 32
-                          ? constraints.maxHeight - 32
+                          ? constraints.maxHeight - 24
                           : constraints.maxHeight;
 
                       return Scrollbar(
@@ -1095,7 +1135,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                         thumbVisibility: true,
                         child: SingleChildScrollView(
                           controller: _boardScrollController,
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                          padding: const EdgeInsets.fromLTRB(
+                            _boardHorizontalPadding,
+                            6,
+                            _boardHorizontalPadding,
+                            _boardBottomPadding,
+                          ),
                           scrollDirection: Axis.horizontal,
                           child: SizedBox(
                             height: boardHeight,
@@ -1115,7 +1160,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     onIssueTapped: _openEditIssueDialog,
                                     onIssueClosed: _closeIssue,
                                   ),
-                                  const SizedBox(width: 16),
+                                  if (column != _columns.last)
+                                    const SizedBox(width: _boardColumnGap),
                                 ],
                               ],
                             ),
@@ -1151,7 +1197,7 @@ class BoardHeader extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1166,7 +1212,7 @@ class BoardHeader extends StatelessWidget {
                     letterSpacing: -0.8,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   '複数repoのGitHub Issuesを同期して、macOSとiOSで軽く扱うためのKanbanプロトタイプ。',
                   style: textTheme.bodyMedium?.copyWith(
@@ -1181,7 +1227,7 @@ class BoardHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               IssueCountBadge(openIssues: openIssues),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Text(
                 userEmail ?? 'ログイン中',
                 style: textTheme.labelMedium?.copyWith(
@@ -1208,11 +1254,11 @@ class IssueCountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1262,10 +1308,10 @@ class BoardToolbar extends StatelessWidget {
     final isConnected = githubLogin != null && githubLogin!.isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+        spacing: 8,
+        runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           AddIssueButton(onPressed: onAddIssue),
@@ -1275,23 +1321,23 @@ class BoardToolbar extends StatelessWidget {
               isConnected
                   ? Icons.check_circle_outline_rounded
                   : Icons.link_rounded,
-              size: 18,
+              size: 16,
             ),
             label: Text(isConnected ? '@$githubLogin' : 'Connect GitHub'),
           ),
           OutlinedButton.icon(
             onPressed: isBusy || !isConnected ? null : onSelectRepositories,
-            icon: const Icon(Icons.account_tree_outlined, size: 18),
+            icon: const Icon(Icons.account_tree_outlined, size: 16),
             label: Text('$repoCount repos'),
           ),
           OutlinedButton.icon(
             onPressed: isBusy || !isConnected ? null : onImportIssues,
-            icon: const Icon(Icons.download_rounded, size: 18),
+            icon: const Icon(Icons.download_rounded, size: 16),
             label: const Text('Import issues'),
           ),
           OutlinedButton.icon(
             onPressed: isBusy || !isConnected ? null : onSyncIssues,
-            icon: const Icon(Icons.sync_outlined, size: 18),
+            icon: const Icon(Icons.sync_outlined, size: 16),
             label: const Text('Sync pending'),
           ),
           ToolbarChip(
@@ -1323,10 +1369,10 @@ class AddIssueButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return FilledButton.icon(
       onPressed: onPressed,
-      icon: const Icon(Icons.add_rounded, size: 18),
+      icon: const Icon(Icons.add_rounded, size: 16),
       label: const Text('New issue  ⌘T'),
       style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     );
@@ -1342,7 +1388,7 @@ class ToolbarChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE2E8F0)),
@@ -1351,12 +1397,13 @@ class ToolbarChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF475569)),
-          const SizedBox(width: 8),
+          Icon(icon, size: 15, color: const Color(0xFF475569)),
+          const SizedBox(width: 6),
           Text(
             label,
             style: const TextStyle(
               color: Color(0xFF334155),
+              fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -2086,8 +2133,8 @@ class BoardColumnView extends StatelessWidget {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          width: 310,
-          padding: const EdgeInsets.all(14),
+          width: _boardColumnWidth,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isHovering
                 ? column.color.withValues(alpha: 0.08)
@@ -2097,7 +2144,7 @@ class BoardColumnView extends StatelessWidget {
                   ? column.color.withValues(alpha: 0.45)
                   : const Color(0xFFE2E8F0),
             ),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2106,7 +2153,7 @@ class BoardColumnView extends StatelessWidget {
                 column: column,
                 onAddIssue: () => onAddIssue(column.id),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
@@ -2116,7 +2163,7 @@ class BoardColumnView extends StatelessWidget {
                         columnTitle: column.title,
                         onPressed: () => onAddIssue(column.id),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                     ],
                     for (
                       var index = 0;
@@ -2135,7 +2182,7 @@ class BoardColumnView extends StatelessWidget {
                             onIssueClosed(column.issues[index].id),
                         onIssueDropped: onIssueDropped,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                     ],
                     IssueDropSlot(
                       columnId: column.id,
@@ -2170,14 +2217,14 @@ class ColumnHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 10,
-          height: 38,
+          width: 8,
+          height: 34,
           decoration: BoxDecoration(
             color: column.color,
             borderRadius: BorderRadius.circular(999),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2193,9 +2240,9 @@ class ColumnHeader extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   CountPill(count: column.issues.length),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                   AddIssueToColumnButton(
                     columnTitle: column.title,
                     onPressed: onAddIssue,
@@ -2230,13 +2277,13 @@ class AddIssueToColumnButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 30,
+      dimension: 26,
       child: IconButton(
         tooltip: 'New issue in $columnTitle',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
         onPressed: onPressed,
-        icon: const Icon(Icons.add_rounded, size: 18),
+        icon: const Icon(Icons.add_rounded, size: 16),
       ),
     );
   }
@@ -2250,7 +2297,7 @@ class CountPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(999),
@@ -2281,16 +2328,16 @@ class EmptyColumnIssueCreator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          const Icon(Icons.inbox_outlined, color: Color(0xFF94A3B8), size: 28),
-          const SizedBox(height: 8),
+          const Icon(Icons.inbox_outlined, color: Color(0xFF94A3B8), size: 24),
+          const SizedBox(height: 6),
           const Text(
             'まだチケットがありません',
             style: TextStyle(
@@ -2298,7 +2345,7 @@ class EmptyColumnIssueCreator extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Tooltip(
             message: '$columnTitleにチケットを作成',
             child: OutlinedButton(
@@ -2700,7 +2747,7 @@ class IssueCard extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDragPlaceholder ? const Color(0xFFF8FAFC) : Colors.white,
         border: Border.all(
@@ -2708,7 +2755,7 @@ class IssueCard extends StatelessWidget {
               ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
               : const Color(0xFFE2E8F0),
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -2740,7 +2787,7 @@ class IssueCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             issue.title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -2750,7 +2797,7 @@ class IssueCard extends StatelessWidget {
             ),
           ),
           if (issue.body.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               issue.body,
               maxLines: 3,
@@ -2761,19 +2808,19 @@ class IssueCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 5,
+            runSpacing: 5,
             children: [
               for (final label in issue.labels) LabelPill(label: label),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Row(
             children: [
               CircleAvatar(
-                radius: 14,
+                radius: 12,
                 backgroundColor: const Color(0xFFDBEAFE),
                 child: Text(
                   issue.assignee,
@@ -2784,7 +2831,7 @@ class IssueCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   issue.displayId,
@@ -2796,16 +2843,16 @@ class IssueCard extends StatelessWidget {
                 ),
               ),
               if (issue.dueDate != null) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 DueDatePill(dueDate: issue.dueDate!),
               ],
               const Spacer(),
               const Icon(
                 Icons.chat_bubble_outline_rounded,
-                size: 16,
+                size: 15,
                 color: Color(0xFF94A3B8),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 3),
               Text(
                 '${issue.comments}',
                 style: const TextStyle(
@@ -2834,7 +2881,7 @@ class CloseIssueButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 30,
+      dimension: 26,
       child: IconButton(
         tooltip: isClosing ? 'Closing issue' : 'Close issue',
         padding: EdgeInsets.zero,
@@ -2842,10 +2889,10 @@ class CloseIssueButton extends StatelessWidget {
         onPressed: onPressed,
         icon: isClosing
             ? const SizedBox.square(
-                dimension: 16,
+                dimension: 14,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.check_circle_outline_rounded, size: 18),
+            : const Icon(Icons.check_circle_outline_rounded, size: 16),
       ),
     );
   }
@@ -2860,7 +2907,7 @@ class RepoBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Flexible(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
           color: const Color(0xFFF8FAFC),
           border: Border.all(color: const Color(0xFFE2E8F0)),
@@ -2888,7 +2935,7 @@ class LabelPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(999),
@@ -2933,7 +2980,7 @@ class DueDatePill extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(999),
@@ -2941,8 +2988,8 @@ class DueDatePill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.event_outlined, size: 13, color: colors.foreground),
-          const SizedBox(width: 4),
+          Icon(Icons.event_outlined, size: 12, color: colors.foreground),
+          const SizedBox(width: 3),
           Text(
             _dueDateLabel(dueDate),
             style: TextStyle(
@@ -2978,8 +3025,8 @@ class PriorityDot extends StatelessWidget {
     return Tooltip(
       message: '${priority.name} priority',
       child: Container(
-        width: 12,
-        height: 12,
+        width: 10,
+        height: 10,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
