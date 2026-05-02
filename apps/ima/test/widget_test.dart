@@ -80,6 +80,29 @@ void main() {
     expect(find.text('W3'), findsOneWidget);
   });
 
+  testWidgets('Issue card exposes GitHub link copy action', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: IssueCard(
+            issue: Issue(
+              id: 'IMA-5',
+              repo: 'openci/ima',
+              title: 'Copy GitHub link from card',
+              githubUrl: 'https://github.com/openci/ima/issues/5',
+              assignee: 'MF',
+              labels: ['github'],
+              comments: 0,
+              priority: Priority.medium,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Copy GitHub link'), findsOneWidget);
+  });
+
   testWidgets('Board column header creates issue in that column', (
     tester,
   ) async {
@@ -211,6 +234,66 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(dialogResult, isA<CloseIssueDialogResult>());
+  });
+
+  testWidgets('Edit issue dialog exposes GitHub link controls', (tester) async {
+    const githubUrl = 'https://github.com/openci/ima/issues/6';
+    final columns = [
+      BoardColumn(
+        id: 'triage',
+        title: 'Triage',
+        description: '新着と要件確認',
+        color: Colors.indigo,
+        issues: const [],
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return TextButton(
+              onPressed: () {
+                showDialog<Object?>(
+                  context: context,
+                  builder: (context) => AddIssueDialog(
+                    columns: columns,
+                    repositoryOptions: const ['openci/ima'],
+                    initialIssue: const Issue(
+                      id: 'IMA-6',
+                      repo: 'openci/ima',
+                      title: 'Expose GitHub link controls',
+                      githubUrl: githubUrl,
+                      assignee: 'MF',
+                      labels: ['github'],
+                      comments: 0,
+                      priority: Priority.medium,
+                      statusId: 'triage',
+                    ),
+                    initialColumnId: 'triage',
+                  ),
+                );
+              },
+              child: const Text('Open edit dialog'),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open edit dialog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GitHub link'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is TextFormField && widget.controller?.text == githubUrl,
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Copy'), findsOneWidget);
+    expect(find.text('Paste'), findsOneWidget);
   });
 
   testWidgets('Issue card hides close action for closed issues', (

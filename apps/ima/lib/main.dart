@@ -83,6 +83,62 @@ TextStyle? _scaledTextStyle(TextStyle? style) {
   return style.copyWith(fontSize: fontSize * _compactTextScale);
 }
 
+String? _normalizedOptionalUrl(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+String? _validateOptionalHttpUrl(String? value) {
+  final trimmed = value?.trim() ?? '';
+  if (trimmed.isEmpty) {
+    return null;
+  }
+
+  final uri = Uri.tryParse(trimmed);
+  final isHttpUrl =
+      uri != null &&
+      uri.hasScheme &&
+      uri.host.isNotEmpty &&
+      (uri.scheme == 'https' || uri.scheme == 'http');
+  return isHttpUrl ? null : 'URL形式で入力してください';
+}
+
+void _showFloatingSnackBar(BuildContext context, String message) {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final screenWidth = MediaQuery.sizeOf(context).width;
+  final snackBarWidth = (screenWidth - 32).clamp(160.0, 260.0);
+  messenger
+    ?..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        width: snackBarWidth,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1400),
+      ),
+    );
+}
+
+Future<void> _copyTextToClipboard(
+  BuildContext context, {
+  required String text,
+  required String successMessage,
+}) async {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) {
+    return;
+  }
+
+  await Clipboard.setData(ClipboardData(text: trimmed));
+  if (!context.mounted) {
+    return;
+  }
+
+  _showFloatingSnackBar(context, successMessage);
+}
+
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -873,6 +929,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'priority': draft.priority.name,
       'statusId': draft.columnId,
       'rank': rank,
+      'githubIssue.url': draft.githubUrl == null
+          ? FieldValue.delete()
+          : draft.githubUrl,
       'dueDate': draft.dueDate == null
           ? FieldValue.delete()
           : Timestamp.fromDate(draft.dueDate!),
@@ -1602,6 +1661,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
+  final _githubUrlController = TextEditingController();
   final _assigneeController = TextEditingController(text: 'MF');
   final _labelsController = TextEditingController(text: 'feature, mobile');
   String? _selectedRepo;
@@ -1623,6 +1683,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     if (issue != null) {
       _titleController.text = issue.title;
       _bodyController.text = issue.body;
+      _githubUrlController.text = issue.githubUrl ?? '';
       _selectedRepo = widget.repositoryOptions.contains(issue.repo)
           ? issue.repo
           : null;
@@ -1637,6 +1698,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
+    _githubUrlController.dispose();
     _assigneeController.dispose();
     _labelsController.dispose();
     super.dispose();
@@ -1658,6 +1720,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
         repo: _selectedRepo ?? '',
+        githubUrl: _normalizedOptionalUrl(_githubUrlController.text),
         assignee: _assigneeController.text.trim(),
         labels: labels,
         columnId: _selectedColumnId,
@@ -1686,6 +1749,33 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         setState(() => _isEstimatingWeight = false);
       }
     }
+  }
+
+  void _copyGitHubUrl() {
+    unawaited(
+      _copyTextToClipboard(
+        context,
+        text: _githubUrlController.text,
+        successMessage: 'GitHub link copied',
+      ),
+    );
+  }
+
+  Future<void> _pasteGitHubUrl() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.trim();
+    if (text == null || text.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      _showFloatingSnackBar(context, 'Clipboard is empty');
+      return;
+    }
+
+    _githubUrlController.text = text;
+    _githubUrlController.selection = TextSelection.collapsed(
+      offset: text.length,
+    );
   }
 
   Future<void> _pickDueDate() async {
@@ -1776,6 +1866,18 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                           assigneeController: _assigneeController,
                           decorationBuilder: _inputDecoration,
                         ),
+                        if (isEditing) ...[
+                          const SizedBox(height: 14),
+                          _GitHubLinkField(
+                            controller: _githubUrlController,
+                            decoration: _inputDecoration(
+                              label: 'GitHub link',
+                              hint: 'https://github.com/openci/ima/issues/123',
+                            ),
+                            onCopy: _copyGitHubUrl,
+                            onPaste: _pasteGitHubUrl,
+                          ),
+                        ],
                         const SizedBox(height: 14),
                         _StatusAndPriorityFields(
                           columns: widget.columns,
@@ -1811,7 +1913,8 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                           IssueWeightPanel(
                             issue: widget.initialIssue!,
                             isEstimating:
-                                widget.isEstimatingWeight || _isEstimatingWeight,
+                                widget.isEstimatingWeight ||
+                                _isEstimatingWeight,
                             onEstimate: widget.onEstimateIssueWeight == null
                                 ? null
                                 : _estimateIssueWeight,
@@ -2000,6 +2103,73 @@ class _TitleField extends StatelessWidget {
       decoration: decoration,
       validator: (value) =>
           value == null || value.trim().isEmpty ? 'タイトルを入力してください' : null,
+    );
+  }
+}
+
+class _GitHubLinkField extends StatelessWidget {
+  const _GitHubLinkField({
+    required this.controller,
+    required this.decoration,
+    required this.onCopy,
+    required this.onPaste,
+  });
+
+  final TextEditingController controller;
+  final InputDecoration decoration;
+  final VoidCallback onCopy;
+  final Future<void> Function() onPaste;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final field = TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.url,
+          textInputAction: TextInputAction.next,
+          decoration: decoration,
+          validator: _validateOptionalHttpUrl,
+        );
+        final actions = ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final canCopy = value.text.trim().isNotEmpty;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: canCopy ? onCopy : null,
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('Copy'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => unawaited(onPaste()),
+                  icon: const Icon(Icons.content_paste_rounded, size: 18),
+                  label: const Text('Paste'),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [field, const SizedBox(height: 10), actions],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: field),
+            const SizedBox(width: 12),
+            Padding(padding: const EdgeInsets.only(top: 4), child: actions),
+          ],
+        );
+      },
     );
   }
 }
@@ -2839,6 +3009,7 @@ class IssueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final showCloseAction =
         onCloseIssue != null && issue.statusId != _closedStatusId;
+    final githubUrl = issue.githubUrl;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
@@ -2877,6 +3048,10 @@ class IssueCard extends StatelessWidget {
               ],
               const Spacer(),
               PriorityDot(priority: issue.priority),
+              if (githubUrl != null) ...[
+                const SizedBox(width: 6),
+                GitHubLinkCopyButton(url: githubUrl),
+              ],
               if (showCloseAction) ...[
                 const SizedBox(width: 6),
                 CloseIssueButton(
@@ -2962,6 +3137,32 @@ class IssueCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class GitHubLinkCopyButton extends StatelessWidget {
+  const GitHubLinkCopyButton({super.key, required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 26,
+      child: IconButton(
+        tooltip: 'Copy GitHub link',
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        onPressed: () => unawaited(
+          _copyTextToClipboard(
+            context,
+            text: url,
+            successMessage: 'GitHub link copied',
+          ),
+        ),
+        icon: const Icon(Icons.link_rounded, size: 16),
       ),
     );
   }
@@ -3283,6 +3484,7 @@ class NewIssueDraft {
     required this.title,
     required this.body,
     required this.repo,
+    required this.githubUrl,
     required this.assignee,
     required this.labels,
     required this.columnId,
@@ -3293,6 +3495,7 @@ class NewIssueDraft {
   final String title;
   final String body;
   final String repo;
+  final String? githubUrl;
   final String assignee;
   final List<String> labels;
   final String columnId;
@@ -3323,6 +3526,7 @@ class Issue {
     required this.repo,
     required this.title,
     this.body = '',
+    this.githubUrl,
     required this.assignee,
     required this.labels,
     required this.comments,
@@ -3345,6 +3549,7 @@ class Issue {
       repo: repo,
       title: _asString(data['title'], '#$number'),
       body: _asString(data['body']),
+      githubUrl: _normalizedOptionalUrl(_asString(githubIssue['url'])),
       assignee: _asString(data['assignee'], '-'),
       labels: _asStringList(data['labels']),
       comments: _asInt(data['comments']),
@@ -3363,6 +3568,7 @@ class Issue {
   final String repo;
   final String title;
   final String body;
+  final String? githubUrl;
   final String assignee;
   final List<String> labels;
   final int comments;
