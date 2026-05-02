@@ -212,6 +212,66 @@ void main() {
     expect(targetColumnId, 'review');
   });
 
+  testWidgets('Done board column shows latest closed issue first', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BoardColumnView(
+            column: BoardColumn(
+              id: 'done',
+              title: 'Done',
+              description: '今週完了',
+              color: Colors.green,
+              issues: [
+                Issue(
+                  id: 'old',
+                  repo: 'openci/ima',
+                  title: 'Old closed issue',
+                  assignee: 'MF',
+                  labels: const ['done'],
+                  comments: 0,
+                  priority: Priority.low,
+                  statusId: 'done',
+                  rank: 1000,
+                  closedAt: DateTime(2026, 5, 1),
+                ),
+                Issue(
+                  id: 'new',
+                  repo: 'openci/ima',
+                  title: 'New closed issue',
+                  assignee: 'MF',
+                  labels: const ['done'],
+                  comments: 0,
+                  priority: Priority.low,
+                  statusId: 'done',
+                  rank: 2000,
+                  closedAt: DateTime(2026, 5, 2),
+                ),
+              ],
+            ),
+            closingIssueIds: const <String>{},
+            onIssueDropped:
+                ({
+                  required issueId,
+                  required targetColumnId,
+                  required targetIndex,
+                }) {},
+            onAddIssue: (_) {},
+            onIssueTapped: (_) {},
+            onIssueClosed: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getTopLeft(find.text('New closed issue')).dy,
+      lessThan(tester.getTopLeft(find.text('Old closed issue')).dy),
+    );
+  });
+
   testWidgets('Edit issue dialog can return close action', (tester) async {
     Object? dialogResult;
     final columns = [

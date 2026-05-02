@@ -763,16 +763,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    final doneColumn = _columns.firstWhere(
-      (column) => column.id == _closedStatusId,
-    );
-
     setState(() => _closingIssueIds.add(issueId));
     try {
       await _moveIssue(
         issueId: issueId,
         targetColumnId: _closedStatusId,
-        targetIndex: doneColumn.issues.length,
+        targetIndex: 0,
       );
       _showSavedSnackBar('Closed');
     } catch (error) {
@@ -2411,6 +2407,8 @@ class BoardColumnView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleIssues = _visibleIssuesForColumn(column);
+
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
           details.data.sourceColumnId != column.id,
@@ -2451,7 +2449,7 @@ class BoardColumnView extends StatelessWidget {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    if (column.issues.isEmpty) ...[
+                    if (visibleIssues.isEmpty) ...[
                       EmptyColumnIssueCreator(
                         columnTitle: column.title,
                         onPressed: () => onAddIssue(column.id),
@@ -2460,20 +2458,26 @@ class BoardColumnView extends StatelessWidget {
                     ],
                     for (
                       var index = 0;
-                      index < column.issues.length;
+                      index < visibleIssues.length;
                       index++
                     ) ...[
-                      IssueCardDropTarget(
-                        issue: column.issues[index],
-                        sourceColumnId: column.id,
-                        index: index,
-                        isClosing: closingIssueIds.contains(
-                          column.issues[index].id,
-                        ),
-                        onTap: () => onIssueTapped(column.issues[index].id),
-                        onCloseIssue: () =>
-                            onIssueClosed(column.issues[index].id),
-                        onIssueDropped: onIssueDropped,
+                      Builder(
+                        builder: (context) {
+                          final issue = visibleIssues[index];
+                          final rankIndex = column.issues.indexWhere(
+                            (candidate) => candidate.id == issue.id,
+                          );
+
+                          return IssueCardDropTarget(
+                            issue: issue,
+                            sourceColumnId: column.id,
+                            index: rankIndex < 0 ? index : rankIndex,
+                            isClosing: closingIssueIds.contains(issue.id),
+                            onTap: () => onIssueTapped(issue.id),
+                            onCloseIssue: () => onIssueClosed(issue.id),
+                            onIssueDropped: onIssueDropped,
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -2492,6 +2496,28 @@ class BoardColumnView extends StatelessWidget {
       },
     );
   }
+}
+
+List<Issue> _visibleIssuesForColumn(BoardColumn column) {
+  if (column.id != _closedStatusId) {
+    return column.issues;
+  }
+
+  return [...column.issues]..sort(_compareDoneIssues);
+}
+
+int _compareDoneIssues(Issue left, Issue right) {
+  final leftClosedAt = left.closedAt;
+  final rightClosedAt = right.closedAt;
+
+  if (leftClosedAt != null && rightClosedAt != null) {
+    final closedAtComparison = rightClosedAt.compareTo(leftClosedAt);
+    if (closedAtComparison != 0) {
+      return closedAtComparison;
+    }
+  }
+
+  return left.rank.compareTo(right.rank);
 }
 
 class ColumnHeader extends StatelessWidget {
@@ -3641,6 +3667,7 @@ class Issue {
     this.dueDate,
     this.statusId = 'triage',
     this.rank = 0,
+    this.closedAt,
     this.weightEstimate,
     this.pullRequests = const [],
   }) : displayId = displayId ?? issueKey ?? id;
@@ -3671,6 +3698,7 @@ class Issue {
       dueDate: _asDate(data['dueDate']),
       statusId: _asString(data['statusId'], 'triage'),
       rank: _asDouble(data['rank']),
+      closedAt: _asDate(data['closedAt']),
       weightEstimate: IssueWeightEstimate.fromMap(
         _asMap(data['weightEstimate']),
       ),
@@ -3695,6 +3723,7 @@ class Issue {
   final DateTime? dueDate;
   final String statusId;
   final double rank;
+  final DateTime? closedAt;
   final IssueWeightEstimate? weightEstimate;
   final List<IssuePullRequest> pullRequests;
 }
