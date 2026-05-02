@@ -1335,10 +1335,6 @@ class BoardHeader extends StatelessWidget {
               (isCompact ? textTheme.headlineSmall : textTheme.headlineMedium)
                   ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.8),
         );
-        final description = Text(
-          '複数repoのGitHub Issuesを同期して、macOSとiOSで軽く扱うためのKanbanプロトタイプ。',
-          style: textTheme.bodyMedium?.copyWith(color: const Color(0xFF64748B)),
-        );
 
         if (isCompact) {
           return Padding(
@@ -1352,12 +1348,7 @@ class BoardHeader extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [title, const SizedBox(height: 6), description],
-                ),
-              ),
+              Expanded(child: title),
               const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
