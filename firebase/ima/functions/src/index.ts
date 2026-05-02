@@ -320,7 +320,8 @@ export const connectGitHub = onCall<ConnectGitHubRequest, Promise<{ login: strin
       if (error instanceof HttpsError) {
         throw error;
       }
-      logger.error("Failed to connect GitHub", { workspaceId, uid, error });
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("Failed to connect GitHub", { workspaceId, uid, message });
       throw new HttpsError("internal", "Failed to connect GitHub");
     }
   },
@@ -439,7 +440,8 @@ export const completeGitHubDeviceFlow = onCall<
     if (error instanceof HttpsError) {
       throw error;
     }
-    logger.error("Failed to complete GitHub device flow", { workspaceId, uid, error });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to complete GitHub device flow", { workspaceId, uid, message });
     throw new HttpsError("internal", "Failed to complete GitHub device flow");
   }
 });
@@ -491,7 +493,8 @@ export const listGitHubRepositories = onCall<
       repositories: repositories.filter((repo) => repo.fullName.includes("/")),
     };
   } catch (error) {
-    logger.error("Failed to list Ima GitHub repositories", { workspaceId, uid, error });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to list Ima GitHub repositories", { workspaceId, uid, message });
     throw new HttpsError("internal", "Failed to list GitHub repositories");
   }
 });
@@ -611,7 +614,8 @@ export const importGitHubIssues = onCall<
     await commitIfNeeded(true);
     return { imported, repositories: repositories.length };
   } catch (error) {
-    logger.error("Failed to import Ima GitHub issues", { workspaceId, uid, error });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to import Ima GitHub issues", { workspaceId, uid, message });
     throw new HttpsError("internal", "Failed to import GitHub issues");
   }
 });
@@ -639,6 +643,7 @@ export const createGitHubIssue = onCall<
   const assignees = githubAssignee.length > 0 ? [githubAssignee] : [];
 
   try {
+    logger.info("Creating GitHub issue", { workspaceId, repoFullName, owner, repo, title });
     const issue = await githubRequest<GitHubIssueResponseItem>({
       path: `/repos/${owner}/${repo}/issues`,
       token,
@@ -696,8 +701,10 @@ export const createGitHubIssue = onCall<
     if (error instanceof HttpsError) {
       throw error;
     }
-    logger.error("Failed to create Ima GitHub issue", { workspaceId, uid, repoFullName, error });
-    throw new HttpsError("internal", "Failed to create GitHub issue");
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error("Failed to create Ima GitHub issue", { workspaceId, uid, repoFullName, message, stack });
+    throw new HttpsError("internal", `Failed to create GitHub issue: ${message}`);
   }
 });
 

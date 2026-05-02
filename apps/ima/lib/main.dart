@@ -682,10 +682,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
   }
 
-  Future<void> _openAddIssueDialog() async {
+  Future<void> _openAddIssueDialog({String? initialColumnId}) async {
     final draft = await showDialog<NewIssueDraft>(
       context: context,
-      builder: (context) => AddIssueDialog(columns: _columns),
+      builder: (context) =>
+          AddIssueDialog(columns: _columns, initialColumnId: initialColumnId),
     );
 
     if (draft == null) {
@@ -708,7 +709,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       (issue) => issue.id == issueId,
     );
 
-    final draft = await showDialog<NewIssueDraft>(
+    final result = await showDialog<Object?>(
       context: context,
       builder: (context) => AddIssueDialog(
         columns: _columns,
@@ -717,12 +718,21 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       ),
     );
 
-    if (draft == null) {
+    if (result == null) {
+      return;
+    }
+
+    if (result is CloseIssueDialogResult) {
+      await _closeIssue(issueId);
+      return;
+    }
+
+    if (result is! NewIssueDraft) {
       return;
     }
 
     try {
-      await _updateIssue(issueId: issueId, draft: draft);
+      await _updateIssue(issueId: issueId, draft: result);
       _showSavedSnackBar('Saved');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
@@ -1035,8 +1045,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyT, meta: true):
-            _openAddIssueDialog,
+        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): () =>
+            unawaited(_openAddIssueDialog()),
       },
       child: Focus(
         autofocus: true,
@@ -1052,7 +1062,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 ),
                 if (_isBootstrapping) const LinearProgressIndicator(),
                 BoardToolbar(
-                  onAddIssue: _openAddIssueDialog,
+                  onAddIssue: () => unawaited(_openAddIssueDialog()),
                   onConnectGitHub: _connectGitHub,
                   onSelectRepositories: _selectRepositories,
                   onImportIssues: _importGitHubIssues,
@@ -1097,6 +1107,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     column: column,
                                     closingIssueIds: _closingIssueIds,
                                     onIssueDropped: _moveIssue,
+                                    onAddIssue: (columnId) => unawaited(
+                                      _openAddIssueDialog(
+                                        initialColumnId: columnId,
+                                      ),
+                                    ),
                                     onIssueTapped: _openEditIssueDialog,
                                     onIssueClosed: _closeIssue,
                                   ),
@@ -1562,6 +1577,10 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     );
   }
 
+  void _closeIssue() {
+    Navigator.of(context).pop(const CloseIssueDialogResult());
+  }
+
   Future<void> _pickDueDate() async {
     final now = DateTime.now();
     final initialDate = _dueDate ?? now;
@@ -1583,6 +1602,8 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   Widget build(BuildContext context) {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.86;
     final isEditing = widget.initialIssue != null;
+    final canCloseIssue =
+        isEditing && widget.initialIssue!.statusId != _closedStatusId;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -1674,41 +1695,13 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                           ),
                           onFieldSubmitted: (_) => _saveIssue(),
                         ),
-                        const SizedBox(height: 22),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                                child: const Text('Cancel'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: _saveIssue,
-                                icon: const Icon(Icons.add_rounded, size: 18),
-                                label: Text(
-                                  isEditing
-                                      ? 'Save changes  ⌘Enter'
-                                      : 'Add issue  ⌘Enter',
-                                ),
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 24),
+                        _DialogActions(
+                          isEditing: isEditing,
+                          canCloseIssue: canCloseIssue,
+                          onCancel: () => Navigator.of(context).pop(),
+                          onCloseIssue: _closeIssue,
+                          onSaveIssue: _saveIssue,
                         ),
                       ],
                     ),
@@ -1748,6 +1741,88 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       case Priority.low:
         return 'Low';
     }
+  }
+}
+
+class _DialogActions extends StatelessWidget {
+  const _DialogActions({
+    required this.isEditing,
+    required this.canCloseIssue,
+    required this.onCancel,
+    required this.onCloseIssue,
+    required this.onSaveIssue,
+  });
+
+  final bool isEditing;
+  final bool canCloseIssue;
+  final VoidCallback onCancel;
+  final VoidCallback onCloseIssue;
+  final VoidCallback onSaveIssue;
+
+  @override
+  Widget build(BuildContext context) {
+    final cancelButton = TextButton(
+      onPressed: onCancel,
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF64748B),
+        minimumSize: const Size(0, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: const Text('Cancel'),
+    );
+    final closeButton = OutlinedButton.icon(
+      onPressed: onCloseIssue,
+      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+      label: const Text('Close issue'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF15803D),
+        backgroundColor: const Color(0xFFF0FDF4),
+        side: const BorderSide(color: Color(0xFFBBF7D0)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+    final saveButton = FilledButton.icon(
+      onPressed: onSaveIssue,
+      icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
+      label: Text(isEditing ? 'Save changes' : 'Add issue'),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.only(top: 16),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 560) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(alignment: Alignment.centerLeft, child: cancelButton),
+                const SizedBox(height: 10),
+                if (canCloseIssue) ...[closeButton, const SizedBox(height: 10)],
+                saveButton,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              cancelButton,
+              const Spacer(),
+              if (canCloseIssue) ...[closeButton, const SizedBox(width: 12)],
+              saveButton,
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -1982,6 +2057,7 @@ class BoardColumnView extends StatelessWidget {
     required this.column,
     required this.closingIssueIds,
     required this.onIssueDropped,
+    required this.onAddIssue,
     required this.onIssueTapped,
     required this.onIssueClosed,
   });
@@ -1989,6 +2065,7 @@ class BoardColumnView extends StatelessWidget {
   final BoardColumn column;
   final Set<String> closingIssueIds;
   final IssueDropCallback onIssueDropped;
+  final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String> onIssueClosed;
 
@@ -2025,12 +2102,22 @@ class BoardColumnView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ColumnHeader(column: column),
+              ColumnHeader(
+                column: column,
+                onAddIssue: () => onAddIssue(column.id),
+              ),
               const SizedBox(height: 12),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
+                    if (column.issues.isEmpty) ...[
+                      EmptyColumnIssueCreator(
+                        columnTitle: column.title,
+                        onPressed: () => onAddIssue(column.id),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                     for (
                       var index = 0;
                       index < column.issues.length;
@@ -2068,9 +2155,14 @@ class BoardColumnView extends StatelessWidget {
 }
 
 class ColumnHeader extends StatelessWidget {
-  const ColumnHeader({super.key, required this.column});
+  const ColumnHeader({
+    super.key,
+    required this.column,
+    required this.onAddIssue,
+  });
 
   final BoardColumn column;
+  final VoidCallback onAddIssue;
 
   @override
   Widget build(BuildContext context) {
@@ -2103,6 +2195,11 @@ class ColumnHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   CountPill(count: column.issues.length),
+                  const SizedBox(width: 4),
+                  AddIssueToColumnButton(
+                    columnTitle: column.title,
+                    onPressed: onAddIssue,
+                  ),
                 ],
               ),
               const SizedBox(height: 2),
@@ -2116,6 +2213,31 @@ class ColumnHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class AddIssueToColumnButton extends StatelessWidget {
+  const AddIssueToColumnButton({
+    super.key,
+    required this.columnTitle,
+    required this.onPressed,
+  });
+
+  final String columnTitle;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 30,
+      child: IconButton(
+        tooltip: 'New issue in $columnTitle',
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_rounded, size: 18),
+      ),
     );
   }
 }
@@ -2140,6 +2262,51 @@ class CountPill extends StatelessWidget {
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
+      ),
+    );
+  }
+}
+
+class EmptyColumnIssueCreator extends StatelessWidget {
+  const EmptyColumnIssueCreator({
+    super.key,
+    required this.columnTitle,
+    required this.onPressed,
+  });
+
+  final String columnTitle;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.inbox_outlined, color: Color(0xFF94A3B8), size: 28),
+          const SizedBox(height: 8),
+          const Text(
+            'まだチケットがありません',
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Tooltip(
+            message: '$columnTitleにチケットを作成',
+            child: OutlinedButton(
+              onPressed: onPressed,
+              child: const Text('+ チケット作成'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2831,6 +2998,10 @@ class IssueDragData {
 
   final String issueId;
   final String sourceColumnId;
+}
+
+class CloseIssueDialogResult {
+  const CloseIssueDialogResult();
 }
 
 class NewIssueDraft {
