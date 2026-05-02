@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
-    "@openci/dataconnect-admin": "file:../../firebase/ts_functions/src/generated/dataconnect",
+    "@openci/dataconnect-admin": "file:../../firebase/openci/ts_functions/src/generated/dataconnect",
     "firebase-admin": "^13.8.0"
   },
   "devDependencies": {

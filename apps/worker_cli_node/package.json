@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@openci/build-job-services": "file:../../packages/build_job_services",
-    "@openci/dataconnect-admin": "file:../../firebase/ts_functions/src/generated/dataconnect",
+    "@openci/dataconnect-admin": "file:../../firebase/openci/ts_functions/src/generated/dataconnect",
     "@types/node": "^22.0.0",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.3",

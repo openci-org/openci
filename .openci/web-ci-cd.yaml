@@ -37,18 +37,18 @@ jobs:
         working-directory: apps/landing_page
         run: vp run build
 
-      - name: Sync build output to firebase/public
+      - name: Sync build output to firebase/openci/public
         run: |
-          rm -rf firebase/public
-          mkdir -p firebase/public
-          cp -R apps/landing_page/out/. firebase/public/
+          rm -rf firebase/openci/public
+          mkdir -p firebase/openci/public
+          cp -R apps/landing_page/out/. firebase/openci/public/
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          entryPoint: firebase
+          entryPoint: firebase/openci
           channelId: live
 
       - name: Deploy to Firebase Hosting (preview)
@@ -57,5 +57,5 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          entryPoint: firebase
+          entryPoint: firebase/openci
           expires: 7d

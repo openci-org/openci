@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-FIREBASE_DIR="$ROOT_DIR/firebase"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+FIREBASE_DIR="$ROOT_DIR/firebase/openci"
 DASHBOARD_DIR="$ROOT_DIR/apps/dashboard"
 DART_DEFAULT="$DASHBOARD_DIR/lib/generated/dataconnect/default.dart"
 

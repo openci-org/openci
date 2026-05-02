@@ -4,6 +4,70 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
+part 'get_invitation_by_token.dart';
+
+part 'list_my_pending_invitations.dart';
+
+part 'get_current_user.dart';
+
+part 'list_my_teams.dart';
+
+part 'list_team_pending_invitations.dart';
+
+part 'find_existing_pending_invitation.dart';
+
+part 'get_team_for_member.dart';
+
+part 'list_team_members.dart';
+
+part 'list_team_notification_users.dart';
+
+part 'get_team_by_id.dart';
+
+part 'find_team_by_installation.dart';
+
+part 'get_secrets_by_names.dart';
+
+part 'get_secrets_by_names_for_team.dart';
+
+part 'find_secret_by_name.dart';
+
+part 'find_secret_by_name_for_team.dart';
+
+part 'get_secret_for_team.dart';
+
+part 'get_secret_path_for_team.dart';
+
+part 'list_secrets_for_team.dart';
+
+part 'list_environment_variables_for_team.dart';
+
+part 'list_worker_environment_variables.dart';
+
+part 'list_worker_secrets.dart';
+
+part 'list_workflows_for_team.dart';
+
+part 'get_workflow.dart';
+
+part 'get_workflow_file.dart';
+
+part 'list_workflow_files_for_branch.dart';
+
+part 'get_build_job.dart';
+
+part 'get_build_job_for_team.dart';
+
+part 'list_build_jobs_for_team.dart';
+
+part 'list_build_jobs_by_workflow_run.dart';
+
+part 'list_waiting_build_jobs.dart';
+
+part 'list_build_logs_for_run.dart';
+
+part 'list_latest_build_logs.dart';
+
 part 'create_invitation.dart';
 
 part 'reinvite_invitation.dart';
@@ -111,70 +175,6 @@ part 'update_environment_variable_value_for_worker.dart';
 part 'update_build_job_status.dart';
 
 part 'update_build_job_failure_summary.dart';
-
-part 'get_invitation_by_token.dart';
-
-part 'list_my_pending_invitations.dart';
-
-part 'get_current_user.dart';
-
-part 'list_my_teams.dart';
-
-part 'list_team_pending_invitations.dart';
-
-part 'find_existing_pending_invitation.dart';
-
-part 'get_team_for_member.dart';
-
-part 'list_team_members.dart';
-
-part 'list_team_notification_users.dart';
-
-part 'get_team_by_id.dart';
-
-part 'find_team_by_installation.dart';
-
-part 'get_secrets_by_names.dart';
-
-part 'get_secrets_by_names_for_team.dart';
-
-part 'find_secret_by_name.dart';
-
-part 'find_secret_by_name_for_team.dart';
-
-part 'get_secret_for_team.dart';
-
-part 'get_secret_path_for_team.dart';
-
-part 'list_secrets_for_team.dart';
-
-part 'list_environment_variables_for_team.dart';
-
-part 'list_worker_environment_variables.dart';
-
-part 'list_worker_secrets.dart';
-
-part 'list_workflows_for_team.dart';
-
-part 'get_workflow.dart';
-
-part 'get_workflow_file.dart';
-
-part 'list_workflow_files_for_branch.dart';
-
-part 'get_build_job.dart';
-
-part 'get_build_job_for_team.dart';
-
-part 'list_build_jobs_for_team.dart';
-
-part 'list_build_jobs_by_workflow_run.dart';
-
-part 'list_waiting_build_jobs.dart';
-
-part 'list_build_logs_for_run.dart';
-
-part 'list_latest_build_logs.dart';
 
 
 String bigIntToJson(BigInt value) {
@@ -325,6 +325,166 @@ class Unknown extends EnumValue<Never> {
 }
 
 class DefaultConnector {
+  
+  
+  GetInvitationByTokenVariablesBuilder getInvitationByToken ({required String token, }) {
+    return GetInvitationByTokenVariablesBuilder(dataConnect, token: token,);
+  }
+  
+  
+  ListMyPendingInvitationsVariablesBuilder listMyPendingInvitations () {
+    return ListMyPendingInvitationsVariablesBuilder(dataConnect, );
+  }
+  
+  
+  GetCurrentUserVariablesBuilder getCurrentUser () {
+    return GetCurrentUserVariablesBuilder(dataConnect, );
+  }
+  
+  
+  ListMyTeamsVariablesBuilder listMyTeams () {
+    return ListMyTeamsVariablesBuilder(dataConnect, );
+  }
+  
+  
+  ListTeamPendingInvitationsVariablesBuilder listTeamPendingInvitations ({required String teamId, }) {
+    return ListTeamPendingInvitationsVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  FindExistingPendingInvitationVariablesBuilder findExistingPendingInvitation ({required String email, required String teamId, }) {
+    return FindExistingPendingInvitationVariablesBuilder(dataConnect, email: email,teamId: teamId,);
+  }
+  
+  
+  GetTeamForMemberVariablesBuilder getTeamForMember ({required String teamId, }) {
+    return GetTeamForMemberVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  ListTeamMembersVariablesBuilder listTeamMembers ({required String teamId, }) {
+    return ListTeamMembersVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  ListTeamNotificationUsersVariablesBuilder listTeamNotificationUsers ({required String teamId, }) {
+    return ListTeamNotificationUsersVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  GetTeamByIdVariablesBuilder getTeamById ({required String teamId, }) {
+    return GetTeamByIdVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  FindTeamByInstallationVariablesBuilder findTeamByInstallation ({required int installationId, }) {
+    return FindTeamByInstallationVariablesBuilder(dataConnect, installationId: installationId,);
+  }
+  
+  
+  GetSecretsByNamesVariablesBuilder getSecretsByNames ({required String teamId, required List<String> names, }) {
+    return GetSecretsByNamesVariablesBuilder(dataConnect, teamId: teamId,names: names,);
+  }
+  
+  
+  GetSecretsByNamesForTeamVariablesBuilder getSecretsByNamesForTeam ({required String teamId, required List<String> names, }) {
+    return GetSecretsByNamesForTeamVariablesBuilder(dataConnect, teamId: teamId,names: names,);
+  }
+  
+  
+  FindSecretByNameVariablesBuilder findSecretByName ({required String teamId, required String name, }) {
+    return FindSecretByNameVariablesBuilder(dataConnect, teamId: teamId,name: name,);
+  }
+  
+  
+  FindSecretByNameForTeamVariablesBuilder findSecretByNameForTeam ({required String teamId, required String name, }) {
+    return FindSecretByNameForTeamVariablesBuilder(dataConnect, teamId: teamId,name: name,);
+  }
+  
+  
+  GetSecretForTeamVariablesBuilder getSecretForTeam ({required String id, required String teamId, }) {
+    return GetSecretForTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
+  }
+  
+  
+  GetSecretPathForTeamVariablesBuilder getSecretPathForTeam ({required String id, required String teamId, }) {
+    return GetSecretPathForTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
+  }
+  
+  
+  ListSecretsForTeamVariablesBuilder listSecretsForTeam ({required String teamId, }) {
+    return ListSecretsForTeamVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  ListEnvironmentVariablesForTeamVariablesBuilder listEnvironmentVariablesForTeam ({required String teamId, }) {
+    return ListEnvironmentVariablesForTeamVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  ListWorkerEnvironmentVariablesVariablesBuilder listWorkerEnvironmentVariables ({required String teamId, }) {
+    return ListWorkerEnvironmentVariablesVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  ListWorkerSecretsVariablesBuilder listWorkerSecrets ({required String teamId, }) {
+    return ListWorkerSecretsVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  ListWorkflowsForTeamVariablesBuilder listWorkflowsForTeam ({required String teamId, }) {
+    return ListWorkflowsForTeamVariablesBuilder(dataConnect, teamId: teamId,);
+  }
+  
+  
+  GetWorkflowVariablesBuilder getWorkflow ({required String id, required String teamId, }) {
+    return GetWorkflowVariablesBuilder(dataConnect, id: id,teamId: teamId,);
+  }
+  
+  
+  GetWorkflowFileVariablesBuilder getWorkflowFile ({required String id, }) {
+    return GetWorkflowFileVariablesBuilder(dataConnect, id: id,);
+  }
+  
+  
+  ListWorkflowFilesForBranchVariablesBuilder listWorkflowFilesForBranch ({required String teamId, required String repository, required String branch, }) {
+    return ListWorkflowFilesForBranchVariablesBuilder(dataConnect, teamId: teamId,repository: repository,branch: branch,);
+  }
+  
+  
+  GetBuildJobVariablesBuilder getBuildJob ({required String id, }) {
+    return GetBuildJobVariablesBuilder(dataConnect, id: id,);
+  }
+  
+  
+  GetBuildJobForTeamVariablesBuilder getBuildJobForTeam ({required String id, required String teamId, }) {
+    return GetBuildJobForTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
+  }
+  
+  
+  ListBuildJobsForTeamVariablesBuilder listBuildJobsForTeam ({required String teamId, required int limit, }) {
+    return ListBuildJobsForTeamVariablesBuilder(dataConnect, teamId: teamId,limit: limit,);
+  }
+  
+  
+  ListBuildJobsByWorkflowRunVariablesBuilder listBuildJobsByWorkflowRun ({required String workflowRunId, }) {
+    return ListBuildJobsByWorkflowRunVariablesBuilder(dataConnect, workflowRunId: workflowRunId,);
+  }
+  
+  
+  ListWaitingBuildJobsVariablesBuilder listWaitingBuildJobs ({required String workflowRunId, }) {
+    return ListWaitingBuildJobsVariablesBuilder(dataConnect, workflowRunId: workflowRunId,);
+  }
+  
+  
+  ListBuildLogsForRunVariablesBuilder listBuildLogsForRun ({required String buildJobId, required String runId, required String teamId, }) {
+    return ListBuildLogsForRunVariablesBuilder(dataConnect, buildJobId: buildJobId,runId: runId,teamId: teamId,);
+  }
+  
+  
+  ListLatestBuildLogsVariablesBuilder listLatestBuildLogs ({required String buildJobId, required String runId, required int limit, }) {
+    return ListLatestBuildLogsVariablesBuilder(dataConnect, buildJobId: buildJobId,runId: runId,limit: limit,);
+  }
   
   
   CreateInvitationVariablesBuilder createInvitation ({required String email, required String teamId, required String teamNameSnapshot, required String token, required Timestamp expiresAt, }) {
@@ -594,166 +754,6 @@ class DefaultConnector {
   
   UpdateBuildJobFailureSummaryVariablesBuilder updateBuildJobFailureSummary ({required String id, required String failureSummaryStatus, }) {
     return UpdateBuildJobFailureSummaryVariablesBuilder(dataConnect, id: id,failureSummaryStatus: failureSummaryStatus,);
-  }
-  
-  
-  GetInvitationByTokenVariablesBuilder getInvitationByToken ({required String token, }) {
-    return GetInvitationByTokenVariablesBuilder(dataConnect, token: token,);
-  }
-  
-  
-  ListMyPendingInvitationsVariablesBuilder listMyPendingInvitations () {
-    return ListMyPendingInvitationsVariablesBuilder(dataConnect, );
-  }
-  
-  
-  GetCurrentUserVariablesBuilder getCurrentUser () {
-    return GetCurrentUserVariablesBuilder(dataConnect, );
-  }
-  
-  
-  ListMyTeamsVariablesBuilder listMyTeams () {
-    return ListMyTeamsVariablesBuilder(dataConnect, );
-  }
-  
-  
-  ListTeamPendingInvitationsVariablesBuilder listTeamPendingInvitations ({required String teamId, }) {
-    return ListTeamPendingInvitationsVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  FindExistingPendingInvitationVariablesBuilder findExistingPendingInvitation ({required String email, required String teamId, }) {
-    return FindExistingPendingInvitationVariablesBuilder(dataConnect, email: email,teamId: teamId,);
-  }
-  
-  
-  GetTeamForMemberVariablesBuilder getTeamForMember ({required String teamId, }) {
-    return GetTeamForMemberVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  ListTeamMembersVariablesBuilder listTeamMembers ({required String teamId, }) {
-    return ListTeamMembersVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  ListTeamNotificationUsersVariablesBuilder listTeamNotificationUsers ({required String teamId, }) {
-    return ListTeamNotificationUsersVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  GetTeamByIdVariablesBuilder getTeamById ({required String teamId, }) {
-    return GetTeamByIdVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  FindTeamByInstallationVariablesBuilder findTeamByInstallation ({required int installationId, }) {
-    return FindTeamByInstallationVariablesBuilder(dataConnect, installationId: installationId,);
-  }
-  
-  
-  GetSecretsByNamesVariablesBuilder getSecretsByNames ({required String teamId, required List<String> names, }) {
-    return GetSecretsByNamesVariablesBuilder(dataConnect, teamId: teamId,names: names,);
-  }
-  
-  
-  GetSecretsByNamesForTeamVariablesBuilder getSecretsByNamesForTeam ({required String teamId, required List<String> names, }) {
-    return GetSecretsByNamesForTeamVariablesBuilder(dataConnect, teamId: teamId,names: names,);
-  }
-  
-  
-  FindSecretByNameVariablesBuilder findSecretByName ({required String teamId, required String name, }) {
-    return FindSecretByNameVariablesBuilder(dataConnect, teamId: teamId,name: name,);
-  }
-  
-  
-  FindSecretByNameForTeamVariablesBuilder findSecretByNameForTeam ({required String teamId, required String name, }) {
-    return FindSecretByNameForTeamVariablesBuilder(dataConnect, teamId: teamId,name: name,);
-  }
-  
-  
-  GetSecretForTeamVariablesBuilder getSecretForTeam ({required String id, required String teamId, }) {
-    return GetSecretForTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
-  }
-  
-  
-  GetSecretPathForTeamVariablesBuilder getSecretPathForTeam ({required String id, required String teamId, }) {
-    return GetSecretPathForTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
-  }
-  
-  
-  ListSecretsForTeamVariablesBuilder listSecretsForTeam ({required String teamId, }) {
-    return ListSecretsForTeamVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  ListEnvironmentVariablesForTeamVariablesBuilder listEnvironmentVariablesForTeam ({required String teamId, }) {
-    return ListEnvironmentVariablesForTeamVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  ListWorkerEnvironmentVariablesVariablesBuilder listWorkerEnvironmentVariables ({required String teamId, }) {
-    return ListWorkerEnvironmentVariablesVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  ListWorkerSecretsVariablesBuilder listWorkerSecrets ({required String teamId, }) {
-    return ListWorkerSecretsVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  ListWorkflowsForTeamVariablesBuilder listWorkflowsForTeam ({required String teamId, }) {
-    return ListWorkflowsForTeamVariablesBuilder(dataConnect, teamId: teamId,);
-  }
-  
-  
-  GetWorkflowVariablesBuilder getWorkflow ({required String id, required String teamId, }) {
-    return GetWorkflowVariablesBuilder(dataConnect, id: id,teamId: teamId,);
-  }
-  
-  
-  GetWorkflowFileVariablesBuilder getWorkflowFile ({required String id, }) {
-    return GetWorkflowFileVariablesBuilder(dataConnect, id: id,);
-  }
-  
-  
-  ListWorkflowFilesForBranchVariablesBuilder listWorkflowFilesForBranch ({required String teamId, required String repository, required String branch, }) {
-    return ListWorkflowFilesForBranchVariablesBuilder(dataConnect, teamId: teamId,repository: repository,branch: branch,);
-  }
-  
-  
-  GetBuildJobVariablesBuilder getBuildJob ({required String id, }) {
-    return GetBuildJobVariablesBuilder(dataConnect, id: id,);
-  }
-  
-  
-  GetBuildJobForTeamVariablesBuilder getBuildJobForTeam ({required String id, required String teamId, }) {
-    return GetBuildJobForTeamVariablesBuilder(dataConnect, id: id,teamId: teamId,);
-  }
-  
-  
-  ListBuildJobsForTeamVariablesBuilder listBuildJobsForTeam ({required String teamId, required int limit, }) {
-    return ListBuildJobsForTeamVariablesBuilder(dataConnect, teamId: teamId,limit: limit,);
-  }
-  
-  
-  ListBuildJobsByWorkflowRunVariablesBuilder listBuildJobsByWorkflowRun ({required String workflowRunId, }) {
-    return ListBuildJobsByWorkflowRunVariablesBuilder(dataConnect, workflowRunId: workflowRunId,);
-  }
-  
-  
-  ListWaitingBuildJobsVariablesBuilder listWaitingBuildJobs ({required String workflowRunId, }) {
-    return ListWaitingBuildJobsVariablesBuilder(dataConnect, workflowRunId: workflowRunId,);
-  }
-  
-  
-  ListBuildLogsForRunVariablesBuilder listBuildLogsForRun ({required String buildJobId, required String runId, required String teamId, }) {
-    return ListBuildLogsForRunVariablesBuilder(dataConnect, buildJobId: buildJobId,runId: runId,teamId: teamId,);
-  }
-  
-  
-  ListLatestBuildLogsVariablesBuilder listLatestBuildLogs ({required String buildJobId, required String runId, required int limit, }) {
-    return ListLatestBuildLogsVariablesBuilder(dataConnect, buildJobId: buildJobId,runId: runId,limit: limit,);
   }
   
 

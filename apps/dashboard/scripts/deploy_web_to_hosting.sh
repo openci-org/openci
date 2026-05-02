@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DASHBOARD_DIR="$(dirname "$SCRIPT_DIR")"
-FIREBASE_DIR="$DASHBOARD_DIR/../../firebase"
+FIREBASE_DIR="$DASHBOARD_DIR/../../firebase/openci"
 
 rm -rf "$FIREBASE_DIR/public"
 cp -r "$DASHBOARD_DIR/build/web" "$FIREBASE_DIR/public"
