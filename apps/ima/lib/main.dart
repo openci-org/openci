@@ -697,9 +697,29 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final rank = targetColumn.issues.isEmpty
         ? DateTime.now().millisecondsSinceEpoch.toDouble()
         : targetColumn.issues.first.rank - 1000;
-    final data = _issueDraftToFirestore(draft, rank: rank);
 
-    await _firestore.collection('workspaces/$_workspaceId/issues').add(data);
+    await _callFunction(
+      'createGitHubIssue',
+      _issueDraftToFunctionData(draft, rank: rank),
+    );
+  }
+
+  Map<String, Object?> _issueDraftToFunctionData(
+    NewIssueDraft draft, {
+    required double rank,
+  }) {
+    return {
+      'workspaceId': _workspaceId,
+      'title': draft.title,
+      'body': draft.body,
+      'repo': draft.repo,
+      'assignee': draft.assignee,
+      'labels': draft.labels,
+      'statusId': draft.columnId,
+      'priority': draft.priority.name,
+      'rank': rank,
+      if (draft.dueDate != null) 'dueDate': draft.dueDate!.toIso8601String(),
+    };
   }
 
   Future<void> _updateIssue({
@@ -2521,11 +2541,14 @@ class IssueCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                issue.displayId,
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  issue.displayId,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (issue.dueDate != null) ...[

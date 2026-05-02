@@ -38,6 +38,18 @@ interface CompleteGitHubDeviceFlowRequest extends WorkspaceRequest {
   deviceCode: string;
 }
 
+interface CreateGitHubIssueRequest extends WorkspaceRequest {
+  title: string;
+  body?: string;
+  repo: string;
+  assignee?: string;
+  labels?: string[];
+  statusId: string;
+  priority: string;
+  rank: number;
+  dueDate?: string;
+}
+
 interface GitHubRepository {
   fullName: string;
   name: string;
@@ -58,6 +70,12 @@ interface ImportGitHubIssuesResponse {
 interface SyncGitHubIssuesResponse {
   synced: number;
   failed: number;
+}
+
+interface CreateGitHubIssueResponse {
+  issueId: string;
+  number: number;
+  url: string;
 }
 
 interface GitHubUserResponse {
@@ -153,7 +171,7 @@ async function githubRequest<T>({
 }: {
   path: string;
   token: string;
-  method?: "GET" | "PATCH";
+  method?: "GET" | "PATCH" | "POST";
   body?: unknown;
   queryParameters?: Record<string, string | number | boolean>;
 }): Promise<T> {
@@ -598,6 +616,91 @@ export const importGitHubIssues = onCall<
   }
 });
 
+export const createGitHubIssue = onCall<
+  CreateGitHubIssueRequest,
+  Promise<CreateGitHubIssueResponse>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const token = await getGitHubToken(uid);
+  const title = requireNonEmptyString(request.data?.title, "title");
+  const repoFullName = requireNonEmptyString(request.data?.repo, "repo");
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    throw new HttpsError("invalid-argument", "repo must be owner/repo");
+  }
+
+  const body = asString(request.data?.body);
+  const assignee = asString(request.data?.assignee);
+  const labels = Array.isArray(request.data?.labels)
+    ? request.data.labels.filter((label): label is string => typeof label === "string" && label.length > 0)
+    : [];
+  const githubAssignee = assignee.startsWith("@") ? assignee.slice(1) : "";
+  const assignees = githubAssignee.length > 0 ? [githubAssignee] : [];
+
+  try {
+    const issue = await githubRequest<GitHubIssueResponseItem>({
+      path: `/repos/${owner}/${repo}/issues`,
+      token,
+      method: "POST",
+      body: {
+        title,
+        body,
+        labels,
+        assignees,
+      },
+    });
+
+    const number = asNumber(issue.number);
+    const nodeId = asString(issue.node_id);
+    if (number <= 0 || nodeId.length === 0) {
+      throw new HttpsError("failed-precondition", "GitHub issue could not be created");
+    }
+
+    const issueId = issueDocId(owner, repo, number);
+    const docRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    await docRef.set(
+      {
+        title: asString(issue.title, title),
+        body: asString(issue.body, body),
+        repo: repoFullName,
+        assignee: issueAssignee(issue),
+        labels: issueLabels(issue),
+        comments: asNumber(issue.comments),
+        priority: asString(request.data?.priority, "medium"),
+        statusId: asString(request.data?.statusId, "triage"),
+        rank: asNumber(request.data?.rank, Date.now()),
+        dueDate: asTimestamp(request.data?.dueDate),
+        githubIssue: {
+          nodeId,
+          owner,
+          repo,
+          number,
+          url: asString(issue.html_url),
+          state: asString(issue.state, "open"),
+        },
+        githubUpdatedAt: asTimestamp(issue.updated_at),
+        githubCreatedAt: asTimestamp(issue.created_at),
+        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return {
+      issueId,
+      number,
+      url: asString(issue.html_url),
+    };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Failed to create Ima GitHub issue", { workspaceId, uid, repoFullName, error });
+    throw new HttpsError("internal", "Failed to create GitHub issue");
+  }
+});
+
 export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>>(
   async (request) => {
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
@@ -691,6 +794,10 @@ export const autoSyncIssueToGitHub = onDocumentWritten(
     const repo = asString(githubIssue.repo);
     const number = asNumber(githubIssue.number);
     if (owner.length === 0 || repo.length === 0 || number <= 0) {
+      return;
+    }
+
+    if (!before) {
       return;
     }
 
