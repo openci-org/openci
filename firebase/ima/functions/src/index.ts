@@ -1348,29 +1348,25 @@ async function linkPullRequestToImaIssues(payload: GitHubPullRequestWebhookPaylo
     return 0;
   }
 
-  const repoDocs = await db
-    .collectionGroup("githubRepos")
-    .where("fullName", "==", repoFullName)
-    .where("enabled", "==", true)
-    .get();
+  const workspaces = await db.collection("workspaces").limit(100).get();
 
   let linked = 0;
-  for (const repoDoc of repoDocs.docs) {
-    const workspaceRef = repoDoc.ref.parent.parent;
-    const workspaceId = workspaceRef?.id;
-    if (!workspaceRef || !workspaceId) {
+  for (const workspace of workspaces.docs) {
+    const workspaceRef = workspace.ref;
+    const workspaceId = workspace.id;
+    const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
+    if (!repoDoc.exists || repoDoc.get("enabled") !== true || asString(repoDoc.get("fullName")) !== repoFullName) {
       continue;
     }
 
-    const issueDocs = await workspaceRef
-      .collection("issues")
-      .where("repo", "==", repoFullName)
-      .where("issueKey", "==", parsedIssueKey)
-      .limit(5)
-      .get();
+    const issueDocs = await workspaceRef.collection("issues").limit(500).get();
 
     for (const issueDoc of issueDocs.docs) {
       const issue = issueDoc.data();
+      if (asString(issue.repo) !== repoFullName || asString(issue.issueKey).toUpperCase() !== parsedIssueKey) {
+        continue;
+      }
+
       const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
       const githubIssueNumber = asNumber(githubIssue?.number);
       if (githubIssueNumber <= 0) {
@@ -1450,7 +1446,8 @@ export const githubPullRequestWebhook = onRequest(
       response.status(200).json({ linked });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.error("githubPullRequestWebhook: failed", { message });
+      const stack = error instanceof Error ? error.stack : undefined;
+      logger.error("githubPullRequestWebhook: failed", { message, stack });
       response.status(500).send("Webhook processing failed");
     }
   },

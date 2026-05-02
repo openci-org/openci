@@ -28,7 +28,7 @@ export function extractIssueKey(...sources: Array<string | undefined | null>): s
 export function linkedIssueBlock(githubIssueNumber: number, imaIssueKey: string): string {
   return [
     imaLinkedIssueBlockStart,
-    `Refs #${githubIssueNumber}`,
+    `Fixes #${githubIssueNumber}`,
     `Ima: ${imaIssueKey}`,
     imaLinkedIssueBlockEnd,
   ].join("\n");

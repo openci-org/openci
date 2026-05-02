@@ -34,7 +34,7 @@ describe("issue linking helpers", () => {
         "Existing body",
         "",
         imaLinkedIssueBlockStart,
-        "Refs #57",
+        "Fixes #57",
         "Ima: IMA-1423",
         imaLinkedIssueBlockEnd,
       ].join("\n"),
@@ -42,7 +42,7 @@ describe("issue linking helpers", () => {
 
     const second = upsertLinkedIssueBlock(first, 58, "IMA-1424");
     assert.equal(second.match(/ima-linked-issue:start/gu)?.length, 1);
-    assert.match(second, /Refs #58/u);
-    assert.doesNotMatch(second, /Refs #57/u);
+    assert.match(second, /Fixes #58/u);
+    assert.doesNotMatch(second, /Fixes #57/u);
   });
 });

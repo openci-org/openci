@@ -30,7 +30,7 @@ function extractIssueKey(...sources) {
 function linkedIssueBlock(githubIssueNumber, imaIssueKey) {
     return [
         exports.imaLinkedIssueBlockStart,
-        `Refs #${githubIssueNumber}`,
+        `Fixes #${githubIssueNumber}`,
         `Ima: ${imaIssueKey}`,
         exports.imaLinkedIssueBlockEnd,
     ].join("\n");
