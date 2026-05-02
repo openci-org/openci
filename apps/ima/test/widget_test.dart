@@ -22,4 +22,59 @@ void main() {
     expect(find.text('登録する'), findsOneWidget);
     expect(find.text('既存アカウントでログイン'), findsOneWidget);
   });
+
+  testWidgets('Issue card exposes close action for open issues', (
+    tester,
+  ) async {
+    var closeTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: IssueCard(
+            issue: const Issue(
+              id: 'IMA-1',
+              repo: 'openci/ima',
+              title: 'Close issue from the board',
+              assignee: 'MF',
+              labels: ['feature'],
+              comments: 0,
+              priority: Priority.medium,
+            ),
+            onCloseIssue: () => closeTapped = true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Close issue'));
+
+    expect(closeTapped, isTrue);
+  });
+
+  testWidgets('Issue card hides close action for closed issues', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: IssueCard(
+            issue: const Issue(
+              id: 'IMA-2',
+              repo: 'openci/ima',
+              title: 'Already closed',
+              assignee: 'MF',
+              labels: ['done'],
+              comments: 0,
+              priority: Priority.low,
+              statusId: 'done',
+            ),
+            onCloseIssue: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Close issue'), findsNothing);
+  });
 }

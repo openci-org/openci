@@ -12,6 +12,7 @@ import 'firebase_options.dart';
 
 const _functionsRegion = 'asia-northeast1';
 const _githubOAuthClientId = String.fromEnvironment('GITHUB_OAUTH_CLIENT_ID');
+const _closedStatusId = 'done';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -296,6 +297,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   int _enabledRepoCount = 0;
   Timestamp? _lastImportedAt;
   Set<String> _enabledRepoFullNames = {};
+  final Set<String> _closingIssueIds = {};
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
@@ -643,6 +645,43 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         });
   }
 
+  Future<void> _closeIssue(String issueId) async {
+    if (_closingIssueIds.contains(issueId)) {
+      return;
+    }
+
+    final sourceColumn = _columns.firstWhere(
+      (column) => column.issues.any((issue) => issue.id == issueId),
+    );
+    final issue = sourceColumn.issues.firstWhere(
+      (issue) => issue.id == issueId,
+    );
+    if (issue.statusId == _closedStatusId) {
+      _showSavedSnackBar('Already closed');
+      return;
+    }
+
+    final doneColumn = _columns.firstWhere(
+      (column) => column.id == _closedStatusId,
+    );
+
+    setState(() => _closingIssueIds.add(issueId));
+    try {
+      await _moveIssue(
+        issueId: issueId,
+        targetColumnId: _closedStatusId,
+        targetIndex: doneColumn.issues.length,
+      );
+      _showSavedSnackBar('Closed');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _closingIssueIds.remove(issueId));
+      }
+    }
+  }
+
   Future<void> _openAddIssueDialog() async {
     final draft = await showDialog<NewIssueDraft>(
       context: context,
@@ -988,9 +1027,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final totalIssues = _columns.fold<int>(
+    final openIssues = _columns.fold<int>(
       0,
-      (total, column) => total + column.issues.length,
+      (total, column) =>
+          column.id == _closedStatusId ? total : total + column.issues.length,
     );
 
     return CallbackShortcuts(
@@ -1006,7 +1046,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
             child: Column(
               children: [
                 BoardHeader(
-                  totalIssues: totalIssues,
+                  openIssues: openIssues,
                   userEmail: FirebaseAuth.instance.currentUser?.email,
                   onSignOut: FirebaseAuth.instance.signOut,
                 ),
@@ -1055,8 +1095,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                 for (final column in _columns) ...[
                                   BoardColumnView(
                                     column: column,
+                                    closingIssueIds: _closingIssueIds,
                                     onIssueDropped: _moveIssue,
                                     onIssueTapped: _openEditIssueDialog,
+                                    onIssueClosed: _closeIssue,
                                   ),
                                   const SizedBox(width: 16),
                                 ],
@@ -1080,12 +1122,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 class BoardHeader extends StatelessWidget {
   const BoardHeader({
     super.key,
-    required this.totalIssues,
+    required this.openIssues,
     required this.userEmail,
     required this.onSignOut,
   });
 
-  final int totalIssues;
+  final int openIssues;
   final String? userEmail;
   final Future<void> Function() onSignOut;
 
@@ -1123,7 +1165,7 @@ class BoardHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              IssueCountBadge(totalIssues: totalIssues),
+              IssueCountBadge(openIssues: openIssues),
               const SizedBox(height: 10),
               Text(
                 userEmail ?? 'ログイン中',
@@ -1144,9 +1186,9 @@ class BoardHeader extends StatelessWidget {
 }
 
 class IssueCountBadge extends StatelessWidget {
-  const IssueCountBadge({super.key, required this.totalIssues});
+  const IssueCountBadge({super.key, required this.openIssues});
 
-  final int totalIssues;
+  final int openIssues;
 
   @override
   Widget build(BuildContext context) {
@@ -1161,7 +1203,7 @@ class IssueCountBadge extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            '$totalIssues',
+            '$openIssues',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -1938,13 +1980,17 @@ class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
     super.key,
     required this.column,
+    required this.closingIssueIds,
     required this.onIssueDropped,
     required this.onIssueTapped,
+    required this.onIssueClosed,
   });
 
   final BoardColumn column;
+  final Set<String> closingIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onIssueTapped;
+  final ValueChanged<String> onIssueClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -1994,7 +2040,12 @@ class BoardColumnView extends StatelessWidget {
                         issue: column.issues[index],
                         sourceColumnId: column.id,
                         index: index,
+                        isClosing: closingIssueIds.contains(
+                          column.issues[index].id,
+                        ),
                         onTap: () => onIssueTapped(column.issues[index].id),
+                        onCloseIssue: () =>
+                            onIssueClosed(column.issues[index].id),
                         onIssueDropped: onIssueDropped,
                       ),
                       const SizedBox(height: 10),
@@ -2155,14 +2206,18 @@ class IssueCardDropTarget extends StatefulWidget {
     required this.issue,
     required this.sourceColumnId,
     required this.index,
+    required this.isClosing,
     required this.onTap,
+    required this.onCloseIssue,
     required this.onIssueDropped,
   });
 
   final Issue issue;
   final String sourceColumnId;
   final int index;
+  final bool isClosing;
   final VoidCallback onTap;
+  final VoidCallback onCloseIssue;
   final IssueDropCallback onIssueDropped;
 
   @override
@@ -2228,7 +2283,9 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
               child: IssueCardDraggable(
                 issue: widget.issue,
                 sourceColumnId: widget.sourceColumnId,
+                isClosing: widget.isClosing,
                 onTap: widget.onTap,
+                onCloseIssue: widget.onCloseIssue,
               ),
             ),
             if (_isHovering)
@@ -2272,12 +2329,16 @@ class IssueCardDraggable extends StatefulWidget {
     super.key,
     required this.issue,
     required this.sourceColumnId,
+    required this.isClosing,
     required this.onTap,
+    required this.onCloseIssue,
   });
 
   final Issue issue;
   final String sourceColumnId;
+  final bool isClosing;
   final VoidCallback onTap;
+  final VoidCallback onCloseIssue;
 
   @override
   State<IssueCardDraggable> createState() => _IssueCardDraggableState();
@@ -2438,6 +2499,8 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
               child: IssueCard(
                 issue: widget.issue,
                 isDragging: _isLiftPreviewVisible,
+                isClosing: widget.isClosing,
+                onCloseIssue: widget.onCloseIssue,
               ),
             ),
           ),
@@ -2453,14 +2516,21 @@ class IssueCard extends StatelessWidget {
     required this.issue,
     this.isDragging = false,
     this.isDragPlaceholder = false,
+    this.isClosing = false,
+    this.onCloseIssue,
   });
 
   final Issue issue;
   final bool isDragging;
   final bool isDragPlaceholder;
+  final bool isClosing;
+  final VoidCallback? onCloseIssue;
 
   @override
   Widget build(BuildContext context) {
+    final showCloseAction =
+        onCloseIssue != null && issue.statusId != _closedStatusId;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
       padding: const EdgeInsets.all(14),
@@ -2494,6 +2564,13 @@ class IssueCard extends StatelessWidget {
               RepoBadge(repo: issue.repo),
               const Spacer(),
               PriorityDot(priority: issue.priority),
+              if (showCloseAction) ...[
+                const SizedBox(width: 6),
+                CloseIssueButton(
+                  isClosing: isClosing,
+                  onPressed: isClosing ? null : onCloseIssue,
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -2572,6 +2649,36 @@ class IssueCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CloseIssueButton extends StatelessWidget {
+  const CloseIssueButton({
+    super.key,
+    required this.isClosing,
+    required this.onPressed,
+  });
+
+  final bool isClosing;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 30,
+      child: IconButton(
+        tooltip: isClosing ? 'Closing issue' : 'Close issue',
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        onPressed: onPressed,
+        icon: isClosing
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.check_circle_outline_rounded, size: 18),
       ),
     );
   }
