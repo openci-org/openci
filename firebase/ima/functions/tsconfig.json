@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "module": "Node16",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "moduleResolution": "node16",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "sourceMap": true,
+    "declaration": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "lib", "src/**/*.test.ts"]
+}

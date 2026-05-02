@@ -1,6 +1,6 @@
 ---
 description: Prefer the project wrapper when generating Firebase Data Connect SDKs
-globs: firebase/dataconnect/**/*,firebase/scripts/generate_dataconnect_sdks.sh,apps/dashboard/lib/generated/dataconnect/**/*,firebase/ts_functions/src/generated/dataconnect/**/*
+globs: firebase/openci/dataconnect/**/*,firebase/openci/scripts/generate_dataconnect_sdks.sh,apps/dashboard/lib/generated/dataconnect/**/*,firebase/openci/ts_functions/src/generated/dataconnect/**/*
 alwaysApply: false
 ---
 
@@ -9,7 +9,7 @@ alwaysApply: false
 When generating or refreshing Firebase Data Connect SDKs in this repository, prefer the project wrapper:
 
 ```bash
-./firebase/scripts/generate_dataconnect_sdks.sh
+./firebase/openci/scripts/generate_dataconnect_sdks.sh
 ```
 
 Use this instead of calling `firebase dataconnect:sdk:generate` directly. The wrapper runs SDK generation and then applies the required Dart SDK post-processing for the generated nullable `BigInt` serializer.

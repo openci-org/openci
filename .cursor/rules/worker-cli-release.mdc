@@ -1,6 +1,6 @@
 ---
 description: Worker CLI release and auto-update expectations
-globs: apps/worker_cli_node/**/*,packages/build_job_services/**/*,firebase/ts_functions/src/generated/dataconnect/**/*
+globs: apps/worker_cli_node/**/*,packages/build_job_services/**/*,firebase/openci/ts_functions/src/generated/dataconnect/**/*
 alwaysApply: false
 ---
 

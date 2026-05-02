@@ -7,7 +7,7 @@ alwaysApply: true
 
 - OpenCI workflows live in `.openci/*.yaml` or `.openci/*.yml` and intentionally look like GitHub Actions workflows.
 - OpenCI does not run workflows on GitHub Actions. It queues build jobs from GitHub webhooks, then the worker executes the selected workflow locally with `act`.
-- The GitHub webhook/functions layer parses workflow YAML, matches `on` triggers, extracts jobs, creates check runs, and queues build jobs. Key code is under `firebase/ts_functions/src/github/`.
+- The GitHub webhook/functions layer parses workflow YAML, matches `on` triggers, extracts jobs, creates check runs, and queues build jobs. Key code is under `firebase/openci/ts_functions/src/github/`.
 - The Node worker CLI claims queued jobs, clones the repo with a GitHub App installation token, writes event/env/secret files, and runs `act` from the repo root. Key code is under `apps/worker_cli_node/src/`.
 - The worker invokes `act` with `.openci/<workflowFileName>`, `-e /tmp/openci-event.json`, `--env-file /tmp/openci-env`, and `--secret-file /tmp/openci-secrets`.
 - Secrets available inside workflows come from OpenCI secret storage plus built-in GitHub App tokens. `OPENCI_GITHUB_TOKEN` is set when an installation token exists; `GITHUB_TOKEN` is also set for normal GitHub.com repos.
