@@ -144,6 +144,9 @@ function buildCursorAgentPrompt(input) {
         `- Add or update tests when the change is behaviorally meaningful.`,
         `- Run relevant checks if available.`,
         `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}.`,
+        issueKeyValue.length > 0
+            ? `- Include "${issueKeyValue}" in the pull request title (e.g. "feat: description ${issueKeyValue}") for tracking.`
+            : undefined,
     ]
         .filter((line) => typeof line === "string")
         .join("\n");
@@ -1303,9 +1306,8 @@ async function linkPullRequestToImaIssues(payload) {
                 continue;
             }
             const issueKeyValue = asString(issue.issueKey).toUpperCase();
-            const matchesIssue = parsedIssueKey === null
-                ? pullRequestMatchesIssue(pullRequest, issue)
-                : issueKeyValue === parsedIssueKey;
+            const matchedByKey = parsedIssueKey !== null && issueKeyValue === parsedIssueKey;
+            const matchesIssue = matchedByKey || pullRequestMatchesIssue(pullRequest, issue);
             if (!matchesIssue || issueKeyValue.length === 0) {
                 continue;
             }

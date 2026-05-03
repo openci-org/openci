@@ -22,6 +22,14 @@ describe("issue linking helpers", () => {
     assert.equal(extractIssueKey("feature/no-ticket", "Fix auth (IMA-42)", undefined), "IMA-42");
   });
 
+  it("does not match UUID hex segments as issue keys", () => {
+    assert.equal(extractIssueKey("bc-f1113637-a6ae-4312-8780-622530ba6de5"), null);
+    assert.equal(
+      extractIssueKey(undefined, undefined, "https://cursor.com/agents/bc-f1113637-a6ae-4312-8780-622530ba6de5"),
+      null,
+    );
+  });
+
   it("builds issue keys from prefixes and counters", () => {
     assert.equal(issueKey("ima", 7), "IMA-7");
     assert.equal(issueKey("ima-mobile", 8), "IMAMOBILE-8");

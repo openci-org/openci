@@ -1,7 +1,7 @@
 export const imaLinkedIssueBlockStart = "<!-- ima-linked-issue:start -->";
 export const imaLinkedIssueBlockEnd = "<!-- ima-linked-issue:end -->";
 
-const issueKeyPattern = /(?:^|[^A-Z0-9])([A-Z][A-Z0-9]+-\d+)(?=$|[^A-Z0-9])/iu;
+const issueKeyPattern = /(?:^|[^A-Z0-9])([A-Z]{2}[A-Z0-9]*-\d+)(?=$|[^A-Z0-9])/iu;
 const managedBlockPattern =
   /<!-- ima-linked-issue:start -->[\s\S]*?<!-- ima-linked-issue:end -->\n*/u;
 

@@ -9,7 +9,7 @@ exports.upsertLinkedIssueBlock = upsertLinkedIssueBlock;
 exports.issueStatusForPullRequest = issueStatusForPullRequest;
 exports.imaLinkedIssueBlockStart = "<!-- ima-linked-issue:start -->";
 exports.imaLinkedIssueBlockEnd = "<!-- ima-linked-issue:end -->";
-const issueKeyPattern = /(?:^|[^A-Z0-9])([A-Z][A-Z0-9]+-\d+)(?=$|[^A-Z0-9])/iu;
+const issueKeyPattern = /(?:^|[^A-Z0-9])([A-Z]{2}[A-Z0-9]*-\d+)(?=$|[^A-Z0-9])/iu;
 const managedBlockPattern = /<!-- ima-linked-issue:start -->[\s\S]*?<!-- ima-linked-issue:end -->\n*/u;
 function normalizeIssueKeyPrefix(value) {
     const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/gu, "");
