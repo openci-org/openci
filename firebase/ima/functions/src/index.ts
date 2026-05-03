@@ -1876,7 +1876,6 @@ async function syncGitHubIssueCloseFromWebhook(
 
   for (const workspace of workspaces.docs) {
     const workspaceRef = workspace.ref;
-    const workspaceId = workspace.id;
     const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
     if (
       !repoDoc.exists ||
