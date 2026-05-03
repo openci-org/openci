@@ -1282,7 +1282,7 @@ async function linkPullRequestToImaIssues(payload) {
     const repoFullName = asString(payload.repository?.full_name);
     const branch = asString(pullRequest?.head?.ref);
     const parsedIssueKey = (0, issueLinkingHelpers_1.extractIssueKey)(branch, asString(pullRequest?.title), asString(pullRequest?.body));
-    if (!pullRequest || repoFullName.length === 0 || parsedIssueKey === null) {
+    if (!pullRequest || repoFullName.length === 0) {
         return 0;
     }
     const workspaces = await db.collection("workspaces").limit(100).get();
@@ -1299,8 +1299,14 @@ async function linkPullRequestToImaIssues(payload) {
         const issueDocs = await workspaceRef.collection("issues").limit(500).get();
         for (const issueDoc of issueDocs.docs) {
             const issue = issueDoc.data();
-            if (asString(issue.repo) !== repoFullName ||
-                asString(issue.issueKey).toUpperCase() !== parsedIssueKey) {
+            if (asString(issue.repo) !== repoFullName) {
+                continue;
+            }
+            const issueKeyValue = asString(issue.issueKey).toUpperCase();
+            const matchesIssue = parsedIssueKey === null
+                ? pullRequestMatchesIssue(pullRequest, issue)
+                : issueKeyValue === parsedIssueKey;
+            if (!matchesIssue || issueKeyValue.length === 0) {
                 continue;
             }
             const githubIssue = issue.githubIssue;
@@ -1313,7 +1319,7 @@ async function linkPullRequestToImaIssues(payload) {
             if (ownerUid.length > 0) {
                 try {
                     const token = await getGitHubToken(ownerUid);
-                    const nextBody = (0, issueLinkingHelpers_1.upsertLinkedIssueBlock)(asString(pullRequest.body), githubIssueNumber, parsedIssueKey);
+                    const nextBody = (0, issueLinkingHelpers_1.upsertLinkedIssueBlock)(asString(pullRequest.body), githubIssueNumber, issueKeyValue);
                     if (nextBody !== asString(pullRequest.body)) {
                         const [owner, repo] = repoFullName.split("/");
                         const prNumber = asNumber(pullRequest.number);
@@ -1332,7 +1338,7 @@ async function linkPullRequestToImaIssues(payload) {
                     v2_1.logger.warn("githubPullRequestWebhook: failed to update PR body", {
                         workspaceId,
                         repoFullName,
-                        issueKey: parsedIssueKey,
+                        issueKey: issueKeyValue,
                         message,
                     });
                 }
