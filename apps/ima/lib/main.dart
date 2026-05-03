@@ -802,10 +802,35 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         ? DateTime.now().millisecondsSinceEpoch.toDouble()
         : targetColumn.issues.first.rank - 1000;
 
-    await _callFunction(
-      'createGitHubIssue',
-      _issueDraftToFunctionData(draft, rank: rank),
-    );
+    final docRef = _firestore
+        .collection('workspaces/$_workspaceId/issues')
+        .doc();
+
+    await docRef.set({
+      'title': draft.title,
+      'body': draft.body,
+      'repo': draft.repo,
+      'assignee': draft.assignee,
+      'labels': draft.labels,
+      'comments': 0,
+      'priority': draft.priority.name,
+      'statusId': draft.columnId,
+      'rank': rank,
+      if (draft.githubUrl != null) 'githubIssue': {'url': draft.githubUrl},
+      if (draft.dueDate != null)
+        'dueDate': Timestamp.fromDate(draft.dueDate!),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    if (draft.repo.isNotEmpty) {
+      unawaited(
+        _callFunction('createGitHubIssue', {
+          ..._issueDraftToFunctionData(draft, rank: rank),
+          'issueId': docRef.id,
+        }),
+      );
+    }
   }
 
   Future<void> _estimateIssueWeight(String issueId) async {
