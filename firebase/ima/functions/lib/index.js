@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
+exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.addIssueComment = exports.listIssueComments = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
 const node_crypto_1 = require("node:crypto");
 const sdk_1 = require("@cursor/sdk");
 const app_1 = require("firebase-admin/app");
@@ -307,6 +307,16 @@ function normalizeIssueWeightEstimate(estimate) {
         inputHash,
         source: "llm",
         status: "done",
+    };
+}
+function normalizeGitHubComment(comment) {
+    return {
+        id: asNumber(comment.id),
+        body: asString(comment.body),
+        user: asString(comment.user?.login),
+        avatarUrl: asString(comment.user?.avatar_url),
+        createdAt: asString(comment.created_at),
+        updatedAt: asString(comment.updated_at),
     };
 }
 function issueLabels(issue) {
@@ -1504,6 +1514,82 @@ exports.syncGitHubIssues = (0, https_1.onCall)(async (request) => {
         }
     }
     return { synced, failed };
+});
+exports.listIssueComments = (0, https_1.onCall)(async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const token = await getGitHubToken(uid);
+    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    const issueDoc = await issueRef.get();
+    const issue = issueDoc.data();
+    if (!issue) {
+        throw new https_1.HttpsError("not-found", "Issue was not found");
+    }
+    const githubIssue = issue.githubIssue;
+    if (!githubIssue) {
+        throw new https_1.HttpsError("failed-precondition", "Issue must be linked to GitHub");
+    }
+    const owner = requireNonEmptyString(githubIssue.owner, "githubIssue.owner");
+    const repo = requireNonEmptyString(githubIssue.repo, "githubIssue.repo");
+    const number = asNumber(githubIssue.number);
+    if (number <= 0) {
+        throw new https_1.HttpsError("failed-precondition", "GitHub issue number is missing");
+    }
+    try {
+        const raw = await githubRequest({
+            path: `/repos/${owner}/${repo}/issues/${number}/comments`,
+            token,
+            queryParameters: { per_page: 100 },
+        });
+        const comments = raw.map(normalizeGitHubComment);
+        await issueRef.set({ comments: comments.length, updatedAt: firestore_1.FieldValue.serverTimestamp() }, { merge: true });
+        return { comments };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        v2_1.logger.error("Failed to list issue comments", { workspaceId, issueId, message });
+        throw new https_1.HttpsError("internal", "Failed to list issue comments");
+    }
+});
+exports.addIssueComment = (0, https_1.onCall)(async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+    const body = requireNonEmptyString(request.data?.body, "body");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const token = await getGitHubToken(uid);
+    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    const issueDoc = await issueRef.get();
+    const issue = issueDoc.data();
+    if (!issue) {
+        throw new https_1.HttpsError("not-found", "Issue was not found");
+    }
+    const githubIssue = issue.githubIssue;
+    if (!githubIssue) {
+        throw new https_1.HttpsError("failed-precondition", "Issue must be linked to GitHub");
+    }
+    const owner = requireNonEmptyString(githubIssue.owner, "githubIssue.owner");
+    const repo = requireNonEmptyString(githubIssue.repo, "githubIssue.repo");
+    const number = asNumber(githubIssue.number);
+    if (number <= 0) {
+        throw new https_1.HttpsError("failed-precondition", "GitHub issue number is missing");
+    }
+    try {
+        const raw = await githubRequest({
+            path: `/repos/${owner}/${repo}/issues/${number}/comments`,
+            token,
+            method: "POST",
+            body: { body },
+        });
+        const comment = normalizeGitHubComment(raw);
+        await issueRef.set({ comments: firestore_1.FieldValue.increment(1), updatedAt: firestore_1.FieldValue.serverTimestamp() }, { merge: true });
+        return { comment };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        v2_1.logger.error("Failed to add issue comment", { workspaceId, issueId, message });
+        throw new https_1.HttpsError("internal", "Failed to add issue comment");
+    }
 });
 exports.estimateIssueWeight = (0, https_1.onCall)({ timeoutSeconds: 120, secrets: [anthropicApiKey] }, async (request) => {
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");

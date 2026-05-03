@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -406,6 +407,8 @@ void main() {
                       statusId: 'triage',
                     ),
                     initialColumnId: 'triage',
+                    workspaceId: 'test-workspace',
+                    functions: FirebaseFunctions.instanceFor(region: 'asia-northeast1'),
                   ),
                 );
               },
@@ -461,6 +464,8 @@ void main() {
                       statusId: 'triage',
                     ),
                     initialColumnId: 'triage',
+                    workspaceId: 'test-workspace',
+                    functions: FirebaseFunctions.instanceFor(region: 'asia-northeast1'),
                   ),
                 );
               },

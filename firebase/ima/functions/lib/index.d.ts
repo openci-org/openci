@@ -82,6 +82,27 @@ interface IssueWeightEstimateResponse {
     source: "llm";
     status: "done";
 }
+interface ListIssueCommentsRequest extends WorkspaceRequest {
+    issueId: string;
+}
+interface AddIssueCommentRequest extends WorkspaceRequest {
+    issueId: string;
+    body: string;
+}
+interface IssueCommentItem {
+    id: number;
+    body: string;
+    user: string;
+    avatarUrl: string;
+    createdAt: string;
+    updatedAt: string;
+}
+interface ListIssueCommentsResponse {
+    comments: IssueCommentItem[];
+}
+interface AddIssueCommentResponse {
+    comment: IssueCommentItem;
+}
 export declare const connectGitHub: import("firebase-functions/v2/https").CallableFunction<ConnectGitHubRequest, Promise<{
     login: string;
 }>, unknown>;
@@ -97,6 +118,8 @@ export declare const backfillIssueKeys: import("firebase-functions/v2/https").Ca
 export declare const backfillCursorAgentPullRequests: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<BackfillCursorAgentPullRequestsResponse>, unknown>;
 export declare const githubPullRequestWebhook: import("firebase-functions/v2/https").HttpsFunction;
 export declare const syncGitHubIssues: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>, unknown>;
+export declare const listIssueComments: import("firebase-functions/v2/https").CallableFunction<ListIssueCommentsRequest, Promise<ListIssueCommentsResponse>, unknown>;
+export declare const addIssueComment: import("firebase-functions/v2/https").CallableFunction<AddIssueCommentRequest, Promise<AddIssueCommentResponse>, unknown>;
 export declare const estimateIssueWeight: import("firebase-functions/v2/https").CallableFunction<EstimateIssueWeightRequest, Promise<{
     issueId: string;
     weightEstimate: IssueWeightEstimateResponse;

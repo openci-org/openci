@@ -696,6 +696,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         repositoryOptions: _enabledRepositoryOptions,
         initialColumnId: initialColumnId,
         isBottomSheet: useBottomSheet,
+        workspaceId: _workspaceId,
+        functions: _functions,
       ),
     );
 
@@ -732,6 +734,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         isStartingCursorAgent: _startingCursorAgentIssueIds.contains(issueId),
         onStartCursorAgent: _startCursorAgent,
         isBottomSheet: useBottomSheet,
+        workspaceId: _workspaceId,
+        functions: _functions,
       ),
     );
 
@@ -2227,6 +2231,8 @@ class AddIssueDialog extends StatefulWidget {
     this.isStartingCursorAgent = false,
     this.onStartCursorAgent,
     this.isBottomSheet = false,
+    required this.workspaceId,
+    required this.functions,
   });
 
   final List<BoardColumn> columns;
@@ -2238,6 +2244,8 @@ class AddIssueDialog extends StatefulWidget {
   final bool isStartingCursorAgent;
   final Future<void> Function(String issueId)? onStartCursorAgent;
   final bool isBottomSheet;
+  final String workspaceId;
+  final FirebaseFunctions functions;
 
   @override
   State<AddIssueDialog> createState() => _AddIssueDialogState();
@@ -2509,6 +2517,13 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
               onStart: widget.onStartCursorAgent == null
                   ? null
                   : _startCursorAgent,
+            ),
+            const SizedBox(height: 14),
+            IssueCommentsPanel(
+              issueId: widget.initialIssue!.id,
+              workspaceId: widget.workspaceId,
+              functions: widget.functions,
+              hasGitHubIssue: widget.initialIssue!.githubUrl != null,
             ),
           ],
           if (!widget.isBottomSheet) ...[
@@ -4577,6 +4592,430 @@ class IssueWeightPanel extends StatelessWidget {
             onPressed: isEstimating ? null : onEstimate,
             icon: const Icon(Icons.auto_awesome_rounded, size: 16),
             label: Text(value == null ? 'Estimate' : 'Re-estimate'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class IssueComment {
+  const IssueComment({
+    required this.id,
+    required this.body,
+    required this.user,
+    required this.avatarUrl,
+    required this.createdAt,
+  });
+
+  factory IssueComment.fromMap(Map<String, dynamic> data) {
+    return IssueComment(
+      id: _asInt(data['id']),
+      body: _asString(data['body']),
+      user: _asString(data['user']),
+      avatarUrl: _asString(data['avatarUrl']),
+      createdAt: _asString(data['createdAt']),
+    );
+  }
+
+  final int id;
+  final String body;
+  final String user;
+  final String avatarUrl;
+  final String createdAt;
+
+  String get formattedDate {
+    final date = DateTime.tryParse(createdAt);
+    if (date == null) {
+      return '';
+    }
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} '
+        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class IssueCommentsPanel extends StatefulWidget {
+  const IssueCommentsPanel({
+    super.key,
+    required this.issueId,
+    required this.workspaceId,
+    required this.functions,
+    required this.hasGitHubIssue,
+  });
+
+  final String issueId;
+  final String workspaceId;
+  final FirebaseFunctions functions;
+  final bool hasGitHubIssue;
+
+  @override
+  State<IssueCommentsPanel> createState() => _IssueCommentsPanelState();
+}
+
+class _IssueCommentsPanelState extends State<IssueCommentsPanel> {
+  final _commentController = TextEditingController();
+  List<IssueComment> _comments = [];
+  var _isLoading = false;
+  var _isSending = false;
+  var _isExpanded = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.hasGitHubIssue) {
+      unawaited(_loadComments());
+    }
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadComments() async {
+    if (_isLoading) {
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final result = await widget.functions
+          .httpsCallable('listIssueComments')
+          .call<Map<String, dynamic>>({
+        'workspaceId': widget.workspaceId,
+        'issueId': widget.issueId,
+      });
+      final data = result.data;
+      final rawComments = _asList(data['comments']);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _comments = rawComments
+            .map((value) => IssueComment.fromMap(_asMap(value)))
+            .where((comment) => comment.id > 0)
+            .toList();
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = 'コメントの取得に失敗しました';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendComment() async {
+    final body = _commentController.text.trim();
+    if (body.isEmpty || _isSending) {
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      final result = await widget.functions
+          .httpsCallable('addIssueComment')
+          .call<Map<String, dynamic>>({
+        'workspaceId': widget.workspaceId,
+        'issueId': widget.issueId,
+        'body': body,
+      });
+      final data = result.data;
+      final rawComment = _asMap(data['comment']);
+      final comment = IssueComment.fromMap(rawComment);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (comment.id > 0) {
+          _comments = [..._comments, comment];
+        }
+        _isSending = false;
+      });
+      _commentController.clear();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isSending = false);
+      _showFloatingSnackBar(context, 'コメントの投稿に失敗しました');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.hasGitHubIssue) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(16),
+            ),
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: Color(0xFFD97706),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Comments',
+                          style: TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _isLoading
+                              ? '読み込み中...'
+                              : _error ?? '${_comments.length}件のコメント',
+                          style: const TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _isExpanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_isExpanded) ...[
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Color(0xFFDC2626)),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _loadComments,
+                      child: const Text('再読み込み'),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              if (_comments.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: Text(
+                    'コメントはまだありません',
+                    style: TextStyle(color: Color(0xFF94A3B8)),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 260),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    itemCount: _comments.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final comment = _comments[index];
+                      return _CommentBubble(comment: comment);
+                    },
+                  ),
+                ),
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _commentController,
+                        minLines: 1,
+                        maxLines: 4,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          hintText: 'コメントを入力...',
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE2E8F0),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 40,
+                      child: _isSending
+                          ? const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: SizedBox.square(
+                                dimension: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : IconButton(
+                              onPressed: _sendComment,
+                              icon: const Icon(
+                                Icons.send_rounded,
+                                color: Color(0xFF2563EB),
+                              ),
+                              tooltip: '送信',
+                              style: IconButton.styleFrom(
+                                backgroundColor: const Color(0xFFEFF6FF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentBubble extends StatelessWidget {
+  const _CommentBubble({required this.comment});
+
+  final IssueComment comment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (comment.avatarUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    comment.avatarUrl,
+                    width: 20,
+                    height: 20,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.account_circle_rounded,
+                      size: 20,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.account_circle_rounded,
+                  size: 20,
+                  color: Color(0xFF94A3B8),
+                ),
+              const SizedBox(width: 6),
+              Text(
+                comment.user,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF334155),
+                  fontSize: 13,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                comment.formattedDate,
+                style: const TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            comment.body,
+            style: const TextStyle(
+              color: Color(0xFF334155),
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ],
       ),

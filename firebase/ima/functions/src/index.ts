@@ -170,6 +170,40 @@ interface GitHubRepositoriesResponseItem {
   default_branch?: unknown;
 }
 
+interface ListIssueCommentsRequest extends WorkspaceRequest {
+  issueId: string;
+}
+
+interface AddIssueCommentRequest extends WorkspaceRequest {
+  issueId: string;
+  body: string;
+}
+
+interface IssueCommentItem {
+  id: number;
+  body: string;
+  user: string;
+  avatarUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ListIssueCommentsResponse {
+  comments: IssueCommentItem[];
+}
+
+interface AddIssueCommentResponse {
+  comment: IssueCommentItem;
+}
+
+interface GitHubCommentResponseItem {
+  id?: unknown;
+  body?: unknown;
+  user?: { login?: unknown; avatar_url?: unknown };
+  created_at?: unknown;
+  updated_at?: unknown;
+}
+
 interface GitHubIssueResponseItem {
   node_id?: unknown;
   number?: unknown;
@@ -615,6 +649,17 @@ function normalizeIssueWeightEstimate(
     inputHash,
     source: "llm",
     status: "done",
+  };
+}
+
+function normalizeGitHubComment(comment: GitHubCommentResponseItem): IssueCommentItem {
+  return {
+    id: asNumber(comment.id),
+    body: asString(comment.body),
+    user: asString(comment.user?.login),
+    avatarUrl: asString(comment.user?.avatar_url),
+    createdAt: asString(comment.created_at),
+    updatedAt: asString(comment.updated_at),
   };
 }
 
@@ -2136,6 +2181,101 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
     return { synced, failed };
   },
 );
+
+export const listIssueComments = onCall<
+  ListIssueCommentsRequest,
+  Promise<ListIssueCommentsResponse>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const token = await getGitHubToken(uid);
+
+  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+  const issueDoc = await issueRef.get();
+  const issue = issueDoc.data();
+  if (!issue) {
+    throw new HttpsError("not-found", "Issue was not found");
+  }
+
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  if (!githubIssue) {
+    throw new HttpsError("failed-precondition", "Issue must be linked to GitHub");
+  }
+
+  const owner = requireNonEmptyString(githubIssue.owner, "githubIssue.owner");
+  const repo = requireNonEmptyString(githubIssue.repo, "githubIssue.repo");
+  const number = asNumber(githubIssue.number);
+  if (number <= 0) {
+    throw new HttpsError("failed-precondition", "GitHub issue number is missing");
+  }
+
+  try {
+    const raw = await githubRequest<GitHubCommentResponseItem[]>({
+      path: `/repos/${owner}/${repo}/issues/${number}/comments`,
+      token,
+      queryParameters: { per_page: 100 },
+    });
+
+    const comments = raw.map(normalizeGitHubComment);
+    await issueRef.set({ comments: comments.length, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    return { comments };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to list issue comments", { workspaceId, issueId, message });
+    throw new HttpsError("internal", "Failed to list issue comments");
+  }
+});
+
+export const addIssueComment = onCall<
+  AddIssueCommentRequest,
+  Promise<AddIssueCommentResponse>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const body = requireNonEmptyString(request.data?.body, "body");
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const token = await getGitHubToken(uid);
+
+  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+  const issueDoc = await issueRef.get();
+  const issue = issueDoc.data();
+  if (!issue) {
+    throw new HttpsError("not-found", "Issue was not found");
+  }
+
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  if (!githubIssue) {
+    throw new HttpsError("failed-precondition", "Issue must be linked to GitHub");
+  }
+
+  const owner = requireNonEmptyString(githubIssue.owner, "githubIssue.owner");
+  const repo = requireNonEmptyString(githubIssue.repo, "githubIssue.repo");
+  const number = asNumber(githubIssue.number);
+  if (number <= 0) {
+    throw new HttpsError("failed-precondition", "GitHub issue number is missing");
+  }
+
+  try {
+    const raw = await githubRequest<GitHubCommentResponseItem>({
+      path: `/repos/${owner}/${repo}/issues/${number}/comments`,
+      token,
+      method: "POST",
+      body: { body },
+    });
+
+    const comment = normalizeGitHubComment(raw);
+    await issueRef.set(
+      { comments: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    return { comment };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to add issue comment", { workspaceId, issueId, message });
+    throw new HttpsError("internal", "Failed to add issue comment");
+  }
+});
 
 export const estimateIssueWeight = onCall<
   EstimateIssueWeightRequest,
