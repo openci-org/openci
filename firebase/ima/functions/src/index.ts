@@ -1841,7 +1841,7 @@ async function linkPullRequestToImaIssues(
     asString(pullRequest?.title),
     asString(pullRequest?.body),
   );
-  if (!pullRequest || repoFullName.length === 0 || parsedIssueKey === null) {
+  if (!pullRequest || repoFullName.length === 0) {
     return 0;
   }
 
@@ -1864,10 +1864,15 @@ async function linkPullRequestToImaIssues(
 
     for (const issueDoc of issueDocs.docs) {
       const issue = issueDoc.data();
-      if (
-        asString(issue.repo) !== repoFullName ||
-        asString(issue.issueKey).toUpperCase() !== parsedIssueKey
-      ) {
+      if (asString(issue.repo) !== repoFullName) {
+        continue;
+      }
+      const issueKeyValue = asString(issue.issueKey).toUpperCase();
+      const matchesIssue =
+        parsedIssueKey === null
+          ? pullRequestMatchesIssue(pullRequest, issue)
+          : issueKeyValue === parsedIssueKey;
+      if (!matchesIssue || issueKeyValue.length === 0) {
         continue;
       }
 
@@ -1885,7 +1890,7 @@ async function linkPullRequestToImaIssues(
           const nextBody = upsertLinkedIssueBlock(
             asString(pullRequest.body),
             githubIssueNumber,
-            parsedIssueKey,
+            issueKeyValue,
           );
           if (nextBody !== asString(pullRequest.body)) {
             const [owner, repo] = repoFullName.split("/");
@@ -1904,7 +1909,7 @@ async function linkPullRequestToImaIssues(
           logger.warn("githubPullRequestWebhook: failed to update PR body", {
             workspaceId,
             repoFullName,
-            issueKey: parsedIssueKey,
+            issueKey: issueKeyValue,
             message,
           });
         }
