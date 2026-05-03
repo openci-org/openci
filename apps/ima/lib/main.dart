@@ -393,7 +393,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
-  Timestamp? _lastImportedAt;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -585,15 +584,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final enabledDocs = snapshot.docs
         .where((doc) => doc.data()['enabled'] == true)
         .toList();
-    final lastImportedAt = enabledDocs
-        .map((doc) => doc.data()['lastImportedAt'])
-        .whereType<Timestamp>()
-        .fold<Timestamp?>(null, (latest, current) {
-          if (latest == null || current.compareTo(latest) > 0) {
-            return current;
-          }
-          return latest;
-        });
 
     if (!mounted) {
       return;
@@ -604,7 +594,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       _enabledRepoFullNames = {
         for (final doc in enabledDocs) _asString(doc.data()['fullName']),
       }..remove('');
-      _lastImportedAt = lastImportedAt;
     });
   }
 
@@ -1178,7 +1167,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     isConnected: isConnected,
                     isBusy: _isBusy,
                     repoCount: _enabledRepoCount,
-                    lastImportedAt: _lastImportedAt?.toDate(),
                     onConnectGitHub: _connectGitHub,
                     onSelectRepositories: _selectRepositories,
                     onImportIssues: _importGitHubIssues,
@@ -1211,7 +1199,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 onSearchIssues: _openIssueSearchDialog,
                 githubLogin: _githubLogin,
                 repoCount: _enabledRepoCount,
-                lastImportedAt: _lastImportedAt?.toDate(),
                 isBusy: _isBusy,
               ),
               if (_loadError != null)
@@ -1451,7 +1438,6 @@ class BoardToolbar extends StatelessWidget {
     required this.onSearchIssues,
     required this.githubLogin,
     required this.repoCount,
-    required this.lastImportedAt,
     required this.isBusy,
   });
 
@@ -1462,7 +1448,6 @@ class BoardToolbar extends StatelessWidget {
   final VoidCallback onSearchIssues;
   final String? githubLogin;
   final int repoCount;
-  final DateTime? lastImportedAt;
   final bool isBusy;
 
   @override
@@ -1504,16 +1489,6 @@ class BoardToolbar extends StatelessWidget {
                 label: const Text('Sync pending'),
               ),
               ToolbarChip(
-                icon: Icons.history_rounded,
-                label: lastImportedAt == null
-                    ? 'Not imported'
-                    : 'Imported ${_formatDate(lastImportedAt!)}',
-              ),
-              const ToolbarChip(
-                icon: Icons.filter_alt_outlined,
-                label: 'All priorities',
-              ),
-              ToolbarChip(
                 icon: Icons.search_outlined,
                 label: 'Search issues',
                 tooltip: 'Search issues (⌘K)',
@@ -1533,7 +1508,6 @@ class CompactBoardMenuButton extends StatelessWidget {
     required this.isConnected,
     required this.isBusy,
     required this.repoCount,
-    required this.lastImportedAt,
     required this.onConnectGitHub,
     required this.onSelectRepositories,
     required this.onImportIssues,
@@ -1545,7 +1519,6 @@ class CompactBoardMenuButton extends StatelessWidget {
   final bool isConnected;
   final bool isBusy;
   final int repoCount;
-  final DateTime? lastImportedAt;
   final VoidCallback onConnectGitHub;
   final VoidCallback onSelectRepositories;
   final VoidCallback onImportIssues;
@@ -1609,22 +1582,6 @@ class CompactBoardMenuButton extends StatelessWidget {
           ),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem(
-          enabled: false,
-          child: _CompactMenuItem(
-            icon: Icons.history_rounded,
-            label: lastImportedAt == null
-                ? 'Not imported'
-                : 'Imported ${_formatDate(lastImportedAt!)}',
-          ),
-        ),
-        const PopupMenuItem(
-          enabled: false,
-          child: _CompactMenuItem(
-            icon: Icons.filter_alt_outlined,
-            label: 'All priorities',
-          ),
-        ),
         const PopupMenuItem(
           value: 'search',
           child: _CompactMenuItem(
