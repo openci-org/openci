@@ -27,8 +27,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          vp install
+          vp i
           git restore package.json package-lock.json
+
+      - name: Install build_job_services dependencies
+        working-directory: packages/build_job_services
+        run: vp i
 
       - name: Check
         run: vp check
