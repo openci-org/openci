@@ -2,7 +2,7 @@
 
 import { parseConfig } from "./config.js";
 import { initFirebase } from "./dataconnect.js";
-import { pollForJobs } from "./worker.js";
+import { pollForJobs } from "./worker/worker.js";
 
 async function main(): Promise<void> {
   const config = parseConfig(process.argv.slice(2));

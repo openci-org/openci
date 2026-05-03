@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { setTimeout } from "node:timers/promises";
 
 import {
   generateFailureSummary,
@@ -6,14 +7,15 @@ import {
   updateCheckRun,
 } from "@openci/build-job-services";
 import { BuildJobStatus } from "@openci/dataconnect-admin";
-import { claimNextJob, completeJob, createRun, updateRunStatus } from "./dataconnect.js";
-import { checkAndUpdate, exitForUpdate } from "./auto_updater.js";
-import { buildEnvVars, buildSecretVars } from "./env.js";
-import { withInstallationToken } from "./github.js";
-import { flushLogs, logError, logInfo } from "./logger.js";
-import { runBuildJob } from "./runner.js";
-import type { WorkerConfig } from "./types.js";
-import { version } from "./version.js";
+import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
+import { claimNextJob, completeJob, createRun, updateRunStatus } from "../dataconnect.js";
+import { buildEnvVars, buildSecretVars } from "../env.js";
+import { withInstallationToken } from "../github.js";
+import { flushLogs, logError, logInfo } from "../logger.js";
+import { runBuildJob } from "../runner.js";
+import type { WorkerConfig } from "../types.js";
+import { version } from "../version.js";
+import { backoffMilliSeconds } from "./backoff.js";
 
 export async function processOneJob(config: WorkerConfig): Promise<boolean> {
   const claimedJob = await claimNextJob();
@@ -99,6 +101,7 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
   );
 
   let lastUpdateCheckAt = 0;
+  let consecutiveFailures = 0;
   while (true) {
     try {
       if (!config.once && Date.now() - lastUpdateCheckAt > 60_000) {
@@ -106,20 +109,30 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
         const updateResult = await checkAndUpdate();
         if (updateResult === "updated") exitForUpdate();
         if (updateResult === "failed") {
-          await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+          const delay = backoffMilliSeconds(consecutiveFailures);
+          consecutiveFailures += 1;
+          console.warn(
+            `Backing off for ${(delay / 1000).toFixed(0)}s (${consecutiveFailures} consecutive failures)`,
+          );
+          await setTimeout(delay);
           continue;
         }
       }
 
       const found = await processOneJob(config);
+      consecutiveFailures = 0;
       if (config.once) return;
       if (!found) {
-        await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+        await setTimeout(config.pollIntervalMs);
       }
     } catch (error) {
-      console.error(`Error in poll loop: ${String(error)}`);
+      const delay = backoffMilliSeconds(consecutiveFailures);
+      consecutiveFailures += 1;
+      console.error(
+        `Error in poll loop (${consecutiveFailures} consecutive failures, next retry in ${(delay / 1000).toFixed(0)}s): ${String(error)}`,
+      );
       if (config.once) throw error;
-      await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+      await setTimeout(delay);
     }
   }
 }

@@ -1,0 +1,50 @@
+name: Worker CLI CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+defaults:
+  run:
+    working-directory: apps/worker_cli_node
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "22"
+          working-directory: apps/worker_cli_node
+          run-install: false
+
+      - name: Install dependencies
+        run: |
+          vp i
+          git restore package.json package-lock.json
+
+      - name: Install build_job_services dependencies
+        working-directory: packages/build_job_services
+        run: vp i
+
+      - name: Check
+        run: vp check
+
+      - name: Lint
+        run: vp lint
+
+      - name: Format check
+        run: vp fmt --check
+
+      - name: Test
+        run: vp test
+
+      - name: Build
+        run: npm run build
