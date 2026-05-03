@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { setTimeout } from "node:timers/promises";
 
 import {
   generateFailureSummary,
@@ -6,14 +7,15 @@ import {
   updateCheckRun,
 } from "@openci/build-job-services";
 import { BuildJobStatus } from "@openci/dataconnect-admin";
-import { claimNextJob, completeJob, createRun, updateRunStatus } from "./dataconnect.js";
-import { checkAndUpdate, exitForUpdate } from "./auto_updater.js";
-import { buildEnvVars, buildSecretVars } from "./env.js";
-import { withInstallationToken } from "./github.js";
-import { flushLogs, logError, logInfo } from "./logger.js";
-import { runBuildJob } from "./runner.js";
-import type { WorkerConfig } from "./types.js";
-import { version } from "./version.js";
+import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
+import { claimNextJob, completeJob, createRun, updateRunStatus } from "../dataconnect.js";
+import { buildEnvVars, buildSecretVars } from "../env.js";
+import { withInstallationToken } from "../github.js";
+import { flushLogs, logError, logInfo } from "../logger.js";
+import { runBuildJob } from "../runner.js";
+import type { WorkerConfig } from "../types.js";
+import { version } from "../version.js";
+import { backoffMilliSeconds } from "./backoff.js";
 
 export async function processOneJob(config: WorkerConfig): Promise<boolean> {
   const claimedJob = await claimNextJob();
@@ -91,13 +93,6 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
   return true;
 }
 
-const maxBackoffMs = 5 * 60_000;
-
-function backoffMs(base: number, consecutiveFailures: number): number {
-  const delay = base * 2 ** Math.min(consecutiveFailures, 10);
-  return Math.min(delay, maxBackoffMs);
-}
-
 export async function pollForJobs(config: WorkerConfig): Promise<void> {
   console.log(`Worker started. Worker ID: ${config.workerId}`);
   console.log(`Worker version: ${version}`);
@@ -114,10 +109,12 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
         const updateResult = await checkAndUpdate();
         if (updateResult === "updated") exitForUpdate();
         if (updateResult === "failed") {
+          const delay = backoffMilliSeconds(consecutiveFailures);
           consecutiveFailures += 1;
-          const delay = backoffMs(config.pollIntervalMs, consecutiveFailures);
-          console.warn(`Backing off for ${(delay / 1000).toFixed(0)}s (${consecutiveFailures} consecutive failures)`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          console.warn(
+            `Backing off for ${(delay / 1000).toFixed(0)}s (${consecutiveFailures} consecutive failures)`,
+          );
+          await setTimeout(delay);
           continue;
         }
       }
@@ -126,14 +123,16 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
       consecutiveFailures = 0;
       if (config.once) return;
       if (!found) {
-        await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+        await setTimeout(config.pollIntervalMs);
       }
     } catch (error) {
+      const delay = backoffMilliSeconds(consecutiveFailures);
       consecutiveFailures += 1;
-      const delay = backoffMs(config.pollIntervalMs, consecutiveFailures);
-      console.error(`Error in poll loop (${consecutiveFailures} consecutive failures, next retry in ${(delay / 1000).toFixed(0)}s): ${String(error)}`);
+      console.error(
+        `Error in poll loop (${consecutiveFailures} consecutive failures, next retry in ${(delay / 1000).toFixed(0)}s): ${String(error)}`,
+      );
       if (config.once) throw error;
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await setTimeout(delay);
     }
   }
 }
