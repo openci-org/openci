@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'firebase_options.dart';
 
@@ -139,6 +140,16 @@ Future<void> _copyTextToClipboard(
   }
 
   _showFloatingSnackBar(context, successMessage);
+}
+
+Future<void> _launchUrlExternal(String url) async {
+  final uri = Uri.tryParse(url.trim());
+  if (uri == null) {
+    return;
+  }
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 }
 
 class AuthGate extends StatelessWidget {
@@ -2390,6 +2401,13 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     );
   }
 
+  void _openGitHubUrl() {
+    final url = _githubUrlController.text.trim();
+    if (url.isNotEmpty) {
+      unawaited(_launchUrlExternal(url));
+    }
+  }
+
   Future<void> _pasteGitHubUrl() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim();
@@ -2483,6 +2501,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                 label: 'GitHub link',
                 hint: 'https://github.com/openci/ima/issues/123',
               ),
+              onOpen: _openGitHubUrl,
               onCopy: _copyGitHubUrl,
               onPaste: _pasteGitHubUrl,
             ),
@@ -2894,12 +2913,14 @@ class _GitHubLinkField extends StatelessWidget {
   const _GitHubLinkField({
     required this.controller,
     required this.decoration,
+    required this.onOpen,
     required this.onCopy,
     required this.onPaste,
   });
 
   final TextEditingController controller;
   final InputDecoration decoration;
+  final VoidCallback onOpen;
   final VoidCallback onCopy;
   final Future<void> Function() onPaste;
 
@@ -2917,13 +2938,18 @@ class _GitHubLinkField extends StatelessWidget {
         final actions = ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
           builder: (context, value, _) {
-            final canCopy = value.text.trim().isNotEmpty;
+            final hasUrl = value.text.trim().isNotEmpty;
             return Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: canCopy ? onCopy : null,
+                  onPressed: hasUrl ? onOpen : null,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Open'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: hasUrl ? onCopy : null,
                   icon: const Icon(Icons.copy_rounded, size: 18),
                   label: const Text('Copy'),
                 ),
@@ -4108,7 +4134,7 @@ class IssueCard extends StatelessWidget {
               PriorityDot(priority: issue.priority),
               if (githubUrl != null) ...[
                 const SizedBox(width: 6),
-                GitHubLinkCopyButton(url: githubUrl),
+                GitHubLinkOpenButton(url: githubUrl),
                 const SizedBox(width: 6),
                 CursorAgentCardButton(
                   issue: issue,
@@ -4260,32 +4286,36 @@ class PullRequestBadge extends StatelessWidget {
     final label = pullRequests.length == 1
         ? 'PR #${latest.number}'
         : '${pullRequests.length} PRs';
+    final prUrl = latest.url;
     return Tooltip(
-      message: latest.url ?? 'Linked pull request',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.alt_route_rounded,
-            size: 15,
-            color: Color(0xFF0EA5E9),
-          ),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF0369A1),
-              fontWeight: FontWeight.w800,
+      message: prUrl ?? 'Linked pull request',
+      child: GestureDetector(
+        onTap: prUrl != null ? () => unawaited(_launchUrlExternal(prUrl)) : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.alt_route_rounded,
+              size: 15,
+              color: Color(0xFF0EA5E9),
             ),
-          ),
-        ],
+            const SizedBox(width: 3),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF0369A1),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class GitHubLinkCopyButton extends StatelessWidget {
-  const GitHubLinkCopyButton({super.key, required this.url});
+class GitHubLinkOpenButton extends StatelessWidget {
+  const GitHubLinkOpenButton({super.key, required this.url});
 
   final String url;
 
@@ -4294,17 +4324,11 @@ class GitHubLinkCopyButton extends StatelessWidget {
     return SizedBox.square(
       dimension: 26,
       child: IconButton(
-        tooltip: 'Copy GitHub link',
+        tooltip: 'Open in GitHub',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
-        onPressed: () => unawaited(
-          _copyTextToClipboard(
-            context,
-            text: url,
-            successMessage: 'GitHub link copied',
-          ),
-        ),
-        icon: const Icon(Icons.link_rounded, size: 16),
+        onPressed: () => unawaited(_launchUrlExternal(url)),
+        icon: const Icon(Icons.open_in_new_rounded, size: 16),
       ),
     );
   }
