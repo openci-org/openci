@@ -1500,10 +1500,6 @@ class BoardToolbar extends StatelessWidget {
                     ? 'Not imported'
                     : 'Imported ${_formatDate(lastImportedAt!)}',
               ),
-              const ToolbarChip(
-                icon: Icons.filter_alt_outlined,
-                label: 'All priorities',
-              ),
               ToolbarChip(
                 icon: Icons.search_outlined,
                 label: 'Search issues',
@@ -1607,13 +1603,6 @@ class CompactBoardMenuButton extends StatelessWidget {
             label: lastImportedAt == null
                 ? 'Not imported'
                 : 'Imported ${_formatDate(lastImportedAt!)}',
-          ),
-        ),
-        const PopupMenuItem(
-          enabled: false,
-          child: _CompactMenuItem(
-            icon: Icons.filter_alt_outlined,
-            label: 'All priorities',
           ),
         ),
         const PopupMenuItem(
