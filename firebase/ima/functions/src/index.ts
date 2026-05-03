@@ -1448,6 +1448,9 @@ export const startIssueCursorAgent = onCall<
   const repositoryUrl = `https://github.com/${repoFullName}`;
   const prompt = buildCursorAgentPrompt({ issueId, issue, githubIssue, repoFullName });
   const now = FieldValue.serverTimestamp();
+  const currentStatusId = asString(issue.statusId, "triage");
+  const shouldMoveToDoing =
+    currentStatusId !== closedStatusId && !inProgressStatusIds.has(currentStatusId);
 
   await issueRef.set(
     {
@@ -1460,6 +1463,7 @@ export const startIssueCursorAgent = onCall<
         startedAt: now,
         errorMessage: FieldValue.delete(),
       },
+      ...(shouldMoveToDoing ? { statusId: "doing" } : {}),
       updatedAt: now,
     },
     { merge: true },

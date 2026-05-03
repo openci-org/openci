@@ -982,6 +982,8 @@ exports.startIssueCursorAgent = (0, https_1.onCall)({ timeoutSeconds: 120, secre
     const repositoryUrl = `https://github.com/${repoFullName}`;
     const prompt = buildCursorAgentPrompt({ issueId, issue, githubIssue, repoFullName });
     const now = firestore_1.FieldValue.serverTimestamp();
+    const currentStatusId = asString(issue.statusId, "triage");
+    const shouldMoveToDoing = currentStatusId !== closedStatusId && !inProgressStatusIds.has(currentStatusId);
     await issueRef.set({
         cursorAgent: {
             status: "starting",
@@ -992,6 +994,7 @@ exports.startIssueCursorAgent = (0, https_1.onCall)({ timeoutSeconds: 120, secre
             startedAt: now,
             errorMessage: firestore_1.FieldValue.delete(),
         },
+        ...(shouldMoveToDoing ? { statusId: "doing" } : {}),
         updatedAt: now,
     }, { merge: true });
     await runRef.set({
