@@ -1279,6 +1279,59 @@ async function upsertPullRequestLink({ workspaceId, issueId, action, pullRequest
         }
     });
 }
+async function syncGitHubIssueCloseFromWebhook(payload) {
+    const action = asString(payload.action);
+    if (action !== "closed" && action !== "reopened") {
+        return 0;
+    }
+    const ghIssue = payload.issue;
+    const repoFullName = asString(payload.repository?.full_name);
+    const number = asNumber(ghIssue?.number);
+    if (!ghIssue || repoFullName.length === 0 || number <= 0) {
+        return 0;
+    }
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) {
+        return 0;
+    }
+    const docId = issueDocId(owner, repo, number);
+    const workspaces = await db.collection("workspaces").limit(100).get();
+    let updated = 0;
+    for (const workspace of workspaces.docs) {
+        const workspaceRef = workspace.ref;
+        const workspaceId = workspace.id;
+        const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
+        if (!repoDoc.exists ||
+            repoDoc.get("enabled") !== true ||
+            asString(repoDoc.get("fullName")) !== repoFullName) {
+            continue;
+        }
+        const issueRef = workspaceRef.collection("issues").doc(docId);
+        const issueDoc = await issueRef.get();
+        if (!issueDoc.exists) {
+            continue;
+        }
+        const issueData = issueDoc.data() ?? {};
+        const currentStatusId = asString(issueData.statusId, "triage");
+        if (action === "closed" && currentStatusId !== closedStatusId) {
+            await issueRef.set({
+                statusId: closedStatusId,
+                "githubIssue.state": "closed",
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true });
+            updated += 1;
+        }
+        else if (action === "reopened" && currentStatusId === closedStatusId) {
+            await issueRef.set({
+                statusId: "triage",
+                "githubIssue.state": "open",
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true });
+            updated += 1;
+        }
+    }
+    return updated;
+}
 async function linkPullRequestToImaIssues(payload) {
     const action = asString(payload.action);
     if (!["opened", "edited", "synchronize", "reopened", "closed"].includes(action)) {
@@ -1367,7 +1420,7 @@ exports.githubPullRequestWebhook = (0, https_1.onRequest)({ secrets: [githubWebh
         return;
     }
     const event = asString(request.header("x-github-event"));
-    if (event !== "pull_request") {
+    if (event !== "pull_request" && event !== "issues") {
         response.status(204).send();
         return;
     }
@@ -1378,13 +1431,19 @@ exports.githubPullRequestWebhook = (0, https_1.onRequest)({ secrets: [githubWebh
         return;
     }
     try {
+        if (event === "issues") {
+            const payload = JSON.parse(rawBody.toString("utf8"));
+            const updated = await syncGitHubIssueCloseFromWebhook(payload);
+            response.status(200).json({ updated });
+            return;
+        }
         const linked = await linkPullRequestToImaIssues(parseWebhookPayload(rawBody));
         response.status(200).json({ linked });
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const stack = error instanceof Error ? error.stack : undefined;
-        v2_1.logger.error("githubPullRequestWebhook: failed", { message, stack });
+        v2_1.logger.error("githubPullRequestWebhook: failed", { event, message, stack });
         response.status(500).send("Webhook processing failed");
     }
 });
