@@ -73,6 +73,7 @@ interface CreateGitHubIssueRequest extends WorkspaceRequest {
   priority: string;
   rank: number;
   dueDate?: string;
+  issueId?: string;
 }
 
 interface GitHubRepository {
@@ -1364,9 +1365,11 @@ export const createGitHubIssue = onCall<
       throw new HttpsError("failed-precondition", "GitHub issue could not be created");
     }
 
-    const issueId = issueDocId(owner, repo, number);
+    const clientIssueId = asString(request.data?.issueId);
+    const issueId = clientIssueId.length > 0 ? clientIssueId : issueDocId(owner, repo, number);
     const docRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-    const keyFields = await issueKeyFields(workspaceId, {});
+    const existingData = clientIssueId.length > 0 ? (await docRef.get()).data() ?? {} : {};
+    const keyFields = await issueKeyFields(workspaceId, existingData);
     await docRef.set(
       {
         ...keyFields,

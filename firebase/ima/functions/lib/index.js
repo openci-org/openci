@@ -179,8 +179,7 @@ function pullRequestMatchesIssue(pullRequest, issue) {
     const title = asString(pullRequest.title);
     const body = asString(pullRequest.body);
     const issueKeyValue = asString(issue.issueKey).toUpperCase();
-    if (issueKeyValue.length > 0 &&
-        (0, issueLinkingHelpers_1.extractIssueKey)(branch, title, body) === issueKeyValue) {
+    if (issueKeyValue.length > 0 && (0, issueLinkingHelpers_1.extractIssueKey)(branch, title, body) === issueKeyValue) {
         return true;
     }
     const githubIssue = issue.githubIssue;
@@ -894,9 +893,11 @@ exports.createGitHubIssue = (0, https_1.onCall)(async (request) => {
         if (number <= 0 || nodeId.length === 0) {
             throw new https_1.HttpsError("failed-precondition", "GitHub issue could not be created");
         }
-        const issueId = issueDocId(owner, repo, number);
+        const clientIssueId = asString(request.data?.issueId);
+        const issueId = clientIssueId.length > 0 ? clientIssueId : issueDocId(owner, repo, number);
         const docRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-        const keyFields = await issueKeyFields(workspaceId, {});
+        const existingData = clientIssueId.length > 0 ? (await docRef.get()).data() ?? {} : {};
+        const keyFields = await issueKeyFields(workspaceId, existingData);
         await docRef.set({
             ...keyFields,
             title: asString(issue.title, title),
@@ -1299,7 +1300,6 @@ async function syncGitHubIssueCloseFromWebhook(payload) {
     let updated = 0;
     for (const workspace of workspaces.docs) {
         const workspaceRef = workspace.ref;
-        const workspaceId = workspace.id;
         const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
         if (!repoDoc.exists ||
             repoDoc.get("enabled") !== true ||
