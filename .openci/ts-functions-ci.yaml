@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           vp install
-          git restore package.json package-lock.json npm-shrinkwrap.json
+          git restore package.json npm-shrinkwrap.json
 
       - name: Check
         run: vp check

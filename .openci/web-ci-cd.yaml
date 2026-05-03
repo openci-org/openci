@@ -23,11 +23,8 @@ jobs:
       - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "22"
+          working-directory: apps/landing_page
           cache: true
-
-      - name: Install dependencies
-        working-directory: apps/landing_page
-        run: vp install
 
       - name: Lint
         working-directory: apps/landing_page
