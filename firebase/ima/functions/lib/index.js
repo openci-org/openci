@@ -1,15 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.autoSyncIssueToGitHub = exports.autoEstimateIssueWeight = exports.issueLifecycleLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillIssueKeys = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
+exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
 const node_crypto_1 = require("node:crypto");
+const sdk_1 = require("@cursor/sdk");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const params_1 = require("firebase-functions/params");
 const v2_1 = require("firebase-functions/v2");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
-const issueWeightHelpers_1 = require("./issueWeightHelpers");
 const issueLinkingHelpers_1 = require("./issueLinkingHelpers");
+const issueWeightHelpers_1 = require("./issueWeightHelpers");
 if ((0, app_1.getApps)().length === 0) {
     (0, app_1.initializeApp)();
 }
@@ -19,6 +20,7 @@ if ((0, app_1.getApps)().length === 0) {
 });
 const db = (0, firestore_1.getFirestore)();
 const anthropicApiKey = (0, params_1.defineSecret)("ANTHROPIC_API_KEY");
+const cursorApiKey = (0, params_1.defineSecret)("CURSOR_API_KEY");
 const githubWebhookSecret = (0, params_1.defineSecret)("GITHUB_WEBHOOK_SECRET");
 const closedStatusId = "done";
 const reviewStatusId = "review";
@@ -108,6 +110,88 @@ function asNumber(value, fallback = 0) {
 function asBoolean(value, fallback = false) {
     return typeof value === "boolean" ? value : fallback;
 }
+function isActiveCursorAgentStatus(status) {
+    return status === "starting" || status === "running";
+}
+async function resolveIssueCursorStartingRef(workspaceId, repoFullName) {
+    const repoDoc = await db
+        .doc(`workspaces/${workspaceId}/githubRepos/${repoDocId(repoFullName)}`)
+        .get();
+    return asString(repoDoc.get("defaultBranch"), "main");
+}
+function buildCursorAgentPrompt(input) {
+    const labels = asStringList(input.issue.labels);
+    const issueUrl = asString(input.githubIssue.url);
+    const issueKeyValue = asString(input.issue.issueKey);
+    const displayId = issueKeyValue.length > 0 ? issueKeyValue : `#${asNumber(input.githubIssue.number)}`;
+    return [
+        `Please work on this GitHub issue and open a pull request when finished.`,
+        ``,
+        `Repository: ${input.repoFullName}`,
+        `Issue: ${displayId}`,
+        issueUrl.length > 0 ? `Issue URL: ${issueUrl}` : undefined,
+        labels.length > 0 ? `Labels: ${labels.join(", ")}` : undefined,
+        ``,
+        `Title:`,
+        asString(input.issue.title, "Untitled issue"),
+        ``,
+        `Body:`,
+        asString(input.issue.body, "(no body)"),
+        ``,
+        `Instructions:`,
+        `- Understand the existing codebase before editing.`,
+        `- Implement the issue with the smallest reasonable change.`,
+        `- Add or update tests when the change is behaviorally meaningful.`,
+        `- Run relevant checks if available.`,
+        `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}.`,
+    ]
+        .filter((line) => typeof line === "string")
+        .join("\n");
+}
+function cursorAgentStartComment(input) {
+    return [
+        `Cursor agent started from IMA.`,
+        ``,
+        `- Issue: ${input.issueKey}`,
+        `- Agent ID: \`${input.agentId}\``,
+        `- Run ID: \`${input.runId}\``,
+        ``,
+        `The agent will work on the issue and create a pull request if it completes successfully.`,
+    ].join("\n");
+}
+function pullRequestSummary({ owner, repo, pullRequest, branch, }) {
+    return {
+        owner,
+        repo,
+        number: asNumber(pullRequest.number),
+        url: asString(pullRequest.html_url),
+        title: asString(pullRequest.title),
+        branch,
+        state: asString(pullRequest.state, "open"),
+        merged: asBoolean(pullRequest.merged),
+    };
+}
+function pullRequestMatchesIssue(pullRequest, issue) {
+    const branch = asString(pullRequest.head?.ref);
+    const title = asString(pullRequest.title);
+    const body = asString(pullRequest.body);
+    const issueKeyValue = asString(issue.issueKey).toUpperCase();
+    if (issueKeyValue.length > 0 &&
+        (0, issueLinkingHelpers_1.extractIssueKey)(branch, title, body) === issueKeyValue) {
+        return true;
+    }
+    const githubIssue = issue.githubIssue;
+    const issueUrl = asString(githubIssue?.url);
+    if (issueUrl.length > 0 && body.includes(issueUrl)) {
+        return true;
+    }
+    const issueNumber = asNumber(githubIssue?.number);
+    if (issueNumber <= 0) {
+        return false;
+    }
+    const numberPattern = new RegExp(`(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\\s+#${issueNumber}(?=$|\\D)`, "iu");
+    return numberPattern.test(body);
+}
 function issueKeyFieldsFromData(data) {
     const existingIssueKey = asString(data.issueKey);
     if (existingIssueKey.length === 0) {
@@ -192,7 +276,9 @@ function median(values) {
 }
 function issueWeightEstimateMap(issue) {
     const estimate = issue.weightEstimate;
-    return typeof estimate === "object" && estimate !== null ? estimate : {};
+    return typeof estimate === "object" && estimate !== null
+        ? estimate
+        : {};
 }
 function normalizeIssueWeightEstimate(estimate) {
     const value = asNumber(estimate.value);
@@ -528,12 +614,19 @@ exports.startGitHubDeviceFlow = (0, https_1.onCall)(async (request) => {
         step = "verifyMember";
         await verifyWorkspaceMember(request.auth, workspaceId);
         step = "githubRequest";
-        v2_1.logger.info("Starting device flow request", { workspaceId, clientId: clientId.substring(0, 8) });
+        v2_1.logger.info("Starting device flow request", {
+            workspaceId,
+            clientId: clientId.substring(0, 8),
+        });
         const data = await githubOAuthRequest("/login/device/code", {
             client_id: clientId,
             scope: "read:user repo",
         });
-        v2_1.logger.info("Device flow response received", { workspaceId, hasError: !!data.error, hasUserCode: !!data.user_code });
+        v2_1.logger.info("Device flow response received", {
+            workspaceId,
+            hasError: !!data.error,
+            hasUserCode: !!data.user_code,
+        });
         const error = asString(data.error);
         if (error.length > 0) {
             throw new https_1.HttpsError("failed-precondition", asString(data.error_description, error));
@@ -731,7 +824,7 @@ exports.importGitHubIssues = (0, https_1.onCall)(async (request) => {
                         githubCreatedAt: asTimestamp(issue.created_at),
                         updatedAt: firestore_1.FieldValue.serverTimestamp(),
                         createdAt: existing.exists
-                            ? existingData.createdAt ?? firestore_1.FieldValue.serverTimestamp()
+                            ? (existingData.createdAt ?? firestore_1.FieldValue.serverTimestamp())
                             : firestore_1.FieldValue.serverTimestamp(),
                     }, { merge: true });
                     pendingWrites += 1;
@@ -838,17 +931,167 @@ exports.createGitHubIssue = (0, https_1.onCall)(async (request) => {
         }
         const message = error instanceof Error ? error.message : String(error);
         const stack = error instanceof Error ? error.stack : undefined;
-        v2_1.logger.error("Failed to create Ima GitHub issue", { workspaceId, uid, repoFullName, message, stack });
+        v2_1.logger.error("Failed to create Ima GitHub issue", {
+            workspaceId,
+            uid,
+            repoFullName,
+            message,
+            stack,
+        });
         throw new https_1.HttpsError("internal", `Failed to create GitHub issue: ${message}`);
+    }
+});
+exports.startIssueCursorAgent = (0, https_1.onCall)({ timeoutSeconds: 120, secrets: [cursorApiKey] }, async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const githubToken = await getGitHubToken(uid);
+    const apiKey = cursorApiKey.value();
+    if (apiKey.length === 0) {
+        throw new https_1.HttpsError("failed-precondition", "CURSOR_API_KEY is not configured");
+    }
+    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    const issueDoc = await issueRef.get();
+    const issue = issueDoc.data();
+    if (!issue) {
+        throw new https_1.HttpsError("not-found", "Issue was not found");
+    }
+    const cursorAgent = issue.cursorAgent;
+    const existingStatus = asString(cursorAgent?.status);
+    if (isActiveCursorAgentStatus(existingStatus)) {
+        throw new https_1.HttpsError("failed-precondition", "Cursor agent is already running for this issue");
+    }
+    const repoFullName = requireNonEmptyString(issue.repo, "repo");
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) {
+        throw new https_1.HttpsError("failed-precondition", "Issue repository must be owner/repo");
+    }
+    const githubIssue = issue.githubIssue;
+    if (!githubIssue) {
+        throw new https_1.HttpsError("failed-precondition", "Issue must be linked to GitHub");
+    }
+    const issueNumber = asNumber(githubIssue.number);
+    if (issueNumber <= 0) {
+        throw new https_1.HttpsError("failed-precondition", "GitHub issue number is missing");
+    }
+    const runRef = issueRef.collection("cursorAgentRuns").doc();
+    const startingRef = await resolveIssueCursorStartingRef(workspaceId, repoFullName);
+    const repositoryUrl = `https://github.com/${repoFullName}`;
+    const prompt = buildCursorAgentPrompt({ issueId, issue, githubIssue, repoFullName });
+    const now = firestore_1.FieldValue.serverTimestamp();
+    await issueRef.set({
+        cursorAgent: {
+            status: "starting",
+            requestedBy: uid,
+            startingRef,
+            repositoryUrl,
+            updatedAt: now,
+            startedAt: now,
+            errorMessage: firestore_1.FieldValue.delete(),
+        },
+        updatedAt: now,
+    }, { merge: true });
+    await runRef.set({
+        status: "starting",
+        requestedBy: uid,
+        startingRef,
+        repositoryUrl,
+        prompt,
+        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    });
+    let agent;
+    try {
+        agent = await sdk_1.Agent.create({
+            apiKey,
+            cloud: {
+                repos: [{ url: repositoryUrl, startingRef }],
+                autoCreatePR: true,
+            },
+        });
+        const run = await agent.send(prompt);
+        const agentId = run.agentId;
+        const runId = run.id;
+        await Promise.all([
+            issueRef.set({
+                cursorAgent: {
+                    status: "running",
+                    agentId,
+                    runId,
+                    runDocumentId: runRef.id,
+                    requestedBy: uid,
+                    startingRef,
+                    repositoryUrl,
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                    startedAt: firestore_1.FieldValue.serverTimestamp(),
+                    errorMessage: firestore_1.FieldValue.delete(),
+                },
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true }),
+            runRef.set({
+                status: "running",
+                agentId,
+                runId,
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true }),
+        ]);
+        try {
+            await githubRequest({
+                path: `/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
+                token: githubToken,
+                method: "POST",
+                body: {
+                    body: cursorAgentStartComment({
+                        issueKey: asString(issue.issueKey, `#${issueNumber}`),
+                        agentId,
+                        runId,
+                    }),
+                },
+            });
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            v2_1.logger.warn("Failed to post Cursor agent start comment", {
+                workspaceId,
+                issueId,
+                repoFullName,
+                issueNumber,
+                message,
+            });
+        }
+        return { issueId, agentId, runId, status: "running" };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await Promise.all([
+            issueRef.set({
+                cursorAgent: {
+                    status: "failed",
+                    requestedBy: uid,
+                    startingRef,
+                    repositoryUrl,
+                    errorMessage: message,
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                },
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true }),
+            runRef.set({
+                status: "failed",
+                errorMessage: message,
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true }),
+        ]);
+        v2_1.logger.error("Failed to start Cursor agent", { workspaceId, issueId, repoFullName, message });
+        throw new https_1.HttpsError("internal", `Failed to start Cursor agent: ${message}`);
+    }
+    finally {
+        await agent?.[Symbol.asyncDispose]?.();
     }
 });
 exports.backfillIssueKeys = (0, https_1.onCall)(async (request) => {
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
     await verifyWorkspaceMember(request.auth, workspaceId);
-    const issues = await db
-        .collection(`workspaces/${workspaceId}/issues`)
-        .limit(500)
-        .get();
+    const issues = await db.collection(`workspaces/${workspaceId}/issues`).limit(500).get();
     let updated = 0;
     for (const issue of issues.docs) {
         if (issueKeyFieldsFromData(issue.data()) !== null) {
@@ -862,6 +1105,95 @@ exports.backfillIssueKeys = (0, https_1.onCall)(async (request) => {
     }
     return { updated };
 });
+function recordList(value) {
+    return Array.isArray(value)
+        ? value.filter((item) => typeof item === "object" && item !== null)
+        : [];
+}
+async function completeCursorAgentFromExistingPullRequest({ workspaceId, issueId, cursorAgent, pullRequest, }) {
+    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    const runDocumentId = asString(cursorAgent?.runDocumentId);
+    const update = {
+        status: "done",
+        pullRequest,
+        completedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        errorMessage: firestore_1.FieldValue.delete(),
+    };
+    await Promise.all([
+        issueRef.set({
+            cursorAgent: update,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        }, { merge: true }),
+        ...(runDocumentId.length > 0
+            ? [
+                issueRef.collection("cursorAgentRuns").doc(runDocumentId).set({
+                    status: "done",
+                    pullRequest,
+                    completedAt: firestore_1.FieldValue.serverTimestamp(),
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true }),
+            ]
+            : []),
+    ]);
+}
+exports.backfillCursorAgentPullRequests = (0, https_1.onCall)(async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const token = await getGitHubToken(uid);
+    const issues = await db.collection(`workspaces/${workspaceId}/issues`).limit(500).get();
+    const pullRequestsByRepo = new Map();
+    let inspected = 0;
+    let linked = 0;
+    for (const issueDoc of issues.docs) {
+        const issue = issueDoc.data();
+        const cursorAgent = issue.cursorAgent;
+        if (!isActiveCursorAgentStatus(asString(cursorAgent?.status))) {
+            continue;
+        }
+        inspected += 1;
+        const existingPullRequests = recordList(issue.pullRequests);
+        const existingPullRequest = existingPullRequests[0];
+        if (existingPullRequest !== undefined) {
+            await completeCursorAgentFromExistingPullRequest({
+                workspaceId,
+                issueId: issueDoc.id,
+                cursorAgent,
+                pullRequest: existingPullRequest,
+            });
+            linked += 1;
+            continue;
+        }
+        const repoFullName = asString(issue.repo);
+        const [owner, repo] = repoFullName.split("/");
+        if (!owner || !repo) {
+            continue;
+        }
+        let pullRequests = pullRequestsByRepo.get(repoFullName);
+        if (pullRequests === undefined) {
+            pullRequests = await githubRequest({
+                path: `/repos/${owner}/${repo}/pulls`,
+                token,
+                queryParameters: { state: "all", sort: "updated", direction: "desc", per_page: 100 },
+            });
+            pullRequestsByRepo.set(repoFullName, pullRequests);
+        }
+        const pullRequest = pullRequests.find((item) => pullRequestMatchesIssue(item, issue));
+        if (pullRequest === undefined) {
+            continue;
+        }
+        await upsertPullRequestLink({
+            workspaceId,
+            issueId: issueDoc.id,
+            action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
+            pullRequest,
+            repoFullName,
+            branch: asString(pullRequest.head?.ref),
+        });
+        linked += 1;
+    }
+    return { inspected, linked };
+});
 function verifyGitHubSignature(rawBody, signatureHeader, secret) {
     if (!signatureHeader.startsWith("sha256=") || secret.length === 0) {
         return false;
@@ -869,7 +1201,7 @@ function verifyGitHubSignature(rawBody, signatureHeader, secret) {
     const expected = `sha256=${(0, node_crypto_1.createHmac)("sha256", secret).update(rawBody).digest("hex")}`;
     const actualBuffer = Buffer.from(signatureHeader, "utf8");
     const expectedBuffer = Buffer.from(expected, "utf8");
-    return actualBuffer.length === expectedBuffer.length && (0, node_crypto_1.timingSafeEqual)(actualBuffer, expectedBuffer);
+    return (actualBuffer.length === expectedBuffer.length && (0, node_crypto_1.timingSafeEqual)(actualBuffer, expectedBuffer));
 }
 function requestRawBody(request) {
     const rawBody = request.rawBody;
@@ -904,25 +1236,41 @@ async function upsertPullRequestLink({ workspaceId, issueId, action, pullRequest
         const linkId = pullRequestLinkId(owner, repo, number);
         const now = firestore_1.Timestamp.now();
         const existingLink = currentPullRequests.find((item) => asString(item.id) === linkId);
+        const linkedPullRequest = pullRequestSummary({ owner, repo, pullRequest, branch });
         const nextPullRequests = currentPullRequests.filter((item) => asString(item.id) !== linkId);
         nextPullRequests.push({
             id: linkId,
-            owner,
-            repo,
-            number,
-            url: asString(pullRequest.html_url),
-            title: asString(pullRequest.title),
-            branch,
-            state: asString(pullRequest.state, "open"),
-            merged: asBoolean(pullRequest.merged),
+            ...linkedPullRequest,
             linkedAt: timestampFromValue(existingLink?.linkedAt) ?? now,
             updatedAt: now,
         });
+        const cursorAgent = issue.get("cursorAgent");
+        const shouldCompleteCursorAgent = isActiveCursorAgentStatus(asString(cursorAgent?.status));
+        const runDocumentId = asString(cursorAgent?.runDocumentId);
         transaction.set(issueRef, {
             pullRequests: nextPullRequests,
             ...(nextStatusId === null ? {} : { statusId: nextStatusId }),
+            ...(shouldCompleteCursorAgent
+                ? {
+                    cursorAgent: {
+                        status: "done",
+                        pullRequest: linkedPullRequest,
+                        completedAt: firestore_1.FieldValue.serverTimestamp(),
+                        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                        errorMessage: firestore_1.FieldValue.delete(),
+                    },
+                }
+                : {}),
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         }, { merge: true });
+        if (shouldCompleteCursorAgent && runDocumentId.length > 0) {
+            transaction.set(issueRef.collection("cursorAgentRuns").doc(runDocumentId), {
+                status: "done",
+                pullRequest: linkedPullRequest,
+                completedAt: firestore_1.FieldValue.serverTimestamp(),
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true });
+        }
     });
 }
 async function linkPullRequestToImaIssues(payload) {
@@ -943,13 +1291,16 @@ async function linkPullRequestToImaIssues(payload) {
         const workspaceRef = workspace.ref;
         const workspaceId = workspace.id;
         const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
-        if (!repoDoc.exists || repoDoc.get("enabled") !== true || asString(repoDoc.get("fullName")) !== repoFullName) {
+        if (!repoDoc.exists ||
+            repoDoc.get("enabled") !== true ||
+            asString(repoDoc.get("fullName")) !== repoFullName) {
             continue;
         }
         const issueDocs = await workspaceRef.collection("issues").limit(500).get();
         for (const issueDoc of issueDocs.docs) {
             const issue = issueDoc.data();
-            if (asString(issue.repo) !== repoFullName || asString(issue.issueKey).toUpperCase() !== parsedIssueKey) {
+            if (asString(issue.repo) !== repoFullName ||
+                asString(issue.issueKey).toUpperCase() !== parsedIssueKey) {
                 continue;
             }
             const githubIssue = issue.githubIssue;
@@ -1109,7 +1460,7 @@ exports.estimateIssueWeight = (0, https_1.onCall)({ timeoutSeconds: 120, secrets
         throw new https_1.HttpsError("internal", "Failed to estimate issue weight");
     }
 });
-exports.issueLifecycleLogger = (0, firestore_2.onDocumentWritten)("workspaces/{workspaceId}/issues/{issueId}", async (event) => {
+exports.issueLifecycleEventLogger = (0, firestore_2.onDocumentWritten)("workspaces/{workspaceId}/issues/{issueId}", async (event) => {
     const after = event.data?.after?.data();
     const before = event.data?.before?.data();
     if (!after) {
@@ -1152,7 +1503,8 @@ exports.issueLifecycleLogger = (0, firestore_2.onDocumentWritten)("workspaces/{w
             },
         });
     }
-    if (inProgressStatusIds.has(afterStatus) && timestampFromValue(after.firstInProgressAt) === null) {
+    if (inProgressStatusIds.has(afterStatus) &&
+        timestampFromValue(after.firstInProgressAt) === null) {
         updates.firstInProgressAt = now;
     }
     if (beforeStatus !== afterStatus && afterStatus === closedStatusId) {
@@ -1208,7 +1560,7 @@ exports.issueLifecycleLogger = (0, firestore_2.onDocumentWritten)("workspaces/{w
         await event.data?.after.ref.set(updates, { merge: true });
     }
 });
-exports.autoEstimateIssueWeight = (0, firestore_2.onDocumentWritten)({
+exports.autoEstimateIssueWeightOnIssueWrite = (0, firestore_2.onDocumentWritten)({
     document: "workspaces/{workspaceId}/issues/{issueId}",
     timeoutSeconds: 120,
     secrets: [anthropicApiKey],
@@ -1243,7 +1595,7 @@ exports.autoEstimateIssueWeight = (0, firestore_2.onDocumentWritten)({
         v2_1.logger.error("autoEstimateIssueWeight: failed", { workspaceId, issueId, message });
     }
 });
-exports.autoSyncIssueToGitHub = (0, firestore_2.onDocumentWritten)("workspaces/{workspaceId}/issues/{issueId}", async (event) => {
+exports.autoSyncIssueToGitHubOnIssueWrite = (0, firestore_2.onDocumentWritten)("workspaces/{workspaceId}/issues/{issueId}", async (event) => {
     const after = event.data?.after?.data();
     const before = event.data?.before?.data();
     if (!after) {

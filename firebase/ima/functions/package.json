@@ -16,6 +16,7 @@
     "node": "22"
   },
   "dependencies": {
+    "@cursor/sdk": "^1.0.12",
     "firebase-admin": "^13.8.0",
     "firebase-functions": "^7.2.5"
   },

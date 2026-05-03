@@ -1,19 +1,19 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { Agent } from "@cursor/sdk";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { logger, setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import { HttpsError, onCall, onRequest, type CallableRequest, type Request } from "firebase-functions/v2/https";
-
 import {
-  issueWeightInput,
-  issueWeightInputHash,
-  issueWeightPromptVersion,
-  parseWeightEstimateResponse,
-  truncateText,
-} from "./issueWeightHelpers";
+  HttpsError,
+  onCall,
+  onRequest,
+  type CallableRequest,
+  type Request,
+} from "firebase-functions/v2/https";
+
 import {
   extractIssueKey,
   issueKey,
@@ -21,6 +21,13 @@ import {
   normalizeIssueKeyPrefix,
   upsertLinkedIssueBlock,
 } from "./issueLinkingHelpers";
+import {
+  issueWeightInput,
+  issueWeightInputHash,
+  issueWeightPromptVersion,
+  parseWeightEstimateResponse,
+  truncateText,
+} from "./issueWeightHelpers";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -94,6 +101,11 @@ interface BackfillIssueKeysResponse {
   updated: number;
 }
 
+interface BackfillCursorAgentPullRequestsResponse {
+  inspected: number;
+  linked: number;
+}
+
 interface CreateGitHubIssueResponse {
   issueId: string;
   number: number;
@@ -103,6 +115,17 @@ interface CreateGitHubIssueResponse {
 interface EstimateIssueWeightRequest extends WorkspaceRequest {
   issueId: string;
   force?: boolean;
+}
+
+interface StartIssueCursorAgentRequest extends WorkspaceRequest {
+  issueId: string;
+}
+
+interface StartIssueCursorAgentResponse {
+  issueId: string;
+  agentId: string;
+  runId: string;
+  status: "running";
 }
 
 interface IssueWeightEstimateResponse {
@@ -163,6 +186,18 @@ interface GitHubIssueResponseItem {
   pull_request?: unknown;
 }
 
+interface GitHubPullRequestResponseItem {
+  number?: unknown;
+  title?: unknown;
+  body?: unknown;
+  html_url?: unknown;
+  state?: unknown;
+  merged?: unknown;
+  head?: {
+    ref?: unknown;
+  };
+}
+
 interface GitHubPullRequestWebhookPayload {
   action?: unknown;
   repository?: {
@@ -183,6 +218,7 @@ interface GitHubPullRequestWebhookPayload {
 
 const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
+const cursorApiKey = defineSecret("CURSOR_API_KEY");
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 const closedStatusId = "done";
 const reviewStatusId = "review";
@@ -262,10 +298,7 @@ async function githubRequest<T>({
   return (await response.json()) as T;
 }
 
-async function githubOAuthRequest<T>(
-  path: string,
-  body: Record<string, string>,
-): Promise<T> {
+async function githubOAuthRequest<T>(path: string, body: Record<string, string>): Promise<T> {
   const response = await fetch(new URL(path, "https://github.com"), {
     method: "POST",
     headers: {
@@ -308,6 +341,125 @@ function asBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function isActiveCursorAgentStatus(status: string): boolean {
+  return status === "starting" || status === "running";
+}
+
+async function resolveIssueCursorStartingRef(
+  workspaceId: string,
+  repoFullName: string,
+): Promise<string> {
+  const repoDoc = await db
+    .doc(`workspaces/${workspaceId}/githubRepos/${repoDocId(repoFullName)}`)
+    .get();
+  return asString(repoDoc.get("defaultBranch"), "main");
+}
+
+function buildCursorAgentPrompt(input: {
+  issueId: string;
+  issue: Record<string, unknown>;
+  githubIssue: Record<string, unknown>;
+  repoFullName: string;
+}): string {
+  const labels = asStringList(input.issue.labels);
+  const issueUrl = asString(input.githubIssue.url);
+  const issueKeyValue = asString(input.issue.issueKey);
+  const displayId =
+    issueKeyValue.length > 0 ? issueKeyValue : `#${asNumber(input.githubIssue.number)}`;
+
+  return [
+    `Please work on this GitHub issue and open a pull request when finished.`,
+    ``,
+    `Repository: ${input.repoFullName}`,
+    `Issue: ${displayId}`,
+    issueUrl.length > 0 ? `Issue URL: ${issueUrl}` : undefined,
+    labels.length > 0 ? `Labels: ${labels.join(", ")}` : undefined,
+    ``,
+    `Title:`,
+    asString(input.issue.title, "Untitled issue"),
+    ``,
+    `Body:`,
+    asString(input.issue.body, "(no body)"),
+    ``,
+    `Instructions:`,
+    `- Understand the existing codebase before editing.`,
+    `- Implement the issue with the smallest reasonable change.`,
+    `- Add or update tests when the change is behaviorally meaningful.`,
+    `- Run relevant checks if available.`,
+    `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}.`,
+  ]
+    .filter((line): line is string => typeof line === "string")
+    .join("\n");
+}
+
+function cursorAgentStartComment(input: {
+  issueKey: string;
+  agentId: string;
+  runId: string;
+}): string {
+  return [
+    `Cursor agent started from IMA.`,
+    ``,
+    `- Issue: ${input.issueKey}`,
+    `- Agent ID: \`${input.agentId}\``,
+    `- Run ID: \`${input.runId}\``,
+    ``,
+    `The agent will work on the issue and create a pull request if it completes successfully.`,
+  ].join("\n");
+}
+
+function pullRequestSummary({
+  owner,
+  repo,
+  pullRequest,
+  branch,
+}: {
+  owner: string;
+  repo: string;
+  pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>;
+  branch: string;
+}): Record<string, unknown> {
+  return {
+    owner,
+    repo,
+    number: asNumber(pullRequest.number),
+    url: asString(pullRequest.html_url),
+    title: asString(pullRequest.title),
+    branch,
+    state: asString(pullRequest.state, "open"),
+    merged: asBoolean(pullRequest.merged),
+  };
+}
+
+function pullRequestMatchesIssue(
+  pullRequest: GitHubPullRequestResponseItem,
+  issue: Record<string, unknown>,
+): boolean {
+  const branch = asString(pullRequest.head?.ref);
+  const title = asString(pullRequest.title);
+  const body = asString(pullRequest.body);
+  const issueKeyValue = asString(issue.issueKey).toUpperCase();
+  if (
+    issueKeyValue.length > 0 &&
+    extractIssueKey(branch, title, body) === issueKeyValue
+  ) {
+    return true;
+  }
+
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  const issueUrl = asString(githubIssue?.url);
+  if (issueUrl.length > 0 && body.includes(issueUrl)) {
+    return true;
+  }
+
+  const issueNumber = asNumber(githubIssue?.number);
+  if (issueNumber <= 0) {
+    return false;
+  }
+  const numberPattern = new RegExp(`(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\\s+#${issueNumber}(?=$|\\D)`, "iu");
+  return numberPattern.test(body);
+}
+
 function issueKeyFieldsFromData(data: Record<string, unknown>): Record<string, unknown> | null {
   const existingIssueKey = asString(data.issueKey);
   if (existingIssueKey.length === 0) {
@@ -315,7 +467,9 @@ function issueKeyFieldsFromData(data: Record<string, unknown>): Record<string, u
   }
 
   const existingNumber = asNumber(data.issueNumber);
-  const prefix = normalizeIssueKeyPrefix(asString(data.issueKeyPrefix, existingIssueKey.split("-")[0] ?? "IMA"));
+  const prefix = normalizeIssueKeyPrefix(
+    asString(data.issueKeyPrefix, existingIssueKey.split("-")[0] ?? "IMA"),
+  );
   return {
     issueKeyPrefix: prefix,
     issueNumber: existingNumber > 0 ? existingNumber : null,
@@ -409,7 +563,9 @@ function median(values: number[]): number | null {
 
 function issueWeightEstimateMap(issue: Record<string, unknown>): Record<string, unknown> {
   const estimate = issue.weightEstimate;
-  return typeof estimate === "object" && estimate !== null ? (estimate as Record<string, unknown>) : {};
+  return typeof estimate === "object" && estimate !== null
+    ? (estimate as Record<string, unknown>)
+    : {};
 }
 
 function normalizeIssueWeightEstimate(
@@ -860,19 +1016,23 @@ export const startGitHubDeviceFlow = onCall<
     await verifyWorkspaceMember(request.auth, workspaceId);
 
     step = "githubRequest";
-    logger.info("Starting device flow request", { workspaceId, clientId: clientId.substring(0, 8) });
+    logger.info("Starting device flow request", {
+      workspaceId,
+      clientId: clientId.substring(0, 8),
+    });
     const data = await githubOAuthRequest<GitHubDeviceCodeResponse>("/login/device/code", {
       client_id: clientId,
       scope: "read:user repo",
     });
-    logger.info("Device flow response received", { workspaceId, hasError: !!data.error, hasUserCode: !!data.user_code });
+    logger.info("Device flow response received", {
+      workspaceId,
+      hasError: !!data.error,
+      hasUserCode: !!data.user_code,
+    });
 
     const error = asString(data.error);
     if (error.length > 0) {
-      throw new HttpsError(
-        "failed-precondition",
-        asString(data.error_description, error),
-      );
+      throw new HttpsError("failed-precondition", asString(data.error_description, error));
     }
 
     return {
@@ -1019,128 +1179,127 @@ export const listGitHubRepositories = onCall<
   }
 });
 
-export const importGitHubIssues = onCall<
-  WorkspaceRequest,
-  Promise<ImportGitHubIssuesResponse>
->(async (request) => {
-  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
-  const token = await getGitHubToken(uid);
-  const repositories = await selectedRepositories(workspaceId);
-  if (repositories.length === 0) {
-    throw new HttpsError("failed-precondition", "No repositories are selected");
-  }
-
-  let imported = 0;
-  let batch = db.batch();
-  let pendingWrites = 0;
-
-  async function commitIfNeeded(force = false) {
-    if (pendingWrites === 0 || (!force && pendingWrites < 400)) {
-      return;
+export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubIssuesResponse>>(
+  async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const token = await getGitHubToken(uid);
+    const repositories = await selectedRepositories(workspaceId);
+    if (repositories.length === 0) {
+      throw new HttpsError("failed-precondition", "No repositories are selected");
     }
-    await batch.commit();
-    batch = db.batch();
-    pendingWrites = 0;
-  }
 
-  try {
-    for (const repository of repositories) {
-      const [owner, repo] = repository.fullName.split("/");
-      if (!owner || !repo) {
-        continue;
+    let imported = 0;
+    let batch = db.batch();
+    let pendingWrites = 0;
+
+    async function commitIfNeeded(force = false) {
+      if (pendingWrites === 0 || (!force && pendingWrites < 400)) {
+        return;
       }
+      await batch.commit();
+      batch = db.batch();
+      pendingWrites = 0;
+    }
 
-      let page = 1;
-      let repoImported = 0;
-      while (true) {
-        const pageIssues = await githubRequest<GitHubIssueResponseItem[]>({
-          path: `/repos/${owner}/${repo}/issues`,
-          token,
-          queryParameters: { state: "open", per_page: 100, page },
-        });
+    try {
+      for (const repository of repositories) {
+        const [owner, repo] = repository.fullName.split("/");
+        if (!owner || !repo) {
+          continue;
+        }
 
-        for (const issue of pageIssues) {
-          if (issue.pull_request !== undefined) {
-            continue;
-          }
-          const number = asNumber(issue.number);
-          const nodeId = asString(issue.node_id);
-          if (number <= 0 || nodeId.length === 0) {
-            continue;
-          }
+        let page = 1;
+        let repoImported = 0;
+        while (true) {
+          const pageIssues = await githubRequest<GitHubIssueResponseItem[]>({
+            path: `/repos/${owner}/${repo}/issues`,
+            token,
+            queryParameters: { state: "open", per_page: 100, page },
+          });
 
-          const docRef = db
-            .collection(`workspaces/${workspaceId}/issues`)
-            .doc(issueDocId(owner, repo, number));
-          const existing = await docRef.get();
-          const existingData = existing.data() ?? {};
-          const keyFields = await issueKeyFields(workspaceId, existingData);
-          batch.set(
-            docRef,
-            {
-              ...keyFields,
-              title: asString(issue.title, `#${number}`),
-              body: asString(issue.body),
-              repo: repository.fullName,
-              assignee: issueAssignee(issue),
-              labels: issueLabels(issue),
-              comments: asNumber(issue.comments),
-              priority: asString(existingData.priority, "medium"),
-              statusId: asString(existingData.statusId, "triage"),
-              rank: asNumber(existingData.rank, Date.now() + imported),
-              githubIssue: {
-                nodeId,
-                owner,
-                repo,
-                number,
-                url: asString(issue.html_url),
-                state: asString(issue.state, "open"),
+          for (const issue of pageIssues) {
+            if (issue.pull_request !== undefined) {
+              continue;
+            }
+            const number = asNumber(issue.number);
+            const nodeId = asString(issue.node_id);
+            if (number <= 0 || nodeId.length === 0) {
+              continue;
+            }
+
+            const docRef = db
+              .collection(`workspaces/${workspaceId}/issues`)
+              .doc(issueDocId(owner, repo, number));
+            const existing = await docRef.get();
+            const existingData = existing.data() ?? {};
+            const keyFields = await issueKeyFields(workspaceId, existingData);
+            batch.set(
+              docRef,
+              {
+                ...keyFields,
+                title: asString(issue.title, `#${number}`),
+                body: asString(issue.body),
+                repo: repository.fullName,
+                assignee: issueAssignee(issue),
+                labels: issueLabels(issue),
+                comments: asNumber(issue.comments),
+                priority: asString(existingData.priority, "medium"),
+                statusId: asString(existingData.statusId, "triage"),
+                rank: asNumber(existingData.rank, Date.now() + imported),
+                githubIssue: {
+                  nodeId,
+                  owner,
+                  repo,
+                  number,
+                  url: asString(issue.html_url),
+                  state: asString(issue.state, "open"),
+                },
+                githubUpdatedAt: asTimestamp(issue.updated_at),
+                githubCreatedAt: asTimestamp(issue.created_at),
+                updatedAt: FieldValue.serverTimestamp(),
+                createdAt: existing.exists
+                  ? (existingData.createdAt ?? FieldValue.serverTimestamp())
+                  : FieldValue.serverTimestamp(),
               },
-              githubUpdatedAt: asTimestamp(issue.updated_at),
-              githubCreatedAt: asTimestamp(issue.created_at),
-              updatedAt: FieldValue.serverTimestamp(),
-              createdAt: existing.exists
-                ? existingData.createdAt ?? FieldValue.serverTimestamp()
-                : FieldValue.serverTimestamp(),
-            },
-            { merge: true },
-          );
-          pendingWrites += 1;
-          imported += 1;
-          repoImported += 1;
-          await commitIfNeeded();
+              { merge: true },
+            );
+            pendingWrites += 1;
+            imported += 1;
+            repoImported += 1;
+            await commitIfNeeded();
+          }
+
+          if (pageIssues.length < 100 || page >= 10) {
+            break;
+          }
+          page += 1;
         }
 
-        if (pageIssues.length < 100 || page >= 10) {
-          break;
-        }
-        page += 1;
+        batch.set(
+          db.doc(`workspaces/${workspaceId}/githubRepos/${repoDocId(repository.fullName)}`),
+          {
+            ...repository,
+            enabled: true,
+            lastImportedAt: FieldValue.serverTimestamp(),
+            lastImportError: null,
+            lastImportCount: repoImported,
+          },
+          { merge: true },
+        );
+        pendingWrites += 1;
+        await commitIfNeeded();
       }
 
-      batch.set(
-        db.doc(`workspaces/${workspaceId}/githubRepos/${repoDocId(repository.fullName)}`),
-        {
-          ...repository,
-          enabled: true,
-          lastImportedAt: FieldValue.serverTimestamp(),
-          lastImportError: null,
-          lastImportCount: repoImported,
-        },
-        { merge: true },
-      );
-      pendingWrites += 1;
-      await commitIfNeeded();
+      await commitIfNeeded(true);
+      return { imported, repositories: repositories.length };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("Failed to import Ima GitHub issues", { workspaceId, uid, message });
+      throw new HttpsError("internal", "Failed to import GitHub issues");
     }
-
-    await commitIfNeeded(true);
-    return { imported, repositories: repositories.length };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error("Failed to import Ima GitHub issues", { workspaceId, uid, message });
-    throw new HttpsError("internal", "Failed to import GitHub issues");
-  }
-});
+  },
+);
 
 export const createGitHubIssue = onCall<
   CreateGitHubIssueRequest,
@@ -1159,7 +1318,9 @@ export const createGitHubIssue = onCall<
   const body = asString(request.data?.body);
   const assignee = asString(request.data?.assignee);
   const labels = Array.isArray(request.data?.labels)
-    ? request.data.labels.filter((label): label is string => typeof label === "string" && label.length > 0)
+    ? request.data.labels.filter(
+        (label): label is string => typeof label === "string" && label.length > 0,
+      )
     : [];
   const githubAssignee = assignee.startsWith("@") ? assignee.slice(1) : "";
   const assignees = githubAssignee.length > 0 ? [githubAssignee] : [];
@@ -1227,8 +1388,187 @@ export const createGitHubIssue = onCall<
     }
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
-    logger.error("Failed to create Ima GitHub issue", { workspaceId, uid, repoFullName, message, stack });
+    logger.error("Failed to create Ima GitHub issue", {
+      workspaceId,
+      uid,
+      repoFullName,
+      message,
+      stack,
+    });
     throw new HttpsError("internal", `Failed to create GitHub issue: ${message}`);
+  }
+});
+
+export const startIssueCursorAgent = onCall<
+  StartIssueCursorAgentRequest,
+  Promise<StartIssueCursorAgentResponse>
+>({ timeoutSeconds: 120, secrets: [cursorApiKey] }, async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const githubToken = await getGitHubToken(uid);
+  const apiKey = cursorApiKey.value();
+  if (apiKey.length === 0) {
+    throw new HttpsError("failed-precondition", "CURSOR_API_KEY is not configured");
+  }
+
+  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+  const issueDoc = await issueRef.get();
+  const issue = issueDoc.data();
+  if (!issue) {
+    throw new HttpsError("not-found", "Issue was not found");
+  }
+
+  const cursorAgent = issue.cursorAgent as Record<string, unknown> | undefined;
+  const existingStatus = asString(cursorAgent?.status);
+  if (isActiveCursorAgentStatus(existingStatus)) {
+    throw new HttpsError("failed-precondition", "Cursor agent is already running for this issue");
+  }
+
+  const repoFullName = requireNonEmptyString(issue.repo, "repo");
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    throw new HttpsError("failed-precondition", "Issue repository must be owner/repo");
+  }
+
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  if (!githubIssue) {
+    throw new HttpsError("failed-precondition", "Issue must be linked to GitHub");
+  }
+  const issueNumber = asNumber(githubIssue.number);
+  if (issueNumber <= 0) {
+    throw new HttpsError("failed-precondition", "GitHub issue number is missing");
+  }
+
+  const runRef = issueRef.collection("cursorAgentRuns").doc();
+  const startingRef = await resolveIssueCursorStartingRef(workspaceId, repoFullName);
+  const repositoryUrl = `https://github.com/${repoFullName}`;
+  const prompt = buildCursorAgentPrompt({ issueId, issue, githubIssue, repoFullName });
+  const now = FieldValue.serverTimestamp();
+
+  await issueRef.set(
+    {
+      cursorAgent: {
+        status: "starting",
+        requestedBy: uid,
+        startingRef,
+        repositoryUrl,
+        updatedAt: now,
+        startedAt: now,
+        errorMessage: FieldValue.delete(),
+      },
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+  await runRef.set({
+    status: "starting",
+    requestedBy: uid,
+    startingRef,
+    repositoryUrl,
+    prompt,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  let agent: Awaited<ReturnType<typeof Agent.create>> | undefined;
+  try {
+    agent = await Agent.create({
+      apiKey,
+      cloud: {
+        repos: [{ url: repositoryUrl, startingRef }],
+        autoCreatePR: true,
+      },
+    });
+    const run = await agent.send(prompt);
+    const agentId = run.agentId;
+    const runId = run.id;
+
+    await Promise.all([
+      issueRef.set(
+        {
+          cursorAgent: {
+            status: "running",
+            agentId,
+            runId,
+            runDocumentId: runRef.id,
+            requestedBy: uid,
+            startingRef,
+            repositoryUrl,
+            updatedAt: FieldValue.serverTimestamp(),
+            startedAt: FieldValue.serverTimestamp(),
+            errorMessage: FieldValue.delete(),
+          },
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      ),
+      runRef.set(
+        {
+          status: "running",
+          agentId,
+          runId,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    ]);
+
+    try {
+      await githubRequest({
+        path: `/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
+        token: githubToken,
+        method: "POST",
+        body: {
+          body: cursorAgentStartComment({
+            issueKey: asString(issue.issueKey, `#${issueNumber}`),
+            agentId,
+            runId,
+          }),
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn("Failed to post Cursor agent start comment", {
+        workspaceId,
+        issueId,
+        repoFullName,
+        issueNumber,
+        message,
+      });
+    }
+
+    return { issueId, agentId, runId, status: "running" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await Promise.all([
+      issueRef.set(
+        {
+          cursorAgent: {
+            status: "failed",
+            requestedBy: uid,
+            startingRef,
+            repositoryUrl,
+            errorMessage: message,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      ),
+      runRef.set(
+        {
+          status: "failed",
+          errorMessage: message,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    ]);
+    logger.error("Failed to start Cursor agent", { workspaceId, issueId, repoFullName, message });
+    throw new HttpsError("internal", `Failed to start Cursor agent: ${message}`);
+  } finally {
+    await agent?.[Symbol.asyncDispose]?.();
   }
 });
 
@@ -1237,10 +1577,7 @@ export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueK
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
     await verifyWorkspaceMember(request.auth, workspaceId);
 
-    const issues = await db
-      .collection(`workspaces/${workspaceId}/issues`)
-      .limit(500)
-      .get();
+    const issues = await db.collection(`workspaces/${workspaceId}/issues`).limit(500).get();
 
     let updated = 0;
     for (const issue of issues.docs) {
@@ -1261,6 +1598,124 @@ export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueK
   },
 );
 
+function recordList(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    : [];
+}
+
+async function completeCursorAgentFromExistingPullRequest({
+  workspaceId,
+  issueId,
+  cursorAgent,
+  pullRequest,
+}: {
+  workspaceId: string;
+  issueId: string;
+  cursorAgent: Record<string, unknown> | undefined;
+  pullRequest: Record<string, unknown>;
+}): Promise<void> {
+  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+  const runDocumentId = asString(cursorAgent?.runDocumentId);
+  const update = {
+    status: "done",
+    pullRequest,
+    completedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    errorMessage: FieldValue.delete(),
+  };
+  await Promise.all([
+    issueRef.set(
+      {
+        cursorAgent: update,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    ),
+    ...(runDocumentId.length > 0
+      ? [
+          issueRef.collection("cursorAgentRuns").doc(runDocumentId).set(
+            {
+              status: "done",
+              pullRequest,
+              completedAt: FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+        ]
+      : []),
+  ]);
+}
+
+export const backfillCursorAgentPullRequests = onCall<
+  WorkspaceRequest,
+  Promise<BackfillCursorAgentPullRequestsResponse>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const token = await getGitHubToken(uid);
+  const issues = await db.collection(`workspaces/${workspaceId}/issues`).limit(500).get();
+  const pullRequestsByRepo = new Map<string, GitHubPullRequestResponseItem[]>();
+  let inspected = 0;
+  let linked = 0;
+
+  for (const issueDoc of issues.docs) {
+    const issue = issueDoc.data();
+    const cursorAgent = issue.cursorAgent as Record<string, unknown> | undefined;
+    if (!isActiveCursorAgentStatus(asString(cursorAgent?.status))) {
+      continue;
+    }
+    inspected += 1;
+
+    const existingPullRequests = recordList(issue.pullRequests);
+    const existingPullRequest = existingPullRequests[0];
+    if (existingPullRequest !== undefined) {
+      await completeCursorAgentFromExistingPullRequest({
+        workspaceId,
+        issueId: issueDoc.id,
+        cursorAgent,
+        pullRequest: existingPullRequest,
+      });
+      linked += 1;
+      continue;
+    }
+
+    const repoFullName = asString(issue.repo);
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) {
+      continue;
+    }
+
+    let pullRequests = pullRequestsByRepo.get(repoFullName);
+    if (pullRequests === undefined) {
+      pullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
+        path: `/repos/${owner}/${repo}/pulls`,
+        token,
+        queryParameters: { state: "all", sort: "updated", direction: "desc", per_page: 100 },
+      });
+      pullRequestsByRepo.set(repoFullName, pullRequests);
+    }
+
+    const pullRequest = pullRequests.find((item) => pullRequestMatchesIssue(item, issue));
+    if (pullRequest === undefined) {
+      continue;
+    }
+
+    await upsertPullRequestLink({
+      workspaceId,
+      issueId: issueDoc.id,
+      action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
+      pullRequest,
+      repoFullName,
+      branch: asString(pullRequest.head?.ref),
+    });
+    linked += 1;
+  }
+
+  return { inspected, linked };
+});
+
 function verifyGitHubSignature(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
   if (!signatureHeader.startsWith("sha256=") || secret.length === 0) {
     return false;
@@ -1269,7 +1724,9 @@ function verifyGitHubSignature(rawBody: Buffer, signatureHeader: string, secret:
   const expected = `sha256=${createHmac("sha256", secret).update(rawBody).digest("hex")}`;
   const actualBuffer = Buffer.from(signatureHeader, "utf8");
   const expectedBuffer = Buffer.from(expected, "utf8");
-  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
+  return (
+    actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
+  );
 }
 
 function requestRawBody(request: Request): Buffer {
@@ -1322,33 +1779,55 @@ async function upsertPullRequestLink({
     const linkId = pullRequestLinkId(owner, repo, number);
     const now = Timestamp.now();
     const existingLink = currentPullRequests.find((item) => asString(item.id) === linkId);
+    const linkedPullRequest = pullRequestSummary({ owner, repo, pullRequest, branch });
     const nextPullRequests = currentPullRequests.filter((item) => asString(item.id) !== linkId);
     nextPullRequests.push({
       id: linkId,
-      owner,
-      repo,
-      number,
-      url: asString(pullRequest.html_url),
-      title: asString(pullRequest.title),
-      branch,
-      state: asString(pullRequest.state, "open"),
-      merged: asBoolean(pullRequest.merged),
+      ...linkedPullRequest,
       linkedAt: timestampFromValue(existingLink?.linkedAt) ?? now,
       updatedAt: now,
     });
+    const cursorAgent = issue.get("cursorAgent") as Record<string, unknown> | undefined;
+    const shouldCompleteCursorAgent = isActiveCursorAgentStatus(asString(cursorAgent?.status));
+    const runDocumentId = asString(cursorAgent?.runDocumentId);
     transaction.set(
       issueRef,
       {
         pullRequests: nextPullRequests,
         ...(nextStatusId === null ? {} : { statusId: nextStatusId }),
+        ...(shouldCompleteCursorAgent
+          ? {
+              cursorAgent: {
+                status: "done",
+                pullRequest: linkedPullRequest,
+                completedAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+                errorMessage: FieldValue.delete(),
+              },
+            }
+          : {}),
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
+    if (shouldCompleteCursorAgent && runDocumentId.length > 0) {
+      transaction.set(
+        issueRef.collection("cursorAgentRuns").doc(runDocumentId),
+        {
+          status: "done",
+          pullRequest: linkedPullRequest,
+          completedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
   });
 }
 
-async function linkPullRequestToImaIssues(payload: GitHubPullRequestWebhookPayload): Promise<number> {
+async function linkPullRequestToImaIssues(
+  payload: GitHubPullRequestWebhookPayload,
+): Promise<number> {
   const action = asString(payload.action);
   if (!["opened", "edited", "synchronize", "reopened", "closed"].includes(action)) {
     return 0;
@@ -1373,7 +1852,11 @@ async function linkPullRequestToImaIssues(payload: GitHubPullRequestWebhookPaylo
     const workspaceRef = workspace.ref;
     const workspaceId = workspace.id;
     const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
-    if (!repoDoc.exists || repoDoc.get("enabled") !== true || asString(repoDoc.get("fullName")) !== repoFullName) {
+    if (
+      !repoDoc.exists ||
+      repoDoc.get("enabled") !== true ||
+      asString(repoDoc.get("fullName")) !== repoFullName
+    ) {
       continue;
     }
 
@@ -1381,7 +1864,10 @@ async function linkPullRequestToImaIssues(payload: GitHubPullRequestWebhookPaylo
 
     for (const issueDoc of issueDocs.docs) {
       const issue = issueDoc.data();
-      if (asString(issue.repo) !== repoFullName || asString(issue.issueKey).toUpperCase() !== parsedIssueKey) {
+      if (
+        asString(issue.repo) !== repoFullName ||
+        asString(issue.issueKey).toUpperCase() !== parsedIssueKey
+      ) {
         continue;
       }
 
@@ -1576,7 +2062,7 @@ export const estimateIssueWeight = onCall<
   }
 });
 
-export const issueLifecycleLogger = onDocumentWritten(
+export const issueLifecycleEventLogger = onDocumentWritten(
   "workspaces/{workspaceId}/issues/{issueId}",
   async (event) => {
     const after = event.data?.after?.data();
@@ -1625,15 +2111,20 @@ export const issueLifecycleLogger = onDocumentWritten(
       });
     }
 
-    if (inProgressStatusIds.has(afterStatus) && timestampFromValue(after.firstInProgressAt) === null) {
+    if (
+      inProgressStatusIds.has(afterStatus) &&
+      timestampFromValue(after.firstInProgressAt) === null
+    ) {
       updates.firstInProgressAt = now;
     }
 
     if (beforeStatus !== afterStatus && afterStatus === closedStatusId) {
-      const createdAt = timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
+      const createdAt =
+        timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
       const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
       const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
-      const cycleTimeMs = firstInProgressAt === null ? null : now.toMillis() - firstInProgressAt.toMillis();
+      const cycleTimeMs =
+        firstInProgressAt === null ? null : now.toMillis() - firstInProgressAt.toMillis();
       const weightEstimate = issueWeightEstimateMap(after);
       const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
       updates.closedAt = now;
@@ -1686,7 +2177,7 @@ export const issueLifecycleLogger = onDocumentWritten(
   },
 );
 
-export const autoEstimateIssueWeight = onDocumentWritten(
+export const autoEstimateIssueWeightOnIssueWrite = onDocumentWritten(
   {
     document: "workspaces/{workspaceId}/issues/{issueId}",
     timeoutSeconds: 120,
@@ -1729,7 +2220,7 @@ export const autoEstimateIssueWeight = onDocumentWritten(
   },
 );
 
-export const autoSyncIssueToGitHub = onDocumentWritten(
+export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
   "workspaces/{workspaceId}/issues/{issueId}",
   async (event) => {
     const after = event.data?.after?.data();

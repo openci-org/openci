@@ -397,6 +397,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
+  final Set<String> _startingCursorAgentIssueIds = {};
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
@@ -739,6 +740,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         initialColumnId: sourceColumn.id,
         isEstimatingWeight: _estimatingIssueIds.contains(issueId),
         onEstimateIssueWeight: _estimateIssueWeight,
+        isStartingCursorAgent: _startingCursorAgentIssueIds.contains(issueId),
+        onStartCursorAgent: _startCursorAgent,
         isBottomSheet: useBottomSheet,
       ),
     );
@@ -834,6 +837,27 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     } finally {
       if (mounted) {
         setState(() => _estimatingIssueIds.remove(issueId));
+      }
+    }
+  }
+
+  Future<void> _startCursorAgent(String issueId) async {
+    if (_startingCursorAgentIssueIds.contains(issueId)) {
+      return;
+    }
+
+    setState(() => _startingCursorAgentIssueIds.add(issueId));
+    try {
+      await _callFunction('startIssueCursorAgent', {
+        'workspaceId': _workspaceId,
+        'issueId': issueId,
+      });
+      _showSavedSnackBar('Cursor agent started');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _startingCursorAgentIssueIds.remove(issueId));
       }
     }
   }
@@ -1227,12 +1251,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                           return CompactBoardColumnView(
                             column: column,
                             closingIssueIds: _closingIssueIds,
+                            startingCursorAgentIssueIds:
+                                _startingCursorAgentIssueIds,
                             onIssueDropped: _moveIssue,
                             onAddIssue: (columnId) => unawaited(
                               _openAddIssueDialog(initialColumnId: columnId),
                             ),
                             onIssueTapped: _openEditIssueDialog,
                             onIssueClosed: _closeIssue,
+                            onStartCursorAgent: _startCursorAgent,
                           );
                         },
                       );
@@ -1259,6 +1286,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                 BoardColumnView(
                                   column: column,
                                   closingIssueIds: _closingIssueIds,
+                                  startingCursorAgentIssueIds:
+                                      _startingCursorAgentIssueIds,
                                   onIssueDropped: _moveIssue,
                                   onAddIssue: (columnId) => unawaited(
                                     _openAddIssueDialog(
@@ -1267,6 +1296,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                   ),
                                   onIssueTapped: _openEditIssueDialog,
                                   onIssueClosed: _closeIssue,
+                                  onStartCursorAgent: _startCursorAgent,
                                 ),
                                 if (column != _columns.last)
                                   const SizedBox(width: _boardColumnGap),
@@ -2246,6 +2276,8 @@ class AddIssueDialog extends StatefulWidget {
     this.initialColumnId,
     this.isEstimatingWeight = false,
     this.onEstimateIssueWeight,
+    this.isStartingCursorAgent = false,
+    this.onStartCursorAgent,
     this.isBottomSheet = false,
   });
 
@@ -2255,6 +2287,8 @@ class AddIssueDialog extends StatefulWidget {
   final String? initialColumnId;
   final bool isEstimatingWeight;
   final Future<void> Function(String issueId)? onEstimateIssueWeight;
+  final bool isStartingCursorAgent;
+  final Future<void> Function(String issueId)? onStartCursorAgent;
   final bool isBottomSheet;
 
   @override
@@ -2273,6 +2307,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
   var _isEstimatingWeight = false;
+  var _isStartingCursorAgent = false;
 
   @override
   void initState() {
@@ -2351,6 +2386,23 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     } finally {
       if (mounted) {
         setState(() => _isEstimatingWeight = false);
+      }
+    }
+  }
+
+  Future<void> _startCursorAgent() async {
+    final issue = widget.initialIssue;
+    final onStart = widget.onStartCursorAgent;
+    if (issue == null || onStart == null || _isStartingCursorAgent) {
+      return;
+    }
+
+    setState(() => _isStartingCursorAgent = true);
+    try {
+      await onStart(issue.id);
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingCursorAgent = false);
       }
     }
   }
@@ -2500,6 +2552,15 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
               onEstimate: widget.onEstimateIssueWeight == null
                   ? null
                   : _estimateIssueWeight,
+            ),
+            const SizedBox(height: 14),
+            CursorAgentPanel(
+              issue: widget.initialIssue!,
+              isStarting:
+                  widget.isStartingCursorAgent || _isStartingCursorAgent,
+              onStart: widget.onStartCursorAgent == null
+                  ? null
+                  : _startCursorAgent,
             ),
           ],
           if (!widget.isBottomSheet) ...[
@@ -3161,18 +3222,22 @@ class BoardColumnView extends StatelessWidget {
     super.key,
     required this.column,
     required this.closingIssueIds,
+    this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
     required this.onIssueTapped,
     required this.onIssueClosed,
+    this.onStartCursorAgent,
   });
 
   final BoardColumn column;
   final Set<String> closingIssueIds;
+  final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String> onIssueClosed;
+  final ValueChanged<String>? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
@@ -3242,8 +3307,13 @@ class BoardColumnView extends StatelessWidget {
                             sourceColumnId: column.id,
                             index: rankIndex < 0 ? index : rankIndex,
                             isClosing: closingIssueIds.contains(issue.id),
+                            isStartingCursorAgent: startingCursorAgentIssueIds
+                                .contains(issue.id),
                             onTap: () => onIssueTapped(issue.id),
                             onCloseIssue: () => onIssueClosed(issue.id),
+                            onStartCursorAgent: onStartCursorAgent == null
+                                ? null
+                                : () => onStartCursorAgent!(issue.id),
                             onIssueDropped: onIssueDropped,
                           );
                         },
@@ -3272,18 +3342,22 @@ class CompactBoardColumnView extends StatefulWidget {
     super.key,
     required this.column,
     required this.closingIssueIds,
+    this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
     required this.onIssueTapped,
     required this.onIssueClosed,
+    this.onStartCursorAgent,
   });
 
   final BoardColumn column;
   final Set<String> closingIssueIds;
+  final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String> onIssueClosed;
+  final ValueChanged<String>? onStartCursorAgent;
 
   @override
   State<CompactBoardColumnView> createState() => _CompactBoardColumnViewState();
@@ -3357,8 +3431,13 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                       sourceColumnId: widget.column.id,
                       index: rankIndex < 0 ? index : rankIndex,
                       isClosing: widget.closingIssueIds.contains(issue.id),
+                      isStartingCursorAgent: widget.startingCursorAgentIssueIds
+                          .contains(issue.id),
                       onTap: () => widget.onIssueTapped(issue.id),
                       onCloseIssue: () => widget.onIssueClosed(issue.id),
+                      onStartCursorAgent: widget.onStartCursorAgent == null
+                          ? null
+                          : () => widget.onStartCursorAgent!(issue.id),
                       onIssueDropped: widget.onIssueDropped,
                     );
                   },
@@ -3676,8 +3755,10 @@ class IssueCardDropTarget extends StatefulWidget {
     required this.sourceColumnId,
     required this.index,
     required this.isClosing,
+    required this.isStartingCursorAgent,
     required this.onTap,
     required this.onCloseIssue,
+    this.onStartCursorAgent,
     required this.onIssueDropped,
   });
 
@@ -3685,8 +3766,10 @@ class IssueCardDropTarget extends StatefulWidget {
   final String sourceColumnId;
   final int index;
   final bool isClosing;
+  final bool isStartingCursorAgent;
   final VoidCallback onTap;
   final VoidCallback onCloseIssue;
+  final VoidCallback? onStartCursorAgent;
   final IssueDropCallback onIssueDropped;
 
   @override
@@ -3753,8 +3836,10 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
                 issue: widget.issue,
                 sourceColumnId: widget.sourceColumnId,
                 isClosing: widget.isClosing,
+                isStartingCursorAgent: widget.isStartingCursorAgent,
                 onTap: widget.onTap,
                 onCloseIssue: widget.onCloseIssue,
+                onStartCursorAgent: widget.onStartCursorAgent,
               ),
             ),
             if (_isHovering)
@@ -3799,15 +3884,19 @@ class IssueCardDraggable extends StatefulWidget {
     required this.issue,
     required this.sourceColumnId,
     required this.isClosing,
+    required this.isStartingCursorAgent,
     required this.onTap,
     required this.onCloseIssue,
+    this.onStartCursorAgent,
   });
 
   final Issue issue;
   final String sourceColumnId;
   final bool isClosing;
+  final bool isStartingCursorAgent;
   final VoidCallback onTap;
   final VoidCallback onCloseIssue;
+  final VoidCallback? onStartCursorAgent;
 
   @override
   State<IssueCardDraggable> createState() => _IssueCardDraggableState();
@@ -3970,6 +4059,8 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
                 isDragging: _isLiftPreviewVisible,
                 isClosing: widget.isClosing,
                 onCloseIssue: widget.onCloseIssue,
+                isStartingCursorAgent: widget.isStartingCursorAgent,
+                onStartCursorAgent: widget.onStartCursorAgent,
               ),
             ),
           ),
@@ -3987,6 +4078,8 @@ class IssueCard extends StatelessWidget {
     this.isDragPlaceholder = false,
     this.isClosing = false,
     this.onCloseIssue,
+    this.isStartingCursorAgent = false,
+    this.onStartCursorAgent,
   });
 
   final Issue issue;
@@ -3994,6 +4087,8 @@ class IssueCard extends StatelessWidget {
   final bool isDragPlaceholder;
   final bool isClosing;
   final VoidCallback? onCloseIssue;
+  final bool isStartingCursorAgent;
+  final VoidCallback? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
@@ -4041,6 +4136,12 @@ class IssueCard extends StatelessWidget {
               if (githubUrl != null) ...[
                 const SizedBox(width: 6),
                 GitHubLinkCopyButton(url: githubUrl),
+                const SizedBox(width: 6),
+                CursorAgentCardButton(
+                  issue: issue,
+                  isStarting: isStartingCursorAgent,
+                  onStart: onStartCursorAgent,
+                ),
               ],
               if (showCloseAction) ...[
                 const SizedBox(width: 6),
@@ -4231,6 +4332,41 @@ class GitHubLinkCopyButton extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.link_rounded, size: 16),
+      ),
+    );
+  }
+}
+
+class CursorAgentCardButton extends StatelessWidget {
+  const CursorAgentCardButton({
+    super.key,
+    required this.issue,
+    required this.isStarting,
+    this.onStart,
+  });
+
+  final Issue issue;
+  final bool isStarting;
+  final VoidCallback? onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPullRequest = issue.pullRequests.isNotEmpty;
+    final isRunning = issue.cursorAgent?.isActive == true && !hasPullRequest;
+    final isBusy = isStarting || isRunning;
+    return SizedBox.square(
+      dimension: 26,
+      child: IconButton(
+        tooltip: isRunning ? 'Cursor agent is running' : 'Start Cursor agent',
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        onPressed: isBusy ? null : onStart,
+        icon: isBusy
+            ? const SizedBox.square(
+                dimension: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.smart_toy_outlined, size: 16),
       ),
     );
   }
@@ -4500,6 +4636,97 @@ class IssueWeightPanel extends StatelessWidget {
   }
 }
 
+class CursorAgentPanel extends StatelessWidget {
+  const CursorAgentPanel({
+    super.key,
+    required this.issue,
+    required this.isStarting,
+    this.onStart,
+  });
+
+  final Issue issue;
+  final bool isStarting;
+  final Future<void> Function()? onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasGitHubIssue = issue.githubUrl != null;
+    final hasPullRequest = issue.pullRequests.isNotEmpty;
+    final agent = issue.cursorAgent;
+    final isRunning = agent?.isActive == true && !hasPullRequest;
+    final isBusy = isStarting || isRunning;
+    final subtitle = switch (agent?.status) {
+      'running' when !hasPullRequest =>
+        'Cursor agent is running. Run ID: ${agent!.shortRunId}',
+      'starting' when !hasPullRequest => 'Starting Cursor agent...',
+      'done' ||
+      'running' ||
+      'starting' => 'Cursor agent opened a pull request.',
+      'failed' => agent?.errorMessage ?? 'Cursor agent failed to start.',
+      _ when hasGitHubIssue =>
+        'Start a Cursor Cloud Agent to work on this issue and create a PR.',
+      _ => 'Connect this issue to GitHub before starting an agent.',
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: isBusy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(
+                    Icons.smart_toy_outlined,
+                    color: Color(0xFF2563EB),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Cursor agent',
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: hasGitHubIssue && !isBusy ? onStart : null,
+            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+            label: Text(isRunning ? 'Running' : 'Start'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PriorityDot extends StatelessWidget {
   const PriorityDot({super.key, required this.priority});
 
@@ -4606,6 +4833,7 @@ class Issue {
     this.closedAt,
     this.weightEstimate,
     this.pullRequests = const [],
+    this.cursorAgent,
   }) : displayId = displayId ?? issueKey ?? id;
 
   factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -4642,6 +4870,7 @@ class Issue {
           .map((value) => IssuePullRequest.fromMap(_asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
           .toList(),
+      cursorAgent: CursorAgentState.fromMap(_asMap(data['cursorAgent'])),
     );
   }
 
@@ -4664,6 +4893,7 @@ class Issue {
       closedAt: closedAt,
       weightEstimate: weightEstimate,
       pullRequests: pullRequests,
+      cursorAgent: cursorAgent,
     );
   }
 
@@ -4684,6 +4914,44 @@ class Issue {
   final DateTime? closedAt;
   final IssueWeightEstimate? weightEstimate;
   final List<IssuePullRequest> pullRequests;
+  final CursorAgentState? cursorAgent;
+}
+
+class CursorAgentState {
+  const CursorAgentState({
+    required this.status,
+    this.agentId = '',
+    this.runId = '',
+    this.errorMessage = '',
+  });
+
+  static CursorAgentState? fromMap(Map<String, dynamic> data) {
+    final status = _asString(data['status']);
+    if (status.isEmpty) {
+      return null;
+    }
+
+    return CursorAgentState(
+      status: status,
+      agentId: _asString(data['agentId']),
+      runId: _asString(data['runId']),
+      errorMessage: _asString(data['errorMessage']),
+    );
+  }
+
+  bool get isActive => status == 'starting' || status == 'running';
+
+  String get shortRunId {
+    if (runId.length <= 8) {
+      return runId;
+    }
+    return runId.substring(0, 8);
+  }
+
+  final String status;
+  final String agentId;
+  final String runId;
+  final String errorMessage;
 }
 
 class IssuePullRequest {
