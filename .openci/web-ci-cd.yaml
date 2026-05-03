@@ -45,6 +45,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: openci-b1b91
           entryPoint: firebase/openci
           channelId: live
 
@@ -54,5 +55,6 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: openci-b1b91
           entryPoint: firebase/openci
           expires: 7d
