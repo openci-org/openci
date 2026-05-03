@@ -50,6 +50,10 @@ interface SyncGitHubIssuesResponse {
 interface BackfillIssueKeysResponse {
     updated: number;
 }
+interface BackfillCursorAgentPullRequestsResponse {
+    inspected: number;
+    linked: number;
+}
 interface CreateGitHubIssueResponse {
     issueId: string;
     number: number;
@@ -58,6 +62,15 @@ interface CreateGitHubIssueResponse {
 interface EstimateIssueWeightRequest extends WorkspaceRequest {
     issueId: string;
     force?: boolean;
+}
+interface StartIssueCursorAgentRequest extends WorkspaceRequest {
+    issueId: string;
+}
+interface StartIssueCursorAgentResponse {
+    issueId: string;
+    agentId: string;
+    runId: string;
+    status: "running";
 }
 interface IssueWeightEstimateResponse {
     value: number;
@@ -79,22 +92,24 @@ export declare const completeGitHubDeviceFlow: import("firebase-functions/v2/htt
 export declare const listGitHubRepositories: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<ListGitHubRepositoriesResponse>, unknown>;
 export declare const importGitHubIssues: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<ImportGitHubIssuesResponse>, unknown>;
 export declare const createGitHubIssue: import("firebase-functions/v2/https").CallableFunction<CreateGitHubIssueRequest, Promise<CreateGitHubIssueResponse>, unknown>;
+export declare const startIssueCursorAgent: import("firebase-functions/v2/https").CallableFunction<StartIssueCursorAgentRequest, Promise<StartIssueCursorAgentResponse>, unknown>;
 export declare const backfillIssueKeys: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<BackfillIssueKeysResponse>, unknown>;
+export declare const backfillCursorAgentPullRequests: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<BackfillCursorAgentPullRequestsResponse>, unknown>;
 export declare const githubPullRequestWebhook: import("firebase-functions/v2/https").HttpsFunction;
 export declare const syncGitHubIssues: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>, unknown>;
 export declare const estimateIssueWeight: import("firebase-functions/v2/https").CallableFunction<EstimateIssueWeightRequest, Promise<{
     issueId: string;
     weightEstimate: IssueWeightEstimateResponse;
 }>, unknown>;
-export declare const issueLifecycleLogger: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
+export declare const issueLifecycleEventLogger: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
     workspaceId: string;
     issueId: string;
 }>>;
-export declare const autoEstimateIssueWeight: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
+export declare const autoEstimateIssueWeightOnIssueWrite: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
     workspaceId: string;
     issueId: string;
 }>>;
-export declare const autoSyncIssueToGitHub: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
+export declare const autoSyncIssueToGitHubOnIssueWrite: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
     workspaceId: string;
     issueId: string;
 }>>;
