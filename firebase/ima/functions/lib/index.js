@@ -1280,9 +1280,9 @@ async function upsertPullRequestLink({ workspaceId, issueId, action, pullRequest
         }
     });
 }
-async function syncGitHubIssueCloseFromWebhook(payload) {
+async function syncGitHubIssueFromWebhook(payload) {
     const action = asString(payload.action);
-    if (action !== "closed" && action !== "reopened") {
+    if (action !== "opened" && action !== "edited" && action !== "closed" && action !== "reopened") {
         return 0;
     }
     const ghIssue = payload.issue;
@@ -1293,6 +1293,9 @@ async function syncGitHubIssueCloseFromWebhook(payload) {
     }
     const [owner, repo] = repoFullName.split("/");
     if (!owner || !repo) {
+        return 0;
+    }
+    if (ghIssue.pull_request !== undefined) {
         return 0;
     }
     const docId = issueDocId(owner, repo, number);
@@ -1308,26 +1311,69 @@ async function syncGitHubIssueCloseFromWebhook(payload) {
         }
         const issueRef = workspaceRef.collection("issues").doc(docId);
         const issueDoc = await issueRef.get();
-        if (!issueDoc.exists) {
-            continue;
-        }
-        const issueData = issueDoc.data() ?? {};
-        const currentStatusId = asString(issueData.statusId, "triage");
-        if (action === "closed" && currentStatusId !== closedStatusId) {
+        if (action === "opened" || action === "edited") {
+            const existingData = issueDoc.data() ?? {};
+            const nodeId = asString(ghIssue.node_id);
+            const title = asString(ghIssue.title, `#${number}`);
+            const body = asString(ghIssue.body);
+            const labels = (ghIssue.labels ?? [])
+                .map((label) => (typeof label === "string" ? label : asString(label.name)))
+                .filter((label) => label.length > 0);
+            const assignees = (ghIssue.assignees ?? [])
+                .map((assignee) => asString(assignee.login))
+                .filter((login) => login.length > 0);
+            const assignee = assignees[0] ?? asString(ghIssue.assignee?.login, "-");
+            const keyFields = await issueKeyFields(workspaceRef.id, existingData);
             await issueRef.set({
-                statusId: closedStatusId,
-                "githubIssue.state": "closed",
+                ...keyFields,
+                title,
+                body,
+                repo: repoFullName,
+                assignee,
+                labels,
+                comments: asNumber(ghIssue.comments),
+                priority: asString(existingData.priority, "medium"),
+                statusId: asString(existingData.statusId, "triage"),
+                rank: asNumber(existingData.rank, Date.now() + updated),
+                githubIssue: {
+                    nodeId,
+                    owner,
+                    repo,
+                    number,
+                    url: asString(ghIssue.html_url),
+                    state: asString(ghIssue.state, "open"),
+                },
+                githubUpdatedAt: asTimestamp(ghIssue.updated_at),
+                githubCreatedAt: asTimestamp(ghIssue.created_at),
                 updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                createdAt: issueDoc.exists
+                    ? (existingData.createdAt ?? firestore_1.FieldValue.serverTimestamp())
+                    : firestore_1.FieldValue.serverTimestamp(),
             }, { merge: true });
             updated += 1;
         }
-        else if (action === "reopened" && currentStatusId === closedStatusId) {
-            await issueRef.set({
-                statusId: "triage",
-                "githubIssue.state": "open",
-                updatedAt: firestore_1.FieldValue.serverTimestamp(),
-            }, { merge: true });
-            updated += 1;
+        else if (action === "closed" || action === "reopened") {
+            if (!issueDoc.exists) {
+                continue;
+            }
+            const issueData = issueDoc.data() ?? {};
+            const currentStatusId = asString(issueData.statusId, "triage");
+            if (action === "closed" && currentStatusId !== closedStatusId) {
+                await issueRef.set({
+                    statusId: closedStatusId,
+                    "githubIssue.state": "closed",
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                updated += 1;
+            }
+            else if (action === "reopened" && currentStatusId === closedStatusId) {
+                await issueRef.set({
+                    statusId: "triage",
+                    "githubIssue.state": "open",
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                updated += 1;
+            }
         }
     }
     return updated;
@@ -1433,7 +1479,7 @@ exports.githubPullRequestWebhook = (0, https_1.onRequest)({ secrets: [githubWebh
     try {
         if (event === "issues") {
             const payload = JSON.parse(rawBody.toString("utf8"));
-            const updated = await syncGitHubIssueCloseFromWebhook(payload);
+            const updated = await syncGitHubIssueFromWebhook(payload);
             response.status(200).json({ updated });
             return;
         }
