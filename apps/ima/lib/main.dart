@@ -2418,7 +2418,12 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!widget.isBottomSheet) ...[
-            _DialogHeader(title: title, description: description),
+            _DialogHeader(
+              title: title,
+              description: description,
+              issueDisplayId:
+                  isEditing ? widget.initialIssue!.displayId : null,
+            ),
             const SizedBox(height: 20),
           ],
           _TitleField(
@@ -2534,7 +2539,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _BottomSheetHeader(title: title),
+                  _BottomSheetHeader(
+                    title: title,
+                    issueDisplayId:
+                        isEditing ? widget.initialIssue!.displayId : null,
+                  ),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
@@ -2704,9 +2713,10 @@ class _DialogActions extends StatelessWidget {
 }
 
 class _BottomSheetHeader extends StatelessWidget {
-  const _BottomSheetHeader({required this.title});
+  const _BottomSheetHeader({required this.title, this.issueDisplayId});
 
   final String title;
+  final String? issueDisplayId;
 
   @override
   Widget build(BuildContext context) {
@@ -2729,12 +2739,23 @@ class _BottomSheetHeader extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    if (issueDisplayId != null) ...[
+                      const SizedBox(width: 8),
+                      _IssueIdChip(displayId: issueDisplayId!),
+                    ],
+                  ],
                 ),
               ),
               IconButton(
@@ -2810,10 +2831,15 @@ class _BottomSheetActions extends StatelessWidget {
 }
 
 class _DialogHeader extends StatelessWidget {
-  const _DialogHeader({required this.title, required this.description});
+  const _DialogHeader({
+    required this.title,
+    required this.description,
+    this.issueDisplayId,
+  });
 
   final String title;
   final String description;
+  final String? issueDisplayId;
 
   @override
   Widget build(BuildContext context) {
@@ -2823,11 +2849,20 @@ class _DialogHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  if (issueDisplayId != null) ...[
+                    const SizedBox(width: 8),
+                    _IssueIdChip(displayId: issueDisplayId!),
+                  ],
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -2842,6 +2877,52 @@ class _DialogHeader extends StatelessWidget {
           icon: const Icon(Icons.close_rounded),
         ),
       ],
+    );
+  }
+}
+
+class _IssueIdChip extends StatelessWidget {
+  const _IssueIdChip({required this.displayId});
+
+  final String displayId;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => unawaited(
+        _copyTextToClipboard(
+          context,
+          text: displayId,
+          successMessage: 'Issue ID copied',
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              displayId,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.copy_rounded,
+              size: 13,
+              color: Color(0xFF94A3B8),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
