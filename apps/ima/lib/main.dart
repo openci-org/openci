@@ -1262,7 +1262,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                           final column = _columns[index];
                           return CompactBoardColumnView(
                             column: column,
-                            closingIssueIds: _closingIssueIds,
                             startingCursorAgentIssueIds:
                                 _startingCursorAgentIssueIds,
                             onIssueDropped: _moveIssue,
@@ -1270,7 +1269,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                               _openAddIssueDialog(initialColumnId: columnId),
                             ),
                             onIssueTapped: _openEditIssueDialog,
-                            onIssueClosed: _closeIssue,
                             onStartCursorAgent: _startCursorAgent,
                           );
                         },
@@ -1297,7 +1295,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                               for (final column in _columns) ...[
                                 BoardColumnView(
                                   column: column,
-                                  closingIssueIds: _closingIssueIds,
                                   startingCursorAgentIssueIds:
                                       _startingCursorAgentIssueIds,
                                   onIssueDropped: _moveIssue,
@@ -1307,7 +1304,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     ),
                                   ),
                                   onIssueTapped: _openEditIssueDialog,
-                                  onIssueClosed: _closeIssue,
                                   onStartCursorAgent: _startCursorAgent,
                                 ),
                                 if (column != _columns.last)
@@ -3194,22 +3190,18 @@ class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
     super.key,
     required this.column,
-    required this.closingIssueIds,
     this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
     required this.onIssueTapped,
-    required this.onIssueClosed,
     this.onStartCursorAgent,
   });
 
   final BoardColumn column;
-  final Set<String> closingIssueIds;
   final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
-  final ValueChanged<String> onIssueClosed;
   final ValueChanged<String>? onStartCursorAgent;
 
   @override
@@ -3279,11 +3271,9 @@ class BoardColumnView extends StatelessWidget {
                             issue: issue,
                             sourceColumnId: column.id,
                             index: rankIndex < 0 ? index : rankIndex,
-                            isClosing: closingIssueIds.contains(issue.id),
                             isStartingCursorAgent: startingCursorAgentIssueIds
                                 .contains(issue.id),
                             onTap: () => onIssueTapped(issue.id),
-                            onCloseIssue: () => onIssueClosed(issue.id),
                             onStartCursorAgent: onStartCursorAgent == null
                                 ? null
                                 : () => onStartCursorAgent!(issue.id),
@@ -3314,22 +3304,18 @@ class CompactBoardColumnView extends StatefulWidget {
   const CompactBoardColumnView({
     super.key,
     required this.column,
-    required this.closingIssueIds,
     this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
     required this.onIssueTapped,
-    required this.onIssueClosed,
     this.onStartCursorAgent,
   });
 
   final BoardColumn column;
-  final Set<String> closingIssueIds;
   final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
-  final ValueChanged<String> onIssueClosed;
   final ValueChanged<String>? onStartCursorAgent;
 
   @override
@@ -3403,11 +3389,9 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                       issue: issue,
                       sourceColumnId: widget.column.id,
                       index: rankIndex < 0 ? index : rankIndex,
-                      isClosing: widget.closingIssueIds.contains(issue.id),
                       isStartingCursorAgent: widget.startingCursorAgentIssueIds
                           .contains(issue.id),
                       onTap: () => widget.onIssueTapped(issue.id),
-                      onCloseIssue: () => widget.onIssueClosed(issue.id),
                       onStartCursorAgent: widget.onStartCursorAgent == null
                           ? null
                           : () => widget.onStartCursorAgent!(issue.id),
@@ -3727,10 +3711,8 @@ class IssueCardDropTarget extends StatefulWidget {
     required this.issue,
     required this.sourceColumnId,
     required this.index,
-    required this.isClosing,
     required this.isStartingCursorAgent,
     required this.onTap,
-    required this.onCloseIssue,
     this.onStartCursorAgent,
     required this.onIssueDropped,
   });
@@ -3738,10 +3720,8 @@ class IssueCardDropTarget extends StatefulWidget {
   final Issue issue;
   final String sourceColumnId;
   final int index;
-  final bool isClosing;
   final bool isStartingCursorAgent;
   final VoidCallback onTap;
-  final VoidCallback onCloseIssue;
   final VoidCallback? onStartCursorAgent;
   final IssueDropCallback onIssueDropped;
 
@@ -3808,10 +3788,8 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
               child: IssueCardDraggable(
                 issue: widget.issue,
                 sourceColumnId: widget.sourceColumnId,
-                isClosing: widget.isClosing,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
                 onTap: widget.onTap,
-                onCloseIssue: widget.onCloseIssue,
                 onStartCursorAgent: widget.onStartCursorAgent,
               ),
             ),
@@ -3856,19 +3834,15 @@ class IssueCardDraggable extends StatefulWidget {
     super.key,
     required this.issue,
     required this.sourceColumnId,
-    required this.isClosing,
     required this.isStartingCursorAgent,
     required this.onTap,
-    required this.onCloseIssue,
     this.onStartCursorAgent,
   });
 
   final Issue issue;
   final String sourceColumnId;
-  final bool isClosing;
   final bool isStartingCursorAgent;
   final VoidCallback onTap;
-  final VoidCallback onCloseIssue;
   final VoidCallback? onStartCursorAgent;
 
   @override
@@ -4030,8 +4004,6 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
               child: IssueCard(
                 issue: widget.issue,
                 isDragging: _isLiftPreviewVisible,
-                isClosing: widget.isClosing,
-                onCloseIssue: widget.onCloseIssue,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
                 onStartCursorAgent: widget.onStartCursorAgent,
               ),
@@ -4049,8 +4021,6 @@ class IssueCard extends StatelessWidget {
     required this.issue,
     this.isDragging = false,
     this.isDragPlaceholder = false,
-    this.isClosing = false,
-    this.onCloseIssue,
     this.isStartingCursorAgent = false,
     this.onStartCursorAgent,
   });
@@ -4058,15 +4028,11 @@ class IssueCard extends StatelessWidget {
   final Issue issue;
   final bool isDragging;
   final bool isDragPlaceholder;
-  final bool isClosing;
-  final VoidCallback? onCloseIssue;
   final bool isStartingCursorAgent;
   final VoidCallback? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
-    final showCloseAction =
-        onCloseIssue != null && issue.statusId != _closedStatusId;
     final githubUrl = issue.githubUrl;
 
     return AnimatedContainer(
@@ -4114,13 +4080,6 @@ class IssueCard extends StatelessWidget {
                   issue: issue,
                   isStarting: isStartingCursorAgent,
                   onStart: onStartCursorAgent,
-                ),
-              ],
-              if (showCloseAction) ...[
-                const SizedBox(width: 6),
-                CloseIssueButton(
-                  isClosing: isClosing,
-                  onPressed: isClosing ? null : onCloseIssue,
                 ),
               ],
             ],
@@ -4340,36 +4299,6 @@ class CursorAgentCardButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.smart_toy_outlined, size: 16),
-      ),
-    );
-  }
-}
-
-class CloseIssueButton extends StatelessWidget {
-  const CloseIssueButton({
-    super.key,
-    required this.isClosing,
-    required this.onPressed,
-  });
-
-  final bool isClosing;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 26,
-      child: IconButton(
-        tooltip: isClosing ? 'Closing issue' : 'Close issue',
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        onPressed: onPressed,
-        icon: isClosing
-            ? const SizedBox.square(
-                dimension: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.check_circle_outline_rounded, size: 16),
       ),
     );
   }
