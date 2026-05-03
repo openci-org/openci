@@ -91,6 +91,13 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
   return true;
 }
 
+const maxBackoffMs = 5 * 60_000;
+
+function backoffMs(base: number, consecutiveFailures: number): number {
+  const delay = base * 2 ** Math.min(consecutiveFailures, 10);
+  return Math.min(delay, maxBackoffMs);
+}
+
 export async function pollForJobs(config: WorkerConfig): Promise<void> {
   console.log(`Worker started. Worker ID: ${config.workerId}`);
   console.log(`Worker version: ${version}`);
@@ -99,6 +106,7 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
   );
 
   let lastUpdateCheckAt = 0;
+  let consecutiveFailures = 0;
   while (true) {
     try {
       if (!config.once && Date.now() - lastUpdateCheckAt > 60_000) {
@@ -106,20 +114,26 @@ export async function pollForJobs(config: WorkerConfig): Promise<void> {
         const updateResult = await checkAndUpdate();
         if (updateResult === "updated") exitForUpdate();
         if (updateResult === "failed") {
-          await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+          consecutiveFailures += 1;
+          const delay = backoffMs(config.pollIntervalMs, consecutiveFailures);
+          console.warn(`Backing off for ${(delay / 1000).toFixed(0)}s (${consecutiveFailures} consecutive failures)`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
       }
 
       const found = await processOneJob(config);
+      consecutiveFailures = 0;
       if (config.once) return;
       if (!found) {
         await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
       }
     } catch (error) {
-      console.error(`Error in poll loop: ${String(error)}`);
+      consecutiveFailures += 1;
+      const delay = backoffMs(config.pollIntervalMs, consecutiveFailures);
+      console.error(`Error in poll loop (${consecutiveFailures} consecutive failures, next retry in ${(delay / 1000).toFixed(0)}s): ${String(error)}`);
       if (config.once) throw error;
-      await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 }
