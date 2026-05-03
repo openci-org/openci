@@ -458,10 +458,7 @@ function pullRequestMatchesIssue(
   const title = asString(pullRequest.title);
   const body = asString(pullRequest.body);
   const issueKeyValue = asString(issue.issueKey).toUpperCase();
-  if (
-    issueKeyValue.length > 0 &&
-    extractIssueKey(branch, title, body) === issueKeyValue
-  ) {
+  if (issueKeyValue.length > 0 && extractIssueKey(branch, title, body) === issueKeyValue) {
     return true;
   }
 
@@ -475,7 +472,10 @@ function pullRequestMatchesIssue(
   if (issueNumber <= 0) {
     return false;
   }
-  const numberPattern = new RegExp(`(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\\s+#${issueNumber}(?=$|\\D)`, "iu");
+  const numberPattern = new RegExp(
+    `(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\\s+#${issueNumber}(?=$|\\D)`,
+    "iu",
+  );
   return numberPattern.test(body);
 }
 
@@ -1623,7 +1623,9 @@ export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueK
 
 function recordList(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    ? value.filter(
+        (item): item is Record<string, unknown> => typeof item === "object" && item !== null,
+      )
     : [];
 }
 
