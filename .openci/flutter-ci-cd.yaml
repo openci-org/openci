@@ -98,4 +98,4 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           entryPoint: apps/dashboard
-          expires: 7d
+          expires: 3h
