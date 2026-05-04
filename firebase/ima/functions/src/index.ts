@@ -848,6 +848,74 @@ function mergedSubIssueSummaries(
   return merged;
 }
 
+async function closeDescendantSubIssues(input: {
+  workspaceId: string;
+  issueId: string;
+  rankBase?: number;
+}): Promise<number> {
+  const issuesRef = db.collection(`workspaces/${input.workspaceId}/issues`);
+  const visited = new Set([input.issueId]);
+  const queue = [input.issueId];
+  const descendants: DocumentSnapshot[] = [];
+
+  while (queue.length > 0) {
+    const parentIssueId = queue.shift()!;
+    const children = await issuesRef
+      .where("githubIssue.parentIssue.issueId", "==", parentIssueId)
+      .get();
+
+    for (const child of children.docs) {
+      if (visited.has(child.id)) {
+        continue;
+      }
+      visited.add(child.id);
+      descendants.push(child);
+      queue.push(child.id);
+    }
+  }
+
+  const openDescendants = descendants.filter(
+    (descendant) => asString(descendant.get("statusId"), "triage") !== closedStatusId,
+  );
+  if (openDescendants.length === 0) {
+    return 0;
+  }
+
+  let batch = db.batch();
+  let pendingWrites = 0;
+  let closed = 0;
+  const rankBase = input.rankBase ?? Date.now();
+
+  async function commitIfNeeded(force = false) {
+    if (pendingWrites === 0 || (!force && pendingWrites < 400)) {
+      return;
+    }
+    await batch.commit();
+    batch = db.batch();
+    pendingWrites = 0;
+  }
+
+  for (const descendant of openDescendants) {
+    batch.set(
+      descendant.ref,
+      {
+        statusId: closedStatusId,
+        rank: rankBase + closed + 1,
+        "githubIssue.state": "closed",
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    pendingWrites += 1;
+    closed += 1;
+    await commitIfNeeded();
+  }
+
+  await commitIfNeeded(true);
+  return closed;
+}
+
+
 async function selectedRepositories(workspaceId: string): Promise<GitHubRepository[]> {
   const snapshot = await db.collection(`workspaces/${workspaceId}/githubRepos`).get();
   return snapshot.docs
@@ -2868,6 +2936,19 @@ export const issueLifecycleEventLogger = onDocumentWritten(
           workStartSource,
         },
       });
+
+      const closedSubIssues = await closeDescendantSubIssues({
+        workspaceId,
+        issueId,
+        rankBase: now.toMillis(),
+      });
+      if (closedSubIssues > 0) {
+        logger.info("Closed descendant sub-issues", {
+          workspaceId,
+          issueId,
+          closedSubIssues,
+        });
+      }
     }
 
     if (beforeStatus === closedStatusId && afterStatus !== closedStatusId) {
