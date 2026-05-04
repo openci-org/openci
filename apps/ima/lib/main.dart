@@ -20,6 +20,7 @@ const _boardColumnWidth = 280.0;
 const _boardColumnGap = 12.0;
 const _compactBoardBreakpoint = 640.0;
 const _compactColumnCollapsedLimit = 4;
+const _defaultDailyWeightTarget = 20;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -393,6 +394,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
+  int _dailyWeightTarget = _defaultDailyWeightTarget;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -817,8 +819,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'statusId': draft.columnId,
       'rank': rank,
       if (draft.githubUrl != null) 'githubIssue': {'url': draft.githubUrl},
-      if (draft.dueDate != null)
-        'dueDate': Timestamp.fromDate(draft.dueDate!),
+      if (draft.dueDate != null) 'dueDate': Timestamp.fromDate(draft.dueDate!),
       'updatedAt': FieldValue.serverTimestamp(),
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -1151,6 +1152,93 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return _asMap(result.data);
   }
 
+  DailyProgressStats _dailyProgressStats(List<Issue> closedIssues) {
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+    final tomorrow = today.add(const Duration(days: 1));
+    final recentStart = today.subtract(const Duration(days: 29));
+    final paceBuckets = <DateTime, _DailyPaceBucket>{};
+
+    for (final issue in closedIssues) {
+      final closedAt = issue.closedAt;
+      if (closedAt == null) {
+        continue;
+      }
+      final closedDate = _dateOnly(closedAt);
+      final weight = _issueProgressWeight(issue);
+
+      if (!closedDate.isBefore(recentStart) && closedDate.isBefore(tomorrow)) {
+        final bucket = paceBuckets.putIfAbsent(
+          closedDate,
+          _DailyPaceBucket.new,
+        );
+        bucket.add(closedAt: closedAt, weight: weight, now: now);
+      }
+    }
+
+    final history = [
+      for (var index = 0; index < 30; index++)
+        DailyProgressHistoryDay(
+          date: today.subtract(Duration(days: index)),
+          completedWeight:
+              paceBuckets[today.subtract(Duration(days: index))]?.totalWeight ??
+              0,
+          completedCount:
+              paceBuckets[today.subtract(Duration(days: index))]
+                  ?.completedCount ??
+              0,
+          morningWeight:
+              paceBuckets[today.subtract(Duration(days: index))]
+                  ?.morningWeight ??
+              0,
+          afternoonWeight:
+              paceBuckets[today.subtract(Duration(days: index))]
+                  ?.afternoonWeight ??
+              0,
+        ),
+    ];
+    final todayBucket = paceBuckets[today] ?? _DailyPaceBucket();
+    final historicalBuckets = [
+      for (final entry in paceBuckets.entries)
+        if (entry.key != today) entry.value,
+    ];
+    final recentWeight = history.fold<int>(
+      0,
+      (total, day) => total + day.completedWeight,
+    );
+    final prediction = _buildDailyProgressPrediction(
+      targetWeight: _dailyWeightTarget,
+      todayBucket: todayBucket,
+      historicalBuckets: historicalBuckets,
+      now: now,
+    );
+
+    return DailyProgressStats(
+      targetWeight: _dailyWeightTarget,
+      completedWeight: todayBucket.totalWeight,
+      completedCount: todayBucket.completedCount,
+      recentAverageWeight: recentWeight / 30,
+      history: history,
+      prediction: prediction,
+    );
+  }
+
+  Future<void> _openDailyWeightTargetDialog(DailyProgressStats stats) async {
+    final nextTarget = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) =>
+          DailyProgressSheet(currentTarget: _dailyWeightTarget, stats: stats),
+    );
+
+    if (nextTarget == null || !mounted) {
+      return;
+    }
+
+    setState(() => _dailyWeightTarget = nextTarget);
+  }
+
   @override
   void dispose() {
     unawaited(_issuesSubscription?.cancel());
@@ -1171,6 +1259,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .where((col) => col.id == _closedStatusId)
         .expand((col) => col.issues)
         .toList();
+    final dailyProgressStats = _dailyProgressStats(closedIssues);
     final isCompactLayout =
         MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
@@ -1221,9 +1310,21 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 BoardHeader(
                   openIssues: openIssues,
                   closedIssues: closedIssues,
+                  dailyProgressStats: dailyProgressStats,
+                  onChangeDailyWeightTarget: () => unawaited(
+                    _openDailyWeightTargetDialog(dailyProgressStats),
+                  ),
                   onSignOut: onSignOut,
                 ),
               if (_isBootstrapping) const LinearProgressIndicator(),
+              if (isCompactLayout)
+                DailyProgressStrip(
+                  stats: dailyProgressStats,
+                  isCompact: true,
+                  onTap: () => unawaited(
+                    _openDailyWeightTargetDialog(dailyProgressStats),
+                  ),
+                ),
               BoardToolbar(
                 onConnectGitHub: _connectGitHub,
                 onSelectRepositories: _selectRepositories,
@@ -1363,11 +1464,15 @@ class BoardHeader extends StatelessWidget {
     super.key,
     required this.openIssues,
     required this.closedIssues,
+    required this.dailyProgressStats,
+    required this.onChangeDailyWeightTarget,
     required this.onSignOut,
   });
 
   final int openIssues;
   final List<Issue> closedIssues;
+  final DailyProgressStats dailyProgressStats;
+  final VoidCallback onChangeDailyWeightTarget;
   final Future<void> Function() onSignOut;
 
   @override
@@ -1387,29 +1492,48 @@ class BoardHeader extends StatelessWidget {
         if (isCompact) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Align(alignment: Alignment.centerLeft, child: title),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(alignment: Alignment.centerLeft, child: title),
+                const SizedBox(height: 10),
+                DailyProgressStrip(
+                  stats: dailyProgressStats,
+                  isCompact: true,
+                  onTap: onChangeDailyWeightTarget,
+                ),
+              ],
+            ),
           );
         }
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: title),
-              const SizedBox(width: 16),
-              EstimationAccuracyBadge(closedIssues: closedIssues),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IssueCountBadge(openIssues: openIssues),
-                  const SizedBox(height: 6),
+                  Expanded(child: title),
                   TextButton(
                     onPressed: () => unawaited(onSignOut()),
                     child: const Text('サインアウト'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: BoardOverviewPanel(
+                    openIssues: openIssues,
+                    closedIssues: closedIssues,
+                    dailyProgressStats: dailyProgressStats,
+                    onDailyProgressTap: onChangeDailyWeightTarget,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1469,9 +1593,11 @@ class EstimationAccuracyBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pairs = closedIssues
-        .where((issue) =>
-            issue.resolution?.actualWeight != null &&
-            issue.weightEstimate?.value != null)
+        .where(
+          (issue) =>
+              issue.resolution?.actualWeight != null &&
+              issue.weightEstimate?.value != null,
+        )
         .toList();
 
     if (pairs.isEmpty) {
@@ -1479,13 +1605,19 @@ class EstimationAccuracyBadge extends StatelessWidget {
     }
 
     final adjacentCount = pairs
-        .where((issue) => _isAdjacent(
-            issue.weightEstimate!.value!, issue.resolution!.actualWeight!))
+        .where(
+          (issue) => _isAdjacent(
+            issue.weightEstimate!.value!,
+            issue.resolution!.actualWeight!,
+          ),
+        )
         .length;
     final within1Rate = (adjacentCount / pairs.length * 100).round();
     final deltas = pairs
-        .map((issue) =>
-            issue.weightEstimate!.value! - issue.resolution!.actualWeight!)
+        .map(
+          (issue) =>
+              issue.weightEstimate!.value! - issue.resolution!.actualWeight!,
+        )
         .toList();
     final sumAbsError = deltas.fold<int>(0, (s, d) => s + d.abs());
     final mae = (sumAbsError / deltas.length * 10).round() / 10;
@@ -1495,13 +1627,13 @@ class EstimationAccuracyBadge extends StatelessWidget {
     final biasLabel = bias == 0
         ? 'バイアスなし'
         : bias > 0
-            ? '過大推定 +$bias'
-            : '過小推定 $bias';
+        ? '過大推定 +$bias'
+        : '過小推定 $bias';
     final accuracyColor = within1Rate >= 70
         ? const Color(0xFF15803D)
         : within1Rate >= 50
-            ? const Color(0xFFA16207)
-            : const Color(0xFFDC2626);
+        ? const Color(0xFFA16207)
+        : const Color(0xFFDC2626);
 
     return Tooltip(
       message: 'MAE $mae / $biasLabel / ${pairs.length}件',
@@ -1518,9 +1650,9 @@ class EstimationAccuracyBadge extends StatelessWidget {
             Text(
               '$within1Rate%',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: accuracyColor,
-                  ),
+                fontWeight: FontWeight.w700,
+                color: accuracyColor,
+              ),
             ),
             const Text(
               '推定精度 (隣接値)',
@@ -1528,6 +1660,943 @@ class EstimationAccuracyBadge extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class BoardOverviewPanel extends StatelessWidget {
+  const BoardOverviewPanel({
+    super.key,
+    required this.openIssues,
+    required this.closedIssues,
+    required this.dailyProgressStats,
+    required this.onDailyProgressTap,
+  });
+
+  final int openIssues;
+  final List<Issue> closedIssues;
+  final DailyProgressStats dailyProgressStats;
+  final VoidCallback onDailyProgressTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accuracy = EstimationAccuracySummary.fromIssues(closedIssues);
+
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Expanded(
+              child: DailyProgressOverview(
+                stats: dailyProgressStats,
+                onTap: onDailyProgressTap,
+              ),
+            ),
+            const _OverviewDivider(),
+            Tooltip(
+              message:
+                  '${dailyProgressStats.prediction.advice} / 午後中央値 W${dailyProgressStats.prediction.historicalAfternoonMedian.toStringAsFixed(1)} / ${dailyProgressStats.prediction.sampleCount}日',
+              child: OverviewMetric(
+                label: '見込み',
+                value: '${dailyProgressStats.prediction.finishProbability}%',
+                valueColor: dailyProgressStats.prediction.color,
+                detail: dailyProgressStats.prediction.paceLabel,
+              ),
+            ),
+            const _OverviewDivider(),
+            OverviewMetric(
+              label: 'Open',
+              value: '$openIssues',
+              detail: 'issues',
+            ),
+            if (accuracy != null) ...[
+              const _OverviewDivider(),
+              Tooltip(
+                message:
+                    'MAE ${accuracy.mae} / ${accuracy.biasLabel} / ${accuracy.sampleCount}件',
+                child: OverviewMetric(
+                  label: '精度',
+                  value: '${accuracy.within1Rate}%',
+                  valueColor: accuracy.color,
+                  detail: '±1',
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DailyProgressOverview extends StatelessWidget {
+  const DailyProgressOverview({
+    super.key,
+    required this.stats,
+    required this.onTap,
+  });
+
+  final DailyProgressStats stats;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final progressColor = stats.isAchieved
+        ? const Color(0xFF16A34A)
+        : Theme.of(context).colorScheme.primary;
+    final percent = (stats.progress * 100).round();
+    final adviceLabel = stats.prediction.advice;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  '今日',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'W${stats.completedWeight} / W${stats.targetWeight}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF0F172A),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${stats.completedCount}件完了 · $adviceLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: stats.isAchieved
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF475569),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$percent%',
+                  style: TextStyle(
+                    color: progressColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: stats.cappedProgress,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class OverviewMetric extends StatelessWidget {
+  const OverviewMetric({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.detail,
+    this.valueColor = const Color(0xFF0F172A),
+  });
+
+  final String label;
+  final String value;
+  final String detail;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 92,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: valueColor,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              detail,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewDivider extends StatelessWidget {
+  const _OverviewDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const VerticalDivider(
+      width: 1,
+      thickness: 1,
+      color: Color(0xFFE2E8F0),
+    );
+  }
+}
+
+class EstimationAccuracySummary {
+  const EstimationAccuracySummary({
+    required this.within1Rate,
+    required this.mae,
+    required this.bias,
+    required this.sampleCount,
+  });
+
+  final int within1Rate;
+  final double mae;
+  final double bias;
+  final int sampleCount;
+
+  static EstimationAccuracySummary? fromIssues(List<Issue> closedIssues) {
+    final pairs = closedIssues
+        .where(
+          (issue) =>
+              issue.resolution?.actualWeight != null &&
+              issue.weightEstimate?.value != null,
+        )
+        .toList();
+
+    if (pairs.isEmpty) {
+      return null;
+    }
+
+    final deltas = pairs
+        .map(
+          (issue) =>
+              issue.weightEstimate!.value! - issue.resolution!.actualWeight!,
+        )
+        .toList();
+    final within1 = deltas.where((d) => d.abs() <= 1).length;
+    final sumAbsError = deltas.fold<int>(0, (sum, delta) => sum + delta.abs());
+    final sumDelta = deltas.fold<int>(0, (sum, delta) => sum + delta);
+
+    return EstimationAccuracySummary(
+      within1Rate: (within1 / deltas.length * 100).round(),
+      mae: (sumAbsError / deltas.length * 10).round() / 10,
+      bias: (sumDelta / deltas.length * 10).round() / 10,
+      sampleCount: pairs.length,
+    );
+  }
+
+  String get biasLabel {
+    if (bias == 0) {
+      return 'バイアスなし';
+    }
+    return bias > 0 ? '過大推定 +$bias' : '過小推定 $bias';
+  }
+
+  Color get color {
+    if (within1Rate >= 70) {
+      return const Color(0xFF15803D);
+    }
+    if (within1Rate >= 50) {
+      return const Color(0xFFA16207);
+    }
+    return const Color(0xFFDC2626);
+  }
+}
+
+class DailyProgressStats {
+  const DailyProgressStats({
+    required this.targetWeight,
+    required this.completedWeight,
+    required this.completedCount,
+    required this.recentAverageWeight,
+    required this.history,
+    required this.prediction,
+  });
+
+  final int targetWeight;
+  final int completedWeight;
+  final int completedCount;
+  final double recentAverageWeight;
+  final List<DailyProgressHistoryDay> history;
+  final DailyProgressPrediction prediction;
+
+  double get progress {
+    if (targetWeight <= 0) {
+      return 0;
+    }
+    return completedWeight / targetWeight;
+  }
+
+  double get cappedProgress {
+    final value = progress;
+    if (value.isNaN || value.isInfinite || value <= 0) {
+      return 0;
+    }
+    if (value >= 1) {
+      return 1;
+    }
+    return value;
+  }
+
+  int get remainingWeight {
+    final remaining = targetWeight - completedWeight;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  int get overWeight {
+    final over = completedWeight - targetWeight;
+    return over > 0 ? over : 0;
+  }
+
+  bool get isAchieved => targetWeight > 0 && completedWeight >= targetWeight;
+}
+
+class DailyProgressHistoryDay {
+  const DailyProgressHistoryDay({
+    required this.date,
+    required this.completedWeight,
+    required this.completedCount,
+    required this.morningWeight,
+    required this.afternoonWeight,
+  });
+
+  final DateTime date;
+  final int completedWeight;
+  final int completedCount;
+  final int morningWeight;
+  final int afternoonWeight;
+}
+
+class DailyProgressPrediction {
+  const DailyProgressPrediction({
+    required this.finishProbability,
+    required this.paceLabel,
+    required this.advice,
+    required this.color,
+    required this.requiredAfternoonWeight,
+    required this.historicalAfternoonMedian,
+    required this.sampleCount,
+    required this.usesFallback,
+  });
+
+  final int finishProbability;
+  final String paceLabel;
+  final String advice;
+  final Color color;
+  final int requiredAfternoonWeight;
+  final double historicalAfternoonMedian;
+  final int sampleCount;
+  final bool usesFallback;
+}
+
+class _DailyPaceBucket {
+  int totalWeight = 0;
+  int completedCount = 0;
+  int morningWeight = 0;
+  int afternoonWeight = 0;
+  int weightAtCurrentTime = 0;
+
+  void add({
+    required DateTime closedAt,
+    required int weight,
+    required DateTime now,
+  }) {
+    totalWeight += weight;
+    completedCount += 1;
+
+    if (closedAt.hour < 12) {
+      morningWeight += weight;
+    } else {
+      afternoonWeight += weight;
+    }
+
+    if (_isAtOrBeforeTimeOfDay(closedAt, now)) {
+      weightAtCurrentTime += weight;
+    }
+  }
+}
+
+class DailyProgressStrip extends StatelessWidget {
+  const DailyProgressStrip({
+    super.key,
+    required this.stats,
+    required this.onTap,
+    this.isCompact = false,
+  });
+
+  final DailyProgressStats stats;
+  final VoidCallback onTap;
+  final bool isCompact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final progressColor = stats.isAchieved
+        ? const Color(0xFF16A34A)
+        : colorScheme.primary;
+    final percent = (stats.progress * 100).round();
+    final remainingLabel = stats.isAchieved
+        ? stats.overWeight > 0
+              ? '+W${stats.overWeight}'
+              : '達成'
+        : '残り W${stats.remainingWeight}';
+    final progressLabel = 'W${stats.completedWeight} / W${stats.targetWeight}';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 16 : 0,
+        isCompact ? 8 : 0,
+        isCompact ? 16 : 0,
+        isCompact ? 10 : 0,
+      ),
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              isCompact ? 14 : 16,
+              isCompact ? 12 : 14,
+              isCompact ? 14 : 16,
+              isCompact ? 12 : 14,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final useCompactContent =
+                        isCompact || constraints.maxWidth < 520;
+                    if (useCompactContent) {
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              progressLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: const Color(0xFF0F172A),
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            '${stats.completedCount}件',
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            remainingLabel,
+                            style: TextStyle(
+                              color: stats.isAchieved
+                                  ? const Color(0xFF15803D)
+                                  : const Color(0xFF334155),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              const Text(
+                                '今日の目標',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                progressLabel,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: const Color(0xFF0F172A),
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.4,
+                                    ),
+                              ),
+                              Text(
+                                '${stats.completedCount}件完了',
+                                style: const TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                remainingLabel,
+                                style: TextStyle(
+                                  color: stats.isAchieved
+                                      ? const Color(0xFF15803D)
+                                      : const Color(0xFF334155),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '$percent%',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: progressColor,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: isCompact ? 7 : 8,
+                    value: stats.cappedProgress,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DailyProgressSheet extends StatefulWidget {
+  const DailyProgressSheet({
+    super.key,
+    required this.currentTarget,
+    required this.stats,
+  });
+
+  final int currentTarget;
+  final DailyProgressStats stats;
+
+  @override
+  State<DailyProgressSheet> createState() => _DailyProgressSheetState();
+}
+
+class _DailyProgressSheetState extends State<DailyProgressSheet> {
+  late int _target = _clampTarget(widget.currentTarget);
+
+  int _clampTarget(int value) {
+    if (value < 1) {
+      return 1;
+    }
+    if (value > 99) {
+      return 99;
+    }
+    return value;
+  }
+
+  void _changeTarget(int delta) {
+    setState(() => _target = _clampTarget(_target + delta));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final averageLabel = widget.stats.recentAverageWeight > 0
+        ? '過去30日の平均: W${widget.stats.recentAverageWeight.toStringAsFixed(1)}/日'
+        : '過去30日の平均はまだありません';
+
+    return SafeArea(
+      top: false,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 560,
+            maxHeight: screenSize.height * 0.88,
+          ),
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '1日の目標 Weight',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.5,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              '泳ぐ距離を決めるように、毎日の目標を決めます。',
+                              style: TextStyle(color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton.filledTonal(
+                              onPressed: () => _changeTarget(-1),
+                              icon: const Icon(Icons.remove_rounded),
+                            ),
+                            SizedBox(
+                              width: 112,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'W$_target',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -1,
+                                        ),
+                                  ),
+                                  const Text(
+                                    '毎日の目標',
+                                    style: TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton.filled(
+                              onPressed: () => _changeTarget(1),
+                              icon: const Icon(Icons.add_rounded),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => _changeTarget(-5),
+                              child: const Text('-5'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () => _changeTarget(5),
+                              child: const Text('+5'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    averageLabel,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Text(
+                        '過去30日の履歴',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Weight / 目標',
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: ListView.separated(
+                        padding: EdgeInsets.zero,
+                        itemCount: widget.stats.history.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        itemBuilder: (context, index) =>
+                            DailyProgressHistoryRow(
+                              day: widget.stats.history[index],
+                              targetWeight: _target,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('キャンセル'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(_target),
+                        child: const Text('保存'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DailyProgressHistoryRow extends StatelessWidget {
+  const DailyProgressHistoryRow({
+    super.key,
+    required this.day,
+    required this.targetWeight,
+  });
+
+  final DailyProgressHistoryDay day;
+  final int targetWeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = targetWeight <= 0
+        ? 0.0
+        : day.completedWeight / targetWeight;
+    final cappedProgress = progress.clamp(0.0, 1.0).toDouble();
+    final percent = (progress * 100).round();
+    final achieved = day.completedWeight >= targetWeight && targetWeight > 0;
+    final remainingWeight = targetWeight - day.completedWeight;
+    final statusLabel = achieved
+        ? day.completedWeight > targetWeight
+              ? '+W${day.completedWeight - targetWeight}'
+              : '達成'
+        : day.completedWeight == 0
+        ? '未着手'
+        : '残り W$remainingWeight';
+    final accentColor = achieved
+        ? const Color(0xFF15803D)
+        : day.completedWeight == 0
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF2563EB);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 72,
+                child: Text(
+                  _dailyHistoryDateLabel(day.date),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'W${day.completedWeight} / W$targetWeight',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '$percent%',
+                style: TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 64,
+                child: Text(
+                  '${day.completedCount}件',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 72,
+                child: Text(
+                  statusLabel,
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const SizedBox(width: 82),
+              Expanded(
+                child: Text(
+                  '午前 W${day.morningWeight} · 午後 W${day.afternoonWeight}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: cappedProgress,
+              backgroundColor: const Color(0xFFE2E8F0),
+              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1566,40 +2635,51 @@ class BoardToolbar extends StatelessWidget {
         }
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (!isConnected)
-                FilledButton.icon(
-                  onPressed: isBusy ? null : onConnectGitHub,
-                  icon: const Icon(Icons.link_rounded, size: 16),
-                  label: const Text('Connect GitHub'),
-                ),
-              OutlinedButton.icon(
-                onPressed: isBusy || !isConnected ? null : onSelectRepositories,
-                icon: const Icon(Icons.account_tree_outlined, size: 16),
-                label: Text('$repoCount repos'),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 820),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (!isConnected)
+                    FilledButton.icon(
+                      onPressed: isBusy ? null : onConnectGitHub,
+                      icon: const Icon(Icons.link_rounded, size: 16),
+                      label: const Text('Connect GitHub'),
+                    ),
+                  if (isConnected) ...[
+                    ToolbarChip(
+                      icon: Icons.account_tree_outlined,
+                      label: '$repoCount repos',
+                      tooltip: 'Select GitHub repositories',
+                      onPressed: isBusy ? null : onSelectRepositories,
+                    ),
+                    ToolbarChip(
+                      icon: Icons.download_rounded,
+                      label: 'Import',
+                      tooltip: 'Import GitHub issues',
+                      onPressed: isBusy ? null : onImportIssues,
+                    ),
+                    ToolbarChip(
+                      icon: Icons.sync_outlined,
+                      label: 'Sync',
+                      tooltip: 'Sync pending issues',
+                      onPressed: isBusy ? null : onSyncIssues,
+                    ),
+                  ],
+                  ToolbarChip(
+                    icon: Icons.search_outlined,
+                    label: 'Search',
+                    tooltip: 'Search issues (⌘K)',
+                    onPressed: onSearchIssues,
+                  ),
+                ],
               ),
-              OutlinedButton.icon(
-                onPressed: isBusy || !isConnected ? null : onImportIssues,
-                icon: const Icon(Icons.download_rounded, size: 16),
-                label: const Text('Import issues'),
-              ),
-              OutlinedButton.icon(
-                onPressed: isBusy || !isConnected ? null : onSyncIssues,
-                icon: const Icon(Icons.sync_outlined, size: 16),
-                label: const Text('Sync pending'),
-              ),
-              ToolbarChip(
-                icon: Icons.search_outlined,
-                label: 'Search issues',
-                tooltip: 'Search issues (⌘K)',
-                onPressed: onSearchIssues,
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -4675,20 +5755,20 @@ class _ActualWeightRow extends StatelessWidget {
     final deltaColor = isExact
         ? const Color(0xFF15803D)
         : isClose
-            ? const Color(0xFFA16207)
-            : const Color(0xFFDC2626);
+        ? const Color(0xFFA16207)
+        : const Color(0xFFDC2626);
     final deltaBg = isExact
         ? const Color(0xFFF0FDF4)
         : isClose
-            ? const Color(0xFFFEFCE8)
-            : const Color(0xFFFEF2F2);
+        ? const Color(0xFFFEFCE8)
+        : const Color(0xFFFEF2F2);
     final deltaLabel = delta == null
         ? ''
         : delta == 0
-            ? '一致'
-            : delta! > 0
-                ? '過大推定 +$delta'
-                : '過小推定 $delta';
+        ? '一致'
+        : delta! > 0
+        ? '過大推定 +$delta'
+        : '過小推定 $delta';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -5006,9 +6086,7 @@ class Issue {
       weightEstimate: IssueWeightEstimate.fromMap(
         _asMap(data['weightEstimate']),
       ),
-      resolution: IssueResolution.fromMap(
-        _asMap(data['resolution']),
-      ),
+      resolution: IssueResolution.fromMap(_asMap(data['resolution'])),
       pullRequests: _asList(data['pullRequests'])
           .map((value) => IssuePullRequest.fromMap(_asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
@@ -5281,6 +6359,156 @@ List<String> _asStringList(Object? value) {
       .toList();
 }
 
+int _issueProgressWeight(Issue issue) {
+  return issue.resolution?.actualWeight ?? issue.weightEstimate?.value ?? 0;
+}
+
+DailyProgressPrediction _buildDailyProgressPrediction({
+  required int targetWeight,
+  required _DailyPaceBucket todayBucket,
+  required List<_DailyPaceBucket> historicalBuckets,
+  required DateTime now,
+}) {
+  if (targetWeight <= 0) {
+    return const DailyProgressPrediction(
+      finishProbability: 0,
+      paceLabel: '未設定',
+      advice: '目標を設定してください',
+      color: Color(0xFF64748B),
+      requiredAfternoonWeight: 0,
+      historicalAfternoonMedian: 0,
+      sampleCount: 0,
+      usesFallback: true,
+    );
+  }
+
+  final remainingWeight = _positive(targetWeight - todayBucket.totalWeight);
+  final requiredAfternoonWeight = now.hour < 12
+      ? _positive(targetWeight - todayBucket.morningWeight)
+      : remainingWeight;
+  final historicalAfternoonMedian = _median(
+    historicalBuckets.map((bucket) => bucket.afternoonWeight).toList(),
+  );
+
+  if (todayBucket.totalWeight >= targetWeight) {
+    final overWeight = todayBucket.totalWeight - targetWeight;
+    return DailyProgressPrediction(
+      finishProbability: 100,
+      paceLabel: '達成',
+      advice: overWeight > 0 ? '達成 · +W$overWeight' : '達成',
+      color: const Color(0xFF15803D),
+      requiredAfternoonWeight: 0,
+      historicalAfternoonMedian: historicalAfternoonMedian,
+      sampleCount: historicalBuckets.length,
+      usesFallback: false,
+    );
+  }
+
+  final comparableBuckets = historicalBuckets
+      .where(
+        (bucket) =>
+            bucket.totalWeight > 0 &&
+            bucket.weightAtCurrentTime <= todayBucket.weightAtCurrentTime,
+      )
+      .toList();
+  final futureWeights = historicalBuckets
+      .where((bucket) => bucket.totalWeight > 0)
+      .map(
+        (bucket) => _positive(bucket.totalWeight - bucket.weightAtCurrentTime),
+      )
+      .toList();
+
+  final int finishProbability;
+  final int sampleCount;
+  final bool usesFallback;
+  if (comparableBuckets.length >= 3) {
+    final achievedDays = comparableBuckets
+        .where((bucket) => bucket.totalWeight >= targetWeight)
+        .length;
+    finishProbability = (achievedDays / comparableBuckets.length * 100).round();
+    sampleCount = comparableBuckets.length;
+    usesFallback = false;
+  } else {
+    final projectedWeight = todayBucket.totalWeight + _median(futureWeights);
+    finishProbability = (projectedWeight / targetWeight * 100)
+        .round()
+        .clamp(0, 95)
+        .toInt();
+    sampleCount = futureWeights.length;
+    usesFallback = true;
+  }
+
+  final isMorning = now.hour < 12;
+  if (finishProbability >= 75) {
+    return DailyProgressPrediction(
+      finishProbability: finishProbability,
+      paceLabel: '順調',
+      advice: '順調 · このペースなら達成見込み',
+      color: const Color(0xFF15803D),
+      requiredAfternoonWeight: requiredAfternoonWeight,
+      historicalAfternoonMedian: historicalAfternoonMedian,
+      sampleCount: sampleCount,
+      usesFallback: usesFallback,
+    );
+  }
+
+  if (finishProbability >= 45) {
+    final advice = isMorning
+        ? '午前遅め · 午後にW$requiredAfternoonWeight必要'
+        : 'ペース遅め · 残りW$remainingWeight';
+    return DailyProgressPrediction(
+      finishProbability: finishProbability,
+      paceLabel: '遅め',
+      advice: advice,
+      color: const Color(0xFFA16207),
+      requiredAfternoonWeight: requiredAfternoonWeight,
+      historicalAfternoonMedian: historicalAfternoonMedian,
+      sampleCount: sampleCount,
+      usesFallback: usesFallback,
+    );
+  }
+
+  final advice = isMorning
+      ? '達成厳しめ · 午後にW$requiredAfternoonWeight必要'
+      : '達成厳しめ · いつもより速いペースが必要';
+  return DailyProgressPrediction(
+    finishProbability: finishProbability,
+    paceLabel: '厳しめ',
+    advice: advice,
+    color: const Color(0xFFDC2626),
+    requiredAfternoonWeight: requiredAfternoonWeight,
+    historicalAfternoonMedian: historicalAfternoonMedian,
+    sampleCount: sampleCount,
+    usesFallback: usesFallback,
+  );
+}
+
+int _positive(num value) {
+  return value > 0 ? value.round() : 0;
+}
+
+double _median(List<int> values) {
+  if (values.isEmpty) {
+    return 0;
+  }
+  values.sort();
+  final middle = values.length ~/ 2;
+  if (values.length.isOdd) {
+    return values[middle].toDouble();
+  }
+  return (values[middle - 1] + values[middle]) / 2;
+}
+
+bool _isAtOrBeforeTimeOfDay(DateTime value, DateTime cutoff) {
+  if (value.hour != cutoff.hour) {
+    return value.hour < cutoff.hour;
+  }
+  if (value.minute != cutoff.minute) {
+    return value.minute <= cutoff.minute;
+  }
+  return value.second <= cutoff.second;
+}
+
 DateTime? _asDate(Object? value) {
   if (value is Timestamp) {
     return value.toDate();
@@ -5334,6 +6562,20 @@ DateTime _dateOnly(DateTime date) {
 
 String _formatDate(DateTime date) {
   return '${date.month}月${date.day}日';
+}
+
+String _dailyHistoryDateLabel(DateTime date) {
+  final today = _dateOnly(DateTime.now());
+  final targetDate = _dateOnly(date);
+  final daysAgo = today.difference(targetDate).inDays;
+
+  if (daysAgo == 0) {
+    return '今日';
+  }
+  if (daysAgo == 1) {
+    return '昨日';
+  }
+  return _formatDate(targetDate);
 }
 
 String _dueDateLabel(DateTime date) {
