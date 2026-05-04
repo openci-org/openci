@@ -1989,8 +1989,28 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
       continue;
     }
 
-    const issueRef = workspaceRef.collection("issues").doc(docId);
-    const issueDoc = await issueRef.get();
+    let issueRef = workspaceRef.collection("issues").doc(docId);
+    let issueDoc = await issueRef.get();
+
+    // When a GitHub issue is created from IMA (via createGitHubIssue), the
+    // Firestore document uses a random ID, not the gh_owner_repo_number
+    // format. The subsequent GitHub webhook would create a second document
+    // under the gh_* ID.  Detect this by querying for an existing document
+    // that already tracks the same GitHub issue via its nodeId.
+    if (!issueDoc.exists) {
+      const nodeId = asString(ghIssue.node_id);
+      if (nodeId.length > 0) {
+        const existing = await workspaceRef
+          .collection("issues")
+          .where("githubIssue.nodeId", "==", nodeId)
+          .limit(1)
+          .get();
+        if (!existing.empty) {
+          issueRef = existing.docs[0]!.ref;
+          issueDoc = existing.docs[0]!;
+        }
+      }
+    }
 
     if (action === "opened" || action === "edited") {
       const existingData = issueDoc.data() ?? {};
