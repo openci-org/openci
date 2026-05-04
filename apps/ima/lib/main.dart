@@ -2912,7 +2912,7 @@ class _IssueIdChipState extends State<_IssueIdChip> {
     if (trimmed.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: trimmed));
     if (!mounted) return;
-    _showOverlaySnackBar(context, 'Issue ID copied');
+    _showOverlaySnackBar(context, 'Issue IDがコピーされました');
     setState(() => _copied = true);
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
@@ -5362,11 +5362,13 @@ class _OverlaySnackBarState extends State<_OverlaySnackBar>
                   horizontal: 12,
                   vertical: 8,
                 ),
-                child: Text(
-                  widget.message,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                child: Center(
+                  child: Text(
+                    widget.message,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
                 ),
               ),
             ),
