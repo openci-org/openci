@@ -28,6 +28,7 @@ interface CreateGitHubIssueRequest extends WorkspaceRequest {
     priority: string;
     rank: number;
     dueDate?: string;
+    issueId?: string;
 }
 interface GitHubRepository {
     fullName: string;

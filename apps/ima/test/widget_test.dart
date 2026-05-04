@@ -24,16 +24,14 @@ void main() {
     expect(find.text('既存アカウントでログイン'), findsOneWidget);
   });
 
-  testWidgets('Issue card exposes close action for open issues', (
+  testWidgets('Issue card does not show close button', (
     tester,
   ) async {
-    var closeTapped = false;
-
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
           body: IssueCard(
-            issue: const Issue(
+            issue: Issue(
               id: 'IMA-1',
               repo: 'openci/ima',
               title: 'Close issue from the board',
@@ -42,15 +40,12 @@ void main() {
               comments: 0,
               priority: Priority.medium,
             ),
-            onCloseIssue: () => closeTapped = true,
           ),
         ),
       ),
     );
 
-    await tester.tap(find.byTooltip('Close issue'));
-
-    expect(closeTapped, isTrue);
+    expect(find.byTooltip('Close issue'), findsNothing);
   });
 
   testWidgets('Issue card renders LLM weight badge', (tester) async {
@@ -249,7 +244,6 @@ void main() {
               color: Colors.blue,
               issues: const [],
             ),
-            closingIssueIds: const <String>{},
             onIssueDropped:
                 ({
                   required issueId,
@@ -258,7 +252,6 @@ void main() {
                 }) {},
             onAddIssue: (columnId) => targetColumnId = columnId,
             onIssueTapped: (_) {},
-            onIssueClosed: (_) {},
           ),
         ),
       ),
@@ -283,7 +276,6 @@ void main() {
               color: Colors.purple,
               issues: const [],
             ),
-            closingIssueIds: const <String>{},
             onIssueDropped:
                 ({
                   required issueId,
@@ -292,7 +284,6 @@ void main() {
                 }) {},
             onAddIssue: (columnId) => targetColumnId = columnId,
             onIssueTapped: (_) {},
-            onIssueClosed: (_) {},
           ),
         ),
       ),
@@ -344,7 +335,6 @@ void main() {
                 ),
               ],
             ),
-            closingIssueIds: const <String>{},
             onIssueDropped:
                 ({
                   required issueId,
@@ -353,7 +343,6 @@ void main() {
                 }) {},
             onAddIssue: (_) {},
             onIssueTapped: (_) {},
-            onIssueClosed: (_) {},
           ),
         ),
       ),
@@ -548,14 +537,14 @@ void main() {
     );
   });
 
-  testWidgets('Issue card hides close action for closed issues', (
+  testWidgets('Issue card does not show close button for closed issues', (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
           body: IssueCard(
-            issue: const Issue(
+            issue: Issue(
               id: 'IMA-2',
               repo: 'openci/ima',
               title: 'Already closed',
@@ -565,7 +554,6 @@ void main() {
               priority: Priority.low,
               statusId: 'done',
             ),
-            onCloseIssue: () {},
           ),
         ),
       ),

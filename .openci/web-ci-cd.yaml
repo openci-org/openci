@@ -57,4 +57,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: openci-b1b91
           entryPoint: firebase/openci
-          expires: 7d
+          expires: 3h

@@ -143,7 +143,7 @@ function buildCursorAgentPrompt(input) {
         `- Implement the issue with the smallest reasonable change.`,
         `- Add or update tests when the change is behaviorally meaningful.`,
         `- Run relevant checks if available.`,
-        `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}.`,
+        `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}. The pull request must NOT be a draft; create it as a regular open PR.`,
         issueKeyValue.length > 0
             ? `- Include "${issueKeyValue}" in the pull request title (e.g. "feat: description ${issueKeyValue}") for tracking.`
             : undefined,
@@ -179,8 +179,7 @@ function pullRequestMatchesIssue(pullRequest, issue) {
     const title = asString(pullRequest.title);
     const body = asString(pullRequest.body);
     const issueKeyValue = asString(issue.issueKey).toUpperCase();
-    if (issueKeyValue.length > 0 &&
-        (0, issueLinkingHelpers_1.extractIssueKey)(branch, title, body) === issueKeyValue) {
+    if (issueKeyValue.length > 0 && (0, issueLinkingHelpers_1.extractIssueKey)(branch, title, body) === issueKeyValue) {
         return true;
     }
     const githubIssue = issue.githubIssue;
@@ -289,8 +288,7 @@ function normalizeIssueWeightEstimate(estimate) {
     const reason = asString(estimate.reason);
     const model = asString(estimate.model);
     const inputHash = asString(estimate.inputHash);
-    if (value < 1 ||
-        value > 8 ||
+    if (!(0, issueWeightHelpers_1.isValidWeight)(value) ||
         confidence < 0 ||
         confidence > 1 ||
         reason.length === 0 ||
@@ -308,6 +306,39 @@ function normalizeIssueWeightEstimate(estimate) {
         source: "llm",
         status: "done",
     };
+}
+const defaultWeightThresholdsHours = [
+    { weight: 1, maxHours: 1 },
+    { weight: 2, maxHours: 4 },
+    { weight: 4, maxHours: 12 },
+    { weight: 8, maxHours: 32 },
+    { weight: 16, maxHours: 80 },
+    { weight: 32, maxHours: Infinity },
+];
+function deriveActualWeight(cycleTimeMs, byWeight) {
+    const hours = cycleTimeMs / 3_600_000;
+    const entries = Object.entries(byWeight)
+        .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianLeadTimeHours }))
+        .filter((entry) => (0, issueWeightHelpers_1.isValidWeight)(entry.weight) && entry.hours !== null);
+    const totalCount = Object.values(byWeight).reduce((sum, stats) => sum + stats.count, 0);
+    if (entries.length >= 3 && totalCount >= 5) {
+        let closest = entries[0];
+        let closestDiff = Math.abs(closest.hours - hours);
+        for (let i = 1; i < entries.length; i++) {
+            const diff = Math.abs(entries[i].hours - hours);
+            if (diff < closestDiff) {
+                closest = entries[i];
+                closestDiff = diff;
+            }
+        }
+        return closest.weight;
+    }
+    for (const tier of defaultWeightThresholdsHours) {
+        if (hours < tier.maxHours) {
+            return tier.weight;
+        }
+    }
+    return 32;
 }
 function issueLabels(issue) {
     return (issue.labels ?? [])
@@ -363,6 +394,7 @@ function closedIssueStatsEvent(data) {
         repo: asString(data.repo),
         labels: asStringList(data.labels),
         weightValue: typeof data.weightValue === "number" ? data.weightValue : null,
+        actualWeight: typeof data.actualWeight === "number" ? data.actualWeight : null,
         leadTimeMs: typeof data.leadTimeMs === "number" ? data.leadTimeMs : null,
         cycleTimeMs: typeof data.cycleTimeMs === "number" ? data.cycleTimeMs : null,
         closedAt: timestampFromValue(data.closedAt),
@@ -414,6 +446,22 @@ async function collectResolutionStats(workspaceId) {
     const cycleTimes = selected
         .map((event) => event.cycleTimeMs)
         .filter((value) => value !== null);
+    const comparablePairs = selected.filter((event) => event.weightValue !== null && event.actualWeight !== null);
+    let estimationAccuracy = null;
+    if (comparablePairs.length > 0) {
+        const exactMatches = comparablePairs.filter((e) => e.weightValue === e.actualWeight).length;
+        const adjacentMatches = comparablePairs.filter((e) => (0, issueWeightHelpers_1.isAdjacentWeight)(e.weightValue, e.actualWeight)).length;
+        const deltas = comparablePairs.map((e) => e.weightValue - e.actualWeight);
+        const sumAbsError = deltas.reduce((sum, d) => sum + Math.abs(d), 0);
+        const sumDelta = deltas.reduce((sum, d) => sum + d, 0);
+        estimationAccuracy = {
+            totalCompared: comparablePairs.length,
+            exactMatchRate: Math.round((exactMatches / comparablePairs.length) * 100) / 100,
+            within1Rate: Math.round((adjacentMatches / comparablePairs.length) * 100) / 100,
+            meanAbsoluteError: Math.round((sumAbsError / comparablePairs.length) * 10) / 10,
+            bias: Math.round((sumDelta / comparablePairs.length) * 10) / 10,
+        };
+    }
     return {
         recentWindowDays,
         resolvedCount: selected.length,
@@ -426,9 +474,11 @@ async function collectResolutionStats(workspaceId) {
             repo: event.repo,
             labels: event.labels.slice(0, 8),
             weight: event.weightValue,
+            actualWeight: event.actualWeight,
             leadTimeHours: roundedHours(event.leadTimeMs),
             cycleTimeHours: roundedHours(event.cycleTimeMs),
         })),
+        estimationAccuracy,
     };
 }
 async function createAnthropicMessage(system, content) {
@@ -464,7 +514,7 @@ async function estimateIssueWeightWithLlm(workspaceId, issue) {
     const system = [
         "You estimate issue weight for a software team's issue board.",
         "Return only JSON with keys: value, confidence, reason.",
-        "value must be an integer from 1 to 8 where 1 is tiny and 8 is very large.",
+        "value must be one of: 1, 2, 4, 8, 16, 32 (powers of 2; 1=tiny, 32=very large).",
         "confidence must be a number from 0 to 1.",
         "reason must be short Japanese text, within 80 characters.",
         "Use the team's recent resolution speed statistics when available.",
@@ -894,9 +944,11 @@ exports.createGitHubIssue = (0, https_1.onCall)(async (request) => {
         if (number <= 0 || nodeId.length === 0) {
             throw new https_1.HttpsError("failed-precondition", "GitHub issue could not be created");
         }
-        const issueId = issueDocId(owner, repo, number);
+        const clientIssueId = asString(request.data?.issueId);
+        const issueId = clientIssueId.length > 0 ? clientIssueId : issueDocId(owner, repo, number);
         const docRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-        const keyFields = await issueKeyFields(workspaceId, {});
+        const existingData = clientIssueId.length > 0 ? ((await docRef.get()).data() ?? {}) : {};
+        const keyFields = await issueKeyFields(workspaceId, existingData);
         await docRef.set({
             ...keyFields,
             title: asString(issue.title, title),
@@ -1279,9 +1331,9 @@ async function upsertPullRequestLink({ workspaceId, issueId, action, pullRequest
         }
     });
 }
-async function syncGitHubIssueCloseFromWebhook(payload) {
+async function syncGitHubIssueFromWebhook(payload) {
     const action = asString(payload.action);
-    if (action !== "closed" && action !== "reopened") {
+    if (action !== "opened" && action !== "edited" && action !== "closed" && action !== "reopened") {
         return 0;
     }
     const ghIssue = payload.issue;
@@ -1294,40 +1346,111 @@ async function syncGitHubIssueCloseFromWebhook(payload) {
     if (!owner || !repo) {
         return 0;
     }
+    if (ghIssue.pull_request !== undefined) {
+        return 0;
+    }
     const docId = issueDocId(owner, repo, number);
     const workspaces = await db.collection("workspaces").limit(100).get();
     let updated = 0;
     for (const workspace of workspaces.docs) {
         const workspaceRef = workspace.ref;
-        const workspaceId = workspace.id;
         const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
         if (!repoDoc.exists ||
             repoDoc.get("enabled") !== true ||
             asString(repoDoc.get("fullName")) !== repoFullName) {
             continue;
         }
-        const issueRef = workspaceRef.collection("issues").doc(docId);
-        const issueDoc = await issueRef.get();
+        let issueRef = workspaceRef.collection("issues").doc(docId);
+        let issueDoc = await issueRef.get();
+        // When a GitHub issue is created from IMA (via createGitHubIssue), the
+        // Firestore document uses a random ID, not the gh_owner_repo_number
+        // format. The subsequent GitHub webhook would create a second document
+        // under the gh_* ID.  Detect this by querying for an existing document
+        // that already tracks the same GitHub issue via its nodeId.
         if (!issueDoc.exists) {
-            continue;
+            const nodeId = asString(ghIssue.node_id);
+            if (nodeId.length > 0) {
+                const existing = await workspaceRef
+                    .collection("issues")
+                    .where("githubIssue.nodeId", "==", nodeId)
+                    .limit(1)
+                    .get();
+                if (!existing.empty) {
+                    issueRef = existing.docs[0].ref;
+                    issueDoc = existing.docs[0];
+                }
+            }
         }
-        const issueData = issueDoc.data() ?? {};
-        const currentStatusId = asString(issueData.statusId, "triage");
-        if (action === "closed" && currentStatusId !== closedStatusId) {
+        if (action === "opened" || action === "edited") {
+            const existingData = issueDoc.data() ?? {};
+            const nodeId = asString(ghIssue.node_id);
+            const title = asString(ghIssue.title, `#${number}`);
+            const body = asString(ghIssue.body);
+            const labels = (ghIssue.labels ?? [])
+                .map((label) => (typeof label === "string" ? label : asString(label.name)))
+                .filter((label) => label.length > 0);
+            const assignees = (ghIssue.assignees ?? [])
+                .map((assignee) => asString(assignee.login))
+                .filter((login) => login.length > 0);
+            const assignee = assignees[0] ?? asString(ghIssue.assignee?.login, "-");
+            const keyFields = await issueKeyFields(workspaceRef.id, existingData);
+            let rank = asNumber(existingData.rank);
+            if (rank === 0 && !issueDoc.exists) {
+                const topIssue = await workspaceRef.collection("issues").orderBy("rank").limit(1).get();
+                const topDoc = topIssue.docs[0];
+                const topRank = topDoc === undefined ? Date.now() : asNumber(topDoc.get("rank"));
+                rank = topRank - 1000;
+            }
             await issueRef.set({
-                statusId: closedStatusId,
-                "githubIssue.state": "closed",
+                ...keyFields,
+                title,
+                body,
+                repo: repoFullName,
+                assignee,
+                labels,
+                comments: asNumber(ghIssue.comments),
+                priority: asString(existingData.priority, "medium"),
+                statusId: asString(existingData.statusId, "triage"),
+                rank,
+                githubIssue: {
+                    nodeId,
+                    owner,
+                    repo,
+                    number,
+                    url: asString(ghIssue.html_url),
+                    state: asString(ghIssue.state, "open"),
+                },
+                githubUpdatedAt: asTimestamp(ghIssue.updated_at),
+                githubCreatedAt: asTimestamp(ghIssue.created_at),
                 updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                createdAt: issueDoc.exists
+                    ? (existingData.createdAt ?? firestore_1.FieldValue.serverTimestamp())
+                    : firestore_1.FieldValue.serverTimestamp(),
             }, { merge: true });
             updated += 1;
         }
-        else if (action === "reopened" && currentStatusId === closedStatusId) {
-            await issueRef.set({
-                statusId: "triage",
-                "githubIssue.state": "open",
-                updatedAt: firestore_1.FieldValue.serverTimestamp(),
-            }, { merge: true });
-            updated += 1;
+        else if (action === "closed" || action === "reopened") {
+            if (!issueDoc.exists) {
+                continue;
+            }
+            const issueData = issueDoc.data() ?? {};
+            const currentStatusId = asString(issueData.statusId, "triage");
+            if (action === "closed" && currentStatusId !== closedStatusId) {
+                await issueRef.set({
+                    statusId: closedStatusId,
+                    "githubIssue.state": "closed",
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                updated += 1;
+            }
+            else if (action === "reopened" && currentStatusId === closedStatusId) {
+                await issueRef.set({
+                    statusId: "triage",
+                    "githubIssue.state": "open",
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                updated += 1;
+            }
         }
     }
     return updated;
@@ -1414,13 +1537,127 @@ async function linkPullRequestToImaIssues(payload) {
     }
     return linked;
 }
+async function processBranchLogFromPush(payload) {
+    const repoFullName = asString(payload.repository?.full_name);
+    if (repoFullName.length === 0) {
+        return 0;
+    }
+    const commits = payload.commits ?? [];
+    const branchLogTouched = commits.some((commit) => {
+        const files = [
+            ...(commit.added ?? []),
+            ...(commit.modified ?? []),
+        ];
+        return files.includes(".openci/branch-log.jsonl");
+    });
+    if (!branchLogTouched) {
+        return 0;
+    }
+    const workspaces = await db.collection("workspaces").limit(100).get();
+    let recorded = 0;
+    for (const workspace of workspaces.docs) {
+        const workspaceRef = workspace.ref;
+        const workspaceId = workspace.id;
+        const repoDoc = await workspaceRef
+            .collection("githubRepos")
+            .doc(repoDocId(repoFullName))
+            .get();
+        if (!repoDoc.exists ||
+            repoDoc.get("enabled") !== true ||
+            asString(repoDoc.get("fullName")) !== repoFullName) {
+            continue;
+        }
+        const ownerUid = asString(workspace.get("ownerUid"));
+        if (ownerUid.length === 0) {
+            continue;
+        }
+        let token;
+        try {
+            token = await getGitHubToken(ownerUid);
+        }
+        catch {
+            v2_1.logger.warn("processBranchLog: no GitHub token for owner", { workspaceId, ownerUid });
+            continue;
+        }
+        const [owner, repo] = repoFullName.split("/");
+        if (!owner || !repo) {
+            continue;
+        }
+        let branchLogContent;
+        try {
+            const ref = asString(payload.ref).replace(/^refs\/heads\//u, "");
+            const fileResponse = await githubRequest({
+                path: `/repos/${owner}/${repo}/contents/.openci/branch-log.jsonl`,
+                token,
+                queryParameters: ref.length > 0 ? { ref } : {},
+            });
+            if (asString(fileResponse.encoding) !== "base64") {
+                continue;
+            }
+            branchLogContent = Buffer.from(asString(fileResponse.content), "base64").toString("utf8");
+        }
+        catch {
+            v2_1.logger.warn("processBranchLog: failed to fetch branch-log.jsonl", {
+                workspaceId,
+                repoFullName,
+            });
+            continue;
+        }
+        const lines = branchLogContent.split("\n").filter((line) => line.trim().length > 0);
+        for (const line of lines) {
+            let entry;
+            try {
+                entry = JSON.parse(line);
+            }
+            catch {
+                continue;
+            }
+            const branchName = asString(entry.branch);
+            const createdAtStr = asString(entry.at);
+            if (branchName.length === 0 || createdAtStr.length === 0) {
+                continue;
+            }
+            const parsedIssueKey = (0, issueLinkingHelpers_1.extractIssueKey)(branchName);
+            if (parsedIssueKey === null) {
+                continue;
+            }
+            const branchCreatedAt = asTimestamp(createdAtStr);
+            if (branchCreatedAt === null) {
+                continue;
+            }
+            const issueDocs = await workspaceRef
+                .collection("issues")
+                .where("issueKey", "==", parsedIssueKey)
+                .limit(1)
+                .get();
+            if (issueDocs.empty) {
+                continue;
+            }
+            const issueDoc = issueDocs.docs[0];
+            const existingBranchCreatedAt = timestampFromValue(issueDoc.get("branchCreatedAt"));
+            if (existingBranchCreatedAt !== null) {
+                continue;
+            }
+            const cursorAgent = issueDoc.get("cursorAgent");
+            const cursorStartedAt = timestampFromValue(cursorAgent?.startedAt);
+            const workStartedAt = cursorStartedAt ?? branchCreatedAt;
+            await issueDoc.ref.set({
+                branchCreatedAt,
+                workStartedAt,
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            }, { merge: true });
+            recorded += 1;
+        }
+    }
+    return recorded;
+}
 exports.githubPullRequestWebhook = (0, https_1.onRequest)({ secrets: [githubWebhookSecret] }, async (request, response) => {
     if (request.method !== "POST") {
         response.status(405).send("Method Not Allowed");
         return;
     }
     const event = asString(request.header("x-github-event"));
-    if (event !== "pull_request" && event !== "issues") {
+    if (event !== "pull_request" && event !== "issues" && event !== "push") {
         response.status(204).send();
         return;
     }
@@ -1433,8 +1670,14 @@ exports.githubPullRequestWebhook = (0, https_1.onRequest)({ secrets: [githubWebh
     try {
         if (event === "issues") {
             const payload = JSON.parse(rawBody.toString("utf8"));
-            const updated = await syncGitHubIssueCloseFromWebhook(payload);
+            const updated = await syncGitHubIssueFromWebhook(payload);
             response.status(200).json({ updated });
+            return;
+        }
+        if (event === "push") {
+            const payload = JSON.parse(rawBody.toString("utf8"));
+            const recorded = await processBranchLogFromPush(payload);
+            response.status(200).json({ recorded });
             return;
         }
         const linked = await linkPullRequestToImaIssues(parseWebhookPayload(rawBody));
@@ -1580,16 +1823,34 @@ exports.issueLifecycleEventLogger = (0, firestore_2.onDocumentWritten)("workspac
     if (beforeStatus !== afterStatus && afterStatus === closedStatusId) {
         const createdAt = timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
         const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
+        const cursorAgent = after.cursorAgent;
+        const cursorStartedAt = timestampFromValue(cursorAgent?.startedAt);
+        const branchCreatedAt = timestampFromValue(after.branchCreatedAt);
+        const workStartedAt = cursorStartedAt ?? branchCreatedAt ?? firstInProgressAt;
+        const workStartSource = cursorStartedAt !== null ? "cursorAgent" : branchCreatedAt !== null ? "branch" : "status";
         const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
-        const cycleTimeMs = firstInProgressAt === null ? null : now.toMillis() - firstInProgressAt.toMillis();
+        const cycleTimeMs = workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
         const weightEstimate = issueWeightEstimateMap(after);
         const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
+        let actualWeight = null;
+        let weightDelta = null;
+        if (cycleTimeMs !== null) {
+            const resolutionStats = await collectResolutionStats(workspaceId);
+            actualWeight = deriveActualWeight(cycleTimeMs, resolutionStats.byWeight);
+            if (weightValue !== null) {
+                weightDelta = weightValue - actualWeight;
+            }
+        }
         updates.closedAt = now;
+        updates.workStartedAt = workStartedAt ?? null;
         updates.resolution = {
             closedAt: now,
             leadTimeMs,
             cycleTimeMs,
             weightValue,
+            actualWeight,
+            weightDelta,
+            workStartSource,
         };
         await writeIssueEvent({
             workspaceId,
@@ -1604,6 +1865,9 @@ exports.issueLifecycleEventLogger = (0, firestore_2.onDocumentWritten)("workspac
                 leadTimeMs,
                 cycleTimeMs,
                 weightValue,
+                actualWeight,
+                weightDelta,
+                workStartSource,
             },
         });
     }
