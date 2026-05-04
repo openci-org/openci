@@ -24,9 +24,7 @@ void main() {
     expect(find.text('既存アカウントでログイン'), findsOneWidget);
   });
 
-  testWidgets('Issue card does not show close button', (
-    tester,
-  ) async {
+  testWidgets('Issue card does not show close button', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -76,7 +74,39 @@ void main() {
     expect(find.text('W3'), findsOneWidget);
   });
 
-  testWidgets('Issue card exposes GitHub link copy action', (tester) async {
+  testWidgets('Done issue card renders actual weight badge only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: IssueCard(
+            issue: Issue(
+              id: 'IMA-7',
+              repo: 'openci/ima',
+              title: 'Show actual weight after closing',
+              assignee: 'MF',
+              labels: ['done'],
+              comments: 0,
+              priority: Priority.medium,
+              statusId: 'done',
+              weightEstimate: IssueWeightEstimate(
+                status: 'done',
+                value: 3,
+                confidence: 0.8,
+              ),
+              resolution: IssueResolution(actualWeight: 5, weightDelta: -2),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('W5'), findsOneWidget);
+    expect(find.text('W3'), findsNothing);
+  });
+
+  testWidgets('Issue card exposes GitHub link open action', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -84,7 +114,7 @@ void main() {
             issue: Issue(
               id: 'IMA-5',
               repo: 'openci/ima',
-              title: 'Copy GitHub link from card',
+              title: 'Open GitHub link from card',
               githubUrl: 'https://github.com/openci/ima/issues/5',
               assignee: 'MF',
               labels: ['github'],
@@ -96,7 +126,7 @@ void main() {
       ),
     );
 
-    expect(find.byTooltip('Copy GitHub link'), findsOneWidget);
+    expect(find.byTooltip('Open in GitHub'), findsOneWidget);
   });
 
   testWidgets('Issue card renders Ima issue key and linked PR badge', (
