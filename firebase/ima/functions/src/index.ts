@@ -728,12 +728,12 @@ const defaultWeightThresholdsHours: Array<{ weight: number; maxHours: number }> 
 
 function deriveActualWeight(
   cycleTimeMs: number,
-  byWeight: Record<string, { count: number; medianLeadTimeHours: number | null }>,
+  byWeight: Record<string, { count: number; medianHours: number | null }>,
 ): number {
   const hours = cycleTimeMs / 3_600_000;
 
   const entries = Object.entries(byWeight)
-    .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianLeadTimeHours }))
+    .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianHours }))
     .filter(
       (entry): entry is { weight: number; hours: number } =>
         isValidWeight(entry.weight) && entry.hours !== null,
@@ -918,8 +918,8 @@ interface ResolutionStats {
   resolvedCount: number;
   medianLeadTimeHours: number | null;
   medianCycleTimeHours: number | null;
-  byWeight: Record<string, { count: number; medianLeadTimeHours: number | null }>;
-  byLabel: Record<string, { count: number; medianLeadTimeHours: number | null }>;
+  byWeight: Record<string, { count: number; medianHours: number | null }>;
+  byLabel: Record<string, { count: number; medianHours: number | null }>;
   recentExamples: Array<{
     title: string;
     repo: string;
@@ -951,15 +951,17 @@ function closedIssueStatsEvent(data: Record<string, unknown>): ClosedIssueStatsE
 function bucketMedian(
   events: ClosedIssueStatsEvent[],
   keyForEvent: (event: ClosedIssueStatsEvent) => string[],
-): Record<string, { count: number; medianLeadTimeHours: number | null }> {
+  timeForEvent: (event: ClosedIssueStatsEvent) => number | null = (e) => e.leadTimeMs,
+): Record<string, { count: number; medianHours: number | null }> {
   const buckets = new Map<string, number[]>();
   for (const event of events) {
-    if (event.leadTimeMs === null) {
+    const timeMs = timeForEvent(event);
+    if (timeMs === null) {
       continue;
     }
     for (const key of keyForEvent(event)) {
       const existing = buckets.get(key) ?? [];
-      existing.push(event.leadTimeMs);
+      existing.push(timeMs);
       buckets.set(key, existing);
     }
   }
@@ -971,7 +973,7 @@ function bucketMedian(
         key,
         {
           count: values.length,
-          medianLeadTimeHours: roundedHours(median(values)),
+          medianHours: roundedHours(median(values)),
         },
       ]),
   );
@@ -2828,9 +2830,10 @@ export const issueLifecycleEventLogger = onDocumentWritten(
 
       let actualWeight: number | null = null;
       let weightDelta: number | null = null;
-      if (cycleTimeMs !== null) {
+      const timeForWeight = cycleTimeMs ?? leadTimeMs;
+      if (timeForWeight !== null) {
         const resolutionStats = await collectResolutionStats(workspaceId);
-        actualWeight = deriveActualWeight(cycleTimeMs, resolutionStats.byWeight);
+        actualWeight = deriveActualWeight(timeForWeight, resolutionStats.byWeight);
         if (weightValue !== null) {
           weightDelta = weightValue - actualWeight;
         }
@@ -2892,6 +2895,59 @@ export const issueLifecycleEventLogger = onDocumentWritten(
     }
   },
 );
+
+export const recomputeResolutionWeights = onCall<
+  { workspaceId: string },
+  Promise<{ updated: number; skipped: number }>
+>({ timeoutSeconds: 300 }, async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  await verifyWorkspaceMember(request.auth, workspaceId);
+
+  const resolutionStats = await collectResolutionStats(workspaceId);
+  const snapshot = await db
+    .collection(`workspaces/${workspaceId}/issues`)
+    .where("statusId", "==", closedStatusId)
+    .get();
+
+  let updated = 0;
+  let skipped = 0;
+  const batch = db.batch();
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const resolution = data.resolution as Record<string, unknown> | undefined;
+    if (!resolution) {
+      skipped++;
+      continue;
+    }
+    const cycleTimeMs = typeof resolution.cycleTimeMs === "number" ? resolution.cycleTimeMs : null;
+    const leadTimeMs = typeof resolution.leadTimeMs === "number" ? resolution.leadTimeMs : null;
+    const timeForWeight = cycleTimeMs ?? leadTimeMs;
+    if (timeForWeight === null) {
+      skipped++;
+      continue;
+    }
+    const oldActual = typeof resolution.actualWeight === "number" ? resolution.actualWeight : null;
+    const newActual = deriveActualWeight(timeForWeight, resolutionStats.byWeight);
+    if (oldActual === newActual) {
+      skipped++;
+      continue;
+    }
+    const weightValue = typeof resolution.weightValue === "number" ? resolution.weightValue : null;
+    const newDelta = weightValue !== null ? weightValue - newActual : null;
+    batch.update(doc.ref, {
+      "resolution.actualWeight": newActual,
+      "resolution.weightDelta": newDelta,
+    });
+    updated++;
+  }
+
+  if (updated > 0) {
+    await batch.commit();
+  }
+  logger.info("recomputeResolutionWeights", { workspaceId, updated, skipped });
+  return { updated, skipped };
+});
 
 export const autoEstimateIssueWeightOnIssueWrite = onDocumentWritten(
   {
