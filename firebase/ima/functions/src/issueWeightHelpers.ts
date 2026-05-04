@@ -1,7 +1,21 @@
 import { createHash } from "node:crypto";
 
-export const issueWeightPromptVersion = "issue-weight-v1";
+export const issueWeightPromptVersion = "issue-weight-v2";
 const maxIssueBodyCharsForWeight = 4000;
+
+export const validWeights = [1, 2, 4, 8, 16, 32] as const;
+export type IssueWeight = (typeof validWeights)[number];
+
+export function isValidWeight(value: number): value is IssueWeight {
+  return (validWeights as readonly number[]).includes(value);
+}
+
+export function isAdjacentWeight(a: number, b: number): boolean {
+  const idxA = validWeights.indexOf(a as IssueWeight);
+  const idxB = validWeights.indexOf(b as IssueWeight);
+  if (idxA < 0 || idxB < 0) return false;
+  return Math.abs(idxA - idxB) <= 1;
+}
 
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.length > 0 ? value : fallback;
@@ -53,8 +67,8 @@ export function parseWeightEstimateResponse(responseText: string): {
   const value = asNumber(parsed.value);
   const confidence = asNumber(parsed.confidence);
   const reason = truncateText(asString(parsed.reason), 240);
-  if (!Number.isInteger(value) || value < 1 || value > 8) {
-    throw new Error("LLM response value must be an integer from 1 to 8");
+  if (!Number.isInteger(value) || !isValidWeight(value)) {
+    throw new Error(`LLM response value must be one of ${validWeights.join(", ")}`);
   }
   if (confidence < 0 || confidence > 1) {
     throw new Error("LLM response confidence must be between 0 and 1");
