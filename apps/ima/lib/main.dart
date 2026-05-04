@@ -386,6 +386,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _githubConnectionSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _reposSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+      _workspaceSettingsSubscription;
   var _isBootstrapping = true;
   var _isConnectingGitHub = false;
   var _isLoadingRepositories = false;
@@ -531,6 +533,23 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .collection('githubRepos')
         .snapshots()
         .listen(_replaceRepositories, onError: _handleStreamError);
+    _workspaceSettingsSubscription = workspaceRef
+        .snapshots()
+        .listen(_replaceWorkspaceSettings, onError: _handleStreamError);
+  }
+
+  void _replaceWorkspaceSettings(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    if (!mounted || data == null) {
+      return;
+    }
+
+    final stored = data['dailyWeightTarget'];
+    if (stored is int && stored > 0) {
+      setState(() => _dailyWeightTarget = stored);
+    }
   }
 
   void _replaceIssuesFromSnapshot(
@@ -1237,6 +1256,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     setState(() => _dailyWeightTarget = nextTarget);
+    unawaited(
+      _firestore.doc('workspaces/$_workspaceId').update({
+        'dailyWeightTarget': nextTarget,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }),
+    );
   }
 
   @override
@@ -1244,6 +1269,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     unawaited(_issuesSubscription?.cancel());
     unawaited(_githubConnectionSubscription?.cancel());
     unawaited(_reposSubscription?.cancel());
+    unawaited(_workspaceSettingsSubscription?.cancel());
     _boardScrollController.dispose();
     super.dispose();
   }
