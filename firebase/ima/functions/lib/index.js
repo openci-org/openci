@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
+exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubSubIssue = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
 const node_crypto_1 = require("node:crypto");
 const sdk_1 = require("@cursor/sdk");
 const app_1 = require("firebase-admin/app");
@@ -54,7 +54,7 @@ async function getGitHubToken(uid) {
     }
     return token;
 }
-async function githubRequest({ path, token, method = "GET", body, queryParameters, }) {
+async function githubRequest({ path, token, method = "GET", body, queryParameters, apiVersion = "2022-11-28", }) {
     const url = new URL(path, "https://api.github.com");
     for (const [key, value] of Object.entries(queryParameters ?? {})) {
         url.searchParams.set(key, String(value));
@@ -66,7 +66,7 @@ async function githubRequest({ path, token, method = "GET", body, queryParameter
             authorization: `Bearer ${token}`,
             "content-type": "application/json",
             "user-agent": "Ima-Functions",
-            "x-github-api-version": "2022-11-28",
+            "x-github-api-version": apiVersion,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -356,6 +356,58 @@ function issueAssignee(issue) {
         .map((assignee) => asString(assignee.login))
         .find((login) => login.length > 0);
     return firstAssignee ?? asString(issue.assignee?.login, "-");
+}
+function issueSubIssuesSummary(issue) {
+    const summary = issue.sub_issues_summary;
+    const total = asNumber(summary?.total);
+    if (total <= 0) {
+        return null;
+    }
+    const completed = Math.min(Math.max(asNumber(summary?.completed), 0), total);
+    const percentCompleted = Math.min(Math.max(asNumber(summary?.percent_completed, Math.round((completed / total) * 100)), 0), 100);
+    return {
+        total,
+        completed,
+        percentCompleted,
+        parentIssueUrl: asString(issue.parent_issue_url) || null,
+    };
+}
+function githubIssueFirestoreFields(owner, repo, issue) {
+    const subIssuesSummary = issueSubIssuesSummary(issue);
+    const fields = {
+        nodeId: asString(issue.node_id),
+        owner,
+        repo,
+        number: asNumber(issue.number),
+        url: asString(issue.html_url),
+        state: asString(issue.state, "open"),
+    };
+    if (subIssuesSummary !== null) {
+        fields.subIssuesSummary = subIssuesSummary;
+    }
+    return fields;
+}
+function mergedSubIssueSummaries(existingValue, nextSummary) {
+    const existing = Array.isArray(existingValue)
+        ? existingValue.filter((value) => typeof value === "object" && value !== null && !Array.isArray(value))
+        : [];
+    const nextIssueId = asString(nextSummary.issueId);
+    const nextNodeId = asString(nextSummary.nodeId);
+    const nextNumber = asNumber(nextSummary.number);
+    const merged = existing.filter((summary) => {
+        const issueId = asString(summary.issueId);
+        if (nextIssueId.length > 0 && issueId === nextIssueId) {
+            return false;
+        }
+        const nodeId = asString(summary.nodeId);
+        if (nextNodeId.length > 0 && nodeId === nextNodeId) {
+            return false;
+        }
+        const number = asNumber(summary.number);
+        return nextNumber <= 0 || number !== nextNumber;
+    });
+    merged.push(nextSummary);
+    return merged;
 }
 async function selectedRepositories(workspaceId) {
     const snapshot = await db.collection(`workspaces/${workspaceId}/githubRepos`).get();
@@ -837,6 +889,7 @@ exports.importGitHubIssues = (0, https_1.onCall)(async (request) => {
                 const pageIssues = await githubRequest({
                     path: `/repos/${owner}/${repo}/issues`,
                     token,
+                    apiVersion: "2026-03-10",
                     queryParameters: { state: "open", per_page: 100, page },
                 });
                 for (const issue of pageIssues) {
@@ -865,14 +918,7 @@ exports.importGitHubIssues = (0, https_1.onCall)(async (request) => {
                         priority: asString(existingData.priority, "medium"),
                         statusId: asString(existingData.statusId, "triage"),
                         rank: asNumber(existingData.rank, Date.now() + imported),
-                        githubIssue: {
-                            nodeId,
-                            owner,
-                            repo,
-                            number,
-                            url: asString(issue.html_url),
-                            state: asString(issue.state, "open"),
-                        },
+                        githubIssue: githubIssueFirestoreFields(owner, repo, issue),
                         githubUpdatedAt: asTimestamp(issue.updated_at),
                         githubCreatedAt: asTimestamp(issue.created_at),
                         updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -961,14 +1007,7 @@ exports.createGitHubIssue = (0, https_1.onCall)(async (request) => {
             statusId: asString(request.data?.statusId, "triage"),
             rank: asNumber(request.data?.rank, Date.now()),
             dueDate: asTimestamp(request.data?.dueDate),
-            githubIssue: {
-                nodeId,
-                owner,
-                repo,
-                number,
-                url: asString(issue.html_url),
-                state: asString(issue.state, "open"),
-            },
+            githubIssue: githubIssueFirestoreFields(owner, repo, issue),
             githubUpdatedAt: asTimestamp(issue.updated_at),
             githubCreatedAt: asTimestamp(issue.created_at),
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -994,6 +1033,141 @@ exports.createGitHubIssue = (0, https_1.onCall)(async (request) => {
             stack,
         });
         throw new https_1.HttpsError("internal", `Failed to create GitHub issue: ${message}`);
+    }
+});
+exports.createGitHubSubIssue = (0, https_1.onCall)(async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+    const token = await getGitHubToken(uid);
+    const parentIssueId = requireNonEmptyString(request.data?.parentIssueId, "parentIssueId");
+    const title = requireNonEmptyString(request.data?.title, "title");
+    const body = asString(request.data?.body);
+    const parentRef = db.doc(`workspaces/${workspaceId}/issues/${parentIssueId}`);
+    const parentDoc = await parentRef.get();
+    const parentIssue = parentDoc.data();
+    if (!parentIssue) {
+        throw new https_1.HttpsError("not-found", "Parent issue was not found");
+    }
+    const parentGithubIssue = parentIssue.githubIssue;
+    if (!parentGithubIssue) {
+        throw new https_1.HttpsError("failed-precondition", "Parent issue must be linked to GitHub");
+    }
+    const owner = requireNonEmptyString(parentGithubIssue.owner, "githubIssue.owner");
+    const repo = requireNonEmptyString(parentGithubIssue.repo, "githubIssue.repo");
+    const parentNumber = asNumber(parentGithubIssue.number);
+    if (parentNumber <= 0) {
+        throw new https_1.HttpsError("failed-precondition", "Parent GitHub issue number is missing");
+    }
+    const assignee = asString(parentIssue.assignee);
+    const githubAssignee = assignee.startsWith("@") ? assignee.slice(1) : "";
+    const assignees = githubAssignee.length > 0 ? [githubAssignee] : [];
+    const labels = asStringList(parentIssue.labels);
+    try {
+        v2_1.logger.info("Creating GitHub sub-issue", {
+            workspaceId,
+            parentIssueId,
+            owner,
+            repo,
+            parentNumber,
+            title,
+        });
+        const issue = await githubRequest({
+            path: `/repos/${owner}/${repo}/issues`,
+            token,
+            method: "POST",
+            body: {
+                title,
+                body,
+                labels,
+                assignees,
+            },
+        });
+        const number = asNumber(issue.number);
+        const nodeId = asString(issue.node_id);
+        const subIssueRestId = asNumber(issue.id);
+        if (number <= 0 || nodeId.length === 0 || subIssueRestId <= 0) {
+            throw new https_1.HttpsError("failed-precondition", "GitHub sub-issue could not be created");
+        }
+        const updatedParentIssue = await githubRequest({
+            path: `/repos/${owner}/${repo}/issues/${parentNumber}/sub_issues`,
+            token,
+            method: "POST",
+            apiVersion: "2026-03-10",
+            body: {
+                sub_issue_id: subIssueRestId,
+            },
+        });
+        const clientIssueId = asString(request.data?.issueId);
+        const issueId = clientIssueId.length > 0 ? clientIssueId : issueDocId(owner, repo, number);
+        const subIssueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+        const existingData = clientIssueId.length > 0 ? ((await subIssueRef.get()).data() ?? {}) : {};
+        const keyFields = await issueKeyFields(workspaceId, existingData);
+        const rank = Date.now();
+        const statusId = asString(existingData.statusId, asString(parentIssue.statusId, "triage"));
+        const subIssueSummary = {
+            issueId,
+            nodeId,
+            number,
+            title: asString(issue.title, title),
+            url: asString(issue.html_url),
+            state: asString(issue.state, "open"),
+        };
+        await subIssueRef.set({
+            ...keyFields,
+            title: asString(issue.title, title),
+            body: asString(issue.body, body),
+            repo: `${owner}/${repo}`,
+            assignee: issueAssignee(issue),
+            labels: issueLabels(issue),
+            comments: asNumber(issue.comments),
+            priority: asString(parentIssue.priority, "medium"),
+            statusId,
+            rank,
+            githubIssue: {
+                ...githubIssueFirestoreFields(owner, repo, issue),
+                parentIssue: {
+                    issueId: parentIssueId,
+                    nodeId: asString(parentGithubIssue.nodeId),
+                    number: parentNumber,
+                    url: asString(parentGithubIssue.url),
+                },
+            },
+            githubUpdatedAt: asTimestamp(issue.updated_at),
+            githubCreatedAt: asTimestamp(issue.created_at),
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        await parentRef.set({
+            githubIssue: {
+                ...githubIssueFirestoreFields(owner, repo, updatedParentIssue),
+                nodeId: asString(parentGithubIssue.nodeId),
+                number: parentNumber,
+                url: asString(parentGithubIssue.url),
+                subIssues: mergedSubIssueSummaries(parentGithubIssue.subIssues, subIssueSummary),
+            },
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return {
+            parentIssueId,
+            issueId,
+            number,
+            url: asString(issue.html_url),
+        };
+    }
+    catch (error) {
+        if (error instanceof https_1.HttpsError) {
+            throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack : undefined;
+        v2_1.logger.error("Failed to create Ima GitHub sub-issue", {
+            workspaceId,
+            uid,
+            parentIssueId,
+            message,
+            stack,
+        });
+        throw new https_1.HttpsError("internal", `Failed to create GitHub sub-issue: ${message}`);
     }
 });
 exports.startIssueCursorAgent = (0, https_1.onCall)({ timeoutSeconds: 120, secrets: [cursorApiKey] }, async (request) => {
@@ -1412,14 +1586,7 @@ async function syncGitHubIssueFromWebhook(payload) {
                 priority: asString(existingData.priority, "medium"),
                 statusId: asString(existingData.statusId, "triage"),
                 rank,
-                githubIssue: {
-                    nodeId,
-                    owner,
-                    repo,
-                    number,
-                    url: asString(ghIssue.html_url),
-                    state: asString(ghIssue.state, "open"),
-                },
+                githubIssue: githubIssueFirestoreFields(owner, repo, ghIssue),
                 githubUpdatedAt: asTimestamp(ghIssue.updated_at),
                 githubCreatedAt: asTimestamp(ghIssue.created_at),
                 updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -1558,10 +1725,7 @@ async function processBranchLogFromPush(payload) {
     for (const workspace of workspaces.docs) {
         const workspaceRef = workspace.ref;
         const workspaceId = workspace.id;
-        const repoDoc = await workspaceRef
-            .collection("githubRepos")
-            .doc(repoDocId(repoFullName))
-            .get();
+        const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
         if (!repoDoc.exists ||
             repoDoc.get("enabled") !== true ||
             asString(repoDoc.get("fullName")) !== repoFullName) {

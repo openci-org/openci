@@ -717,19 +717,49 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    setState(() => _closingIssueIds.add(issueId));
+    final allIssues = _columns.expand((column) => column.issues).toList();
+    final subIssuesToClose = _descendantSubIssuesForParent(
+      issue,
+      allIssues,
+    ).where((subIssue) => subIssue.statusId != _closedStatusId).toList();
+    final closingIssueIds = {
+      issueId,
+      for (final subIssue in subIssuesToClose) subIssue.id,
+    };
+
+    setState(() => _closingIssueIds.addAll(closingIssueIds));
     try {
       await _moveIssue(
         issueId: issueId,
         targetColumnId: _closedStatusId,
         targetIndex: 0,
       );
-      _showSavedSnackBar('Closed');
+      if (subIssuesToClose.isNotEmpty) {
+        final batch = _firestore.batch();
+        final nowRank = DateTime.now().millisecondsSinceEpoch.toDouble();
+        for (var index = 0; index < subIssuesToClose.length; index++) {
+          final subIssue = subIssuesToClose[index];
+          batch.update(
+            _firestore.doc('workspaces/$_workspaceId/issues/${subIssue.id}'),
+            {
+              'statusId': _closedStatusId,
+              'rank': nowRank + index + 1,
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+          );
+        }
+        await batch.commit();
+      }
+      _showSavedSnackBar(
+        subIssuesToClose.isEmpty
+            ? 'Closed'
+            : 'Closed with ${subIssuesToClose.length} sub-issues',
+      );
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     } finally {
       if (mounted) {
-        setState(() => _closingIssueIds.remove(issueId));
+        setState(() => _closingIssueIds.removeAll(closingIssueIds));
       }
     }
   }
@@ -765,6 +795,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final issue = sourceColumn.issues.firstWhere(
       (issue) => issue.id == issueId,
     );
+    final allIssues = _columns.expand((column) => column.issues).toList();
 
     final useBottomSheet = _usesBottomSheetEditor;
     final result = await _showIssueEditor<Object?>(
@@ -773,11 +804,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         columns: _columns,
         repositoryOptions: _enabledRepositoryOptions,
         initialIssue: issue,
+        allIssues: allIssues,
         initialColumnId: sourceColumn.id,
         isEstimatingWeight: _estimatingIssueIds.contains(issueId),
         onEstimateIssueWeight: _estimateIssueWeight,
         isStartingCursorAgent: _startingCursorAgentIssueIds.contains(issueId),
         onStartCursorAgent: _startCursorAgent,
+        onCreateGitHubSubIssue: _createGitHubSubIssue,
         isBottomSheet: useBottomSheet,
         workspaceId: _workspaceId,
       ),
@@ -788,7 +821,17 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     if (result is CloseIssueDialogResult) {
-      await _closeIssue(issueId);
+      await _closeIssue(result.issueId);
+      return;
+    }
+
+    if (result is EditIssueDialogResult) {
+      try {
+        await _updateIssue(issueId: result.issueId, draft: result.draft);
+        _showSavedSnackBar('Saved');
+      } catch (error) {
+        _showSavedSnackBar(_friendlyError(error));
+      }
       return;
     }
 
@@ -921,6 +964,88 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         setState(() => _startingCursorAgentIssueIds.remove(issueId));
       }
     }
+  }
+
+  Future<Map<String, dynamic>> _createGitHubSubIssue({
+    required String parentIssueId,
+    required String title,
+    required String body,
+  }) async {
+    final parentIssue = _columns
+        .expand((column) => column.issues)
+        .firstWhere((issue) => issue.id == parentIssueId);
+    final parentGithubUrl = parentIssue.githubUrl;
+    final subIssueRef = _firestore
+        .collection('workspaces/$_workspaceId/issues')
+        .doc();
+    final rank = DateTime.now().millisecondsSinceEpoch.toDouble();
+    final subIssueSummary = <String, Object?>{
+      'issueId': subIssueRef.id,
+      'number': 0,
+      'title': title,
+      'url': null,
+      'state': 'open',
+    };
+
+    await subIssueRef.set({
+      'title': title,
+      'body': body,
+      'repo': parentIssue.repo,
+      'assignee': parentIssue.assignee,
+      'labels': parentIssue.labels,
+      'comments': 0,
+      'priority': parentIssue.priority.name,
+      'statusId': parentIssue.statusId,
+      'rank': rank,
+      'githubIssue': {
+        'state': 'open',
+        'parentIssue': {
+          'issueId': parentIssueId,
+          'number': _issueNumberFromDisplayId(parentIssue.displayId),
+          'url': ?parentGithubUrl,
+        },
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    final nextSummaryTotal = (parentIssue.subIssuesSummary?.total ?? 0) + 1;
+    final nextSummaryCompleted = parentIssue.subIssuesSummary?.completed ?? 0;
+    await _firestore
+        .doc('workspaces/$_workspaceId/issues/$parentIssueId')
+        .update({
+          'githubIssue.subIssues': FieldValue.arrayUnion([subIssueSummary]),
+          'githubIssue.subIssuesSummary': {
+            'total': nextSummaryTotal,
+            'completed': nextSummaryCompleted,
+            'percentCompleted': nextSummaryTotal <= 0
+                ? 0
+                : (nextSummaryCompleted / nextSummaryTotal * 100).round(),
+          },
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+    unawaited(
+      _callFunction('createGitHubSubIssue', {
+        'workspaceId': _workspaceId,
+        'parentIssueId': parentIssueId,
+        'issueId': subIssueRef.id,
+        'title': title,
+        'body': body,
+      }).catchError((Object error) {
+        if (mounted) {
+          _showOverlaySnackBar(context, _friendlyError(error));
+        }
+        return <String, dynamic>{};
+      }),
+    );
+    return {'issueId': subIssueRef.id, 'number': 0, 'url': ''};
+  }
+
+  int _issueNumberFromDisplayId(String displayId) {
+    if (!displayId.startsWith('#')) {
+      return 0;
+    }
+    return int.tryParse(displayId.substring(1)) ?? 0;
   }
 
   Map<String, Object?> _issueDraftToFunctionData(
@@ -1407,6 +1532,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                         : constraints.maxHeight;
                     final isCompactBoard =
                         constraints.maxWidth < _compactBoardBreakpoint;
+                    final allIssues = _columns
+                        .expand((column) => column.issues)
+                        .toList();
 
                     if (isCompactBoard) {
                       return ListView.separated(
@@ -1424,6 +1552,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                           final column = _columns[index];
                           return CompactBoardColumnView(
                             column: column,
+                            allIssues: allIssues,
                             startingCursorAgentIssueIds:
                                 _startingCursorAgentIssueIds,
                             onIssueDropped: _moveIssue,
@@ -1457,6 +1586,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                               for (final column in _columns) ...[
                                 BoardColumnView(
                                   column: column,
+                                  allIssues: allIssues,
                                   startingCursorAgentIssueIds:
                                       _startingCursorAgentIssueIds,
                                   onIssueDropped: _moveIssue,
@@ -1976,8 +2106,11 @@ class EstimationAccuracySummary {
         )
         .toList();
     final within1 = deltas.where((d) => d.abs() <= 1).length;
-    final sumAbsError = deltas.fold<int>(0, (sum, delta) => sum + delta.abs());
-    final sumDelta = deltas.fold<int>(0, (sum, delta) => sum + delta);
+    final sumAbsError = deltas.fold<int>(
+      0,
+      (total, delta) => total + delta.abs(),
+    );
+    final sumDelta = deltas.fold<int>(0, (total, delta) => total + delta);
 
     return EstimationAccuracySummary(
       within1Rate: (within1 / deltas.length * 100).round(),
@@ -3468,11 +3601,13 @@ class AddIssueDialog extends StatefulWidget {
     required this.columns,
     required this.repositoryOptions,
     this.initialIssue,
+    this.allIssues = const [],
     this.initialColumnId,
     this.isEstimatingWeight = false,
     this.onEstimateIssueWeight,
     this.isStartingCursorAgent = false,
     this.onStartCursorAgent,
+    this.onCreateGitHubSubIssue,
     this.isBottomSheet = false,
     this.workspaceId,
   });
@@ -3480,11 +3615,18 @@ class AddIssueDialog extends StatefulWidget {
   final List<BoardColumn> columns;
   final List<String> repositoryOptions;
   final Issue? initialIssue;
+  final List<Issue> allIssues;
   final String? initialColumnId;
   final bool isEstimatingWeight;
   final Future<void> Function(String issueId)? onEstimateIssueWeight;
   final bool isStartingCursorAgent;
   final Future<void> Function(String issueId)? onStartCursorAgent;
+  final Future<Map<String, dynamic>> Function({
+    required String parentIssueId,
+    required String title,
+    required String body,
+  })?
+  onCreateGitHubSubIssue;
   final bool isBottomSheet;
   final String? workspaceId;
 
@@ -3499,15 +3641,23 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   final _githubUrlController = TextEditingController();
   final _assigneeController = TextEditingController(text: 'MF');
   final _labelsController = TextEditingController(text: 'feature, mobile');
+  final _subIssueTitleController = TextEditingController();
+  final _subIssueBodyController = TextEditingController();
   String? _selectedRepo;
   late String _selectedColumnId;
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
   var _isEstimatingWeight = false;
   var _isStartingCursorAgent = false;
+  var _isCreatingSubIssue = false;
+  final List<Issue> _issueStack = [];
   Issue? _liveIssue;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _issueSubscription;
+
+  Issue? get _currentIssue =>
+      _liveIssue ??
+      (_issueStack.isEmpty ? widget.initialIssue : _issueStack.last);
 
   @override
   void initState() {
@@ -3520,18 +3670,27 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         : widget.repositoryOptions.first;
 
     if (issue != null) {
-      _liveIssue = issue;
+      _issueStack.add(issue);
+      _setCurrentIssue(issue, listen: true);
+    }
+  }
+
+  void _setCurrentIssue(Issue issue, {required bool listen}) {
+    _liveIssue = issue;
+    _titleController.text = issue.title;
+    _bodyController.text = issue.body;
+    _githubUrlController.text = issue.githubUrl ?? '';
+    _selectedRepo = widget.repositoryOptions.contains(issue.repo)
+        ? issue.repo
+        : null;
+    _assigneeController.text = issue.assignee;
+    _labelsController.text = issue.labels.join(', ');
+    _priority = issue.priority;
+    _dueDate = issue.dueDate;
+    _subIssueTitleController.clear();
+    _subIssueBodyController.clear();
+    if (listen) {
       _listenToIssue(issue.id);
-      _titleController.text = issue.title;
-      _bodyController.text = issue.body;
-      _githubUrlController.text = issue.githubUrl ?? '';
-      _selectedRepo = widget.repositoryOptions.contains(issue.repo)
-          ? issue.repo
-          : null;
-      _assigneeController.text = issue.assignee;
-      _labelsController.text = issue.labels.join(', ');
-      _priority = issue.priority;
-      _dueDate = issue.dueDate;
     }
   }
 
@@ -3540,13 +3699,21 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     if (workspaceId == null || workspaceId.isEmpty) {
       return;
     }
+    final currentSubscription = _issueSubscription;
+    if (currentSubscription != null) {
+      unawaited(currentSubscription.cancel());
+    }
     _issueSubscription = FirebaseFirestore.instance
         .doc('workspaces/$workspaceId/issues/$issueId')
         .snapshots()
         .listen((snapshot) {
           if (!mounted || !snapshot.exists) return;
+          final issue = Issue.fromDocument(snapshot);
           setState(() {
-            _liveIssue = Issue.fromDocument(snapshot);
+            _liveIssue = issue;
+            if (_issueStack.isNotEmpty && _issueStack.last.id == issue.id) {
+              _issueStack[_issueStack.length - 1] = issue;
+            }
           });
         });
   }
@@ -3559,6 +3726,8 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     _githubUrlController.dispose();
     _assigneeController.dispose();
     _labelsController.dispose();
+    _subIssueTitleController.dispose();
+    _subIssueBodyController.dispose();
     super.dispose();
   }
 
@@ -3573,27 +3742,35 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         .where((label) => label.isNotEmpty)
         .toList();
 
+    final draft = NewIssueDraft(
+      title: _titleController.text.trim(),
+      body: _bodyController.text.trim(),
+      repo: _selectedRepo ?? '',
+      githubUrl: _normalizedOptionalUrl(_githubUrlController.text),
+      assignee: _assigneeController.text.trim(),
+      labels: labels,
+      columnId: _selectedColumnId,
+      priority: _priority,
+      dueDate: _dueDate,
+    );
+    final currentIssue = _currentIssue;
     Navigator.of(context).pop(
-      NewIssueDraft(
-        title: _titleController.text.trim(),
-        body: _bodyController.text.trim(),
-        repo: _selectedRepo ?? '',
-        githubUrl: _normalizedOptionalUrl(_githubUrlController.text),
-        assignee: _assigneeController.text.trim(),
-        labels: labels,
-        columnId: _selectedColumnId,
-        priority: _priority,
-        dueDate: _dueDate,
-      ),
+      currentIssue == null
+          ? draft
+          : EditIssueDialogResult(issueId: currentIssue.id, draft: draft),
     );
   }
 
   void _closeIssue() {
-    Navigator.of(context).pop(const CloseIssueDialogResult());
+    final issue = _currentIssue;
+    if (issue == null) {
+      return;
+    }
+    Navigator.of(context).pop(CloseIssueDialogResult(issue.id));
   }
 
   Future<void> _estimateIssueWeight() async {
-    final issue = widget.initialIssue;
+    final issue = _currentIssue;
     final onEstimate = widget.onEstimateIssueWeight;
     if (issue == null || onEstimate == null || _isEstimatingWeight) {
       return;
@@ -3610,7 +3787,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   }
 
   Future<void> _startCursorAgent() async {
-    final issue = widget.initialIssue;
+    final issue = _currentIssue;
     final onStart = widget.onStartCursorAgent;
     if (issue == null || onStart == null || _isStartingCursorAgent) {
       return;
@@ -3624,6 +3801,81 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         setState(() => _isStartingCursorAgent = false);
       }
     }
+  }
+
+  Future<void> _createSubIssue() async {
+    final issue = _currentIssue;
+    final onCreate = widget.onCreateGitHubSubIssue;
+    final title = _subIssueTitleController.text.trim();
+    if (issue == null || onCreate == null || _isCreatingSubIssue) {
+      return;
+    }
+    if (title.isEmpty) {
+      _showFloatingSnackBar(context, 'Sub-issue titleを入力してください');
+      return;
+    }
+
+    setState(() => _isCreatingSubIssue = true);
+    try {
+      await onCreate(
+        parentIssueId: issue.id,
+        title: title,
+        body: _subIssueBodyController.text.trim(),
+      );
+      if (!mounted) {
+        return;
+      }
+      _subIssueTitleController.clear();
+      _subIssueBodyController.clear();
+      _showOverlaySnackBar(context, 'Sub-issue added');
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingSubIssue = false);
+      }
+    }
+  }
+
+  Future<void> _openIssueFromSubIssue(String issueId) async {
+    Issue? issue;
+    for (final candidate in widget.allIssues) {
+      if (candidate.id == issueId) {
+        issue = candidate;
+        break;
+      }
+    }
+    if (issue == null) {
+      final workspaceId = widget.workspaceId;
+      if (workspaceId != null && workspaceId.isNotEmpty) {
+        final snapshot = await FirebaseFirestore.instance
+            .doc('workspaces/$workspaceId/issues/$issueId')
+            .get();
+        if (snapshot.exists) {
+          issue = Issue.fromDocument(snapshot);
+        }
+      }
+      if (!mounted) {
+        return;
+      }
+    }
+    if (issue == null) {
+      _showFloatingSnackBar(context, 'Issueが見つかりません');
+      return;
+    }
+    final selectedIssue = issue;
+    setState(() {
+      _issueStack.add(selectedIssue);
+      _setCurrentIssue(selectedIssue, listen: true);
+    });
+  }
+
+  void _goBackIssue() {
+    if (_issueStack.length <= 1) {
+      return;
+    }
+    setState(() {
+      _issueStack.removeLast();
+      _setCurrentIssue(_issueStack.last, listen: true);
+    });
   }
 
   void _copyGitHubUrl() {
@@ -3682,12 +3934,12 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final screenSize = MediaQuery.sizeOf(context);
     final isCompactDialog = screenSize.width < 560;
     final maxHeight = screenSize.height * (isCompactDialog ? 0.92 : 0.86);
-    final isEditing = widget.initialIssue != null;
-    final canCloseIssue =
-        isEditing && widget.initialIssue!.statusId != _closedStatusId;
+    final currentIssue = _currentIssue;
+    final isEditing = currentIssue != null;
+    final canCloseIssue = isEditing && currentIssue.statusId != _closedStatusId;
     final title = isEditing ? 'Edit GitHub issue' : 'New GitHub issue';
     final description = isEditing
-        ? '${widget.initialIssue!.displayId}を編集します。⌘Enterで保存できます。'
+        ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
         : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
     final formContent = Form(
       key: _formKey,
@@ -3699,9 +3951,25 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             _DialogHeader(
               title: title,
               description: description,
-              issueDisplayId: isEditing ? widget.initialIssue!.displayId : null,
+              issueDisplayId: isEditing ? currentIssue.displayId : null,
             ),
             const SizedBox(height: 20),
+          ],
+          if (isEditing && _issueStack.length > 1) ...[
+            IssueBreadcrumb(
+              issues: _issueStack,
+              onBack: _goBackIssue,
+              onSelect: (index) {
+                if (index < 0 || index >= _issueStack.length - 1) {
+                  return;
+                }
+                setState(() {
+                  _issueStack.removeRange(index + 1, _issueStack.length);
+                  _setCurrentIssue(_issueStack.last, listen: true);
+                });
+              },
+            ),
+            const SizedBox(height: 14),
           ],
           _TitleField(
             controller: _titleController,
@@ -3744,6 +4012,22 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
               onCopy: _copyGitHubUrl,
               onPaste: _pasteGitHubUrl,
             ),
+            const SizedBox(height: 14),
+            CreateSubIssuePanel(
+              issue: currentIssue,
+              workspaceId: widget.workspaceId,
+              linkedSubIssues: _subIssuesForParent(
+                currentIssue,
+                widget.allIssues,
+              ),
+              onOpenIssue: _openIssueFromSubIssue,
+              titleController: _subIssueTitleController,
+              bodyController: _subIssueBodyController,
+              isCreating: _isCreatingSubIssue,
+              onCreate: widget.onCreateGitHubSubIssue == null
+                  ? null
+                  : _createSubIssue,
+            ),
           ],
           const SizedBox(height: 14),
           _StatusAndPriorityFields(
@@ -3778,7 +4062,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
           if (isEditing) ...[
             const SizedBox(height: 14),
             IssueWeightPanel(
-              issue: _liveIssue ?? widget.initialIssue!,
+              issue: currentIssue,
               isEstimating: widget.isEstimatingWeight || _isEstimatingWeight,
               onEstimate: widget.onEstimateIssueWeight == null
                   ? null
@@ -3786,7 +4070,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             ),
             const SizedBox(height: 14),
             CursorAgentPanel(
-              issue: _liveIssue ?? widget.initialIssue!,
+              issue: currentIssue,
               isStarting:
                   widget.isStartingCursorAgent || _isStartingCursorAgent,
               onStart: widget.onStartCursorAgent == null
@@ -3819,9 +4103,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                 children: [
                   _BottomSheetHeader(
                     title: title,
-                    issueDisplayId: isEditing
-                        ? widget.initialIssue!.displayId
-                        : null,
+                    issueDisplayId: isEditing ? currentIssue.displayId : null,
                   ),
                   Expanded(
                     child: SingleChildScrollView(
@@ -4158,6 +4440,156 @@ class _DialogHeader extends StatelessWidget {
   }
 }
 
+class IssueBreadcrumb extends StatelessWidget {
+  const IssueBreadcrumb({
+    super.key,
+    required this.issues,
+    required this.onBack,
+    required this.onSelect,
+  });
+
+  final List<Issue> issues;
+  final VoidCallback onBack;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final parentIssue = issues.first;
+    final currentIssue = issues.last;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.account_tree_outlined,
+                          size: 16,
+                          color: Color(0xFF2563EB),
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Viewing sub-issue',
+                          style: TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      currentIssue.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 15,
+                        height: 1.25,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Parent: ${parentIssue.displayId} · ${parentIssue.title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF475569),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 17),
+                label: Text('Back to ${parentIssue.displayId}'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1D4ED8),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF93C5FD)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 10,
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var index = 0; index < issues.length; index++) ...[
+                  if (index > 0)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ActionChip(
+                    avatar: Icon(
+                      index == 0
+                          ? Icons.flag_outlined
+                          : Icons.subdirectory_arrow_right_rounded,
+                      size: 15,
+                      color: index == issues.length - 1
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF2563EB),
+                    ),
+                    label: Text(issues[index].displayId),
+                    onPressed: index == issues.length - 1
+                        ? null
+                        : () => onSelect(index),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: index == issues.length - 1
+                        ? const Color(0xFFFFFFFF)
+                        : const Color(0xFFDBEAFE),
+                    side: BorderSide(
+                      color: index == issues.length - 1
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF93C5FD),
+                    ),
+                    labelStyle: TextStyle(
+                      color: index == issues.length - 1
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF1D4ED8),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _IssueIdChip extends StatefulWidget {
   const _IssueIdChip({required this.displayId});
 
@@ -4391,6 +4823,195 @@ class _RepoAndAssigneeFields extends StatelessWidget {
   }
 }
 
+class CreateSubIssuePanel extends StatelessWidget {
+  const CreateSubIssuePanel({
+    super.key,
+    required this.issue,
+    this.workspaceId,
+    this.linkedSubIssues = const [],
+    this.onOpenIssue,
+    required this.titleController,
+    required this.bodyController,
+    required this.isCreating,
+    required this.onCreate,
+  });
+
+  final Issue issue;
+  final String? workspaceId;
+  final List<Issue> linkedSubIssues;
+  final ValueChanged<String>? onOpenIssue;
+  final TextEditingController titleController;
+  final TextEditingController bodyController;
+  final bool isCreating;
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLinkedToGitHub = issue.githubUrl != null;
+    final canCreate = isLinkedToGitHub && !isCreating && onCreate != null;
+    final summary = issue.subIssuesSummary;
+    final referencedSubIssues = _mergedSubIssueReferences(
+      linkedSubIssues: linkedSubIssues,
+      storedSubIssues: issue.subIssues,
+    );
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.account_tree_outlined,
+                size: 18,
+                color: Color(0xFF2563EB),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  summary == null
+                      ? 'Sub-issues'
+                      : 'Sub-issues ${summary.completed}/${summary.total}',
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (summary != null)
+                Text(
+                  '${summary.percentCompleted}%',
+                  style: const TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+          if (summary != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: summary.progress,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  summary.completed == summary.total
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          ],
+          if (linkedSubIssues.isNotEmpty || referencedSubIssues.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SubIssuesList(
+              workspaceId: workspaceId,
+              subIssues: linkedSubIssues,
+              referenceSubIssues: referencedSubIssues,
+              onIssueTap: onOpenIssue,
+            ),
+          ],
+          const SizedBox(height: 12),
+          CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              SingleActivator(LogicalKeyboardKey.enter, meta: true): () {
+                if (canCreate) {
+                  onCreate!();
+                }
+              },
+            },
+            child: Focus(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: titleController,
+                    enabled: canCreate,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'New sub-issue title',
+                      hintText: '例: APIでsub-issueを同期する',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: bodyController,
+                    enabled: canCreate,
+                    minLines: 2,
+                    maxLines: 5,
+                    keyboardType: TextInputType.multiline,
+                    decoration: const InputDecoration(
+                      labelText: 'Body',
+                      hintText: '任意: sub-issueの説明',
+                      helperText: '⌘Enterでsub-issueを作成',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: canCreate ? onCreate : null,
+                icon: isCreating
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_rounded, size: 18),
+                label: Text(isCreating ? 'Creating...' : 'Create sub-issue'),
+              ),
+              Text(
+                isLinkedToGitHub
+                    ? 'GitHubにissueを作成して、このissueのsub-issueとして紐づけます。'
+                    : 'GitHubに同期されたissueでのみ作成できます。',
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+List<IssueSubIssueReference> _mergedSubIssueReferences({
+  required List<Issue> linkedSubIssues,
+  required List<IssueSubIssueReference> storedSubIssues,
+}) {
+  final linkedIds = linkedSubIssues.map((issue) => issue.id).toSet();
+  final byKey = <String, IssueSubIssueReference>{};
+
+  for (final subIssue in storedSubIssues) {
+    if (subIssue.issueId.isNotEmpty && linkedIds.contains(subIssue.issueId)) {
+      continue;
+    }
+    final key = subIssue.issueId.isNotEmpty
+        ? subIssue.issueId
+        : subIssue.number.toString();
+    if (key.isNotEmpty) {
+      byKey[key] = subIssue;
+    }
+  }
+
+  return byKey.values.toList();
+}
+
 class _StatusAndPriorityFields extends StatelessWidget {
   const _StatusAndPriorityFields({
     required this.columns,
@@ -4553,6 +5174,7 @@ class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
     super.key,
     required this.column,
+    this.allIssues = const [],
     this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
@@ -4561,6 +5183,7 @@ class BoardColumnView extends StatelessWidget {
   });
 
   final BoardColumn column;
+  final List<Issue> allIssues;
   final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
@@ -4632,11 +5255,13 @@ class BoardColumnView extends StatelessWidget {
 
                           return IssueCardDropTarget(
                             issue: issue,
+                            subIssues: _subIssuesForParent(issue, allIssues),
                             sourceColumnId: column.id,
                             index: rankIndex < 0 ? index : rankIndex,
                             isStartingCursorAgent: startingCursorAgentIssueIds
                                 .contains(issue.id),
                             onTap: () => onIssueTapped(issue.id),
+                            onSubIssueTap: onIssueTapped,
                             onStartCursorAgent: onStartCursorAgent == null
                                 ? null
                                 : () => onStartCursorAgent!(issue.id),
@@ -4667,6 +5292,7 @@ class CompactBoardColumnView extends StatefulWidget {
   const CompactBoardColumnView({
     super.key,
     required this.column,
+    this.allIssues = const [],
     this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
@@ -4675,6 +5301,7 @@ class CompactBoardColumnView extends StatefulWidget {
   });
 
   final BoardColumn column;
+  final List<Issue> allIssues;
   final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
@@ -4750,11 +5377,13 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
 
                     return IssueCardDropTarget(
                       issue: issue,
+                      subIssues: _subIssuesForParent(issue, widget.allIssues),
                       sourceColumnId: widget.column.id,
                       index: rankIndex < 0 ? index : rankIndex,
                       isStartingCursorAgent: widget.startingCursorAgentIssueIds
                           .contains(issue.id),
                       onTap: () => widget.onIssueTapped(issue.id),
+                      onSubIssueTap: widget.onIssueTapped,
                       onStartCursorAgent: widget.onStartCursorAgent == null
                           ? null
                           : () => widget.onStartCursorAgent!(issue.id),
@@ -4839,6 +5468,37 @@ List<Issue> _visibleIssuesForColumn(BoardColumn column) {
   }
 
   return [...column.issues]..sort(_compareDoneIssues);
+}
+
+List<Issue> _subIssuesForParent(Issue parent, List<Issue> allIssues) {
+  final subIssues = allIssues
+      .where((issue) => issue.parentIssue?.issueId == parent.id)
+      .toList();
+  subIssues.sort((left, right) => left.rank.compareTo(right.rank));
+  return subIssues;
+}
+
+List<Issue> _descendantSubIssuesForParent(Issue parent, List<Issue> allIssues) {
+  final descendants = <Issue>[];
+  final seenIssueIds = <String>{parent.id};
+  var frontier = <Issue>[parent];
+
+  while (frontier.isNotEmpty) {
+    final nextFrontier = <Issue>[];
+    for (final issue in frontier) {
+      final children = _subIssuesForParent(issue, allIssues);
+      for (final child in children) {
+        if (!seenIssueIds.add(child.id)) {
+          continue;
+        }
+        descendants.add(child);
+        nextFrontier.add(child);
+      }
+    }
+    frontier = nextFrontier;
+  }
+
+  return descendants;
 }
 
 int _compareDoneIssues(Issue left, Issue right) {
@@ -5072,19 +5732,23 @@ class IssueCardDropTarget extends StatefulWidget {
   const IssueCardDropTarget({
     super.key,
     required this.issue,
+    this.subIssues = const [],
     required this.sourceColumnId,
     required this.index,
     required this.isStartingCursorAgent,
     required this.onTap,
+    this.onSubIssueTap,
     this.onStartCursorAgent,
     required this.onIssueDropped,
   });
 
   final Issue issue;
+  final List<Issue> subIssues;
   final String sourceColumnId;
   final int index;
   final bool isStartingCursorAgent;
   final VoidCallback onTap;
+  final ValueChanged<String>? onSubIssueTap;
   final VoidCallback? onStartCursorAgent;
   final IssueDropCallback onIssueDropped;
 
@@ -5150,9 +5814,11 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
               key: _cardKey,
               child: IssueCardDraggable(
                 issue: widget.issue,
+                subIssues: widget.subIssues,
                 sourceColumnId: widget.sourceColumnId,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
                 onTap: widget.onTap,
+                onSubIssueTap: widget.onSubIssueTap,
                 onStartCursorAgent: widget.onStartCursorAgent,
               ),
             ),
@@ -5196,16 +5862,20 @@ class IssueCardDraggable extends StatefulWidget {
   const IssueCardDraggable({
     super.key,
     required this.issue,
+    this.subIssues = const [],
     required this.sourceColumnId,
     required this.isStartingCursorAgent,
     required this.onTap,
+    this.onSubIssueTap,
     this.onStartCursorAgent,
   });
 
   final Issue issue;
+  final List<Issue> subIssues;
   final String sourceColumnId;
   final bool isStartingCursorAgent;
   final VoidCallback onTap;
+  final ValueChanged<String>? onSubIssueTap;
   final VoidCallback? onStartCursorAgent;
 
   @override
@@ -5335,7 +6005,12 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
                   angle: -0.035,
                   child: Transform.scale(
                     scale: 1.04,
-                    child: IssueCard(issue: widget.issue, isDragging: true),
+                    child: IssueCard(
+                      issue: widget.issue,
+                      subIssues: widget.subIssues,
+                      onSubIssueTap: widget.onSubIssueTap,
+                      isDragging: true,
+                    ),
                   ),
                 ),
               ),
@@ -5346,7 +6021,12 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
           scale: 0.98,
           child: Opacity(
             opacity: 0.28,
-            child: IssueCard(issue: widget.issue, isDragPlaceholder: true),
+            child: IssueCard(
+              issue: widget.issue,
+              subIssues: widget.subIssues,
+              onSubIssueTap: widget.onSubIssueTap,
+              isDragPlaceholder: true,
+            ),
           ),
         ),
         child: GestureDetector(
@@ -5366,6 +6046,8 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
               ),
               child: IssueCard(
                 issue: widget.issue,
+                subIssues: widget.subIssues,
+                onSubIssueTap: widget.onSubIssueTap,
                 isDragging: _isLiftPreviewVisible,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
                 onStartCursorAgent: widget.onStartCursorAgent,
@@ -5382,6 +6064,8 @@ class IssueCard extends StatelessWidget {
   const IssueCard({
     super.key,
     required this.issue,
+    this.subIssues = const [],
+    this.onSubIssueTap,
     this.isDragging = false,
     this.isDragPlaceholder = false,
     this.isStartingCursorAgent = false,
@@ -5389,6 +6073,8 @@ class IssueCard extends StatelessWidget {
   });
 
   final Issue issue;
+  final List<Issue> subIssues;
+  final ValueChanged<String>? onSubIssueTap;
   final bool isDragging;
   final bool isDragPlaceholder;
   final bool isStartingCursorAgent;
@@ -5500,6 +6186,14 @@ class IssueCard extends StatelessWidget {
                   ),
                 ),
               ],
+              if (issue.subIssuesSummary != null || subIssues.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                IssueCardSubIssuesSection(
+                  summary: issue.subIssuesSummary,
+                  subIssues: subIssues,
+                  onIssueTap: onSubIssueTap,
+                ),
+              ],
               if (visibleLabels.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Wrap(
@@ -5522,6 +6216,8 @@ class IssueCard extends StatelessWidget {
                   IssueIdMetaChip(issueId: issue.displayId),
                   if (issue.dueDate != null)
                     DueDatePill(dueDate: issue.dueDate!),
+                  if (issue.parentIssue != null)
+                    ParentIssueMetaChip(parentIssue: issue.parentIssue!),
                   if (issue.pullRequests.isNotEmpty)
                     PullRequestBadge(pullRequests: issue.pullRequests),
                   CommentMetaChip(comments: issue.comments),
@@ -5530,6 +6226,468 @@ class IssueCard extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class SubIssuesProgressMeter extends StatelessWidget {
+  const SubIssuesProgressMeter({super.key, required this.summary});
+
+  final IssueSubIssuesSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = summary.completed == summary.total
+        ? const Color(0xFF16A34A)
+        : Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_tree_outlined, size: 14, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Sub-issues ${summary.completed}/${summary.total}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF475569),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${summary.percentCompleted}%',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 5,
+              value: summary.progress,
+              backgroundColor: const Color(0xFFE2E8F0),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class IssueCardSubIssuesSection extends StatelessWidget {
+  const IssueCardSubIssuesSection({
+    super.key,
+    required this.summary,
+    required this.subIssues,
+    this.onIssueTap,
+  });
+
+  final IssueSubIssuesSummary? summary;
+  final List<Issue> subIssues;
+  final ValueChanged<String>? onIssueTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentSummary = summary;
+    final completed = currentSummary?.completed ?? 0;
+    final total = currentSummary?.total ?? subIssues.length;
+    final percentCompleted = currentSummary?.percentCompleted ?? 0;
+    final progress = currentSummary?.progress ?? 0;
+    final color = total > 0 && completed == total
+        ? const Color(0xFF16A34A)
+        : Theme.of(context).colorScheme.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.account_tree_outlined, size: 14, color: color),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Sub-issues $completed/$total',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF475569),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$percentCompleted%',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 5,
+                    value: progress,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (subIssues.isNotEmpty) ...[
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+            SubIssuesList(
+              subIssues: subIssues,
+              onIssueTap: onIssueTap,
+              isEmbedded: true,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class SubIssuesList extends StatelessWidget {
+  const SubIssuesList({
+    super.key,
+    required this.subIssues,
+    this.workspaceId,
+    this.referenceSubIssues = const [],
+    this.onIssueTap,
+    this.isEmbedded = false,
+  });
+
+  final List<Issue> subIssues;
+  final String? workspaceId;
+  final List<IssueSubIssueReference> referenceSubIssues;
+  final ValueChanged<String>? onIssueTap;
+  final bool isEmbedded;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[
+      for (final issue in subIssues)
+        SubIssueListRow(issue: issue, onTap: onIssueTap),
+      for (final subIssue in referenceSubIssues)
+        SubIssueReferenceRow(
+          subIssue: subIssue,
+          workspaceId: workspaceId,
+          onTap: onIssueTap,
+        ),
+    ];
+    final list = Column(
+      children: [
+        for (final entry in rows.indexed) ...[
+          entry.$2,
+          if (entry.$1 != rows.length - 1)
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ],
+      ],
+    );
+    if (isEmbedded) {
+      return list;
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: list,
+    );
+  }
+}
+
+class SubIssueReferenceList extends StatelessWidget {
+  const SubIssueReferenceList({
+    super.key,
+    required this.subIssues,
+    this.workspaceId,
+    this.onIssueTap,
+  });
+
+  final List<IssueSubIssueReference> subIssues;
+  final String? workspaceId;
+  final ValueChanged<String>? onIssueTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          for (final entry in subIssues.indexed) ...[
+            SubIssueReferenceRow(
+              subIssue: entry.$2,
+              workspaceId: workspaceId,
+              onTap: onIssueTap,
+            ),
+            if (entry.$1 != subIssues.length - 1)
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class SubIssueListRow extends StatelessWidget {
+  const SubIssueListRow({super.key, required this.issue, this.onTap});
+
+  final Issue issue;
+  final ValueChanged<String>? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isClosed = issue.statusId == _closedStatusId;
+    final isCreating = issue.parentIssue != null && issue.issueKey == null;
+    final iconColor = isClosed
+        ? const Color(0xFF8250DF)
+        : const Color(0xFF1F883D);
+    return InkWell(
+      onTap: onTap == null || isCreating ? null : () => onTap!(issue.id),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        child: Row(
+          children: [
+            Icon(
+              isClosed
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 15,
+              color: iconColor,
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                issue.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isClosed
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF334155),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  decoration: isClosed ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 7),
+            isCreating
+                ? const _SubIssueCreatingBadge()
+                : Text(
+                    issue.displayId,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SubIssueReferenceRow extends StatelessWidget {
+  const SubIssueReferenceRow({
+    super.key,
+    required this.subIssue,
+    this.workspaceId,
+    this.onTap,
+  });
+
+  final IssueSubIssueReference subIssue;
+  final String? workspaceId;
+  final ValueChanged<String>? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final issueId = subIssue.issueId;
+    final currentWorkspaceId = workspaceId;
+    if (issueId.isNotEmpty &&
+        currentWorkspaceId != null &&
+        currentWorkspaceId.isNotEmpty) {
+      return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .doc('workspaces/$currentWorkspaceId/issues/$issueId')
+            .snapshots(),
+        builder: (context, snapshot) {
+          final issueSnapshot = snapshot.data;
+          if (issueSnapshot != null && issueSnapshot.exists) {
+            final issue = Issue.fromDocument(issueSnapshot);
+            if (issue.issueKey == null) {
+              return _SubIssueReferenceContent(
+                title: issue.title,
+                isClosed: issue.statusId == _closedStatusId,
+                isCreating: true,
+              );
+            }
+            return SubIssueListRow(issue: issue, onTap: onTap);
+          }
+          return _SubIssueReferenceContent(
+            title: subIssue.title,
+            isClosed: subIssue.state == 'closed',
+            isCreating: true,
+          );
+        },
+      );
+    }
+    return _SubIssueReferenceContent(
+      title: subIssue.title,
+      isClosed: subIssue.state == 'closed',
+      trailingLabel: subIssue.number > 0 ? '#${subIssue.number}' : '',
+      onTap: onTap == null || issueId.isEmpty ? null : () => onTap!(issueId),
+    );
+  }
+}
+
+class _SubIssueReferenceContent extends StatelessWidget {
+  const _SubIssueReferenceContent({
+    required this.title,
+    required this.isClosed,
+    this.trailingLabel = '',
+    this.isCreating = false,
+    this.onTap,
+  });
+
+  final String title;
+  final bool isClosed;
+  final String trailingLabel;
+  final bool isCreating;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = isClosed
+        ? const Color(0xFF8250DF)
+        : const Color(0xFF1F883D);
+    return InkWell(
+      onTap: isCreating ? null : onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        child: Row(
+          children: [
+            Icon(
+              isClosed
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 15,
+              color: iconColor,
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isClosed
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF334155),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  decoration: isClosed ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 7),
+            isCreating
+                ? const _SubIssueCreatingBadge()
+                : Text(
+                    trailingLabel,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SubIssueCreatingBadge extends StatelessWidget {
+  const _SubIssueCreatingBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 10,
+            height: 10,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFFD97706),
+            ),
+          ),
+          SizedBox(width: 5),
+          Text(
+            '作成中',
+            style: TextStyle(
+              color: Color(0xFF92400E),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -5570,6 +6728,22 @@ class IssueIdMetaChip extends StatelessWidget {
     return IssueMetaChip(
       label: issueId,
       trailing: IssueIdCopyButton(issueId: issueId),
+    );
+  }
+}
+
+class ParentIssueMetaChip extends StatelessWidget {
+  const ParentIssueMetaChip({super.key, required this.parentIssue});
+
+  final IssueParentIssue parentIssue;
+
+  @override
+  Widget build(BuildContext context) {
+    return IssueMetaChip(
+      icon: Icons.account_tree_outlined,
+      label: parentIssue.number > 0
+          ? 'Parent #${parentIssue.number}'
+          : 'Parent',
     );
   }
 }
@@ -6246,7 +7420,16 @@ class IssueDragData {
 }
 
 class CloseIssueDialogResult {
-  const CloseIssueDialogResult();
+  const CloseIssueDialogResult(this.issueId);
+
+  final String issueId;
+}
+
+class EditIssueDialogResult {
+  const EditIssueDialogResult({required this.issueId, required this.draft});
+
+  final String issueId;
+  final NewIssueDraft draft;
 }
 
 class NewIssueDraft {
@@ -6325,6 +7508,112 @@ class IssueResolution {
   final String workStartSource;
 }
 
+class IssueSubIssuesSummary {
+  const IssueSubIssuesSummary({
+    required this.total,
+    required this.completed,
+    required this.percentCompleted,
+  });
+
+  static IssueSubIssuesSummary? fromMap(Map<String, dynamic> data) {
+    final total = _asInt(data['total']);
+    if (total <= 0) {
+      return null;
+    }
+    final completed = _asInt(data['completed']).clamp(0, total).toInt();
+    final rawPercent = _asInt(data['percentCompleted']);
+    final percentCompleted = rawPercent > 0
+        ? rawPercent.clamp(0, 100).toInt()
+        : ((completed / total) * 100).round();
+    return IssueSubIssuesSummary(
+      total: total,
+      completed: completed,
+      percentCompleted: percentCompleted,
+    );
+  }
+
+  double get progress => (percentCompleted / 100).clamp(0, 1).toDouble();
+
+  Map<String, Object> toFirestore() {
+    return {
+      'total': total,
+      'completed': completed,
+      'percentCompleted': percentCompleted,
+    };
+  }
+
+  final int total;
+  final int completed;
+  final int percentCompleted;
+}
+
+class IssueParentIssue {
+  const IssueParentIssue({
+    required this.issueId,
+    required this.nodeId,
+    required this.number,
+    this.url,
+  });
+
+  static IssueParentIssue? fromMap(Map<String, dynamic> data) {
+    if (data.isEmpty) {
+      return null;
+    }
+    final issueId = _asString(data['issueId']);
+    final nodeId = _asString(data['nodeId']);
+    final number = _asInt(data['number']);
+    final url = _normalizedOptionalUrl(_asString(data['url']));
+    if (issueId.isEmpty && nodeId.isEmpty && number <= 0 && url == null) {
+      return null;
+    }
+    return IssueParentIssue(
+      issueId: issueId,
+      nodeId: nodeId,
+      number: number,
+      url: url,
+    );
+  }
+
+  final String issueId;
+  final String nodeId;
+  final int number;
+  final String? url;
+}
+
+class IssueSubIssueReference {
+  const IssueSubIssueReference({
+    required this.issueId,
+    required this.nodeId,
+    required this.number,
+    required this.title,
+    this.url,
+    required this.state,
+  });
+
+  static IssueSubIssueReference? fromMap(Map<String, dynamic> data) {
+    final title = _asString(data['title']);
+    final number = _asInt(data['number']);
+    if (title.isEmpty && number <= 0) {
+      return null;
+    }
+    return IssueSubIssueReference(
+      issueId: _asString(data['issueId']),
+      nodeId: _asString(data['nodeId']),
+      number: number,
+      title: title.isEmpty ? '#$number' : title,
+      url: _normalizedOptionalUrl(_asString(data['url'])),
+      state: _asString(data['state'], 'open'),
+    );
+  }
+
+  final String issueId;
+  final String nodeId;
+  final int number;
+  final String title;
+  final String? url;
+  final String state;
+}
+
 class Issue {
   const Issue({
     required this.id,
@@ -6345,6 +7634,9 @@ class Issue {
     this.weightEstimate,
     this.resolution,
     this.pullRequests = const [],
+    this.subIssuesSummary,
+    this.subIssues = const [],
+    this.parentIssue,
     this.cursorAgent,
   }) : displayId = displayId ?? issueKey ?? id;
 
@@ -6383,6 +7675,16 @@ class Issue {
           .map((value) => IssuePullRequest.fromMap(_asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
           .toList(),
+      subIssuesSummary: IssueSubIssuesSummary.fromMap(
+        _asMap(
+          githubIssue['subIssuesSummary'] ?? githubIssue['sub_issues_summary'],
+        ),
+      ),
+      subIssues: _asList(githubIssue['subIssues'])
+          .map((value) => IssueSubIssueReference.fromMap(_asMap(value)))
+          .whereType<IssueSubIssueReference>()
+          .toList(),
+      parentIssue: IssueParentIssue.fromMap(_asMap(githubIssue['parentIssue'])),
       cursorAgent: CursorAgentState.fromMap(_asMap(data['cursorAgent'])),
     );
   }
@@ -6407,6 +7709,9 @@ class Issue {
       weightEstimate: weightEstimate,
       resolution: resolution,
       pullRequests: pullRequests,
+      subIssuesSummary: subIssuesSummary,
+      subIssues: subIssues,
+      parentIssue: parentIssue,
       cursorAgent: cursorAgent,
     );
   }
@@ -6429,6 +7734,9 @@ class Issue {
   final IssueWeightEstimate? weightEstimate;
   final IssueResolution? resolution;
   final List<IssuePullRequest> pullRequests;
+  final IssueSubIssuesSummary? subIssuesSummary;
+  final List<IssueSubIssueReference> subIssues;
+  final IssueParentIssue? parentIssue;
   final CursorAgentState? cursorAgent;
 }
 
