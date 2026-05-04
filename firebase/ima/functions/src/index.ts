@@ -403,7 +403,7 @@ function buildCursorAgentPrompt(input: {
     `- Implement the issue with the smallest reasonable change.`,
     `- Add or update tests when the change is behaviorally meaningful.`,
     `- Run relevant checks if available.`,
-    `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}.`,
+    `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}. The pull request must NOT be a draft; create it as a regular open PR.`,
     issueKeyValue.length > 0
       ? `- Include "${issueKeyValue}" in the pull request title (e.g. "feat: description ${issueKeyValue}") for tracking.`
       : undefined,
