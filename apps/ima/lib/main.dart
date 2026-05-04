@@ -3508,7 +3508,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   var _isStartingCursorAgent = false;
   Issue? _liveIssue;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-      _issueSubscription;
+  _issueSubscription;
 
   @override
   void initState() {
@@ -3545,11 +3545,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         .doc('workspaces/$workspaceId/issues/$issueId')
         .snapshots()
         .listen((snapshot) {
-      if (!mounted || !snapshot.exists) return;
-      setState(() {
-        _liveIssue = Issue.fromDocument(snapshot);
-      });
-    });
+          if (!mounted || !snapshot.exists) return;
+          setState(() {
+            _liveIssue = Issue.fromDocument(snapshot);
+          });
+        });
   }
 
   @override
@@ -5398,6 +5398,13 @@ class IssueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final githubUrl = issue.githubUrl;
+    final weightEstimate = issue.weightEstimate;
+    final cardWeight = issue.statusId == _closedStatusId
+        ? issue.resolution?.actualWeight
+        : weightEstimate?.value;
+    final cardWeightTooltip = issue.statusId == _closedStatusId
+        ? 'Actual weight $cardWeight'
+        : 'Weight $cardWeight / confidence ${((weightEstimate?.confidence ?? 0) * 100).round()}%';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
@@ -5430,9 +5437,13 @@ class IssueCard extends StatelessWidget {
           Row(
             children: [
               RepoBadge(repo: issue.repo),
-              if (issue.weightEstimate?.value != null) ...[
+              if (cardWeight != null) ...[
                 const SizedBox(width: 6),
-                WeightBadge(estimate: issue.weightEstimate!),
+                WeightBadge(
+                  value: cardWeight,
+                  tooltip: cardWeightTooltip,
+                  isActual: issue.statusId == _closedStatusId,
+                ),
               ],
               const Spacer(),
               PriorityDot(priority: issue.priority),
@@ -5587,7 +5598,9 @@ class PullRequestBadge extends StatelessWidget {
     return Tooltip(
       message: prUrl ?? 'Linked pull request',
       child: GestureDetector(
-        onTap: prUrl != null ? () => unawaited(_launchUrlExternal(prUrl)) : null,
+        onTap: prUrl != null
+            ? () => unawaited(_launchUrlExternal(prUrl))
+            : null,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -5773,28 +5786,34 @@ class DueDatePill extends StatelessWidget {
 }
 
 class WeightBadge extends StatelessWidget {
-  const WeightBadge({super.key, required this.estimate});
+  const WeightBadge({
+    super.key,
+    required this.value,
+    required this.tooltip,
+    this.isActual = false,
+  });
 
-  final IssueWeightEstimate estimate;
+  final int value;
+  final String tooltip;
+  final bool isActual;
 
   @override
   Widget build(BuildContext context) {
-    final value = estimate.value;
     return Tooltip(
-      message: value == null
-          ? 'Weight estimate ${estimate.status}'
-          : 'Weight $value / confidence ${(estimate.confidence * 100).round()}%',
+      message: tooltip,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFEEF2FF),
-          border: Border.all(color: const Color(0xFFC7D2FE)),
+          color: isActual ? const Color(0xFFF0FDF4) : const Color(0xFFEEF2FF),
+          border: Border.all(
+            color: isActual ? const Color(0xFFBBF7D0) : const Color(0xFFC7D2FE),
+          ),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
-          value == null ? 'W?' : 'W$value',
-          style: const TextStyle(
-            color: Color(0xFF4338CA),
+          'W$value',
+          style: TextStyle(
+            color: isActual ? const Color(0xFF15803D) : const Color(0xFF4338CA),
             fontSize: 12,
             fontWeight: FontWeight.w900,
           ),
