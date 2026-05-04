@@ -1,13 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.issueWeightPromptVersion = void 0;
+exports.validWeights = exports.issueWeightPromptVersion = void 0;
+exports.isValidWeight = isValidWeight;
+exports.isAdjacentWeight = isAdjacentWeight;
 exports.truncateText = truncateText;
 exports.issueWeightInput = issueWeightInput;
 exports.issueWeightInputHash = issueWeightInputHash;
 exports.parseWeightEstimateResponse = parseWeightEstimateResponse;
 const node_crypto_1 = require("node:crypto");
-exports.issueWeightPromptVersion = "issue-weight-v1";
+exports.issueWeightPromptVersion = "issue-weight-v2";
 const maxIssueBodyCharsForWeight = 4000;
+exports.validWeights = [1, 2, 4, 8, 16, 32];
+function isValidWeight(value) {
+    return exports.validWeights.includes(value);
+}
+function isAdjacentWeight(a, b) {
+    const idxA = exports.validWeights.indexOf(a);
+    const idxB = exports.validWeights.indexOf(b);
+    if (idxA < 0 || idxB < 0)
+        return false;
+    return Math.abs(idxA - idxB) <= 1;
+}
 function asString(value, fallback = "") {
     return typeof value === "string" && value.length > 0 ? value : fallback;
 }
@@ -48,8 +61,8 @@ function parseWeightEstimateResponse(responseText) {
     const value = asNumber(parsed.value);
     const confidence = asNumber(parsed.confidence);
     const reason = truncateText(asString(parsed.reason), 240);
-    if (!Number.isInteger(value) || value < 1 || value > 8) {
-        throw new Error("LLM response value must be an integer from 1 to 8");
+    if (!Number.isInteger(value) || !isValidWeight(value)) {
+        throw new Error(`LLM response value must be one of ${exports.validWeights.join(", ")}`);
     }
     if (confidence < 0 || confidence > 1) {
         throw new Error("LLM response confidence must be between 0 and 1");

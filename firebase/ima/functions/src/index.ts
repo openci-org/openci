@@ -22,11 +22,14 @@ import {
   upsertLinkedIssueBlock,
 } from "./issueLinkingHelpers";
 import {
+  isAdjacentWeight,
+  isValidWeight,
   issueWeightInput,
   issueWeightInputHash,
   issueWeightPromptVersion,
   parseWeightEstimateResponse,
   truncateText,
+  validWeights,
 } from "./issueWeightHelpers";
 
 if (getApps().length === 0) {
@@ -623,8 +626,7 @@ function normalizeIssueWeightEstimate(
   const model = asString(estimate.model);
   const inputHash = asString(estimate.inputHash);
   if (
-    value < 1 ||
-    value > 8 ||
+    !isValidWeight(value) ||
     confidence < 0 ||
     confidence > 1 ||
     reason.length === 0 ||
@@ -645,7 +647,14 @@ function normalizeIssueWeightEstimate(
   };
 }
 
-const defaultWeightThresholdsHours = [1, 3, 8, 16, 40, 80, 160];
+const defaultWeightThresholdsHours: Array<{ weight: number; maxHours: number }> = [
+  { weight: 1, maxHours: 1 },
+  { weight: 2, maxHours: 4 },
+  { weight: 4, maxHours: 12 },
+  { weight: 8, maxHours: 32 },
+  { weight: 16, maxHours: 80 },
+  { weight: 32, maxHours: Infinity },
+];
 
 function deriveActualWeight(
   cycleTimeMs: number,
@@ -657,10 +666,7 @@ function deriveActualWeight(
     .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianLeadTimeHours }))
     .filter(
       (entry): entry is { weight: number; hours: number } =>
-        Number.isInteger(entry.weight) &&
-        entry.weight >= 1 &&
-        entry.weight <= 8 &&
-        entry.hours !== null,
+        isValidWeight(entry.weight) && entry.hours !== null,
     );
 
   const totalCount = Object.values(byWeight).reduce((sum, stats) => sum + stats.count, 0);
@@ -677,12 +683,12 @@ function deriveActualWeight(
     return closest.weight;
   }
 
-  for (let i = 0; i < defaultWeightThresholdsHours.length; i++) {
-    if (hours < defaultWeightThresholdsHours[i]!) {
-      return i + 1;
+  for (const tier of defaultWeightThresholdsHours) {
+    if (hours < tier.maxHours) {
+      return tier.weight;
     }
   }
-  return 8;
+  return 32;
 }
 
 function issueLabels(issue: GitHubIssueResponseItem): string[] {
@@ -858,22 +864,27 @@ async function collectResolutionStats(workspaceId: string): Promise<ResolutionSt
     .map((event) => event.cycleTimeMs)
     .filter((value): value is number => value !== null);
 
-  const deltas = selected
-    .filter((event) => event.weightValue !== null && event.actualWeight !== null)
-    .map((event) => event.weightValue! - event.actualWeight!);
+  const comparablePairs = selected.filter(
+    (event) => event.weightValue !== null && event.actualWeight !== null,
+  );
 
   let estimationAccuracy: EstimationAccuracy | null = null;
-  if (deltas.length > 0) {
-    const exactMatches = deltas.filter((d) => d === 0).length;
-    const within1 = deltas.filter((d) => Math.abs(d) <= 1).length;
+  if (comparablePairs.length > 0) {
+    const exactMatches = comparablePairs.filter(
+      (e) => e.weightValue === e.actualWeight,
+    ).length;
+    const adjacentMatches = comparablePairs.filter((e) =>
+      isAdjacentWeight(e.weightValue!, e.actualWeight!),
+    ).length;
+    const deltas = comparablePairs.map((e) => e.weightValue! - e.actualWeight!);
     const sumAbsError = deltas.reduce((sum, d) => sum + Math.abs(d), 0);
     const sumDelta = deltas.reduce((sum, d) => sum + d, 0);
     estimationAccuracy = {
-      totalCompared: deltas.length,
-      exactMatchRate: Math.round((exactMatches / deltas.length) * 100) / 100,
-      within1Rate: Math.round((within1 / deltas.length) * 100) / 100,
-      meanAbsoluteError: Math.round((sumAbsError / deltas.length) * 10) / 10,
-      bias: Math.round((sumDelta / deltas.length) * 10) / 10,
+      totalCompared: comparablePairs.length,
+      exactMatchRate: Math.round((exactMatches / comparablePairs.length) * 100) / 100,
+      within1Rate: Math.round((adjacentMatches / comparablePairs.length) * 100) / 100,
+      meanAbsoluteError: Math.round((sumAbsError / comparablePairs.length) * 10) / 10,
+      bias: Math.round((sumDelta / comparablePairs.length) * 10) / 10,
     };
   }
 
@@ -939,7 +950,7 @@ async function estimateIssueWeightWithLlm(
   const system = [
     "You estimate issue weight for a software team's issue board.",
     "Return only JSON with keys: value, confidence, reason.",
-    "value must be an integer from 1 to 8 where 1 is tiny and 8 is very large.",
+    "value must be one of: 1, 2, 4, 8, 16, 32 (powers of 2; 1=tiny, 32=very large).",
     "confidence must be a number from 0 to 1.",
     "reason must be short Japanese text, within 80 characters.",
     "Use the team's recent resolution speed statistics when available.",
