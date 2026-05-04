@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubSubIssue = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
+exports.autoSyncIssueToGitHubOnIssueWrite = exports.autoEstimateIssueWeightOnIssueWrite = exports.recomputeResolutionWeights = exports.issueLifecycleEventLogger = exports.estimateIssueWeight = exports.syncGitHubIssues = exports.githubPullRequestWebhook = exports.backfillCursorAgentPullRequests = exports.backfillIssueKeys = exports.startIssueCursorAgent = exports.createGitHubSubIssue = exports.createGitHubIssue = exports.importGitHubIssues = exports.listGitHubRepositories = exports.completeGitHubDeviceFlow = exports.startGitHubDeviceFlow = exports.connectGitHub = void 0;
 const node_crypto_1 = require("node:crypto");
 const sdk_1 = require("@cursor/sdk");
 const app_1 = require("firebase-admin/app");
@@ -348,7 +348,7 @@ const defaultWeightThresholdsHours = [
 function deriveActualWeight(cycleTimeMs, byWeight) {
     const hours = cycleTimeMs / 3_600_000;
     const entries = Object.entries(byWeight)
-        .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianLeadTimeHours }))
+        .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianHours }))
         .filter((entry) => (0, issueWeightHelpers_1.isValidWeight)(entry.weight) && entry.hours !== null);
     const totalCount = Object.values(byWeight).reduce((sum, stats) => sum + stats.count, 0);
     if (entries.length >= 3 && totalCount >= 5) {
@@ -531,15 +531,16 @@ function closedIssueStatsEvent(data) {
         closedAt: timestampFromValue(data.closedAt),
     };
 }
-function bucketMedian(events, keyForEvent) {
+function bucketMedian(events, keyForEvent, timeForEvent = (e) => e.leadTimeMs) {
     const buckets = new Map();
     for (const event of events) {
-        if (event.leadTimeMs === null) {
+        const timeMs = timeForEvent(event);
+        if (timeMs === null) {
             continue;
         }
         for (const key of keyForEvent(event)) {
             const existing = buckets.get(key) ?? [];
-            existing.push(event.leadTimeMs);
+            existing.push(timeMs);
             buckets.set(key, existing);
         }
     }
@@ -550,7 +551,7 @@ function bucketMedian(events, keyForEvent) {
         key,
         {
             count: values.length,
-            medianLeadTimeHours: roundedHours(median(values)),
+            medianHours: roundedHours(median(values)),
         },
     ]));
 }
@@ -2064,9 +2065,10 @@ exports.issueLifecycleEventLogger = (0, firestore_2.onDocumentWritten)("workspac
         const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
         let actualWeight = null;
         let weightDelta = null;
-        if (cycleTimeMs !== null) {
+        const timeForWeight = cycleTimeMs ?? leadTimeMs;
+        if (timeForWeight !== null) {
             const resolutionStats = await collectResolutionStats(workspaceId);
-            actualWeight = deriveActualWeight(cycleTimeMs, resolutionStats.byWeight);
+            actualWeight = deriveActualWeight(timeForWeight, resolutionStats.byWeight);
             if (weightValue !== null) {
                 weightDelta = weightValue - actualWeight;
             }
@@ -2135,6 +2137,51 @@ exports.issueLifecycleEventLogger = (0, firestore_2.onDocumentWritten)("workspac
     if (Object.keys(updates).length > 0) {
         await event.data?.after.ref.set(updates, { merge: true });
     }
+});
+exports.recomputeResolutionWeights = (0, https_1.onCall)({ timeoutSeconds: 300 }, async (request) => {
+    const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+    await verifyWorkspaceMember(request.auth, workspaceId);
+    const resolutionStats = await collectResolutionStats(workspaceId);
+    const snapshot = await db
+        .collection(`workspaces/${workspaceId}/issues`)
+        .where("statusId", "==", closedStatusId)
+        .get();
+    let updated = 0;
+    let skipped = 0;
+    const batch = db.batch();
+    for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const resolution = data.resolution;
+        if (!resolution) {
+            skipped++;
+            continue;
+        }
+        const cycleTimeMs = typeof resolution.cycleTimeMs === "number" ? resolution.cycleTimeMs : null;
+        const leadTimeMs = typeof resolution.leadTimeMs === "number" ? resolution.leadTimeMs : null;
+        const timeForWeight = cycleTimeMs ?? leadTimeMs;
+        if (timeForWeight === null) {
+            skipped++;
+            continue;
+        }
+        const oldActual = typeof resolution.actualWeight === "number" ? resolution.actualWeight : null;
+        const newActual = deriveActualWeight(timeForWeight, resolutionStats.byWeight);
+        if (oldActual === newActual) {
+            skipped++;
+            continue;
+        }
+        const weightValue = typeof resolution.weightValue === "number" ? resolution.weightValue : null;
+        const newDelta = weightValue !== null ? weightValue - newActual : null;
+        batch.update(doc.ref, {
+            "resolution.actualWeight": newActual,
+            "resolution.weightDelta": newDelta,
+        });
+        updated++;
+    }
+    if (updated > 0) {
+        await batch.commit();
+    }
+    v2_1.logger.info("recomputeResolutionWeights", { workspaceId, updated, skipped });
+    return { updated, skipped };
 });
 exports.autoEstimateIssueWeightOnIssueWrite = (0, firestore_2.onDocumentWritten)({
     document: "workspaces/{workspaceId}/issues/{issueId}",

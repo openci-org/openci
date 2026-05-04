@@ -1394,13 +1394,34 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     );
   }
 
+  Future<void> _recomputeResolutionWeights() async {
+    try {
+      final result = await _callFunction('recomputeResolutionWeights', {
+        'workspaceId': _workspaceId,
+      });
+      if (mounted) {
+        _showSavedSnackBar(
+          'Weight再計算: ${result['updated']}件更新, ${result['skipped']}件スキップ',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        _showSavedSnackBar(_friendlyError(error));
+      }
+    }
+  }
+
   Future<void> _openDailyWeightTargetDialog(DailyProgressStats stats) async {
     final nextTarget = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) =>
-          DailyProgressSheet(currentTarget: _dailyWeightTarget, stats: stats),
+          DailyProgressSheet(
+            currentTarget: _dailyWeightTarget,
+            stats: stats,
+            onRecomputeWeights: _recomputeResolutionWeights,
+          ),
     );
 
     if (nextTarget == null || !mounted) {
@@ -2425,10 +2446,12 @@ class DailyProgressSheet extends StatefulWidget {
     super.key,
     required this.currentTarget,
     required this.stats,
+    this.onRecomputeWeights,
   });
 
   final int currentTarget;
   final DailyProgressStats stats;
+  final Future<void> Function()? onRecomputeWeights;
 
   @override
   State<DailyProgressSheet> createState() => _DailyProgressSheetState();
@@ -2635,8 +2658,17 @@ class _DailyProgressSheetState extends State<DailyProgressSheet> {
                   ),
                   const SizedBox(height: 14),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (widget.onRecomputeWeights != null)
+                        TextButton.icon(
+                          onPressed: () {
+                            widget.onRecomputeWeights!();
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Weight再計算'),
+                        ),
+                      const Spacer(),
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
                         child: const Text('キャンセル'),

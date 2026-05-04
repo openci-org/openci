@@ -116,6 +116,12 @@ export declare const issueLifecycleEventLogger: import("firebase-functions/core"
     issueId: string;
     workspaceId: string;
 }>>;
+export declare const recomputeResolutionWeights: import("firebase-functions/v2/https").CallableFunction<{
+    workspaceId: string;
+}, Promise<{
+    updated: number;
+    skipped: number;
+}>, unknown>;
 export declare const autoEstimateIssueWeightOnIssueWrite: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
     issueId: string;
     workspaceId: string;
