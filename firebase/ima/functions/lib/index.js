@@ -98,6 +98,36 @@ function repoDocId(fullName) {
 function issueDocId(owner, repo, number) {
     return `gh_${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
 }
+async function resolveGitHubIssueDocument(input) {
+    const issuesRef = db.collection(`workspaces/${input.workspaceId}/issues`);
+    const canonicalRef = issuesRef.doc(issueDocId(input.owner, input.repo, input.number));
+    const canonicalDoc = await canonicalRef.get();
+    if (canonicalDoc.exists) {
+        return { ref: canonicalRef, doc: canonicalDoc };
+    }
+    const nodeId = input.nodeId ?? "";
+    if (nodeId.length > 0) {
+        const existing = await issuesRef.where("githubIssue.nodeId", "==", nodeId).limit(1).get();
+        if (!existing.empty) {
+            const existingDoc = existing.docs[0];
+            return { ref: existingDoc.ref, doc: existingDoc };
+        }
+    }
+    const existingByNumber = await issuesRef
+        .where("githubIssue.number", "==", input.number)
+        .limit(20)
+        .get();
+    const matchingDoc = existingByNumber.docs.find((doc) => {
+        const githubIssue = doc.get("githubIssue");
+        return (asString(githubIssue?.owner) === input.owner &&
+            asString(githubIssue?.repo) === input.repo &&
+            asNumber(githubIssue?.number) === input.number);
+    });
+    if (matchingDoc !== undefined) {
+        return { ref: matchingDoc.ref, doc: matchingDoc };
+    }
+    return { ref: canonicalRef, doc: canonicalDoc };
+}
 function pullRequestLinkId(owner, repo, number) {
     return `${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
 }
@@ -901,10 +931,13 @@ exports.importGitHubIssues = (0, https_1.onCall)(async (request) => {
                     if (number <= 0 || nodeId.length === 0) {
                         continue;
                     }
-                    const docRef = db
-                        .collection(`workspaces/${workspaceId}/issues`)
-                        .doc(issueDocId(owner, repo, number));
-                    const existing = await docRef.get();
+                    const { ref: docRef, doc: existing } = await resolveGitHubIssueDocument({
+                        workspaceId,
+                        owner,
+                        repo,
+                        number,
+                        nodeId,
+                    });
                     const existingData = existing.data() ?? {};
                     const keyFields = await issueKeyFields(workspaceId, existingData);
                     batch.set(docRef, {
@@ -1523,7 +1556,6 @@ async function syncGitHubIssueFromWebhook(payload) {
     if (ghIssue.pull_request !== undefined) {
         return 0;
     }
-    const docId = issueDocId(owner, repo, number);
     const workspaces = await db.collection("workspaces").limit(100).get();
     let updated = 0;
     for (const workspace of workspaces.docs) {
@@ -1534,30 +1566,15 @@ async function syncGitHubIssueFromWebhook(payload) {
             asString(repoDoc.get("fullName")) !== repoFullName) {
             continue;
         }
-        let issueRef = workspaceRef.collection("issues").doc(docId);
-        let issueDoc = await issueRef.get();
-        // When a GitHub issue is created from IMA (via createGitHubIssue), the
-        // Firestore document uses a random ID, not the gh_owner_repo_number
-        // format. The subsequent GitHub webhook would create a second document
-        // under the gh_* ID.  Detect this by querying for an existing document
-        // that already tracks the same GitHub issue via its nodeId.
-        if (!issueDoc.exists) {
-            const nodeId = asString(ghIssue.node_id);
-            if (nodeId.length > 0) {
-                const existing = await workspaceRef
-                    .collection("issues")
-                    .where("githubIssue.nodeId", "==", nodeId)
-                    .limit(1)
-                    .get();
-                if (!existing.empty) {
-                    issueRef = existing.docs[0].ref;
-                    issueDoc = existing.docs[0];
-                }
-            }
-        }
+        const { ref: issueRef, doc: issueDoc } = await resolveGitHubIssueDocument({
+            workspaceId: workspace.id,
+            owner,
+            repo,
+            number,
+            nodeId: asString(ghIssue.node_id),
+        });
         if (action === "opened" || action === "edited") {
             const existingData = issueDoc.data() ?? {};
-            const nodeId = asString(ghIssue.node_id);
             const title = asString(ghIssue.title, `#${number}`);
             const body = asString(ghIssue.body);
             const labels = (ghIssue.labels ?? [])
