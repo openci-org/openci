@@ -1,0 +1,24 @@
+#!/bin/sh
+# Records branch switch timestamps to .openci/branch-log.jsonl.
+# Install: git config core.hooksPath .openci/hooks
+
+prev_head="$1"
+new_head="$2"
+is_branch_checkout="$3"
+
+if [ "$is_branch_checkout" != "1" ]; then
+  exit 0
+fi
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ -z "$branch" ]; then
+  exit 0
+fi
+
+openci_dir="$(git rev-parse --show-toplevel 2>/dev/null)/.openci"
+if [ ! -d "$openci_dir" ]; then
+  exit 0
+fi
+
+echo "{\"branch\":\"$branch\",\"at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+  >> "$openci_dir/branch-log.jsonl"
