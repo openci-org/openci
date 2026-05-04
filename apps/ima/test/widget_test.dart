@@ -475,6 +475,68 @@ void main() {
     expect(find.text('Paste'), findsOneWidget);
   });
 
+  testWidgets('Edit issue dialog shows copyable issue ID chip', (
+    tester,
+  ) async {
+    final columns = [
+      BoardColumn(
+        id: 'triage',
+        title: 'Triage',
+        description: '新着と要件確認',
+        color: Colors.indigo,
+        issues: const [],
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return TextButton(
+              onPressed: () {
+                showDialog<Object?>(
+                  context: context,
+                  builder: (context) => AddIssueDialog(
+                    columns: columns,
+                    repositoryOptions: const ['openci/ima'],
+                    initialIssue: const Issue(
+                      id: 'gh_openci_ima_162',
+                      issueKey: 'IMA-162',
+                      repo: 'openci/ima',
+                      title: 'Copy issue ID from edit dialog',
+                      assignee: 'MF',
+                      labels: ['feature'],
+                      comments: 0,
+                      priority: Priority.medium,
+                      statusId: 'triage',
+                    ),
+                    initialColumnId: 'triage',
+                  ),
+                );
+              },
+              child: const Text('Open edit dialog'),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open edit dialog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('IMA-162'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('IMA-162'),
+          matching: find.byType(GestureDetector),
+        ),
+        matching: find.byIcon(Icons.copy_rounded),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('Issue card does not show close button for closed issues', (
     tester,
   ) async {
