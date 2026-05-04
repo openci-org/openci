@@ -1375,7 +1375,7 @@ export const createGitHubIssue = onCall<
     const clientIssueId = asString(request.data?.issueId);
     const issueId = clientIssueId.length > 0 ? clientIssueId : issueDocId(owner, repo, number);
     const docRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-    const existingData = clientIssueId.length > 0 ? (await docRef.get()).data() ?? {} : {};
+    const existingData = clientIssueId.length > 0 ? ((await docRef.get()).data() ?? {}) : {};
     const keyFields = await issueKeyFields(workspaceId, existingData);
     await docRef.set(
       {
@@ -1860,9 +1860,7 @@ async function upsertPullRequestLink({
   });
 }
 
-async function syncGitHubIssueFromWebhook(
-  payload: GitHubIssueWebhookPayload,
-): Promise<number> {
+async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): Promise<number> {
   const action = asString(payload.action);
   if (action !== "opened" && action !== "edited" && action !== "closed" && action !== "reopened") {
     return 0;
@@ -1917,6 +1915,14 @@ async function syncGitHubIssueFromWebhook(
 
       const keyFields = await issueKeyFields(workspaceRef.id, existingData);
 
+      let rank = asNumber(existingData.rank);
+      if (rank === 0 && !issueDoc.exists) {
+        const topIssue = await workspaceRef.collection("issues").orderBy("rank").limit(1).get();
+        const topDoc = topIssue.docs[0];
+        const topRank = topDoc === undefined ? Date.now() : asNumber(topDoc.get("rank"));
+        rank = topRank - 1000;
+      }
+
       await issueRef.set(
         {
           ...keyFields,
@@ -1928,7 +1934,7 @@ async function syncGitHubIssueFromWebhook(
           comments: asNumber(ghIssue.comments),
           priority: asString(existingData.priority, "medium"),
           statusId: asString(existingData.statusId, "triage"),
-          rank: asNumber(existingData.rank, Date.now() + updated),
+          rank,
           githubIssue: {
             nodeId,
             owner,
