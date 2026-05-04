@@ -217,6 +217,25 @@ interface GitHubPullRequestWebhookPayload {
   };
 }
 
+interface GitHubPushWebhookPayload {
+  ref?: unknown;
+  repository?: {
+    full_name?: unknown;
+    default_branch?: unknown;
+  };
+  commits?: Array<{
+    id?: unknown;
+    timestamp?: unknown;
+    added?: unknown[];
+    modified?: unknown[];
+  }>;
+}
+
+interface BranchLogEntry {
+  branch: string;
+  at: string;
+}
+
 interface GitHubIssueWebhookPayload {
   action?: unknown;
   repository?: {
@@ -626,6 +645,46 @@ function normalizeIssueWeightEstimate(
   };
 }
 
+const defaultWeightThresholdsHours = [1, 3, 8, 16, 40, 80, 160];
+
+function deriveActualWeight(
+  cycleTimeMs: number,
+  byWeight: Record<string, { count: number; medianLeadTimeHours: number | null }>,
+): number {
+  const hours = cycleTimeMs / 3_600_000;
+
+  const entries = Object.entries(byWeight)
+    .map(([key, stats]) => ({ weight: Number(key), hours: stats.medianLeadTimeHours }))
+    .filter(
+      (entry): entry is { weight: number; hours: number } =>
+        Number.isInteger(entry.weight) &&
+        entry.weight >= 1 &&
+        entry.weight <= 8 &&
+        entry.hours !== null,
+    );
+
+  const totalCount = Object.values(byWeight).reduce((sum, stats) => sum + stats.count, 0);
+  if (entries.length >= 3 && totalCount >= 5) {
+    let closest = entries[0]!;
+    let closestDiff = Math.abs(closest.hours - hours);
+    for (let i = 1; i < entries.length; i++) {
+      const diff = Math.abs(entries[i]!.hours - hours);
+      if (diff < closestDiff) {
+        closest = entries[i]!;
+        closestDiff = diff;
+      }
+    }
+    return closest.weight;
+  }
+
+  for (let i = 0; i < defaultWeightThresholdsHours.length; i++) {
+    if (hours < defaultWeightThresholdsHours[i]!) {
+      return i + 1;
+    }
+  }
+  return 8;
+}
+
 function issueLabels(issue: GitHubIssueResponseItem): string[] {
   return (issue.labels ?? [])
     .map((label) => {
@@ -696,9 +755,18 @@ interface ClosedIssueStatsEvent {
   repo: string;
   labels: string[];
   weightValue: number | null;
+  actualWeight: number | null;
   leadTimeMs: number | null;
   cycleTimeMs: number | null;
   closedAt: Timestamp | null;
+}
+
+interface EstimationAccuracy {
+  totalCompared: number;
+  exactMatchRate: number;
+  within1Rate: number;
+  meanAbsoluteError: number;
+  bias: number;
 }
 
 interface ResolutionStats {
@@ -713,9 +781,11 @@ interface ResolutionStats {
     repo: string;
     labels: string[];
     weight: number | null;
+    actualWeight: number | null;
     leadTimeHours: number | null;
     cycleTimeHours: number | null;
   }>;
+  estimationAccuracy: EstimationAccuracy | null;
 }
 
 function closedIssueStatsEvent(data: Record<string, unknown>): ClosedIssueStatsEvent | null {
@@ -727,6 +797,7 @@ function closedIssueStatsEvent(data: Record<string, unknown>): ClosedIssueStatsE
     repo: asString(data.repo),
     labels: asStringList(data.labels),
     weightValue: typeof data.weightValue === "number" ? data.weightValue : null,
+    actualWeight: typeof data.actualWeight === "number" ? data.actualWeight : null,
     leadTimeMs: typeof data.leadTimeMs === "number" ? data.leadTimeMs : null,
     cycleTimeMs: typeof data.cycleTimeMs === "number" ? data.cycleTimeMs : null,
     closedAt: timestampFromValue(data.closedAt),
@@ -787,6 +858,25 @@ async function collectResolutionStats(workspaceId: string): Promise<ResolutionSt
     .map((event) => event.cycleTimeMs)
     .filter((value): value is number => value !== null);
 
+  const deltas = selected
+    .filter((event) => event.weightValue !== null && event.actualWeight !== null)
+    .map((event) => event.weightValue! - event.actualWeight!);
+
+  let estimationAccuracy: EstimationAccuracy | null = null;
+  if (deltas.length > 0) {
+    const exactMatches = deltas.filter((d) => d === 0).length;
+    const within1 = deltas.filter((d) => Math.abs(d) <= 1).length;
+    const sumAbsError = deltas.reduce((sum, d) => sum + Math.abs(d), 0);
+    const sumDelta = deltas.reduce((sum, d) => sum + d, 0);
+    estimationAccuracy = {
+      totalCompared: deltas.length,
+      exactMatchRate: Math.round((exactMatches / deltas.length) * 100) / 100,
+      within1Rate: Math.round((within1 / deltas.length) * 100) / 100,
+      meanAbsoluteError: Math.round((sumAbsError / deltas.length) * 10) / 10,
+      bias: Math.round((sumDelta / deltas.length) * 10) / 10,
+    };
+  }
+
   return {
     recentWindowDays,
     resolvedCount: selected.length,
@@ -801,9 +891,11 @@ async function collectResolutionStats(workspaceId: string): Promise<ResolutionSt
       repo: event.repo,
       labels: event.labels.slice(0, 8),
       weight: event.weightValue,
+      actualWeight: event.actualWeight,
       leadTimeHours: roundedHours(event.leadTimeMs),
       cycleTimeHours: roundedHours(event.cycleTimeMs),
     })),
+    estimationAccuracy,
   };
 }
 
@@ -2111,6 +2203,142 @@ async function linkPullRequestToImaIssues(
   return linked;
 }
 
+async function processBranchLogFromPush(
+  payload: GitHubPushWebhookPayload,
+): Promise<number> {
+  const repoFullName = asString(payload.repository?.full_name);
+  if (repoFullName.length === 0) {
+    return 0;
+  }
+
+  const commits = payload.commits ?? [];
+  const branchLogTouched = commits.some((commit) => {
+    const files = [
+      ...((commit.added as string[] | undefined) ?? []),
+      ...((commit.modified as string[] | undefined) ?? []),
+    ];
+    return files.includes(".openci/branch-log.jsonl");
+  });
+  if (!branchLogTouched) {
+    return 0;
+  }
+
+  const workspaces = await db.collection("workspaces").limit(100).get();
+  let recorded = 0;
+
+  for (const workspace of workspaces.docs) {
+    const workspaceRef = workspace.ref;
+    const workspaceId = workspace.id;
+    const repoDoc = await workspaceRef
+      .collection("githubRepos")
+      .doc(repoDocId(repoFullName))
+      .get();
+    if (
+      !repoDoc.exists ||
+      repoDoc.get("enabled") !== true ||
+      asString(repoDoc.get("fullName")) !== repoFullName
+    ) {
+      continue;
+    }
+
+    const ownerUid = asString(workspace.get("ownerUid"));
+    if (ownerUid.length === 0) {
+      continue;
+    }
+
+    let token: string;
+    try {
+      token = await getGitHubToken(ownerUid);
+    } catch {
+      logger.warn("processBranchLog: no GitHub token for owner", { workspaceId, ownerUid });
+      continue;
+    }
+
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) {
+      continue;
+    }
+
+    let branchLogContent: string;
+    try {
+      const ref = asString(payload.ref).replace(/^refs\/heads\//u, "");
+      const fileResponse = await githubRequest<{ content?: unknown; encoding?: unknown }>({
+        path: `/repos/${owner}/${repo}/contents/.openci/branch-log.jsonl`,
+        token,
+        queryParameters: ref.length > 0 ? { ref } : {},
+      });
+      if (asString(fileResponse.encoding) !== "base64") {
+        continue;
+      }
+      branchLogContent = Buffer.from(asString(fileResponse.content), "base64").toString("utf8");
+    } catch {
+      logger.warn("processBranchLog: failed to fetch branch-log.jsonl", {
+        workspaceId,
+        repoFullName,
+      });
+      continue;
+    }
+
+    const lines = branchLogContent.split("\n").filter((line) => line.trim().length > 0);
+    for (const line of lines) {
+      let entry: BranchLogEntry;
+      try {
+        entry = JSON.parse(line) as BranchLogEntry;
+      } catch {
+        continue;
+      }
+
+      const branchName = asString(entry.branch);
+      const createdAtStr = asString(entry.at);
+      if (branchName.length === 0 || createdAtStr.length === 0) {
+        continue;
+      }
+
+      const parsedIssueKey = extractIssueKey(branchName);
+      if (parsedIssueKey === null) {
+        continue;
+      }
+
+      const branchCreatedAt = asTimestamp(createdAtStr);
+      if (branchCreatedAt === null) {
+        continue;
+      }
+
+      const issueDocs = await workspaceRef
+        .collection("issues")
+        .where("issueKey", "==", parsedIssueKey)
+        .limit(1)
+        .get();
+
+      if (issueDocs.empty) {
+        continue;
+      }
+
+      const issueDoc = issueDocs.docs[0]!;
+      const existingBranchCreatedAt = timestampFromValue(issueDoc.get("branchCreatedAt"));
+      if (existingBranchCreatedAt !== null) {
+        continue;
+      }
+
+      const cursorAgent = issueDoc.get("cursorAgent") as Record<string, unknown> | undefined;
+      const cursorStartedAt = timestampFromValue(cursorAgent?.startedAt);
+      const workStartedAt = cursorStartedAt ?? branchCreatedAt;
+
+      await issueDoc.ref.set(
+        {
+          branchCreatedAt,
+          workStartedAt,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      recorded += 1;
+    }
+  }
+
+  return recorded;
+}
+
 export const githubPullRequestWebhook = onRequest(
   { secrets: [githubWebhookSecret] },
   async (request, response) => {
@@ -2120,7 +2348,7 @@ export const githubPullRequestWebhook = onRequest(
     }
 
     const event = asString(request.header("x-github-event"));
-    if (event !== "pull_request" && event !== "issues") {
+    if (event !== "pull_request" && event !== "issues" && event !== "push") {
       response.status(204).send();
       return;
     }
@@ -2137,6 +2365,13 @@ export const githubPullRequestWebhook = onRequest(
         const payload = JSON.parse(rawBody.toString("utf8")) as GitHubIssueWebhookPayload;
         const updated = await syncGitHubIssueFromWebhook(payload);
         response.status(200).json({ updated });
+        return;
+      }
+
+      if (event === "push") {
+        const payload = JSON.parse(rawBody.toString("utf8")) as GitHubPushWebhookPayload;
+        const recorded = await processBranchLogFromPush(payload);
+        response.status(200).json({ recorded });
         return;
       }
 
@@ -2315,17 +2550,38 @@ export const issueLifecycleEventLogger = onDocumentWritten(
       const createdAt =
         timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
       const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
+      const cursorAgent = after.cursorAgent as Record<string, unknown> | undefined;
+      const cursorStartedAt = timestampFromValue(cursorAgent?.startedAt);
+      const branchCreatedAt = timestampFromValue(after.branchCreatedAt);
+      const workStartedAt = cursorStartedAt ?? branchCreatedAt ?? firstInProgressAt;
+      const workStartSource =
+        cursorStartedAt !== null ? "cursorAgent" : branchCreatedAt !== null ? "branch" : "status";
       const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
       const cycleTimeMs =
-        firstInProgressAt === null ? null : now.toMillis() - firstInProgressAt.toMillis();
+        workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
       const weightEstimate = issueWeightEstimateMap(after);
       const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
+
+      let actualWeight: number | null = null;
+      let weightDelta: number | null = null;
+      if (cycleTimeMs !== null) {
+        const resolutionStats = await collectResolutionStats(workspaceId);
+        actualWeight = deriveActualWeight(cycleTimeMs, resolutionStats.byWeight);
+        if (weightValue !== null) {
+          weightDelta = weightValue - actualWeight;
+        }
+      }
+
       updates.closedAt = now;
+      updates.workStartedAt = workStartedAt ?? null;
       updates.resolution = {
         closedAt: now,
         leadTimeMs,
         cycleTimeMs,
         weightValue,
+        actualWeight,
+        weightDelta,
+        workStartSource,
       };
       await writeIssueEvent({
         workspaceId,
@@ -2340,6 +2596,9 @@ export const issueLifecycleEventLogger = onDocumentWritten(
           leadTimeMs,
           cycleTimeMs,
           weightValue,
+          actualWeight,
+          weightDelta,
+          workStartSource,
         },
       });
     }

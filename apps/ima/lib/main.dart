@@ -1167,6 +1167,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       (total, column) =>
           column.id == _closedStatusId ? total : total + column.issues.length,
     );
+    final closedIssues = _columns
+        .where((col) => col.id == _closedStatusId)
+        .expand((col) => col.issues)
+        .toList();
     final isCompactLayout =
         MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
@@ -1214,7 +1218,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           child: Column(
             children: [
               if (!isCompactLayout)
-                BoardHeader(openIssues: openIssues, onSignOut: onSignOut),
+                BoardHeader(
+                  openIssues: openIssues,
+                  closedIssues: closedIssues,
+                  onSignOut: onSignOut,
+                ),
               if (_isBootstrapping) const LinearProgressIndicator(),
               BoardToolbar(
                 onConnectGitHub: _connectGitHub,
@@ -1354,10 +1362,12 @@ class BoardHeader extends StatelessWidget {
   const BoardHeader({
     super.key,
     required this.openIssues,
+    required this.closedIssues,
     required this.onSignOut,
   });
 
   final int openIssues;
+  final List<Issue> closedIssues;
   final Future<void> Function() onSignOut;
 
   @override
@@ -1388,6 +1398,8 @@ class BoardHeader extends StatelessWidget {
             children: [
               Expanded(child: title),
               const SizedBox(width: 16),
+              EstimationAccuracyBadge(closedIssues: closedIssues),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -1435,6 +1447,75 @@ class IssueCountBadge extends StatelessWidget {
             style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class EstimationAccuracyBadge extends StatelessWidget {
+  const EstimationAccuracyBadge({super.key, required this.closedIssues});
+
+  final List<Issue> closedIssues;
+
+  @override
+  Widget build(BuildContext context) {
+    final pairs = closedIssues
+        .where((issue) =>
+            issue.resolution?.actualWeight != null &&
+            issue.weightEstimate?.value != null)
+        .toList();
+
+    if (pairs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final deltas = pairs
+        .map((issue) =>
+            issue.weightEstimate!.value! - issue.resolution!.actualWeight!)
+        .toList();
+    final within1 = deltas.where((d) => d.abs() <= 1).length;
+    final within1Rate = (within1 / deltas.length * 100).round();
+    final sumAbsError = deltas.fold<int>(0, (s, d) => s + d.abs());
+    final mae = (sumAbsError / deltas.length * 10).round() / 10;
+    final sumDelta = deltas.fold<int>(0, (s, d) => s + d);
+    final bias = (sumDelta / deltas.length * 10).round() / 10;
+
+    final biasLabel = bias == 0
+        ? 'バイアスなし'
+        : bias > 0
+            ? '過大推定 +$bias'
+            : '過小推定 $bias';
+    final accuracyColor = within1Rate >= 70
+        ? const Color(0xFF15803D)
+        : within1Rate >= 50
+            ? const Color(0xFFA16207)
+            : const Color(0xFFDC2626);
+
+    return Tooltip(
+      message: 'MAE $mae / $biasLabel / ${pairs.length}件',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '$within1Rate%',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: accuracyColor,
+                  ),
+            ),
+            const Text(
+              '推定精度 (±1)',
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -4458,6 +4539,9 @@ class IssueWeightPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final estimate = issue.weightEstimate;
     final value = estimate?.value;
+    final resolution = issue.resolution;
+    final actualWeight = resolution?.actualWeight;
+    final isClosed = issue.statusId == 'done';
     final subtitle = switch (estimate?.status) {
       'done' when value != null =>
         '${(estimate!.confidence * 100).round()}% confidence'
@@ -4475,63 +4559,157 @@ class IssueWeightPanel extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: isEstimating
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    value == null ? 'W?' : 'W$value',
-                    style: const TextStyle(
-                      color: Color(0xFF4338CA),
-                      fontWeight: FontWeight.w900,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: isEstimating
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        value == null ? 'W?' : 'W$value',
+                        style: const TextStyle(
+                          color: Color(0xFF4338CA),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'LLM weight',
+                      style: TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: Color(0xFF64748B)),
+                    ),
+                    if (reason != null && reason.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        reason,
+                        style: const TextStyle(color: Color(0xFF475569)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: isEstimating ? null : onEstimate,
+                icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                label: Text(value == null ? 'Estimate' : 'Re-estimate'),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'LLM weight',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Color(0xFF64748B)),
-                ),
-                if (reason != null && reason.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    reason,
-                    style: const TextStyle(color: Color(0xFF475569)),
-                  ),
-                ],
-              ],
+          if (isClosed && actualWeight != null) ...[
+            const SizedBox(height: 12),
+            _ActualWeightRow(
+              predictedWeight: value,
+              actualWeight: actualWeight,
+              delta: resolution?.weightDelta,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActualWeightRow extends StatelessWidget {
+  const _ActualWeightRow({
+    required this.predictedWeight,
+    required this.actualWeight,
+    this.delta,
+  });
+
+  final int? predictedWeight;
+  final int actualWeight;
+  final int? delta;
+
+  @override
+  Widget build(BuildContext context) {
+    final absDelta = delta?.abs() ?? 0;
+    final deltaColor = absDelta == 0
+        ? const Color(0xFF15803D)
+        : absDelta == 1
+            ? const Color(0xFFA16207)
+            : const Color(0xFFDC2626);
+    final deltaBg = absDelta == 0
+        ? const Color(0xFFF0FDF4)
+        : absDelta == 1
+            ? const Color(0xFFFEFCE8)
+            : const Color(0xFFFEF2F2);
+    final deltaLabel = delta == null
+        ? ''
+        : delta == 0
+            ? '一致'
+            : delta! > 0
+                ? '過大推定 +$delta'
+                : '過小推定 $delta';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: deltaBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.assessment_outlined, size: 16, color: deltaColor),
+          const SizedBox(width: 8),
+          Text(
+            '実績 W$actualWeight',
+            style: TextStyle(
+              color: deltaColor,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
             ),
           ),
-          const SizedBox(width: 10),
-          OutlinedButton.icon(
-            onPressed: isEstimating ? null : onEstimate,
-            icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-            label: Text(value == null ? 'Estimate' : 'Re-estimate'),
-          ),
+          if (predictedWeight != null) ...[
+            const SizedBox(width: 6),
+            Text(
+              '(予測 W$predictedWeight)',
+              style: TextStyle(color: deltaColor.withAlpha(180), fontSize: 12),
+            ),
+          ],
+          const Spacer(),
+          if (deltaLabel.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: deltaColor.withAlpha(25),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: deltaColor.withAlpha(60)),
+              ),
+              child: Text(
+                deltaLabel,
+                style: TextStyle(
+                  color: deltaColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -4716,6 +4894,42 @@ class BoardColumn {
   final List<Issue> issues;
 }
 
+class IssueResolution {
+  const IssueResolution({
+    this.actualWeight,
+    this.weightDelta,
+    this.cycleTimeMs,
+    this.leadTimeMs,
+    this.workStartSource = '',
+  });
+
+  static IssueResolution? fromMap(Map<String, dynamic> data) {
+    if (data.isEmpty) {
+      return null;
+    }
+    final actualWeight = _asInt(data['actualWeight']);
+    return IssueResolution(
+      actualWeight: actualWeight > 0 ? actualWeight : null,
+      weightDelta: data['weightDelta'] is num
+          ? (data['weightDelta'] as num).toInt()
+          : null,
+      cycleTimeMs: data['cycleTimeMs'] is num
+          ? (data['cycleTimeMs'] as num).toInt()
+          : null,
+      leadTimeMs: data['leadTimeMs'] is num
+          ? (data['leadTimeMs'] as num).toInt()
+          : null,
+      workStartSource: _asString(data['workStartSource']),
+    );
+  }
+
+  final int? actualWeight;
+  final int? weightDelta;
+  final int? cycleTimeMs;
+  final int? leadTimeMs;
+  final String workStartSource;
+}
+
 class Issue {
   const Issue({
     required this.id,
@@ -4734,6 +4948,7 @@ class Issue {
     this.rank = 0,
     this.closedAt,
     this.weightEstimate,
+    this.resolution,
     this.pullRequests = const [],
     this.cursorAgent,
   }) : displayId = displayId ?? issueKey ?? id;
@@ -4768,6 +4983,9 @@ class Issue {
       weightEstimate: IssueWeightEstimate.fromMap(
         _asMap(data['weightEstimate']),
       ),
+      resolution: IssueResolution.fromMap(
+        _asMap(data['resolution']),
+      ),
       pullRequests: _asList(data['pullRequests'])
           .map((value) => IssuePullRequest.fromMap(_asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
@@ -4794,6 +5012,7 @@ class Issue {
       rank: rank ?? this.rank,
       closedAt: closedAt,
       weightEstimate: weightEstimate,
+      resolution: resolution,
       pullRequests: pullRequests,
       cursorAgent: cursorAgent,
     );
@@ -4815,6 +5034,7 @@ class Issue {
   final double rank;
   final DateTime? closedAt;
   final IssueWeightEstimate? weightEstimate;
+  final IssueResolution? resolution;
   final List<IssuePullRequest> pullRequests;
   final CursorAgentState? cursorAgent;
 }
