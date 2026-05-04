@@ -414,7 +414,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   _githubConnectionSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _reposSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-      _workspaceSettingsSubscription;
+  _workspaceSettingsSubscription;
   var _isBootstrapping = true;
   var _isConnectingGitHub = false;
   var _isLoadingRepositories = false;
@@ -560,14 +560,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .collection('githubRepos')
         .snapshots()
         .listen(_replaceRepositories, onError: _handleStreamError);
-    _workspaceSettingsSubscription = workspaceRef
-        .snapshots()
-        .listen(_replaceWorkspaceSettings, onError: _handleStreamError);
+    _workspaceSettingsSubscription = workspaceRef.snapshots().listen(
+      _replaceWorkspaceSettings,
+      onError: _handleStreamError,
+    );
   }
 
-  void _replaceWorkspaceSettings(
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
+  void _replaceWorkspaceSettings(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     if (!mounted || data == null) {
       return;
@@ -3508,7 +3507,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   var _isStartingCursorAgent = false;
   Issue? _liveIssue;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-      _issueSubscription;
+  _issueSubscription;
 
   @override
   void initState() {
@@ -3545,11 +3544,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         .doc('workspaces/$workspaceId/issues/$issueId')
         .snapshots()
         .listen((snapshot) {
-      if (!mounted || !snapshot.exists) return;
-      setState(() {
-        _liveIssue = Issue.fromDocument(snapshot);
-      });
-    });
+          if (!mounted || !snapshot.exists) return;
+          setState(() {
+            _liveIssue = Issue.fromDocument(snapshot);
+          });
+        });
   }
 
   @override
@@ -5401,15 +5400,15 @@ class IssueCard extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(11, 11, 11, 10),
       decoration: BoxDecoration(
         color: isDragPlaceholder ? const Color(0xFFF8FAFC) : Colors.white,
         border: Border.all(
           color: isDragging || isDragPlaceholder
               ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
-              : const Color(0xFFE2E8F0),
+              : const Color(0xFFDDE7F0),
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -5417,125 +5416,218 @@ class IssueCard extends StatelessWidget {
                   ? 0.22
                   : isDragPlaceholder
                   ? 0
-                  : 0.04,
+                  : 0.035,
             ),
-            blurRadius: isDragging ? 30 : 10,
-            offset: Offset(0, isDragging ? 18 : 4),
+            blurRadius: isDragging ? 30 : 14,
+            offset: Offset(0, isDragging ? 18 : 6),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTight = constraints.maxWidth < 300;
+          final body = issue.body.trim();
+          final visibleLabelLimit = isTight ? 3 : 5;
+          final visibleLabels = issue.labels.take(visibleLabelLimit).toList();
+          final hiddenLabelCount = issue.labels.length - visibleLabels.length;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RepoBadge(repo: issue.repo),
-              if (issue.weightEstimate?.value != null) ...[
-                const SizedBox(width: 6),
-                WeightBadge(estimate: issue.weightEstimate!),
-              ],
-              const Spacer(),
-              PriorityDot(priority: issue.priority),
-              if (githubUrl != null) ...[
-                const SizedBox(width: 6),
-                GitHubLinkOpenButton(url: githubUrl),
-                const SizedBox(width: 6),
-                CursorAgentCardButton(
-                  issue: issue,
-                  isStarting: isStartingCursorAgent,
-                  onStart: onStartCursorAgent,
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            issue.title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: const Color(0xFF0F172A),
-              fontWeight: FontWeight.w700,
-              height: 1.3,
-            ),
-          ),
-          if (issue.body.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              issue.body,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF64748B),
-                height: 1.35,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        RepoBadge(repo: issue.repo),
+                        if (issue.weightEstimate?.value != null)
+                          WeightBadge(estimate: issue.weightEstimate!),
+                      ],
+                    ),
+                  ),
+                  if (githubUrl != null) ...[
+                    const SizedBox(width: 6),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        GitHubLinkCopyButton(url: githubUrl),
+                        CursorAgentCardButton(
+                          issue: issue,
+                          isStarting: isStartingCursorAgent,
+                          onStart: onStartCursorAgent,
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: [
-              for (final label in issue.labels) LabelPill(label: label),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 12,
-                backgroundColor: const Color(0xFFDBEAFE),
-                child: Text(
-                  issue.assignee,
-                  style: const TextStyle(
-                    color: Color(0xFF1D4ED8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+              const SizedBox(height: 10),
+              Text(
+                issue.title,
+                maxLines: isTight ? 2 : 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.w700,
+                  height: 1.28,
+                ),
+              ),
+              if (body.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  body,
+                  maxLines: isTight ? 2 : 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF64748B),
+                    height: 1.35,
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              ],
+              if (visibleLabels.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
                   children: [
-                    Flexible(
-                      child: Text(
-                        issue.displayId,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    IssueIdCopyButton(issueId: issue.displayId),
+                    for (final label in visibleLabels) LabelPill(label: label),
+                    if (hiddenLabelCount > 0)
+                      LabelPill(label: '+$hiddenLabelCount'),
                   ],
                 ),
-              ),
-              if (issue.dueDate != null) ...[
-                const SizedBox(width: 6),
-                DueDatePill(dueDate: issue.dueDate!),
               ],
-              const Spacer(),
-              if (issue.pullRequests.isNotEmpty) ...[
-                PullRequestBadge(pullRequests: issue.pullRequests),
-                const SizedBox(width: 8),
-              ],
-              const Icon(
-                Icons.chat_bubble_outline_rounded,
-                size: 15,
-                color: Color(0xFF94A3B8),
-              ),
-              const SizedBox(width: 3),
-              Text(
-                '${issue.comments}',
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
-                ),
+              const SizedBox(height: 11),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  AssigneeMetaChip(assignee: issue.assignee),
+                  IssueIdMetaChip(issueId: issue.displayId),
+                  if (issue.dueDate != null)
+                    DueDatePill(dueDate: issue.dueDate!),
+                  if (issue.pullRequests.isNotEmpty)
+                    PullRequestBadge(pullRequests: issue.pullRequests),
+                  CommentMetaChip(comments: issue.comments),
+                ],
               ),
             ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class AssigneeMetaChip extends StatelessWidget {
+  const AssigneeMetaChip({super.key, required this.assignee});
+
+  final String assignee;
+
+  @override
+  Widget build(BuildContext context) {
+    return IssueMetaChip(
+      leading: CircleAvatar(
+        radius: 8,
+        backgroundColor: const Color(0xFFDBEAFE),
+        child: Text(
+          assignee,
+          style: const TextStyle(
+            color: Color(0xFF1D4ED8),
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
           ),
+        ),
+      ),
+      label: assignee,
+    );
+  }
+}
+
+class IssueIdMetaChip extends StatelessWidget {
+  const IssueIdMetaChip({super.key, required this.issueId});
+
+  final String issueId;
+
+  @override
+  Widget build(BuildContext context) {
+    return IssueMetaChip(
+      label: issueId,
+      trailing: IssueIdCopyButton(issueId: issueId),
+    );
+  }
+}
+
+class CommentMetaChip extends StatelessWidget {
+  const CommentMetaChip({super.key, required this.comments});
+
+  final int comments;
+
+  @override
+  Widget build(BuildContext context) {
+    return IssueMetaChip(
+      icon: Icons.chat_bubble_outline_rounded,
+      label: '$comments',
+    );
+  }
+}
+
+class IssueMetaChip extends StatelessWidget {
+  const IssueMetaChip({
+    super.key,
+    required this.label,
+    this.icon,
+    this.leading,
+    this.trailing,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Widget? leading;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        leading == null && icon == null ? 8 : 5,
+        3,
+        6,
+        3,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 5),
+          ] else if (icon != null) ...[
+            Icon(icon, size: 13, color: const Color(0xFF94A3B8)),
+            const SizedBox(width: 4),
+          ],
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 96),
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          if (trailing != null) ...[const SizedBox(width: 1), trailing!],
         ],
       ),
     );
@@ -5587,32 +5679,43 @@ class PullRequestBadge extends StatelessWidget {
     return Tooltip(
       message: prUrl ?? 'Linked pull request',
       child: GestureDetector(
-        onTap: prUrl != null ? () => unawaited(_launchUrlExternal(prUrl)) : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.alt_route_rounded,
-              size: 15,
-              color: Color(0xFF0EA5E9),
-            ),
-            const SizedBox(width: 3),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF0369A1),
-                fontWeight: FontWeight.w800,
+        onTap: prUrl != null
+            ? () => unawaited(_launchUrlExternal(prUrl))
+            : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            border: Border.all(color: const Color(0xFFBFDBFE)),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.alt_route_rounded,
+                size: 14,
+                color: Color(0xFF0EA5E9),
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF0369A1),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class GitHubLinkOpenButton extends StatelessWidget {
-  const GitHubLinkOpenButton({super.key, required this.url});
+class GitHubLinkCopyButton extends StatelessWidget {
+  const GitHubLinkCopyButton({super.key, required this.url});
 
   final String url;
 
@@ -5621,11 +5724,17 @@ class GitHubLinkOpenButton extends StatelessWidget {
     return SizedBox.square(
       dimension: 26,
       child: IconButton(
-        tooltip: 'Open in GitHub',
+        tooltip: 'Copy GitHub link',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
-        onPressed: () => unawaited(_launchUrlExternal(url)),
-        icon: const Icon(Icons.open_in_new_rounded, size: 16),
+        onPressed: () => unawaited(
+          _copyTextToClipboard(
+            context,
+            text: url,
+            successMessage: 'GitHub link copied',
+          ),
+        ),
+        icon: const Icon(Icons.link_rounded, size: 16),
       ),
     );
   }
@@ -5673,7 +5782,8 @@ class RepoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Flexible(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
@@ -5702,18 +5812,23 @@ class LabelPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF475569),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 128),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF475569),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -6094,35 +6209,6 @@ class CursorAgentPanel extends StatelessWidget {
             label: Text(isRunning ? 'Running' : 'Start'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class PriorityDot extends StatelessWidget {
-  const PriorityDot({super.key, required this.priority});
-
-  final Priority priority;
-
-  Color get color {
-    switch (priority) {
-      case Priority.high:
-        return const Color(0xFFEF4444);
-      case Priority.medium:
-        return const Color(0xFFF59E0B);
-      case Priority.low:
-        return const Color(0xFF22C55E);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: '${priority.name} priority',
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
