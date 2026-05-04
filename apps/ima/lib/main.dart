@@ -732,6 +732,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         isStartingCursorAgent: _startingCursorAgentIssueIds.contains(issueId),
         onStartCursorAgent: _startCursorAgent,
         isBottomSheet: useBottomSheet,
+        workspaceId: _workspaceId,
       ),
     );
 
@@ -2329,6 +2330,7 @@ class AddIssueDialog extends StatefulWidget {
     this.isStartingCursorAgent = false,
     this.onStartCursorAgent,
     this.isBottomSheet = false,
+    this.workspaceId,
   });
 
   final List<BoardColumn> columns;
@@ -2340,6 +2342,7 @@ class AddIssueDialog extends StatefulWidget {
   final bool isStartingCursorAgent;
   final Future<void> Function(String issueId)? onStartCursorAgent;
   final bool isBottomSheet;
+  final String? workspaceId;
 
   @override
   State<AddIssueDialog> createState() => _AddIssueDialogState();
@@ -2358,6 +2361,9 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   DateTime? _dueDate;
   var _isEstimatingWeight = false;
   var _isStartingCursorAgent = false;
+  Issue? _liveIssue;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+      _issueSubscription;
 
   @override
   void initState() {
@@ -2370,6 +2376,8 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         : widget.repositoryOptions.first;
 
     if (issue != null) {
+      _liveIssue = issue;
+      _listenToIssue(issue.id);
       _titleController.text = issue.title;
       _bodyController.text = issue.body;
       _githubUrlController.text = issue.githubUrl ?? '';
@@ -2383,8 +2391,25 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     }
   }
 
+  void _listenToIssue(String issueId) {
+    final workspaceId = widget.workspaceId;
+    if (workspaceId == null || workspaceId.isEmpty) {
+      return;
+    }
+    _issueSubscription = FirebaseFirestore.instance
+        .doc('workspaces/$workspaceId/issues/$issueId')
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted || !snapshot.exists) return;
+      setState(() {
+        _liveIssue = Issue.fromDocument(snapshot);
+      });
+    });
+  }
+
   @override
   void dispose() {
+    _issueSubscription?.cancel();
     _titleController.dispose();
     _bodyController.dispose();
     _githubUrlController.dispose();
@@ -2597,7 +2622,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
           if (isEditing) ...[
             const SizedBox(height: 14),
             IssueWeightPanel(
-              issue: widget.initialIssue!,
+              issue: _liveIssue ?? widget.initialIssue!,
               isEstimating: widget.isEstimatingWeight || _isEstimatingWeight,
               onEstimate: widget.onEstimateIssueWeight == null
                   ? null
@@ -2605,7 +2630,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             ),
             const SizedBox(height: 14),
             CursorAgentPanel(
-              issue: widget.initialIssue!,
+              issue: _liveIssue ?? widget.initialIssue!,
               isStarting:
                   widget.isStartingCursorAgent || _isStartingCursorAgent,
               onStart: widget.onStartCursorAgent == null
