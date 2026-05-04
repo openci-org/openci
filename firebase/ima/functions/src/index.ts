@@ -915,6 +915,7 @@ async function closeDescendantSubIssues(input: {
   return closed;
 }
 
+
 async function selectedRepositories(workspaceId: string): Promise<GitHubRepository[]> {
   const snapshot = await db.collection(`workspaces/${workspaceId}/githubRepos`).get();
   return snapshot.docs
