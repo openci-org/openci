@@ -15,6 +15,10 @@ if [ -z "$branch" ]; then
   exit 0
 fi
 
+if [ "$branch" = "develop" ]; then
+  exit 0
+fi
+
 openci_dir="$(git rev-parse --show-toplevel 2>/dev/null)/.openci"
 if [ ! -d "$openci_dir" ]; then
   exit 0
