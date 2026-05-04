@@ -1579,6 +1579,15 @@ class IssueCountBadge extends StatelessWidget {
 class EstimationAccuracyBadge extends StatelessWidget {
   const EstimationAccuracyBadge({super.key, required this.closedIssues});
 
+  static const _validWeights = [1, 2, 4, 8, 16, 32];
+
+  static bool _isAdjacent(int a, int b) {
+    final idxA = _validWeights.indexOf(a);
+    final idxB = _validWeights.indexOf(b);
+    if (idxA < 0 || idxB < 0) return (a - b).abs() <= 1;
+    return (idxA - idxB).abs() <= 1;
+  }
+
   final List<Issue> closedIssues;
 
   @override
@@ -1595,14 +1604,21 @@ class EstimationAccuracyBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final adjacentCount = pairs
+        .where(
+          (issue) => _isAdjacent(
+            issue.weightEstimate!.value!,
+            issue.resolution!.actualWeight!,
+          ),
+        )
+        .length;
+    final within1Rate = (adjacentCount / pairs.length * 100).round();
     final deltas = pairs
         .map(
           (issue) =>
               issue.weightEstimate!.value! - issue.resolution!.actualWeight!,
         )
         .toList();
-    final within1 = deltas.where((d) => d.abs() <= 1).length;
-    final within1Rate = (within1 / deltas.length * 100).round();
     final sumAbsError = deltas.fold<int>(0, (s, d) => s + d.abs());
     final mae = (sumAbsError / deltas.length * 10).round() / 10;
     final sumDelta = deltas.fold<int>(0, (s, d) => s + d);
@@ -1639,7 +1655,7 @@ class EstimationAccuracyBadge extends StatelessWidget {
               ),
             ),
             const Text(
-              '推定精度 (±1)',
+              '推定精度 (隣接値)',
               style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
             ),
           ],
@@ -5718,21 +5734,32 @@ class _ActualWeightRow extends StatelessWidget {
     this.delta,
   });
 
+  static const _validWeights = [1, 2, 4, 8, 16, 32];
+
+  static bool _isAdjacent(int a, int b) {
+    final idxA = _validWeights.indexOf(a);
+    final idxB = _validWeights.indexOf(b);
+    if (idxA < 0 || idxB < 0) return (a - b).abs() <= 1;
+    return (idxA - idxB).abs() <= 1;
+  }
+
   final int? predictedWeight;
   final int actualWeight;
   final int? delta;
 
   @override
   Widget build(BuildContext context) {
-    final absDelta = delta?.abs() ?? 0;
-    final deltaColor = absDelta == 0
+    final isExact = predictedWeight == actualWeight;
+    final isClose =
+        predictedWeight != null && _isAdjacent(predictedWeight!, actualWeight);
+    final deltaColor = isExact
         ? const Color(0xFF15803D)
-        : absDelta == 1
+        : isClose
         ? const Color(0xFFA16207)
         : const Color(0xFFDC2626);
-    final deltaBg = absDelta == 0
+    final deltaBg = isExact
         ? const Color(0xFFF0FDF4)
-        : absDelta == 1
+        : isClose
         ? const Color(0xFFFEFCE8)
         : const Color(0xFFFEF2F2);
     final deltaLabel = delta == null
