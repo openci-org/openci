@@ -30,6 +30,12 @@ interface CreateGitHubIssueRequest extends WorkspaceRequest {
     dueDate?: string;
     issueId?: string;
 }
+interface CreateGitHubSubIssueRequest extends WorkspaceRequest {
+    parentIssueId: string;
+    issueId?: string;
+    title: string;
+    body?: string;
+}
 interface GitHubRepository {
     fullName: string;
     name: string;
@@ -59,6 +65,9 @@ interface CreateGitHubIssueResponse {
     issueId: string;
     number: number;
     url: string;
+}
+interface CreateGitHubSubIssueResponse extends CreateGitHubIssueResponse {
+    parentIssueId: string;
 }
 interface EstimateIssueWeightRequest extends WorkspaceRequest {
     issueId: string;
@@ -93,6 +102,7 @@ export declare const completeGitHubDeviceFlow: import("firebase-functions/v2/htt
 export declare const listGitHubRepositories: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<ListGitHubRepositoriesResponse>, unknown>;
 export declare const importGitHubIssues: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<ImportGitHubIssuesResponse>, unknown>;
 export declare const createGitHubIssue: import("firebase-functions/v2/https").CallableFunction<CreateGitHubIssueRequest, Promise<CreateGitHubIssueResponse>, unknown>;
+export declare const createGitHubSubIssue: import("firebase-functions/v2/https").CallableFunction<CreateGitHubSubIssueRequest, Promise<CreateGitHubSubIssueResponse>, unknown>;
 export declare const startIssueCursorAgent: import("firebase-functions/v2/https").CallableFunction<StartIssueCursorAgentRequest, Promise<StartIssueCursorAgentResponse>, unknown>;
 export declare const backfillIssueKeys: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<BackfillIssueKeysResponse>, unknown>;
 export declare const backfillCursorAgentPullRequests: import("firebase-functions/v2/https").CallableFunction<WorkspaceRequest, Promise<BackfillCursorAgentPullRequestsResponse>, unknown>;
@@ -103,15 +113,15 @@ export declare const estimateIssueWeight: import("firebase-functions/v2/https").
     weightEstimate: IssueWeightEstimateResponse;
 }>, unknown>;
 export declare const issueLifecycleEventLogger: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
-    workspaceId: string;
     issueId: string;
+    workspaceId: string;
 }>>;
 export declare const autoEstimateIssueWeightOnIssueWrite: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
-    workspaceId: string;
     issueId: string;
+    workspaceId: string;
 }>>;
 export declare const autoSyncIssueToGitHubOnIssueWrite: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2").Change<import("firebase-functions/v2/firestore").DocumentSnapshot> | undefined, {
-    workspaceId: string;
     issueId: string;
+    workspaceId: string;
 }>>;
 export {};
