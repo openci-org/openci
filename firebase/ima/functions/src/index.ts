@@ -29,7 +29,6 @@ import {
   issueWeightPromptVersion,
   parseWeightEstimateResponse,
   truncateText,
-  validWeights,
 } from "./issueWeightHelpers";
 
 if (getApps().length === 0) {
@@ -870,9 +869,7 @@ async function collectResolutionStats(workspaceId: string): Promise<ResolutionSt
 
   let estimationAccuracy: EstimationAccuracy | null = null;
   if (comparablePairs.length > 0) {
-    const exactMatches = comparablePairs.filter(
-      (e) => e.weightValue === e.actualWeight,
-    ).length;
+    const exactMatches = comparablePairs.filter((e) => e.weightValue === e.actualWeight).length;
     const adjacentMatches = comparablePairs.filter((e) =>
       isAdjacentWeight(e.weightValue!, e.actualWeight!),
     ).length;
@@ -2214,9 +2211,7 @@ async function linkPullRequestToImaIssues(
   return linked;
 }
 
-async function processBranchLogFromPush(
-  payload: GitHubPushWebhookPayload,
-): Promise<number> {
+async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Promise<number> {
   const repoFullName = asString(payload.repository?.full_name);
   if (repoFullName.length === 0) {
     return 0;
@@ -2240,10 +2235,7 @@ async function processBranchLogFromPush(
   for (const workspace of workspaces.docs) {
     const workspaceRef = workspace.ref;
     const workspaceId = workspace.id;
-    const repoDoc = await workspaceRef
-      .collection("githubRepos")
-      .doc(repoDocId(repoFullName))
-      .get();
+    const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
     if (
       !repoDoc.exists ||
       repoDoc.get("enabled") !== true ||
@@ -2568,8 +2560,7 @@ export const issueLifecycleEventLogger = onDocumentWritten(
       const workStartSource =
         cursorStartedAt !== null ? "cursorAgent" : branchCreatedAt !== null ? "branch" : "status";
       const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
-      const cycleTimeMs =
-        workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
+      const cycleTimeMs = workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
       const weightEstimate = issueWeightEstimateMap(after);
       const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
 
