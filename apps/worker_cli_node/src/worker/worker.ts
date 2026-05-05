@@ -1,14 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 
-import {
-  generateFailureSummary,
-  handleBuildJobStatusChange,
-  updateCheckRun,
-} from "@openci/build-job-services";
-import { BuildJobStatus } from "@openci/dataconnect-admin";
+import { handleBuildJobStatusChange, updateCheckRun } from "@openci/build-job-services";
+import { BuildJobStatus } from "@openci/build-job-services";
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
-import { claimNextJob, completeJob, createRun, updateRunStatus } from "../dataconnect.js";
+import { claimNextJob, completeJob, createRun, updateRunStatus } from "../firestore.js";
 import { buildEnvVars, buildSecretVars } from "../env.js";
 import { withInstallationToken } from "../github.js";
 import { flushLogs, logError, logInfo } from "../logger.js";
@@ -69,6 +65,7 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     await logError(buildJob.id, runId, `Job failed: ${message}`, stack);
+    await flushLogs();
     await updateRunStatus({
       buildJobId: buildJob.id,
       runId,
@@ -84,7 +81,6 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
     };
     await updateCheckRun(completedJob, "completed", "failure");
     await handleBuildJobStatusChange(completedJob, BuildJobStatus.FAILURE);
-    await generateFailureSummary(completedJob, config.projectId);
     throw error;
   } finally {
     await flushLogs();

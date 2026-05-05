@@ -538,7 +538,6 @@ class _TranslationsAuthFirebaseFormJa implements TranslationsAuthFirebaseFormEn 
 	@override String get messagingSenderId => 'メッセージ送信者ID';
 	@override String get projectId => 'プロジェクトID';
 	@override String get storageBucket => 'ストレージバケット';
-	@override String get dataConnectServiceId => 'Data ConnectサービスID';
 	@override String get pickConfig => '設定を保存';
 	@override String get configSaved => '設定を保存しました。アプリを再起動してください。';
 	@override String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
@@ -837,7 +836,6 @@ extension on TranslationsJa {
 			'auth.firebaseForm.messagingSenderId' => 'メッセージ送信者ID',
 			'auth.firebaseForm.projectId' => 'プロジェクトID',
 			'auth.firebaseForm.storageBucket' => 'ストレージバケット',
-			'auth.firebaseForm.dataConnectServiceId' => 'Data ConnectサービスID',
 			'auth.firebaseForm.pickConfig' => '設定を保存',
 			'auth.firebaseForm.configSaved' => '設定を保存しました。アプリを再起動してください。',
 			'auth.firebaseForm.configActive' => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。',

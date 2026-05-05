@@ -1,7 +1,19 @@
-import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+export {
+  appendBuildLogForWorker,
+  BuildJobStatus,
+  claimQueuedBuildJob,
+  completeBuildJobForWorker,
+  createBuildRunForWorker,
+  getBuildJob,
+  listWorkerEnvironmentVariables,
+  listWorkerSecrets,
+  updateBuildJobStatus,
+  updateBuildRunStatusForWorker,
+  updateEnvironmentVariableValueForWorker,
+} from "./firestoreData";
+
 import {
   BuildJobStatus,
-  connectorConfig,
   getBuildJob,
   getTeamById,
   listLatestBuildLogs,
@@ -10,12 +22,20 @@ import {
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
   updateUserFcmTokens,
-} from "@openci/dataconnect-admin";
+} from "./firestoreData";
 import { getMessaging } from "firebase-admin/messaging";
+
+type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
+type TerminalBuildJobStatus =
+  | typeof BuildJobStatus.SUCCESS
+  | typeof BuildJobStatus.FAILURE
+  | typeof BuildJobStatus.CANCELLED
+  | typeof BuildJobStatus.SKIPPED
+  | typeof BuildJobStatus.TIMED_OUT;
 
 export interface BuildJob {
   id: string;
-  status: BuildJobStatus;
+  status: BuildJobStatusValue;
   owner: string;
   repo: string;
   teamId?: string | null;
@@ -42,28 +62,10 @@ export interface BuildJob {
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
-const failureSummaryModel = "claude-opus-4-7";
-
-export function configureDataConnect(options: { serviceId?: string; location?: string }): void {
-  if (options.serviceId) connectorConfig.serviceId = options.serviceId;
-  if (options.location) connectorConfig.location = options.location;
-}
 
 function asBuildJob(value: unknown): BuildJob | undefined {
   if (!value || typeof value !== "object") return undefined;
   return value as BuildJob;
-}
-
-function nonEmptyString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function resolveProjectId(override?: string): string {
-  const projectId = override ?? process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT;
-  if (!projectId || projectId.trim().length === 0) {
-    throw new Error("GCLOUD_PROJECT environment variable is not set.");
-  }
-  return projectId;
 }
 
 export function normalizeGitHubApiBaseUrl(apiBaseUrl?: string | null): string {
@@ -125,7 +127,9 @@ export async function updateCheckRun(
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to update GitHub check run: ${response.status} ${await response.text()}`);
+    throw new Error(
+      `Failed to update GitHub check run: ${response.status} ${await response.text()}`,
+    );
   }
 }
 
@@ -139,14 +143,16 @@ export async function updateCheckRunById(
 
 async function resolveDependencies(
   completedJob: BuildJob,
-  completedStatus: BuildJobStatus,
+  completedStatus: BuildJobStatusValue,
 ): Promise<void> {
   if (!completedJob.workflowRunId || !completedJob.jobKey) return;
   const waitingJobs = await listWaitingBuildJobs({ workflowRunId: completedJob.workflowRunId });
   const isSuccess = completedStatus === BuildJobStatus.SUCCESS;
 
   for (const job of waitingJobs.data.buildJobs) {
-    const needs = Array.isArray(job.needs) ? job.needs.filter((need): need is string => typeof need === "string") : [];
+    const needs = Array.isArray(job.needs)
+      ? job.needs.filter((need: unknown): need is string => typeof need === "string")
+      : [];
     if (!needs.includes(completedJob.jobKey)) continue;
 
     if (!isSuccess) {
@@ -183,7 +189,7 @@ async function failureLogLine(buildJobId: string, latestRunId?: string | null): 
 
 async function sendBuildNotifications(
   buildJob: BuildJob,
-  status: BuildJobStatus.SUCCESS | BuildJobStatus.FAILURE,
+  status: typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE,
 ): Promise<void> {
   if (!buildJob.teamId) return;
   const users = await listTeamNotificationUsers({ teamId: buildJob.teamId });
@@ -202,7 +208,11 @@ async function sendBuildNotifications(
   const invalidTokens = new Set<string>();
   for (const member of users.data.teamMembers) {
     const preference = member.user.notificationPreference ?? "all";
-    if (preference === "none" || (preference === "successOnly" && !isSuccess) || (preference === "failureOnly" && isSuccess)) {
+    if (
+      preference === "none" ||
+      (preference === "successOnly" && !isSuccess) ||
+      (preference === "failureOnly" && isSuccess)
+    ) {
       continue;
     }
     for (const token of member.user.fcmTokens ?? []) {
@@ -223,7 +233,10 @@ async function sendBuildNotifications(
         });
       } catch (error) {
         const message = String(error);
-        if (message.includes("registration-token-not-registered") || message.includes("invalid-argument")) {
+        if (
+          message.includes("registration-token-not-registered") ||
+          message.includes("invalid-argument")
+        ) {
           invalidTokens.add(token);
         }
       }
@@ -232,7 +245,9 @@ async function sendBuildNotifications(
 
   if (invalidTokens.size > 0) {
     for (const member of users.data.teamMembers) {
-      const validTokens = (member.user.fcmTokens ?? []).filter((token) => !invalidTokens.has(token));
+      const validTokens = (member.user.fcmTokens ?? []).filter(
+        (token: string) => !invalidTokens.has(token),
+      );
       if (validTokens.length !== (member.user.fcmTokens ?? []).length) {
         await updateUserFcmTokens({ id: member.user.id, fcmTokens: validTokens });
       }
@@ -242,17 +257,16 @@ async function sendBuildNotifications(
 
 export async function handleBuildJobStatusChange(
   buildJob: BuildJob,
-  status: BuildJobStatus,
+  status: BuildJobStatusValue,
 ): Promise<void> {
-  if (
-    [
-      BuildJobStatus.SUCCESS,
-      BuildJobStatus.FAILURE,
-      BuildJobStatus.CANCELLED,
-      BuildJobStatus.TIMED_OUT,
-      BuildJobStatus.SKIPPED,
-    ].includes(status)
-  ) {
+  const terminalStatuses: TerminalBuildJobStatus[] = [
+    BuildJobStatus.SUCCESS,
+    BuildJobStatus.FAILURE,
+    BuildJobStatus.CANCELLED,
+    BuildJobStatus.TIMED_OUT,
+    BuildJobStatus.SKIPPED,
+  ];
+  if (terminalStatuses.includes(status as TerminalBuildJobStatus)) {
     await resolveDependencies(buildJob, status);
   }
   if (status === BuildJobStatus.SUCCESS || status === BuildJobStatus.FAILURE) {
@@ -262,111 +276,7 @@ export async function handleBuildJobStatusChange(
 
 export async function handleBuildJobStatusChangeById(
   buildJobId: string,
-  status: BuildJobStatus,
+  status: BuildJobStatusValue,
 ): Promise<void> {
   await handleBuildJobStatusChange(await getBuildJobOrThrow(buildJobId), status);
 }
-
-async function accessProjectSecret(projectIdOverride: string | undefined, name: string): Promise<string> {
-  const projectId = resolveProjectId(projectIdOverride);
-  const client = new SecretManagerServiceClient();
-  const [version] = await client.accessSecretVersion({
-    name: `projects/${projectId}/secrets/${name}/versions/latest`,
-  });
-  const data = version.payload?.data;
-  if (!data) throw new Error(`Secret ${name} has no payload`);
-  return Buffer.from(data).toString("utf8");
-}
-
-async function createAnthropicMessage(projectId: string | undefined, logLines: string): Promise<string> {
-  const apiKey = await accessProjectSecret(projectId, "ANTHROPIC_API_KEY");
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: failureSummaryModel,
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `あなたはCI/CDの専門家です。以下のビルドログを分析し、ビルドが失敗した原因を簡潔に要約してください。根本原因に焦点を当て、修正方法を提案してください。3文以内で日本語で回答してください。\n\n${logLines}`,
-        },
-      ],
-    }),
-  });
-  const data = (await response.json()) as {
-    content?: Array<{ type?: string; text?: string }>;
-    error?: { message?: string };
-  };
-  if (!response.ok) {
-    throw new Error(data.error?.message ?? `Anthropic API error: ${response.status}`);
-  }
-  return (data.content ?? [])
-    .filter((block) => block.type === "text" && typeof block.text === "string")
-    .map((block) => block.text)
-    .join("");
-}
-
-export async function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void> {
-  if (buildJob.status !== BuildJobStatus.FAILURE) return;
-  if (buildJob.teamId) {
-    const team = await getTeamById({ teamId: buildJob.teamId });
-    if (team.data.team?.aiEnabled === false) return;
-  }
-  const latestRunId = nonEmptyString(buildJob.latestRunId);
-  if (!latestRunId) return;
-
-  const start = Date.now();
-  await updateBuildJobFailureSummary({
-    id: buildJob.id,
-    failureSummaryStatus: "generating",
-    failureSummary: null,
-    failureSummaryModel: null,
-    failureSummaryDurationMs: null,
-  });
-
-  try {
-    const logs = await listLatestBuildLogs({ buildJobId: buildJob.id, runId: latestRunId, limit: 50 });
-    if (logs.data.buildLogs.length === 0) {
-      await updateBuildJobFailureSummary({
-        id: buildJob.id,
-        failureSummaryStatus: "error",
-        failureSummary: "No logs found",
-        failureSummaryModel: null,
-        failureSummaryDurationMs: null,
-      });
-      return;
-    }
-
-    const logLines = logs.data.buildLogs
-      .slice()
-      .reverse()
-      .map((log) => log.message)
-      .join("\n");
-    const summary = await createAnthropicMessage(projectId, logLines);
-    await updateBuildJobFailureSummary({
-      id: buildJob.id,
-      failureSummaryStatus: "done",
-      failureSummary: summary || "No summary generated",
-      failureSummaryModel,
-      failureSummaryDurationMs: Date.now() - start,
-    });
-  } catch (error) {
-    await updateBuildJobFailureSummary({
-      id: buildJob.id,
-      failureSummaryStatus: "error",
-      failureSummary: String(error),
-      failureSummaryModel: null,
-      failureSummaryDurationMs: null,
-    });
-  }
-}
-
-export async function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void> {
-  await generateFailureSummary(await getBuildJobOrThrow(buildJobId), projectId);
-}
-

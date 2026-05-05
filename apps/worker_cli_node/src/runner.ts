@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 
-import { isJobCancelled } from "./dataconnect.js";
+import { isJobCancelled } from "./firestore.js";
 import { envFileContent } from "./env.js";
 import { logInfo, logWarning } from "./logger.js";
 import type { BuildJob } from "./types.js";

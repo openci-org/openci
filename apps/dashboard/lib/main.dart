@@ -1,4 +1,3 @@
-import 'package:dashboard/firebase/dataconnect.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/i18n/strings.g.dart';
@@ -49,8 +48,6 @@ Future<void> main() async {
     if (e.code != 'duplicate-app') rethrow;
     debugPrint('[OpenCI] Firebase already initialized (hot restart)');
   }
-
-  initDataConnector(selfHosted);
 
   if (selfHosted == null) {
     await initializeRevenueCat();

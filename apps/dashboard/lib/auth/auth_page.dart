@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
@@ -315,12 +316,39 @@ class AuthPage extends HookConsumerWidget {
                                               final userId =
                                                   credential.user!.uid;
                                               final teamId = userId;
-                                              await dataConnector
-                                                  .createTeamForCurrentUser(
-                                                    id: teamId,
-                                                    name: teamId,
-                                                  )
-                                                  .execute();
+                                              final timestamp = FieldValue
+                                                  .serverTimestamp();
+                                              final batch = firestore.batch();
+                                              batch.set(
+                                                firestore
+                                                    .collection(teamsCollection)
+                                                    .doc(teamId),
+                                                {
+                                                  'id': teamId,
+                                                  'name': teamId,
+                                                  'members': [userId],
+                                                  'installationIds': <int>[],
+                                                  'aiEnabled': true,
+                                                  'createdAt': timestamp,
+                                                  'updatedAt': timestamp,
+                                                },
+                                              );
+                                              batch.set(
+                                                firestore
+                                                    .collection(usersCollection)
+                                                    .doc(userId),
+                                                {
+                                                  'id': userId,
+                                                  'email':
+                                                      credential.user!.email ??
+                                                          emailController.text,
+                                                  'selectedTeamId': teamId,
+                                                  'createdAt': timestamp,
+                                                  'updatedAt': timestamp,
+                                                },
+                                                SetOptions(merge: true),
+                                              );
+                                              await batch.commit();
                                               ref.invalidate(authProvider);
                                               _processInvitations();
                                             } catch (e) {
@@ -542,7 +570,6 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
-    final dataConnectServiceIdController = useTextEditingController();
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
@@ -566,9 +593,6 @@ class FirebaseFormSheet extends HookConsumerWidget {
       messagingSenderIdController.text = config.messagingSenderId;
       projectIdController.text = config.projectId;
       storageBucketController.text = config.storageBucket;
-      dataConnectServiceIdController.text = dataConnectServiceIdForConfig(
-        config,
-      );
     }
 
     Future<void> pickConfigFile() async {
@@ -874,13 +898,6 @@ class FirebaseFormSheet extends HookConsumerWidget {
                       labelText: formT.storageBucket,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: dataConnectServiceIdController,
-                    decoration: InputDecoration(
-                      labelText: formT.dataConnectServiceId,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -909,8 +926,6 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             messagingSenderId: messagingSenderIdController.text,
                             projectId: projectIdController.text,
                             storageBucket: storageBucketController.text,
-                            dataConnectServiceId:
-                                dataConnectServiceIdController.text,
                           );
                           await saveSelfHostedConfig(config);
                           ref.invalidate(selfHostedConfigProvider);

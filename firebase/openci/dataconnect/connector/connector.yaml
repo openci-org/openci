@@ -1,9 +1,0 @@
-connectorId: default
-generate:
-  dartSdk:
-    outputDir: ../../../../apps/dashboard/lib/generated/dataconnect
-    package: openci_dataconnect
-  adminNodeSdk:
-    outputDir: ../../ts_functions/src/generated/dataconnect
-    package: "@openci/dataconnect-admin"
-    packageJsonDir: ../../ts_functions

@@ -34,11 +34,11 @@ jobs:
         working-directory: apps/landing_page
         run: vp run build
 
-      - name: Sync build output to firebase/openci/public
+      - name: Sync build output to firebase/public
         run: |
-          rm -rf firebase/openci/public
-          mkdir -p firebase/openci/public
-          cp -R apps/landing_page/out/. firebase/openci/public/
+          rm -rf firebase/public
+          mkdir -p firebase/public
+          cp -R apps/landing_page/out/. firebase/public/
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
@@ -46,7 +46,7 @@ jobs:
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: openci-b1b91
-          entryPoint: firebase/openci
+          entryPoint: firebase
           channelId: live
 
       - name: Deploy to Firebase Hosting (preview)
@@ -56,5 +56,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: openci-b1b91
-          entryPoint: firebase/openci
+          entryPoint: firebase
           expires: 3h

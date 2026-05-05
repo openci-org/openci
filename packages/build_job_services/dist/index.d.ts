@@ -1,7 +1,9 @@
-import { BuildJobStatus } from "@openci/dataconnect-admin";
+export { appendBuildLogForWorker, BuildJobStatus, claimQueuedBuildJob, completeBuildJobForWorker, createBuildRunForWorker, getBuildJob, listWorkerEnvironmentVariables, listWorkerSecrets, updateBuildJobStatus, updateBuildRunStatusForWorker, updateEnvironmentVariableValueForWorker, } from "./firestoreData";
+import { BuildJobStatus } from "./firestoreData";
+type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
 export interface BuildJob {
     id: string;
-    status: BuildJobStatus;
+    status: BuildJobStatusValue;
     owner: string;
     repo: string;
     teamId?: string | null;
@@ -26,16 +28,10 @@ export interface BuildJob {
     completedAt?: string | null;
 }
 export declare const defaultGitHubApiBaseUrl = "https://api.github.com";
-export declare function configureDataConnect(options: {
-    serviceId?: string;
-    location?: string;
-}): void;
 export declare function normalizeGitHubApiBaseUrl(apiBaseUrl?: string | null): string;
 export declare function buildDashboardRunUrl(buildJobId: string): string;
 export declare function getBuildJobOrThrow(buildJobId: string): Promise<BuildJob>;
 export declare function updateCheckRun(buildJob: BuildJob, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
 export declare function updateCheckRunById(buildJobId: string, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
-export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: BuildJobStatus): Promise<void>;
-export declare function handleBuildJobStatusChangeById(buildJobId: string, status: BuildJobStatus): Promise<void>;
-export declare function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void>;
-export declare function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void>;
+export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: BuildJobStatusValue): Promise<void>;
+export declare function handleBuildJobStatusChangeById(buildJobId: string, status: BuildJobStatusValue): Promise<void>;

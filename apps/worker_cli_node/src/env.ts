@@ -1,6 +1,6 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
-import { getEnvironmentVariables, getSecrets, updateEnvironmentVariable } from "./dataconnect.js";
+import { getEnvironmentVariables, getSecrets, updateEnvironmentVariable } from "./firestore.js";
 import { logInfo, logWarning } from "./logger.js";
 import type { BuildJob } from "./types.js";
 

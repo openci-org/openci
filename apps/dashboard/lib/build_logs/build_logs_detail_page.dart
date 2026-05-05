@@ -2,7 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
-import 'package:dashboard/firebase/dataconnect.dart' show BuildJobStatus;
+import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
