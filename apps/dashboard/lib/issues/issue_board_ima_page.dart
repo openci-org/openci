@@ -494,11 +494,27 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   @override
   void initState() {
     super.initState();
+    HardwareKeyboard.instance.addHandler(_handleIssueBoardKeyEvent);
     final user = FirebaseAuth.instance.currentUser;
     _workspaceId = widget.workspaceId.isNotEmpty
         ? widget.workspaceId
         : user?.uid ?? '';
     unawaited(_bootstrapWorkspace());
+  }
+
+  bool _handleIssueBoardKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.keyK ||
+        !HardwareKeyboard.instance.isMetaPressed) {
+      return false;
+    }
+
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) {
+      return false;
+    }
+
+    unawaited(_openIssueSearchDialog());
+    return true;
   }
 
   Future<void> _bootstrapWorkspace() async {
@@ -1499,6 +1515,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleIssueBoardKeyEvent);
     unawaited(_issuesSubscription?.cancel());
     unawaited(_githubConnectionSubscription?.cancel());
     unawaited(_reposSubscription?.cancel());
