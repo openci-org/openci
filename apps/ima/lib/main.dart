@@ -23,6 +23,8 @@ const _compactBoardBreakpoint = 640.0;
 const _compactColumnCollapsedLimit = 4;
 const _defaultDailyWeightTarget = 20;
 
+enum BoardViewMode { standard, overview }
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -424,6 +426,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   String? _loadError;
   int _enabledRepoCount = 0;
   int _dailyWeightTarget = _defaultDailyWeightTarget;
+  var _boardViewMode = BoardViewMode.standard;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -1479,6 +1482,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 elevation: 0,
                 scrolledUnderElevation: 0,
                 actions: [
+                  CompactBoardViewModeButton(
+                    value: _boardViewMode,
+                    onChanged: (mode) => setState(() => _boardViewMode = mode),
+                  ),
                   CompactBoardMenuButton(
                     isConnected: isConnected,
                     isBusy: _isBusy,
@@ -1529,6 +1536,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 onImportIssues: _importGitHubIssues,
                 onSyncIssues: _syncGitHubIssues,
                 onSearchIssues: _openIssueSearchDialog,
+                boardViewMode: _boardViewMode,
+                onBoardViewModeChanged: (mode) =>
+                    setState(() => _boardViewMode = mode),
                 githubLogin: _githubLogin,
                 repoCount: _enabledRepoCount,
                 isBusy: _isBusy,
@@ -1555,6 +1565,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     final allIssues = _columns
                         .expand((column) => column.issues)
                         .toList();
+
+                    if (_boardViewMode == BoardViewMode.overview) {
+                      return OverviewBoard(
+                        columns: _columns,
+                        isCompact: isCompactBoard,
+                        onIssueTapped: _openEditIssueDialog,
+                        onIssueDropped: _moveIssue,
+                      );
+                    }
 
                     if (isCompactBoard) {
                       return ListView.separated(
@@ -2827,6 +2846,8 @@ class BoardToolbar extends StatelessWidget {
     required this.onImportIssues,
     required this.onSyncIssues,
     required this.onSearchIssues,
+    required this.boardViewMode,
+    required this.onBoardViewModeChanged,
     required this.githubLogin,
     required this.repoCount,
     required this.isBusy,
@@ -2837,6 +2858,8 @@ class BoardToolbar extends StatelessWidget {
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
   final VoidCallback onSearchIssues;
+  final BoardViewMode boardViewMode;
+  final ValueChanged<BoardViewMode> onBoardViewModeChanged;
   final String? githubLogin;
   final int repoCount;
   final bool isBusy;
@@ -2894,12 +2917,104 @@ class BoardToolbar extends StatelessWidget {
                     tooltip: 'Search issues (⌘K)',
                     onPressed: onSearchIssues,
                   ),
+                  BoardViewModeToggle(
+                    value: boardViewMode,
+                    onChanged: onBoardViewModeChanged,
+                  ),
                 ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class BoardViewModeToggle extends StatelessWidget {
+  const BoardViewModeToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final BoardViewMode value;
+  final ValueChanged<BoardViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOverview = value == BoardViewMode.overview;
+
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.only(left: 10, right: 4),
+      decoration: BoxDecoration(
+        color: isOverview ? const Color(0xFFEFF6FF) : Colors.white,
+        border: Border.all(
+          color: isOverview ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0),
+        ),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.grid_view_rounded,
+            size: 15,
+            color: isOverview
+                ? const Color(0xFF2563EB)
+                : const Color(0xFF64748B),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '全体ボード',
+            style: TextStyle(
+              color: isOverview
+                  ? const Color(0xFF1D4ED8)
+                  : const Color(0xFF475569),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Transform.scale(
+            scale: 0.76,
+            child: Switch(
+              value: isOverview,
+              onChanged: (enabled) => onChanged(
+                enabled ? BoardViewMode.overview : BoardViewMode.standard,
+              ),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CompactBoardViewModeButton extends StatelessWidget {
+  const CompactBoardViewModeButton({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final BoardViewMode value;
+  final ValueChanged<BoardViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOverview = value == BoardViewMode.overview;
+    return IconButton(
+      tooltip: isOverview ? '全体ボードをOFF' : '全体ボードをON',
+      onPressed: () => onChanged(
+        isOverview ? BoardViewMode.standard : BoardViewMode.overview,
+      ),
+      icon: Icon(
+        isOverview ? Icons.toggle_on_rounded : Icons.toggle_off_outlined,
+        color: isOverview ? const Color(0xFF2563EB) : null,
+        size: 30,
+      ),
     );
   }
 }
@@ -5503,6 +5618,633 @@ class InlineColumnSizeButton extends StatelessWidget {
   }
 }
 
+class OverviewBoard extends StatelessWidget {
+  const OverviewBoard({
+    super.key,
+    required this.columns,
+    required this.isCompact,
+    required this.onIssueTapped,
+    required this.onIssueDropped,
+  });
+
+  final List<BoardColumn> columns;
+  final bool isCompact;
+  final ValueChanged<String> onIssueTapped;
+  final IssueDropCallback onIssueDropped;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: OverviewList(
+            columns: columns,
+            isCompact: isCompact,
+            onIssueTapped: onIssueTapped,
+            onIssueDropped: onIssueDropped,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class OverviewList extends StatelessWidget {
+  const OverviewList({
+    super.key,
+    required this.columns,
+    required this.isCompact,
+    required this.onIssueTapped,
+    required this.onIssueDropped,
+  });
+
+  final List<BoardColumn> columns;
+  final bool isCompact;
+  final ValueChanged<String> onIssueTapped;
+  final IssueDropCallback onIssueDropped;
+
+  @override
+  Widget build(BuildContext context) {
+    final allIssues = [
+      for (final column in columns)
+        for (final issue in _visibleIssuesForColumn(column)) issue,
+    ];
+    final totalWeight = allIssues.fold<int>(
+      0,
+      (total, issue) =>
+          total +
+          (issue.statusId == _closedStatusId
+              ? issue.resolution?.actualWeight ?? 0
+              : issue.weightEstimate?.value ?? 0),
+    );
+    final bottomPadding = isCompact ? _boardBottomPadding + 72 : 14.0;
+    final summary = OverviewSummaryCard(
+      issueCount: allIssues.length,
+      totalWeight: totalWeight,
+      columnCount: columns.length,
+    );
+
+    if (isCompact) {
+      return ListView(
+        padding: EdgeInsets.fromLTRB(
+          _boardHorizontalPadding,
+          4,
+          _boardHorizontalPadding,
+          bottomPadding,
+        ),
+        children: [
+          summary,
+          const SizedBox(height: 8),
+          for (final column in columns) ...[
+            OverviewSection(
+              column: column,
+              isCompact: true,
+              onIssueTapped: onIssueTapped,
+              onIssueDropped: onIssueDropped,
+            ),
+            if (column != columns.last) const SizedBox(height: 8),
+          ],
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            _boardHorizontalPadding,
+            4,
+            _boardHorizontalPadding,
+            0,
+          ),
+          child: summary,
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              _boardHorizontalPadding,
+              0,
+              _boardHorizontalPadding,
+              bottomPadding,
+            ),
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final column in columns) ...[
+                  SizedBox(
+                    width: 286,
+                    child: OverviewSection(
+                      column: column,
+                      isCompact: false,
+                      fillHeight: true,
+                      onIssueTapped: onIssueTapped,
+                      onIssueDropped: onIssueDropped,
+                    ),
+                  ),
+                  if (column != columns.last) const SizedBox(width: 8),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class OverviewSummaryCard extends StatelessWidget {
+  const OverviewSummaryCard({
+    super.key,
+    required this.issueCount,
+    required this.totalWeight,
+    required this.columnCount,
+  });
+
+  final int issueCount;
+  final int totalWeight;
+  final int columnCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Text(
+            '全体リスト',
+            style: TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          _OverviewMiniPill(
+            label: '$issueCount cards',
+            foregroundColor: const Color(0xFF2563EB),
+            backgroundColor: const Color(0xFFEFF6FF),
+          ),
+          _OverviewMiniPill(
+            label: 'W$totalWeight',
+            foregroundColor: const Color(0xFF15803D),
+            backgroundColor: const Color(0xFFDCFCE7),
+          ),
+          _OverviewMiniPill(
+            label: '$columnCount columns',
+            foregroundColor: const Color(0xFF64748B),
+            backgroundColor: const Color(0xFFF1F5F9),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OverviewSection extends StatelessWidget {
+  const OverviewSection({
+    super.key,
+    required this.column,
+    required this.isCompact,
+    required this.onIssueTapped,
+    required this.onIssueDropped,
+    this.fillHeight = false,
+  });
+
+  final BoardColumn column;
+  final bool isCompact;
+  final ValueChanged<String> onIssueTapped;
+  final IssueDropCallback onIssueDropped;
+  final bool fillHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleIssues = _visibleIssuesForColumn(column);
+    final totalWeight = visibleIssues.fold<int>(
+      0,
+      (total, issue) =>
+          total +
+          (issue.statusId == _closedStatusId
+              ? issue.resolution?.actualWeight ?? 0
+              : issue.weightEstimate?.value ?? 0),
+    );
+
+    return DragTarget<IssueDragData>(
+      onWillAcceptWithDetails: (details) =>
+          details.data.sourceColumnId != column.id,
+      onAcceptWithDetails: (details) {
+        onIssueDropped(
+          issueId: details.data.issueId,
+          targetColumnId: column.id,
+          targetIndex: column.issues.length,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          decoration: BoxDecoration(
+            color: isHovering
+                ? column.color.withValues(alpha: 0.06)
+                : Colors.white,
+            border: Border.all(
+              color: isHovering
+                  ? column.color.withValues(alpha: 0.38)
+                  : const Color(0xFFE2E8F0),
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
+                color: const Color(0xFFFAFBFC),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: column.color,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            column.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _OverviewMiniPill(
+                      label: '${visibleIssues.length} cards / W$totalWeight',
+                      foregroundColor: column.color,
+                      backgroundColor: column.color.withValues(alpha: 0.1),
+                    ),
+                  ],
+                ),
+              ),
+              if (fillHeight)
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      ..._issueRows(visibleIssues),
+                      OverviewColumnDropSlot(
+                        columnId: column.id,
+                        index: column.issues.length,
+                        onIssueDropped: onIssueDropped,
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                ..._issueRows(visibleIssues),
+                OverviewColumnDropSlot(
+                  columnId: column.id,
+                  index: column.issues.length,
+                  onIssueDropped: onIssueDropped,
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _issueRows(List<Issue> visibleIssues) {
+    return [
+      for (final entry in visibleIssues.indexed) ...[
+        Builder(
+          builder: (context) {
+            final issue = entry.$2;
+            final rankIndex = column.issues.indexWhere(
+              (candidate) => candidate.id == issue.id,
+            );
+            return OverviewIssueDropTarget(
+              issue: issue,
+              columnId: column.id,
+              index: rankIndex < 0 ? entry.$1 : rankIndex,
+              accentColor: column.color,
+              isCompact: isCompact,
+              onIssueTapped: onIssueTapped,
+              onIssueDropped: onIssueDropped,
+            );
+          },
+        ),
+        if (entry.$1 != visibleIssues.length - 1)
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+      ],
+    ];
+  }
+}
+
+class OverviewIssueDropTarget extends StatelessWidget {
+  const OverviewIssueDropTarget({
+    super.key,
+    required this.issue,
+    required this.columnId,
+    required this.index,
+    required this.accentColor,
+    required this.isCompact,
+    required this.onIssueTapped,
+    required this.onIssueDropped,
+  });
+
+  final Issue issue;
+  final String columnId;
+  final int index;
+  final Color accentColor;
+  final bool isCompact;
+  final ValueChanged<String> onIssueTapped;
+  final IssueDropCallback onIssueDropped;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<IssueDragData>(
+      onWillAcceptWithDetails: (details) => details.data.issueId != issue.id,
+      onAcceptWithDetails: (details) {
+        onIssueDropped(
+          issueId: details.data.issueId,
+          targetColumnId: columnId,
+          targetIndex: index,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        return Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              height: isHovering ? 4 : 0,
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            OverviewIssueRow(
+              issue: issue,
+              sourceColumnId: columnId,
+              accentColor: accentColor,
+              isCompact: isCompact,
+              onTap: () => onIssueTapped(issue.id),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class OverviewColumnDropSlot extends StatelessWidget {
+  const OverviewColumnDropSlot({
+    super.key,
+    required this.columnId,
+    required this.index,
+    required this.onIssueDropped,
+  });
+
+  final String columnId;
+  final int index;
+  final IssueDropCallback onIssueDropped;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<IssueDragData>(
+      onWillAcceptWithDetails: (details) => true,
+      onAcceptWithDetails: (details) {
+        onIssueDropped(
+          issueId: details.data.issueId,
+          targetColumnId: columnId,
+          targetIndex: index,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          height: isHovering ? 34 : 10,
+          margin: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+          decoration: BoxDecoration(
+            color: isHovering
+                ? const Color(0xFFEFF6FF)
+                : const Color(0xFFF8FAFC),
+            border: Border.all(
+              color: isHovering
+                  ? const Color(0xFF93C5FD)
+                  : const Color(0xFFE2E8F0),
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: isHovering
+              ? const Text(
+                  'ここに移動',
+                  style: TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                )
+              : const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+}
+
+class OverviewIssueRow extends StatelessWidget {
+  const OverviewIssueRow({
+    super.key,
+    required this.issue,
+    required this.sourceColumnId,
+    required this.accentColor,
+    required this.isCompact,
+    required this.onTap,
+  });
+
+  final Issue issue;
+  final String sourceColumnId;
+  final Color accentColor;
+  final bool isCompact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final repoName = _overviewRepoName(issue.repo);
+    final weight = issue.statusId == _closedStatusId
+        ? issue.resolution?.actualWeight
+        : issue.weightEstimate?.value;
+    final weightPill = weight == null
+        ? const SizedBox(width: 38)
+        : _OverviewMiniPill(
+            label: 'W$weight',
+            foregroundColor: accentColor,
+            backgroundColor: accentColor.withValues(alpha: 0.1),
+          );
+
+    final row = _OverviewIssueRowContent(
+      repoName: repoName,
+      title: issue.title,
+      weightPill: weightPill,
+      isCompact: isCompact,
+    );
+
+    return Draggable<IssueDragData>(
+      data: IssueDragData(issueId: issue.id, sourceColumnId: sourceColumnId),
+      feedback: Material(
+        color: Colors.transparent,
+        child: SizedBox(
+          width: isCompact ? 320 : 286,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: row,
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.35, child: row),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(onTap: onTap, child: row),
+      ),
+    );
+  }
+}
+
+class _OverviewIssueRowContent extends StatelessWidget {
+  const _OverviewIssueRowContent({
+    required this.repoName,
+    required this.title,
+    required this.weightPill,
+    required this.isCompact,
+  });
+
+  final String repoName;
+  final String title;
+  final Widget weightPill;
+  final bool isCompact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        10,
+        isCompact ? 9 : 7,
+        10,
+        isCompact ? 9 : 7,
+      ),
+      child: Row(
+        crossAxisAlignment: isCompact
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: isCompact ? 58 : 72,
+            child: Text(
+              repoName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: isCompact ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                height: 1.24,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Align(alignment: Alignment.topRight, child: weightPill),
+        ],
+      ),
+    );
+  }
+}
+
+String _overviewRepoName(String repo) {
+  final parts = repo.split('/');
+  return parts.isEmpty ? repo : parts.last;
+}
+
+class _OverviewMiniPill extends StatelessWidget {
+  const _OverviewMiniPill({
+    required this.label,
+    required this.foregroundColor,
+    required this.backgroundColor,
+  });
+
+  final String label;
+  final Color foregroundColor;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: foregroundColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
 List<Issue> _visibleIssuesForColumn(BoardColumn column) {
   if (column.id != _closedStatusId) {
     return column.issues;
@@ -7498,7 +8240,7 @@ class NewIssueDraft {
 }
 
 class BoardColumn {
-  BoardColumn({
+  const BoardColumn({
     required this.id,
     required this.title,
     required this.description,
