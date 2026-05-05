@@ -1714,7 +1714,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 }
 
-class IssueBoardShortcuts extends StatelessWidget {
+class IssueBoardShortcuts extends StatefulWidget {
   const IssueBoardShortcuts({
     super.key,
     required this.onAddIssue,
@@ -1727,14 +1727,57 @@ class IssueBoardShortcuts extends StatelessWidget {
   final Widget child;
 
   @override
+  State<IssueBoardShortcuts> createState() => _IssueBoardShortcutsState();
+}
+
+class _IssueBoardShortcutsState extends State<IssueBoardShortcuts> {
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    super.dispose();
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return false;
+    }
+
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) {
+      return false;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    final isAddIssueShortcut =
+        event.logicalKey == LogicalKeyboardKey.keyT &&
+        keyboard.isMetaPressed &&
+        !keyboard.isControlPressed &&
+        !keyboard.isAltPressed &&
+        !keyboard.isShiftPressed;
+    if (!isAddIssueShortcut) {
+      return false;
+    }
+
+    widget.onAddIssue();
+    return true;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): onAddIssue,
+        const SingleActivator(LogicalKeyboardKey.keyT, meta: true):
+            widget.onAddIssue,
         const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-            onSearchIssues,
+            widget.onSearchIssues,
       },
-      child: Focus(autofocus: true, child: child),
+      child: Focus(autofocus: true, child: widget.child),
     );
   }
 }
