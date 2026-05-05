@@ -93,6 +93,18 @@ interface OpenciDirResponse {
   };
 }
 
+interface GitHubContentsItem {
+  name?: string;
+  path?: string;
+  type?: string;
+}
+
+interface GitHubFileContents {
+  content?: string;
+  encoding?: string;
+  type?: string;
+}
+
 export function webhookEventFromRequest(
   event: string,
   body: Record<string, unknown>,
@@ -249,10 +261,66 @@ async function fetchOpenciDir(
     return result.data?.repository?.object?.entries ?? [];
   } catch (error) {
     if (!String(error).includes("Could not resolve to an object")) {
-      logger.error("Failed to list .openci directory", { error });
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("Failed to list .openci directory with GraphQL", { message });
+    }
+    try {
+      return await fetchOpenciDirViaRest(owner, repo, expression, token, apiBaseUrl);
+    } catch (restError) {
+      const message = restError instanceof Error ? restError.message : String(restError);
+      logger.error("Failed to list .openci directory with REST fallback", { message });
     }
     return [];
   }
+}
+
+async function fetchOpenciDirViaRest(
+  owner: string,
+  repo: string,
+  expression: string,
+  token: string,
+  apiBaseUrl: string,
+): Promise<OpenciDirEntry[]> {
+  const suffix = ":.openci";
+  if (!expression.endsWith(suffix)) return [];
+  const ref = expression.slice(0, -suffix.length);
+  const contents = await githubGet<GitHubContentsItem[] | GitHubContentsItem>(
+    `/repos/${owner}/${repo}/contents/.openci`,
+    token,
+    {
+      queryParameters: { ref },
+      apiBaseUrl,
+    },
+  );
+  if (!Array.isArray(contents)) return [];
+
+  const entries = await Promise.all(
+    contents.map(async (item): Promise<OpenciDirEntry | undefined> => {
+      if (item.type !== "file" || typeof item.name !== "string" || typeof item.path !== "string") {
+        return item.type === "dir" && typeof item.name === "string"
+          ? { name: item.name, type: "tree", object: null }
+          : undefined;
+      }
+      if (!item.name.endsWith(".yaml") && !item.name.endsWith(".yml")) {
+        return { name: item.name, type: "blob", object: null };
+      }
+      const file = await githubGet<GitHubFileContents>(
+        `/repos/${owner}/${repo}/contents/${item.path}`,
+        token,
+        {
+          queryParameters: { ref },
+          apiBaseUrl,
+        },
+      );
+      const text =
+        file.encoding === "base64" && typeof file.content === "string"
+          ? Buffer.from(file.content, "base64").toString("utf8")
+          : undefined;
+      return { name: item.name, type: "blob", object: { text } };
+    }),
+  );
+
+  return entries.filter((entry): entry is OpenciDirEntry => entry !== undefined);
 }
 
 function parseYaml(content: string): Record<string, unknown> | undefined {

@@ -40,8 +40,13 @@ export const githubWebhook = onRequest(async (request, response) => {
         ? (request.body as Record<string, unknown>)
         : (JSON.parse(payload) as Record<string, unknown>);
     await routeWebhookEvent(webhookEventFromRequest(eventType, body));
-    const { processImaGitHubAppWebhook } = await import("../issues/githubWebhookHandlers.js");
-    const issueBoardResult = await processImaGitHubAppWebhook(eventType, body);
+    let issueBoardResult: Record<string, number> | undefined;
+    try {
+      const { processImaGitHubAppWebhook } = await import("../issues/githubWebhookHandlers.js");
+      issueBoardResult = await processImaGitHubAppWebhook(eventType, body);
+    } catch (issueBoardError) {
+      logger.error("IMA webhook processing failed after OpenCI routing", { issueBoardError });
+    }
 
     response.status(200).json({ status: "ok", issueBoard: issueBoardResult });
   } catch (error) {
