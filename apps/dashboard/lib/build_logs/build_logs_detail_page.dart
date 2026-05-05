@@ -271,7 +271,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   ),
                 },
               ),
-              tooltip: 'Retry',
+              tooltip: '再実行',
             ),
             const SizedBox(width: 8),
           ],

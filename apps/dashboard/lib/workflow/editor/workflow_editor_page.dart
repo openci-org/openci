@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:dashboard/theme/app_colors.dart';
 
-
 import 'package:dashboard/workflow/editor/workflow_editor_provider.dart';
 
 import 'package:dashboard/workflow/workflow.dart';
@@ -20,7 +19,6 @@ import 'package:re_highlight/languages/bash.dart';
 
 import 'package:re_highlight/styles/monokai.dart';
 
-
 class WorkflowEditorPage extends ConsumerWidget {
   const WorkflowEditorPage({
     super.key,
@@ -34,7 +32,7 @@ class WorkflowEditorPage extends ConsumerWidget {
     final state = ref.watch(workflowEditorProvider(workflowId));
     return Scaffold(
       appBar: AppBar(
-        title: Text('Workflow Editor'),
+        title: Text('ワークフローエディタ'),
       ),
       body: state.when(
         data: (workflow) {
@@ -47,7 +45,7 @@ class WorkflowEditorPage extends ConsumerWidget {
         },
         error: (error, stackTrace) {
           return Center(
-            child: Text('Error: $error'),
+            child: Text('エラー: $error'),
           );
         },
         loading: () {
@@ -292,14 +290,14 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                 child: Column(
                   children: [
                     Text(
-                      'Edit Basic Information',
+                      '基本情報を編集',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     SizedBox(height: 16),
                     TextFormField(
                       controller: nameController,
                       decoration: InputDecoration(
-                        labelText: 'Workflow Name',
+                        labelText: 'ワークフロー名',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -315,7 +313,7 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                     TextFormField(
                       controller: workingDirectoryController,
                       decoration: InputDecoration(
-                        labelText: 'Current Working Directory',
+                        labelText: '現在の作業ディレクトリ',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -323,7 +321,7 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Triggers',
+                        'トリガー',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -417,7 +415,7 @@ class EditBasicInfoBottomSheet extends HookConsumerWidget {
                         Navigator.of(context).pop();
                       },
                       icon: Icon(Icons.check),
-                      label: Text('Save'),
+                      label: Text('保存'),
                     ),
                   ],
                 ),
@@ -522,19 +520,19 @@ class StepCard extends ConsumerWidget {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Delete Step'),
-                    content: Text('Are you sure you want to delete this step?'),
+                    title: const Text('ステップを削除'),
+                    content: Text('このステップを削除しますか？'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Cancel'),
+                        child: const Text('キャンセル'),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.of(context).pop(true),
                         style: FilledButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.error,
                         ),
-                        child: const Text('Delete'),
+                        child: const Text('削除'),
                       ),
                     ],
                   ),
@@ -609,7 +607,7 @@ class EditStepBottomSheet extends HookConsumerWidget {
         child: Column(
           children: [
             Text(
-              'Edit Step',
+              'ステップを編集',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             SizedBox(height: 32),
@@ -620,20 +618,20 @@ class EditStepBottomSheet extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Step Name',
+                      'ステップ名',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     SizedBox(height: 8),
                     TextFormField(
                       controller: nameController,
                       decoration: InputDecoration(
-                        hintText: 'e.g. Build iOS App',
+                        hintText: '例: iOSアプリをビルド',
                         border: OutlineInputBorder(),
                       ),
                     ),
                     SizedBox(height: 20),
                     Text(
-                      'Command',
+                      'コマンド',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     SizedBox(height: 8),
@@ -653,7 +651,9 @@ class EditStepBottomSheet extends HookConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                           style: CodeEditorStyle(
                             fontSize: 14,
-                            backgroundColor: AppColors.of(context).surfaceSecondary,
+                            backgroundColor: AppColors.of(
+                              context,
+                            ).surfaceSecondary,
                             textColor: AppColors.of(context).textPrimary,
                             codeTheme: CodeHighlightTheme(
                               languages: {
@@ -709,7 +709,7 @@ class EditStepBottomSheet extends HookConsumerWidget {
                   Navigator.of(context).pop();
                 },
                 icon: Icon(Icons.check),
-                label: Text('Save'),
+                label: Text('保存'),
               ),
             ),
           ],
