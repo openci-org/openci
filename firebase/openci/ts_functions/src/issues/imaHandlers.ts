@@ -1,6 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { Agent } from "@cursor/sdk";
 import { getTeamById } from "@openci/firestore-data";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
@@ -1948,6 +1947,7 @@ export const startIssueCursorAgent = onCall<
     updatedAt: FieldValue.serverTimestamp(),
   });
 
+  const { Agent } = await import("@cursor/sdk");
   let agent: Awaited<ReturnType<typeof Agent.create>> | undefined;
   try {
     agent = await Agent.create({

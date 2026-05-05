@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "outDir": "/tmp/ima-functions-test-lib",
-    "sourceMap": false
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "lib"]
-}

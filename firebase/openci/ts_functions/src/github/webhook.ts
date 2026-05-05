@@ -1,10 +1,9 @@
-import { onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
+import { onRequest } from "firebase-functions/v2/https";
 
 import { accessSecret } from "../secretManager";
 import { routeWebhookEvent, webhookEventFromRequest } from "./buildTrigger";
 import { verifyGitHubSignature } from "./webhookVerifier";
-import { processImaGitHubAppWebhook } from "../issues/imaHandlers";
 
 export const githubWebhook = onRequest(async (request, response) => {
   try {
@@ -41,6 +40,7 @@ export const githubWebhook = onRequest(async (request, response) => {
         ? (request.body as Record<string, unknown>)
         : (JSON.parse(payload) as Record<string, unknown>);
     await routeWebhookEvent(webhookEventFromRequest(eventType, body));
+    const { processImaGitHubAppWebhook } = await import("../issues/githubWebhookHandlers.js");
     const issueBoardResult = await processImaGitHubAppWebhook(eventType, body);
 
     response.status(200).json({ status: "ok", issueBoard: issueBoardResult });
