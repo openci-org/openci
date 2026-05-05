@@ -1,0 +1,29 @@
+import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/users/user_provider.dart';
+import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:ima/main.dart' as ima;
+
+class IssueBoardBody extends ConsumerWidget {
+  const IssueBoardBody({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userProvider);
+    final teamAsync = ref.watch(teamStateProvider);
+
+    return userAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: asyncErrorWidget,
+      data: (user) {
+        final teamName = teamAsync.asData?.value.name;
+        return ima.IssueBoardPage(
+          key: ValueKey(user.selectedTeamId),
+          workspaceId: user.selectedTeamId,
+          workspaceName: teamName ?? 'OpenCI team',
+        );
+      },
+    );
+  }
+}

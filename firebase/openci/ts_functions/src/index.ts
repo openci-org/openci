@@ -4,7 +4,13 @@ import "./dataConnect";
 setGlobalOptions({
   region: "asia-northeast1",
   maxInstances: 10,
-  secrets: ["GITHUB_APP_ID", "GITHUB_PRIVATE_KEY", "GITHUB_WEBHOOK_SECRET"],
+  secrets: [
+    "GITHUB_APP_ID",
+    "GITHUB_PRIVATE_KEY",
+    "GITHUB_WEBHOOK_SECRET",
+    "ANTHROPIC_API_KEY",
+    "CURSOR_API_KEY",
+  ],
 });
 
 export { acceptInvitation } from "./invitation/acceptInvitation";
@@ -40,3 +46,19 @@ export {
   updateSecretV1,
 } from "./secrets/secretHandlers";
 export { getTeamMembers, inviteTeamMember } from "./team/teamHandlers";
+export {
+  autoEstimateIssueWeightOnIssueWrite,
+  autoSyncIssueToGitHubOnIssueWrite,
+  backfillCursorAgentPullRequests,
+  backfillIssueKeys,
+  connectGitHub,
+  createGitHubIssue,
+  createGitHubSubIssue,
+  estimateIssueWeight,
+  importGitHubIssues,
+  issueLifecycleEventLogger,
+  listGitHubRepositories,
+  recomputeResolutionWeights,
+  startIssueCursorAgent,
+  syncGitHubIssues,
+} from "./issues/imaHandlers";

@@ -45,6 +45,8 @@ dependencies:
   uuid: ^4.5.3
   yaml: ^3.1.3
   shared_preferences: ^2.5.5
+  ima:
+    path: ../ima
   openci_shared:
   swipeable_page_route: ^0.4.8
   app_links: ^7.0.0
@@ -58,6 +60,7 @@ dependencies:
       url: https://github.com/firebase/flutterfire.git
       ref: 918554c668977c161e01d2b14f819c2659c25e02
       path: packages/firebase_data_connect/firebase_data_connect
+  cloud_firestore: ^6.3.0
 
 dev_dependencies:
   sentry_dart_plugin: ^3.3.0

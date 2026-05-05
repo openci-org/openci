@@ -4,6 +4,7 @@ import { logger } from "firebase-functions/v2";
 import { accessSecret } from "../secretManager";
 import { routeWebhookEvent, webhookEventFromRequest } from "./buildTrigger";
 import { verifyGitHubSignature } from "./webhookVerifier";
+import { processImaGitHubAppWebhook } from "../issues/imaHandlers";
 
 export const githubWebhook = onRequest(async (request, response) => {
   try {
@@ -40,8 +41,9 @@ export const githubWebhook = onRequest(async (request, response) => {
         ? (request.body as Record<string, unknown>)
         : (JSON.parse(payload) as Record<string, unknown>);
     await routeWebhookEvent(webhookEventFromRequest(eventType, body));
+    const issueBoardResult = await processImaGitHubAppWebhook(eventType, body);
 
-    response.status(200).json({ status: "ok" });
+    response.status(200).json({ status: "ok", issueBoard: issueBoardResult });
   } catch (error) {
     logger.error("Webhook processing failed", { error });
     response.status(500).send("Error");
