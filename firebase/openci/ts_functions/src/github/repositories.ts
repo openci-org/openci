@@ -464,8 +464,8 @@ async function deleteRemovedWorkflowFiles(
   currentFileNames: Set<string>,
 ): Promise<number> {
   const result = await listWorkflowFilesForBranch({ teamId, repository, branch });
-  const toDelete = result.data.workflowFiles.filter((file: { fileName: string }) =>
-    !currentFileNames.has(file.fileName)
+  const toDelete = result.data.workflowFiles.filter(
+    (file: { fileName: string }) => !currentFileNames.has(file.fileName),
   );
   for (const file of toDelete) {
     await deleteWorkflowFile({ id: file.id });

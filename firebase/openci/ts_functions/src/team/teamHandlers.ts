@@ -127,12 +127,14 @@ export const getTeamMembers = onCall<TeamIdRequest, Promise<{ members: unknown[]
     );
 
     return {
-      members: result.data.teamMembers.map((member: { userId: string; user: Record<string, unknown> }) => ({
-        uid: member.userId,
-        email: member.user.email,
-        displayName: member.user.displayName ?? null,
-        photoURL: member.user.photoUrl ?? null,
-      })),
+      members: result.data.teamMembers.map(
+        (member: { userId: string; user: Record<string, unknown> }) => ({
+          uid: member.userId,
+          email: member.user.email,
+          displayName: member.user.displayName ?? null,
+          photoURL: member.user.photoUrl ?? null,
+        }),
+      ),
     };
   },
 );

@@ -23,7 +23,10 @@ export {
 export { buildJobStatusChange } from "./buildJob/buildJobStatusChange";
 export { cancelBuildJob } from "./buildJob/cancelBuildJob";
 export { checkRunUpdate } from "./buildJob/checkRunUpdate";
-export { generateFailureSummary } from "./buildJob/generateFailureSummary";
+export {
+  generateFailureSummary,
+  generateFailureSummaryOnBuildJobFailure,
+} from "./buildJob/generateFailureSummary";
 export { retryBuildJob, retryWorkflowRun } from "./buildJob/retryHandlers";
 export { searchGitHubActions } from "./github/actions";
 export {

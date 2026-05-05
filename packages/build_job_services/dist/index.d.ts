@@ -35,5 +35,3 @@ export declare function updateCheckRun(buildJob: BuildJob, runStatus: "in_progre
 export declare function updateCheckRunById(buildJobId: string, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
 export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: BuildJobStatusValue): Promise<void>;
 export declare function handleBuildJobStatusChangeById(buildJobId: string, status: BuildJobStatusValue): Promise<void>;
-export declare function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void>;
-export declare function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void>;

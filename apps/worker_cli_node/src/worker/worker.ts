@@ -1,11 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 
-import {
-  generateFailureSummary,
-  handleBuildJobStatusChange,
-  updateCheckRun,
-} from "@openci/build-job-services";
+import { handleBuildJobStatusChange, updateCheckRun } from "@openci/build-job-services";
 import { BuildJobStatus } from "@openci/build-job-services";
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
 import { claimNextJob, completeJob, createRun, updateRunStatus } from "../firestore.js";
@@ -85,7 +81,6 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
     };
     await updateCheckRun(completedJob, "completed", "failure");
     await handleBuildJobStatusChange(completedJob, BuildJobStatus.FAILURE);
-    await generateFailureSummary(completedJob, config.projectId);
     throw error;
   } finally {
     await flushLogs();

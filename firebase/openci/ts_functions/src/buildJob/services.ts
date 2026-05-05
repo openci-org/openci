@@ -266,9 +266,7 @@ export async function handleBuildJobStatusChange(
     BuildJobStatus.TIMED_OUT,
     BuildJobStatus.SKIPPED,
   ];
-  if (
-    terminalStatuses.includes(status as TerminalBuildJobStatus)
-  ) {
+  if (terminalStatuses.includes(status as TerminalBuildJobStatus)) {
     await resolveDependencies(buildJob, status);
   }
   if (status === BuildJobStatus.SUCCESS || status === BuildJobStatus.FAILURE) {
@@ -315,7 +313,16 @@ async function createAnthropicMessage(
       messages: [
         {
           role: "user",
-          content: `あなたはCI/CDの専門家です。以下のビルドログを分析し、ビルドが失敗した原因を簡潔に要約してください。根本原因に焦点を当て、修正方法を提案してください。3文以内で日本語で回答してください。\n\n${logLines}`,
+          content: `あなたはCI/CDの専門家です。以下のビルドログを分析し、ビルドが失敗した原因を簡潔に要約してください。
+
+判断ルール:
+- 最後に失敗したステップと、その直前の明示的なエラー行を最優先してください。
+- "error:", "❌ Failure", "exit status", "Job failed", "Formatting issues found" などを強い根拠として扱ってください。
+- setup や環境表示の "Not found" は、その後のステップが成功している場合は失敗原因として扱わないでください。
+- 根本原因と修正方法を3文以内で日本語で回答してください。
+
+ビルドログ:
+${logLines}`,
         },
       ],
     }),
@@ -358,7 +365,7 @@ export async function generateFailureSummary(
     const logs = await listLatestBuildLogs({
       buildJobId: buildJob.id,
       runId: latestRunId,
-      limit: 50,
+      limit: 200,
     });
     if (logs.data.buildLogs.length === 0) {
       await updateBuildJobFailureSummary({

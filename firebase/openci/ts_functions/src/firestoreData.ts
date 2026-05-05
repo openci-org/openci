@@ -90,7 +90,9 @@ function serializeValue(value) {
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(serializeValue);
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, serializeValue(entry)]));
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, serializeValue(entry)]),
+    );
   }
   return value;
 }
@@ -145,14 +147,20 @@ async function getTeamForMember(...args) {
 async function findTeamByInstallation(...args) {
   const vars = varsFromArgs(...args);
   const teams = await queryAll(
-    db().collection(collections.teams).where("installationIds", "array-contains", vars.installationId).limit(1),
+    db()
+      .collection(collections.teams)
+      .where("installationIds", "array-contains", vars.installationId)
+      .limit(1),
   );
   return { data: { teams } };
 }
 
 async function linkGitHubInstallation(...args) {
   const vars = varsFromArgs(...args);
-  await teamRef(vars.teamId).update({ installationIds: FieldValue.arrayUnion(vars.installationId), updatedAt: now() });
+  await teamRef(vars.teamId).update({
+    installationIds: FieldValue.arrayUnion(vars.installationId),
+    updatedAt: now(),
+  });
   return { data: { team_update: { id: vars.teamId } } };
 }
 
@@ -178,43 +186,61 @@ async function addTeamMember(...args) {
     const team = await tx.get(teamRef(vars.teamId));
     const members = Array.isArray(team.data()?.members) ? team.data().members : [];
     if (members.includes(vars.userId)) throw new Error("already a member");
-    tx.set(userRef(vars.userId), withTimestamps({ email: vars.email }, !((await tx.get(userRef(vars.userId))).exists)), {
-      merge: true,
+    tx.set(
+      userRef(vars.userId),
+      withTimestamps({ email: vars.email }, !(await tx.get(userRef(vars.userId))).exists),
+      {
+        merge: true,
+      },
+    );
+    tx.update(teamRef(vars.teamId), {
+      members: FieldValue.arrayUnion(vars.userId),
+      updatedAt: now(),
     });
-    tx.update(teamRef(vars.teamId), { members: FieldValue.arrayUnion(vars.userId), updatedAt: now() });
   });
-  return { data: { user_upsert: { id: vars.userId }, teamMember_upsert: { teamId: vars.teamId, userId: vars.userId } } };
+  return {
+    data: {
+      user_upsert: { id: vars.userId },
+      teamMember_upsert: { teamId: vars.teamId, userId: vars.userId },
+    },
+  };
 }
 
 async function createInvitation(...args) {
   const vars = varsFromArgs(...args);
   const options = optionsFromArgs(...args);
-  await db().collection(collections.invitations).doc(vars.id ?? db().collection(collections.invitations).doc().id).set(
-    withTimestamps(
-      {
-        email: vars.email,
-        teamId: vars.teamId,
-        teamNameSnapshot: vars.teamNameSnapshot,
-        token: vars.token,
-        expiresAt: timestamp(vars.expiresAt),
-        invitedById: uidFromOptions(options) ?? null,
-        status: InvitationStatus.PENDING,
-      },
-      true,
-    ),
-  );
+  await db()
+    .collection(collections.invitations)
+    .doc(vars.id ?? db().collection(collections.invitations).doc().id)
+    .set(
+      withTimestamps(
+        {
+          email: vars.email,
+          teamId: vars.teamId,
+          teamNameSnapshot: vars.teamNameSnapshot,
+          token: vars.token,
+          expiresAt: timestamp(vars.expiresAt),
+          invitedById: uidFromOptions(options) ?? null,
+          status: InvitationStatus.PENDING,
+        },
+        true,
+      ),
+    );
   return { data: { invitation_insert: { id: vars.id } } };
 }
 
 async function reinviteInvitation(...args) {
   const vars = varsFromArgs(...args);
   const options = optionsFromArgs(...args);
-  await db().collection(collections.invitations).doc(vars.id).update({
-    token: vars.token,
-    expiresAt: timestamp(vars.expiresAt),
-    invitedById: uidFromOptions(options) ?? null,
-    updatedAt: now(),
-  });
+  await db()
+    .collection(collections.invitations)
+    .doc(vars.id)
+    .update({
+      token: vars.token,
+      expiresAt: timestamp(vars.expiresAt),
+      invitedById: uidFromOptions(options) ?? null,
+      updatedAt: now(),
+    });
   return { data: { invitation_update: { id: vars.id } } };
 }
 
@@ -233,13 +259,19 @@ async function findExistingPendingInvitation(...args) {
 
 async function invitationWithTeam(invitation) {
   const team = invitation?.teamId ? await getDoc(collections.teams, invitation.teamId) : undefined;
-  return invitation ? { ...invitation, team: team ?? { id: invitation.teamId, name: invitation.teamNameSnapshot } } : undefined;
+  return invitation
+    ? { ...invitation, team: team ?? { id: invitation.teamId, name: invitation.teamNameSnapshot } }
+    : undefined;
 }
 
 async function getInvitationByToken(...args) {
   const vars = varsFromArgs(...args);
-  const invitations = await queryAll(db().collection(collections.invitations).where("token", "==", vars.token).limit(1));
-  return { data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) } };
+  const invitations = await queryAll(
+    db().collection(collections.invitations).where("token", "==", vars.token).limit(1),
+  );
+  return {
+    data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) },
+  };
 }
 
 async function listMyPendingInvitations(...args) {
@@ -253,12 +285,17 @@ async function listMyPendingInvitations(...args) {
       .where("status", "==", InvitationStatus.PENDING)
       .orderBy("createdAt", "desc"),
   );
-  return { data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) } };
+  return {
+    data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) },
+  };
 }
 
 async function expireInvitation(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.invitations).doc(vars.id).update({ status: InvitationStatus.EXPIRED, updatedAt: now() });
+  await db()
+    .collection(collections.invitations)
+    .doc(vars.id)
+    .update({ status: InvitationStatus.EXPIRED, updatedAt: now() });
   return { data: { invitation_update: { id: vars.id } } };
 }
 
@@ -268,7 +305,9 @@ async function acceptInvitationAndJoinTeam(...args) {
   const uid = uidFromOptions(options);
   const email = emailFromOptions(options);
   await db().runTransaction(async (tx) => {
-    tx.set(userRef(uid), withTimestamps({ email, selectedTeamId: vars.teamId }, true), { merge: true });
+    tx.set(userRef(uid), withTimestamps({ email, selectedTeamId: vars.teamId }, true), {
+      merge: true,
+    });
     tx.update(db().collection(collections.invitations).doc(vars.id), {
       status: InvitationStatus.ACCEPTED,
       acceptedById: uid,
@@ -277,12 +316,21 @@ async function acceptInvitationAndJoinTeam(...args) {
     });
     tx.update(teamRef(vars.teamId), { members: FieldValue.arrayUnion(uid), updatedAt: now() });
   });
-  return { data: { user_upsert: { id: uid }, invitation_update: { id: vars.id }, teamMember_upsert: { teamId: vars.teamId, userId: uid } } };
+  return {
+    data: {
+      user_upsert: { id: uid },
+      invitation_update: { id: vars.id },
+      teamMember_upsert: { teamId: vars.teamId, userId: uid },
+    },
+  };
 }
 
 async function listWorkflowFilesForBranch(...args) {
   const vars = varsFromArgs(...args);
-  let query = db().collection(collections.workflowFiles).where("teamId", "==", vars.teamId).where("repository", "==", vars.repository);
+  let query = db()
+    .collection(collections.workflowFiles)
+    .where("teamId", "==", vars.teamId)
+    .where("repository", "==", vars.repository);
   if (vars.branch) query = query.where("branch", "==", vars.branch);
   const workflowFiles = await queryAll(query.orderBy("fileName"));
   return { data: { workflowFiles } };
@@ -295,21 +343,24 @@ async function getWorkflowFile(...args) {
 
 async function upsertWorkflowFile(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.workflowFiles).doc(vars.id).set(
-    {
-      id: vars.id,
-      teamId: vars.teamId,
-      repository: vars.repository,
-      branch: vars.branch,
-      fileName: vars.fileName,
-      filePath: vars.filePath,
-      content: vars.content,
-      enabled: vars.enabled ?? true,
-      syncedAt: now(),
-      updatedAt: now(),
-    },
-    { merge: true },
-  );
+  await db()
+    .collection(collections.workflowFiles)
+    .doc(vars.id)
+    .set(
+      {
+        id: vars.id,
+        teamId: vars.teamId,
+        repository: vars.repository,
+        branch: vars.branch,
+        fileName: vars.fileName,
+        filePath: vars.filePath,
+        content: vars.content,
+        enabled: vars.enabled ?? true,
+        syncedAt: now(),
+        updatedAt: now(),
+      },
+      { merge: true },
+    );
   return { data: { workflowFile_upsert: { id: vars.id } } };
 }
 
@@ -332,14 +383,20 @@ async function getBuildJob(...args) {
 
 async function updateBuildJobStatus(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.buildJobs).doc(vars.id).update({ status: vars.status, updatedAt: now() });
+  await db()
+    .collection(collections.buildJobs)
+    .doc(vars.id)
+    .update({ status: vars.status, updatedAt: now() });
   return { data: { buildJob_update: { id: vars.id } } };
 }
 
 async function listBuildJobsByWorkflowRun(...args) {
   const vars = varsFromArgs(...args);
   const buildJobs = await queryAll(
-    db().collection(collections.buildJobs).where("workflowRunId", "==", vars.workflowRunId).orderBy("createdAt"),
+    db()
+      .collection(collections.buildJobs)
+      .where("workflowRunId", "==", vars.workflowRunId)
+      .orderBy("createdAt"),
   );
   return { data: { buildJobs } };
 }
@@ -364,13 +421,21 @@ async function claimQueuedBuildJob(...args) {
     .orderBy("createdAt")
     .limit(50)
     .get();
-  const doc = candidates.docs.find((candidate) => String(candidate.data().runsOn ?? "ubuntu-latest").toLowerCase().includes(platform));
+  const doc = candidates.docs.find((candidate) =>
+    String(candidate.data().runsOn ?? "ubuntu-latest")
+      .toLowerCase()
+      .includes(platform),
+  );
   if (!doc) return { data: { job: null } };
   const job = await db().runTransaction(async (tx) => {
     const fresh = await tx.get(doc.ref);
     if (!fresh.exists || fresh.data()?.status !== BuildJobStatus.QUEUED) return null;
     tx.update(doc.ref, { status: BuildJobStatus.IN_PROGRESS, updatedAt: now() });
-    return { id: fresh.id, ...serializeValue(fresh.data() ?? {}), status: BuildJobStatus.IN_PROGRESS };
+    return {
+      id: fresh.id,
+      ...serializeValue(fresh.data() ?? {}),
+      status: BuildJobStatus.IN_PROGRESS,
+    };
   });
   return { data: { job } };
 }
@@ -379,10 +444,19 @@ async function createBuildRunForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db().runTransaction(async (tx) => {
     const job = db().collection(collections.buildJobs).doc(vars.buildJobId);
-    tx.set(job.collection("runs").doc(vars.id), withTimestamps({ id: vars.id, status: "in_progress" }, true), { merge: true });
+    tx.set(
+      job.collection("runs").doc(vars.id),
+      withTimestamps({ id: vars.id, status: "in_progress" }, true),
+      { merge: true },
+    );
     tx.update(job, { latestRunId: vars.id, runCount: FieldValue.increment(1), updatedAt: now() });
   });
-  return { data: { buildRun_upsert: { buildJobId: vars.buildJobId, id: vars.id }, buildJob_update: { id: vars.buildJobId } } };
+  return {
+    data: {
+      buildRun_upsert: { buildJobId: vars.buildJobId, id: vars.id },
+      buildJob_update: { id: vars.buildJobId },
+    },
+  };
 }
 
 async function appendBuildLogForWorker(...args) {
@@ -401,25 +475,36 @@ async function appendBuildLogForWorker(...args) {
       timestamp: timestamp(vars.timestamp),
       ...(vars.stackTrace ? { stackTrace: vars.stackTrace } : {}),
     });
-  return { data: { buildLog_upsert: { buildRunBuildJobId: vars.buildJobId, buildRunId: vars.runId, id: vars.id } } };
+  return {
+    data: {
+      buildLog_upsert: { buildRunBuildJobId: vars.buildJobId, buildRunId: vars.runId, id: vars.id },
+    },
+  };
 }
 
 async function updateBuildRunStatusForWorker(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.buildJobs).doc(vars.buildJobId).collection("runs").doc(vars.runId).set(
-    withTimestamps({ status: vars.status, conclusion: vars.conclusion ?? null }, false),
-    { merge: true },
-  );
+  await db()
+    .collection(collections.buildJobs)
+    .doc(vars.buildJobId)
+    .collection("runs")
+    .doc(vars.runId)
+    .set(withTimestamps({ status: vars.status, conclusion: vars.conclusion ?? null }, false), {
+      merge: true,
+    });
   return { data: { buildRun_update: { buildJobId: vars.buildJobId, id: vars.runId } } };
 }
 
 async function completeBuildJobForWorker(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.buildJobs).doc(vars.id).update({
-    status: vars.status,
-    completedAt: timestamp(vars.completedAt),
-    updatedAt: now(),
-  });
+  await db()
+    .collection(collections.buildJobs)
+    .doc(vars.id)
+    .update({
+      status: vars.status,
+      completedAt: timestamp(vars.completedAt),
+      updatedAt: now(),
+    });
   return { data: { buildJob_update: { id: vars.id } } };
 }
 
@@ -450,20 +535,27 @@ async function updateUserFcmTokens(...args) {
 
 async function updateBuildJobFailureSummary(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.buildJobs).doc(vars.id).update({
-    failureSummaryStatus: vars.failureSummaryStatus ?? null,
-    failureSummary: vars.failureSummary ?? null,
-    failureSummaryModel: vars.failureSummaryModel ?? null,
-    failureSummaryDurationMs: vars.failureSummaryDurationMs ?? null,
-    updatedAt: now(),
-  });
+  await db()
+    .collection(collections.buildJobs)
+    .doc(vars.id)
+    .update({
+      failureSummaryStatus: vars.failureSummaryStatus ?? null,
+      failureSummary: vars.failureSummary ?? null,
+      failureSummaryModel: vars.failureSummaryModel ?? null,
+      failureSummaryDurationMs: vars.failureSummaryDurationMs ?? null,
+      updatedAt: now(),
+    });
   return { data: { buildJob_update: { id: vars.id } } };
 }
 
 async function findSecretByNameForTeam(...args) {
   const vars = varsFromArgs(...args);
   const secrets = await queryAll(
-    db().collection(collections.secrets).where("teamId", "==", vars.teamId).where("name", "==", vars.name).limit(1),
+    db()
+      .collection(collections.secrets)
+      .where("teamId", "==", vars.teamId)
+      .where("name", "==", vars.name)
+      .limit(1),
   );
   return { data: { secrets } };
 }
@@ -471,21 +563,34 @@ async function findSecretByNameForTeam(...args) {
 async function getSecretsByNamesForTeam(...args) {
   const vars = varsFromArgs(...args);
   if (!Array.isArray(vars.names) || vars.names.length === 0) return { data: { secrets: [] } };
-  const secrets = await queryAll(db().collection(collections.secrets).where("teamId", "==", vars.teamId).where("name", "in", vars.names.slice(0, 10)));
+  const secrets = await queryAll(
+    db()
+      .collection(collections.secrets)
+      .where("teamId", "==", vars.teamId)
+      .where("name", "in", vars.names.slice(0, 10)),
+  );
   return { data: { secrets } };
 }
 
 async function listWorkerSecrets(...args) {
   const vars = varsFromArgs(...args);
-  const secrets = await queryAll(db().collection(collections.secrets).where("teamId", "==", vars.teamId));
+  const secrets = await queryAll(
+    db().collection(collections.secrets).where("teamId", "==", vars.teamId),
+  );
   return { data: { secrets } };
 }
 
 async function createSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.secrets).doc(vars.id).set(
-    withTimestamps({ id: vars.id, name: vars.name, teamId: vars.teamId, pathToSecret: vars.pathToSecret }, true),
-  );
+  await db()
+    .collection(collections.secrets)
+    .doc(vars.id)
+    .set(
+      withTimestamps(
+        { id: vars.id, name: vars.name, teamId: vars.teamId, pathToSecret: vars.pathToSecret },
+        true,
+      ),
+    );
   return { data: { secret_insert: { id: vars.id } } };
 }
 
@@ -497,7 +602,10 @@ async function getSecretPathForTeam(...args) {
 
 async function updateSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.secrets).doc(vars.id).update({ name: vars.name, updatedAt: now() });
+  await db()
+    .collection(collections.secrets)
+    .doc(vars.id)
+    .update({ name: vars.name, updatedAt: now() });
   return { data: { secret_update: { id: vars.id } } };
 }
 
@@ -509,25 +617,38 @@ async function deleteSecretMetadata(...args) {
 
 async function listWorkflowsForTeam(...args) {
   const vars = varsFromArgs(...args);
-  const workflows = await queryAll(db().collection(collections.workflows).where("teamId", "==", vars.teamId).orderBy("updatedAt", "desc"));
+  const workflows = await queryAll(
+    db()
+      .collection(collections.workflows)
+      .where("teamId", "==", vars.teamId)
+      .orderBy("updatedAt", "desc"),
+  );
   return { data: { workflows } };
 }
 
 async function updateWorkflowSecretKeys(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.workflows).doc(vars.id).update({ workflowSteps: vars.workflowSteps ?? [], updatedAt: now() });
+  await db()
+    .collection(collections.workflows)
+    .doc(vars.id)
+    .update({ workflowSteps: vars.workflowSteps ?? [], updatedAt: now() });
   return { data: { workflow_update: { id: vars.id } } };
 }
 
 async function listWorkerEnvironmentVariables(...args) {
   const vars = varsFromArgs(...args);
-  const environmentVariables = await queryAll(db().collection(collections.env).where("teamId", "==", vars.teamId).orderBy("key"));
+  const environmentVariables = await queryAll(
+    db().collection(collections.env).where("teamId", "==", vars.teamId).orderBy("key"),
+  );
   return { data: { environmentVariables } };
 }
 
 async function updateEnvironmentVariableValueForWorker(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.env).doc(vars.id).update({ value: vars.value, updatedAt: now() });
+  await db()
+    .collection(collections.env)
+    .doc(vars.id)
+    .update({ value: vars.value, updatedAt: now() });
   return { data: { environmentVariable_update: { id: vars.id } } };
 }
 export {

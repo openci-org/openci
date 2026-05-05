@@ -1,7 +1,12 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 
+import { BuildJobStatus } from "../firestoreData";
 import { verifyBuildJobMembership } from "./auth";
-import { generateFailureSummary as generateFailureSummaryForBuildJob } from "./services";
+import {
+  type BuildJob,
+  generateFailureSummary as generateFailureSummaryForBuildJob,
+} from "./services";
 
 interface GenerateFailureSummaryRequest {
   buildJobId: string;
@@ -23,3 +28,26 @@ export const generateFailureSummary = onCall<
   await generateFailureSummaryForBuildJob(buildJob);
   return { success: true };
 });
+
+export const generateFailureSummaryOnBuildJobFailure = onDocumentUpdated(
+  {
+    document: "build_jobs_v0/{buildJobId}",
+    timeoutSeconds: 120,
+  },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return;
+    if (before?.status === BuildJobStatus.FAILURE || after.status !== BuildJobStatus.FAILURE) {
+      return;
+    }
+    if (after.failureSummaryStatus === "generating" || after.failureSummaryStatus === "done") {
+      return;
+    }
+
+    await generateFailureSummaryForBuildJob({
+      id: event.params.buildJobId,
+      ...after,
+    } as BuildJob);
+  },
+);
