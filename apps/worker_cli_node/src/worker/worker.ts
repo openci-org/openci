@@ -69,6 +69,7 @@ export async function processOneJob(config: WorkerConfig): Promise<boolean> {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     await logError(buildJob.id, runId, `Job failed: ${message}`, stack);
+    await flushLogs();
     await updateRunStatus({
       buildJobId: buildJob.id,
       runId,

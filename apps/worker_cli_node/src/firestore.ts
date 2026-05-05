@@ -66,10 +66,7 @@ export async function appendLog(input: {
   await appendBuildLogForWorker(input);
 }
 
-export async function completeJob(
-  id: string,
-  status: SuccessfulBuildJobStatus,
-): Promise<void> {
+export async function completeJob(id: string, status: SuccessfulBuildJobStatus): Promise<void> {
   await completeBuildJobForWorker({
     id,
     status,
