@@ -45,7 +45,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Initial Setup',
+                  '初期設定',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 SizedBox(height: 20.0),
@@ -58,7 +58,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                   child: TextFormField(
                     controller: nameController,
                     decoration: InputDecoration(
-                      labelText: 'Workflow Name',
+                      labelText: 'ワークフロー名',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -161,8 +161,8 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                     child: TextFormField(
                       enabled: false,
                       decoration: InputDecoration(
-                        labelText: 'Current Working Directory',
-                        hintText: 'Select a repository first',
+                        labelText: '現在の作業ディレクトリ',
+                        hintText: '先にRepositoryを選択してください',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -176,7 +176,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                           loading: () => TextFormField(
                             enabled: false,
                             decoration: InputDecoration(
-                              labelText: 'Current Working Directory',
+                              labelText: '現在の作業ディレクトリ',
                               border: OutlineInputBorder(),
                               suffixIcon: SizedBox(
                                 width: 16,
@@ -192,7 +192,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                           error: (e, _) => TextFormField(
                             enabled: false,
                             decoration: InputDecoration(
-                              labelText: 'Current Working Directory',
+                              labelText: '現在の作業ディレクトリ',
                               border: OutlineInputBorder(),
                               suffixIcon: Icon(
                                 Icons.error_outline,
@@ -224,7 +224,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                                     controller: textController,
                                     focusNode: focusNode,
                                     decoration: InputDecoration(
-                                      labelText: 'Current Working Directory',
+                                      labelText: '現在の作業ディレクトリ',
                                       border: OutlineInputBorder(),
                                       suffixIcon: Icon(
                                         Icons.folder_open,
@@ -243,7 +243,7 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
                   child: SizedBox(
                     width: _width,
                     child: Text(
-                      'Triggers',
+                      'トリガー',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -317,13 +317,13 @@ class InitialWorkflowSetupBottomSheet extends HookConsumerWidget {
 
                     if (!context.mounted) return;
                     context.showSnackBarMessage(
-                      'Workflow created successfully',
+                      'ワークフローを作成しました',
                     );
 
                     Navigator.of(context).pop();
                   },
                   icon: Icon(Icons.check),
-                  label: Text('OK, let\'s go!'),
+                  label: Text('OK、始めましょう'),
                 ),
               ],
             ),

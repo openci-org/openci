@@ -232,7 +232,7 @@ class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
           appBar: AppBar(
             title: Text(title),
             leading: IconButton(
-              tooltip: 'Issues に戻る',
+              tooltip: 'Issueに戻る',
               icon: const Icon(Icons.arrow_back_rounded),
               onPressed: () => context.go('/'),
             ),
@@ -276,7 +276,7 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
             if (buildJob == null) {
               return const Scaffold(
                 body: Center(
-                  child: Text('Build job not found'),
+                  child: Text('ビルドジョブが見つかりません'),
                 ),
               );
             }

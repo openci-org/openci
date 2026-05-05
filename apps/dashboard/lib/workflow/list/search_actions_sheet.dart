@@ -40,7 +40,7 @@ class SearchActionsSheet extends HookConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Browse Actions',
+              'Actionsを探す',
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
@@ -51,7 +51,7 @@ class SearchActionsSheet extends HookConsumerWidget {
               controller: searchController,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: 'Search GitHub Actions...',
+                hintText: 'GitHub Actionsを検索...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -77,7 +77,7 @@ class SearchActionsSheet extends HookConsumerWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Popular',
+                  '人気',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: Theme.of(context).hintColor,
                   ),
@@ -128,7 +128,7 @@ class SearchActionsSheet extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'No actions found',
+                          'Actionが見つかりません',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ],

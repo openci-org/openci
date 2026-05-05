@@ -17,15 +17,15 @@ class WorkflowsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Workflows'),
+        title: const Text('ワークフロー'),
         leading: IconButton(
-          tooltip: 'Issues に戻る',
+          tooltip: 'Issueに戻る',
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.go('/'),
         ),
         actions: [
           IconButton(
-            tooltip: 'Workflows を同期',
+            tooltip: 'ワークフローを同期',
             icon: const Icon(Icons.sync_rounded),
             onPressed: () => unawaited(_syncWorkflows(context, ref)),
           ),
@@ -35,7 +35,7 @@ class WorkflowsPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openWorkflowEditor(context, ref),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Workflow 作成'),
+        label: const Text('ワークフロー作成'),
       ),
     );
   }
@@ -107,11 +107,11 @@ Future<void> _syncWorkflows(BuildContext context, WidgetRef ref) async {
     await ref.read(syncWorkflowFilesProvider.future);
     ref.invalidate(workflowFilesProvider);
     if (context.mounted) {
-      context.showSnackBarMessage('Workflows を同期しました');
+      context.showSnackBarMessage('ワークフローを同期しました');
     }
   } catch (error) {
     if (context.mounted) {
-      context.showSnackBarMessage('Workflows の同期に失敗しました: $error');
+      context.showSnackBarMessage('ワークフローの同期に失敗しました: $error');
     }
   }
 }

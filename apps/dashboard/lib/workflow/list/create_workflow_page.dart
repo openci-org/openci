@@ -2531,7 +2531,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
     } catch (e) {
       debugPrint('Create workflow error: $e');
       if (!context.mounted) return;
-      context.showSnackBarMessage('Error: $e');
+      context.showSnackBarMessage('エラー: $e');
     } finally {
       isLoading.value = false;
     }

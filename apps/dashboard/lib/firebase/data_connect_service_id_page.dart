@@ -104,14 +104,14 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                             debugPrint(
                               '[OpenCI] Saving Data Connect service ID: $serviceId',
                             );
-                            statusMessage.value = 'Saving settings...';
+                            statusMessage.value = '設定を保存中...';
                             isSaving.value = true;
                             final updatedConfig = config.copyWith(
                               dataConnectServiceId: serviceId,
                             );
                             await saveSelfHostedConfig(updatedConfig);
                             initDataConnector(updatedConfig);
-                            statusMessage.value = 'Testing Data Connect...';
+                            statusMessage.value = 'Data Connectをテスト中...';
                             debugPrint(
                               '[OpenCI] Testing Data Connect with service ID: $serviceId',
                             );
@@ -129,10 +129,10 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                             );
                             if (result.data.user == null) {
                               statusMessage.value =
-                                  'Data Connect connected. User profile is not initialized yet.';
+                                  'Data Connectに接続しました。ユーザープロフィールはまだ初期化されていません。';
                               canInitializeWorkspace.value = true;
                             } else {
-                              statusMessage.value = 'Data Connect connected.';
+                              statusMessage.value = 'Data Connectに接続しました。';
                               canInitializeWorkspace.value = false;
                             }
                             ref.invalidate(selfHostedConfigProvider);
@@ -146,14 +146,14 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               responsiveSnackBar(
                                 context,
-                                content: Text('Data Connect settings saved'),
+                                content: Text('Data Connect設定を保存しました'),
                               ),
                             );
                           } catch (e) {
                             debugPrint(
                               '[OpenCI] Failed to save Data Connect service ID: $e',
                             );
-                            statusMessage.value = 'Data Connect failed: $e';
+                            statusMessage.value = 'Data Connectに失敗しました: $e';
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               responsiveSnackBar(
@@ -165,7 +165,7 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                             isSaving.value = false;
                           }
                         },
-                  child: Text(isSaving.value ? 'Saving...' : 'Save and retry'),
+                  child: Text(isSaving.value ? '保存中...' : '保存して再試行'),
                 ),
                 if (canInitializeWorkspace.value) ...[
                   const SizedBox(height: 10),
@@ -175,7 +175,7 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                         : () async {
                             final user = ref.read(authProvider).value;
                             if (user == null) {
-                              statusMessage.value = 'User is not signed in.';
+                              statusMessage.value = 'ユーザーがログインしていません。';
                               return;
                             }
 
@@ -199,7 +199,7 @@ class DataConnectServiceIdPage extends HookConsumerWidget {
                                       'Timed out while initializing workspace',
                                     ),
                                   );
-                              statusMessage.value = 'Workspace initialized.';
+                              statusMessage.value = 'ワークスペースを初期化しました。';
                               canInitializeWorkspace.value = false;
                               ref.invalidate(userProvider);
                               ref.invalidate(teamListProvider);

@@ -407,7 +407,7 @@ class IssueBoardPage extends StatefulWidget {
   const IssueBoardPage({
     super.key,
     this.workspaceId = '',
-    this.workspaceName = 'Personal workspace',
+    this.workspaceName = '個人ワークスペース',
   });
 
   final String workspaceId;
@@ -443,35 +443,35 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
-      title: 'Triage',
+      title: 'トリアージ',
       description: '新着と要件確認',
       color: const Color(0xFF6366F1),
       issues: [],
     ),
     BoardColumn(
       id: 'backlog',
-      title: 'Backlog',
+      title: 'バックログ',
       description: '着手待ち',
       color: const Color(0xFF0EA5E9),
       issues: [],
     ),
     BoardColumn(
       id: 'doing',
-      title: 'In Progress',
+      title: '進行中',
       description: '今やっていること',
       color: const Color(0xFFF59E0B),
       issues: [],
     ),
     BoardColumn(
       id: 'review',
-      title: 'Review',
+      title: 'レビュー',
       description: 'レビューと検証',
       color: const Color(0xFFA855F7),
       issues: [],
     ),
     BoardColumn(
       id: 'done',
-      title: 'Done',
+      title: '完了',
       description: '今週完了',
       color: const Color(0xFF22C55E),
       issues: [],
@@ -743,7 +743,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       (issue) => issue.id == issueId,
     );
     if (issue.statusId == _closedStatusId) {
-      _showSavedSnackBar('Already closed');
+      _showSavedSnackBar('すでに完了しています');
       return;
     }
 
@@ -782,8 +782,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       }
       _showSavedSnackBar(
         subIssuesToClose.isEmpty
-            ? 'Closed'
-            : 'Closed with ${subIssuesToClose.length} sub-issues',
+            ? '完了にしました'
+            : '${subIssuesToClose.length}件のsub-issueと一緒に完了にしました',
       );
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
@@ -812,7 +812,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     try {
       await _addIssue(draft);
-      _showSavedSnackBar('Saved');
+      _showSavedSnackBar('保存しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     }
@@ -859,7 +859,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     if (result is EditIssueDialogResult) {
       try {
         await _updateIssue(issueId: result.issueId, draft: result.draft);
-        _showSavedSnackBar('Saved');
+        _showSavedSnackBar('保存しました');
       } catch (error) {
         _showSavedSnackBar(_friendlyError(error));
       }
@@ -872,7 +872,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     try {
       await _updateIssue(issueId: issueId, draft: result);
-      _showSavedSnackBar('Saved');
+      _showSavedSnackBar('保存しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     }
@@ -966,7 +966,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'issueId': issueId,
         'force': true,
       });
-      _showSavedSnackBar('Weight estimated');
+      _showSavedSnackBar('Weightを推定しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     } finally {
@@ -1020,7 +1020,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     await _firestore
         .doc('workspaces/$_workspaceId/issues/$issueId')
         .update(data);
-    _showSavedSnackBar('Weight overridden');
+    _showSavedSnackBar('Weightを上書きしました');
   }
 
   Future<void> _startCursorAgent(String issueId) async {
@@ -1034,7 +1034,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'workspaceId': _workspaceId,
         'issueId': issueId,
       });
-      _showSavedSnackBar('Cursor agent started');
+      _showSavedSnackBar('Cursor agentを開始しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     } finally {
@@ -1220,7 +1220,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           'workspaceId': _workspaceId,
           'accessToken': token,
         });
-        _showSavedSnackBar('GitHub connected as ${_asString(data['login'])}');
+        _showSavedSnackBar('GitHubに${_asString(data['login'])}として接続しました');
         return;
       }
 
@@ -1246,7 +1246,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'clientId': _githubOAuthClientId,
         'deviceCode': flow.deviceCode,
       });
-      _showSavedSnackBar('GitHub connected as ${_asString(data['login'])}');
+      _showSavedSnackBar('GitHubに${_asString(data['login'])}として接続しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     } finally {
@@ -1262,13 +1262,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('GitHub access token'),
+          title: const Text('GitHubアクセストークン'),
           content: TextField(
             controller: controller,
             autofocus: true,
             obscureText: true,
             decoration: const InputDecoration(
-              labelText: 'Personal access token',
+              labelText: '個人アクセストークン',
               helperText:
                   '--dart-define=GITHUB_OAUTH_CLIENT_ID=... がないため、tokenで接続します。',
             ),
@@ -1277,12 +1277,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: const Text('キャンセル'),
             ),
             FilledButton(
               onPressed: () =>
                   Navigator.of(context).pop(controller.text.trim()),
-              child: const Text('Connect'),
+              child: const Text('接続'),
             ),
           ],
         ),
@@ -1334,7 +1334,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         }, SetOptions(merge: true));
       }
       await batch.commit();
-      _showSavedSnackBar('${selected.length} repos selected');
+      _showSavedSnackBar('${selected.length}件のrepoを選択しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     } finally {
@@ -1360,7 +1360,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'workspaceId': _workspaceId,
       });
       _showSavedSnackBar(
-        '${_asInt(data['imported'])} issues imported from ${_asInt(data['repositories'])} repos',
+        '${_asInt(data['repositories'])}件のrepoから${_asInt(data['imported'])}件のissueを取り込みました',
       );
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
@@ -1382,7 +1382,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'workspaceId': _workspaceId,
       });
       _showSavedSnackBar(
-        '${_asInt(data['synced'])} synced, ${_asInt(data['failed'])} failed',
+        '${_asInt(data['synced'])}件同期、${_asInt(data['failed'])}件失敗',
       );
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
@@ -1581,7 +1581,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
             ? FloatingActionButton.extended(
                 onPressed: () => unawaited(_openAddIssueDialog()),
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('New'),
+                label: const Text('新規'),
               )
             : null,
         body: SafeArea(
@@ -1865,7 +1865,7 @@ class IssueCountBadge extends StatelessWidget {
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const Text(
-            'open issues',
+            '未完了issue',
             style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
           ),
         ],
@@ -2010,9 +2010,9 @@ class BoardOverviewPanel extends StatelessWidget {
             ),
             const _OverviewDivider(),
             OverviewMetric(
-              label: 'Open',
+              label: '未完了',
               value: '$openIssues',
-              detail: 'issues',
+              detail: 'issue',
             ),
             if (accuracy != null) ...[
               const _OverviewDivider(),
@@ -2965,32 +2965,32 @@ class BoardToolbar extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: isBusy ? null : onConnectGitHub,
                       icon: const Icon(Icons.link_rounded, size: 16),
-                      label: const Text('Connect GitHub'),
+                      label: const Text('GitHub接続'),
                     ),
                   if (isConnected) ...[
                     ToolbarChip(
                       icon: Icons.account_tree_outlined,
-                      label: '$repoCount repos',
-                      tooltip: 'Select GitHub repositories',
+                      label: '$repoCount repo',
+                      tooltip: 'GitHub repoを選択',
                       onPressed: isBusy ? null : onSelectRepositories,
                     ),
                     ToolbarChip(
                       icon: Icons.download_rounded,
-                      label: 'Import',
-                      tooltip: 'Import GitHub issues',
+                      label: '取り込み',
+                      tooltip: 'GitHub issueを取り込む',
                       onPressed: isBusy ? null : onImportIssues,
                     ),
                     ToolbarChip(
                       icon: Icons.sync_outlined,
-                      label: 'Sync',
-                      tooltip: 'Sync pending issues',
+                      label: '同期',
+                      tooltip: '未同期issueを同期',
                       onPressed: isBusy ? null : onSyncIssues,
                     ),
                   ],
                   ToolbarChip(
                     icon: Icons.search_outlined,
-                    label: 'Search',
-                    tooltip: 'Search issues (⌘K)',
+                    label: '検索',
+                    tooltip: 'issueを検索 (⌘K)',
                     onPressed: onSearchIssues,
                   ),
                   BoardViewModeToggle(
@@ -3005,20 +3005,20 @@ class BoardToolbar extends StatelessWidget {
                   ),
                   ToolbarChip(
                     icon: Icons.schema_rounded,
-                    label: 'Workflows',
+                    label: 'ワークフロー',
                     tooltip: '.openci workflows を開く',
                     onPressed: () => context.go('/workflows'),
                   ),
                   ToolbarChip(
                     icon: Icons.key_rounded,
-                    label: 'Variables',
-                    tooltip: 'Variables / Secrets を開く',
+                    label: '変数',
+                    tooltip: '変数 / シークレットを開く',
                     onPressed: () => context.go('/variables'),
                   ),
                   ToolbarChip(
                     icon: Icons.rocket_launch_outlined,
-                    label: 'Store Release',
-                    tooltip: 'Store Release を開く',
+                    label: 'ストアリリース',
+                    tooltip: 'ストアリリースを開く',
                     onPressed: () => context.go('/store-release'),
                   ),
                 ],
@@ -3179,7 +3179,7 @@ class CompactBoardMenuButton extends StatelessWidget {
             enabled: !isBusy,
             child: const _CompactMenuItem(
               icon: Icons.link_rounded,
-              label: 'Connect GitHub',
+              label: 'GitHub接続',
             ),
           ),
         PopupMenuItem(
@@ -3187,7 +3187,7 @@ class CompactBoardMenuButton extends StatelessWidget {
           enabled: !isBusy && isConnected,
           child: _CompactMenuItem(
             icon: Icons.account_tree_outlined,
-            label: '$repoCount repos',
+            label: '$repoCount repo',
           ),
         ),
         PopupMenuItem(
@@ -3195,7 +3195,7 @@ class CompactBoardMenuButton extends StatelessWidget {
           enabled: !isBusy && isConnected,
           child: const _CompactMenuItem(
             icon: Icons.download_rounded,
-            label: 'Import issues',
+            label: 'issue取り込み',
           ),
         ),
         PopupMenuItem(
@@ -3203,7 +3203,7 @@ class CompactBoardMenuButton extends StatelessWidget {
           enabled: !isBusy && isConnected,
           child: const _CompactMenuItem(
             icon: Icons.sync_outlined,
-            label: 'Sync pending',
+            label: '未同期を同期',
           ),
         ),
         const PopupMenuDivider(),
@@ -3211,7 +3211,7 @@ class CompactBoardMenuButton extends StatelessWidget {
           value: 'search',
           child: _CompactMenuItem(
             icon: Icons.search_outlined,
-            label: 'Search issues',
+            label: 'issue検索',
           ),
         ),
         const PopupMenuDivider(),
@@ -3226,21 +3226,21 @@ class CompactBoardMenuButton extends StatelessWidget {
           value: 'workflows',
           child: _CompactMenuItem(
             icon: Icons.schema_rounded,
-            label: 'Workflows',
+            label: 'ワークフロー',
           ),
         ),
         const PopupMenuItem(
           value: 'variables',
           child: _CompactMenuItem(
             icon: Icons.key_rounded,
-            label: 'Variables',
+            label: '変数',
           ),
         ),
         const PopupMenuItem(
           value: 'storeRelease',
           child: _CompactMenuItem(
             icon: Icons.rocket_launch_outlined,
-            label: 'Store Release',
+            label: 'ストアリリース',
           ),
         ),
         const PopupMenuDivider(),
@@ -3460,7 +3460,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                           onChanged: (_) => setState(() {}),
                           onSubmitted: (_) => _selectFirstMatch(),
                           decoration: const InputDecoration.collapsed(
-                            hintText: 'Search issues...',
+                            hintText: 'issueを検索...',
                             hintStyle: TextStyle(
                               color: Color(0xFF94A3B8),
                               fontWeight: FontWeight.w600,
@@ -3471,7 +3471,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                       const SizedBox(width: 8),
                       if (query.isNotEmpty)
                         IconButton(
-                          tooltip: 'Clear search',
+                          tooltip: '検索をクリア',
                           onPressed: () {
                             _queryController.clear();
                             setState(() {});
@@ -3481,7 +3481,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                       else
                         const _IssueSearchShortcutPill(label: '⌘K'),
                       IconButton(
-                        tooltip: 'Close search',
+                        tooltip: '検索を閉じる',
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.close_rounded),
                       ),
@@ -3493,7 +3493,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                   child: Row(
                     children: [
                       Text(
-                        '${entries.length} results',
+                        '${entries.length}件',
                         style: const TextStyle(
                           color: Color(0xFF64748B),
                           fontSize: 12,
@@ -3502,7 +3502,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                         ),
                       ),
                       const Spacer(),
-                      const _IssueSearchShortcutPill(label: 'Enter to open'),
+                      const _IssueSearchShortcutPill(label: 'Enterで開く'),
                     ],
                   ),
                 ),
@@ -3755,7 +3755,7 @@ class GitHubDeviceFlowDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('GitHub device login'),
+      title: const Text('GitHubデバイスログイン'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 460),
         child: Column(
@@ -3781,14 +3781,14 @@ class GitHubDeviceFlowDialog extends StatelessWidget {
                   onPressed: () =>
                       Clipboard.setData(ClipboardData(text: flow.userCode)),
                   icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('Copy code'),
+                  label: const Text('コードをコピー'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => Clipboard.setData(
                     ClipboardData(text: flow.verificationUri),
                   ),
                   icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('Copy URL'),
+                  label: const Text('URLをコピー'),
                 ),
               ],
             ),
@@ -3798,7 +3798,7 @@ class GitHubDeviceFlowDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: const Text('キャンセル'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
@@ -3829,12 +3829,12 @@ class _RepositoryPickerDialogState extends State<RepositoryPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Select GitHub repositories'),
+      title: const Text('GitHub repoを選択'),
       content: SizedBox(
         width: 520,
         height: 480,
         child: widget.repositories.isEmpty
-            ? const Center(child: Text('Repositoryが見つかりませんでした。'))
+            ? const Center(child: Text('repoが見つかりませんでした。'))
             : ListView.builder(
                 itemCount: widget.repositories.length,
                 itemBuilder: (context, index) {
@@ -3845,7 +3845,7 @@ class _RepositoryPickerDialogState extends State<RepositoryPickerDialog> {
                     value: selected,
                     title: Text(repo.fullName),
                     subtitle: Text(
-                      '${repo.private ? 'private' : 'public'} / ${repo.defaultBranch}',
+                      '${repo.private ? '非公開' : '公開'} / ${repo.defaultBranch}',
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -3863,15 +3863,15 @@ class _RepositoryPickerDialogState extends State<RepositoryPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('キャンセル'),
         ),
         TextButton(
           onPressed: () => setState(_selected.clear),
-          child: const Text('Clear'),
+          child: const Text('クリア'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_selected),
-          child: Text('Save ${_selected.length} repos'),
+          child: Text('${_selected.length}件のrepoを保存'),
         ),
       ],
     );
@@ -4194,7 +4194,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       _copyTextToClipboard(
         context,
         text: _githubUrlController.text,
-        successMessage: 'GitHub link copied',
+        successMessage: 'GitHubリンクをコピーしました',
       ),
     );
   }
@@ -4231,7 +4231,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final currentIssue = _currentIssue;
     final isEditing = currentIssue != null;
     final canCloseIssue = isEditing && currentIssue.statusId != _closedStatusId;
-    final title = isEditing ? 'Edit GitHub issue' : 'New GitHub issue';
+    final title = isEditing ? 'GitHub issueを編集' : 'GitHub issueを新規作成';
     final description = isEditing
         ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
         : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
@@ -4261,7 +4261,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
           _TitleField(
             controller: _titleController,
             decoration: _inputDecoration(
-              label: 'Title',
+              label: 'タイトル',
               hint: '例: issueの同期ステータスを表示する',
             ),
           ),
@@ -4273,7 +4273,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
             decoration: _inputDecoration(
-              label: 'Body',
+              label: '本文',
               hint: '背景、やりたいこと、受け入れ条件などをMarkdownっぽく書けます。',
             ),
           ),
@@ -4292,7 +4292,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             _GitHubLinkField(
               controller: _githubUrlController,
               decoration: _inputDecoration(
-                label: 'GitHub link',
+                label: 'GitHubリンク',
                 hint: 'https://github.com/openci/ima/issues/123',
               ),
               onOpen: _openGitHubUrl,
@@ -4340,7 +4340,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             controller: _labelsController,
             textInputAction: TextInputAction.done,
             decoration: _inputDecoration(
-              label: 'Labels',
+              label: 'ラベル',
               hint: 'feature, github, mobile',
             ),
             onFieldSubmitted: (_) => _saveIssue(),
@@ -4495,11 +4495,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   String _priorityLabel(Priority priority) {
     switch (priority) {
       case Priority.high:
-        return 'High';
+        return '高';
       case Priority.medium:
-        return 'Medium';
+        return '中';
       case Priority.low:
-        return 'Low';
+        return '低';
     }
   }
 }
@@ -4529,12 +4529,12 @@ class _DialogActions extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      child: const Text('Cancel'),
+      child: const Text('キャンセル'),
     );
     final closeButton = OutlinedButton.icon(
       onPressed: onCloseIssue,
       icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-      label: const Text('Close issue'),
+      label: const Text('issueを完了'),
       style: OutlinedButton.styleFrom(
         foregroundColor: const Color(0xFF15803D),
         backgroundColor: const Color(0xFFF0FDF4),
@@ -4546,7 +4546,7 @@ class _DialogActions extends StatelessWidget {
     final saveButton = FilledButton.icon(
       onPressed: onSaveIssue,
       icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
-      label: Text(isEditing ? 'Save changes' : 'Add issue'),
+      label: Text(isEditing ? '変更を保存' : 'issueを追加'),
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         textStyle: const TextStyle(fontWeight: FontWeight.w800),
@@ -4656,7 +4656,7 @@ class _BottomSheetActions extends StatelessWidget {
     final closeButton = OutlinedButton.icon(
       onPressed: onCloseIssue,
       icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-      label: const Text('Close issue'),
+      label: const Text('issueを完了'),
       style: OutlinedButton.styleFrom(
         foregroundColor: const Color(0xFF15803D),
         backgroundColor: const Color(0xFFF0FDF4),
@@ -4668,7 +4668,7 @@ class _BottomSheetActions extends StatelessWidget {
     final saveButton = FilledButton.icon(
       onPressed: onSaveIssue,
       icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
-      label: Text(isEditing ? 'Save changes' : 'Add issue'),
+      label: Text(isEditing ? '変更を保存' : 'issueを追加'),
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         textStyle: const TextStyle(fontWeight: FontWeight.w800),
@@ -4789,7 +4789,7 @@ class IssueBreadcrumb extends StatelessWidget {
                         ),
                         SizedBox(width: 6),
                         Text(
-                          'Viewing sub-issue',
+                          'sub-issueを表示中',
                           style: TextStyle(
                             color: Color(0xFF2563EB),
                             fontSize: 12,
@@ -4812,7 +4812,7 @@ class IssueBreadcrumb extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Parent: ${parentIssue.displayId} · ${parentIssue.title}',
+                      '親: ${parentIssue.displayId} · ${parentIssue.title}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -4828,7 +4828,7 @@ class IssueBreadcrumb extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back_rounded, size: 17),
-                label: Text('Back to ${parentIssue.displayId}'),
+                label: Text('${parentIssue.displayId}に戻る'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF1D4ED8),
                   backgroundColor: Colors.white,
@@ -5016,12 +5016,12 @@ class _GitHubLinkField extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: hasUrl ? onCopy : null,
                   icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('Copy'),
+                  label: const Text('コピー'),
                 ),
                 OutlinedButton.icon(
                   onPressed: hasUrl ? onOpen : null,
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                  label: const Text('Open'),
+                  label: const Text('開く'),
                 ),
               ],
             );
@@ -5071,7 +5071,7 @@ class _RepoAndAssigneeFields extends StatelessWidget {
         final repositoryField = DropdownButtonFormField<String>(
           initialValue: selectedRepository,
           decoration: decorationBuilder(
-            label: 'Repository',
+            label: 'repo',
             hint: '連携済みrepoから選択',
           ),
           items: [
@@ -5096,7 +5096,7 @@ class _RepoAndAssigneeFields extends StatelessWidget {
         final assigneeField = TextFormField(
           controller: assigneeController,
           textInputAction: TextInputAction.next,
-          decoration: decorationBuilder(label: 'Assignee', hint: 'MF'),
+          decoration: decorationBuilder(label: '担当者', hint: 'MF'),
           validator: (value) =>
               value == null || value.trim().isEmpty ? '担当者を入力してください' : null,
         );
@@ -5235,7 +5235,7 @@ class CreateSubIssuePanel extends StatelessWidget {
                     enabled: canCreate,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                      labelText: 'New sub-issue title',
+                      labelText: '新しいsub-issueのタイトル',
                       hintText: '例: APIでsub-issueを同期する',
                     ),
                   ),
@@ -5247,7 +5247,7 @@ class CreateSubIssuePanel extends StatelessWidget {
                     maxLines: 5,
                     keyboardType: TextInputType.multiline,
                     decoration: const InputDecoration(
-                      labelText: 'Body',
+                      labelText: '本文',
                       hintText: '任意: sub-issueの説明',
                       helperText: '⌘Enterでsub-issueを作成',
                     ),
@@ -5270,7 +5270,7 @@ class CreateSubIssuePanel extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add_rounded, size: 18),
-                label: Text(isCreating ? 'Creating...' : 'Create sub-issue'),
+                label: Text(isCreating ? '作成中...' : 'sub-issueを作成'),
               ),
               Text(
                 isLinkedToGitHub
@@ -5338,7 +5338,7 @@ class _StatusAndPriorityFields extends StatelessWidget {
       builder: (context, constraints) {
         final statusField = DropdownButtonFormField<String>(
           initialValue: selectedColumnId,
-          decoration: decorationBuilder(label: 'Status'),
+          decoration: decorationBuilder(label: 'ステータス'),
           items: [
             for (final column in columns)
               DropdownMenuItem(value: column.id, child: Text(column.title)),
@@ -5353,7 +5353,7 @@ class _StatusAndPriorityFields extends StatelessWidget {
         );
         final priorityField = DropdownButtonFormField<Priority>(
           initialValue: priority,
-          decoration: decorationBuilder(label: 'Priority'),
+          decoration: decorationBuilder(label: '優先度'),
           items: [
             for (final priority in Priority.values)
               DropdownMenuItem(
@@ -5933,7 +5933,7 @@ class OverviewSummaryCard extends StatelessWidget {
             ),
           ),
           _OverviewMiniPill(
-            label: '$issueCount cards',
+            label: '$issueCount件',
             foregroundColor: const Color(0xFF2563EB),
             backgroundColor: const Color(0xFFEFF6FF),
           ),
@@ -5943,7 +5943,7 @@ class OverviewSummaryCard extends StatelessWidget {
             backgroundColor: const Color(0xFFDCFCE7),
           ),
           _OverviewMiniPill(
-            label: '$columnCount columns',
+            label: '$columnCount列',
             foregroundColor: const Color(0xFF64748B),
             backgroundColor: const Color(0xFFF1F5F9),
           ),
@@ -6042,7 +6042,7 @@ class OverviewSection extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     _OverviewMiniPill(
-                      label: '${visibleIssues.length} cards / W$totalWeight',
+                      label: '${visibleIssues.length}件 / W$totalWeight',
                       foregroundColor: column.color,
                       backgroundColor: column.color.withValues(alpha: 0.1),
                     ),
@@ -6520,7 +6520,7 @@ class AddIssueToColumnButton extends StatelessWidget {
     return SizedBox.square(
       dimension: 26,
       child: IconButton(
-        tooltip: 'New issue in $columnTitle',
+        tooltip: '$columnTitleにissueを作成',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
         onPressed: onPressed,
@@ -7015,8 +7015,8 @@ class IssueCard extends StatelessWidget {
         ? issue.resolution?.actualWeight
         : weightEstimate?.value;
     final cardWeightTooltip = issue.statusId == _closedStatusId
-        ? 'Actual weight $cardWeight'
-        : 'Weight $cardWeight / confidence ${((weightEstimate?.confidence ?? 0) * 100).round()}%';
+        ? '実績weight $cardWeight'
+        : 'Weight $cardWeight / 信頼度 ${((weightEstimate?.confidence ?? 0) * 100).round()}%';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
@@ -7756,14 +7756,14 @@ class IssueIdCopyButton extends StatelessWidget {
     return SizedBox.square(
       dimension: 22,
       child: IconButton(
-        tooltip: 'Copy issue ID',
+        tooltip: 'Issue IDをコピー',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
         onPressed: () => unawaited(
           _copyTextToClipboard(
             context,
             text: issueId,
-            successMessage: 'Issue ID copied',
+            successMessage: 'Issue IDをコピーしました',
           ),
         ),
         icon: const Icon(
@@ -7836,14 +7836,14 @@ class GitHubLinkCopyButton extends StatelessWidget {
     return SizedBox.square(
       dimension: 26,
       child: IconButton(
-        tooltip: 'Copy GitHub link',
+        tooltip: 'GitHubリンクをコピー',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
         onPressed: () => unawaited(
           _copyTextToClipboard(
             context,
             text: url,
-            successMessage: 'GitHub link copied',
+            successMessage: 'GitHubリンクをコピーしました',
           ),
         ),
         icon: const Icon(Icons.link_rounded, size: 16),
@@ -7872,7 +7872,7 @@ class CursorAgentCardButton extends StatelessWidget {
     return SizedBox.square(
       dimension: 26,
       child: IconButton(
-        tooltip: isRunning ? 'Cursor agent is running' : 'Start Cursor agent',
+        tooltip: isRunning ? 'Cursor agentを実行中' : 'Cursor agentを開始',
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
         onPressed: isBusy ? null : onStart,
@@ -8090,7 +8090,7 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
         _estimateWeight != null && (!isClosed || _actualWeight != null);
 
     return AlertDialog(
-      title: const Text('Weight override'),
+      title: const Text('Weight上書き'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -8103,7 +8103,7 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
           DropdownButtonFormField<int>(
             initialValue: _estimateWeight,
             decoration: const InputDecoration(
-              labelText: 'Estimate weight',
+              labelText: '推定weight',
               border: OutlineInputBorder(),
             ),
             items: [
@@ -8117,7 +8117,7 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
             DropdownButtonFormField<int>(
               initialValue: _actualWeight,
               decoration: const InputDecoration(
-                labelText: 'Actual weight',
+                labelText: '実績weight',
                 border: OutlineInputBorder(),
               ),
               items: [
@@ -8132,11 +8132,11 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('キャンセル'),
         ),
         FilledButton(
           onPressed: canSave ? _save : null,
-          child: const Text('Save'),
+          child: const Text('保存'),
         ),
       ],
     );
@@ -8167,14 +8167,13 @@ class IssueWeightPanel extends StatelessWidget {
     final actualWeight = resolution?.actualWeight;
     final isClosed = issue.statusId == 'done';
     final subtitle = switch (estimate?.status) {
-      'done' when estimate?.manualOverride == true && value != null =>
-        'Manual override',
+      'done' when estimate?.manualOverride == true && value != null => '手動上書き',
       'done' when value != null =>
-        '${(estimate!.confidence * 100).round()}% confidence'
+        '信頼度 ${(estimate!.confidence * 100).round()}%'
             '${estimate.estimatedAt == null ? '' : ' / ${_formatDate(estimate.estimatedAt!)}'}',
-      'failed' => estimate?.error ?? 'Weight estimation failed',
-      'estimating' => 'Estimating weight...',
-      _ => 'Not estimated yet',
+      'failed' => estimate?.error ?? 'Weight推定に失敗しました',
+      'estimating' => 'Weightを推定中...',
+      _ => 'まだ推定していません',
     };
     final reason = estimate?.reason;
 
@@ -8246,7 +8245,7 @@ class IssueWeightPanel extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: isEstimating || isOverriding ? null : onEstimate,
                     icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-                    label: Text(value == null ? 'Estimate' : 'Re-estimate'),
+                    label: Text(value == null ? '推定' : '再推定'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
@@ -8257,7 +8256,7 @@ class IssueWeightPanel extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.tune_rounded, size: 16),
-                    label: const Text('Override'),
+                    label: const Text('上書き'),
                   ),
                 ],
               ),
@@ -8404,15 +8403,12 @@ class CursorAgentPanel extends StatelessWidget {
     final isBusy = isStarting || isRunning;
     final subtitle = switch (agent?.status) {
       'running' when !hasPullRequest =>
-        'Cursor agent is running. Run ID: ${agent!.shortRunId}',
-      'starting' when !hasPullRequest => 'Starting Cursor agent...',
-      'done' ||
-      'running' ||
-      'starting' => 'Cursor agent opened a pull request.',
-      'failed' => agent?.errorMessage ?? 'Cursor agent failed to start.',
-      _ when hasGitHubIssue =>
-        'Start a Cursor Cloud Agent to work on this issue and create a PR.',
-      _ => 'Connect this issue to GitHub before starting an agent.',
+        'Cursor agentを実行中です。Run ID: ${agent!.shortRunId}',
+      'starting' when !hasPullRequest => 'Cursor agentを開始中...',
+      'done' || 'running' || 'starting' => 'Cursor agentがpull requestを作成しました。',
+      'failed' => agent?.errorMessage ?? 'Cursor agentの開始に失敗しました。',
+      _ when hasGitHubIssue => 'Cursor Cloud Agentを開始して、このissueの対応PRを作成します。',
+      _ => 'agentを開始する前に、このissueをGitHubに接続してください。',
     };
     return Container(
       padding: const EdgeInsets.all(14),
@@ -8466,7 +8462,7 @@ class CursorAgentPanel extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: hasGitHubIssue && !isBusy ? onStart : null,
             icon: const Icon(Icons.play_arrow_rounded, size: 18),
-            label: Text(isRunning ? 'Running' : 'Start'),
+            label: Text(isRunning ? '実行中' : '開始'),
           ),
         ],
       ),
