@@ -18,6 +18,7 @@
     "fmt:check": "vp fmt --check",
     "check": "vp check",
     "test": "firebase emulators:exec --only functions,firestore,auth \"vitest run\"",
+    "test:unit": "vitest run",
     "test:watch": "firebase emulators:exec --only functions,firestore,auth \"vitest\""
   },
   "dependencies": {
