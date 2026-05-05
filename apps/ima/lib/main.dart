@@ -1416,12 +1416,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          DailyProgressSheet(
-            currentTarget: _dailyWeightTarget,
-            stats: stats,
-            onRecomputeWeights: _recomputeResolutionWeights,
-          ),
+      builder: (context) => DailyProgressSheet(
+        currentTarget: _dailyWeightTarget,
+        stats: stats,
+        onRecomputeWeights: _recomputeResolutionWeights,
+      ),
     );
 
     if (nextTarget == null || !mounted) {
@@ -3973,20 +3972,13 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final description = isEditing
         ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
         : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
+    final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
     final formContent = Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!widget.isBottomSheet) ...[
-            _DialogHeader(
-              title: title,
-              description: description,
-              issueDisplayId: isEditing ? currentIssue.displayId : null,
-            ),
-            const SizedBox(height: 20),
-          ],
           if (isEditing && _issueStack.length > 1) ...[
             IssueBreadcrumb(
               issues: _issueStack,
@@ -4110,16 +4102,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   : _startCursorAgent,
             ),
           ],
-          if (!widget.isBottomSheet) ...[
-            const SizedBox(height: 24),
-            _DialogActions(
-              isEditing: isEditing,
-              canCloseIssue: canCloseIssue,
-              onCancel: () => Navigator.of(context).pop(),
-              onCloseIssue: _closeIssue,
-              onSaveIssue: _saveIssue,
-            ),
-          ],
         ],
       ),
     );
@@ -4151,9 +4133,42 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   ),
                 ],
               )
-            : SingleChildScrollView(
-                padding: EdgeInsets.all(isCompactDialog ? 18 : 24),
-                child: formContent,
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: dialogPadding.copyWith(bottom: 16),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    child: _DialogHeader(
+                      title: title,
+                      description: description,
+                      issueDisplayId: isEditing ? currentIssue.displayId : null,
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: dialogPadding.copyWith(top: 6, bottom: 0),
+                      child: formContent,
+                    ),
+                  ),
+                  Container(
+                    padding: dialogPadding.copyWith(top: 16),
+                    decoration: const BoxDecoration(
+                      border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                    child: _DialogActions(
+                      isEditing: isEditing,
+                      canCloseIssue: canCloseIssue,
+                      onCancel: () => Navigator.of(context).pop(),
+                      onCloseIssue: _closeIssue,
+                      onSaveIssue: _saveIssue,
+                    ),
+                  ),
+                ],
               ),
       ),
     );
@@ -4272,35 +4287,29 @@ class _DialogActions extends StatelessWidget {
       ),
     );
 
-    return Container(
-      padding: const EdgeInsets.only(top: 16),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 560) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Align(alignment: Alignment.centerLeft, child: cancelButton),
-                const SizedBox(height: 10),
-                if (canCloseIssue) ...[closeButton, const SizedBox(height: 10)],
-                saveButton,
-              ],
-            );
-          }
-
-          return Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              cancelButton,
-              const Spacer(),
-              if (canCloseIssue) ...[closeButton, const SizedBox(width: 12)],
+              Align(alignment: Alignment.centerLeft, child: cancelButton),
+              const SizedBox(height: 10),
+              if (canCloseIssue) ...[closeButton, const SizedBox(height: 10)],
               saveButton,
             ],
           );
-        },
-      ),
+        }
+
+        return Row(
+          children: [
+            cancelButton,
+            const Spacer(),
+            if (canCloseIssue) ...[closeButton, const SizedBox(width: 12)],
+            saveButton,
+          ],
+        );
+      },
     );
   }
 }
@@ -4710,15 +4719,15 @@ class _GitHubLinkField extends StatelessWidget {
   const _GitHubLinkField({
     required this.controller,
     required this.decoration,
-    required this.onOpen,
     required this.onCopy,
+    required this.onOpen,
     required this.onPaste,
   });
 
   final TextEditingController controller;
   final InputDecoration decoration;
-  final VoidCallback onOpen;
   final VoidCallback onCopy;
+  final VoidCallback onOpen;
   final Future<void> Function() onPaste;
 
   @override
@@ -4741,14 +4750,14 @@ class _GitHubLinkField extends StatelessWidget {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: hasUrl ? onOpen : null,
-                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                  label: const Text('Open'),
-                ),
-                OutlinedButton.icon(
                   onPressed: hasUrl ? onCopy : null,
                   icon: const Icon(Icons.copy_rounded, size: 18),
                   label: const Text('Copy'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: hasUrl ? onOpen : null,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Open'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => unawaited(onPaste()),
