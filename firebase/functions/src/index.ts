@@ -1,5 +1,4 @@
 import { setGlobalOptions } from "firebase-functions/v2";
-import "./dataConnect";
 
 setGlobalOptions({
   region: "asia-northeast1",

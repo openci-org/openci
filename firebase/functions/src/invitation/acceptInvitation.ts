@@ -5,8 +5,8 @@ import {
   acceptInvitationAndJoinTeam,
   expireInvitation,
   getInvitationByToken,
+  type InvitationStatus,
 } from "../firestoreData";
-import type { InvitationStatus } from "../dataConnectEnums";
 
 interface AcceptInvitationRequest {
   token: string;
