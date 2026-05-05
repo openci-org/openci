@@ -1,4 +1,4 @@
-name: Flutter Dashboard CI/CD (iOS & Web)
+name: Flutter Dashboard CI/CD (iOS, macOS & Web)
 
 on:
   push:
@@ -55,6 +55,38 @@ jobs:
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+
+  build-macos:
+    needs: [ci]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: openci-org/flutter-setup@v1
+        with:
+          flutter-version: "stable"
+
+      - uses: openci-org/save-secret-file@v1
+        with:
+          secret: ${{ secrets.FIREBASE_OPTIONS }}
+          path: "apps/dashboard/lib/firebase_options.dart"
+
+      - uses: openci-org/save-secret-file@v1
+        with:
+          secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
+          path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
+
+      - uses: openci-org/flutter-cd@v2.0.2
+        with:
+          platform: "macos"
+          working-directory: "apps/dashboard"
+          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
+          asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
+          asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
+          asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+          artifact-name: "OpenCI-dashboard-macos"
 
   deploy-web:
     needs: [ci]
