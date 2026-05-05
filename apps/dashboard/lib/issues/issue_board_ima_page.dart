@@ -4144,23 +4144,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     }
   }
 
-  Future<void> _pasteGitHubUrl() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text?.trim();
-    if (text == null || text.isEmpty) {
-      if (!mounted) {
-        return;
-      }
-      _showFloatingSnackBar(context, 'Clipboard is empty');
-      return;
-    }
-
-    _githubUrlController.text = text;
-    _githubUrlController.selection = TextSelection.collapsed(
-      offset: text.length,
-    );
-  }
-
   Future<void> _pickDueDate() async {
     final now = DateTime.now();
     final initialDate = _dueDate ?? now;
@@ -4252,7 +4235,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
               ),
               onOpen: _openGitHubUrl,
               onCopy: _copyGitHubUrl,
-              onPaste: _pasteGitHubUrl,
             ),
             const SizedBox(height: 14),
             CreateSubIssuePanel(
@@ -4943,14 +4925,12 @@ class _GitHubLinkField extends StatelessWidget {
     required this.decoration,
     required this.onCopy,
     required this.onOpen,
-    required this.onPaste,
   });
 
   final TextEditingController controller;
   final InputDecoration decoration;
   final VoidCallback onCopy;
   final VoidCallback onOpen;
-  final Future<void> Function() onPaste;
 
   @override
   Widget build(BuildContext context) {
@@ -4980,11 +4960,6 @@ class _GitHubLinkField extends StatelessWidget {
                   onPressed: hasUrl ? onOpen : null,
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('Open'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => unawaited(onPaste()),
-                  icon: const Icon(Icons.content_paste_rounded, size: 18),
-                  label: const Text('Paste'),
                 ),
               ],
             );
