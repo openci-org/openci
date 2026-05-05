@@ -408,10 +408,12 @@ class IssueBoardPage extends StatefulWidget {
     super.key,
     this.workspaceId = '',
     this.workspaceName = '個人ワークスペース',
+    this.onSwitchTeam,
   });
 
   final String workspaceId;
   final String workspaceName;
+  final VoidCallback? onSwitchTeam;
 
   @override
   State<IssueBoardPage> createState() => _IssueBoardPageState();
@@ -1572,6 +1574,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     onSyncIssues: _syncGitHubIssues,
                     onSearchIssues: _openIssueSearchDialog,
                     onSignOut: onSignOut,
+                    workspaceName: widget.workspaceName,
+                    onSwitchTeam: widget.onSwitchTeam,
                   ),
                   const SizedBox(width: 4),
                 ],
@@ -1596,6 +1600,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     _openDailyWeightTargetDialog(dailyProgressStats),
                   ),
                   onSignOut: onSignOut,
+                  workspaceName: widget.workspaceName,
+                  onSwitchTeam: widget.onSwitchTeam,
                 ),
               if (_isBootstrapping) const LinearProgressIndicator(),
               if (isCompactLayout)
@@ -1765,6 +1771,8 @@ class BoardHeader extends StatelessWidget {
     required this.dailyProgressStats,
     required this.onChangeDailyWeightTarget,
     required this.onSignOut,
+    required this.workspaceName,
+    this.onSwitchTeam,
   });
 
   final int openIssues;
@@ -1772,6 +1780,8 @@ class BoardHeader extends StatelessWidget {
   final DailyProgressStats dailyProgressStats;
   final VoidCallback onChangeDailyWeightTarget;
   final Future<void> Function() onSignOut;
+  final String workspaceName;
+  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -1786,6 +1796,10 @@ class BoardHeader extends StatelessWidget {
               (isCompact ? textTheme.headlineSmall : textTheme.headlineMedium)
                   ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.8),
         );
+        final teamSwitcher = TeamSwitcherButton(
+          workspaceName: workspaceName,
+          onPressed: onSwitchTeam,
+        );
 
         if (isCompact) {
           return Padding(
@@ -1793,7 +1807,12 @@ class BoardHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Align(alignment: Alignment.centerLeft, child: title),
+                Row(
+                  children: [
+                    Expanded(child: title),
+                    if (onSwitchTeam != null) teamSwitcher,
+                  ],
+                ),
                 const SizedBox(height: 10),
                 DailyProgressStrip(
                   stats: dailyProgressStats,
@@ -1814,6 +1833,10 @@ class BoardHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(child: title),
+                  if (onSwitchTeam != null) ...[
+                    teamSwitcher,
+                    const SizedBox(width: 8),
+                  ],
                   TextButton(
                     onPressed: () => unawaited(onSignOut()),
                     child: const Text('サインアウト'),
@@ -1837,6 +1860,45 @@ class BoardHeader extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class TeamSwitcherButton extends StatelessWidget {
+  const TeamSwitcherButton({
+    super.key,
+    required this.workspaceName,
+    required this.onPressed,
+  });
+
+  final String workspaceName;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'チーム切替',
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.groups_2_outlined, size: 18),
+        label: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 180),
+          child: Text(
+            workspaceName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF334155),
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -3131,6 +3193,8 @@ class CompactBoardMenuButton extends StatelessWidget {
     required this.onSyncIssues,
     required this.onSearchIssues,
     required this.onSignOut,
+    required this.workspaceName,
+    this.onSwitchTeam,
   });
 
   final bool isConnected;
@@ -3142,6 +3206,8 @@ class CompactBoardMenuButton extends StatelessWidget {
   final VoidCallback onSyncIssues;
   final VoidCallback onSearchIssues;
   final Future<void> Function() onSignOut;
+  final String workspaceName;
+  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -3160,6 +3226,8 @@ class CompactBoardMenuButton extends StatelessWidget {
             onSyncIssues();
           case 'search':
             onSearchIssues();
+          case 'switchTeam':
+            onSwitchTeam?.call();
           case 'runs':
             context.go('/runs');
           case 'workflows':
@@ -3215,6 +3283,16 @@ class CompactBoardMenuButton extends StatelessWidget {
           ),
         ),
         const PopupMenuDivider(),
+        if (onSwitchTeam != null) ...[
+          PopupMenuItem(
+            value: 'switchTeam',
+            child: _CompactMenuItem(
+              icon: Icons.groups_2_outlined,
+              label: workspaceName,
+            ),
+          ),
+          const PopupMenuDivider(),
+        ],
         const PopupMenuItem(
           value: 'runs',
           child: _CompactMenuItem(
