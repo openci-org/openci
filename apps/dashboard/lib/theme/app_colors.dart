@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 ///
 /// Usage: `context.appColors.surface` or `AppColors.of(context).surface`
 ///
-/// These tokens map to the zinc-neutral design system:
-/// - Dark mode: zinc-950 backgrounds, white text, blue-500 accent
-/// - Light mode: white backgrounds, zinc-900 text, blue-600 accent
+/// These tokens follow the IMA-flavored Material palette:
+/// - Light mode: soft slate backgrounds, white cards, blue seed accent
+/// - Dark mode: Material dark slate surfaces with the same blue accent
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
     // ── Backgrounds ──
@@ -131,29 +131,25 @@ class AppColors extends ThemeExtension<AppColors> {
   // ═══════════════════════════════════════════════════════════════════
   static const dark = AppColors(
     // Backgrounds
-    scaffold: Color(0xFF0A0A0A), // zinc-950
-    surface: Color(0xFF141414), // zinc-900
-    surfaceHover: Color(0xFF1A1A1A), // zinc-850
-    surfaceSecondary: Color(0xFF1E1E1E), // zinc-800
-    surfaceTertiary: Color(0xFF262626), // zinc-750
-
+    scaffold: Color(0xFF0F172A), // slate-900
+    surface: Color(0xFF111827), // gray-900
+    surfaceHover: Color(0xFF1E293B), // slate-800
+    surfaceSecondary: Color(0xFF1E293B), // slate-800
+    surfaceTertiary: Color(0xFF334155), // slate-700
     // Borders
-    border: Color(0x14FFFFFF), // white 8%
-    borderSubtle: Color(0x0AFFFFFF), // white 4%
-    borderFocused: Color(0xFF3B82F6), // blue-500
-
+    border: Color(0x1FFFFFFF), // white 12%
+    borderSubtle: Color(0x12FFFFFF), // white 7%
+    borderFocused: Color(0xFF2563EB), // blue-600
     // Text
     textPrimary: Color(0xFFFFFFFF), // white
     textSecondary: Color(0xB3FFFFFF), // white 70%
     textTertiary: Color(0x66FFFFFF), // white 40%
     textInverse: Color(0xFF0A0A0A), // zinc-950
-
     // Accent
-    accent: Color(0xFF3B82F6), // blue-500
-    accentHover: Color(0xFF2563EB), // blue-600
-    accentSubtle: Color(0x263B82F6), // blue-500 15%
+    accent: Color(0xFF2563EB), // blue-600
+    accentHover: Color(0xFF1D4ED8), // blue-700
+    accentSubtle: Color(0x262563EB), // blue-600 15%
     accentOnAccent: Color(0xFFFFFFFF), // white
-
     // Status
     success: Color(0xFF22C55E), // green-500
     successSubtle: Color(0x2622C55E), // green-500 15%
@@ -161,9 +157,8 @@ class AppColors extends ThemeExtension<AppColors> {
     errorSubtle: Color(0x26EF4444), // red-500 15%
     warning: Color(0xFFD29922), // amber-600
     warningSubtle: Color(0x26D29922), // amber-600 15%
-
     // Semantic
-    codeBackground: Color(0xFF1E1E1E), // zinc-800
+    codeBackground: Color(0xFF1E293B), // slate-800
     overlay: Color(0x80000000), // black 50%
     divider: Color(0x14FFFFFF), // white 8%
     shimmer: Color(0x0AFFFFFF), // white 4%
@@ -174,29 +169,25 @@ class AppColors extends ThemeExtension<AppColors> {
   // ═══════════════════════════════════════════════════════════════════
   static const light = AppColors(
     // Backgrounds
-    scaffold: Color(0xFFFAFAFA), // zinc-50
+    scaffold: Color(0xFFF8FAFC), // slate-50
     surface: Color(0xFFFFFFFF), // white
-    surfaceHover: Color(0xFFF4F4F5), // zinc-100
-    surfaceSecondary: Color(0xFFF4F4F5), // zinc-100
-    surfaceTertiary: Color(0xFFE4E4E7), // zinc-200
-
+    surfaceHover: Color(0xFFF1F5F9), // slate-100
+    surfaceSecondary: Color(0xFFF1F5F9), // slate-100
+    surfaceTertiary: Color(0xFFE2E8F0), // slate-200
     // Borders
-    border: Color(0xFFE4E4E7), // zinc-200
-    borderSubtle: Color(0xFFF4F4F5), // zinc-100
+    border: Color(0xFFE2E8F0), // slate-200
+    borderSubtle: Color(0xFFF1F5F9), // slate-100
     borderFocused: Color(0xFF2563EB), // blue-600
-
     // Text
-    textPrimary: Color(0xFF09090B), // zinc-950
-    textSecondary: Color(0xFF52525B), // zinc-600
-    textTertiary: Color(0xFFA1A1AA), // zinc-400
+    textPrimary: Color(0xFF0F172A), // slate-900
+    textSecondary: Color(0xFF475569), // slate-600
+    textTertiary: Color(0xFF94A3B8), // slate-400
     textInverse: Color(0xFFFFFFFF), // white
-
     // Accent
     accent: Color(0xFF2563EB), // blue-600
     accentHover: Color(0xFF1D4ED8), // blue-700
     accentSubtle: Color(0xFFDBEAFE), // blue-100
     accentOnAccent: Color(0xFFFFFFFF), // white
-
     // Status
     success: Color(0xFF16A34A), // green-600
     successSubtle: Color(0xFFDCFCE7), // green-100
@@ -204,12 +195,11 @@ class AppColors extends ThemeExtension<AppColors> {
     errorSubtle: Color(0xFFFEE2E2), // red-100
     warning: Color(0xFFCA8A04), // yellow-600
     warningSubtle: Color(0xFFFEF9C3), // yellow-100
-
     // Semantic
-    codeBackground: Color(0xFFF4F4F5), // zinc-100
+    codeBackground: Color(0xFFF1F5F9), // slate-100
     overlay: Color(0x40000000), // black 25%
-    divider: Color(0xFFE4E4E7), // zinc-200
-    shimmer: Color(0xFFF4F4F5), // zinc-100
+    divider: Color(0xFFE2E8F0), // slate-200
+    shimmer: Color(0xFFF1F5F9), // slate-100
   );
 
   @override
@@ -278,8 +268,11 @@ class AppColors extends ThemeExtension<AppColors> {
       scaffold: Color.lerp(scaffold, other.scaffold, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceHover: Color.lerp(surfaceHover, other.surfaceHover, t)!,
-      surfaceSecondary:
-          Color.lerp(surfaceSecondary, other.surfaceSecondary, t)!,
+      surfaceSecondary: Color.lerp(
+        surfaceSecondary,
+        other.surfaceSecondary,
+        t,
+      )!,
       surfaceTertiary: Color.lerp(surfaceTertiary, other.surfaceTertiary, t)!,
       border: Color.lerp(border, other.border, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,

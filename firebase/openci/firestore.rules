@@ -11,6 +11,84 @@ service cloud.firestore {
             return isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/teams_v0/$(teamId)).data.members;
         }
 
+        function isWorkspaceMember(workspaceId) {
+            return isAuthenticated()
+                && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+        }
+
+        function isWorkspaceMemberAfter(workspaceId) {
+            return isAuthenticated()
+                && getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role is string;
+        }
+
+        function ownsWorkspace() {
+            return isAuthenticated()
+                && resource.data.ownerUid == request.auth.uid;
+        }
+
+        function isWorkspaceOwnerCreate() {
+            return isAuthenticated()
+                && request.resource.data.ownerUid == request.auth.uid
+                && request.resource.data.name is string
+                && request.resource.data.name.size() > 0
+                && request.resource.data.name.size() <= 200;
+        }
+
+        function isWorkspaceOwnerAfterCreate(workspaceId) {
+            return isAuthenticated()
+                && getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerUid == request.auth.uid;
+        }
+
+        function isValidIssueBoard(data, teamId) {
+            return data.keys().hasOnly(['teamId', 'repository', 'updatedAt'])
+                && data.teamId == teamId
+                && data.repository is string
+                && data.repository.size() > 0
+                && data.repository.size() <= 200
+                && data.updatedAt is timestamp;
+        }
+
+        function isValidIssue(data, teamId) {
+            return data.keys().hasOnly([
+                    'title',
+                    'body',
+                    'statusId',
+                    'rank',
+                    'teamId',
+                    'repository',
+                    'createdBy',
+                    'createdAt',
+                    'updatedAt'
+                ])
+                && data.keys().hasAll([
+                    'title',
+                    'body',
+                    'statusId',
+                    'rank',
+                    'teamId',
+                    'repository',
+                    'createdBy',
+                    'createdAt',
+                    'updatedAt'
+                ])
+                && data.teamId == teamId
+                && data.createdBy is string
+                && data.createdBy.size() > 0
+                && data.createdBy.size() <= 128
+                && data.title is string
+                && data.title.size() > 0
+                && data.title.size() <= 300
+                && data.body is string
+                && data.body.size() <= 20000
+                && data.statusId in ['triage', 'backlog', 'doing', 'review', 'done']
+                && data.rank is number
+                && data.repository is string
+                && data.repository.size() > 0
+                && data.repository.size() <= 200
+                && data.createdAt is timestamp
+                && data.updatedAt is timestamp;
+        }
+
         match /build_jobs_v0/{buildJobId} {
             allow read: if isTeamMember(resource.data.teamId);
             allow write: if false;
@@ -53,12 +131,98 @@ service cloud.firestore {
         match /teams_v0/{teamId} {
             allow create: if isAuthenticated();
             allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
+
+            match /issue_boards_v0/{repoId} {
+                allow read: if isTeamMember(teamId);
+                allow create, update: if isTeamMember(teamId)
+                    && isValidIssueBoard(request.resource.data, teamId);
+                allow delete: if false;
+
+                match /issues_v0/{issueId} {
+                    allow read: if isTeamMember(teamId);
+                    allow create: if isTeamMember(teamId)
+                        && request.resource.data.createdBy == request.auth.uid
+                        && isValidIssue(request.resource.data, teamId);
+                    allow update: if isTeamMember(teamId)
+                        && request.resource.data.createdBy == resource.data.createdBy
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.teamId == resource.data.teamId
+                        && request.resource.data.repository == resource.data.repository
+                        && isValidIssue(request.resource.data, teamId);
+                    allow delete: if isTeamMember(teamId);
+                }
+            }
         }
 
         match /users_v0/{userId} {
             allow read, update: if isAuthenticated() && userId == request.auth.uid;
             allow create: if isAuthenticated() && userId == request.auth.uid;
             allow delete: if false;
+        }
+
+        match /users/{uid} {
+            allow read, create, update: if isAuthenticated() && uid == request.auth.uid;
+            allow delete: if false;
+
+            match /private/{document=**} {
+                allow read, write: if false;
+            }
+        }
+
+        match /workspaces/{workspaceId} {
+            allow create: if isWorkspaceOwnerCreate();
+            allow read: if isWorkspaceMember(workspaceId) || ownsWorkspace();
+            allow update: if isWorkspaceMember(workspaceId)
+                || ownsWorkspace()
+                || (
+                    request.resource.data.ownerUid == request.auth.uid
+                    && isWorkspaceMemberAfter(workspaceId)
+                );
+            allow delete: if false;
+
+            match /members/{uid} {
+                allow create: if isAuthenticated()
+                    && uid == request.auth.uid
+                    && request.resource.data.role == 'owner'
+                    && isWorkspaceOwnerAfterCreate(workspaceId);
+                allow read: if isWorkspaceMember(workspaceId);
+                allow update: if isWorkspaceMember(workspaceId) && uid == request.auth.uid;
+                allow delete: if false;
+            }
+
+            match /statuses/{statusId} {
+                allow read, update: if isWorkspaceMember(workspaceId);
+                allow create: if isWorkspaceMember(workspaceId) || isWorkspaceMemberAfter(workspaceId);
+                allow delete: if false;
+            }
+
+            match /issues/{issueId} {
+                allow read, create, update, delete: if isWorkspaceMember(workspaceId);
+
+                match /cursorAgentRuns/{runId} {
+                    allow read: if isWorkspaceMember(workspaceId);
+                    allow write: if false;
+                }
+            }
+
+            match /issueEvents/{eventId} {
+                allow read: if isWorkspaceMember(workspaceId);
+                allow write: if false;
+            }
+
+            match /githubConnections/{connectionId} {
+                allow read: if isWorkspaceMember(workspaceId);
+                allow write: if false;
+            }
+
+            match /githubRepos/{repoId} {
+                allow read, create, update, delete: if isWorkspaceMember(workspaceId);
+            }
+
+            match /syncOutbox/{operationId} {
+                allow read, create, update: if isWorkspaceMember(workspaceId);
+                allow delete: if false;
+            }
         }
 
         match /{document=**} {

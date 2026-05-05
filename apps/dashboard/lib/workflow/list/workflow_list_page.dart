@@ -6,6 +6,7 @@ import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/data_connect_service_id_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/issues/issue_board_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/create_team_bottom_sheet.dart';
@@ -74,9 +75,9 @@ class WorkflowListPage extends HookConsumerWidget {
     final selfHostedConfig = ref.watch(selfHostedConfigProvider).value;
     final showDataConnectSettings = useState(false);
     final wfT = t.workflow;
-    final tabController = useTabController(initialLength: 4);
+    final tabController = useTabController(initialLength: 5);
     useListenable(tabController);
-    final isWorkflowsTab = tabController.index == 2;
+    final isWorkflowsTab = tabController.index == 3;
 
     final isGitHubConnected = ref.watch(isGitHubConnectedProvider);
 
@@ -129,6 +130,7 @@ class WorkflowListPage extends HookConsumerWidget {
 
         final tabChildren = [
           const LogsBody(),
+          buildRepoRequiredTab(const IssueBoardBody()),
           const StoreReleaseBody(),
           buildRepoRequiredTab(
             _WorkflowBody(
@@ -332,6 +334,7 @@ class WorkflowListPage extends HookConsumerWidget {
               tabAlignment: TabAlignment.start,
               tabs: [
                 Tab(text: wfT.tabRuns),
+                const Tab(text: 'Issues'),
                 Tab(text: t.storeRelease.title),
                 Tab(text: wfT.tabWorkflows),
                 Tab(text: t.variables.title),

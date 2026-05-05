@@ -6,5 +6,4 @@ environment:
 
 workspace:
   - apps/dashboard
-  - apps/ima
   - packages/openci_shared

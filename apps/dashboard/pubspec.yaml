@@ -58,6 +58,7 @@ dependencies:
       url: https://github.com/firebase/flutterfire.git
       ref: 918554c668977c161e01d2b14f819c2659c25e02
       path: packages/firebase_data_connect/firebase_data_connect
+  cloud_firestore: ^6.3.0
 
 dev_dependencies:
   sentry_dart_plugin: ^3.3.0
