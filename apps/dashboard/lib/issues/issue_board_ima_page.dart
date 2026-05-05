@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:dashboard/firebase_options.dart';
@@ -2937,7 +2938,7 @@ class BoardToolbar extends StatelessWidget {
           child: Align(
             alignment: Alignment.centerLeft,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 820),
+              constraints: const BoxConstraints(maxWidth: 1120),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -2978,6 +2979,30 @@ class BoardToolbar extends StatelessWidget {
                   BoardViewModeToggle(
                     value: boardViewMode,
                     onChanged: onBoardViewModeChanged,
+                  ),
+                  ToolbarChip(
+                    icon: Icons.history_rounded,
+                    label: '実行履歴',
+                    tooltip: 'CI/CD の実行履歴を開く',
+                    onPressed: () => context.go('/runs'),
+                  ),
+                  ToolbarChip(
+                    icon: Icons.schema_rounded,
+                    label: 'Workflows',
+                    tooltip: '.openci workflows を開く',
+                    onPressed: () => context.go('/workflows'),
+                  ),
+                  ToolbarChip(
+                    icon: Icons.key_rounded,
+                    label: 'Variables',
+                    tooltip: 'Variables / Secrets を開く',
+                    onPressed: () => context.go('/variables'),
+                  ),
+                  ToolbarChip(
+                    icon: Icons.rocket_launch_outlined,
+                    label: 'Store Release',
+                    tooltip: 'Store Release を開く',
+                    onPressed: () => context.go('/store-release'),
                   ),
                 ],
               ),
@@ -3118,6 +3143,14 @@ class CompactBoardMenuButton extends StatelessWidget {
             onSyncIssues();
           case 'search':
             onSearchIssues();
+          case 'runs':
+            context.go('/runs');
+          case 'workflows':
+            context.go('/workflows');
+          case 'variables':
+            context.go('/variables');
+          case 'storeRelease':
+            context.go('/store-release');
           case 'signOut':
             unawaited(onSignOut());
         }
@@ -3162,6 +3195,35 @@ class CompactBoardMenuButton extends StatelessWidget {
           child: _CompactMenuItem(
             icon: Icons.search_outlined,
             label: 'Search issues',
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'runs',
+          child: _CompactMenuItem(
+            icon: Icons.history_rounded,
+            label: '実行履歴',
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'workflows',
+          child: _CompactMenuItem(
+            icon: Icons.schema_rounded,
+            label: 'Workflows',
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'variables',
+          child: _CompactMenuItem(
+            icon: Icons.key_rounded,
+            label: 'Variables',
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'storeRelease',
+          child: _CompactMenuItem(
+            icon: Icons.rocket_launch_outlined,
+            label: 'Store Release',
           ),
         ),
         const PopupMenuDivider(),

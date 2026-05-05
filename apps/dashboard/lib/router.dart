@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/accept_invitation_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workflow/list/workflow_list_page.dart';
+import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -40,6 +44,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(
+            path: 'runs',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const AuthenticatedScaffoldRoutePage(
+                title: '実行履歴',
+                child: LogsBody(),
+              ),
+            ),
+          ),
+          GoRoute(
             path: 'runs/:buildJobId',
             pageBuilder: (context, state) {
               final buildJobId = state.pathParameters['buildJobId']!;
@@ -48,6 +62,33 @@ final routerProvider = Provider<GoRouter>((ref) {
                 child: BuildLogsDetailRoutePage(buildJobId: buildJobId),
               );
             },
+          ),
+          GoRoute(
+            path: 'workflows',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const WorkflowsPage(),
+            ),
+          ),
+          GoRoute(
+            path: 'variables',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const AuthenticatedScaffoldRoutePage(
+                title: 'Variables',
+                child: VariablesBody(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: 'store-release',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const AuthenticatedScaffoldRoutePage(
+                title: 'Store Release',
+                child: StoreReleaseBody(),
+              ),
+            ),
           ),
           GoRoute(
             path: 'invite/:token',
@@ -160,6 +201,45 @@ class HomeRoutePage extends HookConsumerWidget {
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
       error: asyncErrorWidget,
+    );
+  }
+}
+
+class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
+  const AuthenticatedScaffoldRoutePage({
+    super.key,
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+
+    return authState.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: asyncErrorWidget,
+      data: (user) {
+        if (user == null) {
+          return const AuthPage();
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(title),
+            leading: IconButton(
+              tooltip: 'Issues に戻る',
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => context.go('/'),
+            ),
+          ),
+          body: child,
+        );
+      },
     );
   }
 }
