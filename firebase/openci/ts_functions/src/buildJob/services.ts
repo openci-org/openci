@@ -9,7 +9,7 @@ import {
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
   updateUserFcmTokens,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 import { getMessaging } from "firebase-admin/messaging";
 
 export interface BuildJob {

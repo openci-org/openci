@@ -6,9 +6,9 @@ import {
   handleBuildJobStatusChange,
   updateCheckRun,
 } from "@openci/build-job-services";
-import { BuildJobStatus } from "@openci/dataconnect-admin";
+import { BuildJobStatus } from "@openci/firestore-data";
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
-import { claimNextJob, completeJob, createRun, updateRunStatus } from "../dataconnect.js";
+import { claimNextJob, completeJob, createRun, updateRunStatus } from "../firestore.js";
 import { buildEnvVars, buildSecretVars } from "../env.js";
 import { withInstallationToken } from "../github.js";
 import { flushLogs, logError, logInfo } from "../logger.js";

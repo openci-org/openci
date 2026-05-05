@@ -538,7 +538,6 @@ class _TranslationsAuthFirebaseFormEs implements TranslationsAuthFirebaseFormEn 
 	@override String get messagingSenderId => 'ID de remitente de mensajes';
 	@override String get projectId => 'ID de proyecto';
 	@override String get storageBucket => 'Depósito de almacenamiento';
-	@override String get dataConnectServiceId => 'ID de servicio de Data Connect';
 	@override String get pickConfig => 'Guardar configuración';
 	@override String get configSaved => 'Configuración guardada. Por favor, reinicia la app.';
 	@override String get configActive => 'Proyecto Firebase personalizado configurado. Reinicia para aplicar.';
@@ -837,7 +836,6 @@ extension on TranslationsEs {
 			'auth.firebaseForm.messagingSenderId' => 'ID de remitente de mensajes',
 			'auth.firebaseForm.projectId' => 'ID de proyecto',
 			'auth.firebaseForm.storageBucket' => 'Depósito de almacenamiento',
-			'auth.firebaseForm.dataConnectServiceId' => 'ID de servicio de Data Connect',
 			'auth.firebaseForm.pickConfig' => 'Guardar configuración',
 			'auth.firebaseForm.configSaved' => 'Configuración guardada. Por favor, reinicia la app.',
 			'auth.firebaseForm.configActive' => 'Proyecto Firebase personalizado configurado. Reinicia para aplicar.',

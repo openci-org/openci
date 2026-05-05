@@ -1,4 +1,4 @@
-import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
@@ -18,21 +18,23 @@ class SecretManager extends _$SecretManager {
   Stream<List<Secret>> secretsStream() {
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) return Stream.value([]);
-    return dataConnector
-        .listSecretsForTeam(teamId: teamId)
-        .ref()
-        .subscribe()
+    return firestore
+        .collection(secretsCollection)
+        .where('teamId', isEqualTo: teamId)
+        .orderBy('name')
+        .snapshots()
         .map(
-          (result) => result.data.secrets
-              .map(
-                (secret) => Secret(
-                  id: secret.id,
-                  name: secret.name,
-                  teamId: secret.teamId,
-                  createdAt: dateTimeFromDataConnect(secret.createdAt),
-                  updatedAt: dateTimeFromDataConnect(secret.updatedAt),
-                ),
-              )
+          (result) => result.docs
+              .map((doc) {
+                final data = doc.data();
+                return Secret(
+                  id: doc.id,
+                  name: data['name'] as String? ?? '',
+                  teamId: data['teamId'] as String? ?? '',
+                  createdAt: dateTimeFromFirestore(data['createdAt']),
+                  updatedAt: dateTimeFromFirestore(data['updatedAt']),
+                );
+              })
               .toList(),
         );
   }

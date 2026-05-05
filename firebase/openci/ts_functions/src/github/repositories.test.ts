@@ -47,7 +47,7 @@ vi.mock("./githubApp", () => ({
   githubPut: (...args: unknown[]) => mockGithubPut(...args),
 }));
 
-vi.mock("@openci/dataconnect-admin", () => ({
+vi.mock("@openci/firestore-data", () => ({
   upsertWorkflowFile: (...args: unknown[]) => mockUpsertWorkflowFile(...args),
   listWorkflowFilesForBranch: (...args: unknown[]) => mockListWorkflowFilesForBranch(...args),
   deleteWorkflowFile: (...args: unknown[]) => mockDeleteWorkflowFile(...args),

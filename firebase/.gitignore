@@ -65,8 +65,5 @@ node_modules/
 # dotenv environment variables file
 .env
 
-# dataconnect generated files
-.dataconnect
-
 # Flutter web build output for hosting
 public/

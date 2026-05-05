@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { appendLog } from "./dataconnect.js";
+import { appendLog } from "./firestore.js";
 
 type LogLevel = "info" | "warning" | "error";
 

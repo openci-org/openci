@@ -1,4 +1,4 @@
-import { getTeamById } from "@openci/dataconnect-admin";
+import { getTeamById } from "@openci/firestore-data";
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 export const defaultGitHubBaseUrl = "https://github.com";

@@ -17,7 +17,7 @@ const { BuildJobStatus, mockGetBuildJob, mockUpdateBuildJobStatus, mockVerifyTea
     mockVerifyTeamMembership: vi.fn(),
   }));
 
-vi.mock("@openci/dataconnect-admin", () => ({
+vi.mock("@openci/firestore-data", () => ({
   BuildJobStatus,
   getBuildJob: (...args: unknown[]) => mockGetBuildJob(...args),
   updateBuildJobStatus: (...args: unknown[]) => mockUpdateBuildJobStatus(...args),

@@ -1,4 +1,5 @@
-import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
@@ -37,24 +38,24 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) {
     return Stream.value([]);
   }
 
-  return dataConnector
-      .listWorkflowFilesForBranch(
-        teamId: team.id,
-        repository: selectedRepo,
-        branch: selectedBranch,
-      )
-      .ref()
-      .subscribe()
+  return firestore
+      .collection(workflowFilesCollection)
+      .where('teamId', isEqualTo: team.id)
+      .where('repository', isEqualTo: selectedRepo)
+      .where('branch', isEqualTo: selectedBranch)
+      .orderBy('fileName')
+      .snapshots()
       .map(
-        (result) => result.data.workflowFiles
-            .map(
-              (file) => WorkflowFile(
-                name: file.fileName,
-                path: file.filePath,
-                content: file.content,
-                enabled: file.enabled ?? true,
-              ),
-            )
+        (result) => result.docs
+            .map((doc) {
+              final data = doc.data();
+              return WorkflowFile(
+                name: data['fileName'] as String? ?? '',
+                path: data['filePath'] as String? ?? '',
+                content: data['content'] as String? ?? '',
+                enabled: data['enabled'] as bool? ?? true,
+              );
+            })
             .toList(),
       );
 }
@@ -115,7 +116,8 @@ Future<void> toggleWorkflowEnabled(
     fileName,
   );
 
-  await dataConnector
-      .updateWorkflowFileEnabled(id: docId, teamId: team.id, enabled: enabled)
-      .execute();
+  await firestore.collection(workflowFilesCollection).doc(docId).update({
+    'enabled': enabled,
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
 }

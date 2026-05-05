@@ -5,15 +5,13 @@
       "source": "ts_functions",
       "runtime": "nodejs22",
       "predeploy": [
+        "node \"$RESOURCE_DIR/scripts/vendor-firestore-data.mjs\"",
         "npm --prefix \"$RESOURCE_DIR\" install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],
       "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"]
     }
   ],
-  "dataconnect": {
-    "source": "dataconnect"
-  },
   "firestore": {
     "database": "(default)",
     "rules": "firestore.rules",
@@ -28,9 +26,6 @@
     },
     "auth": {
       "port": 9099
-    },
-    "dataconnect": {
-      "port": 9399
     },
     "ui": {
       "enabled": true,

@@ -1,4 +1,4 @@
-import type { BuildJobStatus } from "@openci/dataconnect-admin";
+import type { BuildJobStatus } from "@openci/firestore-data";
 
 export interface BuildJob {
   id: string;
@@ -34,8 +34,6 @@ export interface WorkerConfig {
   serviceAccountPath: string;
   workerId: string;
   projectId: string;
-  dataConnectServiceId?: string;
-  dataConnectLocation?: string;
   pollIntervalMs: number;
   once: boolean;
 }

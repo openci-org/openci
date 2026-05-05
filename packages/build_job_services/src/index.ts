@@ -1,7 +1,6 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import {
   BuildJobStatus,
-  connectorConfig,
   getBuildJob,
   getTeamById,
   listLatestBuildLogs,
@@ -10,7 +9,7 @@ import {
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
   updateUserFcmTokens,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 import { getMessaging } from "firebase-admin/messaging";
 
 export interface BuildJob {
@@ -43,11 +42,6 @@ export interface BuildJob {
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
 const failureSummaryModel = "claude-opus-4-7";
-
-export function configureDataConnect(options: { serviceId?: string; location?: string }): void {
-  if (options.serviceId) connectorConfig.serviceId = options.serviceId;
-  if (options.location) connectorConfig.location = options.location;
-}
 
 function asBuildJob(value: unknown): BuildJob | undefined {
   if (!value || typeof value !== "object") return undefined;

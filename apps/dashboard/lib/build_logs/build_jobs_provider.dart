@@ -1,4 +1,5 @@
-import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
@@ -19,22 +20,20 @@ class BuildJobs extends _$BuildJobs {
       return;
     }
 
-    final query = dataConnector
-        .listBuildJobsForTeam(teamId: teamId, limit: 20)
-        .ref();
+    final query = firestore
+        .collection(buildJobsCollection)
+        .where('teamId', isEqualTo: teamId)
+        .orderBy('createdAt', descending: true)
+        .limit(20);
 
-    final initialResult = await query.execute();
-    final initialJobs = _sortedBuildJobs(
-      initialResult.data.buildJobs.map(_buildJobFromList),
-    );
+    final initialResult = await query.get();
+    final initialJobs = _sortedBuildJobs(initialResult.docs.map(_buildJobFromDoc));
     _debugBuildJobsResult('execute', teamId, initialJobs);
     yield initialJobs;
 
-    yield* query.subscribe().map(
+    yield* query.snapshots().map(
       (result) {
-        final jobs = _sortedBuildJobs(
-          result.data.buildJobs.map(_buildJobFromList),
-        );
+        final jobs = _sortedBuildJobs(result.docs.map(_buildJobFromDoc));
         _debugBuildJobsResult('subscribe', teamId, jobs);
         return jobs;
       },
@@ -75,13 +74,15 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
     yield null;
     return;
   }
-  final query = dataConnector
-      .getBuildJobForTeam(id: buildJobId, teamId: teamId)
-      .ref();
-
-  yield* query.subscribe().map(
-    (result) => _buildJobFromTeamResult(result.data.buildJob),
-  );
+  yield* firestore
+      .collection(buildJobsCollection)
+      .doc(buildJobId)
+      .snapshots()
+      .map((snapshot) {
+        final job = _buildJobFromSnapshot(snapshot);
+        if (job?.teamId != teamId) return null;
+        return job;
+      });
 }
 
 @riverpod
@@ -129,58 +130,46 @@ Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
   return Stream.value(completedAt.difference(buildJob.createdAt));
 }
 
-BuildJob _buildJobFromList(ListBuildJobsForTeamBuildJobs job) {
+BuildJob _buildJobFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+  return _buildJobFromData(doc.id, doc.data());
+}
+
+BuildJob? _buildJobFromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
+  final data = doc.data();
+  if (data == null) return null;
+  return _buildJobFromData(doc.id, data);
+}
+
+BuildJob _buildJobFromData(String id, Map<String, dynamic> job) {
   return BuildJob(
-    id: job.id,
-    status: _knownBuildJobStatus(job.status),
-    owner: job.owner,
-    repo: job.repo,
-    teamId: job.teamId,
-    workflowId: job.workflowId,
-    workflowName: job.workflowName,
-    workflowFileName: job.workflowFileName,
-    commitSha: job.commitSha,
-    pullRequestNumber: job.pullRequestNumber,
-    runCount: job.runCount,
-    latestRunId: job.latestRunId,
-    tagName: job.tagName,
-    branch: job.branch,
-    jobKey: job.jobKey,
-    workflowRunId: job.workflowRunId,
-    needs: job.needs,
-    failureSummary: job.failureSummary,
-    failureSummaryModel: job.failureSummaryModel,
-    failureSummaryStatus: job.failureSummaryStatus,
-    failureSummaryDurationMs: job.failureSummaryDurationMs,
-    createdAt: dateTimeFromDataConnect(job.createdAt),
-    updatedAt: dateTimeFromDataConnect(job.updatedAt),
-    completedAt: job.completedAt == null
+    id: id,
+    status: buildJobStatusFromFirestore(job['status']),
+    owner: job['owner'] as String? ?? '',
+    repo: job['repo'] as String? ?? '',
+    teamId: job['teamId'] as String?,
+    workflowId: job['workflowId'] as String?,
+    workflowName: job['workflowName'] as String?,
+    workflowFileName: job['workflowFileName'] as String?,
+    commitSha: job['commitSha'] as String?,
+    pullRequestNumber: job['pullRequestNumber'] as int?,
+    runCount: job['runCount'] as int?,
+    latestRunId: job['latestRunId'] as String?,
+    tagName: job['tagName'] as String?,
+    branch: job['branch'] as String?,
+    jobKey: job['jobKey'] as String?,
+    workflowRunId: job['workflowRunId'] as String?,
+    needs: (job['needs'] as List?)?.whereType<String>().toList(),
+    failureSummary: job['failureSummary'] as String?,
+    failureSummaryModel: job['failureSummaryModel'] as String?,
+    failureSummaryStatus: job['failureSummaryStatus'] as String?,
+    failureSummaryDurationMs: job['failureSummaryDurationMs'] as int?,
+    createdAt: dateTimeFromFirestore(job['createdAt']),
+    updatedAt: dateTimeFromFirestore(job['updatedAt']),
+    completedAt: job['completedAt'] == null
         ? null
-        : dateTimeFromDataConnect(job.completedAt!),
+        : dateTimeFromFirestore(job['completedAt']),
   );
 }
-
-BuildJobStatus _knownBuildJobStatus(EnumValue<BuildJobStatus> status) {
-  if (status is Known<BuildJobStatus>) {
-    return status.value;
-  }
-  final legacyStatus = _legacyBuildJobStatusValues[status.stringValue];
-  if (legacyStatus != null) {
-    return legacyStatus;
-  }
-  throw StateError('Unknown BuildJobStatus: ${status.stringValue}');
-}
-
-const _legacyBuildJobStatusValues = {
-  'waiting': BuildJobStatus.WAITING,
-  'queued': BuildJobStatus.QUEUED,
-  'in_progress': BuildJobStatus.IN_PROGRESS,
-  'success': BuildJobStatus.SUCCESS,
-  'failure': BuildJobStatus.FAILURE,
-  'cancelled': BuildJobStatus.CANCELLED,
-  'skipped': BuildJobStatus.SKIPPED,
-  'timed_out': BuildJobStatus.TIMED_OUT,
-};
 
 List<BuildJob> _sortedBuildJobs(Iterable<BuildJob> jobs) {
   return jobs.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -195,34 +184,3 @@ void _debugBuildJobsResult(String source, String teamId, List<BuildJob> jobs) {
   );
 }
 
-BuildJob? _buildJobFromTeamResult(GetBuildJobForTeamBuildJob? job) {
-  if (job == null) return null;
-  return BuildJob(
-    id: job.id,
-    status: _knownBuildJobStatus(job.status),
-    owner: job.owner,
-    repo: job.repo,
-    teamId: job.teamId,
-    workflowId: job.workflowId,
-    workflowName: job.workflowName,
-    workflowFileName: job.workflowFileName,
-    commitSha: job.commitSha,
-    pullRequestNumber: job.pullRequestNumber,
-    runCount: job.runCount,
-    latestRunId: job.latestRunId,
-    tagName: job.tagName,
-    branch: job.branch,
-    jobKey: job.jobKey,
-    workflowRunId: job.workflowRunId,
-    needs: job.needs,
-    failureSummary: job.failureSummary,
-    failureSummaryModel: job.failureSummaryModel,
-    failureSummaryStatus: job.failureSummaryStatus,
-    failureSummaryDurationMs: job.failureSummaryDurationMs,
-    createdAt: dateTimeFromDataConnect(job.createdAt),
-    updatedAt: dateTimeFromDataConnect(job.updatedAt),
-    completedAt: job.completedAt == null
-        ? null
-        : dateTimeFromDataConnect(job.completedAt!),
-  );
-}

@@ -1,4 +1,4 @@
-import { BuildJobStatus } from "@openci/dataconnect-admin";
+import { BuildJobStatus } from "@openci/firestore-data";
 export interface BuildJob {
     id: string;
     status: BuildJobStatus;
@@ -26,10 +26,6 @@ export interface BuildJob {
     completedAt?: string | null;
 }
 export declare const defaultGitHubApiBaseUrl = "https://api.github.com";
-export declare function configureDataConnect(options: {
-    serviceId?: string;
-    location?: string;
-}): void;
 export declare function normalizeGitHubApiBaseUrl(apiBaseUrl?: string | null): string;
 export declare function buildDashboardRunUrl(buildJobId: string): string;
 export declare function getBuildJobOrThrow(buildJobId: string): Promise<BuildJob>;

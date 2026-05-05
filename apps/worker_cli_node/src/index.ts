@@ -1,17 +1,14 @@
 #!/usr/bin/env node
 
 import { parseConfig } from "./config.js";
-import { initFirebase } from "./dataconnect.js";
+import { initFirebase } from "./firestore.js";
 import { pollForJobs } from "./worker/worker.js";
 
 async function main(): Promise<void> {
   const config = parseConfig(process.argv.slice(2));
   if (!config) return;
 
-  initFirebase(config.serviceAccountPath, {
-    dataConnectServiceId: config.dataConnectServiceId,
-    dataConnectLocation: config.dataConnectLocation,
-  });
+  initFirebase(config.serviceAccountPath);
   await pollForJobs(config);
 }
 

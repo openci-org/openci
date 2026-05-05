@@ -18,7 +18,7 @@ const { mockListMyPendingInvitations, mockExpireInvitation, mockAcceptInvitation
     mockAcceptInvitationAndJoinTeam: vi.fn(),
   }));
 
-vi.mock("@openci/dataconnect-admin", () => ({
+vi.mock("@openci/firestore-data", () => ({
   listMyPendingInvitations: (...args: unknown[]) => mockListMyPendingInvitations(...args),
   expireInvitation: (...args: unknown[]) => mockExpireInvitation(...args),
   acceptInvitationAndJoinTeam: (...args: unknown[]) => mockAcceptInvitationAndJoinTeam(...args),

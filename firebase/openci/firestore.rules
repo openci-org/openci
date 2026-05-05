@@ -11,6 +11,123 @@ service cloud.firestore {
             return isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/teams_v0/$(teamId)).data.members;
         }
 
+        function isTeamMemberAfter(teamId) {
+            return isAuthenticated() && request.auth.uid in getAfter(/databases/$(database)/documents/teams_v0/$(teamId)).data.members;
+        }
+
+        function isOptionalString(value, maxLength) {
+            return value == null || (value is string && value.size() <= maxLength);
+        }
+
+        function isValidTeam(data) {
+            return data.keys().hasOnly([
+                    'id',
+                    'name',
+                    'members',
+                    'installationIds',
+                    'runNumber',
+                    'aiEnabled',
+                    'githubBaseUrl',
+                    'githubApiBaseUrl',
+                    'createdAt',
+                    'updatedAt'
+                ])
+                && data.keys().hasAll(['id', 'name', 'members', 'installationIds', 'aiEnabled', 'createdAt', 'updatedAt'])
+                && data.id is string
+                && data.name is string
+                && data.name.size() > 0
+                && data.name.size() <= 200
+                && data.members is list
+                && data.members.size() > 0
+                && data.members.size() <= 100
+                && data.installationIds is list
+                && data.installationIds.size() <= 100
+                && (!('runNumber' in data) || data.runNumber is int)
+                && data.aiEnabled is bool
+                && isOptionalString(data.githubBaseUrl, 500)
+                && isOptionalString(data.githubApiBaseUrl, 500)
+                && data.createdAt is timestamp
+                && data.updatedAt is timestamp;
+        }
+
+        function isValidUser(data) {
+            return data.keys().hasOnly([
+                    'id',
+                    'email',
+                    'displayName',
+                    'photoUrl',
+                    'selectedTeamId',
+                    'selectedRepository',
+                    'selectedBranch',
+                    'notificationPreference',
+                    'fcmTokens',
+                    'createdAt',
+                    'updatedAt'
+                ])
+                && data.id is string
+                && isOptionalString(data.email, 320)
+                && isOptionalString(data.displayName, 200)
+                && isOptionalString(data.photoUrl, 2000)
+                && isOptionalString(data.selectedRepository, 500)
+                && isOptionalString(data.selectedBranch, 500)
+                && (!('notificationPreference' in data)
+                    || data.notificationPreference in ['disabled', 'failureOnly', 'all'])
+                && (!('fcmTokens' in data)
+                    || (data.fcmTokens is list && data.fcmTokens.size() <= 20))
+                && (!('createdAt' in data) || data.createdAt is timestamp)
+                && data.updatedAt is timestamp
+                && (
+                    !('selectedTeamId' in data)
+                    || data.selectedTeamId == null
+                    || (
+                        data.selectedTeamId is string
+                        && data.selectedTeamId.size() > 0
+                        && data.selectedTeamId.size() <= 128
+                        && isTeamMemberAfter(data.selectedTeamId)
+                    )
+                );
+        }
+
+        function isValidWorkflow(data) {
+            return data.keys().hasOnly([
+                    'id',
+                    'teamId',
+                    'name',
+                    'workflowConfig',
+                    'workflowSteps',
+                    'isEditing',
+                    'createdAt',
+                    'updatedAt'
+                ])
+                && data.keys().hasAll(['id', 'teamId', 'name', 'workflowConfig', 'workflowSteps', 'isEditing', 'createdAt', 'updatedAt'])
+                && data.id is string
+                && data.teamId is string
+                && data.name is string
+                && data.name.size() > 0
+                && data.name.size() <= 200
+                && data.workflowConfig is map
+                && data.workflowSteps is list
+                && data.workflowSteps.size() <= 100
+                && data.isEditing is bool
+                && data.createdAt is timestamp
+                && data.updatedAt is timestamp;
+        }
+
+        function isValidEnvironmentVariable(data) {
+            return data.keys().hasOnly(['id', 'key', 'value', 'teamId', 'autoIncrement', 'createdAt', 'updatedAt'])
+                && data.keys().hasAll(['id', 'key', 'value', 'teamId', 'autoIncrement', 'createdAt', 'updatedAt'])
+                && data.id is string
+                && data.key is string
+                && data.key.size() > 0
+                && data.key.size() <= 200
+                && data.value is string
+                && data.value.size() <= 20000
+                && data.teamId is string
+                && data.autoIncrement is bool
+                && data.createdAt is timestamp
+                && data.updatedAt is timestamp;
+        }
+
         function isWorkspaceMember(workspaceId) {
             return isAuthenticated()
                 && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
@@ -107,18 +224,40 @@ service cloud.firestore {
         }
 
         match /workflows_v1/{workflowId} {
-            allow create: if isTeamMember(request.resource.data.teamId);
-            allow read, update, delete: if isTeamMember(resource.data.teamId);
+            allow create: if isValidWorkflow(request.resource.data)
+                && request.resource.data.id == workflowId
+                && isTeamMember(request.resource.data.teamId);
+            allow read, delete: if isTeamMember(resource.data.teamId);
+            allow update: if isTeamMember(resource.data.teamId)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    'name',
+                    'workflowConfig',
+                    'workflowSteps',
+                    'isEditing',
+                    'updatedAt'
+                ])
+                && request.resource.data.id == resource.data.id
+                && request.resource.data.teamId == resource.data.teamId
+                && request.resource.data.createdAt == resource.data.createdAt
+                && isValidWorkflow(request.resource.data);
         }
 
         match /secrets_v0/{secretId} {
-            allow create: if isTeamMember(request.resource.data.teamId);
-            allow read, update, delete: if isTeamMember(resource.data.teamId);
+            allow read: if isTeamMember(resource.data.teamId);
+            allow write: if false;
         }
 
         match /environment_variables_v0/{envVarId} {
-            allow create: if isTeamMember(request.resource.data.teamId);
-            allow read, update, delete: if isTeamMember(resource.data.teamId);
+            allow create: if isValidEnvironmentVariable(request.resource.data)
+                && request.resource.data.id == envVarId
+                && isTeamMember(request.resource.data.teamId);
+            allow read, delete: if isTeamMember(resource.data.teamId);
+            allow update: if isTeamMember(resource.data.teamId)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['key', 'value', 'teamId', 'updatedAt'])
+                && request.resource.data.id == resource.data.id
+                && request.resource.data.teamId == resource.data.teamId
+                && request.resource.data.createdAt == resource.data.createdAt
+                && isValidEnvironmentVariable(request.resource.data);
         }
 
         match /workflow_files_v0/{fileId} {
@@ -129,8 +268,25 @@ service cloud.firestore {
         }
 
         match /teams_v0/{teamId} {
-            allow create: if isAuthenticated();
-            allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
+            allow create: if isAuthenticated()
+                && isValidTeam(request.resource.data)
+                && request.resource.data.id == teamId
+                && request.resource.data.members.size() == 1
+                && request.resource.data.members[0] == request.auth.uid;
+            allow read, delete: if isTeamMember(teamId);
+            allow update: if isTeamMember(teamId)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    'name',
+                    'aiEnabled',
+                    'githubBaseUrl',
+                    'githubApiBaseUrl',
+                    'installationIds',
+                    'updatedAt'
+                ])
+                && request.resource.data.id == resource.data.id
+                && request.resource.data.members == resource.data.members
+                && request.resource.data.createdAt == resource.data.createdAt
+                && isValidTeam(request.resource.data);
 
             match /issue_boards_v0/{repoId} {
                 allow read: if isTeamMember(teamId);
@@ -155,8 +311,11 @@ service cloud.firestore {
         }
 
         match /users_v0/{userId} {
-            allow read, update: if isAuthenticated() && userId == request.auth.uid;
-            allow create: if isAuthenticated() && userId == request.auth.uid;
+            allow read: if isAuthenticated() && userId == request.auth.uid;
+            allow create, update: if isAuthenticated()
+                && userId == request.auth.uid
+                && request.resource.data.id == userId
+                && isValidUser(request.resource.data);
             allow delete: if false;
         }
 

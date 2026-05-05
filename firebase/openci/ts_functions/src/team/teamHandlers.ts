@@ -10,7 +10,7 @@ import {
   findExistingPendingInvitation,
   listTeamMembers,
   reinviteInvitation,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 import { accessSecret } from "../secretManager";
 import { verifyTeamMembership } from "./teamAuth";
 

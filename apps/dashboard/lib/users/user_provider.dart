@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -37,7 +38,7 @@ class User extends _$User {
     yield await fetchUser().timeout(
       const Duration(seconds: 8),
       onTimeout: () => throw TimeoutException(
-        'Timed out while loading user from Data Connect',
+        'Timed out while loading user from Firestore',
       ),
     );
 
@@ -50,14 +51,21 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    final result = await dataConnector.getCurrentUser().execute();
-    return _openCIUserFromData(result.data);
+    final snapshot = await firestore
+        .collection(usersCollection)
+        .doc(currentUserId)
+        .get();
+    return _openCIUserFromSnapshot(snapshot);
   }
 
   Stream<OpenCIUser> watchUser() {
-    return dataConnector.getCurrentUser().ref().subscribe().map(
-      (result) => _openCIUserFromData(result.data),
-    );
+    final currentUserId = ref.read(authProvider).value?.uid;
+    if (currentUserId == null) return const Stream.empty();
+    return firestore
+        .collection(usersCollection)
+        .doc(currentUserId)
+        .snapshots()
+        .map(_openCIUserFromSnapshot);
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
@@ -66,7 +74,12 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await dataConnector.updateCurrentUserSelectedTeam(teamId: teamId).execute();
+    await firestore.collection(usersCollection).doc(currentUserId).set({
+      'selectedTeamId': teamId,
+      'selectedRepository': null,
+      'selectedBranch': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateNotificationPreference(
@@ -77,11 +90,10 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await dataConnector
-        .updateCurrentUserNotificationPreference(
-          notificationPreference: preference.name,
-        )
-        .execute();
+    await firestore.collection(usersCollection).doc(currentUserId).set({
+      'notificationPreference': preference.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> addFcmToken(String token) async {
@@ -90,7 +102,10 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await dataConnector.addCurrentUserFcmToken(token: token).execute();
+    await firestore.collection(usersCollection).doc(currentUserId).set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateSelectedRepository({
@@ -102,12 +117,11 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await dataConnector
-        .updateCurrentUserRepositorySelection(
-          repository: repository,
-          branch: defaultBranch,
-        )
-        .execute();
+    await firestore.collection(usersCollection).doc(currentUserId).set({
+      'selectedRepository': repository,
+      'selectedBranch': defaultBranch,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateSelectedBranch(String branch) async {
@@ -116,27 +130,32 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
-    await dataConnector
-        .updateCurrentUserSelectedBranch(branch: branch)
-        .execute();
+    await firestore.collection(usersCollection).doc(currentUserId).set({
+      'selectedBranch': branch,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }
 
-OpenCIUser _openCIUserFromData(GetCurrentUserData data) {
-  final user = data.user;
-  if (user == null) throw Exception('User profile not found');
-  final selectedTeamId = user.selectedTeamId;
+OpenCIUser _openCIUserFromSnapshot(
+  DocumentSnapshot<Map<String, dynamic>> snapshot,
+) {
+  final data = snapshot.data();
+  if (data == null) throw Exception('User profile not found');
+  final selectedTeamId = data['selectedTeamId'] as String?;
   if (selectedTeamId == null || selectedTeamId.isEmpty) {
     throw Exception('Selected team is not configured');
   }
   return OpenCIUser(
-    id: user.id,
+    id: snapshot.id,
     selectedTeamId: selectedTeamId,
     notificationPreference: NotificationPreference.values.byName(
-      user.notificationPreference ?? NotificationPreference.all.name,
+      data['notificationPreference'] as String? ??
+          NotificationPreference.all.name,
     ),
-    fcmTokens: user.fcmTokens ?? const [],
-    selectedRepository: user.selectedRepository,
-    selectedBranch: user.selectedBranch,
+    fcmTokens: (data['fcmTokens'] as List?)?.whereType<String>().toList() ??
+        const [],
+    selectedRepository: data['selectedRepository'] as String?,
+    selectedBranch: data['selectedBranch'] as String?,
   );
 }

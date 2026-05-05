@@ -10,7 +10,7 @@ import {
   createBuildJob,
   getBuildJob as getBuildJobOperation,
   listBuildJobsByWorkflowRun,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 import { verifyTeamMembership } from "../team/teamAuth";
 
 interface RetryBuildJobRequest {

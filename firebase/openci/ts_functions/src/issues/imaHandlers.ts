@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { Agent } from "@cursor/sdk";
-import { getTeamById } from "@openci/dataconnect-admin";
+import { getTeamById } from "@openci/firestore-data";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,

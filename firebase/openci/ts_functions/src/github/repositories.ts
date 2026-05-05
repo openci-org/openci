@@ -5,7 +5,7 @@ import {
   deleteWorkflowFile,
   listWorkflowFilesForBranch,
   upsertWorkflowFile,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 import { verifyTeamMembership } from "../team/teamAuth";
 import {
   getInstallationToken,

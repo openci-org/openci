@@ -5,7 +5,7 @@ import {
   acceptInvitationAndJoinTeam,
   expireInvitation,
   listMyPendingInvitations,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 
 export interface AcceptedInvitationTeam {
   teamId: string;

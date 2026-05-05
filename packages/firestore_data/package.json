@@ -1,0 +1,25 @@
+{
+  "name": "@openci/firestore-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Firestore-backed data operations for OpenCI",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "main": "index.cjs.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./esm/index.esm.js",
+      "require": "./index.cjs.js",
+      "default": "./esm/index.esm.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "firebase-admin": "^13.8.0"
+  },
+  "engines": {
+    "node": "22"
+  }
+}

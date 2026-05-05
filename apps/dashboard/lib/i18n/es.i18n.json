@@ -61,7 +61,6 @@
       "messagingSenderId": "ID de remitente de mensajes",
       "projectId": "ID de proyecto",
       "storageBucket": "Depósito de almacenamiento",
-      "dataConnectServiceId": "ID de servicio de Data Connect",
       "pickConfig": "Guardar configuración",
       "configSaved": "Configuración guardada. Por favor, reinicia la app.",
       "configActive": "Proyecto Firebase personalizado configurado. Reinicia para aplicar.",

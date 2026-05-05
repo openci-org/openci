@@ -26,10 +26,6 @@ export function printUsage(): void {
 Options:
   -s, --service-account <path>  Firebase service account JSON file
   -w, --worker-id <id>          Unique worker ID
-      --dataconnect-service-id <id>
-                                SQL Connect service ID (defaults from service account project_id)
-      --dataconnect-location <id>
-                                SQL Connect location (default: asia-northeast1)
       --poll-interval <ms>      Poll interval in milliseconds (default: ${defaultPollIntervalMs})
       --once                    Process at most one job, then exit
   -h, --help                    Print this help
@@ -72,10 +68,6 @@ export function parseConfig(args: string[]): WorkerConfig | null {
     serviceAccountPath,
     workerId,
     projectId,
-    dataConnectServiceId:
-      readOption(args, "dataconnect-service-id") ?? process.env.OPENCI_DATACONNECT_SERVICE_ID,
-    dataConnectLocation:
-      readOption(args, "dataconnect-location") ?? process.env.OPENCI_DATACONNECT_LOCATION,
     pollIntervalMs,
     once: args.includes("--once"),
   };

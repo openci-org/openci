@@ -79,6 +79,24 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "email",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "invitations_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "token",
           "order": "ASCENDING"
         },

@@ -1,7 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 
-import { getTeamForMember } from "@openci/dataconnect-admin";
+import { getTeamForMember } from "@openci/firestore-data";
 
 export async function verifyTeamMembership(
   auth: CallableRequest["auth"],

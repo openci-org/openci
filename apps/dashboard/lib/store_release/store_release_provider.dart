@@ -1,4 +1,4 @@
-import 'package:dashboard/firebase/dataconnect.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -97,14 +97,13 @@ class IsAscConfigured extends _$IsAscConfigured {
   }
 
   Stream<bool> _isAscConfigured(String teamId) async* {
-    final query = dataConnector
-        .getSecretsByNamesForTeam(
-          teamId: teamId,
-          names: ['OPENCI_ASC_ISSUER_ID'],
-        )
-        .ref();
-
-    yield* query.subscribe().map((result) => result.data.secrets.isNotEmpty);
+    yield* firestore
+        .collection(secretsCollection)
+        .where('teamId', isEqualTo: teamId)
+        .where('name', isEqualTo: 'OPENCI_ASC_ISSUER_ID')
+        .limit(1)
+        .snapshots()
+        .map((result) => result.docs.isNotEmpty);
   }
 }
 

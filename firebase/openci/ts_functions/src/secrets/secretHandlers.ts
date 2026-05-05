@@ -11,7 +11,7 @@ import {
   listWorkflowsForTeam,
   updateSecretMetadata,
   updateWorkflowSecretKeys,
-} from "@openci/dataconnect-admin";
+} from "@openci/firestore-data";
 import {
   addSecretVersionByPath,
   createSecretWithValue,
