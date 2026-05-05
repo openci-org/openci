@@ -680,6 +680,7 @@ async function estimateAndSaveIssueWeight({ workspaceId, issueId, issue, force, 
             inputHash,
             promptVersion: issueWeightHelpers_1.issueWeightPromptVersion,
             model: issueWeightModel,
+            manualOverride: false,
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         },
     }, { merge: true });
@@ -698,6 +699,7 @@ async function estimateAndSaveIssueWeight({ workspaceId, issueId, issue, force, 
         await issueRef.set({
             weightEstimate: {
                 ...estimate,
+                manualOverride: false,
                 durationMs,
                 requestedBy: requestedBy ?? null,
                 estimatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -731,6 +733,7 @@ async function estimateAndSaveIssueWeight({ workspaceId, issueId, issue, force, 
                 inputHash,
                 promptVersion: issueWeightHelpers_1.issueWeightPromptVersion,
                 model: issueWeightModel,
+                manualOverride: false,
                 error: (0, issueWeightHelpers_1.truncateText)(message, 500),
                 failedAt: firestore_1.FieldValue.serverTimestamp(),
                 updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -2156,6 +2159,10 @@ exports.recomputeResolutionWeights = (0, https_1.onCall)({ timeoutSeconds: 300 }
             skipped++;
             continue;
         }
+        if (resolution.actualWeightManualOverride === true) {
+            skipped++;
+            continue;
+        }
         const cycleTimeMs = typeof resolution.cycleTimeMs === "number" ? resolution.cycleTimeMs : null;
         const leadTimeMs = typeof resolution.leadTimeMs === "number" ? resolution.leadTimeMs : null;
         const timeForWeight = cycleTimeMs ?? leadTimeMs;
@@ -2198,6 +2205,9 @@ exports.autoEstimateIssueWeightOnIssueWrite = (0, firestore_2.onDocumentWritten)
         return;
     }
     const existing = issueWeightEstimateMap(after);
+    if (existing.manualOverride === true) {
+        return;
+    }
     const existingStatus = asString(existing.status);
     if (asString(existing.inputHash) === afterInputHash &&
         (existingStatus === "done" || existingStatus === "estimating" || existingStatus === "failed")) {

@@ -1209,6 +1209,7 @@ async function estimateAndSaveIssueWeight({
         inputHash,
         promptVersion: issueWeightPromptVersion,
         model: issueWeightModel,
+        manualOverride: false,
         updatedAt: FieldValue.serverTimestamp(),
       },
     },
@@ -1231,6 +1232,7 @@ async function estimateAndSaveIssueWeight({
       {
         weightEstimate: {
           ...estimate,
+          manualOverride: false,
           durationMs,
           requestedBy: requestedBy ?? null,
           estimatedAt: FieldValue.serverTimestamp(),
@@ -1266,6 +1268,7 @@ async function estimateAndSaveIssueWeight({
           inputHash,
           promptVersion: issueWeightPromptVersion,
           model: issueWeightModel,
+          manualOverride: false,
           error: truncateText(message, 500),
           failedAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
@@ -3001,6 +3004,10 @@ export const recomputeResolutionWeights = onCall<
       skipped++;
       continue;
     }
+    if (resolution.actualWeightManualOverride === true) {
+      skipped++;
+      continue;
+    }
     const cycleTimeMs = typeof resolution.cycleTimeMs === "number" ? resolution.cycleTimeMs : null;
     const leadTimeMs = typeof resolution.leadTimeMs === "number" ? resolution.leadTimeMs : null;
     const timeForWeight = cycleTimeMs ?? leadTimeMs;
@@ -3049,6 +3056,9 @@ export const autoEstimateIssueWeightOnIssueWrite = onDocumentWritten(
     }
 
     const existing = issueWeightEstimateMap(after);
+    if (existing.manualOverride === true) {
+      return;
+    }
     const existingStatus = asString(existing.status);
     if (
       asString(existing.inputHash) === afterInputHash &&
