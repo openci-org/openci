@@ -1,5 +1,5 @@
 {
-  "name": "ts_functions",
+  "name": "functions",
   "version": "1.0.0",
   "private": true,
   "description": "OpenCI Cloud Functions (TypeScript)",
@@ -10,7 +10,7 @@
     "serve": "vp build && firebase emulators:start --only functions",
     "shell": "vp build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions:ts",
+    "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",

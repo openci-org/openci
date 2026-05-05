@@ -1,4 +1,4 @@
-name: TS Functions CI
+name: Functions CI
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 defaults:
   run:
-    working-directory: firebase/openci/ts_functions
+    working-directory: firebase/functions
 
 jobs:
   ci:
@@ -21,7 +21,7 @@ jobs:
       - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "22"
-          working-directory: firebase/openci/ts_functions
+          working-directory: firebase/functions
           run-install: false
 
       - name: Install dependencies
