@@ -7,7 +7,8 @@ import 'package:dashboard/themes/tab_bar_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+const _compactTextScale = 0.94;
 
 class Root extends ConsumerWidget {
   const Root({super.key});
@@ -39,9 +40,14 @@ ThemeData _buildTheme(Brightness brightness) {
     brightness: brightness,
   );
 
-  final baseTextTheme = isDark
-      ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
-      : GoogleFonts.interTextTheme(ThemeData.light().textTheme);
+  final baseMaterialTheme = ThemeData(
+    colorScheme: colorScheme,
+    useMaterial3: true,
+    brightness: brightness,
+    visualDensity: VisualDensity.compact,
+    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+  final baseTextTheme = _scaledTextTheme(baseMaterialTheme.textTheme);
   final snackBarBackground = isDark
       ? colors.surfaceSecondary
       : AppColors.dark.surfaceSecondary;
@@ -52,6 +58,8 @@ ThemeData _buildTheme(Brightness brightness) {
     colorScheme: colorScheme,
     brightness: brightness,
     useMaterial3: true,
+    visualDensity: VisualDensity.compact,
+    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     scaffoldBackgroundColor: colors.scaffold,
     textTheme: baseTextTheme,
     cardTheme: CardThemeData(
@@ -247,6 +255,34 @@ ThemeData _buildTheme(Brightness brightness) {
       },
     ),
   );
+}
+
+TextTheme _scaledTextTheme(TextTheme theme) {
+  return theme.copyWith(
+    displayLarge: _scaledTextStyle(theme.displayLarge),
+    displayMedium: _scaledTextStyle(theme.displayMedium),
+    displaySmall: _scaledTextStyle(theme.displaySmall),
+    headlineLarge: _scaledTextStyle(theme.headlineLarge),
+    headlineMedium: _scaledTextStyle(theme.headlineMedium),
+    headlineSmall: _scaledTextStyle(theme.headlineSmall),
+    titleLarge: _scaledTextStyle(theme.titleLarge),
+    titleMedium: _scaledTextStyle(theme.titleMedium),
+    titleSmall: _scaledTextStyle(theme.titleSmall),
+    bodyLarge: _scaledTextStyle(theme.bodyLarge),
+    bodyMedium: _scaledTextStyle(theme.bodyMedium),
+    bodySmall: _scaledTextStyle(theme.bodySmall),
+    labelLarge: _scaledTextStyle(theme.labelLarge),
+    labelMedium: _scaledTextStyle(theme.labelMedium),
+    labelSmall: _scaledTextStyle(theme.labelSmall),
+  );
+}
+
+TextStyle? _scaledTextStyle(TextStyle? style) {
+  final fontSize = style?.fontSize;
+  if (style == null || fontSize == null) {
+    return style;
+  }
+  return style.copyWith(fontSize: fontSize * _compactTextScale);
 }
 
 class ResponsivePageTransitionsBuilder extends PageTransitionsBuilder {

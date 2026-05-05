@@ -4,14 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _key = 'theme_mode';
 
-final themeModeProvider =
-    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
+  ThemeModeNotifier.new,
+);
 
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
     _load();
-    return ThemeMode.dark; // default
+    return ThemeMode.light; // IMA-style Material default
   }
 
   Future<void> _load() async {
@@ -20,7 +21,7 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     if (value != null) {
       state = ThemeMode.values.firstWhere(
         (m) => m.name == value,
-        orElse: () => ThemeMode.dark,
+        orElse: () => ThemeMode.light,
       );
     }
   }
