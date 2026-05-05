@@ -22,6 +22,7 @@ const _boardColumnGap = 12.0;
 const _compactBoardBreakpoint = 640.0;
 const _compactColumnCollapsedLimit = 4;
 const _defaultDailyWeightTarget = 20;
+const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
 
 enum BoardViewMode { standard, overview }
 
@@ -811,6 +812,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         initialColumnId: sourceColumn.id,
         isEstimatingWeight: _estimatingIssueIds.contains(issueId),
         onEstimateIssueWeight: _estimateIssueWeight,
+        onOverrideIssueWeight: _overrideIssueWeight,
         isStartingCursorAgent: _startingCursorAgentIssueIds.contains(issueId),
         onStartCursorAgent: _startCursorAgent,
         onCreateGitHubSubIssue: _createGitHubSubIssue,
@@ -946,6 +948,53 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         setState(() => _estimatingIssueIds.remove(issueId));
       }
     }
+  }
+
+  Future<void> _overrideIssueWeight({
+    required String issueId,
+    required IssueWeightOverrideDraft draft,
+  }) async {
+    final issue = _columns
+        .expand((column) => column.issues)
+        .firstWhere((issue) => issue.id == issueId);
+    final now = FieldValue.serverTimestamp();
+    final updatedBy = FirebaseAuth.instance.currentUser?.uid;
+    final actualWeight = draft.actualWeight;
+    final data = <String, Object?>{
+      'weightEstimate.value': draft.estimateWeight,
+      'weightEstimate.status': 'done',
+      'weightEstimate.confidence': 1.0,
+      'weightEstimate.reason': 'Manual override',
+      'weightEstimate.model': 'manual',
+      'weightEstimate.promptVersion': 'manual',
+      'weightEstimate.source': 'manual',
+      'weightEstimate.manualOverride': true,
+      'weightEstimate.overriddenAt': now,
+      'weightEstimate.updatedAt': now,
+      'updatedAt': now,
+    };
+    if (updatedBy != null) {
+      data['weightEstimate.requestedBy'] = updatedBy;
+    }
+
+    if (issue.statusId == _closedStatusId) {
+      data['resolution.weightValue'] = draft.estimateWeight;
+      if (actualWeight != null) {
+        data['resolution.actualWeight'] = actualWeight;
+        data['resolution.weightDelta'] = draft.estimateWeight - actualWeight;
+        data['resolution.actualWeightSource'] = 'manual';
+        data['resolution.actualWeightManualOverride'] = true;
+        data['resolution.actualWeightOverriddenAt'] = now;
+        if (updatedBy != null) {
+          data['resolution.actualWeightOverriddenBy'] = updatedBy;
+        }
+      }
+    }
+
+    await _firestore
+        .doc('workspaces/$_workspaceId/issues/$issueId')
+        .update(data);
+    _showSavedSnackBar('Weight overridden');
   }
 
   Future<void> _startCursorAgent(String issueId) async {
@@ -3751,6 +3800,7 @@ class AddIssueDialog extends StatefulWidget {
     this.initialColumnId,
     this.isEstimatingWeight = false,
     this.onEstimateIssueWeight,
+    this.onOverrideIssueWeight,
     this.isStartingCursorAgent = false,
     this.onStartCursorAgent,
     this.onCreateGitHubSubIssue,
@@ -3765,6 +3815,7 @@ class AddIssueDialog extends StatefulWidget {
   final String? initialColumnId;
   final bool isEstimatingWeight;
   final Future<void> Function(String issueId)? onEstimateIssueWeight;
+  final IssueWeightOverrideCallback? onOverrideIssueWeight;
   final bool isStartingCursorAgent;
   final Future<void> Function(String issueId)? onStartCursorAgent;
   final Future<Map<String, dynamic>> Function({
@@ -3794,6 +3845,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   Priority _priority = Priority.medium;
   DateTime? _dueDate;
   var _isEstimatingWeight = false;
+  var _isOverridingWeight = false;
   var _isStartingCursorAgent = false;
   var _isCreatingSubIssue = false;
   final List<Issue> _issueStack = [];
@@ -3928,6 +3980,31 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     } finally {
       if (mounted) {
         setState(() => _isEstimatingWeight = false);
+      }
+    }
+  }
+
+  Future<void> _overrideIssueWeight() async {
+    final issue = _currentIssue;
+    final onOverride = widget.onOverrideIssueWeight;
+    if (issue == null || onOverride == null || _isOverridingWeight) {
+      return;
+    }
+
+    final draft = await showDialog<IssueWeightOverrideDraft>(
+      context: context,
+      builder: (context) => IssueWeightOverrideDialog(issue: issue),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+
+    setState(() => _isOverridingWeight = true);
+    try {
+      await onOverride(issueId: issue.id, draft: draft);
+    } finally {
+      if (mounted) {
+        setState(() => _isOverridingWeight = false);
       }
     }
   }
@@ -4210,9 +4287,13 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             IssueWeightPanel(
               issue: currentIssue,
               isEstimating: widget.isEstimatingWeight || _isEstimatingWeight,
+              isOverriding: _isOverridingWeight,
               onEstimate: widget.onEstimateIssueWeight == null
                   ? null
                   : _estimateIssueWeight,
+              onOverride: widget.onOverrideIssueWeight == null
+                  ? null
+                  : _overrideIssueWeight,
             ),
             const SizedBox(height: 14),
             CursorAgentPanel(
@@ -7883,17 +7964,127 @@ class WeightBadge extends StatelessWidget {
   }
 }
 
+class IssueWeightOverrideDialog extends StatefulWidget {
+  const IssueWeightOverrideDialog({super.key, required this.issue});
+
+  final Issue issue;
+
+  @override
+  State<IssueWeightOverrideDialog> createState() =>
+      _IssueWeightOverrideDialogState();
+}
+
+class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
+  int? _estimateWeight;
+  int? _actualWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    final estimateWeight = widget.issue.weightEstimate?.value;
+    final actualWeight = widget.issue.resolution?.actualWeight;
+    _estimateWeight = _validIssueWeights.contains(estimateWeight)
+        ? estimateWeight
+        : null;
+    _actualWeight = _validIssueWeights.contains(actualWeight)
+        ? actualWeight
+        : _estimateWeight;
+  }
+
+  void _save() {
+    final estimateWeight = _estimateWeight;
+    if (estimateWeight == null) {
+      return;
+    }
+    final actualWeight = widget.issue.statusId == _closedStatusId
+        ? _actualWeight
+        : null;
+    if (widget.issue.statusId == _closedStatusId && actualWeight == null) {
+      return;
+    }
+    Navigator.of(context).pop(
+      IssueWeightOverrideDraft(
+        estimateWeight: estimateWeight,
+        actualWeight: actualWeight,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isClosed = widget.issue.statusId == _closedStatusId;
+    final canSave =
+        _estimateWeight != null && (!isClosed || _actualWeight != null);
+
+    return AlertDialog(
+      title: const Text('Weight override'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'LLM estimateと完了時のactual weightを手動で補正します。',
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int>(
+            initialValue: _estimateWeight,
+            decoration: const InputDecoration(
+              labelText: 'Estimate weight',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              for (final weight in _validIssueWeights)
+                DropdownMenuItem(value: weight, child: Text('W$weight')),
+            ],
+            onChanged: (value) => setState(() => _estimateWeight = value),
+          ),
+          if (isClosed) ...[
+            const SizedBox(height: 14),
+            DropdownButtonFormField<int>(
+              initialValue: _actualWeight,
+              decoration: const InputDecoration(
+                labelText: 'Actual weight',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                for (final weight in _validIssueWeights)
+                  DropdownMenuItem(value: weight, child: Text('W$weight')),
+              ],
+              onChanged: (value) => setState(() => _actualWeight = value),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: canSave ? _save : null,
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 class IssueWeightPanel extends StatelessWidget {
   const IssueWeightPanel({
     super.key,
     required this.issue,
     required this.isEstimating,
+    this.isOverriding = false,
     this.onEstimate,
+    this.onOverride,
   });
 
   final Issue issue;
   final bool isEstimating;
+  final bool isOverriding;
   final Future<void> Function()? onEstimate;
+  final Future<void> Function()? onOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -7903,6 +8094,8 @@ class IssueWeightPanel extends StatelessWidget {
     final actualWeight = resolution?.actualWeight;
     final isClosed = issue.statusId == 'done';
     final subtitle = switch (estimate?.status) {
+      'done' when estimate?.manualOverride == true && value != null =>
+        'Manual override',
       'done' when value != null =>
         '${(estimate!.confidence * 100).round()}% confidence'
             '${estimate.estimatedAt == null ? '' : ' / ${_formatDate(estimate.estimatedAt!)}'}',
@@ -7974,10 +8167,26 @@ class IssueWeightPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: isEstimating ? null : onEstimate,
-                icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-                label: Text(value == null ? 'Estimate' : 'Re-estimate'),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: isEstimating || isOverriding ? null : onEstimate,
+                    icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                    label: Text(value == null ? 'Estimate' : 'Re-estimate'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: isEstimating || isOverriding ? null : onOverride,
+                    icon: isOverriding
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.tune_rounded, size: 16),
+                    label: const Text('Override'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -7987,6 +8196,7 @@ class IssueWeightPanel extends StatelessWidget {
               predictedWeight: value,
               actualWeight: actualWeight,
               delta: resolution?.weightDelta,
+              isManualOverride: resolution?.actualWeightManualOverride == true,
             ),
           ],
         ],
@@ -8000,6 +8210,7 @@ class _ActualWeightRow extends StatelessWidget {
     required this.predictedWeight,
     required this.actualWeight,
     this.delta,
+    this.isManualOverride = false,
   });
 
   static const _validWeights = [1, 2, 4, 8, 16, 32];
@@ -8014,6 +8225,7 @@ class _ActualWeightRow extends StatelessWidget {
   final int? predictedWeight;
   final int actualWeight;
   final int? delta;
+  final bool isManualOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -8061,6 +8273,17 @@ class _ActualWeightRow extends StatelessWidget {
             Text(
               '(予測 W$predictedWeight)',
               style: TextStyle(color: deltaColor.withAlpha(180), fontSize: 12),
+            ),
+          ],
+          if (isManualOverride) ...[
+            const SizedBox(width: 6),
+            Text(
+              'manual',
+              style: TextStyle(
+                color: deltaColor.withAlpha(180),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
           const Spacer(),
@@ -8185,6 +8408,12 @@ typedef IssueDropCallback =
       required int targetIndex,
     });
 
+typedef IssueWeightOverrideCallback =
+    Future<void> Function({
+      required String issueId,
+      required IssueWeightOverrideDraft draft,
+    });
+
 class IssueDragData {
   const IssueDragData({required this.issueId, required this.sourceColumnId});
 
@@ -8203,6 +8432,16 @@ class EditIssueDialogResult {
 
   final String issueId;
   final NewIssueDraft draft;
+}
+
+class IssueWeightOverrideDraft {
+  const IssueWeightOverrideDraft({
+    required this.estimateWeight,
+    this.actualWeight,
+  });
+
+  final int estimateWeight;
+  final int? actualWeight;
 }
 
 class NewIssueDraft {
@@ -8252,15 +8491,17 @@ class IssueResolution {
     this.cycleTimeMs,
     this.leadTimeMs,
     this.workStartSource = '',
+    this.actualWeightManualOverride = false,
   });
 
   static IssueResolution? fromMap(Map<String, dynamic> data) {
     if (data.isEmpty) {
       return null;
     }
+    final hasActualWeight = data.containsKey('actualWeight');
     final actualWeight = _asInt(data['actualWeight']);
     return IssueResolution(
-      actualWeight: actualWeight > 0 ? actualWeight : null,
+      actualWeight: hasActualWeight && actualWeight >= 0 ? actualWeight : null,
       weightDelta: data['weightDelta'] is num
           ? (data['weightDelta'] as num).toInt()
           : null,
@@ -8271,6 +8512,7 @@ class IssueResolution {
           ? (data['leadTimeMs'] as num).toInt()
           : null,
       workStartSource: _asString(data['workStartSource']),
+      actualWeightManualOverride: data['actualWeightManualOverride'] == true,
     );
   }
 
@@ -8279,6 +8521,7 @@ class IssueResolution {
   final int? cycleTimeMs;
   final int? leadTimeMs;
   final String workStartSource;
+  final bool actualWeightManualOverride;
 }
 
 class IssueSubIssuesSummary {
@@ -8588,6 +8831,8 @@ class IssueWeightEstimate {
     this.model = '',
     this.promptVersion = '',
     this.inputHash = '',
+    this.source = '',
+    this.manualOverride = false,
     this.estimatedAt,
     this.error,
   });
@@ -8596,15 +8841,22 @@ class IssueWeightEstimate {
     if (data.isEmpty) {
       return null;
     }
+    final hasValue = data.containsKey('value');
     final value = _asInt(data['value']);
+    final normalizedValue = hasValue && value >= 0 ? value : null;
     return IssueWeightEstimate(
-      status: _asString(data['status'], value > 0 ? 'done' : 'unknown'),
-      value: value > 0 ? value : null,
+      status: _asString(
+        data['status'],
+        normalizedValue == null ? 'unknown' : 'done',
+      ),
+      value: normalizedValue,
       confidence: _asDouble(data['confidence']),
       reason: _asString(data['reason']),
       model: _asString(data['model']),
       promptVersion: _asString(data['promptVersion']),
       inputHash: _asString(data['inputHash']),
+      source: _asString(data['source']),
+      manualOverride: data['manualOverride'] == true,
       estimatedAt: _asDate(data['estimatedAt']),
       error: _asString(data['error']).isEmpty ? null : _asString(data['error']),
     );
@@ -8617,6 +8869,8 @@ class IssueWeightEstimate {
   final String model;
   final String promptVersion;
   final String inputHash;
+  final String source;
+  final bool manualOverride;
   final DateTime? estimatedAt;
   final String? error;
 }
