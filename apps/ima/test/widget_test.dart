@@ -502,7 +502,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Copy'), findsOneWidget);
-    expect(find.text('Paste'), findsOneWidget);
+    expect(find.text('Open'), findsOneWidget);
+    expect(find.text('Paste'), findsNothing);
   });
 
   testWidgets('Edit issue dialog shows copyable issue ID chip', (
