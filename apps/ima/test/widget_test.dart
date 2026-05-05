@@ -189,6 +189,29 @@ void main() {
     expect(searchCount, 1);
   });
 
+  testWidgets('Issue board shortcuts trigger issue creation with Cmd+T', (
+    tester,
+  ) async {
+    var addIssueCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: IssueBoardShortcuts(
+          onAddIssue: () => addIssueCount++,
+          onSearchIssues: () {},
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+    expect(addIssueCount, 1);
+  });
+
   testWidgets('Issue search dialog filters issues and returns selection', (
     tester,
   ) async {
