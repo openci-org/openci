@@ -18,12 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "22"
+          working-directory: firebase/openci/ts_functions
+          run-install: false
 
       - name: Install dependencies
-        run: npm ci
+        run: vp install
 
       - name: Type check
         run: npx tsc --noEmit
@@ -32,4 +34,4 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm run test:unit
+        run: vp test
