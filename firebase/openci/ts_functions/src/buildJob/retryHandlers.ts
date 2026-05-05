@@ -10,7 +10,7 @@ import {
   createBuildJob,
   getBuildJob as getBuildJobOperation,
   listBuildJobsByWorkflowRun,
-} from "@openci/firestore-data";
+} from "../firestoreData";
 import { verifyTeamMembership } from "../team/teamAuth";
 
 interface RetryBuildJobRequest {
@@ -215,7 +215,7 @@ export const retryWorkflowRun = onCall<
     const jobKey = typeof originalJob.jobKey === "string" ? originalJob.jobKey : undefined;
     const newDocumentId = jobKey ? newJobDocIds.get(jobKey)! : randomUUID();
     const originalNeeds = Array.isArray(originalJob.needs)
-      ? originalJob.needs.filter((need): need is string => typeof need === "string")
+      ? originalJob.needs.filter((need: unknown): need is string => typeof need === "string")
       : undefined;
     const hasNeeds = Boolean(originalNeeds?.length);
     const resolvedNeeds: Record<string, string> | undefined = hasNeeds ? {} : undefined;

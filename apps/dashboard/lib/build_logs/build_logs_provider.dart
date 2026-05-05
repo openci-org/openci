@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,7 +14,7 @@ Stream<List<BuildLog>> buildLogs(
   String buildJobId,
   String runId,
 ) async* {
-  final teamId = ref.watch(teamStateProvider).value?.id;
+  final teamId = ref.watch(userProvider).value?.selectedTeamId;
   if (teamId == null) {
     yield const [];
     return;

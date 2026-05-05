@@ -16,7 +16,7 @@ const { mockGetInvitationByToken, mockExpireInvitation, mockAcceptInvitationAndJ
     mockAcceptInvitationAndJoinTeam: vi.fn(),
   }));
 
-vi.mock("@openci/firestore-data", () => ({
+vi.mock("../firestoreData", () => ({
   getInvitationByToken: (...args: unknown[]) => mockGetInvitationByToken(...args),
   expireInvitation: (...args: unknown[]) => mockExpireInvitation(...args),
   acceptInvitationAndJoinTeam: (...args: unknown[]) => mockAcceptInvitationAndJoinTeam(...args),

@@ -10,7 +10,7 @@ import {
   findExistingPendingInvitation,
   listTeamMembers,
   reinviteInvitation,
-} from "@openci/firestore-data";
+} from "../firestoreData";
 import { accessSecret } from "../secretManager";
 import { verifyTeamMembership } from "./teamAuth";
 
@@ -127,7 +127,7 @@ export const getTeamMembers = onCall<TeamIdRequest, Promise<{ members: unknown[]
     );
 
     return {
-      members: result.data.teamMembers.map((member) => ({
+      members: result.data.teamMembers.map((member: { userId: string; user: Record<string, unknown> }) => ({
         uid: member.userId,
         email: member.user.email,
         displayName: member.user.displayName ?? null,

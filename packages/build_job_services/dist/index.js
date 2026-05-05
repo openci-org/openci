@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defaultGitHubApiBaseUrl = void 0;
+exports.defaultGitHubApiBaseUrl = exports.updateEnvironmentVariableValueForWorker = exports.updateBuildRunStatusForWorker = exports.updateBuildJobStatus = exports.listWorkerSecrets = exports.listWorkerEnvironmentVariables = exports.getBuildJob = exports.createBuildRunForWorker = exports.completeBuildJobForWorker = exports.claimQueuedBuildJob = exports.BuildJobStatus = exports.appendBuildLogForWorker = void 0;
 exports.normalizeGitHubApiBaseUrl = normalizeGitHubApiBaseUrl;
 exports.buildDashboardRunUrl = buildDashboardRunUrl;
 exports.getBuildJobOrThrow = getBuildJobOrThrow;
@@ -10,8 +10,20 @@ exports.handleBuildJobStatusChange = handleBuildJobStatusChange;
 exports.handleBuildJobStatusChangeById = handleBuildJobStatusChangeById;
 exports.generateFailureSummary = generateFailureSummary;
 exports.generateFailureSummaryById = generateFailureSummaryById;
+var firestoreData_1 = require("./firestoreData");
+Object.defineProperty(exports, "appendBuildLogForWorker", { enumerable: true, get: function () { return firestoreData_1.appendBuildLogForWorker; } });
+Object.defineProperty(exports, "BuildJobStatus", { enumerable: true, get: function () { return firestoreData_1.BuildJobStatus; } });
+Object.defineProperty(exports, "claimQueuedBuildJob", { enumerable: true, get: function () { return firestoreData_1.claimQueuedBuildJob; } });
+Object.defineProperty(exports, "completeBuildJobForWorker", { enumerable: true, get: function () { return firestoreData_1.completeBuildJobForWorker; } });
+Object.defineProperty(exports, "createBuildRunForWorker", { enumerable: true, get: function () { return firestoreData_1.createBuildRunForWorker; } });
+Object.defineProperty(exports, "getBuildJob", { enumerable: true, get: function () { return firestoreData_1.getBuildJob; } });
+Object.defineProperty(exports, "listWorkerEnvironmentVariables", { enumerable: true, get: function () { return firestoreData_1.listWorkerEnvironmentVariables; } });
+Object.defineProperty(exports, "listWorkerSecrets", { enumerable: true, get: function () { return firestoreData_1.listWorkerSecrets; } });
+Object.defineProperty(exports, "updateBuildJobStatus", { enumerable: true, get: function () { return firestoreData_1.updateBuildJobStatus; } });
+Object.defineProperty(exports, "updateBuildRunStatusForWorker", { enumerable: true, get: function () { return firestoreData_1.updateBuildRunStatusForWorker; } });
+Object.defineProperty(exports, "updateEnvironmentVariableValueForWorker", { enumerable: true, get: function () { return firestoreData_1.updateEnvironmentVariableValueForWorker; } });
 const secret_manager_1 = require("@google-cloud/secret-manager");
-const firestore_data_1 = require("@openci/firestore-data");
+const firestoreData_2 = require("./firestoreData");
 const messaging_1 = require("firebase-admin/messaging");
 exports.defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
@@ -58,7 +70,7 @@ function formatDuration(createdAt, completedAt) {
     return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 async function getBuildJobOrThrow(buildJobId) {
-    const result = await (0, firestore_data_1.getBuildJob)({ id: buildJobId });
+    const result = await (0, firestoreData_2.getBuildJob)({ id: buildJobId });
     const buildJob = asBuildJob(result.data.buildJob);
     if (!buildJob)
         throw new Error("Build job not found");
@@ -93,15 +105,17 @@ async function updateCheckRunById(buildJobId, runStatus, conclusion) {
 async function resolveDependencies(completedJob, completedStatus) {
     if (!completedJob.workflowRunId || !completedJob.jobKey)
         return;
-    const waitingJobs = await (0, firestore_data_1.listWaitingBuildJobs)({ workflowRunId: completedJob.workflowRunId });
-    const isSuccess = completedStatus === firestore_data_1.BuildJobStatus.SUCCESS;
+    const waitingJobs = await (0, firestoreData_2.listWaitingBuildJobs)({ workflowRunId: completedJob.workflowRunId });
+    const isSuccess = completedStatus === firestoreData_2.BuildJobStatus.SUCCESS;
     for (const job of waitingJobs.data.buildJobs) {
-        const needs = Array.isArray(job.needs) ? job.needs.filter((need) => typeof need === "string") : [];
+        const needs = Array.isArray(job.needs)
+            ? job.needs.filter((need) => typeof need === "string")
+            : [];
         if (!needs.includes(completedJob.jobKey))
             continue;
         if (!isSuccess) {
-            await (0, firestore_data_1.updateBuildJobStatus)({ id: job.id, status: firestore_data_1.BuildJobStatus.SKIPPED });
-            await resolveDependencies(job, firestore_data_1.BuildJobStatus.SKIPPED);
+            await (0, firestoreData_2.updateBuildJobStatus)({ id: job.id, status: firestoreData_2.BuildJobStatus.SKIPPED });
+            await resolveDependencies(job, firestoreData_2.BuildJobStatus.SKIPPED);
             continue;
         }
         const resolvedNeeds = typeof job.resolvedNeeds === "object" && job.resolvedNeeds !== null
@@ -111,30 +125,30 @@ async function resolveDependencies(completedJob, completedStatus) {
             continue;
         let allSatisfied = true;
         for (const needBuildJobId of Object.values(resolvedNeeds)) {
-            const need = await (0, firestore_data_1.getBuildJob)({ id: needBuildJobId });
-            if (!need.data.buildJob || need.data.buildJob.status !== firestore_data_1.BuildJobStatus.SUCCESS) {
+            const need = await (0, firestoreData_2.getBuildJob)({ id: needBuildJobId });
+            if (!need.data.buildJob || need.data.buildJob.status !== firestoreData_2.BuildJobStatus.SUCCESS) {
                 allSatisfied = false;
                 break;
             }
         }
         if (allSatisfied) {
-            await (0, firestore_data_1.updateBuildJobStatus)({ id: job.id, status: firestore_data_1.BuildJobStatus.QUEUED });
+            await (0, firestoreData_2.updateBuildJobStatus)({ id: job.id, status: firestoreData_2.BuildJobStatus.QUEUED });
         }
     }
 }
 async function failureLogLine(buildJobId, latestRunId) {
     if (!latestRunId)
         return "Unknown error";
-    const logs = await (0, firestore_data_1.listLatestBuildLogs)({ buildJobId, runId: latestRunId, limit: 2 });
+    const logs = await (0, firestoreData_2.listLatestBuildLogs)({ buildJobId, runId: latestRunId, limit: 2 });
     return logs.data.buildLogs[1]?.message ?? "Unknown error";
 }
 async function sendBuildNotifications(buildJob, status) {
     if (!buildJob.teamId)
         return;
-    const users = await (0, firestore_data_1.listTeamNotificationUsers)({ teamId: buildJob.teamId });
+    const users = await (0, firestoreData_2.listTeamNotificationUsers)({ teamId: buildJob.teamId });
     if (users.data.teamMembers.length === 0)
         return;
-    const isSuccess = status === firestore_data_1.BuildJobStatus.SUCCESS;
+    const isSuccess = status === firestoreData_2.BuildJobStatus.SUCCESS;
     const title = isSuccess ? "✅ Build Succeeded" : "❌ Build Failed";
     const duration = formatDuration(buildJob.createdAt, buildJob.completedAt);
     const bodyLines = [
@@ -178,22 +192,23 @@ async function sendBuildNotifications(buildJob, status) {
         for (const member of users.data.teamMembers) {
             const validTokens = (member.user.fcmTokens ?? []).filter((token) => !invalidTokens.has(token));
             if (validTokens.length !== (member.user.fcmTokens ?? []).length) {
-                await (0, firestore_data_1.updateUserFcmTokens)({ id: member.user.id, fcmTokens: validTokens });
+                await (0, firestoreData_2.updateUserFcmTokens)({ id: member.user.id, fcmTokens: validTokens });
             }
         }
     }
 }
 async function handleBuildJobStatusChange(buildJob, status) {
-    if ([
-        firestore_data_1.BuildJobStatus.SUCCESS,
-        firestore_data_1.BuildJobStatus.FAILURE,
-        firestore_data_1.BuildJobStatus.CANCELLED,
-        firestore_data_1.BuildJobStatus.TIMED_OUT,
-        firestore_data_1.BuildJobStatus.SKIPPED,
-    ].includes(status)) {
+    const terminalStatuses = [
+        firestoreData_2.BuildJobStatus.SUCCESS,
+        firestoreData_2.BuildJobStatus.FAILURE,
+        firestoreData_2.BuildJobStatus.CANCELLED,
+        firestoreData_2.BuildJobStatus.TIMED_OUT,
+        firestoreData_2.BuildJobStatus.SKIPPED,
+    ];
+    if (terminalStatuses.includes(status)) {
         await resolveDependencies(buildJob, status);
     }
-    if (status === firestore_data_1.BuildJobStatus.SUCCESS || status === firestore_data_1.BuildJobStatus.FAILURE) {
+    if (status === firestoreData_2.BuildJobStatus.SUCCESS || status === firestoreData_2.BuildJobStatus.FAILURE) {
         await sendBuildNotifications(buildJob, status);
     }
 }
@@ -241,10 +256,10 @@ async function createAnthropicMessage(projectId, logLines) {
         .join("");
 }
 async function generateFailureSummary(buildJob, projectId) {
-    if (buildJob.status !== firestore_data_1.BuildJobStatus.FAILURE)
+    if (buildJob.status !== firestoreData_2.BuildJobStatus.FAILURE)
         return;
     if (buildJob.teamId) {
-        const team = await (0, firestore_data_1.getTeamById)({ teamId: buildJob.teamId });
+        const team = await (0, firestoreData_2.getTeamById)({ teamId: buildJob.teamId });
         if (team.data.team?.aiEnabled === false)
             return;
     }
@@ -252,7 +267,7 @@ async function generateFailureSummary(buildJob, projectId) {
     if (!latestRunId)
         return;
     const start = Date.now();
-    await (0, firestore_data_1.updateBuildJobFailureSummary)({
+    await (0, firestoreData_2.updateBuildJobFailureSummary)({
         id: buildJob.id,
         failureSummaryStatus: "generating",
         failureSummary: null,
@@ -260,9 +275,9 @@ async function generateFailureSummary(buildJob, projectId) {
         failureSummaryDurationMs: null,
     });
     try {
-        const logs = await (0, firestore_data_1.listLatestBuildLogs)({ buildJobId: buildJob.id, runId: latestRunId, limit: 50 });
+        const logs = await (0, firestoreData_2.listLatestBuildLogs)({ buildJobId: buildJob.id, runId: latestRunId, limit: 50 });
         if (logs.data.buildLogs.length === 0) {
-            await (0, firestore_data_1.updateBuildJobFailureSummary)({
+            await (0, firestoreData_2.updateBuildJobFailureSummary)({
                 id: buildJob.id,
                 failureSummaryStatus: "error",
                 failureSummary: "No logs found",
@@ -277,7 +292,7 @@ async function generateFailureSummary(buildJob, projectId) {
             .map((log) => log.message)
             .join("\n");
         const summary = await createAnthropicMessage(projectId, logLines);
-        await (0, firestore_data_1.updateBuildJobFailureSummary)({
+        await (0, firestoreData_2.updateBuildJobFailureSummary)({
             id: buildJob.id,
             failureSummaryStatus: "done",
             failureSummary: summary || "No summary generated",
@@ -286,7 +301,7 @@ async function generateFailureSummary(buildJob, projectId) {
         });
     }
     catch (error) {
-        await (0, firestore_data_1.updateBuildJobFailureSummary)({
+        await (0, firestoreData_2.updateBuildJobFailureSummary)({
             id: buildJob.id,
             failureSummaryStatus: "error",
             failureSummary: String(error),

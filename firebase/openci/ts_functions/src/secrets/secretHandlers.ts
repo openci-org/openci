@@ -11,7 +11,7 @@ import {
   listWorkflowsForTeam,
   updateSecretMetadata,
   updateWorkflowSecretKeys,
-} from "@openci/firestore-data";
+} from "../firestoreData";
 import {
   addSecretVersionByPath,
   createSecretWithValue,
@@ -170,13 +170,13 @@ export const updateSecretV1 = onCall<UpdateSecretRequest, Promise<SuccessRespons
         for (const workflowData of workflowsResult.data.workflows) {
           const steps = Array.isArray(workflowData.workflowSteps) ? workflowData.workflowSteps : [];
           let hasChanges = false;
-          const updatedSteps = steps.map((step) => {
+          const updatedSteps = steps.map((step: unknown) => {
             const stepMap =
               typeof step === "object" && step !== null ? (step as Record<string, unknown>) : {};
             const requiredSecrets = Array.isArray(stepMap.requiredSecrets)
               ? stepMap.requiredSecrets
               : [];
-            const updatedSecrets = requiredSecrets.map((secret) => {
+            const updatedSecrets = requiredSecrets.map((secret: unknown) => {
               const secretMap =
                 typeof secret === "object" && secret !== null
                   ? (secret as Record<string, unknown>)
@@ -246,7 +246,7 @@ export const setupAscApiKeyV1 = onCall<
     ascSecretNames.map((name) => findSecretByNameForTeam({ teamId, name })),
   );
   const existingNames = existingSecrets.flatMap((result) =>
-    result.data.secrets.map((secret) => secret.name),
+    result.data.secrets.map((secret: { name: string }) => secret.name),
   );
 
   if (existingNames.length > 0) {

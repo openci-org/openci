@@ -1,6 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
-import { getTeamById, linkGitHubInstallation } from "@openci/firestore-data";
+import { getTeamById, linkGitHubInstallation } from "../firestoreData";
 import { onRequest } from "firebase-functions/v2/https";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";

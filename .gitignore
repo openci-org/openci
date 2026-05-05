@@ -5,7 +5,6 @@
 .vercel
 .env*.local
 !apps/web/.env.local
-firebase/openci/ts_functions/.firebase-local-packages/
 
 # Build artifacts
 *.tar.gz

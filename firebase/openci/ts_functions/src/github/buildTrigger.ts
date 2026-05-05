@@ -8,7 +8,7 @@ import {
   createBuildJob,
   findTeamByInstallation,
   getWorkflowFile,
-} from "@openci/firestore-data";
+} from "../firestoreData";
 import { createCheckRun, getInstallationToken, githubGet, githubGraphql } from "./githubApp";
 import {
   buildDashboardRunUrl,

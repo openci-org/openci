@@ -1,6 +1,6 @@
 ---
 description: Worker CLI release and auto-update expectations
-globs: apps/worker_cli_node/**/*,packages/build_job_services/**/*,packages/firestore_data/**/*
+globs: apps/worker_cli_node/**/*,packages/build_job_services/**/*
 alwaysApply: false
 ---
 

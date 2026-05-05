@@ -1,4 +1,4 @@
-import type { BuildJobStatus } from "@openci/firestore-data";
+import type { BuildJobStatus } from "@openci/build-job-services";
 
 export interface BuildJob {
   id: string;

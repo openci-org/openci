@@ -1,7 +1,7 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { BuildJobStatus, getBuildJob, updateBuildJobStatus } from "@openci/firestore-data";
+import { BuildJobStatus, getBuildJob, updateBuildJobStatus } from "../firestoreData";
 import { verifyTeamMembership } from "../team/teamAuth";
 
 interface CancelBuildJobRequest {

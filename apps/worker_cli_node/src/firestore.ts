@@ -12,10 +12,12 @@ import {
   updateBuildJobStatus,
   updateBuildRunStatusForWorker,
   updateEnvironmentVariableValueForWorker,
-} from "@openci/firestore-data";
+} from "@openci/build-job-services";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 
 import type { BuildJob } from "./types.js";
+
+type SuccessfulBuildJobStatus = typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE;
 
 export function initFirebase(
   serviceAccountPath: string,
@@ -66,7 +68,7 @@ export async function appendLog(input: {
 
 export async function completeJob(
   id: string,
-  status: BuildJobStatus.SUCCESS | BuildJobStatus.FAILURE,
+  status: SuccessfulBuildJobStatus,
 ): Promise<void> {
   await completeBuildJobForWorker({
     id,

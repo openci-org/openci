@@ -6,7 +6,7 @@ import {
   handleBuildJobStatusChange,
   updateCheckRun,
 } from "@openci/build-job-services";
-import { BuildJobStatus } from "@openci/firestore-data";
+import { BuildJobStatus } from "@openci/build-job-services";
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
 import { claimNextJob, completeJob, createRun, updateRunStatus } from "../firestore.js";
 import { buildEnvVars, buildSecretVars } from "../env.js";

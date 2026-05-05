@@ -3,7 +3,7 @@ import { createSign } from "node:crypto";
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 
-import { getSecretsByNamesForTeam } from "@openci/firestore-data";
+import { getSecretsByNamesForTeam } from "../firestoreData";
 import { accessSecret } from "../secretManager";
 
 const ascBaseUrl = "https://api.appstoreconnect.apple.com/v1";

@@ -5,7 +5,7 @@ import {
   acceptInvitationAndJoinTeam,
   expireInvitation,
   getInvitationByToken,
-} from "@openci/firestore-data";
+} from "../firestoreData";
 import type { InvitationStatus } from "../dataConnectEnums";
 
 interface AcceptInvitationRequest {

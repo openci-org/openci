@@ -1,3 +1,17 @@
+export {
+  appendBuildLogForWorker,
+  BuildJobStatus,
+  claimQueuedBuildJob,
+  completeBuildJobForWorker,
+  createBuildRunForWorker,
+  getBuildJob,
+  listWorkerEnvironmentVariables,
+  listWorkerSecrets,
+  updateBuildJobStatus,
+  updateBuildRunStatusForWorker,
+  updateEnvironmentVariableValueForWorker,
+} from "./firestoreData";
+
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import {
   BuildJobStatus,
@@ -9,12 +23,20 @@ import {
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
   updateUserFcmTokens,
-} from "@openci/firestore-data";
+} from "./firestoreData";
 import { getMessaging } from "firebase-admin/messaging";
+
+type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
+type TerminalBuildJobStatus =
+  | typeof BuildJobStatus.SUCCESS
+  | typeof BuildJobStatus.FAILURE
+  | typeof BuildJobStatus.CANCELLED
+  | typeof BuildJobStatus.SKIPPED
+  | typeof BuildJobStatus.TIMED_OUT;
 
 export interface BuildJob {
   id: string;
-  status: BuildJobStatus;
+  status: BuildJobStatusValue;
   owner: string;
   repo: string;
   teamId?: string | null;
@@ -133,14 +155,16 @@ export async function updateCheckRunById(
 
 async function resolveDependencies(
   completedJob: BuildJob,
-  completedStatus: BuildJobStatus,
+  completedStatus: BuildJobStatusValue,
 ): Promise<void> {
   if (!completedJob.workflowRunId || !completedJob.jobKey) return;
   const waitingJobs = await listWaitingBuildJobs({ workflowRunId: completedJob.workflowRunId });
   const isSuccess = completedStatus === BuildJobStatus.SUCCESS;
 
   for (const job of waitingJobs.data.buildJobs) {
-    const needs = Array.isArray(job.needs) ? job.needs.filter((need): need is string => typeof need === "string") : [];
+    const needs = Array.isArray(job.needs)
+      ? job.needs.filter((need: unknown): need is string => typeof need === "string")
+      : [];
     if (!needs.includes(completedJob.jobKey)) continue;
 
     if (!isSuccess) {
@@ -177,7 +201,7 @@ async function failureLogLine(buildJobId: string, latestRunId?: string | null): 
 
 async function sendBuildNotifications(
   buildJob: BuildJob,
-  status: BuildJobStatus.SUCCESS | BuildJobStatus.FAILURE,
+  status: typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE,
 ): Promise<void> {
   if (!buildJob.teamId) return;
   const users = await listTeamNotificationUsers({ teamId: buildJob.teamId });
@@ -226,7 +250,7 @@ async function sendBuildNotifications(
 
   if (invalidTokens.size > 0) {
     for (const member of users.data.teamMembers) {
-      const validTokens = (member.user.fcmTokens ?? []).filter((token) => !invalidTokens.has(token));
+      const validTokens = (member.user.fcmTokens ?? []).filter((token: string) => !invalidTokens.has(token));
       if (validTokens.length !== (member.user.fcmTokens ?? []).length) {
         await updateUserFcmTokens({ id: member.user.id, fcmTokens: validTokens });
       }
@@ -236,16 +260,17 @@ async function sendBuildNotifications(
 
 export async function handleBuildJobStatusChange(
   buildJob: BuildJob,
-  status: BuildJobStatus,
+  status: BuildJobStatusValue,
 ): Promise<void> {
+  const terminalStatuses: TerminalBuildJobStatus[] = [
+    BuildJobStatus.SUCCESS,
+    BuildJobStatus.FAILURE,
+    BuildJobStatus.CANCELLED,
+    BuildJobStatus.TIMED_OUT,
+    BuildJobStatus.SKIPPED,
+  ];
   if (
-    [
-      BuildJobStatus.SUCCESS,
-      BuildJobStatus.FAILURE,
-      BuildJobStatus.CANCELLED,
-      BuildJobStatus.TIMED_OUT,
-      BuildJobStatus.SKIPPED,
-    ].includes(status)
+    terminalStatuses.includes(status as TerminalBuildJobStatus)
   ) {
     await resolveDependencies(buildJob, status);
   }
@@ -256,7 +281,7 @@ export async function handleBuildJobStatusChange(
 
 export async function handleBuildJobStatusChangeById(
   buildJobId: string,
-  status: BuildJobStatus,
+  status: BuildJobStatusValue,
 ): Promise<void> {
   await handleBuildJobStatusChange(await getBuildJobOrThrow(buildJobId), status);
 }
@@ -339,7 +364,7 @@ export async function generateFailureSummary(buildJob: BuildJob, projectId?: str
     const logLines = logs.data.buildLogs
       .slice()
       .reverse()
-      .map((log) => log.message)
+      .map((log: { message?: string }) => log.message)
       .join("\n");
     const summary = await createAnthropicMessage(projectId, logLines);
     await updateBuildJobFailureSummary({

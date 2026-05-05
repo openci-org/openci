@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { getTeamById } from "@openci/firestore-data";
+import { getTeamById } from "../firestoreData";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -322,7 +322,9 @@ async function getWorkspaceGitHubToken(workspaceId: string): Promise<{
 }> {
   const team = await getTeamById({ teamId: workspaceId });
   const installationIds = team.data.team?.installationIds ?? [];
-  const installationId = installationIds.find((id): id is number => Number.isInteger(id) && id > 0);
+  const installationId = installationIds.find(
+    (id: unknown): id is number => typeof id === "number" && Number.isInteger(id) && id > 0,
+  );
   if (installationId === undefined) {
     throw new HttpsError("failed-precondition", "OpenCI GitHub App is not installed");
   }

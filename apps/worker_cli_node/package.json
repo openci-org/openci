@@ -41,7 +41,6 @@
   },
   "devDependencies": {
     "@openci/build-job-services": "file:../../packages/build_job_services",
-    "@openci/firestore-data": "file:../../packages/firestore_data",
     "@types/node": "^22.0.0",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.3",

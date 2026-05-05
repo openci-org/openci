@@ -1,6 +1,6 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { BuildJobStatus } from "@openci/firestore-data";
+import { BuildJobStatus } from "../firestoreData";
 import { verifyBuildJobMembership } from "./auth";
 import { handleBuildJobStatusChange } from "./services";
 

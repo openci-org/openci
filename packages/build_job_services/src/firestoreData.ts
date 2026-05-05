@@ -1,17 +1,7 @@
-const { createRequire } = require("node:module");
+// @ts-nocheck
+import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 
-function requireFirebaseAdminFirestore() {
-  try {
-    return require("firebase-admin/firestore");
-  } catch (error) {
-    const requireFromApp = createRequire(`${process.cwd()}/package.json`);
-    return requireFromApp("firebase-admin/firestore");
-  }
-}
-
-const { getFirestore, FieldValue, Timestamp } = requireFirebaseAdminFirestore();
-
-const BuildJobStatus = {
+export const BuildJobStatus = {
   WAITING: "WAITING",
   QUEUED: "QUEUED",
   IN_PROGRESS: "IN_PROGRESS",
@@ -20,22 +10,21 @@ const BuildJobStatus = {
   CANCELLED: "CANCELLED",
   SKIPPED: "SKIPPED",
   TIMED_OUT: "TIMED_OUT",
-};
-exports.BuildJobStatus = BuildJobStatus;
+} as const;
+export type BuildJobStatus = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
 
-const InvitationStatus = {
+export const InvitationStatus = {
   PENDING: "PENDING",
   ACCEPTED: "ACCEPTED",
   EXPIRED: "EXPIRED",
-};
-exports.InvitationStatus = InvitationStatus;
+} as const;
+export type InvitationStatus = (typeof InvitationStatus)[keyof typeof InvitationStatus];
 
-const connectorConfig = {
+export const connectorConfig = {
   connector: "firestore",
   serviceId: "openci",
   location: "asia-northeast1",
 };
-exports.connectorConfig = connectorConfig;
 
 const collections = {
   teams: "teams_v0",
@@ -146,14 +135,12 @@ async function getTeamById(...args) {
   const vars = varsFromArgs(...args);
   return { data: { team: (await getDoc(collections.teams, vars.teamId)) ?? null } };
 }
-exports.getTeamById = getTeamById;
 
 async function getTeamForMember(...args) {
   const vars = varsFromArgs(...args);
   const options = optionsFromArgs(...args);
   return { data: { team: (await teamForMember(vars.teamId, uidFromOptions(options))) ?? null } };
 }
-exports.getTeamForMember = getTeamForMember;
 
 async function findTeamByInstallation(...args) {
   const vars = varsFromArgs(...args);
@@ -162,14 +149,12 @@ async function findTeamByInstallation(...args) {
   );
   return { data: { teams } };
 }
-exports.findTeamByInstallation = findTeamByInstallation;
 
 async function linkGitHubInstallation(...args) {
   const vars = varsFromArgs(...args);
   await teamRef(vars.teamId).update({ installationIds: FieldValue.arrayUnion(vars.installationId), updatedAt: now() });
   return { data: { team_update: { id: vars.teamId } } };
 }
-exports.linkGitHubInstallation = linkGitHubInstallation;
 
 async function listTeamMembers(...args) {
   const vars = varsFromArgs(...args);
@@ -186,7 +171,6 @@ async function listTeamMembers(...args) {
     },
   };
 }
-exports.listTeamMembers = listTeamMembers;
 
 async function addTeamMember(...args) {
   const vars = varsFromArgs(...args);
@@ -201,7 +185,6 @@ async function addTeamMember(...args) {
   });
   return { data: { user_upsert: { id: vars.userId }, teamMember_upsert: { teamId: vars.teamId, userId: vars.userId } } };
 }
-exports.addTeamMember = addTeamMember;
 
 async function createInvitation(...args) {
   const vars = varsFromArgs(...args);
@@ -222,7 +205,6 @@ async function createInvitation(...args) {
   );
   return { data: { invitation_insert: { id: vars.id } } };
 }
-exports.createInvitation = createInvitation;
 
 async function reinviteInvitation(...args) {
   const vars = varsFromArgs(...args);
@@ -235,7 +217,6 @@ async function reinviteInvitation(...args) {
   });
   return { data: { invitation_update: { id: vars.id } } };
 }
-exports.reinviteInvitation = reinviteInvitation;
 
 async function findExistingPendingInvitation(...args) {
   const vars = varsFromArgs(...args);
@@ -249,7 +230,6 @@ async function findExistingPendingInvitation(...args) {
   );
   return { data: { invitations } };
 }
-exports.findExistingPendingInvitation = findExistingPendingInvitation;
 
 async function invitationWithTeam(invitation) {
   const team = invitation?.teamId ? await getDoc(collections.teams, invitation.teamId) : undefined;
@@ -261,7 +241,6 @@ async function getInvitationByToken(...args) {
   const invitations = await queryAll(db().collection(collections.invitations).where("token", "==", vars.token).limit(1));
   return { data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) } };
 }
-exports.getInvitationByToken = getInvitationByToken;
 
 async function listMyPendingInvitations(...args) {
   const options = optionsFromArgs(...args);
@@ -276,14 +255,12 @@ async function listMyPendingInvitations(...args) {
   );
   return { data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) } };
 }
-exports.listMyPendingInvitations = listMyPendingInvitations;
 
 async function expireInvitation(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.invitations).doc(vars.id).update({ status: InvitationStatus.EXPIRED, updatedAt: now() });
   return { data: { invitation_update: { id: vars.id } } };
 }
-exports.expireInvitation = expireInvitation;
 
 async function acceptInvitationAndJoinTeam(...args) {
   const vars = varsFromArgs(...args);
@@ -302,7 +279,6 @@ async function acceptInvitationAndJoinTeam(...args) {
   });
   return { data: { user_upsert: { id: uid }, invitation_update: { id: vars.id }, teamMember_upsert: { teamId: vars.teamId, userId: uid } } };
 }
-exports.acceptInvitationAndJoinTeam = acceptInvitationAndJoinTeam;
 
 async function listWorkflowFilesForBranch(...args) {
   const vars = varsFromArgs(...args);
@@ -311,13 +287,11 @@ async function listWorkflowFilesForBranch(...args) {
   const workflowFiles = await queryAll(query.orderBy("fileName"));
   return { data: { workflowFiles } };
 }
-exports.listWorkflowFilesForBranch = listWorkflowFilesForBranch;
 
 async function getWorkflowFile(...args) {
   const vars = varsFromArgs(...args);
   return { data: { workflowFile: (await getDoc(collections.workflowFiles, vars.id)) ?? null } };
 }
-exports.getWorkflowFile = getWorkflowFile;
 
 async function upsertWorkflowFile(...args) {
   const vars = varsFromArgs(...args);
@@ -338,34 +312,29 @@ async function upsertWorkflowFile(...args) {
   );
   return { data: { workflowFile_upsert: { id: vars.id } } };
 }
-exports.upsertWorkflowFile = upsertWorkflowFile;
 
 async function deleteWorkflowFile(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.workflowFiles).doc(vars.id).delete();
   return { data: { workflowFile_delete: { id: vars.id } } };
 }
-exports.deleteWorkflowFile = deleteWorkflowFile;
 
 async function createBuildJob(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.buildJobs).doc(vars.id).set(withTimestamps(vars, true));
   return { data: { buildJob_insert: { id: vars.id } } };
 }
-exports.createBuildJob = createBuildJob;
 
 async function getBuildJob(...args) {
   const vars = varsFromArgs(...args);
   return { data: { buildJob: (await getDoc(collections.buildJobs, vars.id)) ?? null } };
 }
-exports.getBuildJob = getBuildJob;
 
 async function updateBuildJobStatus(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.buildJobs).doc(vars.id).update({ status: vars.status, updatedAt: now() });
   return { data: { buildJob_update: { id: vars.id } } };
 }
-exports.updateBuildJobStatus = updateBuildJobStatus;
 
 async function listBuildJobsByWorkflowRun(...args) {
   const vars = varsFromArgs(...args);
@@ -374,7 +343,6 @@ async function listBuildJobsByWorkflowRun(...args) {
   );
   return { data: { buildJobs } };
 }
-exports.listBuildJobsByWorkflowRun = listBuildJobsByWorkflowRun;
 
 async function listWaitingBuildJobs(...args) {
   const vars = varsFromArgs(...args);
@@ -386,7 +354,6 @@ async function listWaitingBuildJobs(...args) {
   );
   return { data: { buildJobs } };
 }
-exports.listWaitingBuildJobs = listWaitingBuildJobs;
 
 async function claimQueuedBuildJob(...args) {
   const vars = varsFromArgs(...args);
@@ -407,7 +374,6 @@ async function claimQueuedBuildJob(...args) {
   });
   return { data: { job } };
 }
-exports.claimQueuedBuildJob = claimQueuedBuildJob;
 
 async function createBuildRunForWorker(...args) {
   const vars = varsFromArgs(...args);
@@ -418,7 +384,6 @@ async function createBuildRunForWorker(...args) {
   });
   return { data: { buildRun_upsert: { buildJobId: vars.buildJobId, id: vars.id }, buildJob_update: { id: vars.buildJobId } } };
 }
-exports.createBuildRunForWorker = createBuildRunForWorker;
 
 async function appendBuildLogForWorker(...args) {
   const vars = varsFromArgs(...args);
@@ -438,7 +403,6 @@ async function appendBuildLogForWorker(...args) {
     });
   return { data: { buildLog_upsert: { buildRunBuildJobId: vars.buildJobId, buildRunId: vars.runId, id: vars.id } } };
 }
-exports.appendBuildLogForWorker = appendBuildLogForWorker;
 
 async function updateBuildRunStatusForWorker(...args) {
   const vars = varsFromArgs(...args);
@@ -448,7 +412,6 @@ async function updateBuildRunStatusForWorker(...args) {
   );
   return { data: { buildRun_update: { buildJobId: vars.buildJobId, id: vars.runId } } };
 }
-exports.updateBuildRunStatusForWorker = updateBuildRunStatusForWorker;
 
 async function completeBuildJobForWorker(...args) {
   const vars = varsFromArgs(...args);
@@ -459,7 +422,6 @@ async function completeBuildJobForWorker(...args) {
   });
   return { data: { buildJob_update: { id: vars.id } } };
 }
-exports.completeBuildJobForWorker = completeBuildJobForWorker;
 
 async function listLatestBuildLogs(...args) {
   const vars = varsFromArgs(...args);
@@ -475,19 +437,16 @@ async function listLatestBuildLogs(...args) {
   );
   return { data: { buildLogs } };
 }
-exports.listLatestBuildLogs = listLatestBuildLogs;
 
 async function listTeamNotificationUsers(...args) {
   return listTeamMembers(...args);
 }
-exports.listTeamNotificationUsers = listTeamNotificationUsers;
 
 async function updateUserFcmTokens(...args) {
   const vars = varsFromArgs(...args);
   await userRef(vars.id).set(withTimestamps({ fcmTokens: vars.fcmTokens ?? [] }), { merge: true });
   return { data: { user_update: { id: vars.id } } };
 }
-exports.updateUserFcmTokens = updateUserFcmTokens;
 
 async function updateBuildJobFailureSummary(...args) {
   const vars = varsFromArgs(...args);
@@ -500,7 +459,6 @@ async function updateBuildJobFailureSummary(...args) {
   });
   return { data: { buildJob_update: { id: vars.id } } };
 }
-exports.updateBuildJobFailureSummary = updateBuildJobFailureSummary;
 
 async function findSecretByNameForTeam(...args) {
   const vars = varsFromArgs(...args);
@@ -509,7 +467,6 @@ async function findSecretByNameForTeam(...args) {
   );
   return { data: { secrets } };
 }
-exports.findSecretByNameForTeam = findSecretByNameForTeam;
 
 async function getSecretsByNamesForTeam(...args) {
   const vars = varsFromArgs(...args);
@@ -517,14 +474,12 @@ async function getSecretsByNamesForTeam(...args) {
   const secrets = await queryAll(db().collection(collections.secrets).where("teamId", "==", vars.teamId).where("name", "in", vars.names.slice(0, 10)));
   return { data: { secrets } };
 }
-exports.getSecretsByNamesForTeam = getSecretsByNamesForTeam;
 
 async function listWorkerSecrets(...args) {
   const vars = varsFromArgs(...args);
   const secrets = await queryAll(db().collection(collections.secrets).where("teamId", "==", vars.teamId));
   return { data: { secrets } };
 }
-exports.listWorkerSecrets = listWorkerSecrets;
 
 async function createSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
@@ -533,53 +488,89 @@ async function createSecretMetadata(...args) {
   );
   return { data: { secret_insert: { id: vars.id } } };
 }
-exports.createSecretMetadata = createSecretMetadata;
 
 async function getSecretPathForTeam(...args) {
   const vars = varsFromArgs(...args);
   const secret = await getDoc(collections.secrets, vars.id);
   return { data: { secret: secret && secret.teamId === vars.teamId ? secret : null } };
 }
-exports.getSecretPathForTeam = getSecretPathForTeam;
 
 async function updateSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.secrets).doc(vars.id).update({ name: vars.name, updatedAt: now() });
   return { data: { secret_update: { id: vars.id } } };
 }
-exports.updateSecretMetadata = updateSecretMetadata;
 
 async function deleteSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.secrets).doc(vars.id).delete();
   return { data: { secret_delete: { id: vars.id } } };
 }
-exports.deleteSecretMetadata = deleteSecretMetadata;
 
 async function listWorkflowsForTeam(...args) {
   const vars = varsFromArgs(...args);
   const workflows = await queryAll(db().collection(collections.workflows).where("teamId", "==", vars.teamId).orderBy("updatedAt", "desc"));
   return { data: { workflows } };
 }
-exports.listWorkflowsForTeam = listWorkflowsForTeam;
 
 async function updateWorkflowSecretKeys(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.workflows).doc(vars.id).update({ workflowSteps: vars.workflowSteps ?? [], updatedAt: now() });
   return { data: { workflow_update: { id: vars.id } } };
 }
-exports.updateWorkflowSecretKeys = updateWorkflowSecretKeys;
 
 async function listWorkerEnvironmentVariables(...args) {
   const vars = varsFromArgs(...args);
   const environmentVariables = await queryAll(db().collection(collections.env).where("teamId", "==", vars.teamId).orderBy("key"));
   return { data: { environmentVariables } };
 }
-exports.listWorkerEnvironmentVariables = listWorkerEnvironmentVariables;
 
 async function updateEnvironmentVariableValueForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db().collection(collections.env).doc(vars.id).update({ value: vars.value, updatedAt: now() });
   return { data: { environmentVariable_update: { id: vars.id } } };
 }
-exports.updateEnvironmentVariableValueForWorker = updateEnvironmentVariableValueForWorker;
+export {
+  acceptInvitationAndJoinTeam,
+  addTeamMember,
+  appendBuildLogForWorker,
+  claimQueuedBuildJob,
+  completeBuildJobForWorker,
+  createBuildJob,
+  createBuildRunForWorker,
+  createInvitation,
+  createSecretMetadata,
+  deleteSecretMetadata,
+  deleteWorkflowFile,
+  expireInvitation,
+  findExistingPendingInvitation,
+  findSecretByNameForTeam,
+  findTeamByInstallation,
+  getBuildJob,
+  getInvitationByToken,
+  getSecretPathForTeam,
+  getSecretsByNamesForTeam,
+  getTeamById,
+  getTeamForMember,
+  getWorkflowFile,
+  linkGitHubInstallation,
+  listBuildJobsByWorkflowRun,
+  listLatestBuildLogs,
+  listMyPendingInvitations,
+  listTeamMembers,
+  listTeamNotificationUsers,
+  listWaitingBuildJobs,
+  listWorkerEnvironmentVariables,
+  listWorkerSecrets,
+  listWorkflowFilesForBranch,
+  listWorkflowsForTeam,
+  reinviteInvitation,
+  updateBuildJobFailureSummary,
+  updateBuildJobStatus,
+  updateBuildRunStatusForWorker,
+  updateEnvironmentVariableValueForWorker,
+  updateSecretMetadata,
+  updateUserFcmTokens,
+  updateWorkflowSecretKeys,
+  upsertWorkflowFile,
+};

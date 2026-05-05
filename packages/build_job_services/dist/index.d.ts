@@ -1,7 +1,9 @@
-import { BuildJobStatus } from "@openci/firestore-data";
+export { appendBuildLogForWorker, BuildJobStatus, claimQueuedBuildJob, completeBuildJobForWorker, createBuildRunForWorker, getBuildJob, listWorkerEnvironmentVariables, listWorkerSecrets, updateBuildJobStatus, updateBuildRunStatusForWorker, updateEnvironmentVariableValueForWorker, } from "./firestoreData";
+import { BuildJobStatus } from "./firestoreData";
+type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
 export interface BuildJob {
     id: string;
-    status: BuildJobStatus;
+    status: BuildJobStatusValue;
     owner: string;
     repo: string;
     teamId?: string | null;
@@ -31,7 +33,7 @@ export declare function buildDashboardRunUrl(buildJobId: string): string;
 export declare function getBuildJobOrThrow(buildJobId: string): Promise<BuildJob>;
 export declare function updateCheckRun(buildJob: BuildJob, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
 export declare function updateCheckRunById(buildJobId: string, runStatus: "in_progress" | "completed", conclusion?: "success" | "failure"): Promise<void>;
-export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: BuildJobStatus): Promise<void>;
-export declare function handleBuildJobStatusChangeById(buildJobId: string, status: BuildJobStatus): Promise<void>;
+export declare function handleBuildJobStatusChange(buildJob: BuildJob, status: BuildJobStatusValue): Promise<void>;
+export declare function handleBuildJobStatusChangeById(buildJobId: string, status: BuildJobStatusValue): Promise<void>;
 export declare function generateFailureSummary(buildJob: BuildJob, projectId?: string): Promise<void>;
 export declare function generateFailureSummaryById(buildJobId: string, projectId?: string): Promise<void>;

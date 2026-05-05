@@ -1,4 +1,4 @@
-import { getTeamById } from "@openci/firestore-data";
+import { getTeamById } from "../firestoreData";
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 export const defaultGitHubBaseUrl = "https://github.com";

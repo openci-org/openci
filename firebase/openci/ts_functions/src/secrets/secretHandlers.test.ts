@@ -40,7 +40,7 @@ vi.mock("../secretManager", () => ({
   addSecretVersionByPath: (...args: unknown[]) => mockAddSecretVersionByPath(...args),
 }));
 
-vi.mock("@openci/firestore-data", () => ({
+vi.mock("../firestoreData", () => ({
   findSecretByNameForTeam: (...args: unknown[]) => mockFindSecretByNameForTeam(...args),
   createSecretMetadata: (...args: unknown[]) => mockCreateSecretMetadata(...args),
   getSecretPathForTeam: (...args: unknown[]) => mockGetSecretPathForTeam(...args),
