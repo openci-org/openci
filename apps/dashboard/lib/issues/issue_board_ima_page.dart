@@ -4567,6 +4567,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
+      ),
+      floatingLabelStyle: const TextStyle(color: Color(0xFF1D4ED8)),
     );
   }
 

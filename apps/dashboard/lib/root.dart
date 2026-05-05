@@ -2,7 +2,6 @@ import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:dashboard/theme/app_colors.dart';
-import 'package:dashboard/theme/theme_provider.dart';
 import 'package:dashboard/themes/tab_bar_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -16,7 +15,6 @@ class Root extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(deepLinkListenerProvider);
-    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -24,44 +22,64 @@ class Root extends ConsumerWidget {
       supportedLocales: AppLocaleUtils.supportedLocales,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
-      themeMode: themeMode,
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
+      theme: _buildTheme(),
     );
   }
 }
 
-ThemeData _buildTheme(Brightness brightness) {
-  final isDark = brightness == Brightness.dark;
-  final colors = isDark ? AppColors.dark : AppColors.light;
+ThemeData _buildTheme() {
+  const colors = AppColors.light;
+  final accentStateLayer = colors.accent.withValues(alpha: 0.08);
+  final accentContainer = colors.accent.withValues(alpha: 0.10);
+  final accentContainerForeground = colors.accentHover;
 
-  final colorScheme = ColorScheme.fromSeed(
+  final generatedColorScheme = ColorScheme.fromSeed(
     seedColor: colors.accent,
-    brightness: brightness,
+    brightness: Brightness.light,
+  );
+  final colorScheme = generatedColorScheme.copyWith(
+    primary: colors.accent,
+    onPrimary: colors.accentOnAccent,
+    primaryContainer: accentContainer,
+    onPrimaryContainer: accentContainerForeground,
+    secondary: colors.accentHover,
+    onSecondary: colors.accentOnAccent,
+    secondaryContainer: accentContainer,
+    onSecondaryContainer: accentContainerForeground,
+    tertiary: colors.textSecondary,
+    onTertiary: colors.surface,
+    tertiaryContainer: colors.surfaceSecondary,
+    onTertiaryContainer: colors.textPrimary,
+    surfaceTint: Colors.transparent,
   );
 
   final baseMaterialTheme = ThemeData(
     colorScheme: colorScheme,
     useMaterial3: true,
-    brightness: brightness,
+    brightness: Brightness.light,
     visualDensity: VisualDensity.compact,
     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
   final baseTextTheme = _scaledTextTheme(baseMaterialTheme.textTheme);
-  final snackBarBackground = isDark
-      ? colors.surfaceSecondary
-      : AppColors.dark.surfaceSecondary;
-  final snackBarForeground = AppColors.dark.textPrimary;
 
   return ThemeData(
     extensions: [colors],
     colorScheme: colorScheme,
-    brightness: brightness,
+    brightness: Brightness.light,
     useMaterial3: true,
     visualDensity: VisualDensity.compact,
     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     scaffoldBackgroundColor: colors.scaffold,
     textTheme: baseTextTheme,
+    focusColor: accentStateLayer,
+    hoverColor: colors.accent.withValues(alpha: 0.05),
+    highlightColor: accentStateLayer,
+    splashColor: accentStateLayer,
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: colors.accent,
+      selectionColor: colors.accent.withValues(alpha: 0.18),
+      selectionHandleColor: colors.accent,
+    ),
     cardTheme: CardThemeData(
       elevation: 0,
       color: colors.surface,
@@ -181,7 +199,7 @@ ThemeData _buildTheme(Brightness brightness) {
     ),
     tabBarTheme: tabBarThemeData,
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: isDark ? colors.surface : colors.scaffold,
+      backgroundColor: colors.scaffold,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -189,18 +207,18 @@ ThemeData _buildTheme(Brightness brightness) {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: snackBarBackground,
+      backgroundColor: const Color(0xFF1E293B),
       contentTextStyle: baseTextTheme.bodyMedium?.copyWith(
-        color: snackBarForeground,
+        color: Colors.white,
         fontWeight: FontWeight.w500,
       ),
-      actionTextColor: AppColors.dark.accent,
-      disabledActionTextColor: AppColors.dark.textTertiary,
-      closeIconColor: snackBarForeground,
+      actionTextColor: const Color(0xFF60A5FA),
+      disabledActionTextColor: Colors.white.withValues(alpha: 0.4),
+      closeIconColor: Colors.white,
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: AppColors.dark.border),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
       ),
     ),
     dialogTheme: DialogThemeData(

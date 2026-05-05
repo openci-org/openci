@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 /// Usage: `context.appColors.surface` or `AppColors.of(context).surface`
 ///
 /// These tokens follow the IMA-flavored Material palette:
-/// - Light mode: soft slate backgrounds, white cards, blue seed accent
-/// - Dark mode: Material dark slate surfaces with the same blue accent
+/// - Soft slate backgrounds, white cards, blue seed accent
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
     // ── Backgrounds ──
@@ -125,44 +124,6 @@ class AppColors extends ThemeExtension<AppColors> {
   static AppColors of(BuildContext context) {
     return Theme.of(context).extension<AppColors>()!;
   }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Dark Theme
-  // ═══════════════════════════════════════════════════════════════════
-  static const dark = AppColors(
-    // Backgrounds
-    scaffold: Color(0xFF0F172A), // slate-900
-    surface: Color(0xFF111827), // gray-900
-    surfaceHover: Color(0xFF1E293B), // slate-800
-    surfaceSecondary: Color(0xFF1E293B), // slate-800
-    surfaceTertiary: Color(0xFF334155), // slate-700
-    // Borders
-    border: Color(0x1FFFFFFF), // white 12%
-    borderSubtle: Color(0x12FFFFFF), // white 7%
-    borderFocused: Color(0xFF2563EB), // blue-600
-    // Text
-    textPrimary: Color(0xFFFFFFFF), // white
-    textSecondary: Color(0xB3FFFFFF), // white 70%
-    textTertiary: Color(0x66FFFFFF), // white 40%
-    textInverse: Color(0xFF0A0A0A), // zinc-950
-    // Accent
-    accent: Color(0xFF2563EB), // blue-600
-    accentHover: Color(0xFF1D4ED8), // blue-700
-    accentSubtle: Color(0x262563EB), // blue-600 15%
-    accentOnAccent: Color(0xFFFFFFFF), // white
-    // Status
-    success: Color(0xFF22C55E), // green-500
-    successSubtle: Color(0x2622C55E), // green-500 15%
-    error: Color(0xFFEF4444), // red-500
-    errorSubtle: Color(0x26EF4444), // red-500 15%
-    warning: Color(0xFFD29922), // amber-600
-    warningSubtle: Color(0x26D29922), // amber-600 15%
-    // Semantic
-    codeBackground: Color(0xFF1E293B), // slate-800
-    overlay: Color(0x80000000), // black 50%
-    divider: Color(0x14FFFFFF), // white 8%
-    shimmer: Color(0x0AFFFFFF), // white 4%
-  );
 
   // ═══════════════════════════════════════════════════════════════════
   // Light Theme
