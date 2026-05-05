@@ -43,7 +43,7 @@ void main() {
       ),
     );
 
-    expect(find.byTooltip('Close issue'), findsNothing);
+    expect(find.byTooltip('Issueを完了'), findsNothing);
   });
 
   testWidgets('Issue card renders LLM weight badge', (tester) async {
@@ -126,7 +126,7 @@ void main() {
       ),
     );
 
-    expect(find.byTooltip('Open in GitHub'), findsOneWidget);
+    expect(find.byTooltip('GitHubリンクをコピー'), findsOneWidget);
   });
 
   testWidgets('Issue card renders Ima issue key and linked PR badge', (
@@ -162,7 +162,7 @@ void main() {
     );
 
     expect(find.text('IMA-1423'), findsOneWidget);
-    expect(find.byTooltip('Copy issue ID'), findsOneWidget);
+    expect(find.byTooltip('Issue IDをコピー'), findsOneWidget);
     expect(find.text('PR #12'), findsOneWidget);
   });
 
@@ -196,7 +196,7 @@ void main() {
     final columns = [
       BoardColumn(
         id: 'triage',
-        title: 'Triage',
+        title: '確認中',
         description: '新着と要件確認',
         color: Colors.indigo,
         issues: const [
@@ -269,7 +269,7 @@ void main() {
           body: BoardColumnView(
             column: BoardColumn(
               id: 'backlog',
-              title: 'Backlog',
+              title: 'バックログ',
               description: '着手待ち',
               color: Colors.blue,
               issues: const [],
@@ -287,7 +287,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byTooltip('New issue in Backlog'));
+    await tester.tap(find.byTooltip('バックログにIssueを作成'));
 
     expect(targetColumnId, 'backlog');
   });
@@ -301,7 +301,7 @@ void main() {
           body: BoardColumnView(
             column: BoardColumn(
               id: 'review',
-              title: 'Review',
+              title: 'レビュー',
               description: 'レビューと検証',
               color: Colors.purple,
               issues: const [],
@@ -335,7 +335,7 @@ void main() {
           body: BoardColumnView(
             column: BoardColumn(
               id: 'done',
-              title: 'Done',
+              title: '完了',
               description: '今週完了',
               color: Colors.green,
               issues: [
@@ -389,14 +389,14 @@ void main() {
     final columns = [
       BoardColumn(
         id: 'triage',
-        title: 'Triage',
+        title: '確認中',
         description: '新着と要件確認',
         color: Colors.indigo,
         issues: const [],
       ),
       BoardColumn(
         id: 'done',
-        title: 'Done',
+        title: '完了',
         description: '今週完了',
         color: Colors.green,
         issues: const [],
@@ -438,8 +438,8 @@ void main() {
     await tester.tap(find.text('Open edit dialog'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Close issue'));
-    await tester.tap(find.text('Close issue'));
+    await tester.ensureVisible(find.text('Issueを完了'));
+    await tester.tap(find.text('Issueを完了'));
     await tester.pumpAndSettle();
 
     expect(dialogResult, isA<CloseIssueDialogResult>());
@@ -450,7 +450,7 @@ void main() {
     final columns = [
       BoardColumn(
         id: 'triage',
-        title: 'Triage',
+        title: '確認中',
         description: '新着と要件確認',
         color: Colors.indigo,
         issues: const [],
@@ -493,7 +493,7 @@ void main() {
     await tester.tap(find.text('Open edit dialog'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GitHub link'), findsOneWidget);
+    expect(find.text('GitHubリンク'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -501,17 +501,15 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Copy'), findsOneWidget);
-    expect(find.text('Paste'), findsOneWidget);
+    expect(find.text('コピー'), findsOneWidget);
+    expect(find.text('貼り付け'), findsOneWidget);
   });
 
-  testWidgets('Edit issue dialog shows copyable issue ID chip', (
-    tester,
-  ) async {
+  testWidgets('Edit issue dialog shows copyable issue ID chip', (tester) async {
     final columns = [
       BoardColumn(
         id: 'triage',
-        title: 'Triage',
+        title: '確認中',
         description: '新着と要件確認',
         color: Colors.indigo,
         issues: const [],
@@ -589,6 +587,6 @@ void main() {
       ),
     );
 
-    expect(find.byTooltip('Close issue'), findsNothing);
+    expect(find.byTooltip('Issueを完了'), findsNothing);
   });
 }
