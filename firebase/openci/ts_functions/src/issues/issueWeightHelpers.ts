@@ -49,7 +49,9 @@ export function issueWeightInput(issue: Record<string, unknown>): Record<string,
 
 export function issueWeightInputHash(issue: Record<string, unknown>): string {
   return createHash("sha256")
-    .update(JSON.stringify({ promptVersion: issueWeightPromptVersion, issue: issueWeightInput(issue) }))
+    .update(
+      JSON.stringify({ promptVersion: issueWeightPromptVersion, issue: issueWeightInput(issue) }),
+    )
     .digest("hex");
 }
 

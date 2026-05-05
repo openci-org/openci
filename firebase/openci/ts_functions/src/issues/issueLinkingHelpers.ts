@@ -6,7 +6,10 @@ const managedBlockPattern =
   /<!-- ima-linked-issue:start -->[\s\S]*?<!-- ima-linked-issue:end -->\n*/u;
 
 export function normalizeIssueKeyPrefix(value: string): string {
-  const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/gu, "");
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/gu, "");
   return normalized.length === 0 ? "IMA" : normalized;
 }
 

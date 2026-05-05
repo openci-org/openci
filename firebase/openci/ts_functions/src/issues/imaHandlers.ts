@@ -43,13 +43,8 @@ if (getApps().length === 0) {
   initializeApp();
 }
 
-
 interface WorkspaceRequest {
   workspaceId: string;
-}
-
-interface ConnectGitHubRequest extends WorkspaceRequest {
-  accessToken: string;
 }
 
 interface StartGitHubDeviceFlowRequest extends WorkspaceRequest {
@@ -320,15 +315,6 @@ async function verifyWorkspaceMember(
     throw new HttpsError("permission-denied", "Workspace membership is required");
   }
   return uid;
-}
-
-async function getGitHubToken(uid: string): Promise<string> {
-  const tokenDoc = await db.doc(`users/${uid}/private/github`).get();
-  const token = tokenDoc.get("accessToken");
-  if (typeof token !== "string" || token.length === 0) {
-    throw new HttpsError("failed-precondition", "GitHub is not connected");
-  }
-  return token;
 }
 
 async function getWorkspaceGitHubToken(workspaceId: string): Promise<{
@@ -933,7 +919,6 @@ async function closeDescendantSubIssues(input: {
   await commitIfNeeded(true);
   return closed;
 }
-
 
 async function selectedRepositories(workspaceId: string): Promise<GitHubRepository[]> {
   const snapshot = await db.collection(`workspaces/${workspaceId}/githubRepos`).get();
@@ -1812,10 +1797,7 @@ export const createGitHubSubIssue = onCall<
     const existingData = clientIssueId.length > 0 ? ((await subIssueRef.get()).data() ?? {}) : {};
     const keyFields = await issueKeyFields(workspaceId, existingData);
     const rank = Date.now();
-    const statusId = asString(
-      existingData.statusId,
-      asString(parentIssue.statusId, "triage"),
-    );
+    const statusId = asString(existingData.statusId, asString(parentIssue.statusId, "triage"));
     const subIssueSummary = {
       issueId,
       nodeId,
@@ -2150,7 +2132,6 @@ export const backfillCursorAgentPullRequests = onCall<
   Promise<BackfillCursorAgentPullRequestsResponse>
 >(async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
   const { token } = await getWorkspaceGitHubToken(workspaceId);
   const issues = await db.collection(`workspaces/${workspaceId}/issues`).limit(500).get();
   const pullRequestsByRepo = new Map<string, GitHubPullRequestResponseItem[]>();
@@ -2752,7 +2733,6 @@ export const githubPullRequestWebhook = onRequest(
 export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>>(
   async (request) => {
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-    const uid = await verifyWorkspaceMember(request.auth, workspaceId);
     const { token } = await getWorkspaceGitHubToken(workspaceId);
     const outbox = await db
       .collection(`workspaces/${workspaceId}/syncOutbox`)
@@ -3159,7 +3139,10 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
     try {
       ({ token } = await getWorkspaceGitHubToken(workspaceId));
     } catch {
-      logger.warn("autoSyncIssueToGitHub: no GitHub App installation token", { workspaceId, ownerUid });
+      logger.warn("autoSyncIssueToGitHub: no GitHub App installation token", {
+        workspaceId,
+        ownerUid,
+      });
       return;
     }
 
