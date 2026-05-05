@@ -3,7 +3,8 @@ import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:ima/main.dart' as ima;
+
+import 'issue_board_ima_page.dart';
 
 class IssueBoardBody extends ConsumerWidget {
   const IssueBoardBody({super.key});
@@ -18,7 +19,7 @@ class IssueBoardBody extends ConsumerWidget {
       error: asyncErrorWidget,
       data: (user) {
         final teamName = teamAsync.asData?.value.name;
-        return ima.IssueBoardPage(
+        return IssueBoardPage(
           key: ValueKey(user.selectedTeamId),
           workspaceId: user.selectedTeamId,
           workspaceName: teamName ?? 'OpenCI team',
