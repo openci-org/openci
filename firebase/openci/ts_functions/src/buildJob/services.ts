@@ -49,7 +49,7 @@ export interface BuildJob {
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
-const failureSummaryModel = "claude-opus-4-7";
+const failureSummaryModel = "claude-opus-4-6";
 
 function asBuildJob(value: unknown): BuildJob | undefined {
   if (!value || typeof value !== "object") return undefined;

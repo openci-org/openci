@@ -27,7 +27,7 @@ const firestoreData_2 = require("./firestoreData");
 const messaging_1 = require("firebase-admin/messaging");
 exports.defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
-const failureSummaryModel = "claude-opus-4-7";
+const failureSummaryModel = "claude-opus-4-6";
 function asBuildJob(value) {
     if (!value || typeof value !== "object")
         return undefined;
