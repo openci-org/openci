@@ -376,9 +376,16 @@ export const registerDeveloperIdCertificateV1 = onCall<
         "-passout",
         `pass:${password}`,
         "-legacy",
+        "-keypbe",
+        "PBE-SHA1-3DES",
+        "-certpbe",
+        "PBE-SHA1-3DES",
+        "-macalg",
+        "sha1",
       ],
       tmpDir,
     );
+    await runOpenSsl(["pkcs12", "-in", p12Path, "-noout", "-passin", `pass:${password}`], tmpDir);
     const p12Base64 = (await readFile(p12Path)).toString("base64");
 
     const documentIds: Record<string, string> = {};
