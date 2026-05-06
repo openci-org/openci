@@ -45,16 +45,33 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
-      - uses: openci-org/flutter-cd@v2
+      - uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        id: ios-build
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          distribution-method: "ad-hoc"
+          upload-to-app-store-connect: "false"
           certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+
+      - name: Upload iOS IPA to Firebase App Distribution
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+          FIREBASE_APP_DISTRIBUTION_GROUPS: ${{ secrets.FIREBASE_APP_DISTRIBUTION_GROUPS }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-service-account.json
+          trap 'rm -f /tmp/firebase-service-account.json' EXIT
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-service-account.json
+
+          npx -y firebase-tools appdistribution:distribute "${{ steps.ios-build.outputs.ipa-path }}" \
+            --app "$FIREBASE_IOS_APP_ID" \
+            --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS"
 
   deploy-web:
     needs: [ci]
