@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/firebase/firestore.dart'
     show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
 import 'package:dashboard/firebase_options.dart';
@@ -1520,197 +1521,200 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final onSignOut = FirebaseAuth.instance.signOut;
 
-    return IssueBoardShortcuts(
-      onAddIssue: () => unawaited(_openAddIssueDialog()),
-      onSearchIssues: () => unawaited(_openIssueSearchDialog()),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: isCompactLayout
-            ? AppBar(
-                title: const Text(
-                  'イマ',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                backgroundColor: const Color(0xFFF8FAFC),
-                foregroundColor: const Color(0xFF0F172A),
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                actions: [
-                  CompactBoardViewModeButton(
-                    value: _boardViewMode,
-                    onChanged: (mode) => setState(() => _boardViewMode = mode),
+    return SyncedSpinnerScope(
+      child: IssueBoardShortcuts(
+        onAddIssue: () => unawaited(_openAddIssueDialog()),
+        onSearchIssues: () => unawaited(_openIssueSearchDialog()),
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: isCompactLayout
+              ? AppBar(
+                  title: const Text(
+                    'イマ',
+                    style: TextStyle(fontWeight: FontWeight.w800),
                   ),
-                  CompactBoardMenuButton(
-                    isConnected: isConnected,
-                    isBusy: _isBusy,
-                    repoCount: _enabledRepoCount,
-                    onConnectGitHub: _connectGitHub,
-                    onSelectRepositories: _selectRepositories,
-                    onImportIssues: _importGitHubIssues,
-                    onSyncIssues: _syncGitHubIssues,
-                    onSearchIssues: _openIssueSearchDialog,
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  foregroundColor: const Color(0xFF0F172A),
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  actions: [
+                    CompactBoardViewModeButton(
+                      value: _boardViewMode,
+                      onChanged: (mode) =>
+                          setState(() => _boardViewMode = mode),
+                    ),
+                    CompactBoardMenuButton(
+                      isConnected: isConnected,
+                      isBusy: _isBusy,
+                      repoCount: _enabledRepoCount,
+                      onConnectGitHub: _connectGitHub,
+                      onSelectRepositories: _selectRepositories,
+                      onImportIssues: _importGitHubIssues,
+                      onSyncIssues: _syncGitHubIssues,
+                      onSearchIssues: _openIssueSearchDialog,
+                      onSignOut: onSignOut,
+                      workspaceName: widget.workspaceName,
+                      onSwitchTeam: widget.onSwitchTeam,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                )
+              : null,
+          floatingActionButton: isCompactLayout
+              ? FloatingActionButton.extended(
+                  onPressed: () => unawaited(_openAddIssueDialog()),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('新規'),
+                )
+              : null,
+          body: SafeArea(
+            child: Column(
+              children: [
+                if (!isCompactLayout)
+                  BoardHeader(
+                    openIssues: openIssues,
+                    closedIssues: closedIssues,
+                    dailyProgressStats: dailyProgressStats,
+                    onChangeDailyWeightTarget: () => unawaited(
+                      _openDailyWeightTargetDialog(dailyProgressStats),
+                    ),
                     onSignOut: onSignOut,
                     workspaceName: widget.workspaceName,
                     onSwitchTeam: widget.onSwitchTeam,
                   ),
-                  const SizedBox(width: 4),
-                ],
-              )
-            : null,
-        floatingActionButton: isCompactLayout
-            ? FloatingActionButton.extended(
-                onPressed: () => unawaited(_openAddIssueDialog()),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('新規'),
-              )
-            : null,
-        body: SafeArea(
-          child: Column(
-            children: [
-              if (!isCompactLayout)
-                BoardHeader(
-                  openIssues: openIssues,
-                  closedIssues: closedIssues,
-                  dailyProgressStats: dailyProgressStats,
-                  onChangeDailyWeightTarget: () => unawaited(
-                    _openDailyWeightTargetDialog(dailyProgressStats),
-                  ),
-                  onSignOut: onSignOut,
-                  workspaceName: widget.workspaceName,
-                  onSwitchTeam: widget.onSwitchTeam,
-                ),
-              if (_isBootstrapping) const LinearProgressIndicator(),
-              if (isCompactLayout)
-                DailyProgressStrip(
-                  stats: dailyProgressStats,
-                  isCompact: true,
-                  onTap: () => unawaited(
-                    _openDailyWeightTargetDialog(dailyProgressStats),
-                  ),
-                ),
-              BoardToolbar(
-                onConnectGitHub: _connectGitHub,
-                onSelectRepositories: _selectRepositories,
-                onImportIssues: _importGitHubIssues,
-                onSyncIssues: _syncGitHubIssues,
-                onSearchIssues: _openIssueSearchDialog,
-                boardViewMode: _boardViewMode,
-                onBoardViewModeChanged: (mode) =>
-                    setState(() => _boardViewMode = mode),
-                githubLogin: _githubLogin,
-                repoCount: _enabledRepoCount,
-                isBusy: _isBusy,
-              ),
-              if (_loadError != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Text(
-                    _loadError!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.w700,
+                if (_isBootstrapping) const LinearProgressIndicator(),
+                if (isCompactLayout)
+                  DailyProgressStrip(
+                    stats: dailyProgressStats,
+                    isCompact: true,
+                    onTap: () => unawaited(
+                      _openDailyWeightTargetDialog(dailyProgressStats),
                     ),
                   ),
+                BoardToolbar(
+                  onConnectGitHub: _connectGitHub,
+                  onSelectRepositories: _selectRepositories,
+                  onImportIssues: _importGitHubIssues,
+                  onSyncIssues: _syncGitHubIssues,
+                  onSearchIssues: _openIssueSearchDialog,
+                  boardViewMode: _boardViewMode,
+                  onBoardViewModeChanged: (mode) =>
+                      setState(() => _boardViewMode = mode),
+                  githubLogin: _githubLogin,
+                  repoCount: _enabledRepoCount,
+                  isBusy: _isBusy,
                 ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final boardHeight = constraints.maxHeight > 32
-                        ? constraints.maxHeight - 24
-                        : constraints.maxHeight;
-                    final isCompactBoard =
-                        constraints.maxWidth < _compactBoardBreakpoint;
-                    final allIssues = _columns
-                        .expand((column) => column.issues)
-                        .toList();
+                if (_loadError != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Text(
+                      _loadError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final boardHeight = constraints.maxHeight > 32
+                          ? constraints.maxHeight - 24
+                          : constraints.maxHeight;
+                      final isCompactBoard =
+                          constraints.maxWidth < _compactBoardBreakpoint;
+                      final allIssues = _columns
+                          .expand((column) => column.issues)
+                          .toList();
 
-                    if (_boardViewMode == BoardViewMode.overview) {
-                      return OverviewBoard(
-                        columns: _columns,
-                        isCompact: isCompactBoard,
-                        onIssueTapped: _openEditIssueDialog,
-                        onIssueDropped: _moveIssue,
-                      );
-                    }
+                      if (_boardViewMode == BoardViewMode.overview) {
+                        return OverviewBoard(
+                          columns: _columns,
+                          isCompact: isCompactBoard,
+                          onIssueTapped: _openEditIssueDialog,
+                          onIssueDropped: _moveIssue,
+                        );
+                      }
 
-                    if (isCompactBoard) {
-                      return ListView.separated(
+                      if (isCompactBoard) {
+                        return ListView.separated(
+                          controller: _boardScrollController,
+                          padding: const EdgeInsets.fromLTRB(
+                            _boardHorizontalPadding,
+                            4,
+                            _boardHorizontalPadding,
+                            _boardBottomPadding + 72,
+                          ),
+                          itemCount: _columns.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: _boardColumnGap),
+                          itemBuilder: (context, index) {
+                            final column = _columns[index];
+                            return CompactBoardColumnView(
+                              column: column,
+                              allIssues: allIssues,
+                              buildStatusesByPullRequest:
+                                  _buildStatusesByPullRequest,
+                              startingCursorAgentIssueIds:
+                                  _startingCursorAgentIssueIds,
+                              onIssueDropped: _moveIssue,
+                              onAddIssue: (columnId) => unawaited(
+                                _openAddIssueDialog(initialColumnId: columnId),
+                              ),
+                              onIssueTapped: _openEditIssueDialog,
+                              onStartCursorAgent: _startCursorAgent,
+                            );
+                          },
+                        );
+                      }
+
+                      return Scrollbar(
                         controller: _boardScrollController,
-                        padding: const EdgeInsets.fromLTRB(
-                          _boardHorizontalPadding,
-                          4,
-                          _boardHorizontalPadding,
-                          _boardBottomPadding + 72,
-                        ),
-                        itemCount: _columns.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: _boardColumnGap),
-                        itemBuilder: (context, index) {
-                          final column = _columns[index];
-                          return CompactBoardColumnView(
-                            column: column,
-                            allIssues: allIssues,
-                            buildStatusesByPullRequest:
-                                _buildStatusesByPullRequest,
-                            startingCursorAgentIssueIds:
-                                _startingCursorAgentIssueIds,
-                            onIssueDropped: _moveIssue,
-                            onAddIssue: (columnId) => unawaited(
-                              _openAddIssueDialog(initialColumnId: columnId),
-                            ),
-                            onIssueTapped: _openEditIssueDialog,
-                            onStartCursorAgent: _startCursorAgent,
-                          );
-                        },
-                      );
-                    }
-
-                    return Scrollbar(
-                      controller: _boardScrollController,
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _boardScrollController,
-                        padding: const EdgeInsets.fromLTRB(
-                          _boardHorizontalPadding,
-                          6,
-                          _boardHorizontalPadding,
-                          _boardBottomPadding,
-                        ),
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          height: boardHeight,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final column in _columns) ...[
-                                BoardColumnView(
-                                  column: column,
-                                  allIssues: allIssues,
-                                  buildStatusesByPullRequest:
-                                      _buildStatusesByPullRequest,
-                                  startingCursorAgentIssueIds:
-                                      _startingCursorAgentIssueIds,
-                                  onIssueDropped: _moveIssue,
-                                  onAddIssue: (columnId) => unawaited(
-                                    _openAddIssueDialog(
-                                      initialColumnId: columnId,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: _boardScrollController,
+                          padding: const EdgeInsets.fromLTRB(
+                            _boardHorizontalPadding,
+                            6,
+                            _boardHorizontalPadding,
+                            _boardBottomPadding,
+                          ),
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            height: boardHeight,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (final column in _columns) ...[
+                                  BoardColumnView(
+                                    column: column,
+                                    allIssues: allIssues,
+                                    buildStatusesByPullRequest:
+                                        _buildStatusesByPullRequest,
+                                    startingCursorAgentIssueIds:
+                                        _startingCursorAgentIssueIds,
+                                    onIssueDropped: _moveIssue,
+                                    onAddIssue: (columnId) => unawaited(
+                                      _openAddIssueDialog(
+                                        initialColumnId: columnId,
+                                      ),
                                     ),
+                                    onIssueTapped: _openEditIssueDialog,
+                                    onStartCursorAgent: _startCursorAgent,
                                   ),
-                                  onIssueTapped: _openEditIssueDialog,
-                                  onStartCursorAgent: _startCursorAgent,
-                                ),
-                                if (column != _columns.last)
-                                  const SizedBox(width: _boardColumnGap),
+                                  if (column != _columns.last)
+                                    const SizedBox(width: _boardColumnGap),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2859,7 +2863,12 @@ class BuildStatusBadge extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(currentStatus.icon, size: 13, color: color),
+              BuildStatusIndicator(
+                icon: currentStatus.icon,
+                color: color,
+                isSpinning: currentStatus.isSpinning,
+                size: 13,
+              ),
               const SizedBox(width: 4),
               Text(
                 currentStatus.label,
@@ -2884,80 +2893,103 @@ class BuildStatusJobsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompactDialog = screenSize.width < 560;
+    final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
+    final maxHeight = screenSize.height * (isCompactDialog ? 0.9 : 0.82);
+
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompactDialog ? 12 : 20,
+        vertical: isCompactDialog ? 12 : 24,
+      ),
+      backgroundColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 560),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+        constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 32,
+                offset: const Offset(0, 18),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: status.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(status.icon, color: status.color, size: 20),
+              Container(
+                padding: dialogPadding.copyWith(bottom: 16),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFFE2E8F0)),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          status.workflowTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF0F172A),
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                        Text(
-                          status.summaryLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: '閉じる',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
+                ),
+                child: _DialogHeader(
+                  title: 'CI checks',
+                  description: status.summaryLabel,
+                ),
               ),
-              const SizedBox(height: 14),
               Flexible(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: status.jobs.length,
-                      separatorBuilder: (_, _) =>
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                      itemBuilder: (context, index) =>
-                          BuildStatusJobRow(job: status.jobs[index]),
-                    ),
+                child: SingleChildScrollView(
+                  padding: dialogPadding.copyWith(top: 16, bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: status.color.withValues(alpha: 0.08),
+                          border: Border.all(
+                            color: status.color.withValues(alpha: 0.18),
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: status.color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: BuildStatusIndicator(
+                                  icon: status.icon,
+                                  color: status.color,
+                                  isSpinning: status.isSpinning,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                status.tooltip,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: status.color,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      for (final entry in status.jobs.indexed) ...[
+                        BuildStatusJobRow(job: entry.$2),
+                        if (entry.$1 != status.jobs.length - 1)
+                          const SizedBox(height: 8),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -2977,17 +3009,38 @@ class BuildStatusJobRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
           Navigator.of(context).pop();
           context.push('/runs/${Uri.encodeComponent(job.id)}');
         },
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Row(
             children: [
-              Icon(job.icon, color: job.color, size: 18),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: job.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: BuildStatusIndicator(
+                    icon: job.icon,
+                    color: job.color,
+                    isSpinning: job.isSpinning,
+                    size: 18,
+                  ),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -3002,6 +3055,7 @@ class BuildStatusJobRow extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       job.subtitle,
                       maxLines: 1,
@@ -3029,6 +3083,30 @@ class BuildStatusJobRow extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class BuildStatusIndicator extends StatelessWidget {
+  const BuildStatusIndicator({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.isSpinning,
+    required this.size,
+  });
+
+  final IconData icon;
+  final Color color;
+  final bool isSpinning;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSpinning) {
+      return SyncedSpinner(color: color, size: size, strokeWidth: 2);
+    }
+
+    return Icon(icon, size: size, color: color);
   }
 }
 
@@ -3093,6 +3171,7 @@ class CardBuildStatus {
     required this.color,
     required this.icon,
     required this.signature,
+    required this.isSpinning,
     required this.workflowTitle,
     required this.summaryLabel,
     required this.jobs,
@@ -3103,6 +3182,7 @@ class CardBuildStatus {
   final Color color;
   final IconData icon;
   final String signature;
+  final bool isSpinning;
   final String workflowTitle;
   final String summaryLabel;
   final List<BuildStatusJob> jobs;
@@ -3214,6 +3294,7 @@ class CardBuildStatus {
       label: label,
       color: color,
       icon: icon,
+      isSpinning: active > 0 && !queuedOnly,
       signature: jobs.map((job) => '${job.id}:${job.status.name}').join(','),
       workflowTitle: 'PR checks',
       summaryLabel: summaryLabel,
@@ -3259,6 +3340,8 @@ class BuildStatusJob {
     BuildJobStatus.SKIPPED => Icons.skip_next_rounded,
     BuildJobStatus.TIMED_OUT => Icons.timer_off_rounded,
   };
+
+  bool get isSpinning => status == BuildJobStatus.IN_PROGRESS;
 
   String get statusLabel => switch (status) {
     BuildJobStatus.SUCCESS => 'passed',
