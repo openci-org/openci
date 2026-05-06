@@ -375,6 +375,7 @@ export const registerDeveloperIdCertificateV1 = onCall<
         p12Path,
         "-passout",
         `pass:${password}`,
+        "-legacy",
       ],
       tmpDir,
     );
