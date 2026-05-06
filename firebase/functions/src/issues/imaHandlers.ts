@@ -2462,12 +2462,11 @@ async function linkPullRequestToImaIssues(
   const pullRequest = payload.pull_request;
   const repoFullName = asString(payload.repository?.full_name);
   const branch = asString(pullRequest?.head?.ref);
-  const parsedIssueKey = extractIssueKey(
-    branch,
-    asString(pullRequest?.title),
-    asString(pullRequest?.body),
-  );
+  const parsedIssueKey = extractIssueKey(branch);
   if (!pullRequest || repoFullName.length === 0) {
+    return 0;
+  }
+  if (parsedIssueKey === null) {
     return 0;
   }
 
@@ -2486,7 +2485,11 @@ async function linkPullRequestToImaIssues(
       continue;
     }
 
-    const issueDocs = await workspaceRef.collection("issues").limit(500).get();
+    const issueDocs = await workspaceRef
+      .collection("issues")
+      .where("issueKey", "==", parsedIssueKey)
+      .limit(1)
+      .get();
 
     for (const issueDoc of issueDocs.docs) {
       const issue = issueDoc.data();
@@ -2494,9 +2497,7 @@ async function linkPullRequestToImaIssues(
         continue;
       }
       const issueKeyValue = asString(issue.issueKey).toUpperCase();
-      const matchedByKey = parsedIssueKey !== null && issueKeyValue === parsedIssueKey;
-      const matchesIssue = matchedByKey || pullRequestMatchesIssue(pullRequest, issue);
-      if (!matchesIssue || issueKeyValue.length === 0) {
+      if (issueKeyValue !== parsedIssueKey) {
         continue;
       }
 
