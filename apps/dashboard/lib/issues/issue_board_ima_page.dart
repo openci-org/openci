@@ -10,6 +10,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:dashboard/firebase/firestore.dart'
+    show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
 import 'package:dashboard/firebase_options.dart';
 
 const _functionsRegion = 'asia-northeast1';
@@ -425,6 +427,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _githubConnectionSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _reposSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _buildJobsSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _workspaceSettingsSubscription;
   var _isBootstrapping = true;
@@ -441,6 +445,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
   final Set<String> _startingCursorAgentIssueIds = {};
+  Map<String, CardBuildStatus> _buildStatusesByPullRequest = {};
   final List<BoardColumn> _columns = [
     BoardColumn(
       id: 'triage',
@@ -591,6 +596,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .collection('githubRepos')
         .snapshots()
         .listen(_replaceRepositories, onError: _handleStreamError);
+    _buildJobsSubscription = _firestore
+        .collection(buildJobsCollection)
+        .where('teamId', isEqualTo: _workspaceId)
+        .orderBy('createdAt', descending: true)
+        .limit(200)
+        .snapshots()
+        .listen(_replaceBuildStatuses, onError: _handleStreamError);
     _workspaceSettingsSubscription = workspaceRef.snapshots().listen(
       _replaceWorkspaceSettings,
       onError: _handleStreamError,
@@ -673,6 +685,38 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         for (final doc in enabledDocs) _asString(doc.data()['fullName']),
       }..remove('');
     });
+  }
+
+  void _replaceBuildStatuses(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final runsByPullRequest = <String, List<_RecentRunSummary>>{};
+    for (final doc in snapshot.docs) {
+      final run = _RecentRunSummary.fromDoc(doc);
+      if (run == null || run.pullRequestNumber <= 0 || run.repository.isEmpty) {
+        continue;
+      }
+      runsByPullRequest
+          .putIfAbsent(
+            _buildStatusKey(run.repository, run.pullRequestNumber),
+            () => [],
+          )
+          .add(run);
+    }
+
+    final nextStatuses = <String, CardBuildStatus>{};
+    for (final entry in runsByPullRequest.entries) {
+      final status = CardBuildStatus._fromRuns(entry.value);
+      if (status != null) {
+        nextStatuses[entry.key] = status;
+      }
+    }
+
+    if (!mounted ||
+        _buildStatusMapSignature(_buildStatusesByPullRequest) ==
+            _buildStatusMapSignature(nextStatuses)) {
+      return;
+    }
+
+    setState(() => _buildStatusesByPullRequest = nextStatuses);
   }
 
   void _handleStreamError(Object error) {
@@ -1453,6 +1497,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     unawaited(_issuesSubscription?.cancel());
     unawaited(_githubConnectionSubscription?.cancel());
     unawaited(_reposSubscription?.cancel());
+    unawaited(_buildJobsSubscription?.cancel());
     unawaited(_workspaceSettingsSubscription?.cancel());
     _boardScrollController.dispose();
     super.dispose();
@@ -1605,6 +1650,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                           return CompactBoardColumnView(
                             column: column,
                             allIssues: allIssues,
+                            buildStatusesByPullRequest:
+                                _buildStatusesByPullRequest,
                             startingCursorAgentIssueIds:
                                 _startingCursorAgentIssueIds,
                             onIssueDropped: _moveIssue,
@@ -1639,6 +1686,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                 BoardColumnView(
                                   column: column,
                                   allIssues: allIssues,
+                                  buildStatusesByPullRequest:
+                                      _buildStatusesByPullRequest,
                                   startingCursorAgentIssueIds:
                                       _startingCursorAgentIssueIds,
                                   onIssueDropped: _moveIssue,
@@ -2118,17 +2167,19 @@ class OverviewMetric extends StatelessWidget {
     required this.value,
     required this.detail,
     this.valueColor = const Color(0xFF0F172A),
+    this.width = 92,
   });
 
   final String label;
   final String value;
   final String detail;
   final Color valueColor;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 92,
+      width: width,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Column(
@@ -2775,6 +2826,496 @@ class _DailyProgressSheetState extends State<DailyProgressSheet> {
       ),
     );
   }
+}
+
+class BuildStatusBadge extends StatelessWidget {
+  const BuildStatusBadge({super.key, required this.status});
+
+  final CardBuildStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentStatus = status;
+    if (currentStatus == null) {
+      return const SizedBox.shrink();
+    }
+
+    final color = currentStatus.color;
+    return Tooltip(
+      message: currentStatus.tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (_) => BuildStatusJobsDialog(status: currentStatus),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            border: Border.all(color: color.withValues(alpha: 0.28)),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(currentStatus.icon, size: 13, color: color),
+              const SizedBox(width: 4),
+              Text(
+                currentStatus.label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BuildStatusJobsDialog extends StatelessWidget {
+  const BuildStatusJobsDialog({super.key, required this.status});
+
+  final CardBuildStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 560),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: status.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(status.icon, color: status.color, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          status.workflowTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: const Color(0xFF0F172A),
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        Text(
+                          status.summaryLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '閉じる',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Flexible(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: status.jobs.length,
+                      separatorBuilder: (_, _) =>
+                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      itemBuilder: (context, index) =>
+                          BuildStatusJobRow(job: status.jobs[index]),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BuildStatusJobRow extends StatelessWidget {
+  const BuildStatusJobRow({super.key, required this.job});
+
+  final BuildStatusJob job;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          context.push('/runs/${Uri.encodeComponent(job.id)}');
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          child: Row(
+            children: [
+              Icon(job.icon, color: job.color, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      job.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                job.statusLabel,
+                style: TextStyle(
+                  color: job.color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentRunSummary {
+  const _RecentRunSummary({
+    required this.id,
+    required this.status,
+    required this.owner,
+    required this.repo,
+    required this.createdAt,
+    required this.workflowName,
+    required this.jobKey,
+    required this.branch,
+    required this.workflowRunId,
+    required this.pullRequestNumber,
+  });
+
+  final String id;
+  final BuildJobStatus status;
+  final String owner;
+  final String repo;
+  final DateTime createdAt;
+  final String workflowName;
+  final String jobKey;
+  final String branch;
+  final String workflowRunId;
+  final int pullRequestNumber;
+
+  String get repository => '$owner/$repo';
+
+  String get workflowTitle => workflowName.isEmpty ? repository : workflowName;
+
+  static _RecentRunSummary? fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    try {
+      return _RecentRunSummary(
+        id: doc.id,
+        status: buildJobStatusFromFirestore(data['status']),
+        owner: _asString(data['owner']),
+        repo: _asString(data['repo']),
+        createdAt:
+            _asDate(data['createdAt']) ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+        workflowName: _asString(data['workflowName']),
+        jobKey: _asString(data['jobKey']),
+        branch: _asString(data['branch']),
+        workflowRunId: _asString(data['workflowRunId']),
+        pullRequestNumber: _asInt(data['pullRequestNumber']),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class CardBuildStatus {
+  const CardBuildStatus({
+    required this.label,
+    required this.tooltip,
+    required this.color,
+    required this.icon,
+    required this.signature,
+    required this.workflowTitle,
+    required this.summaryLabel,
+    required this.jobs,
+  });
+
+  final String label;
+  final String tooltip;
+  final Color color;
+  final IconData icon;
+  final String signature;
+  final String workflowTitle;
+  final String summaryLabel;
+  final List<BuildStatusJob> jobs;
+
+  static CardBuildStatus? _fromRuns(List<_RecentRunSummary> runs) {
+    if (runs.isEmpty) {
+      return null;
+    }
+
+    final sortedRuns = runs.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final selectedWorkflowKeys = <String>{};
+    final selectedRunIds = <String>{};
+    for (final run in sortedRuns) {
+      final workflowKey = run.workflowTitle;
+      if (!selectedWorkflowKeys.add(workflowKey)) {
+        continue;
+      }
+      selectedRunIds.add(
+        run.workflowRunId.isEmpty ? run.id : run.workflowRunId,
+      );
+    }
+    final currentRuns =
+        [
+          for (final run in sortedRuns)
+            if (selectedRunIds.contains(
+              run.workflowRunId.isEmpty ? run.id : run.workflowRunId,
+            ))
+              run,
+        ]..sort((a, b) {
+          final workflowCompare = a.workflowTitle.compareTo(b.workflowTitle);
+          if (workflowCompare != 0) {
+            return workflowCompare;
+          }
+          return a.jobKey.compareTo(b.jobKey);
+        });
+
+    var passed = 0;
+    var failed = 0;
+    var active = 0;
+    var other = 0;
+    var queuedOnly = true;
+
+    for (final run in currentRuns) {
+      switch (run.status) {
+        case BuildJobStatus.SUCCESS:
+          passed++;
+          queuedOnly = false;
+        case BuildJobStatus.FAILURE || BuildJobStatus.TIMED_OUT:
+          failed++;
+          queuedOnly = false;
+        case BuildJobStatus.IN_PROGRESS || BuildJobStatus.WAITING:
+          active++;
+          queuedOnly = false;
+        case BuildJobStatus.QUEUED:
+          active++;
+        case BuildJobStatus.CANCELLED || BuildJobStatus.SKIPPED:
+          other++;
+          queuedOnly = false;
+      }
+    }
+
+    final total = currentRuns.length;
+    final jobs = [
+      for (final run in currentRuns)
+        BuildStatusJob(
+          id: run.id,
+          title: run.jobKey.isEmpty ? run.workflowTitle : run.jobKey,
+          subtitle: [
+            run.workflowTitle,
+            if (run.branch.isNotEmpty) run.branch,
+            _relativeTimeLabel(run.createdAt),
+          ].join(' / '),
+          status: run.status,
+          createdAt: run.createdAt,
+        ),
+    ];
+    final summaryLabel =
+        '$passed passed / $failed failed / $active running / $other other';
+    final label = failed > 0
+        ? 'fail'
+        : active > 0
+        ? queuedOnly
+              ? 'queued'
+              : '$passed/$total passed'
+        : passed == total
+        ? total == 1
+              ? 'passed'
+              : '$passed passed'
+        : '$passed/$total passed';
+    final color = failed > 0
+        ? const Color(0xFFB91C1C)
+        : active > 0
+        ? const Color(0xFF2563EB)
+        : passed == total
+        ? const Color(0xFF15803D)
+        : const Color(0xFFB45309);
+    final icon = failed > 0
+        ? Icons.cancel_rounded
+        : active > 0
+        ? queuedOnly
+              ? Icons.schedule_rounded
+              : Icons.sync_rounded
+        : passed == total
+        ? Icons.check_circle_rounded
+        : Icons.adjust_rounded;
+
+    return CardBuildStatus(
+      label: label,
+      color: color,
+      icon: icon,
+      signature: jobs.map((job) => '${job.id}:${job.status.name}').join(','),
+      workflowTitle: 'PR checks',
+      summaryLabel: summaryLabel,
+      jobs: jobs,
+      tooltip: 'PR checks: $summaryLabel',
+    );
+  }
+}
+
+class BuildStatusJob {
+  const BuildStatusJob({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final BuildJobStatus status;
+  final DateTime createdAt;
+
+  Color get color => switch (status) {
+    BuildJobStatus.SUCCESS => const Color(0xFF15803D),
+    BuildJobStatus.FAILURE ||
+    BuildJobStatus.TIMED_OUT => const Color(0xFFB91C1C),
+    BuildJobStatus.IN_PROGRESS => const Color(0xFF2563EB),
+    BuildJobStatus.QUEUED => const Color(0xFF7C3AED),
+    BuildJobStatus.WAITING ||
+    BuildJobStatus.CANCELLED => const Color(0xFFB45309),
+    BuildJobStatus.SKIPPED => const Color(0xFF64748B),
+  };
+
+  IconData get icon => switch (status) {
+    BuildJobStatus.SUCCESS => Icons.check_circle_rounded,
+    BuildJobStatus.FAILURE => Icons.cancel_rounded,
+    BuildJobStatus.IN_PROGRESS => Icons.sync_rounded,
+    BuildJobStatus.QUEUED => Icons.schedule_rounded,
+    BuildJobStatus.WAITING => Icons.adjust_rounded,
+    BuildJobStatus.CANCELLED => Icons.block_rounded,
+    BuildJobStatus.SKIPPED => Icons.skip_next_rounded,
+    BuildJobStatus.TIMED_OUT => Icons.timer_off_rounded,
+  };
+
+  String get statusLabel => switch (status) {
+    BuildJobStatus.SUCCESS => 'passed',
+    BuildJobStatus.FAILURE => 'failed',
+    BuildJobStatus.IN_PROGRESS => 'running',
+    BuildJobStatus.QUEUED => 'queued',
+    BuildJobStatus.WAITING => 'waiting',
+    BuildJobStatus.CANCELLED => 'cancelled',
+    BuildJobStatus.SKIPPED => 'skipped',
+    BuildJobStatus.TIMED_OUT => 'timed out',
+  };
+}
+
+CardBuildStatus? _buildStatusForIssue(
+  Issue issue,
+  Map<String, CardBuildStatus> statusesByPullRequest,
+) {
+  for (final pullRequest in issue.pullRequests.reversed) {
+    final status =
+        statusesByPullRequest[_buildStatusKey(
+          issue.repo,
+          pullRequest.number,
+        )];
+    if (status != null) {
+      return status;
+    }
+  }
+  return null;
+}
+
+String _buildStatusKey(String repository, int pullRequestNumber) {
+  return '$repository#$pullRequestNumber';
+}
+
+String _buildStatusMapSignature(Map<String, CardBuildStatus> statuses) {
+  final keys = statuses.keys.toList()..sort();
+  return [
+    for (final key in keys) '$key:${statuses[key]!.signature}',
+  ].join('|');
+}
+
+String _relativeTimeLabel(DateTime value) {
+  final difference = DateTime.now().difference(value);
+  if (difference.inMinutes < 1) {
+    return 'たった今';
+  }
+  if (difference.inHours < 1) {
+    return '${difference.inMinutes}分前';
+  }
+  if (difference.inDays < 1) {
+    return '${difference.inHours}時間前';
+  }
+  if (difference.inDays < 30) {
+    return '${difference.inDays}日前';
+  }
+  final months = (difference.inDays / 30).floor();
+  return '$monthsヶ月前';
 }
 
 class DailyProgressHistoryRow extends StatelessWidget {
@@ -5427,6 +5968,7 @@ class BoardColumnView extends StatelessWidget {
     super.key,
     required this.column,
     this.allIssues = const [],
+    this.buildStatusesByPullRequest = const {},
     this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
@@ -5436,6 +5978,7 @@ class BoardColumnView extends StatelessWidget {
 
   final BoardColumn column;
   final List<Issue> allIssues;
+  final Map<String, CardBuildStatus> buildStatusesByPullRequest;
   final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
@@ -5508,6 +6051,10 @@ class BoardColumnView extends StatelessWidget {
                           return IssueCardDropTarget(
                             issue: issue,
                             subIssues: _subIssuesForParent(issue, allIssues),
+                            buildStatus: _buildStatusForIssue(
+                              issue,
+                              buildStatusesByPullRequest,
+                            ),
                             sourceColumnId: column.id,
                             index: rankIndex < 0 ? index : rankIndex,
                             isStartingCursorAgent: startingCursorAgentIssueIds
@@ -5545,6 +6092,7 @@ class CompactBoardColumnView extends StatefulWidget {
     super.key,
     required this.column,
     this.allIssues = const [],
+    this.buildStatusesByPullRequest = const {},
     this.startingCursorAgentIssueIds = const {},
     required this.onIssueDropped,
     required this.onAddIssue,
@@ -5554,6 +6102,7 @@ class CompactBoardColumnView extends StatefulWidget {
 
   final BoardColumn column;
   final List<Issue> allIssues;
+  final Map<String, CardBuildStatus> buildStatusesByPullRequest;
   final Set<String> startingCursorAgentIssueIds;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
@@ -5630,6 +6179,10 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                     return IssueCardDropTarget(
                       issue: issue,
                       subIssues: _subIssuesForParent(issue, widget.allIssues),
+                      buildStatus: _buildStatusForIssue(
+                        issue,
+                        widget.buildStatusesByPullRequest,
+                      ),
                       sourceColumnId: widget.column.id,
                       index: rankIndex < 0 ? index : rankIndex,
                       isStartingCursorAgent: widget.startingCursorAgentIssueIds
@@ -6612,6 +7165,7 @@ class IssueCardDropTarget extends StatefulWidget {
     super.key,
     required this.issue,
     this.subIssues = const [],
+    this.buildStatus,
     required this.sourceColumnId,
     required this.index,
     required this.isStartingCursorAgent,
@@ -6623,6 +7177,7 @@ class IssueCardDropTarget extends StatefulWidget {
 
   final Issue issue;
   final List<Issue> subIssues;
+  final CardBuildStatus? buildStatus;
   final String sourceColumnId;
   final int index;
   final bool isStartingCursorAgent;
@@ -6694,6 +7249,7 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
               child: IssueCardDraggable(
                 issue: widget.issue,
                 subIssues: widget.subIssues,
+                buildStatus: widget.buildStatus,
                 sourceColumnId: widget.sourceColumnId,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
                 onTap: widget.onTap,
@@ -6742,6 +7298,7 @@ class IssueCardDraggable extends StatefulWidget {
     super.key,
     required this.issue,
     this.subIssues = const [],
+    this.buildStatus,
     required this.sourceColumnId,
     required this.isStartingCursorAgent,
     required this.onTap,
@@ -6751,6 +7308,7 @@ class IssueCardDraggable extends StatefulWidget {
 
   final Issue issue;
   final List<Issue> subIssues;
+  final CardBuildStatus? buildStatus;
   final String sourceColumnId;
   final bool isStartingCursorAgent;
   final VoidCallback onTap;
@@ -6887,6 +7445,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
                     child: IssueCard(
                       issue: widget.issue,
                       subIssues: widget.subIssues,
+                      buildStatus: widget.buildStatus,
                       onSubIssueTap: widget.onSubIssueTap,
                       isDragging: true,
                     ),
@@ -6903,6 +7462,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
             child: IssueCard(
               issue: widget.issue,
               subIssues: widget.subIssues,
+              buildStatus: widget.buildStatus,
               onSubIssueTap: widget.onSubIssueTap,
               isDragPlaceholder: true,
             ),
@@ -6926,6 +7486,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
               child: IssueCard(
                 issue: widget.issue,
                 subIssues: widget.subIssues,
+                buildStatus: widget.buildStatus,
                 onSubIssueTap: widget.onSubIssueTap,
                 isDragging: _isLiftPreviewVisible,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
@@ -6944,6 +7505,7 @@ class IssueCard extends StatelessWidget {
     super.key,
     required this.issue,
     this.subIssues = const [],
+    this.buildStatus,
     this.onSubIssueTap,
     this.isDragging = false,
     this.isDragPlaceholder = false,
@@ -6953,6 +7515,7 @@ class IssueCard extends StatelessWidget {
 
   final Issue issue;
   final List<Issue> subIssues;
+  final CardBuildStatus? buildStatus;
   final ValueChanged<String>? onSubIssueTap;
   final bool isDragging;
   final bool isDragPlaceholder;
@@ -7099,6 +7662,7 @@ class IssueCard extends StatelessWidget {
                     ParentIssueMetaChip(parentIssue: issue.parentIssue!),
                   if (issue.pullRequests.isNotEmpty)
                     PullRequestBadge(pullRequests: issue.pullRequests),
+                  BuildStatusBadge(status: buildStatus),
                   CommentMetaChip(comments: issue.comments),
                 ],
               ),
