@@ -11,6 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// Extract secret names referenced in workflow YAML content.
 Set<String> _extractSecretNames(String content) {
@@ -98,9 +99,13 @@ class SecretManagerTab extends HookConsumerWidget {
           final hasAscApiKey = secrets.any(
             (s) => s.name == 'OPENCI_ASC_ISSUER_ID',
           );
+          final hasDeveloperIdCertificate = secrets.any(
+            (s) => s.name == 'OPENCI_DEVELOPER_ID_CERTIFICATE_P12',
+          );
           final setupCards = <Widget>[
             if (!hasCertKey) _GenerateCertificateKeyButton(),
             if (!hasAscApiKey) _SetupAscApiKeyButton(),
+            if (!hasDeveloperIdCertificate) _SetupDeveloperIdCertificateCard(),
           ];
 
           if (secrets.isEmpty) {
@@ -152,60 +157,71 @@ class SecretManagerTab extends HookConsumerWidget {
             );
           }
 
-          final workflowFiles = workflowFilesAsync.value ?? [];
-          final grouped = _groupSecretsByWorkflow(secrets, workflowFiles);
+          return workflowFilesAsync.when(
+            loading: () => _SecretListSkeleton(setupCards: setupCards),
+            error: (error, stack) => Center(
+              child: Text(
+                t.common.error(error: error.toString()),
+                style: TextStyle(color: colors.error),
+              ),
+            ),
+            data: (workflowFiles) {
+              final grouped = _groupSecretsByWorkflow(secrets, workflowFiles);
 
-          return ListView(
-            padding: const EdgeInsets.only(top: 12, bottom: 80),
-            children: [
-              // Setup cards
-              ...setupCards.map(
-                (card) => Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
+              return ListView(
+                padding: const EdgeInsets.only(top: 12, bottom: 80),
+                children: [
+                  // Setup cards
+                  ...setupCards.map(
+                    (card) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: card,
+                        ),
                       ),
-                      child: card,
                     ),
                   ),
-                ),
-              ),
-              // Grouped sections
-              for (final group in grouped.groups) ...[
-                _SectionHeader(
-                  icon: Icons.description_outlined,
-                  title: group.workflowName,
-                  count: group.secrets.length,
-                ),
-                ...group.secrets.map(
-                  (secret) => _SecretListTile(secret: secret),
-                ),
-              ],
-              // Unused section
-              if (grouped.unused.isNotEmpty) ...[
-                _SectionHeader(
-                  icon: Icons.warning_amber_rounded,
-                  title: secretsT.unusedSecrets,
-                  count: grouped.unused.length,
-                  isWarning: true,
-                ),
-                ...grouped.unused.map(
-                  (secret) => _SecretListTile(
-                    secret: secret,
-                    isUnused: true,
-                  ),
-                ),
-              ],
-              // If no workflows loaded yet, show flat list
-              if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
-                ...secrets.map(
-                  (secret) => _SecretListTile(secret: secret),
-                ),
-              ],
-            ],
+                  // Grouped sections
+                  for (final group in grouped.groups) ...[
+                    _SectionHeader(
+                      icon: Icons.description_outlined,
+                      title: group.workflowName,
+                      count: group.secrets.length,
+                    ),
+                    ...group.secrets.map(
+                      (secret) => _SecretListTile(secret: secret),
+                    ),
+                  ],
+                  // Unused section
+                  if (workflowFiles.isNotEmpty &&
+                      grouped.unused.isNotEmpty) ...[
+                    _SectionHeader(
+                      icon: Icons.warning_amber_rounded,
+                      title: secretsT.unusedSecrets,
+                      count: grouped.unused.length,
+                      isWarning: true,
+                    ),
+                    ...grouped.unused.map(
+                      (secret) => _SecretListTile(
+                        secret: secret,
+                        isUnused: true,
+                      ),
+                    ),
+                  ],
+                  // If no workflows exist, show flat list without marking all as unused.
+                  if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
+                    ...secrets.map(
+                      (secret) => _SecretListTile(secret: secret),
+                    ),
+                  ],
+                ],
+              );
+            },
           );
         },
         loading: () => Center(
@@ -217,6 +233,74 @@ class SecretManagerTab extends HookConsumerWidget {
             style: TextStyle(color: colors.error),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SecretListSkeleton extends StatelessWidget {
+  const _SecretListSkeleton({required this.setupCards});
+
+  final List<Widget> setupCards;
+
+  static final _secrets = [
+    Secret(
+      id: 'skeleton-1',
+      name: 'OPENCI_GITHUB_TOKEN',
+      teamId: 'skeleton',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    ),
+    Secret(
+      id: 'skeleton-2',
+      name: 'OPENCI_ASC_KEY_ID',
+      teamId: 'skeleton',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    ),
+    Secret(
+      id: 'skeleton-3',
+      name: 'REVENUE_CAT_API_KEY',
+      teamId: 'skeleton',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      child: ListView(
+        padding: const EdgeInsets.only(top: 12, bottom: 80),
+        children: [
+          ...setupCards.map(
+            (card) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: card,
+                ),
+              ),
+            ),
+          ),
+          const _SectionHeader(
+            icon: Icons.description_outlined,
+            title: 'flutter-ci-cd.yaml',
+            count: 2,
+          ),
+          ..._secrets.take(2).map((secret) => _SecretListTile(secret: secret)),
+          _SectionHeader(
+            icon: Icons.warning_amber_rounded,
+            title: t.secrets.unusedSecrets,
+            count: 1,
+            isWarning: true,
+          ),
+          _SecretListTile(secret: _secrets.last, isUnused: true),
+        ],
       ),
     );
   }
@@ -1487,6 +1571,312 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SetupDeveloperIdCertificateCard extends HookWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final isExpanded = useState(false);
+    final certificateFileName = useState<String?>(null);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => isExpanded.value = !isExpanded.value,
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF58A6FF).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.desktop_mac_outlined,
+                      size: 16,
+                      color: Color(0xFF58A6FF),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'macOS Developer ID',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD29922).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Setup required',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD29922),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: isExpanded.value ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 20,
+                      color: colors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Required to sign and notarize direct-download macOS apps. Developer ID certificates must be issued in Apple Developer Portal by the Account Holder.',
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            if (isExpanded.value) ...[
+              const SizedBox(height: 16),
+              _DeveloperIdSetupStep(
+                number: 1,
+                title: 'Generate a CSR in OpenCI',
+                description:
+                    'OpenCI will keep the private key and generate a certificate signing request for Apple.',
+                actionLabel: 'Generate CSR',
+                icon: Icons.description_outlined,
+                onPressed: () => context.showSnackBarMessage(
+                  'Developer ID CSR generation is coming soon',
+                ),
+              ),
+              const SizedBox(height: 10),
+              _DeveloperIdSetupStep(
+                number: 2,
+                title: 'Create Developer ID Application certificate',
+                description:
+                    'Upload the CSR in Apple Developer Portal, then download the issued .cer file.',
+                icon: Icons.open_in_new_rounded,
+              ),
+              const SizedBox(height: 10),
+              _DeveloperIdSetupStep(
+                number: 3,
+                title: 'Upload the issued certificate',
+                description:
+                    'OpenCI will combine this .cer with the stored private key and prepare CI signing secrets.',
+                actionLabel:
+                    certificateFileName.value ?? 'Upload Developer ID .cer',
+                icon: certificateFileName.value == null
+                    ? Icons.upload_file
+                    : Icons.check_circle,
+                isComplete: certificateFileName.value != null,
+                onPressed: () async {
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['cer', 'crt'],
+                    withData: true,
+                  );
+                  if (result == null || result.files.isEmpty) return;
+                  certificateFileName.value = result.files.first.name;
+                },
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colors.surfaceTertiary,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: colors.textTertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'No Xcode account sign-in is required for CI once the certificate is registered. The portal step is only needed because Apple does not issue Developer ID certificates through the App Store Connect API.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: certificateFileName.value == null
+                        ? colors.textTertiary.withValues(alpha: 0.35)
+                        : colors.accent,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: certificateFileName.value == null
+                      ? null
+                      : () => context.showSnackBarMessage(
+                          'Developer ID certificate registration is coming soon',
+                        ),
+                  child: const Text(
+                    'Save Developer ID Certificate',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeveloperIdSetupStep extends StatelessWidget {
+  const _DeveloperIdSetupStep({
+    required this.number,
+    required this.title,
+    required this.description,
+    required this.icon,
+    this.actionLabel,
+    this.onPressed,
+    this.isComplete = false,
+  });
+
+  final int number;
+  final String title;
+  final String description;
+  final IconData icon;
+  final String? actionLabel;
+  final VoidCallback? onPressed;
+  final bool isComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final accent = isComplete ? const Color(0xFF3FB950) : colors.accent;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$number',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: accent,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                if (actionLabel != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: accent,
+                        backgroundColor: accent.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: onPressed,
+                      icon: Icon(icon, size: 15),
+                      label: Text(
+                        actionLabel!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

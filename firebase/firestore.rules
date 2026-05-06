@@ -273,7 +273,9 @@ service cloud.firestore {
                 && request.resource.data.id == teamId
                 && request.resource.data.members.size() == 1
                 && request.resource.data.members[0] == request.auth.uid;
-            allow read, delete: if isTeamMember(teamId);
+            allow get, delete: if isTeamMember(teamId);
+            allow list: if isAuthenticated()
+                && request.auth.uid in resource.data.members;
             allow update: if isTeamMember(teamId)
                 && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
                     'name',

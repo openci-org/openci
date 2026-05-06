@@ -66,7 +66,7 @@ final class TeamStateProvider extends $StreamNotifierProvider<TeamState, Team> {
   TeamState create() => TeamState();
 }
 
-String _$teamStateHash() => r'f1e564ca7dd3de351121fc8cca145879498bf8e9';
+String _$teamStateHash() => r'51776b84699d46bc3283c9fdc37eb774038b3e73';
 
 abstract class _$TeamState extends $StreamNotifier<Team> {
   Stream<Team> build();
@@ -110,7 +110,7 @@ final class TeamListProvider
   TeamList create() => TeamList();
 }
 
-String _$teamListHash() => r'ee0b8fb49aaf11281b82142409de8d379e25a104';
+String _$teamListHash() => r'3ac6c19fa5025fe946b363095864358cd708da62';
 
 abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();

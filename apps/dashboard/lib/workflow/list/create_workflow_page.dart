@@ -1,38 +1,22 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/theme/app_colors.dart';
-
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-
 import 'package:dashboard/variables/variables_page.dart';
-
 import 'package:dashboard/workflow/list/create_workflow_file_provider.dart';
-
 import 'package:dashboard/workflow/list/github_actions_provider.dart';
-
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
-
 import 'package:dashboard/workflow/list/search_actions_sheet.dart';
-
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
-
 import 'package:dashboard/workflow/list/workflow_yaml_converter.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
-import 'package:re_editor/re_editor.dart';
-
-import 'package:re_highlight/languages/yaml.dart';
-
-import 'package:re_highlight/styles/monokai.dart';
-
 import 'package:material_symbols_icons/symbols.dart';
-
+import 'package:re_editor/re_editor.dart';
+import 'package:re_highlight/languages/yaml.dart';
+import 'package:re_highlight/styles/monokai.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 import 'status_dot.dart';
@@ -717,6 +701,8 @@ class _EditorTab extends HookConsumerWidget {
                             isEnabled.value = value;
                             ref.read(
                               toggleWorkflowEnabledProvider(
+                                repository: existingFile!.repository,
+                                branch: existingFile!.branch,
                                 fileName: existingFile!.name,
                                 enabled: value,
                               ),

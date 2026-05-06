@@ -56,8 +56,14 @@ class TeamState extends _$TeamState {
     if (user == null || teamList == null) {
       return const Stream.empty();
     }
+    if (teamList.isEmpty) {
+      return const Stream.empty();
+    }
     return Stream.value(
-      teamList.firstWhere((team) => team.id == user.selectedTeamId),
+      teamList.firstWhere(
+        (team) => team.id == user.selectedTeamId,
+        orElse: () => teamList.first,
+      ),
     );
   }
 }
@@ -172,23 +178,21 @@ String? _emptyToNull(String? value) {
 List<Team> _teamsFromDocs(
   List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
 ) {
-  return docs
-      .map((doc) {
-        final data = doc.data();
-        return Team(
-          id: doc.id,
-          name: data['name'] as String? ?? 'Untitled Team',
-          members: (data['members'] as List?)?.whereType<String>().toList() ??
-              const [],
-          installationIds:
-              (data['installationIds'] as List?)?.whereType<int>().toList() ??
-                  const [],
-          aiEnabled: data['aiEnabled'] as bool? ?? true,
-          githubBaseUrl: data['githubBaseUrl'] as String?,
-          githubApiBaseUrl: data['githubApiBaseUrl'] as String?,
-          createdAt: dateTimeFromFirestore(data['createdAt']),
-          updatedAt: dateTimeFromFirestore(data['updatedAt']),
-        );
-      })
-      .toList();
+  return docs.map((doc) {
+    final data = doc.data();
+    return Team(
+      id: doc.id,
+      name: data['name'] as String? ?? 'Untitled Team',
+      members:
+          (data['members'] as List?)?.whereType<String>().toList() ?? const [],
+      installationIds:
+          (data['installationIds'] as List?)?.whereType<int>().toList() ??
+          const [],
+      aiEnabled: data['aiEnabled'] as bool? ?? true,
+      githubBaseUrl: data['githubBaseUrl'] as String?,
+      githubApiBaseUrl: data['githubApiBaseUrl'] as String?,
+      createdAt: dateTimeFromFirestore(data['createdAt']),
+      updatedAt: dateTimeFromFirestore(data['updatedAt']),
+    );
+  }).toList();
 }

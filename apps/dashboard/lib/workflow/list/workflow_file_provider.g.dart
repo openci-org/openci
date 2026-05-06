@@ -11,6 +11,8 @@ _WorkflowFile _$WorkflowFileFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       path: json['path'] as String,
       content: json['content'] as String,
+      repository: json['repository'] as String,
+      branch: json['branch'] as String,
       enabled: json['enabled'] as bool? ?? true,
     );
 
@@ -19,6 +21,8 @@ Map<String, dynamic> _$WorkflowFileToJson(_WorkflowFile instance) =>
       'name': instance.name,
       'path': instance.path,
       'content': instance.content,
+      'repository': instance.repository,
+      'branch': instance.branch,
       'enabled': instance.enabled,
     };
 
@@ -68,40 +72,7 @@ final class WorkflowFilesProvider
   }
 }
 
-String _$workflowFilesHash() => r'367184d4e78edbea65dd27f1ad0fa0f9ae73fbc0';
-
-@ProviderFor(syncWorkflowFiles)
-final syncWorkflowFilesProvider = SyncWorkflowFilesProvider._();
-
-final class SyncWorkflowFilesProvider
-    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
-    with $FutureModifier<void>, $FutureProvider<void> {
-  SyncWorkflowFilesProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'syncWorkflowFilesProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$syncWorkflowFilesHash();
-
-  @$internal
-  @override
-  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<void> create(Ref ref) {
-    return syncWorkflowFiles(ref);
-  }
-}
-
-String _$syncWorkflowFilesHash() => r'c03021264b644be73fa78688340555d354030471';
+String _$workflowFilesHash() => r'4cb40bf96fbb9c62f37264982140700ee0de2e86';
 
 @ProviderFor(toggleWorkflowEnabled)
 final toggleWorkflowEnabledProvider = ToggleWorkflowEnabledFamily._();
@@ -111,7 +82,8 @@ final class ToggleWorkflowEnabledProvider
     with $FutureModifier<void>, $FutureProvider<void> {
   ToggleWorkflowEnabledProvider._({
     required ToggleWorkflowEnabledFamily super.from,
-    required ({String fileName, bool enabled}) super.argument,
+    required ({String repository, String branch, String fileName, bool enabled})
+    super.argument,
   }) : super(
          retry: null,
          name: r'toggleWorkflowEnabledProvider',
@@ -137,9 +109,18 @@ final class ToggleWorkflowEnabledProvider
 
   @override
   FutureOr<void> create(Ref ref) {
-    final argument = this.argument as ({String fileName, bool enabled});
+    final argument =
+        this.argument
+            as ({
+              String repository,
+              String branch,
+              String fileName,
+              bool enabled,
+            });
     return toggleWorkflowEnabled(
       ref,
+      repository: argument.repository,
+      branch: argument.branch,
       fileName: argument.fileName,
       enabled: argument.enabled,
     );
@@ -157,13 +138,13 @@ final class ToggleWorkflowEnabledProvider
 }
 
 String _$toggleWorkflowEnabledHash() =>
-    r'50502295d94d9fea1626973e08d2973bcc4184d6';
+    r'670458570b72a06a42ff39063648c9aad65080c0';
 
 final class ToggleWorkflowEnabledFamily extends $Family
     with
         $FunctionalFamilyOverride<
           FutureOr<void>,
-          ({String fileName, bool enabled})
+          ({String repository, String branch, String fileName, bool enabled})
         > {
   ToggleWorkflowEnabledFamily._()
     : super(
@@ -175,10 +156,17 @@ final class ToggleWorkflowEnabledFamily extends $Family
       );
 
   ToggleWorkflowEnabledProvider call({
+    required String repository,
+    required String branch,
     required String fileName,
     required bool enabled,
   }) => ToggleWorkflowEnabledProvider._(
-    argument: (fileName: fileName, enabled: enabled),
+    argument: (
+      repository: repository,
+      branch: branch,
+      fileName: fileName,
+      enabled: enabled,
+    ),
     from: this,
   );
 
