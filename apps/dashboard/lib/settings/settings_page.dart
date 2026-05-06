@@ -1,8 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 
-import 'package:dashboard/build_info.dart';
-
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 
 import 'package:dashboard/i18n/strings.g.dart';
@@ -34,7 +32,6 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:swipeable_page_route/swipeable_page_route.dart';
-
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key});
@@ -554,9 +551,11 @@ class _LanguageBottomSheet extends ConsumerWidget {
                                         option.subtitle,
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: AppColors.of(context).textPrimary.withValues(
-                                            alpha: 0.4,
-                                          ),
+                                          color: AppColors.of(context)
+                                              .textPrimary
+                                              .withValues(
+                                                alpha: 0.4,
+                                              ),
                                         ),
                                       ),
                                     ],
@@ -598,7 +597,7 @@ class _AppVersionTile extends HookWidget {
 
     final info = snapshot.data;
     final versionText = info != null
-        ? 'v${info.version} (${info.buildNumber})  •  $buildDate'
+        ? 'v${info.version} (${info.buildNumber})'
         : '...';
 
     return InkWell(
