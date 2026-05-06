@@ -21,6 +21,7 @@ const _boardColumnWidth = 280.0;
 const _boardColumnGap = 12.0;
 const _compactBoardBreakpoint = 640.0;
 const _compactColumnCollapsedLimit = 4;
+const _mobileDragStartDelay = Duration(milliseconds: 420);
 const _defaultDailyWeightTarget = 20;
 const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
 
@@ -1607,6 +1608,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                             allIssues: allIssues,
                             startingCursorAgentIssueIds:
                                 _startingCursorAgentIssueIds,
+                            requiresLongPressDrag: true,
                             onIssueDropped: _moveIssue,
                             onAddIssue: (columnId) => unawaited(
                               _openAddIssueDialog(initialColumnId: columnId),
@@ -1641,6 +1643,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                   allIssues: allIssues,
                                   startingCursorAgentIssueIds:
                                       _startingCursorAgentIssueIds,
+                                  requiresLongPressDrag: false,
                                   onIssueDropped: _moveIssue,
                                   onAddIssue: (columnId) => unawaited(
                                     _openAddIssueDialog(
@@ -5428,6 +5431,7 @@ class BoardColumnView extends StatelessWidget {
     required this.column,
     this.allIssues = const [],
     this.startingCursorAgentIssueIds = const {},
+    required this.requiresLongPressDrag,
     required this.onIssueDropped,
     required this.onAddIssue,
     required this.onIssueTapped,
@@ -5437,6 +5441,7 @@ class BoardColumnView extends StatelessWidget {
   final BoardColumn column;
   final List<Issue> allIssues;
   final Set<String> startingCursorAgentIssueIds;
+  final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
@@ -5512,6 +5517,7 @@ class BoardColumnView extends StatelessWidget {
                             index: rankIndex < 0 ? index : rankIndex,
                             isStartingCursorAgent: startingCursorAgentIssueIds
                                 .contains(issue.id),
+                            requiresLongPressDrag: requiresLongPressDrag,
                             onTap: () => onIssueTapped(issue.id),
                             onSubIssueTap: onIssueTapped,
                             onStartCursorAgent: onStartCursorAgent == null
@@ -5546,6 +5552,7 @@ class CompactBoardColumnView extends StatefulWidget {
     required this.column,
     this.allIssues = const [],
     this.startingCursorAgentIssueIds = const {},
+    required this.requiresLongPressDrag,
     required this.onIssueDropped,
     required this.onAddIssue,
     required this.onIssueTapped,
@@ -5555,6 +5562,7 @@ class CompactBoardColumnView extends StatefulWidget {
   final BoardColumn column;
   final List<Issue> allIssues;
   final Set<String> startingCursorAgentIssueIds;
+  final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
@@ -5634,6 +5642,7 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                       index: rankIndex < 0 ? index : rankIndex,
                       isStartingCursorAgent: widget.startingCursorAgentIssueIds
                           .contains(issue.id),
+                      requiresLongPressDrag: widget.requiresLongPressDrag,
                       onTap: () => widget.onIssueTapped(issue.id),
                       onSubIssueTap: widget.onIssueTapped,
                       onStartCursorAgent: widget.onStartCursorAgent == null
@@ -5795,6 +5804,7 @@ class OverviewList extends StatelessWidget {
             OverviewSection(
               column: column,
               isCompact: true,
+              requiresLongPressDrag: true,
               onIssueTapped: onIssueTapped,
               onIssueDropped: onIssueDropped,
             ),
@@ -5834,6 +5844,7 @@ class OverviewList extends StatelessWidget {
                     child: OverviewSection(
                       column: column,
                       isCompact: false,
+                      requiresLongPressDrag: false,
                       fillHeight: true,
                       onIssueTapped: onIssueTapped,
                       onIssueDropped: onIssueDropped,
@@ -5910,6 +5921,7 @@ class OverviewSection extends StatelessWidget {
     super.key,
     required this.column,
     required this.isCompact,
+    required this.requiresLongPressDrag,
     required this.onIssueTapped,
     required this.onIssueDropped,
     this.fillHeight = false,
@@ -5917,6 +5929,7 @@ class OverviewSection extends StatelessWidget {
 
   final BoardColumn column;
   final bool isCompact;
+  final bool requiresLongPressDrag;
   final ValueChanged<String> onIssueTapped;
   final IssueDropCallback onIssueDropped;
   final bool fillHeight;
@@ -6045,6 +6058,7 @@ class OverviewSection extends StatelessWidget {
               index: rankIndex < 0 ? entry.$1 : rankIndex,
               accentColor: column.color,
               isCompact: isCompact,
+              requiresLongPressDrag: requiresLongPressDrag,
               onIssueTapped: onIssueTapped,
               onIssueDropped: onIssueDropped,
             );
@@ -6065,6 +6079,7 @@ class OverviewIssueDropTarget extends StatelessWidget {
     required this.index,
     required this.accentColor,
     required this.isCompact,
+    required this.requiresLongPressDrag,
     required this.onIssueTapped,
     required this.onIssueDropped,
   });
@@ -6074,6 +6089,7 @@ class OverviewIssueDropTarget extends StatelessWidget {
   final int index;
   final Color accentColor;
   final bool isCompact;
+  final bool requiresLongPressDrag;
   final ValueChanged<String> onIssueTapped;
   final IssueDropCallback onIssueDropped;
 
@@ -6106,6 +6122,7 @@ class OverviewIssueDropTarget extends StatelessWidget {
               sourceColumnId: columnId,
               accentColor: accentColor,
               isCompact: isCompact,
+              requiresLongPressDrag: requiresLongPressDrag,
               onTap: () => onIssueTapped(issue.id),
             ),
           ],
@@ -6179,6 +6196,7 @@ class OverviewIssueRow extends StatelessWidget {
     required this.sourceColumnId,
     required this.accentColor,
     required this.isCompact,
+    required this.requiresLongPressDrag,
     required this.onTap,
   });
 
@@ -6186,6 +6204,7 @@ class OverviewIssueRow extends StatelessWidget {
   final String sourceColumnId;
   final Color accentColor;
   final bool isCompact;
+  final bool requiresLongPressDrag;
   final VoidCallback onTap;
 
   @override
@@ -6209,34 +6228,51 @@ class OverviewIssueRow extends StatelessWidget {
       isCompact: isCompact,
     );
 
-    return Draggable<IssueDragData>(
-      data: IssueDragData(issueId: issue.id, sourceColumnId: sourceColumnId),
-      feedback: Material(
-        color: Colors.transparent,
-        child: SizedBox(
-          width: isCompact ? 320 : 286,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.16),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: row,
+    final data = IssueDragData(
+      issueId: issue.id,
+      sourceColumnId: sourceColumnId,
+    );
+    final feedback = Material(
+      color: Colors.transparent,
+      child: SizedBox(
+        width: isCompact ? 320 : 286,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
+          child: row,
         ),
       ),
+    );
+    final child = Material(
+      color: Colors.transparent,
+      child: InkWell(onTap: onTap, child: row),
+    );
+
+    if (requiresLongPressDrag) {
+      return LongPressDraggable<IssueDragData>(
+        data: data,
+        delay: _mobileDragStartDelay,
+        feedback: feedback,
+        childWhenDragging: Opacity(opacity: 0.35, child: row),
+        child: child,
+      );
+    }
+
+    return Draggable<IssueDragData>(
+      data: data,
+      feedback: feedback,
       childWhenDragging: Opacity(opacity: 0.35, child: row),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(onTap: onTap, child: row),
-      ),
+      child: child,
     );
   }
 }
@@ -6615,6 +6651,7 @@ class IssueCardDropTarget extends StatefulWidget {
     required this.sourceColumnId,
     required this.index,
     required this.isStartingCursorAgent,
+    required this.requiresLongPressDrag,
     required this.onTap,
     this.onSubIssueTap,
     this.onStartCursorAgent,
@@ -6626,6 +6663,7 @@ class IssueCardDropTarget extends StatefulWidget {
   final String sourceColumnId;
   final int index;
   final bool isStartingCursorAgent;
+  final bool requiresLongPressDrag;
   final VoidCallback onTap;
   final ValueChanged<String>? onSubIssueTap;
   final VoidCallback? onStartCursorAgent;
@@ -6696,6 +6734,7 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
                 subIssues: widget.subIssues,
                 sourceColumnId: widget.sourceColumnId,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
+                requiresLongPressDrag: widget.requiresLongPressDrag,
                 onTap: widget.onTap,
                 onSubIssueTap: widget.onSubIssueTap,
                 onStartCursorAgent: widget.onStartCursorAgent,
@@ -6744,6 +6783,7 @@ class IssueCardDraggable extends StatefulWidget {
     this.subIssues = const [],
     required this.sourceColumnId,
     required this.isStartingCursorAgent,
+    required this.requiresLongPressDrag,
     required this.onTap,
     this.onSubIssueTap,
     this.onStartCursorAgent,
@@ -6753,6 +6793,7 @@ class IssueCardDraggable extends StatefulWidget {
   final List<Issue> subIssues;
   final String sourceColumnId;
   final bool isStartingCursorAgent;
+  final bool requiresLongPressDrag;
   final VoidCallback onTap;
   final ValueChanged<String>? onSubIssueTap;
   final VoidCallback? onStartCursorAgent;
@@ -6857,84 +6898,108 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: _startLiftPreviewTimer,
-      onPointerMove: _handlePointerMove,
-      onPointerUp: (_) => _handlePointerUp(),
-      onPointerCancel: (_) => _finishDragInteraction(),
-      child: Draggable<IssueDragData>(
-        data: IssueDragData(
-          issueId: widget.issue.id,
-          sourceColumnId: widget.sourceColumnId,
-        ),
-        hitTestBehavior: HitTestBehavior.opaque,
-        onDragStarted: _finishDragInteraction,
-        onDragCompleted: _finishDragInteraction,
-        onDraggableCanceled: (_, _) => _finishDragInteraction(),
-        onDragEnd: (_) => _finishDragInteraction(),
-        feedback: Material(
-          color: Colors.transparent,
-          child: SizedBox(
-            width: 290,
-            child: Opacity(
-              opacity: 0.96,
-              child: Transform.translate(
-                offset: const Offset(0, -8),
-                child: Transform.rotate(
-                  angle: -0.035,
-                  child: Transform.scale(
-                    scale: 1.04,
-                    child: IssueCard(
-                      issue: widget.issue,
-                      subIssues: widget.subIssues,
-                      onSubIssueTap: widget.onSubIssueTap,
-                      isDragging: true,
-                    ),
-                  ),
+    final data = IssueDragData(
+      issueId: widget.issue.id,
+      sourceColumnId: widget.sourceColumnId,
+    );
+    final feedback = Material(
+      color: Colors.transparent,
+      child: SizedBox(
+        width: 290,
+        child: Opacity(
+          opacity: 0.96,
+          child: Transform.translate(
+            offset: const Offset(0, -8),
+            child: Transform.rotate(
+              angle: -0.035,
+              child: Transform.scale(
+                scale: 1.04,
+                child: IssueCard(
+                  issue: widget.issue,
+                  subIssues: widget.subIssues,
+                  onSubIssueTap: widget.onSubIssueTap,
+                  isDragging: true,
                 ),
               ),
             ),
           ),
         ),
-        childWhenDragging: Transform.scale(
-          scale: 0.98,
-          child: Opacity(
-            opacity: 0.28,
-            child: IssueCard(
-              issue: widget.issue,
-              subIssues: widget.subIssues,
-              onSubIssueTap: widget.onSubIssueTap,
-              isDragPlaceholder: true,
-            ),
-          ),
+      ),
+    );
+    final childWhenDragging = Transform.scale(
+      scale: 0.98,
+      child: Opacity(
+        opacity: 0.28,
+        child: IssueCard(
+          issue: widget.issue,
+          subIssues: widget.subIssues,
+          onSubIssueTap: widget.onSubIssueTap,
+          isDragPlaceholder: true,
         ),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _handleTap,
-          child: AnimatedScale(
-            scale: _isLiftPreviewVisible ? 1.025 : 1,
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOutCubic,
-              transform: Matrix4.translationValues(
-                0,
-                _isLiftPreviewVisible ? -6 : 0,
-                0,
-              ),
-              child: IssueCard(
-                issue: widget.issue,
-                subIssues: widget.subIssues,
-                onSubIssueTap: widget.onSubIssueTap,
-                isDragging: _isLiftPreviewVisible,
-                isStartingCursorAgent: widget.isStartingCursorAgent,
-                onStartCursorAgent: widget.onStartCursorAgent,
-              ),
-            ),
+      ),
+    );
+    final child = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _handleTap,
+      child: AnimatedScale(
+        scale: _isLiftPreviewVisible ? 1.025 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.translationValues(
+            0,
+            _isLiftPreviewVisible ? -6 : 0,
+            0,
+          ),
+          child: IssueCard(
+            issue: widget.issue,
+            subIssues: widget.subIssues,
+            onSubIssueTap: widget.onSubIssueTap,
+            isDragging: _isLiftPreviewVisible,
+            isStartingCursorAgent: widget.isStartingCursorAgent,
+            onStartCursorAgent: widget.onStartCursorAgent,
           ),
         ),
       ),
+    );
+
+    final draggable = widget.requiresLongPressDrag
+        ? LongPressDraggable<IssueDragData>(
+            data: data,
+            delay: _mobileDragStartDelay,
+            hitTestBehavior: HitTestBehavior.opaque,
+            onDragStarted: _finishDragInteraction,
+            onDragCompleted: _finishDragInteraction,
+            onDraggableCanceled: (_, _) => _finishDragInteraction(),
+            onDragEnd: (_) => _finishDragInteraction(),
+            feedback: feedback,
+            childWhenDragging: childWhenDragging,
+            child: child,
+          )
+        : Draggable<IssueDragData>(
+            data: data,
+            hitTestBehavior: HitTestBehavior.opaque,
+            onDragStarted: _finishDragInteraction,
+            onDragCompleted: _finishDragInteraction,
+            onDraggableCanceled: (_, _) => _finishDragInteraction(),
+            onDragEnd: (_) => _finishDragInteraction(),
+            feedback: feedback,
+            childWhenDragging: childWhenDragging,
+            child: child,
+          );
+
+    if (widget.requiresLongPressDrag) {
+      return draggable;
+    }
+
+    return Listener(
+      onPointerDown: _startLiftPreviewTimer,
+      onPointerMove: _handlePointerMove,
+      onPointerUp: (_) => _handlePointerUp(),
+      onPointerCancel: (_) => _finishDragInteraction(),
+      child: draggable,
     );
   }
 }
