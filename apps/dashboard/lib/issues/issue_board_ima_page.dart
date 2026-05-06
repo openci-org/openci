@@ -13,7 +13,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:dashboard/firebase_options.dart';
 
 const _functionsRegion = 'asia-northeast1';
-const _githubOAuthClientId = String.fromEnvironment('GITHUB_OAUTH_CLIENT_ID');
 const _closedStatusId = 'done';
 const _compactTextScale = 0.94;
 const _boardHorizontalPadding = 16.0;
@@ -1213,84 +1212,16 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     setState(() => _isConnectingGitHub = true);
     try {
-      if (_githubOAuthClientId.isEmpty) {
-        final token = await _openAccessTokenDialog();
-        if (token == null || token.isEmpty) {
-          return;
-        }
-        final data = await _callFunction('connectGitHub', {
-          'workspaceId': _workspaceId,
-          'accessToken': token,
-        });
-        _showSavedSnackBar('GitHubに${_asString(data['login'])}として接続しました');
-        return;
-      }
-
-      final flowData = await _callFunction('startGitHubDeviceFlow', {
+      final data = await _callFunction('connectGitHub', {
         'workspaceId': _workspaceId,
-        'clientId': _githubOAuthClientId,
       });
-      final flow = GitHubDeviceFlow.fromMap(flowData);
-      if (!mounted) {
-        return;
-      }
-
-      final completed = await showDialog<bool>(
-        context: context,
-        builder: (context) => GitHubDeviceFlowDialog(flow: flow),
-      );
-      if (completed != true) {
-        return;
-      }
-
-      final data = await _callFunction('completeGitHubDeviceFlow', {
-        'workspaceId': _workspaceId,
-        'clientId': _githubOAuthClientId,
-        'deviceCode': flow.deviceCode,
-      });
-      _showSavedSnackBar('GitHubに${_asString(data['login'])}として接続しました');
+      _showSavedSnackBar('GitHub Appに${_asString(data['login'])}として接続しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _isConnectingGitHub = false);
       }
-    }
-  }
-
-  Future<String?> _openAccessTokenDialog() async {
-    final controller = TextEditingController();
-    try {
-      return showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('GitHubアクセストークン'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: '個人アクセストークン',
-              helperText:
-                  '--dart-define=GITHUB_OAUTH_CLIENT_ID=... がないため、tokenで接続します。',
-            ),
-            onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('キャンセル'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(controller.text.trim()),
-              child: const Text('接続'),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      controller.dispose();
     }
   }
 
@@ -3027,7 +2958,7 @@ class BoardToolbar extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: isBusy ? null : onConnectGitHub,
                       icon: const Icon(Icons.link_rounded, size: 16),
-                      label: const Text('GitHub接続'),
+                      label: const Text('GitHub App接続'),
                     ),
                   if (isConnected) ...[
                     ToolbarChip(
@@ -3247,7 +3178,7 @@ class CompactBoardMenuButton extends StatelessWidget {
             enabled: !isBusy,
             child: const _CompactMenuItem(
               icon: Icons.link_rounded,
-              label: 'GitHub接続',
+              label: 'GitHub App接続',
             ),
           ),
         PopupMenuItem(
@@ -3822,68 +3753,6 @@ class _IssueSearchEntry {
     ].join(' ').toLowerCase();
 
     return tokens.every(searchableText.contains);
-  }
-}
-
-class GitHubDeviceFlowDialog extends StatelessWidget {
-  const GitHubDeviceFlowDialog({super.key, required this.flow});
-
-  final GitHubDeviceFlow flow;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('GitHubデバイスログイン'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('GitHubで下のコードを入力して、認証が終わったら続行してください。'),
-            const SizedBox(height: 16),
-            SelectableText(
-              flow.userCode,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SelectableText(flow.verificationUri),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      Clipboard.setData(ClipboardData(text: flow.userCode)),
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('コードをコピー'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => Clipboard.setData(
-                    ClipboardData(text: flow.verificationUri),
-                  ),
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('URLをコピー'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('キャンセル'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('認証したので続行'),
-        ),
-      ],
-    );
   }
 }
 
@@ -9064,32 +8933,6 @@ class GitHubRepository {
       'defaultBranch': defaultBranch,
     };
   }
-}
-
-class GitHubDeviceFlow {
-  const GitHubDeviceFlow({
-    required this.deviceCode,
-    required this.userCode,
-    required this.verificationUri,
-    required this.expiresIn,
-    required this.interval,
-  });
-
-  factory GitHubDeviceFlow.fromMap(Map<String, dynamic> data) {
-    return GitHubDeviceFlow(
-      deviceCode: _asString(data['deviceCode']),
-      userCode: _asString(data['userCode']),
-      verificationUri: _asString(data['verificationUri']),
-      expiresIn: _asInt(data['expiresIn'], 900),
-      interval: _asInt(data['interval'], 5),
-    );
-  }
-
-  final String deviceCode;
-  final String userCode;
-  final String verificationUri;
-  final int expiresIn;
-  final int interval;
 }
 
 Map<String, dynamic> _asMap(Object? value) {

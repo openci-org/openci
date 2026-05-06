@@ -178,7 +178,7 @@ async function addTeamMember(...args) {
     const team = await tx.get(teamRef(vars.teamId));
     const members = Array.isArray(team.data()?.members) ? team.data().members : [];
     if (members.includes(vars.userId)) throw new Error("already a member");
-    tx.set(userRef(vars.userId), withTimestamps({ email: vars.email }, !((await tx.get(userRef(vars.userId))).exists)), {
+    tx.set(userRef(vars.userId), withTimestamps({ id: vars.userId, email: vars.email }, !((await tx.get(userRef(vars.userId))).exists)), {
       merge: true,
     });
     tx.update(teamRef(vars.teamId), { members: FieldValue.arrayUnion(vars.userId), updatedAt: now() });
@@ -268,7 +268,7 @@ async function acceptInvitationAndJoinTeam(...args) {
   const uid = uidFromOptions(options);
   const email = emailFromOptions(options);
   await db().runTransaction(async (tx) => {
-    tx.set(userRef(uid), withTimestamps({ email, selectedTeamId: vars.teamId }, true), { merge: true });
+    tx.set(userRef(uid), withTimestamps({ id: uid, email, selectedTeamId: vars.teamId }, true), { merge: true });
     tx.update(db().collection(collections.invitations).doc(vars.id), {
       status: InvitationStatus.ACCEPTED,
       acceptedById: uid,

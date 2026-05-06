@@ -50,42 +50,105 @@ service cloud.firestore {
                 && data.updatedAt is timestamp;
         }
 
-        function isValidUser(data) {
+        function hasOnlyUserFields(data) {
             return data.keys().hasOnly([
-                    'id',
-                    'email',
-                    'displayName',
-                    'photoUrl',
-                    'selectedTeamId',
-                    'selectedRepository',
-                    'selectedBranch',
-                    'notificationPreference',
-                    'fcmTokens',
-                    'createdAt',
-                    'updatedAt'
-                ])
-                && data.id is string
+                'id',
+                'email',
+                'displayName',
+                'photoUrl',
+                'selectedTeamId',
+                'selectedRepository',
+                'selectedBranch',
+                'notificationPreference',
+                'fcmTokens',
+                'createdAt',
+                'updatedAt'
+            ]);
+        }
+
+        function hasOnlyUserMutableFields() {
+            return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'id',
+                'email',
+                'displayName',
+                'photoUrl',
+                'selectedTeamId',
+                'selectedRepository',
+                'selectedBranch',
+                'notificationPreference',
+                'fcmTokens',
+                'updatedAt'
+            ]);
+        }
+
+        function changedUserFields() {
+            return request.resource.data.diff(resource.data).affectedKeys();
+        }
+
+        function hasValidSelectedTeamIdAfter(data) {
+            return !('selectedTeamId' in data)
+                || data.selectedTeamId == null
+                || (
+                    data.selectedTeamId is string
+                    && data.selectedTeamId.size() > 0
+                    && data.selectedTeamId.size() <= 128
+                    && isTeamMemberAfter(data.selectedTeamId)
+                );
+        }
+
+        function hasValidSelectedTeamId(data) {
+            return !('selectedTeamId' in data)
+                || data.selectedTeamId == null
+                || (
+                    data.selectedTeamId is string
+                    && data.selectedTeamId.size() > 0
+                    && data.selectedTeamId.size() <= 128
+                    && isTeamMember(data.selectedTeamId)
+                );
+        }
+
+        function hasValidUserFieldValues(data) {
+            return (!('id' in data) || data.id is string)
                 && isOptionalString(data.email, 320)
                 && isOptionalString(data.displayName, 200)
                 && isOptionalString(data.photoUrl, 2000)
                 && isOptionalString(data.selectedRepository, 500)
                 && isOptionalString(data.selectedBranch, 500)
                 && (!('notificationPreference' in data)
-                    || data.notificationPreference in ['disabled', 'failureOnly', 'all'])
+                    || data.notificationPreference in ['all', 'successOnly', 'failureOnly', 'none'])
                 && (!('fcmTokens' in data)
                     || (data.fcmTokens is list && data.fcmTokens.size() <= 20))
                 && (!('createdAt' in data) || data.createdAt is timestamp)
-                && data.updatedAt is timestamp
-                && (
-                    !('selectedTeamId' in data)
-                    || data.selectedTeamId == null
-                    || (
-                        data.selectedTeamId is string
-                        && data.selectedTeamId.size() > 0
-                        && data.selectedTeamId.size() <= 128
-                        && isTeamMemberAfter(data.selectedTeamId)
-                    )
-                );
+                && data.updatedAt is timestamp;
+        }
+
+        function hasValidChangedUserFieldValues(userId) {
+            return (!changedUserFields().hasAny(['id'])
+                    || request.resource.data.id == userId)
+                && (!changedUserFields().hasAny(['email'])
+                    || isOptionalString(request.resource.data.email, 320))
+                && (!changedUserFields().hasAny(['displayName'])
+                    || isOptionalString(request.resource.data.displayName, 200))
+                && (!changedUserFields().hasAny(['photoUrl'])
+                    || isOptionalString(request.resource.data.photoUrl, 2000))
+                && (!changedUserFields().hasAny(['selectedRepository'])
+                    || isOptionalString(request.resource.data.selectedRepository, 500))
+                && (!changedUserFields().hasAny(['selectedBranch'])
+                    || isOptionalString(request.resource.data.selectedBranch, 500))
+                && (!changedUserFields().hasAny(['notificationPreference'])
+                    || request.resource.data.notificationPreference in ['all', 'successOnly', 'failureOnly', 'none'])
+                && (!changedUserFields().hasAny(['fcmTokens'])
+                    || (request.resource.data.fcmTokens is list && request.resource.data.fcmTokens.size() <= 20))
+                && (!changedUserFields().hasAny(['updatedAt'])
+                    || request.resource.data.updatedAt is timestamp)
+                && (!changedUserFields().hasAny(['selectedTeamId'])
+                    || hasValidSelectedTeamId(request.resource.data));
+        }
+
+        function isValidUser(data) {
+            return hasOnlyUserFields(data)
+                && hasValidUserFieldValues(data)
+                && hasValidSelectedTeamIdAfter(data);
         }
 
         function isValidWorkflow(data) {
@@ -314,10 +377,14 @@ service cloud.firestore {
 
         match /users_v0/{userId} {
             allow read: if isAuthenticated() && userId == request.auth.uid;
-            allow create, update: if isAuthenticated()
+            allow create: if isAuthenticated()
                 && userId == request.auth.uid
                 && request.resource.data.id == userId
                 && isValidUser(request.resource.data);
+            allow update: if isAuthenticated()
+                && userId == request.auth.uid
+                && hasOnlyUserMutableFields()
+                && hasValidChangedUserFieldValues(userId);
             allow delete: if false;
         }
 
