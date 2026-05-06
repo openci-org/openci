@@ -38,6 +38,14 @@ export async function accessSecret(secretId: string): Promise<string> {
   return extractSecretData(response, secretId);
 }
 
+export async function accessSecretByPath(secretPath: string): Promise<string> {
+  const client = new SecretManagerServiceClient();
+  const [response] = await client.accessSecretVersion({
+    name: `${secretPath}/versions/latest`,
+  });
+  return extractSecretData(response, secretPath);
+}
+
 export async function createSecretWithValue(secretId: string, value: string): Promise<string> {
   const projectId = resolveProjectId();
   const parent = `projects/${projectId}`;

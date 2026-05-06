@@ -24,18 +24,16 @@ class SecretManager extends _$SecretManager {
         .orderBy('name')
         .snapshots()
         .map(
-          (result) => result.docs
-              .map((doc) {
-                final data = doc.data();
-                return Secret(
-                  id: doc.id,
-                  name: data['name'] as String? ?? '',
-                  teamId: data['teamId'] as String? ?? '',
-                  createdAt: dateTimeFromFirestore(data['createdAt']),
-                  updatedAt: dateTimeFromFirestore(data['updatedAt']),
-                );
-              })
-              .toList(),
+          (result) => result.docs.map((doc) {
+            final data = doc.data();
+            return Secret(
+              id: doc.id,
+              name: data['name'] as String? ?? '',
+              teamId: data['teamId'] as String? ?? '',
+              createdAt: dateTimeFromFirestore(data['createdAt']),
+              updatedAt: dateTimeFromFirestore(data['updatedAt']),
+            );
+          }).toList(),
         );
   }
 
@@ -98,6 +96,31 @@ class SecretManager extends _$SecretManager {
       'issuerId': issuerId,
       'keyId': keyId,
       'privateKey': privateKey,
+    });
+  }
+
+  Future<String> generateDeveloperIdCsr() async {
+    final functions = firebaseFunctions;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+    final result = await functions
+        .httpsCallable('generateDeveloperIdCsrV1')
+        .call({
+          'teamId': teamId,
+        });
+    final data = Map<String, dynamic>.from(result.data as Map);
+    return data['csrPem'] as String? ?? '';
+  }
+
+  Future<void> registerDeveloperIdCertificate({
+    required String certificateBase64,
+  }) async {
+    final functions = firebaseFunctions;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+    await functions.httpsCallable('registerDeveloperIdCertificateV1').call({
+      'teamId': teamId,
+      'certificateBase64': certificateBase64,
     });
   }
 }

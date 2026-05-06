@@ -6,6 +6,7 @@ type AuthData = NonNullable<CallableRequest["auth"]>;
 
 const {
   mockVerifyTeamMembership,
+  mockAccessSecretByPath,
   mockCreateSecretWithValue,
   mockDeleteSecretByPath,
   mockAddSecretVersionByPath,
@@ -18,6 +19,7 @@ const {
   mockUpdateWorkflowSecretKeys,
 } = vi.hoisted(() => ({
   mockVerifyTeamMembership: vi.fn(),
+  mockAccessSecretByPath: vi.fn(),
   mockCreateSecretWithValue: vi.fn(),
   mockDeleteSecretByPath: vi.fn(),
   mockAddSecretVersionByPath: vi.fn(),
@@ -35,6 +37,7 @@ vi.mock("../team/teamAuth", () => ({
 }));
 
 vi.mock("../secretManager", () => ({
+  accessSecretByPath: (...args: unknown[]) => mockAccessSecretByPath(...args),
   createSecretWithValue: (...args: unknown[]) => mockCreateSecretWithValue(...args),
   deleteSecretByPath: (...args: unknown[]) => mockDeleteSecretByPath(...args),
   addSecretVersionByPath: (...args: unknown[]) => mockAddSecretVersionByPath(...args),
@@ -52,8 +55,14 @@ vi.mock("../firestoreData", () => ({
 
 const testEnv = firebaseFunctionsTest();
 
-const { createSecretV1, deleteSecretV1, setupAscApiKeyV1, updateSecretV1 } =
-  await import("./secretHandlers");
+const {
+  createSecretV1,
+  deleteSecretV1,
+  generateDeveloperIdCsrV1,
+  registerDeveloperIdCertificateV1,
+  setupAscApiKeyV1,
+  updateSecretV1,
+} = await import("./secretHandlers");
 
 function makeAuth(): AuthData {
   return {
@@ -75,6 +84,7 @@ describe("secret handlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyTeamMembership.mockResolvedValue({});
+    mockAccessSecretByPath.mockResolvedValue("private-key");
     mockCreateSecretWithValue.mockResolvedValue("projects/test/secrets/secret-id");
     mockDeleteSecretByPath.mockResolvedValue(undefined);
     mockAddSecretVersionByPath.mockResolvedValue(undefined);
@@ -191,5 +201,52 @@ describe("secret handlers", () => {
       "OPENCI_ASC_PRIVATE_KEY",
     ]);
     expect(mockCreateSecretWithValue).toHaveBeenCalledTimes(3);
+  });
+
+  it("stores a Developer ID private key and returns a CSR", async () => {
+    const wrapped = testEnv.wrap(generateDeveloperIdCsrV1) as (req: {
+      data: { teamId: string };
+      auth?: AuthData;
+    }) => Promise<{ success: true; documentId: string; csrPem: string }>;
+
+    const result = await wrapped({
+      data: { teamId: "team-1" },
+      auth: makeAuth(),
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.csrPem).toContain("BEGIN CERTIFICATE REQUEST");
+    expect(mockCreateSecretWithValue).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining("BEGIN PRIVATE KEY"),
+    );
+    expect(mockCreateSecretMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "OPENCI_DEVELOPER_ID_PRIVATE_KEY",
+        teamId: "team-1",
+      }),
+    );
+  });
+
+  it("rejects Developer ID certificate registration when final secrets already exist", async () => {
+    mockFindSecretByNameForTeam.mockImplementation(({ name }: { name: string }) =>
+      Promise.resolve({
+        data: {
+          secrets:
+            name === "OPENCI_DEVELOPER_ID_CERTIFICATE_P12" ? [{ name }] : [],
+        },
+      }),
+    );
+    const wrapped = testEnv.wrap(registerDeveloperIdCertificateV1) as (req: {
+      data: { teamId: string; certificateBase64: string };
+      auth?: AuthData;
+    }) => Promise<unknown>;
+
+    await expect(
+      wrapped({
+        data: { teamId: "team-1", certificateBase64: "Y2VydA==" },
+        auth: makeAuth(),
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "already-exists" }));
   });
 });

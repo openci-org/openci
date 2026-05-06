@@ -10,6 +10,7 @@ import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -1576,12 +1577,16 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
   }
 }
 
-class _SetupDeveloperIdCertificateCard extends HookWidget {
+class _SetupDeveloperIdCertificateCard extends HookConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
     final isExpanded = useState(false);
+    final isGeneratingCsr = useState(false);
+    final isSavingCertificate = useState(false);
+    final csrPem = useState<String?>(null);
     final certificateFileName = useState<String?>(null);
+    final certificateBase64 = useState<String?>(null);
 
     return Container(
       decoration: BoxDecoration(
@@ -1615,7 +1620,7 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'macOS Developer ID',
+                      'macOS Developer ID 証明書',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1633,7 +1638,7 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Text(
-                      'Setup required',
+                      '設定が必要',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1656,7 +1661,7 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Required to sign and notarize direct-download macOS apps. Developer ID certificates must be issued in Apple Developer Portal by the Account Holder.',
+              '直接ダウンロード配布する macOS アプリの署名と公証に必要です。Developer ID 証明書は Apple Developer Portal で Account Holder が発行します。',
               style: TextStyle(
                 fontSize: 12,
                 color: colors.textSecondary,
@@ -1667,31 +1672,60 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
               const SizedBox(height: 16),
               _DeveloperIdSetupStep(
                 number: 1,
-                title: 'Generate a CSR in OpenCI',
-                description:
-                    'OpenCI will keep the private key and generate a certificate signing request for Apple.',
-                actionLabel: 'Generate CSR',
+                title: 'OpenCI で CSR を生成',
+                description: 'OpenCI が秘密鍵を保持し、Apple に提出する証明書署名要求（CSR）を生成します。',
+                actionLabel: isGeneratingCsr.value ? '生成中...' : 'CSR を生成',
                 icon: Icons.description_outlined,
-                onPressed: () => context.showSnackBarMessage(
-                  'Developer ID CSR generation is coming soon',
-                ),
+                isComplete: csrPem.value != null,
+                onPressed: isGeneratingCsr.value
+                    ? null
+                    : () async {
+                        isGeneratingCsr.value = true;
+                        try {
+                          final csr = await ref
+                              .read(secretManagerProvider.notifier)
+                              .generateDeveloperIdCsr();
+                          csrPem.value = csr;
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage('CSR を生成しました');
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(errorMessage.message);
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage('$e');
+                        } finally {
+                          if (context.mounted) isGeneratingCsr.value = false;
+                        }
+                      },
               ),
+              if (csrPem.value != null) ...[
+                const SizedBox(height: 10),
+                _DeveloperIdCsrPreview(csrPem: csrPem.value!),
+              ],
               const SizedBox(height: 10),
               _DeveloperIdSetupStep(
                 number: 2,
-                title: 'Create Developer ID Application certificate',
+                title: 'Developer ID Application 証明書を作成',
                 description:
-                    'Upload the CSR in Apple Developer Portal, then download the issued .cer file.',
+                    'Apple Developer Portal の Certificates 画面で「Developer ID Application」を選び、OpenCI で生成した CSR をアップロードします。',
                 icon: Icons.open_in_new_rounded,
               ),
               const SizedBox(height: 10),
+              const _DeveloperIdPortalGuide(),
+              const SizedBox(height: 10),
               _DeveloperIdSetupStep(
                 number: 3,
-                title: 'Upload the issued certificate',
+                title: '発行された証明書をアップロード',
                 description:
-                    'OpenCI will combine this .cer with the stored private key and prepare CI signing secrets.',
+                    'OpenCI が .cer と保存済みの秘密鍵を組み合わせ、CI で署名に使うシークレットを準備します。',
                 actionLabel:
-                    certificateFileName.value ?? 'Upload Developer ID .cer',
+                    certificateFileName.value ?? 'Developer ID .cer をアップロード',
                 icon: certificateFileName.value == null
                     ? Icons.upload_file
                     : Icons.check_circle,
@@ -1703,7 +1737,15 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
                     withData: true,
                   );
                   if (result == null || result.files.isEmpty) return;
-                  certificateFileName.value = result.files.first.name;
+                  final file = result.files.first;
+                  final bytes = file.bytes;
+                  if (bytes == null || bytes.isEmpty) {
+                    if (!context.mounted) return;
+                    context.showSnackBarMessage('証明書ファイルを読み込めませんでした');
+                    return;
+                  }
+                  certificateFileName.value = file.name;
+                  certificateBase64.value = base64Encode(bytes);
                 },
               ),
               const SizedBox(height: 14),
@@ -1725,7 +1767,7 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'No Xcode account sign-in is required for CI once the certificate is registered. The portal step is only needed because Apple does not issue Developer ID certificates through the App Store Connect API.',
+                        '証明書を登録したあとは、CI で Xcode アカウントにサインインする必要はありません。Apple が App Store Connect API 経由で Developer ID 証明書を発行していないため、Portal での手続きだけが必要です。',
                         style: TextStyle(
                           fontSize: 12,
                           color: colors.textSecondary,
@@ -1752,21 +1794,246 @@ class _SetupDeveloperIdCertificateCard extends HookWidget {
                   ),
                   onPressed: certificateFileName.value == null
                       ? null
-                      : () => context.showSnackBarMessage(
-                          'Developer ID certificate registration is coming soon',
+                      : isSavingCertificate.value
+                      ? null
+                      : () async {
+                          final encodedCertificate = certificateBase64.value;
+                          if (encodedCertificate == null) {
+                            context.showSnackBarMessage(
+                              '証明書ファイルを選択してください',
+                            );
+                            return;
+                          }
+                          isSavingCertificate.value = true;
+                          try {
+                            await ref
+                                .read(secretManagerProvider.notifier)
+                                .registerDeveloperIdCertificate(
+                                  certificateBase64: encodedCertificate,
+                                );
+                            ref.invalidate(secretManagerProvider);
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage(
+                              'Developer ID 証明書を保存しました',
+                            );
+                          } on FirebaseFunctionsException catch (e, s) {
+                            final errorMessage =
+                                await FunctionErrorMessage.capture(
+                                  e,
+                                  stackTrace: s,
+                                );
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage(errorMessage.message);
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage('$e');
+                          } finally {
+                            if (context.mounted) {
+                              isSavingCertificate.value = false;
+                            }
+                          }
+                        },
+                  child: isSavingCertificate.value
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Developer ID 証明書を保存',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                  child: const Text(
-                    'Save Developer ID Certificate',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ),
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DeveloperIdCsrPreview extends StatelessWidget {
+  const _DeveloperIdCsrPreview({required this.csrPem});
+
+  final String csrPem;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Apple Developer Portal に貼り付ける CSR',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: csrPem));
+                  if (!context.mounted) return;
+                  context.showSnackBarMessage('CSR をコピーしました');
+                },
+                icon: const Icon(Icons.copy, size: 14),
+                label: const Text('コピー'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  try {
+                    final path = await FilePicker.platform.saveFile(
+                      dialogTitle: 'CSR を保存',
+                      fileName: 'openci-developer-id.certSigningRequest',
+                      type: FileType.custom,
+                      allowedExtensions: ['certSigningRequest'],
+                      bytes: Uint8List.fromList(utf8.encode(csrPem)),
+                    );
+                    if (!context.mounted || path == null) return;
+                    context.showSnackBarMessage('CSR ファイルを保存しました');
+                  } on PlatformException catch (error) {
+                    await Clipboard.setData(ClipboardData(text: csrPem));
+                    if (!context.mounted) return;
+                    context.showSnackBarMessage(
+                      '保存できませんでした。CSR をコピーしました: ${error.code}',
+                    );
+                  }
+                },
+                icon: const Icon(Icons.download_rounded, size: 14),
+                label: const Text('保存'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 160),
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.border),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                csrPem,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.35,
+                  color: colors.textSecondary,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeveloperIdPortalGuide extends StatelessWidget {
+  const _DeveloperIdPortalGuide();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    const steps = [
+      'Apple Developer Portal に Account Holder でログインします。',
+      'Certificates, Identifiers & Profiles > Certificates を開き、追加（+）を押します。',
+      'Software の中から Developer ID Application を選び、Continue します。',
+      'OpenCI の「保存」ボタンで CSR を .certSigningRequest ファイルとして保存し、そのファイルをアップロードします。',
+      '発行された Developer ID Application 証明書（.cer）をダウンロードします。',
+      'ダウンロードした .cer を、この画面の「Developer ID .cer をアップロード」から登録します。',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.open_in_new_rounded,
+                size: 16,
+                color: colors.textTertiary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Apple Developer Portal での操作',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final (index, step) in steps.indexed) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${index + 1}.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textTertiary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    step,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (index != steps.length - 1) const SizedBox(height: 6),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            '※ Apple Portal では CSR のファイルアップロードが必要です。OpenCI の「保存」ボタンで作った .certSigningRequest ファイルを選択してください。',
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.4,
+              color: colors.textTertiary,
+            ),
+          ),
+        ],
       ),
     );
   }
