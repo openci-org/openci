@@ -76,7 +76,7 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
-      - uses: openci-org/flutter-cd@v2.0.6
+      - uses: openci-org/flutter-cd@v2.0.7
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
