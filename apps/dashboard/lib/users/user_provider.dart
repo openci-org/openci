@@ -75,6 +75,7 @@ class User extends _$User {
       throw Exception('User is not authenticated');
     }
     await firestore.collection(usersCollection).doc(currentUserId).set({
+      'id': currentUserId,
       'selectedTeamId': teamId,
       'selectedRepository': null,
       'selectedBranch': null,
@@ -91,6 +92,7 @@ class User extends _$User {
       throw Exception('User is not authenticated');
     }
     await firestore.collection(usersCollection).doc(currentUserId).set({
+      'id': currentUserId,
       'notificationPreference': preference.name,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -103,6 +105,7 @@ class User extends _$User {
       throw Exception('User is not authenticated');
     }
     await firestore.collection(usersCollection).doc(currentUserId).set({
+      'id': currentUserId,
       'fcmTokens': FieldValue.arrayUnion([token]),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -118,6 +121,7 @@ class User extends _$User {
       throw Exception('User is not authenticated');
     }
     await firestore.collection(usersCollection).doc(currentUserId).set({
+      'id': currentUserId,
       'selectedRepository': repository,
       'selectedBranch': defaultBranch,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -131,6 +135,7 @@ class User extends _$User {
       throw Exception('User is not authenticated');
     }
     await firestore.collection(usersCollection).doc(currentUserId).set({
+      'id': currentUserId,
       'selectedBranch': branch,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
