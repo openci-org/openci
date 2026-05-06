@@ -76,7 +76,8 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
-      - uses: openci-org/flutter-cd@v2.0.7
+      - id: build_macos
+        uses: openci-org/flutter-cd@v2.0.7
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
@@ -88,6 +89,81 @@ jobs:
           developer-id-certificate-p12: ${{ secrets.OPENCI_DEVELOPER_ID_CERTIFICATE_P12 }}
           developer-id-certificate-password: ${{ secrets.OPENCI_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
           artifact-name: "OpenCI-dashboard-macos"
+
+      - name: Upload macOS artifact to Firebase Storage
+        if: github.event_name == 'push'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+
+          artifact_path="${{ steps.build_macos.outputs['artifact-path'] }}"
+          if [ ! -f "$artifact_path" ]; then
+            echo "Artifact not found: $artifact_path" >&2
+            exit 1
+          fi
+
+          service_account_file="$(mktemp)"
+          private_key_file="$(mktemp)"
+          signing_input_file="$(mktemp)"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
+
+          bucket="$(sed -n "s/.*storageBucket: '\([^']*\)'.*/\1/p" apps/dashboard/lib/firebase_options.dart | head -n 1)"
+          if [ -z "$bucket" ]; then
+            echo "Could not read storageBucket from firebase_options.dart" >&2
+            exit 1
+          fi
+
+          object_name="artifacts/openci-dashboard/macos/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip"
+
+          client_email="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["client_email"])' "$service_account_file")"
+          python3 -c 'import json, sys; open(sys.argv[2], "w").write(json.load(open(sys.argv[1]))["private_key"])' "$service_account_file" "$private_key_file"
+
+          jwt_header="$(python3 -c 'import base64, json; print(base64.urlsafe_b64encode(json.dumps({"alg":"RS256","typ":"JWT"}, separators=(",", ":")).encode()).decode().rstrip("="))')"
+          jwt_payload="$(python3 - "$client_email" <<'PY'
+          import base64
+          import json
+          import sys
+          import time
+
+          now = int(time.time())
+          payload = {
+              "iss": sys.argv[1],
+              "scope": "https://www.googleapis.com/auth/devstorage.read_write",
+              "aud": "https://oauth2.googleapis.com/token",
+              "iat": now,
+              "exp": now + 3600,
+          }
+          print(base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("="))
+          PY
+          )"
+          printf '%s.%s' "$jwt_header" "$jwt_payload" > "$signing_input_file"
+          jwt_signature="$(openssl dgst -sha256 -sign "$private_key_file" "$signing_input_file" | python3 -c 'import base64, sys; print(base64.urlsafe_b64encode(sys.stdin.buffer.read()).decode().rstrip("="))')"
+          jwt_assertion="${jwt_header}.${jwt_payload}.${jwt_signature}"
+
+          access_token="$(curl -fsS -X POST "https://oauth2.googleapis.com/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
+            --data-urlencode "assertion=${jwt_assertion}" \
+            | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')"
+
+          encoded_object_name="$(python3 - "$object_name" <<'PY'
+          import sys
+          import urllib.parse
+
+          print(urllib.parse.quote(sys.argv[1], safe=""))
+          PY
+          )"
+
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${access_token}" \
+            -H "Content-Type: application/zip" \
+            --data-binary "@${artifact_path}" \
+            "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encoded_object_name}" \
+            > /dev/null
+
+          rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
+          echo "Uploaded macOS artifact: gs://${bucket}/${object_name}"
 
   deploy-web:
     needs: [ci]
