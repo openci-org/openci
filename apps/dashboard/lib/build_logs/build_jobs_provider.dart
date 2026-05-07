@@ -10,6 +10,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'build_jobs_provider.freezed.dart';
 part 'build_jobs_provider.g.dart';
 
+const _buildJobsHistoryLimit = 100;
+
 @riverpod
 class BuildJobs extends _$BuildJobs {
   @override
@@ -24,7 +26,7 @@ class BuildJobs extends _$BuildJobs {
         .collection(buildJobsCollection)
         .where('teamId', isEqualTo: teamId)
         .orderBy('createdAt', descending: true)
-        .limit(20);
+        .limit(_buildJobsHistoryLimit);
 
     final initialResult = await query.get();
     final initialJobs = _sortedBuildJobs(initialResult.docs.map(_buildJobFromDoc));
