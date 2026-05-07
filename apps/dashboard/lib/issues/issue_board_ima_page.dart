@@ -6583,6 +6583,7 @@ class BoardColumnView extends StatelessWidget {
             children: [
               ColumnHeader(
                 column: column,
+                isCompact: false,
                 onAddIssue: () => onAddIssue(column.id),
               ),
               const SizedBox(height: 10),
@@ -6748,6 +6749,7 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
             children: [
               ColumnHeader(
                 column: widget.column,
+                isCompact: true,
                 onAddIssue: () => widget.onAddIssue(widget.column.id),
               ),
               const SizedBox(height: 10),
@@ -8233,10 +8235,12 @@ class ColumnHeader extends StatelessWidget {
   const ColumnHeader({
     super.key,
     required this.column,
+    required this.isCompact,
     required this.onAddIssue,
   });
 
   final BoardColumn column;
+  final bool isCompact;
   final VoidCallback onAddIssue;
 
   @override
@@ -8273,6 +8277,7 @@ class ColumnHeader extends StatelessWidget {
                   const SizedBox(width: 2),
                   AddIssueToColumnButton(
                     columnTitle: column.title,
+                    isCompact: isCompact,
                     onPressed: onAddIssue,
                   ),
                 ],
@@ -8296,22 +8301,30 @@ class AddIssueToColumnButton extends StatelessWidget {
   const AddIssueToColumnButton({
     super.key,
     required this.columnTitle,
+    required this.isCompact,
     required this.onPressed,
   });
 
   final String columnTitle;
+  final bool isCompact;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final buttonSize = isCompact ? 36.0 : 26.0;
+    final iconSize = isCompact ? 24.0 : 16.0;
+
     return SizedBox.square(
-      dimension: 26,
+      dimension: buttonSize,
       child: IconButton(
         tooltip: '$columnTitleにissueを作成',
         padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
+        constraints: BoxConstraints.tightFor(
+          width: buttonSize,
+          height: buttonSize,
+        ),
         onPressed: onPressed,
-        icon: const Icon(Icons.add_rounded, size: 16),
+        icon: Icon(Icons.add_rounded, size: iconSize),
       ),
     );
   }
