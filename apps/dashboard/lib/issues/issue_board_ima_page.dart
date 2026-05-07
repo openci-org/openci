@@ -16,6 +16,7 @@ import 'package:dashboard/firebase/firestore.dart'
 import 'package:dashboard/firebase_options.dart';
 
 const _functionsRegion = 'asia-northeast1';
+const _reviewStatusId = 'review';
 const _closedStatusId = 'done';
 const _compactTextScale = 0.94;
 const _boardHorizontalPadding = 16.0;
@@ -6076,6 +6077,9 @@ class BoardColumnView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleIssues = _visibleIssuesForColumn(column);
+    final reviewGroups = column.id == _reviewStatusId
+        ? _reviewPullRequestGroupsForIssues(visibleIssues)
+        : const <ReviewPullRequestGroup>[];
 
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
@@ -6124,41 +6128,60 @@ class BoardColumnView extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                     ],
-                    for (
-                      var index = 0;
-                      index < visibleIssues.length;
-                      index++
-                    ) ...[
-                      Builder(
-                        builder: (context) {
-                          final issue = visibleIssues[index];
-                          final rankIndex = column.issues.indexWhere(
-                            (candidate) => candidate.id == issue.id,
-                          );
-
-                          return IssueCardDropTarget(
-                            issue: issue,
-                            subIssues: _subIssuesForParent(issue, allIssues),
-                            buildStatus: _buildStatusForIssue(
-                              issue,
+                    if (reviewGroups.isNotEmpty)
+                      for (final group in reviewGroups) ...[
+                        ReviewPullRequestGroupView(
+                          group: group,
+                          column: column,
+                          allIssues: allIssues,
+                          buildStatusesByPullRequest:
                               buildStatusesByPullRequest,
-                            ),
-                            sourceColumnId: column.id,
-                            index: rankIndex < 0 ? index : rankIndex,
-                            isStartingCursorAgent: startingCursorAgentIssueIds
-                                .contains(issue.id),
-                            requiresLongPressDrag: requiresLongPressDrag,
-                            onTap: () => onIssueTapped(issue.id),
-                            onSubIssueTap: onIssueTapped,
-                            onStartCursorAgent: onStartCursorAgent == null
-                                ? null
-                                : () => onStartCursorAgent!(issue.id),
-                            onIssueDropped: onIssueDropped,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                    ],
+                          startingCursorAgentIssueIds:
+                              startingCursorAgentIssueIds,
+                          requiresLongPressDrag: requiresLongPressDrag,
+                          onIssueTapped: onIssueTapped,
+                          onSubIssueTap: onIssueTapped,
+                          onStartCursorAgent: onStartCursorAgent,
+                          onIssueDropped: onIssueDropped,
+                        ),
+                        const SizedBox(height: 8),
+                      ]
+                    else
+                      for (
+                        var index = 0;
+                        index < visibleIssues.length;
+                        index++
+                      ) ...[
+                        Builder(
+                          builder: (context) {
+                            final issue = visibleIssues[index];
+                            final rankIndex = column.issues.indexWhere(
+                              (candidate) => candidate.id == issue.id,
+                            );
+
+                            return IssueCardDropTarget(
+                              issue: issue,
+                              subIssues: _subIssuesForParent(issue, allIssues),
+                              buildStatus: _buildStatusForIssue(
+                                issue,
+                                buildStatusesByPullRequest,
+                              ),
+                              sourceColumnId: column.id,
+                              index: rankIndex < 0 ? index : rankIndex,
+                              isStartingCursorAgent: startingCursorAgentIssueIds
+                                  .contains(issue.id),
+                              requiresLongPressDrag: requiresLongPressDrag,
+                              onTap: () => onIssueTapped(issue.id),
+                              onSubIssueTap: onIssueTapped,
+                              onStartCursorAgent: onStartCursorAgent == null
+                                  ? null
+                                  : () => onStartCursorAgent!(issue.id),
+                              onIssueDropped: onIssueDropped,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     IssueDropSlot(
                       columnId: column.id,
                       index: column.issues.length,
@@ -6213,6 +6236,9 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
     final displayedIssues = _isShrunk
         ? visibleIssues.take(_compactColumnCollapsedLimit).toList()
         : visibleIssues;
+    final reviewGroups = widget.column.id == _reviewStatusId
+        ? _reviewPullRequestGroupsForIssues(displayedIssues)
+        : const <ReviewPullRequestGroup>[];
     final hiddenIssueCount = visibleIssues.length - displayedIssues.length;
     final canToggleSize = visibleIssues.length > _compactColumnCollapsedLimit;
 
@@ -6259,37 +6285,61 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                 ),
                 const SizedBox(height: 8),
               ],
-              for (var index = 0; index < displayedIssues.length; index++) ...[
-                Builder(
-                  builder: (context) {
-                    final issue = displayedIssues[index];
-                    final rankIndex = widget.column.issues.indexWhere(
-                      (candidate) => candidate.id == issue.id,
-                    );
-
-                    return IssueCardDropTarget(
-                      issue: issue,
-                      subIssues: _subIssuesForParent(issue, widget.allIssues),
-                      buildStatus: _buildStatusForIssue(
-                        issue,
+              if (reviewGroups.isNotEmpty)
+                for (final group in reviewGroups) ...[
+                  ReviewPullRequestGroupView(
+                    group: group,
+                    column: widget.column,
+                    allIssues: widget.allIssues,
+                    buildStatusesByPullRequest:
                         widget.buildStatusesByPullRequest,
-                      ),
-                      sourceColumnId: widget.column.id,
-                      index: rankIndex < 0 ? index : rankIndex,
-                      isStartingCursorAgent: widget.startingCursorAgentIssueIds
-                          .contains(issue.id),
-                      requiresLongPressDrag: widget.requiresLongPressDrag,
-                      onTap: () => widget.onIssueTapped(issue.id),
-                      onSubIssueTap: widget.onIssueTapped,
-                      onStartCursorAgent: widget.onStartCursorAgent == null
-                          ? null
-                          : () => widget.onStartCursorAgent!(issue.id),
-                      onIssueDropped: widget.onIssueDropped,
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
+                    startingCursorAgentIssueIds:
+                        widget.startingCursorAgentIssueIds,
+                    requiresLongPressDrag: widget.requiresLongPressDrag,
+                    onIssueTapped: widget.onIssueTapped,
+                    onSubIssueTap: widget.onIssueTapped,
+                    onStartCursorAgent: widget.onStartCursorAgent,
+                    onIssueDropped: widget.onIssueDropped,
+                  ),
+                  const SizedBox(height: 8),
+                ]
+              else
+                for (
+                  var index = 0;
+                  index < displayedIssues.length;
+                  index++
+                ) ...[
+                  Builder(
+                    builder: (context) {
+                      final issue = displayedIssues[index];
+                      final rankIndex = widget.column.issues.indexWhere(
+                        (candidate) => candidate.id == issue.id,
+                      );
+
+                      return IssueCardDropTarget(
+                        issue: issue,
+                        subIssues: _subIssuesForParent(issue, widget.allIssues),
+                        buildStatus: _buildStatusForIssue(
+                          issue,
+                          widget.buildStatusesByPullRequest,
+                        ),
+                        sourceColumnId: widget.column.id,
+                        index: rankIndex < 0 ? index : rankIndex,
+                        isStartingCursorAgent: widget
+                            .startingCursorAgentIssueIds
+                            .contains(issue.id),
+                        requiresLongPressDrag: widget.requiresLongPressDrag,
+                        onTap: () => widget.onIssueTapped(issue.id),
+                        onSubIssueTap: widget.onIssueTapped,
+                        onStartCursorAgent: widget.onStartCursorAgent == null
+                            ? null
+                            : () => widget.onStartCursorAgent!(issue.id),
+                        onIssueDropped: widget.onIssueDropped,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
               if (canToggleSize) ...[
                 InlineColumnSizeButton(
                   isShrunk: _isShrunk,
@@ -6310,6 +6360,354 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
           ),
         );
       },
+    );
+  }
+}
+
+class ReviewPullRequestGroup {
+  const ReviewPullRequestGroup({
+    required this.repository,
+    required this.pullRequest,
+    required this.issues,
+  });
+
+  final String repository;
+  final IssuePullRequest? pullRequest;
+  final List<Issue> issues;
+}
+
+class _MutableReviewPullRequestGroup {
+  _MutableReviewPullRequestGroup({
+    required this.repository,
+    required this.pullRequest,
+  });
+
+  final String repository;
+  final IssuePullRequest? pullRequest;
+  final List<Issue> issues = [];
+}
+
+class _ReviewLinkedIssueItem {
+  const _ReviewLinkedIssueItem({this.issue, this.reference});
+
+  final Issue? issue;
+  final IssuePullRequestLinkedIssue? reference;
+
+  int get number => reference?.number ?? issue?.githubNumber ?? 0;
+}
+
+List<ReviewPullRequestGroup> _reviewPullRequestGroupsForIssues(
+  List<Issue> issues,
+) {
+  final groups = <String, _MutableReviewPullRequestGroup>{};
+  for (final issue in issues) {
+    final pullRequest = issue.pullRequests.isEmpty
+        ? null
+        : issue.pullRequests.last;
+    final repository = issue.repo;
+    final key = pullRequest == null
+        ? 'without-pull-request'
+        : '$repository#${pullRequest.number}';
+    final group = groups.putIfAbsent(
+      key,
+      () => _MutableReviewPullRequestGroup(
+        repository: repository,
+        pullRequest: pullRequest,
+      ),
+    );
+    group.issues.add(issue);
+  }
+
+  return [
+    for (final group in groups.values)
+      ReviewPullRequestGroup(
+        repository: group.repository,
+        pullRequest: group.pullRequest,
+        issues: List.unmodifiable(group.issues),
+      ),
+  ];
+}
+
+List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
+  required ReviewPullRequestGroup group,
+  required List<Issue> allIssues,
+}) {
+  final pullRequest = group.pullRequest;
+  final seenNumbers = <int>{};
+  final items = <_ReviewLinkedIssueItem>[];
+
+  for (final reference
+      in pullRequest?.linkedIssues ?? const <IssuePullRequestLinkedIssue>[]) {
+    Issue? issue;
+    for (final candidate in allIssues) {
+      if (candidate.repo == group.repository &&
+          candidate.githubNumber == reference.number) {
+        issue = candidate;
+        break;
+      }
+    }
+    seenNumbers.add(reference.number);
+    items.add(_ReviewLinkedIssueItem(issue: issue, reference: reference));
+  }
+
+  for (final issue in group.issues) {
+    final issueNumber = issue.githubNumber;
+    if (issueNumber > 0 && seenNumbers.contains(issueNumber)) {
+      continue;
+    }
+    if (issueNumber > 0) {
+      seenNumbers.add(issueNumber);
+    }
+    items.add(_ReviewLinkedIssueItem(issue: issue));
+  }
+
+  return items;
+}
+
+class ReviewPullRequestGroupView extends StatelessWidget {
+  const ReviewPullRequestGroupView({
+    super.key,
+    required this.group,
+    required this.column,
+    required this.allIssues,
+    required this.buildStatusesByPullRequest,
+    required this.startingCursorAgentIssueIds,
+    required this.requiresLongPressDrag,
+    required this.onIssueTapped,
+    required this.onSubIssueTap,
+    required this.onIssueDropped,
+    this.onStartCursorAgent,
+  });
+
+  final ReviewPullRequestGroup group;
+  final BoardColumn column;
+  final List<Issue> allIssues;
+  final Map<String, CardBuildStatus> buildStatusesByPullRequest;
+  final Set<String> startingCursorAgentIssueIds;
+  final bool requiresLongPressDrag;
+  final ValueChanged<String> onIssueTapped;
+  final ValueChanged<String> onSubIssueTap;
+  final IssueDropCallback onIssueDropped;
+  final ValueChanged<String>? onStartCursorAgent;
+
+  @override
+  Widget build(BuildContext context) {
+    final pullRequest = group.pullRequest;
+    final linkedIssueItems = _linkedIssueItemsForPullRequest(
+      group: group,
+      allIssues: allIssues,
+    );
+    final buildStatus = pullRequest == null
+        ? null
+        : buildStatusesByPullRequest[_buildStatusKey(
+            group.repository,
+            pullRequest.number,
+          )];
+    final title = pullRequest?.title ?? 'PR未紐づけ';
+    final url = pullRequest?.url;
+    final stateLabel = pullRequest == null
+        ? 'no PR'
+        : pullRequest.merged
+        ? 'merged'
+        : pullRequest.state;
+    final stateColor = pullRequest == null
+        ? const Color(0xFF64748B)
+        : pullRequest.merged
+        ? const Color(0xFF7C3AED)
+        : pullRequest.state == 'closed'
+        ? const Color(0xFFB45309)
+        : const Color(0xFF15803D);
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: url == null
+                  ? null
+                  : () => unawaited(_launchUrlExternal(url)),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: const Icon(
+                            Icons.alt_route_rounded,
+                            size: 17,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                pullRequest == null
+                                    ? 'PRなし'
+                                    : '${group.repository} #${pullRequest.number}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF0F172A),
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.25,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 9),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _ReviewGroupPill(
+                          label: stateLabel,
+                          color: stateColor,
+                          icon: pullRequest?.merged == true
+                              ? Icons.call_merge_rounded
+                              : Icons.circle_rounded,
+                        ),
+                        BuildStatusBadge(status: buildStatus),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          for (final entry in linkedIssueItems.indexed) ...[
+            Builder(
+              builder: (context) {
+                final item = entry.$2;
+                final issue = item.issue;
+                if (issue == null) {
+                  final reference = item.reference;
+                  if (reference == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return ReviewLinkedIssueReferenceCard(reference: reference);
+                }
+
+                final isReviewColumnIssue = group.issues.any(
+                  (candidate) => candidate.id == issue.id,
+                );
+                if (!isReviewColumnIssue) {
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onIssueTapped(issue.id),
+                    child: ReviewGroupIssueCard(issue: issue),
+                  );
+                }
+
+                final rankIndex = column.issues.indexWhere(
+                  (candidate) => candidate.id == issue.id,
+                );
+
+                return IssueCardDropTarget(
+                  issue: issue,
+                  subIssues: _subIssuesForParent(issue, allIssues),
+                  buildStatus: pullRequest == null
+                      ? _buildStatusForIssue(issue, buildStatusesByPullRequest)
+                      : null,
+                  isReviewGroupCard: true,
+                  sourceColumnId: column.id,
+                  index: rankIndex < 0 ? entry.$1 : rankIndex,
+                  isStartingCursorAgent: startingCursorAgentIssueIds.contains(
+                    issue.id,
+                  ),
+                  requiresLongPressDrag: requiresLongPressDrag,
+                  onTap: () => onIssueTapped(issue.id),
+                  onSubIssueTap: onSubIssueTap,
+                  onStartCursorAgent: onStartCursorAgent == null
+                      ? null
+                      : () => onStartCursorAgent!(issue.id),
+                  onIssueDropped: onIssueDropped,
+                );
+              },
+            ),
+            if (entry.$1 != linkedIssueItems.length - 1)
+              const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewGroupPill extends StatelessWidget {
+  const _ReviewGroupPill({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -7285,6 +7683,7 @@ class IssueCardDropTarget extends StatefulWidget {
     required this.issue,
     this.subIssues = const [],
     this.buildStatus,
+    this.isReviewGroupCard = false,
     required this.sourceColumnId,
     required this.index,
     required this.isStartingCursorAgent,
@@ -7298,6 +7697,7 @@ class IssueCardDropTarget extends StatefulWidget {
   final Issue issue;
   final List<Issue> subIssues;
   final CardBuildStatus? buildStatus;
+  final bool isReviewGroupCard;
   final String sourceColumnId;
   final int index;
   final bool isStartingCursorAgent;
@@ -7371,6 +7771,7 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
                 issue: widget.issue,
                 subIssues: widget.subIssues,
                 buildStatus: widget.buildStatus,
+                isReviewGroupCard: widget.isReviewGroupCard,
                 sourceColumnId: widget.sourceColumnId,
                 isStartingCursorAgent: widget.isStartingCursorAgent,
                 requiresLongPressDrag: widget.requiresLongPressDrag,
@@ -7421,6 +7822,7 @@ class IssueCardDraggable extends StatefulWidget {
     required this.issue,
     this.subIssues = const [],
     this.buildStatus,
+    this.isReviewGroupCard = false,
     required this.sourceColumnId,
     required this.isStartingCursorAgent,
     required this.requiresLongPressDrag,
@@ -7432,6 +7834,7 @@ class IssueCardDraggable extends StatefulWidget {
   final Issue issue;
   final List<Issue> subIssues;
   final CardBuildStatus? buildStatus;
+  final bool isReviewGroupCard;
   final String sourceColumnId;
   final bool isStartingCursorAgent;
   final bool requiresLongPressDrag;
@@ -7543,6 +7946,31 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
       issueId: widget.issue.id,
       sourceColumnId: widget.sourceColumnId,
     );
+    Widget buildCard({
+      bool isDragging = false,
+      bool isDragPlaceholder = false,
+      bool includeActions = true,
+    }) {
+      if (widget.isReviewGroupCard) {
+        return ReviewGroupIssueCard(
+          issue: widget.issue,
+          isDragging: isDragging,
+          isDragPlaceholder: isDragPlaceholder,
+        );
+      }
+
+      return IssueCard(
+        issue: widget.issue,
+        subIssues: widget.subIssues,
+        buildStatus: widget.buildStatus,
+        onSubIssueTap: widget.onSubIssueTap,
+        isDragging: isDragging,
+        isDragPlaceholder: isDragPlaceholder,
+        isStartingCursorAgent: includeActions && widget.isStartingCursorAgent,
+        onStartCursorAgent: includeActions ? widget.onStartCursorAgent : null,
+      );
+    }
+
     final feedback = Material(
       color: Colors.transparent,
       child: SizedBox(
@@ -7555,13 +7983,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
               angle: -0.035,
               child: Transform.scale(
                 scale: 1.04,
-                child: IssueCard(
-                  issue: widget.issue,
-                  subIssues: widget.subIssues,
-                  buildStatus: widget.buildStatus,
-                  onSubIssueTap: widget.onSubIssueTap,
-                  isDragging: true,
-                ),
+                child: buildCard(isDragging: true, includeActions: false),
               ),
             ),
           ),
@@ -7572,13 +7994,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
       scale: 0.98,
       child: Opacity(
         opacity: 0.28,
-        child: IssueCard(
-          issue: widget.issue,
-          subIssues: widget.subIssues,
-          buildStatus: widget.buildStatus,
-          onSubIssueTap: widget.onSubIssueTap,
-          isDragPlaceholder: true,
-        ),
+        child: buildCard(isDragPlaceholder: true, includeActions: false),
       ),
     );
     final child = GestureDetector(
@@ -7596,15 +8012,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
             _isLiftPreviewVisible ? -6 : 0,
             0,
           ),
-          child: IssueCard(
-            issue: widget.issue,
-            subIssues: widget.subIssues,
-            buildStatus: widget.buildStatus,
-            onSubIssueTap: widget.onSubIssueTap,
-            isDragging: _isLiftPreviewVisible,
-            isStartingCursorAgent: widget.isStartingCursorAgent,
-            onStartCursorAgent: widget.onStartCursorAgent,
-          ),
+          child: buildCard(isDragging: _isLiftPreviewVisible),
         ),
       ),
     );
@@ -7817,6 +8225,197 @@ class IssueCard extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class ReviewGroupIssueCard extends StatelessWidget {
+  const ReviewGroupIssueCard({
+    super.key,
+    required this.issue,
+    this.isDragging = false,
+    this.isDragPlaceholder = false,
+  });
+
+  final Issue issue;
+  final bool isDragging;
+  final bool isDragPlaceholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final weight = issue.statusId == _closedStatusId
+        ? issue.resolution?.actualWeight
+        : issue.weightEstimate?.value;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      decoration: BoxDecoration(
+        color: isDragPlaceholder ? const Color(0xFFF8FAFC) : Colors.white,
+        border: Border.all(
+          color: isDragging || isDragPlaceholder
+              ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
+              : const Color(0xFFE2E8F0),
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: isDragging
+                  ? 0.18
+                  : isDragPlaceholder
+                  ? 0
+                  : 0.02,
+            ),
+            blurRadius: isDragging ? 24 : 8,
+            offset: Offset(0, isDragging ? 14 : 3),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  issue.displayId,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  issue.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _ReviewGroupPill(
+                label: issue.assignee,
+                color: const Color(0xFF64748B),
+                icon: Icons.person_outline_rounded,
+              ),
+              if (weight != null)
+                _ReviewGroupPill(
+                  label: 'W$weight',
+                  color: issue.statusId == _closedStatusId
+                      ? const Color(0xFF15803D)
+                      : const Color(0xFF2563EB),
+                  icon: Icons.speed_rounded,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ReviewLinkedIssueReferenceCard extends StatelessWidget {
+  const ReviewLinkedIssueReferenceCard({super.key, required this.reference});
+
+  final IssuePullRequestLinkedIssue reference;
+
+  @override
+  Widget build(BuildContext context) {
+    final isClosed = reference.state == 'closed';
+    final stateColor = isClosed
+        ? const Color(0xFF15803D)
+        : const Color(0xFF64748B);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: reference.url == null
+          ? null
+          : () => unawaited(_launchUrlExternal(reference.url!)),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '#${reference.number}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    reference.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            _ReviewGroupPill(
+              label: isClosed ? 'closed' : 'open',
+              color: stateColor,
+              icon: isClosed
+                  ? Icons.check_circle_rounded
+                  : Icons.circle_outlined,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -9368,6 +9967,7 @@ class Issue {
     required this.id,
     String? displayId,
     this.issueKey,
+    this.githubNumber = 0,
     required this.repo,
     required this.title,
     this.body = '',
@@ -9399,6 +9999,7 @@ class Issue {
     return Issue(
       id: doc.id,
       issueKey: issueKey.isEmpty ? null : issueKey,
+      githubNumber: number,
       displayId: issueKey.isNotEmpty
           ? issueKey
           : number > 0
@@ -9443,6 +10044,7 @@ class Issue {
       id: id,
       displayId: displayId,
       issueKey: issueKey,
+      githubNumber: githubNumber,
       repo: repo,
       title: title,
       body: body,
@@ -9468,6 +10070,7 @@ class Issue {
   final String id;
   final String displayId;
   final String? issueKey;
+  final int githubNumber;
   final String repo;
   final String title;
   final String body;
@@ -9534,6 +10137,7 @@ class IssuePullRequest {
     required this.state,
     required this.merged,
     required this.branch,
+    this.linkedIssues = const [],
   });
 
   factory IssuePullRequest.fromMap(Map<String, dynamic> data) {
@@ -9544,6 +10148,10 @@ class IssuePullRequest {
       state: _asString(data['state'], 'open'),
       merged: data['merged'] == true,
       branch: _asString(data['branch']),
+      linkedIssues: _asList(data['linkedIssues'])
+          .map((value) => IssuePullRequestLinkedIssue.fromMap(_asMap(value)))
+          .where((issue) => issue.number > 0)
+          .toList(),
     );
   }
 
@@ -9553,6 +10161,31 @@ class IssuePullRequest {
   final String state;
   final bool merged;
   final String branch;
+  final List<IssuePullRequestLinkedIssue> linkedIssues;
+}
+
+class IssuePullRequestLinkedIssue {
+  const IssuePullRequestLinkedIssue({
+    required this.number,
+    required this.title,
+    this.url,
+    required this.state,
+  });
+
+  factory IssuePullRequestLinkedIssue.fromMap(Map<String, dynamic> data) {
+    final number = _asInt(data['number']);
+    return IssuePullRequestLinkedIssue(
+      number: number,
+      title: _asString(data['title'], '#$number'),
+      url: _normalizedOptionalUrl(_asString(data['url'])),
+      state: _asString(data['state'], 'open').toLowerCase(),
+    );
+  }
+
+  final int number;
+  final String title;
+  final String? url;
+  final String state;
 }
 
 class IssueWeightEstimate {
