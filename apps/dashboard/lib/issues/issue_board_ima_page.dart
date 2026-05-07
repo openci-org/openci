@@ -1010,15 +1010,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    final issueId = await showDialog<String>(
+    final result = await showDialog<IssueSearchDialogResult>(
       context: context,
       builder: (context) => IssueSearchDialog(columns: _columns),
     ).whenComplete(() => _isIssueSearchDialogOpen = false);
-    if (issueId == null || !mounted) {
+    if (result == null || !mounted) {
       return;
     }
 
-    await _openEditIssueDialog(issueId);
+    await _openEditIssueDialog(result.issueId);
   }
 
   bool get _usesBottomSheetEditor =>
@@ -1616,6 +1616,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   elevation: 0,
                   scrolledUnderElevation: 0,
                   actions: [
+                    IconButton(
+                      tooltip: 'issueを検索',
+                      onPressed: () => unawaited(_openIssueSearchDialog()),
+                      icon: const Icon(Icons.search_rounded),
+                    ),
                     CompactBoardViewModeButton(
                       value: boardViewMode,
                       onChanged: (mode) =>
@@ -3812,7 +3817,7 @@ class CompactBoardViewModeButton extends StatelessWidget {
         label: '表示切り替え',
         value: isOverview ? '全体ボード' : '一覧表示',
         child: Container(
-          height: 34,
+          height: 40,
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -3868,7 +3873,7 @@ class _CompactBoardViewModeSegment extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         onTap: selected ? null : onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -4118,9 +4123,14 @@ class ToolbarChip extends StatelessWidget {
 }
 
 class IssueSearchDialog extends StatefulWidget {
-  const IssueSearchDialog({super.key, required this.columns});
+  const IssueSearchDialog({
+    super.key,
+    required this.columns,
+    this.initialQuery = '',
+  });
 
   final List<BoardColumn> columns;
+  final String initialQuery;
 
   @override
   State<IssueSearchDialog> createState() => _IssueSearchDialogState();
@@ -4128,6 +4138,13 @@ class IssueSearchDialog extends StatefulWidget {
 
 class _IssueSearchDialogState extends State<IssueSearchDialog> {
   final _queryController = TextEditingController();
+  String? _selectedIssueId;
+
+  @override
+  void initState() {
+    super.initState();
+    _queryController.text = widget.initialQuery;
+  }
 
   @override
   void dispose() {
@@ -4158,8 +4175,34 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
     ];
   }
 
+  _IssueSearchEntry? _selectedEntryFor(List<_IssueSearchEntry> entries) {
+    if (entries.isEmpty) {
+      return null;
+    }
+
+    final selectedIssueId = _selectedIssueId;
+    if (selectedIssueId != null) {
+      for (final entry in entries) {
+        if (entry.issue.id == selectedIssueId) {
+          return entry;
+        }
+      }
+    }
+
+    return entries.first;
+  }
+
   void _select(_IssueSearchEntry entry) {
-    Navigator.of(context).pop(entry.issue.id);
+    setState(() => _selectedIssueId = entry.issue.id);
+  }
+
+  void _open(_IssueSearchEntry entry) {
+    Navigator.of(context).pop(
+      IssueSearchDialogResult(
+        issueId: entry.issue.id,
+        query: _queryController.text,
+      ),
+    );
   }
 
   void _selectFirstMatch() {
@@ -4168,116 +4211,128 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
       return;
     }
 
-    _select(entries.first);
+    _open(_selectedEntryFor(entries) ?? entries.first);
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
+    final isCompactDialog = screenSize.width < 560;
+    final maxHeight = screenSize.height * (isCompactDialog ? 0.92 : 0.86);
+    final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
+    final dialogBorderRadius = BorderRadius.circular(isCompactDialog ? 22 : 28);
     final query = _queryController.text;
     final entries = _filteredEntries;
-    final resultMaxHeight = (screenSize.height - 230)
-        .clamp(180.0, 420.0)
-        .toDouble();
+    final selectedEntry = _selectedEntryFor(entries);
+    final usesSplitNavigator = screenSize.width >= 820;
 
     return Dialog(
-      alignment: Alignment.topCenter,
-      insetPadding: const EdgeInsets.fromLTRB(16, 72, 16, 16),
-      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompactDialog ? 12 : 20,
+        vertical: isCompactDialog ? 12 : 24,
+      ),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: dialogBorderRadius),
       clipBehavior: Clip.antiAlias,
-      elevation: 0,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 42,
-                offset: const Offset(0, 24),
+        constraints: BoxConstraints(
+          maxWidth: usesSplitNavigator ? 1040 : 720,
+          maxHeight: maxHeight,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: dialogPadding.copyWith(bottom: 16),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
-                    ),
-                    border: Border(
-                      bottom: BorderSide(color: Color(0xFFE2E8F0)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Issueを検索',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'タイトル、repo、label、担当者で探せます。Enterで先頭のIssueを開きます。',
+                          style: TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.search_rounded,
-                          color: Color(0xFF2563EB),
-                          size: 22,
-                        ),
+                  const SizedBox(width: 12),
+                  if (!isCompactDialog && query.isEmpty)
+                    const _IssueSearchShortcutPill(label: '⌘K'),
+                  IconButton(
+                    tooltip: '検索を閉じる',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: dialogPadding.copyWith(top: 18, bottom: 12),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _queryController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.search,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                    onChanged: (_) => setState(() => _selectedIssueId = null),
+                    onSubmitted: (_) => _selectFirstMatch(),
+                    decoration: InputDecoration(
+                      hintText: 'issueを検索...',
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _queryController,
-                          autofocus: true,
-                          textInputAction: TextInputAction.search,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.2,
-                              ),
-                          onChanged: (_) => setState(() {}),
-                          onSubmitted: (_) => _selectFirstMatch(),
-                          decoration: const InputDecoration.collapsed(
-                            hintText: 'issueを検索...',
-                            hintStyle: TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontWeight: FontWeight.w600,
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF64748B),
+                      ),
+                      suffixIcon: query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: '検索をクリア',
+                              onPressed: () {
+                                _queryController.clear();
+                                setState(() {});
+                              },
+                              icon: const Icon(Icons.close_rounded),
                             ),
-                          ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF1D4ED8),
+                          width: 1.5,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      if (query.isNotEmpty)
-                        IconButton(
-                          tooltip: '検索をクリア',
-                          onPressed: () {
-                            _queryController.clear();
-                            setState(() {});
-                          },
-                          icon: const Icon(Icons.close_rounded),
-                        )
-                      else
-                        const _IssueSearchShortcutPill(label: '⌘K'),
-                      IconButton(
-                        tooltip: '検索を閉じる',
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
-                  child: Row(
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
                       Text(
                         '${entries.length}件',
@@ -4289,30 +4344,74 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                         ),
                       ),
                       const Spacer(),
-                      const _IssueSearchShortcutPill(label: 'Enterで開く'),
+                      const _IssueSearchShortcutPill(label: 'Enterで編集'),
                     ],
                   ),
-                ),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: resultMaxHeight),
-                  child: entries.isEmpty
-                      ? _IssueSearchEmptyState(hasQuery: query.isNotEmpty)
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
-                          itemCount: entries.length,
-                          itemBuilder: (context, index) {
-                            final entry = entries[index];
-                            return _IssueSearchResultTile(
-                              entry: entry,
-                              onTap: () => _select(entry),
-                            );
-                          },
-                        ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            Flexible(
+              child: entries.isEmpty
+                  ? _IssueSearchEmptyState(hasQuery: query.isNotEmpty)
+                  : usesSplitNavigator
+                  ? Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        dialogPadding.left,
+                        0,
+                        dialogPadding.right,
+                        dialogPadding.bottom,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: 360,
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: entries.length,
+                              itemBuilder: (context, index) {
+                                final entry = entries[index];
+                                return _IssueSearchResultTile(
+                                  entry: entry,
+                                  selected:
+                                      entry.issue.id == selectedEntry?.issue.id,
+                                  onTap: () => _select(entry),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: _IssueSearchDetailPane(
+                              entry: selectedEntry,
+                              onOpen: selectedEntry == null
+                                  ? null
+                                  : () => _open(selectedEntry),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.fromLTRB(
+                        dialogPadding.left,
+                        0,
+                        dialogPadding.right,
+                        dialogPadding.bottom,
+                      ),
+                      itemCount: entries.length,
+                      itemBuilder: (context, index) {
+                        final entry = entries[index];
+                        return _IssueSearchResultTile(
+                          entry: entry,
+                          selected: false,
+                          onTap: () => _open(entry),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -4391,9 +4490,14 @@ class _IssueSearchEmptyState extends StatelessWidget {
 }
 
 class _IssueSearchResultTile extends StatelessWidget {
-  const _IssueSearchResultTile({required this.entry, required this.onTap});
+  const _IssueSearchResultTile({
+    required this.entry,
+    required this.selected,
+    required this.onTap,
+  });
 
   final _IssueSearchEntry entry;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
@@ -4402,14 +4506,22 @@ class _IssueSearchResultTile extends StatelessWidget {
     final labels = issue.labels.take(3).toList();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+        color: selected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: selected ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: InkWell(
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -4475,6 +4587,233 @@ class _IssueSearchResultTile extends StatelessWidget {
   }
 }
 
+class _IssueSearchDetailPane extends StatelessWidget {
+  const _IssueSearchDetailPane({required this.entry, required this.onOpen});
+
+  final _IssueSearchEntry? entry;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = this.entry;
+    if (entry == null) {
+      return const DecoratedBox(
+        decoration: BoxDecoration(
+          color: Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.all(Radius.circular(18)),
+          border: Border.fromBorderSide(BorderSide(color: Color(0xFFE2E8F0))),
+        ),
+        child: Center(
+          child: Text(
+            'Issueを選択してください',
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final issue = entry.issue;
+    final body = issue.body.trim();
+    final labels = issue.labels.take(8).toList();
+    final pullRequest = issue.pullRequests.isEmpty
+        ? null
+        : issue.pullRequests.last;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _IssueSearchMetaPill(label: issue.displayId),
+                    _IssueSearchMetaPill(label: issue.repo),
+                    _IssueSearchMetaPill(label: entry.column.title),
+                    _IssueSearchMetaPill(
+                      label: _issuePriorityLabel(issue.priority),
+                    ),
+                    if (issue.dueDate != null)
+                      _IssueSearchMetaPill(label: _formatDate(issue.dueDate!)),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  issue.title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: const Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                if (labels.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final label in labels)
+                        _IssueSearchMetaPill(label: label),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    body.isEmpty ? '本文はありません' : body,
+                    style: TextStyle(
+                      color: body.isEmpty
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF334155),
+                      height: 1.5,
+                      fontWeight: body.isEmpty ? FontWeight.w700 : null,
+                    ),
+                  ),
+                  if (pullRequest != null) ...[
+                    const SizedBox(height: 18),
+                    _IssueSearchDetailCallout(
+                      icon: Icons.account_tree_outlined,
+                      title: 'Pull request',
+                      value: '#${pullRequest.number} ${pullRequest.title}',
+                    ),
+                  ],
+                  if (issue.subIssuesSummary != null) ...[
+                    const SizedBox(height: 10),
+                    _IssueSearchDetailCallout(
+                      icon: Icons.checklist_rounded,
+                      title: 'Sub-issues',
+                      value:
+                          '${issue.subIssuesSummary!.completed}/${issue.subIssuesSummary!.total} completed',
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              children: [
+                const Text(
+                  'カード選択で詳細を切り替え',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('編集する'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IssueSearchDetailCallout extends StatelessWidget {
+  const _IssueSearchDetailCallout({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Color(0xFF334155),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _issuePriorityLabel(Priority priority) {
+  switch (priority) {
+    case Priority.high:
+      return '優先度: 高';
+    case Priority.medium:
+      return '優先度: 中';
+    case Priority.low:
+      return '優先度: 低';
+  }
+}
+
 class _IssueSearchMetaPill extends StatelessWidget {
   const _IssueSearchMetaPill({required this.label});
 
@@ -4529,6 +4868,13 @@ class _IssueSearchEntry {
 
     return tokens.every(searchableText.contains);
   }
+}
+
+class IssueSearchDialogResult {
+  const IssueSearchDialogResult({required this.issueId, required this.query});
+
+  final String issueId;
+  final String query;
 }
 
 class RepositoryPickerDialog extends StatefulWidget {
@@ -7158,52 +7504,48 @@ class OverviewSectionHeader extends StatelessWidget {
         side: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 9, 8, 8),
-        child: Row(
-          children: [
-            Container(
-              width: 7,
-              height: 24,
-              decoration: BoxDecoration(
-                color: column.color,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                column.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
+      child: InkWell(
+        onTap: onToggleSize,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 9, 8, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 7,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: column.color,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            _OverviewMiniPill(
-              label: '${visibleIssues.length}件 / W$totalWeight',
-              foregroundColor: column.color,
-              backgroundColor: column.color.withValues(alpha: 0.1),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              tooltip: isShrunk ? '表示' : '縮小',
-              onPressed: onToggleSize,
-              icon: Icon(
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  column.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _OverviewMiniPill(
+                label: '${visibleIssues.length}件 / W$totalWeight',
+                foregroundColor: column.color,
+                backgroundColor: column.color.withValues(alpha: 0.1),
+              ),
+              const SizedBox(width: 4),
+              Icon(
                 isShrunk
                     ? Icons.keyboard_arrow_down_rounded
                     : Icons.keyboard_arrow_up_rounded,
+                size: 22,
               ),
-              iconSize: 22,
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints.tightFor(width: 34, height: 34),
-              padding: EdgeInsets.zero,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
