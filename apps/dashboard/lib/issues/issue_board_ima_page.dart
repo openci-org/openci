@@ -3802,15 +3802,85 @@ class CompactBoardViewModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOverview = value == BoardViewMode.overview;
-    return IconButton(
-      tooltip: isOverview ? '全体ボードをOFF' : '全体ボードをON',
-      onPressed: () => onChanged(
-        isOverview ? BoardViewMode.standard : BoardViewMode.overview,
+    return Tooltip(
+      message: '表示を切り替え',
+      child: Semantics(
+        label: '表示切り替え',
+        value: isOverview ? '全体ボード' : '一覧表示',
+        child: Container(
+          height: 34,
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CompactBoardViewModeSegment(
+                icon: Icons.view_list_rounded,
+                label: '一覧',
+                selected: !isOverview,
+                onTap: () => onChanged(BoardViewMode.standard),
+              ),
+              _CompactBoardViewModeSegment(
+                icon: Icons.grid_view_rounded,
+                label: '全体',
+                selected: isOverview,
+                onTap: () => onChanged(BoardViewMode.overview),
+              ),
+            ],
+          ),
+        ),
       ),
-      icon: Icon(
-        isOverview ? Icons.toggle_on_rounded : Icons.toggle_off_outlined,
-        color: isOverview ? const Color(0xFF2563EB) : null,
-        size: 30,
+    );
+  }
+}
+
+class _CompactBoardViewModeSegment extends StatelessWidget {
+  const _CompactBoardViewModeSegment({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundColor = selected
+        ? const Color(0xFF1D4ED8)
+        : const Color(0xFF64748B);
+
+    return Material(
+      color: selected ? const Color(0xFFEFF6FF) : Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: selected ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: foregroundColor),
+              const SizedBox(width: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
