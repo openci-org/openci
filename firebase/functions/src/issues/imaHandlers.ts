@@ -19,7 +19,7 @@ import {
   type CallableRequest,
   type Request,
 } from "firebase-functions/v2/https";
-import { getInstallationToken } from "../github/githubApp";
+import { getInstallationToken, githubGraphql } from "../github/githubApp";
 
 import {
   extractIssueKey,
@@ -218,6 +218,30 @@ interface GitHubPullRequestResponseItem {
   merged?: unknown;
   head?: {
     ref?: unknown;
+  };
+}
+
+interface GitHubPullRequestLinkedIssue {
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+}
+
+interface GitHubPullRequestLinkedIssuesGraphqlResponse {
+  data?: {
+    repository?: {
+      pullRequest?: {
+        closingIssuesReferences?: {
+          nodes?: Array<{
+            number?: unknown;
+            title?: unknown;
+            url?: unknown;
+            state?: unknown;
+          } | null>;
+        };
+      } | null;
+    } | null;
   };
 }
 
@@ -538,11 +562,13 @@ function pullRequestSummary({
   repo,
   pullRequest,
   branch,
+  linkedIssues = [],
 }: {
   owner: string;
   repo: string;
   pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>;
   branch: string;
+  linkedIssues?: GitHubPullRequestLinkedIssue[];
 }): Record<string, unknown> {
   return {
     owner,
@@ -553,7 +579,87 @@ function pullRequestSummary({
     branch,
     state: asString(pullRequest.state, "open"),
     merged: asBoolean(pullRequest.merged),
+    linkedIssues,
   };
+}
+
+async function fetchPullRequestLinkedIssues({
+  owner,
+  repo,
+  number,
+  token,
+}: {
+  owner: string;
+  repo: string;
+  number: number;
+  token: string;
+}): Promise<GitHubPullRequestLinkedIssue[]> {
+  const response = await githubGraphql<GitHubPullRequestLinkedIssuesGraphqlResponse>(
+    `
+      query OpenCIPullRequestLinkedIssues($owner: String!, $repo: String!, $number: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $number) {
+            closingIssuesReferences(first: 20) {
+              nodes {
+                number
+                title
+                url
+                state
+              }
+            }
+          }
+        }
+      }
+    `,
+    token,
+    { variables: { owner, repo, number } },
+  );
+
+  const nodes = response.data?.repository?.pullRequest?.closingIssuesReferences?.nodes ?? [];
+  return nodes
+    .map((node) => {
+      if (node === null) {
+        return null;
+      }
+      const issueNumber = asNumber(node.number);
+      if (issueNumber <= 0) {
+        return null;
+      }
+      return {
+        number: issueNumber,
+        title: asString(node.title, `#${issueNumber}`),
+        url: asString(node.url),
+        state: asString(node.state, "OPEN").toLowerCase(),
+      };
+    })
+    .filter((issue): issue is GitHubPullRequestLinkedIssue => issue !== null);
+}
+
+async function fetchPullRequestLinkedIssuesSafely({
+  owner,
+  repo,
+  number,
+  token,
+  workspaceId,
+}: {
+  owner: string;
+  repo: string;
+  number: number;
+  token: string;
+  workspaceId: string;
+}): Promise<GitHubPullRequestLinkedIssue[]> {
+  try {
+    return await fetchPullRequestLinkedIssues({ owner, repo, number, token });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn("githubPullRequestWebhook: failed to fetch linked issues", {
+      workspaceId,
+      repository: `${owner}/${repo}`,
+      pullRequestNumber: number,
+      message,
+    });
+    return [];
+  }
 }
 
 function pullRequestMatchesIssue(
@@ -2182,6 +2288,18 @@ export const backfillCursorAgentPullRequests = onCall<
       continue;
     }
 
+    const pullRequestNumber = asNumber(pullRequest.number);
+    const linkedIssues =
+      pullRequestNumber > 0
+        ? await fetchPullRequestLinkedIssuesSafely({
+            owner,
+            repo,
+            number: pullRequestNumber,
+            token,
+            workspaceId,
+          })
+        : [];
+
     await upsertPullRequestLink({
       workspaceId,
       issueId: issueDoc.id,
@@ -2189,12 +2307,100 @@ export const backfillCursorAgentPullRequests = onCall<
       pullRequest,
       repoFullName,
       branch: asString(pullRequest.head?.ref),
+      linkedIssues,
     });
     linked += 1;
   }
 
   return { inspected, linked };
 });
+
+async function syncWorkspacePullRequestLinks({
+  workspaceId,
+  token,
+}: {
+  workspaceId: string;
+  token: string;
+}): Promise<number> {
+  const workspaceRef = db.doc(`workspaces/${workspaceId}`);
+  const [issues, repos] = await Promise.all([
+    workspaceRef.collection("issues").limit(500).get(),
+    workspaceRef.collection("githubRepos").where("enabled", "==", true).get(),
+  ]);
+  let linked = 0;
+
+  for (const repoDoc of repos.docs) {
+    const repoFullName = asString(repoDoc.get("fullName"));
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) {
+      continue;
+    }
+
+    let pullRequests: GitHubPullRequestResponseItem[];
+    try {
+      pullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
+        path: `/repos/${owner}/${repo}/pulls`,
+        token,
+        queryParameters: { state: "all", sort: "updated", direction: "desc", per_page: 100 },
+      });
+    } catch (error) {
+      logger.warn("syncGitHubIssues: failed to list pull requests", {
+        workspaceId,
+        repoFullName,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    for (const issueDoc of issues.docs) {
+      const issue = issueDoc.data();
+      if (asString(issue.repo) !== repoFullName) {
+        continue;
+      }
+
+      const pullRequest = pullRequests.find((item) => pullRequestMatchesIssue(item, issue));
+      if (pullRequest === undefined) {
+        continue;
+      }
+
+      const pullRequestNumber = asNumber(pullRequest.number);
+      const linkedIssues =
+        pullRequestNumber > 0
+          ? await fetchPullRequestLinkedIssuesSafely({
+              owner,
+              repo,
+              number: pullRequestNumber,
+              token,
+              workspaceId,
+            })
+          : [];
+
+      await upsertPullRequestLink({
+        workspaceId,
+        issueId: issueDoc.id,
+        action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
+        pullRequest,
+        repoFullName,
+        branch: asString(pullRequest.head?.ref),
+        linkedIssues,
+      });
+      linked += 1;
+      linked += await upsertPullRequestLinksForLinkedIssues({
+        workspaceId,
+        owner,
+        repo,
+        action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
+        pullRequest,
+        repoFullName,
+        branch: asString(pullRequest.head?.ref),
+        linkedIssues,
+        skipIssueIds: new Set([issueDoc.id]),
+      });
+    }
+  }
+
+  return linked;
+}
 
 function verifyGitHubSignature(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
   if (!signatureHeader.startsWith("sha256=") || secret.length === 0) {
@@ -2250,6 +2456,7 @@ async function upsertPullRequestLink({
   pullRequest,
   repoFullName,
   branch,
+  linkedIssues = [],
 }: {
   workspaceId: string;
   issueId: string;
@@ -2257,6 +2464,7 @@ async function upsertPullRequestLink({
   pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>;
   repoFullName: string;
   branch: string;
+  linkedIssues?: GitHubPullRequestLinkedIssue[];
 }): Promise<void> {
   const [owner, repo] = repoFullName.split("/");
   const number = asNumber(pullRequest.number);
@@ -2281,7 +2489,13 @@ async function upsertPullRequestLink({
     const linkId = pullRequestLinkId(owner, repo, number);
     const now = Timestamp.now();
     const existingLink = currentPullRequests.find((item) => asString(item.id) === linkId);
-    const linkedPullRequest = pullRequestSummary({ owner, repo, pullRequest, branch });
+    const linkedPullRequest = pullRequestSummary({
+      owner,
+      repo,
+      pullRequest,
+      branch,
+      linkedIssues,
+    });
     const nextPullRequests = currentPullRequests.filter((item) => asString(item.id) !== linkId);
     nextPullRequests.push({
       id: linkId,
@@ -2325,6 +2539,57 @@ async function upsertPullRequestLink({
       );
     }
   });
+}
+
+async function upsertPullRequestLinksForLinkedIssues({
+  workspaceId,
+  owner,
+  repo,
+  action,
+  pullRequest,
+  repoFullName,
+  branch,
+  linkedIssues,
+  skipIssueIds = new Set<string>(),
+}: {
+  workspaceId: string;
+  owner: string;
+  repo: string;
+  action: string;
+  pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>;
+  repoFullName: string;
+  branch: string;
+  linkedIssues: GitHubPullRequestLinkedIssue[];
+  skipIssueIds?: Set<string>;
+}): Promise<number> {
+  let linked = 0;
+  for (const linkedIssue of linkedIssues) {
+    const { doc: issueDoc } = await resolveGitHubIssueDocument({
+      workspaceId,
+      owner,
+      repo,
+      number: linkedIssue.number,
+    });
+    if (!issueDoc.exists || skipIssueIds.has(issueDoc.id)) {
+      continue;
+    }
+    const issue = issueDoc.data();
+    if (asString(issue?.repo) !== repoFullName) {
+      continue;
+    }
+
+    await upsertPullRequestLink({
+      workspaceId,
+      issueId: issueDoc.id,
+      action,
+      pullRequest,
+      repoFullName,
+      branch,
+      linkedIssues,
+    });
+    linked += 1;
+  }
+  return linked;
 }
 
 async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): Promise<number> {
@@ -2466,9 +2731,6 @@ async function linkPullRequestToImaIssues(
   if (!pullRequest || repoFullName.length === 0) {
     return 0;
   }
-  if (parsedIssueKey === null) {
-    return 0;
-  }
 
   const workspaces = await db.collection("workspaces").limit(100).get();
 
@@ -2485,11 +2747,42 @@ async function linkPullRequestToImaIssues(
       continue;
     }
 
-    const issueDocs = await workspaceRef
-      .collection("issues")
-      .where("issueKey", "==", parsedIssueKey)
-      .limit(1)
-      .get();
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) {
+      continue;
+    }
+    const pullRequestNumber = asNumber(pullRequest.number);
+    let workspaceToken: string | undefined;
+    let linkedIssues: GitHubPullRequestLinkedIssue[] = [];
+    if (pullRequestNumber > 0) {
+      try {
+        ({ token: workspaceToken } = await getWorkspaceGitHubToken(workspaceId));
+        linkedIssues = await fetchPullRequestLinkedIssuesSafely({
+          owner,
+          repo,
+          number: pullRequestNumber,
+          token: workspaceToken,
+          workspaceId,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.warn("githubPullRequestWebhook: no GitHub App installation token", {
+          workspaceId,
+          repoFullName,
+          message,
+        });
+      }
+    }
+
+    const issueDocs =
+      parsedIssueKey === null
+        ? { docs: [] }
+        : await workspaceRef
+            .collection("issues")
+            .where("issueKey", "==", parsedIssueKey)
+            .limit(1)
+            .get();
+    const linkedIssueIds = new Set<string>();
 
     for (const issueDoc of issueDocs.docs) {
       const issue = issueDoc.data();
@@ -2511,14 +2804,13 @@ async function linkPullRequestToImaIssues(
       const ownerUid = asString(workspace.get("ownerUid"));
       if (ownerUid.length > 0) {
         try {
-          const { token } = await getWorkspaceGitHubToken(workspaceId);
+          const token = workspaceToken ?? (await getWorkspaceGitHubToken(workspaceId)).token;
           const nextBody = upsertLinkedIssueBlock(
             asString(pullRequest.body),
             githubIssueNumber,
             issueKeyValue,
           );
           if (nextBody !== asString(pullRequest.body)) {
-            const [owner, repo] = repoFullName.split("/");
             const prNumber = asNumber(pullRequest.number);
             if (owner && repo && prNumber > 0) {
               await githubRequest({
@@ -2547,9 +2839,23 @@ async function linkPullRequestToImaIssues(
         pullRequest,
         repoFullName,
         branch,
+        linkedIssues,
       });
+      linkedIssueIds.add(issueDoc.id);
       linked += 1;
     }
+
+    linked += await upsertPullRequestLinksForLinkedIssues({
+      workspaceId,
+      owner,
+      repo,
+      action,
+      pullRequest,
+      repoFullName,
+      branch,
+      linkedIssues,
+      skipIssueIds: linkedIssueIds,
+    });
   }
 
   return linked;
@@ -2801,6 +3107,15 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
         );
         failed += 1;
       }
+    }
+
+    try {
+      await syncWorkspacePullRequestLinks({ workspaceId, token });
+    } catch (error) {
+      logger.warn("syncGitHubIssues: failed to sync pull request links", {
+        workspaceId,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return { synced, failed };
