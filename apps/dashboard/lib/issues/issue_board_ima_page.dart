@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_logs/synced_spinner.dart';
+import 'package:dashboard/firebase/firestore.dart'
+    show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
+import 'package:dashboard/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -9,11 +13,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import 'package:dashboard/build_logs/synced_spinner.dart';
-import 'package:dashboard/firebase/firestore.dart'
-    show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
-import 'package:dashboard/firebase_options.dart';
 
 const _functionsRegion = 'asia-northeast1';
 const _reviewStatusId = 'review';
@@ -4811,6 +4810,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
         : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
     final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
+    final dialogBorderRadius = BorderRadius.circular(isCompactDialog ? 22 : 28);
     final formContent = Form(
       key: _formKey,
       child: Column(
@@ -4949,7 +4949,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final content = ClipRRect(
       borderRadius: widget.isBottomSheet
           ? const BorderRadius.vertical(top: Radius.circular(28))
-          : BorderRadius.circular(isCompactDialog ? 22 : 28),
+          : dialogBorderRadius,
       child: Material(
         color: Colors.white,
         child: widget.isBottomSheet
@@ -5043,7 +5043,10 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   horizontal: isCompactDialog ? 12 : 20,
                   vertical: isCompactDialog ? 12 : 24,
                 ),
-                backgroundColor: Colors.transparent,
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: dialogBorderRadius),
+                clipBehavior: Clip.antiAlias,
                 child: framedContent,
               ),
       ),
