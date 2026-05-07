@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/firebase/firestore.dart'
     show
@@ -11,6 +12,9 @@ import 'package:dashboard/firebase/firestore.dart'
         dateTimeFromFirestore,
         workerInstancesCollection;
 import 'package:dashboard/firebase_options.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/variables/variables_page.dart';
+import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +39,8 @@ const _defaultDailyWeightTarget = 20;
 const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
 
 enum BoardViewMode { standard, overview }
+
+enum _BoardSidePanel { runs, workers, workflows, variables, storeRelease }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -451,6 +457,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   int _enabledRepoCount = 0;
   int _dailyWeightTarget = _defaultDailyWeightTarget;
   BoardViewMode? _boardViewMode;
+  _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -537,9 +544,22 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return true;
   }
 
-  void _openWorkerInspector() {
+  void _openSidePanel(_BoardSidePanel panel) {
+    if (_sidePanel != panel) {
+      setState(() => _sidePanel = panel);
+    }
     _scaffoldKey.currentState?.openEndDrawer();
   }
+
+  void _openRunHistory() => _openSidePanel(_BoardSidePanel.runs);
+
+  void _openWorkerInspector() => _openSidePanel(_BoardSidePanel.workers);
+
+  void _openWorkflowsPanel() => _openSidePanel(_BoardSidePanel.workflows);
+
+  void _openVariablesPanel() => _openSidePanel(_BoardSidePanel.variables);
+
+  void _openStoreReleasePanel() => _openSidePanel(_BoardSidePanel.storeRelease);
 
   Future<void> _bootstrapWorkspace() async {
     if (_workspaceId.isEmpty) {
@@ -1620,13 +1640,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           key: _scaffoldKey,
           backgroundColor: const Color(0xFFF8FAFC),
           endDrawer: Drawer(
-            width: 420,
+            width: _sidePanel == _BoardSidePanel.workers ? 420 : 560,
             shape: const RoundedRectangleBorder(
               side: BorderSide(color: Color(0xFFE2E8F0)),
               borderRadius: BorderRadius.horizontal(left: Radius.circular(22)),
             ),
             child: Builder(
-              builder: (context) => WorkerInspectorPanel(
+              builder: (context) => _BoardSidePanelDrawer(
+                panel: _sidePanel,
                 onDismiss: () => Navigator.of(context).maybePop(),
               ),
             ),
@@ -1669,7 +1690,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   onSignOut: onSignOut,
                   workspaceName: widget.workspaceName,
                   onSwitchTeam: widget.onSwitchTeam,
+                  onRunsTap: _openRunHistory,
                   onWorkersTap: _openWorkerInspector,
+                  onWorkflowsTap: _openWorkflowsPanel,
+                  onVariablesTap: _openVariablesPanel,
+                  onStoreReleaseTap: _openStoreReleasePanel,
                 )
               : null,
           floatingActionButton: isCompactLayout
@@ -1716,7 +1741,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   githubLogin: _githubLogin,
                   repoCount: _enabledRepoCount,
                   isBusy: _isBusy,
+                  onRunsTap: _openRunHistory,
                   onWorkersTap: _openWorkerInspector,
+                  onWorkflowsTap: _openWorkflowsPanel,
+                  onVariablesTap: _openVariablesPanel,
+                  onStoreReleaseTap: _openStoreReleasePanel,
                 ),
                 if (_loadError != null)
                   Padding(
@@ -2345,6 +2374,105 @@ class WorkerOverviewSummary {
       onlineLinux: onlineLinux,
       totalOther: totalOther,
       onlineOther: onlineOther,
+    );
+  }
+}
+
+class _BoardSidePanelDrawer extends StatelessWidget {
+  const _BoardSidePanelDrawer({
+    required this.panel,
+    required this.onDismiss,
+  });
+
+  final _BoardSidePanel panel;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (panel) {
+      _BoardSidePanel.workers => WorkerInspectorPanel(onDismiss: onDismiss),
+      _BoardSidePanel.runs => _BoardSidePanelShell(
+        icon: Icons.history_rounded,
+        title: '実行履歴',
+        onDismiss: onDismiss,
+        child: const LogsBody(),
+      ),
+      _BoardSidePanel.workflows => _BoardSidePanelShell(
+        icon: Icons.schema_rounded,
+        title: 'ワークフロー',
+        onDismiss: onDismiss,
+        child: const WorkflowsBody(),
+      ),
+      _BoardSidePanel.variables => _BoardSidePanelShell(
+        icon: Icons.key_rounded,
+        title: '変数',
+        onDismiss: onDismiss,
+        child: const VariablesBody(),
+      ),
+      _BoardSidePanel.storeRelease => _BoardSidePanelShell(
+        icon: Icons.rocket_launch_outlined,
+        title: 'ストアリリース',
+        onDismiss: onDismiss,
+        child: const StoreReleaseBody(),
+      ),
+    };
+  }
+}
+
+class _BoardSidePanelShell extends StatelessWidget {
+  const _BoardSidePanelShell({
+    required this.icon,
+    required this.title,
+    required this.onDismiss,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onDismiss;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 10, 12),
+          child: Row(
+            children: [
+              Icon(icon, color: const Color(0xFF2563EB)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Text(
+                      'Esc で閉じる',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: '閉じる',
+                onPressed: onDismiss,
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        Expanded(child: child),
+      ],
     );
   }
 }
@@ -4367,7 +4495,11 @@ class BoardToolbar extends StatelessWidget {
     required this.githubLogin,
     required this.repoCount,
     required this.isBusy,
+    required this.onRunsTap,
     required this.onWorkersTap,
+    required this.onWorkflowsTap,
+    required this.onVariablesTap,
+    required this.onStoreReleaseTap,
   });
 
   final VoidCallback onConnectGitHub;
@@ -4380,7 +4512,11 @@ class BoardToolbar extends StatelessWidget {
   final String? githubLogin;
   final int repoCount;
   final bool isBusy;
+  final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
+  final VoidCallback onWorkflowsTap;
+  final VoidCallback onVariablesTap;
+  final VoidCallback onStoreReleaseTap;
 
   @override
   Widget build(BuildContext context) {
@@ -4443,7 +4579,7 @@ class BoardToolbar extends StatelessWidget {
                     icon: Icons.history_rounded,
                     label: '実行履歴',
                     tooltip: 'CI/CD の実行履歴を開く',
-                    onPressed: () => context.go('/runs'),
+                    onPressed: onRunsTap,
                   ),
                   ToolbarChip(
                     icon: Icons.dns_outlined,
@@ -4455,19 +4591,19 @@ class BoardToolbar extends StatelessWidget {
                     icon: Icons.schema_rounded,
                     label: 'ワークフロー',
                     tooltip: '.openci workflows を開く',
-                    onPressed: () => context.go('/workflows'),
+                    onPressed: onWorkflowsTap,
                   ),
                   ToolbarChip(
                     icon: Icons.key_rounded,
                     label: '変数',
                     tooltip: '変数 / シークレットを開く',
-                    onPressed: () => context.go('/variables'),
+                    onPressed: onVariablesTap,
                   ),
                   ToolbarChip(
                     icon: Icons.rocket_launch_outlined,
                     label: 'ストアリリース',
                     tooltip: 'ストアリリースを開く',
-                    onPressed: () => context.go('/store-release'),
+                    onPressed: onStoreReleaseTap,
                   ),
                 ],
               ),
@@ -4650,7 +4786,11 @@ class CompactBoardDrawer extends StatelessWidget {
     required this.onSearchIssues,
     required this.onSignOut,
     required this.workspaceName,
+    required this.onRunsTap,
     required this.onWorkersTap,
+    required this.onWorkflowsTap,
+    required this.onVariablesTap,
+    required this.onStoreReleaseTap,
     this.onSwitchTeam,
   });
 
@@ -4664,7 +4804,11 @@ class CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onSearchIssues;
   final Future<void> Function() onSignOut;
   final String workspaceName;
+  final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
+  final VoidCallback onWorkflowsTap;
+  final VoidCallback onVariablesTap;
+  final VoidCallback onStoreReleaseTap;
   final VoidCallback? onSwitchTeam;
 
   @override
@@ -4727,7 +4871,7 @@ class CompactBoardDrawer extends StatelessWidget {
             _CompactDrawerTile(
               icon: Icons.history_rounded,
               label: '実行履歴',
-              onTap: () => runAfterClose(() => context.go('/runs')),
+              onTap: () => runAfterClose(onRunsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.dns_outlined,
@@ -4737,17 +4881,17 @@ class CompactBoardDrawer extends StatelessWidget {
             _CompactDrawerTile(
               icon: Icons.schema_rounded,
               label: 'ワークフロー',
-              onTap: () => runAfterClose(() => context.go('/workflows')),
+              onTap: () => runAfterClose(onWorkflowsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.key_rounded,
               label: '変数',
-              onTap: () => runAfterClose(() => context.go('/variables')),
+              onTap: () => runAfterClose(onVariablesTap),
             ),
             _CompactDrawerTile(
               icon: Icons.rocket_launch_outlined,
               label: 'ストアリリース',
-              onTap: () => runAfterClose(() => context.go('/store-release')),
+              onTap: () => runAfterClose(onStoreReleaseTap),
             ),
             const Divider(height: 24),
             const _CompactDrawerSectionLabel('GitHub'),
