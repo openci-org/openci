@@ -2225,9 +2225,9 @@ class WorkerOverviewMetric extends StatelessWidget {
           return _WorkerOverviewTapTarget(
             onTap: onTap,
             child: const OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '-',
-              detail: 'read error',
+              detail: '読み込みエラー',
               valueColor: Color(0xFFDC2626),
               width: 112,
             ),
@@ -2237,9 +2237,9 @@ class WorkerOverviewMetric extends StatelessWidget {
           return _WorkerOverviewTapTarget(
             onTap: onTap,
             child: const OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '-',
-              detail: 'loading',
+              detail: '読み込み中',
               width: 112,
             ),
           );
@@ -2248,16 +2248,16 @@ class WorkerOverviewMetric extends StatelessWidget {
         final summary = WorkerOverviewSummary.fromDocs(snapshot.data!.docs);
         final valueColor = summary.offlineCount > 0
             ? const Color(0xFFA16207)
-            : const Color(0xFF15803D);
+            : const Color(0xFF16A34A);
         return Tooltip(
           message:
-              'macOS ${summary.onlineMacos}/${summary.totalMacos} online / '
-              'Linux ${summary.onlineLinux}/${summary.totalLinux} online / '
-              'offline ${summary.offlineCount}',
+              'macOS ${summary.onlineMacos}/${summary.totalMacos} オンライン / '
+              'Linux ${summary.onlineLinux}/${summary.totalLinux} オンライン / '
+              'オフライン ${summary.offlineCount}',
           child: _WorkerOverviewTapTarget(
             onTap: onTap,
             child: OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '${summary.onlineCount}/${summary.totalCount}',
               valueColor: valueColor,
               detail:
@@ -2378,6 +2378,7 @@ class WorkerInspectorPanel extends StatelessWidget {
         final workers = snapshot.data!.docs
             .map(WorkerInspectorItem.fromDoc)
             .toList();
+        workers.sort(_compareWorkerInspectorItems);
         final macosWorkers = workers
             .where(
               (worker) => worker.platformGroup == WorkerPlatformGroup.macos,
@@ -2418,7 +2419,7 @@ class WorkerInspectorPanel extends StatelessWidget {
                     if (otherWorkers.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       _WorkerInspectorSection(
-                        title: 'Other',
+                        title: 'その他',
                         workers: otherWorkers,
                         icon: Icons.device_unknown_rounded,
                       ),
@@ -2456,7 +2457,7 @@ class _WorkerInspectorShell extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Workers',
+                      'ワーカー',
                       style: TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 18,
@@ -2506,7 +2507,7 @@ class _WorkerInspectorSummary extends StatelessWidget {
         _WorkerInspectorSummaryChip(
           label: 'オンライン',
           value: online,
-          color: const Color(0xFF15803D),
+          color: const Color(0xFF16A34A),
         ),
         _WorkerInspectorSummaryChip(
           label: '実行中',
@@ -2614,7 +2615,7 @@ class _WorkerInspectorSection extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$online/${workers.length} online',
+                  '$online/${workers.length} オンライン',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
                     fontSize: 12,
@@ -2723,8 +2724,8 @@ class _WorkerInspectorRow extends StatelessWidget {
             _WorkerInspectorDetail(
               icon: Icons.play_circle_outline_rounded,
               text: worker.currentRunId == null
-                  ? 'Current job: ${worker.currentBuildJobId}'
-                  : 'Current job: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
+                  ? '実行中のジョブ: ${worker.currentBuildJobId}'
+                  : '実行中のジョブ: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
             ),
           ],
           if (worker.lastError != null && worker.lastError!.isNotEmpty) ...[
@@ -2792,6 +2793,17 @@ class _WorkerInspectorEmpty extends StatelessWidget {
 
 enum WorkerPlatformGroup { macos, linux, other }
 
+int _compareWorkerInspectorItems(
+  WorkerInspectorItem a,
+  WorkerInspectorItem b,
+) {
+  final platformCompare = a.platformGroup.index.compareTo(
+    b.platformGroup.index,
+  );
+  if (platformCompare != 0) return platformCompare;
+  return a.workerId.toLowerCase().compareTo(b.workerId.toLowerCase());
+}
+
 class WorkerInspectorItem {
   const WorkerInspectorItem({
     required this.workerId,
@@ -2857,14 +2869,24 @@ class WorkerInspectorItem {
     return WorkerPlatformGroup.other;
   }
 
-  String get statusLabel => isOnline ? status : 'offline';
+  String get statusLabel {
+    if (!isOnline) return 'オフライン';
+    return switch (status) {
+      'busy' => '実行中',
+      'error' => 'エラー',
+      'idle' => '待機中',
+      'starting' => '起動中',
+      'stopping' => '停止中',
+      _ => '不明',
+    };
+  }
 
   Color get statusColor {
     if (!isOnline) return const Color(0xFF94A3B8);
     return switch (status) {
       'busy' => const Color(0xFF2563EB),
       'error' => const Color(0xFFDC2626),
-      'idle' => const Color(0xFF15803D),
+      'idle' => const Color(0xFF16A34A),
       'starting' => const Color(0xFFA16207),
       'stopping' => const Color(0xFFA16207),
       _ => const Color(0xFF94A3B8),
@@ -2874,10 +2896,11 @@ class WorkerInspectorItem {
 
 String _formatWorkerLastSeen(DateTime lastSeenAt) {
   final diff = DateTime.now().difference(lastSeenAt);
-  if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
-  return '${diff.inDays}d ago';
+  if (diff.inSeconds < 10) return 'たった今';
+  if (diff.inSeconds < 60) return '${diff.inSeconds}秒前';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}分前';
+  if (diff.inHours < 24) return '${diff.inHours}時間前';
+  return '${diff.inDays}日前';
 }
 
 class DailyProgressOverview extends StatelessWidget {
@@ -4424,7 +4447,7 @@ class BoardToolbar extends StatelessWidget {
                   ),
                   ToolbarChip(
                     icon: Icons.dns_outlined,
-                    label: 'Workers',
+                    label: 'ワーカー',
                     tooltip: 'OpenCI worker の稼動状況を開く',
                     onPressed: onWorkersTap,
                   ),
@@ -4708,7 +4731,7 @@ class CompactBoardDrawer extends StatelessWidget {
             ),
             _CompactDrawerTile(
               icon: Icons.dns_outlined,
-              label: 'Workers',
+              label: 'ワーカー',
               onTap: () => runAfterClose(onWorkersTap),
             ),
             _CompactDrawerTile(
