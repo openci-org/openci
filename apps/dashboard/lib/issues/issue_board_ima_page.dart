@@ -5735,6 +5735,10 @@ class _GitHubLinkField extends StatelessWidget {
           valueListenable: controller,
           builder: (context, value, _) {
             final hasUrl = value.text.trim().isNotEmpty;
+            final actionButtonStyle = OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            );
             return Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -5743,11 +5747,13 @@ class _GitHubLinkField extends StatelessWidget {
                   onPressed: hasUrl ? onCopy : null,
                   icon: const Icon(Icons.copy_rounded, size: 18),
                   label: const Text('コピー'),
+                  style: actionButtonStyle,
                 ),
                 OutlinedButton.icon(
                   onPressed: hasUrl ? onOpen : null,
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('開く'),
+                  style: actionButtonStyle,
                 ),
               ],
             );
@@ -5766,7 +5772,7 @@ class _GitHubLinkField extends StatelessWidget {
           children: [
             Expanded(child: field),
             const SizedBox(width: 12),
-            Padding(padding: const EdgeInsets.only(top: 4), child: actions),
+            actions,
           ],
         );
       },
