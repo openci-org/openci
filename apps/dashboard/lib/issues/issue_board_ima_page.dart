@@ -3848,104 +3848,94 @@ class BuildStatusJobsDialog extends StatelessWidget {
     final isCompactDialog = screenSize.width < 560;
     final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
     final maxHeight = screenSize.height * (isCompactDialog ? 0.9 : 0.82);
+    final dialogBorderRadius = BorderRadius.circular(28);
 
     return Dialog(
       insetPadding: EdgeInsets.symmetric(
         horizontal: isCompactDialog ? 12 : 20,
         vertical: isCompactDialog ? 12 : 24,
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: dialogBorderRadius),
+      clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 32,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: dialogPadding.copyWith(bottom: 16),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-                child: _DialogHeader(
-                  title: 'CI checks',
-                  description: status.summaryLabel,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: dialogPadding.copyWith(bottom: 16),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: dialogPadding.copyWith(top: 16, bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: status.color.withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: status.color.withValues(alpha: 0.18),
-                          ),
-                          borderRadius: BorderRadius.circular(18),
+              child: _DialogHeader(
+                title: 'CI checks',
+                description: status.summaryLabel,
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: dialogPadding.copyWith(top: 16, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: status.color.withValues(alpha: 0.08),
+                        border: Border.all(
+                          color: status.color.withValues(alpha: 0.18),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: status.color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: BuildStatusIndicator(
-                                  icon: status.icon,
-                                  color: status.color,
-                                  isSpinning: status.isSpinning,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                status.tooltip,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: status.color,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      const SizedBox(height: 14),
-                      for (final entry in status.jobs.indexed) ...[
-                        BuildStatusJobRow(job: entry.$2),
-                        if (entry.$1 != status.jobs.length - 1)
-                          const SizedBox(height: 8),
-                      ],
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: status.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: BuildStatusIndicator(
+                                icon: status.icon,
+                                color: status.color,
+                                isSpinning: status.isSpinning,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              status.tooltip,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: status.color,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    for (final entry in status.jobs.indexed) ...[
+                      BuildStatusJobRow(job: entry.$2),
+                      if (entry.$1 != status.jobs.length - 1)
+                        const SizedBox(height: 8),
                     ],
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
