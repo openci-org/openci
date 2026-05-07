@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
+import { MobileDrawerNav, type MobileDrawerLink } from './mobile-drawer-nav';
 
 const formUrl = 'https://form.typeform.com/to/XIdO4iES';
 const dashboardUrl = 'https://dashboard.openci.org/';
@@ -135,6 +136,11 @@ const cicdPricing = {
 
 export function CicdPage({ lang }: { lang: 'en' | 'ja' }) {
   const copy = cicdCopy[lang];
+  const navLinks: MobileDrawerLink[] = [
+    { href: '#pricing', label: copy.navPricing },
+    { href: githubUrl, label: 'GitHub', external: true },
+    { href: dashboardUrl, label: copy.navDashboard, external: true, variant: 'button' },
+  ];
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-neutral-950">
@@ -143,17 +149,14 @@ export function CicdPage({ lang }: { lang: 'en' | 'ja' }) {
           <a href={copy.homeHref} className="text-[1.0625rem] font-semibold tracking-tight text-neutral-950 transition-opacity hover:opacity-70" aria-label={lang === 'ja' ? 'ホームページ' : 'Homepage'}>
             OpenCI
           </a>
-          <nav className="flex items-center gap-4 sm:gap-7" aria-label="Main navigation">
-            <a href="#pricing" className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950">
-              {copy.navPricing}
-            </a>
-            <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950">
-              GitHub
-            </a>
-            <a href={dashboardUrl} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
-              {copy.navDashboard}
-            </a>
+          <nav className="hidden items-center gap-7 sm:flex" aria-label="Main navigation">
+            {navLinks.map((link) => (
+              <a key={`${link.href}-${link.label}`} href={link.href} target={link.external ? '_blank' : undefined} rel={link.external ? 'noopener noreferrer' : undefined} className={link.variant === 'button' ? secondaryButtonClass : 'text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950'}>
+                {link.label}
+              </a>
+            ))}
           </nav>
+          <MobileDrawerNav title="OpenCI" homeHref={copy.homeHref} links={navLinks} ariaLabel="Main navigation" menuLabel={lang === 'ja' ? 'メニューを開く' : 'Open menu'} closeLabel={lang === 'ja' ? 'メニューを閉じる' : 'Close menu'} />
         </div>
       </header>
 
@@ -388,20 +391,25 @@ function StudioShell({ children }: { children: ReactNode }) {
 }
 
 function StudioHeader() {
+  const navLinks: MobileDrawerLink[] = [
+    { href: '/studio/about/', label: '会社概要' },
+    { href: formUrl, label: 'お問い合わせ', external: true, variant: 'button' },
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-950/6 bg-white/92 py-4 backdrop-blur-md">
       <div className={`${containerClass} flex items-center justify-between gap-6`}>
         <a href="/studio/" className="text-lg font-semibold tracking-tight text-neutral-950 transition-opacity hover:opacity-70" aria-label="Homepage">
           OpenCI Studio
         </a>
-        <nav className="flex items-center gap-5 sm:gap-8" aria-label="Studio navigation">
-          <a href="/studio/about/" className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950">
-            会社概要
-          </a>
-          <a href={formUrl} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
-            お問い合わせ
-          </a>
+        <nav className="hidden items-center gap-8 sm:flex" aria-label="Studio navigation">
+          {navLinks.map((link) => (
+            <a key={`${link.href}-${link.label}`} href={link.href} target={link.external ? '_blank' : undefined} rel={link.external ? 'noopener noreferrer' : undefined} className={link.variant === 'button' ? secondaryButtonClass : 'text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950'}>
+              {link.label}
+            </a>
+          ))}
         </nav>
+        <MobileDrawerNav title="OpenCI Studio" homeHref="/studio/" links={navLinks} ariaLabel="Studio navigation" menuLabel="メニューを開く" closeLabel="メニューを閉じる" />
       </div>
     </header>
   );
