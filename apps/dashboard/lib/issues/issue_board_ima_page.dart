@@ -438,6 +438,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   var _isLoadingRepositories = false;
   var _isImportingIssues = false;
   var _isSyncingIssues = false;
+  var _isIssueSearchDialogOpen = false;
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
@@ -996,8 +997,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 
   Future<void> _openIssueSearchDialog() async {
+    if (_isIssueSearchDialogOpen) {
+      return;
+    }
+
+    _isIssueSearchDialogOpen = true;
     final hasIssues = _columns.any((column) => column.issues.isNotEmpty);
     if (!hasIssues) {
+      _isIssueSearchDialogOpen = false;
       _showSavedSnackBar('検索できるIssueがありません');
       return;
     }
@@ -1005,7 +1012,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final issueId = await showDialog<String>(
       context: context,
       builder: (context) => IssueSearchDialog(columns: _columns),
-    );
+    ).whenComplete(() => _isIssueSearchDialogOpen = false);
     if (issueId == null || !mounted) {
       return;
     }
