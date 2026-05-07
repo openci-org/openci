@@ -1626,21 +1626,23 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                       onChanged: (mode) =>
                           setState(() => _boardViewMode = mode),
                     ),
-                    CompactBoardMenuButton(
-                      isConnected: isConnected,
-                      isBusy: _isBusy,
-                      repoCount: _enabledRepoCount,
-                      onConnectGitHub: _connectGitHub,
-                      onSelectRepositories: _selectRepositories,
-                      onImportIssues: _importGitHubIssues,
-                      onSyncIssues: _syncGitHubIssues,
-                      onSearchIssues: _openIssueSearchDialog,
-                      onSignOut: onSignOut,
-                      workspaceName: widget.workspaceName,
-                      onSwitchTeam: widget.onSwitchTeam,
-                    ),
                     const SizedBox(width: 4),
                   ],
+                )
+              : null,
+          drawer: isCompactLayout
+              ? CompactBoardDrawer(
+                  isConnected: isConnected,
+                  isBusy: _isBusy,
+                  repoCount: _enabledRepoCount,
+                  onConnectGitHub: _connectGitHub,
+                  onSelectRepositories: _selectRepositories,
+                  onImportIssues: _importGitHubIssues,
+                  onSyncIssues: _syncGitHubIssues,
+                  onSearchIssues: _openIssueSearchDialog,
+                  onSignOut: onSignOut,
+                  workspaceName: widget.workspaceName,
+                  onSwitchTeam: widget.onSwitchTeam,
                 )
               : null,
           floatingActionButton: isCompactLayout
@@ -3895,8 +3897,8 @@ class _CompactBoardViewModeSegment extends StatelessWidget {
   }
 }
 
-class CompactBoardMenuButton extends StatelessWidget {
-  const CompactBoardMenuButton({
+class CompactBoardDrawer extends StatelessWidget {
+  const CompactBoardDrawer({
     super.key,
     required this.isConnected,
     required this.isBusy,
@@ -3925,140 +3927,199 @@ class CompactBoardMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'ボード操作',
-      icon: const Icon(Icons.menu_rounded),
-      onSelected: (value) {
-        switch (value) {
-          case 'github':
-            onConnectGitHub();
-          case 'repos':
-            onSelectRepositories();
-          case 'import':
-            onImportIssues();
-          case 'sync':
-            onSyncIssues();
-          case 'search':
-            onSearchIssues();
-          case 'switchTeam':
-            onSwitchTeam?.call();
-          case 'runs':
-            context.go('/runs');
-          case 'workflows':
-            context.go('/workflows');
-          case 'variables':
-            context.go('/variables');
-          case 'storeRelease':
-            context.go('/store-release');
-          case 'signOut':
-            unawaited(onSignOut());
-        }
-      },
-      itemBuilder: (context) => [
-        if (!isConnected)
-          PopupMenuItem(
-            value: 'github',
-            enabled: !isBusy,
-            child: const _CompactMenuItem(
-              icon: Icons.link_rounded,
-              label: 'GitHub App接続',
+    void closeDrawer() => Navigator.of(context).pop();
+    void runAfterClose(VoidCallback action) {
+      closeDrawer();
+      action();
+    }
+
+    return Drawer(
+      backgroundColor: const Color(0xFFF8FAFC),
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'OpenCI',
+                    style: TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    workspaceName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isConnected ? '$repoCount repo connected' : 'GitHub未接続',
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        PopupMenuItem(
-          value: 'repos',
-          enabled: !isBusy && isConnected,
-          child: _CompactMenuItem(
-            icon: Icons.account_tree_outlined,
-            label: '$repoCount repo',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'import',
-          enabled: !isBusy && isConnected,
-          child: const _CompactMenuItem(
-            icon: Icons.download_rounded,
-            label: 'issue取り込み',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'sync',
-          enabled: !isBusy && isConnected,
-          child: const _CompactMenuItem(
-            icon: Icons.sync_outlined,
-            label: '未同期を同期',
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'search',
-          child: _CompactMenuItem(
-            icon: Icons.search_outlined,
-            label: 'issue検索',
-          ),
-        ),
-        const PopupMenuDivider(),
-        if (onSwitchTeam != null) ...[
-          PopupMenuItem(
-            value: 'switchTeam',
-            child: _CompactMenuItem(
-              icon: Icons.groups_2_outlined,
-              label: workspaceName,
+            const Divider(height: 1),
+            const _CompactDrawerSectionLabel('ナビゲーション'),
+            _CompactDrawerTile(
+              icon: Icons.view_kanban_outlined,
+              label: 'Issue board',
+              selected: true,
+              onTap: closeDrawer,
             ),
-          ),
-          const PopupMenuDivider(),
-        ],
-        const PopupMenuItem(
-          value: 'runs',
-          child: _CompactMenuItem(
-            icon: Icons.history_rounded,
-            label: '実行履歴',
-          ),
+            _CompactDrawerTile(
+              icon: Icons.history_rounded,
+              label: '実行履歴',
+              onTap: () => runAfterClose(() => context.go('/runs')),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.schema_rounded,
+              label: 'ワークフロー',
+              onTap: () => runAfterClose(() => context.go('/workflows')),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.key_rounded,
+              label: '変数',
+              onTap: () => runAfterClose(() => context.go('/variables')),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.rocket_launch_outlined,
+              label: 'ストアリリース',
+              onTap: () => runAfterClose(() => context.go('/store-release')),
+            ),
+            const Divider(height: 24),
+            const _CompactDrawerSectionLabel('GitHub'),
+            if (!isConnected)
+              _CompactDrawerTile(
+                icon: Icons.link_rounded,
+                label: 'GitHub App接続',
+                enabled: !isBusy,
+                onTap: () => runAfterClose(onConnectGitHub),
+              ),
+            _CompactDrawerTile(
+              icon: Icons.account_tree_outlined,
+              label: '$repoCount repo',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onSelectRepositories),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.download_rounded,
+              label: 'issue取り込み',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onImportIssues),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.sync_outlined,
+              label: '未同期を同期',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onSyncIssues),
+            ),
+            const Divider(height: 24),
+            const _CompactDrawerSectionLabel('アカウント'),
+            _CompactDrawerTile(
+              icon: Icons.search_outlined,
+              label: 'issue検索',
+              onTap: () => runAfterClose(onSearchIssues),
+            ),
+            if (onSwitchTeam != null)
+              _CompactDrawerTile(
+                icon: Icons.groups_2_outlined,
+                label: 'チームを切り替え',
+                onTap: () => runAfterClose(onSwitchTeam!),
+              ),
+            _CompactDrawerTile(
+              icon: Icons.logout_rounded,
+              label: 'サインアウト',
+              onTap: () {
+                closeDrawer();
+                unawaited(onSignOut());
+              },
+            ),
+          ],
         ),
-        const PopupMenuItem(
-          value: 'workflows',
-          child: _CompactMenuItem(
-            icon: Icons.schema_rounded,
-            label: 'ワークフロー',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'variables',
-          child: _CompactMenuItem(
-            icon: Icons.key_rounded,
-            label: '変数',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'storeRelease',
-          child: _CompactMenuItem(
-            icon: Icons.rocket_launch_outlined,
-            label: 'ストアリリース',
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'signOut',
-          child: _CompactMenuItem(icon: Icons.logout_rounded, label: 'サインアウト'),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _CompactMenuItem extends StatelessWidget {
-  const _CompactMenuItem({required this.icon, required this.label});
+class _CompactDrawerSectionLabel extends StatelessWidget {
+  const _CompactDrawerSectionLabel(this.label);
 
-  final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 10),
-        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactDrawerTile extends StatelessWidget {
+  const _CompactDrawerTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool enabled;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? const Color(0xFF2563EB)
+        : enabled
+        ? const Color(0xFF0F172A)
+        : const Color(0xFFCBD5E1);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        enabled: enabled,
+        selected: selected,
+        selectedTileColor: const Color(0xFFEFF6FF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: Icon(icon, color: color),
+        title: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        onTap: enabled ? onTap : null,
+      ),
     );
   }
 }
