@@ -67,7 +67,6 @@ interface CreateGitHubIssueRequest extends WorkspaceRequest {
   title: string;
   body?: string;
   repo: string;
-  assignee?: string;
   labels?: string[];
   statusId: string;
   priority: string;
@@ -196,8 +195,6 @@ interface GitHubIssueResponseItem {
   state?: unknown;
   comments?: unknown;
   labels?: Array<string | { name?: unknown }>;
-  assignee?: { login?: unknown } | null;
-  assignees?: Array<{ login?: unknown }>;
   updated_at?: unknown;
   created_at?: unknown;
   pull_request?: unknown;
@@ -297,8 +294,6 @@ interface GitHubIssueWebhookPayload {
     state_reason?: unknown;
     comments?: unknown;
     labels?: Array<string | { name?: unknown }>;
-    assignee?: { login?: unknown } | null;
-    assignees?: Array<{ login?: unknown }>;
     updated_at?: unknown;
     created_at?: unknown;
     pull_request?: unknown;
@@ -481,6 +476,14 @@ function asString(value: unknown, fallback = ""): string {
 
 function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" ? value : fallback;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorStack(error: unknown): string | undefined {
+  return error instanceof Error ? error.stack : undefined;
 }
 
 function asBoolean(value: unknown, fallback = false): boolean {
@@ -750,6 +753,64 @@ function asStringList(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && item.length > 0);
 }
 
+async function patchGitHubIssueCore(input: {
+  owner: string;
+  repo: string;
+  number: number;
+  token: string;
+  title?: unknown;
+  body?: unknown;
+  statusId?: unknown;
+}): Promise<void> {
+  const update: Record<string, unknown> = {};
+  if (input.title !== undefined) {
+    update.title = asString(input.title);
+  }
+  if (input.body !== undefined) {
+    update.body = asString(input.body);
+  }
+  if (input.statusId !== undefined) {
+    update.state = asString(input.statusId) === closedStatusId ? "closed" : "open";
+  }
+  if (Object.keys(update).length === 0) {
+    return;
+  }
+
+  await githubRequest({
+    path: `/repos/${input.owner}/${input.repo}/issues/${input.number}`,
+    token: input.token,
+    method: "PATCH",
+    body: update,
+  });
+}
+
+async function patchGitHubIssueLabelsSafely(input: {
+  workspaceId: string;
+  owner: string;
+  repo: string;
+  number: number;
+  token: string;
+  labels: unknown;
+}): Promise<void> {
+  try {
+    await githubRequest({
+      path: `/repos/${input.owner}/${input.repo}/issues/${input.number}`,
+      token: input.token,
+      method: "PATCH",
+      body: { labels: asStringList(input.labels) },
+    });
+  } catch (error) {
+    logger.warn("autoSyncIssueToGitHub: failed to sync labels", {
+      workspaceId: input.workspaceId,
+      owner: input.owner,
+      repo: input.repo,
+      number: input.number,
+      errorMessage: errorMessage(error),
+      stack: errorStack(error),
+    });
+  }
+}
+
 function asTimestamp(value: unknown): Timestamp | null {
   if (typeof value !== "string") {
     return null;
@@ -882,14 +943,6 @@ function issueLabels(issue: GitHubIssueResponseItem): string[] {
       return asString(label.name);
     })
     .filter((label) => label.length > 0);
-}
-
-function issueAssignee(issue: GitHubIssueResponseItem): string {
-  const assignees = issue.assignees ?? [];
-  const firstAssignee = assignees
-    .map((assignee) => asString(assignee.login))
-    .find((login) => login.length > 0);
-  return firstAssignee ?? asString(issue.assignee?.login, "-");
 }
 
 function issueSubIssuesSummary(issue: GitHubIssueResponseItem): Record<string, unknown> | null {
@@ -1679,7 +1732,6 @@ export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubI
                 title: asString(issue.title, `#${number}`),
                 body: asString(issue.body),
                 repo: repository.fullName,
-                assignee: issueAssignee(issue),
                 labels: issueLabels(issue),
                 comments: asNumber(issue.comments),
                 priority: asString(existingData.priority, "medium"),
@@ -1747,14 +1799,11 @@ export const createGitHubIssue = onCall<
   }
 
   const body = asString(request.data?.body);
-  const assignee = asString(request.data?.assignee);
   const labels = Array.isArray(request.data?.labels)
     ? request.data.labels.filter(
         (label): label is string => typeof label === "string" && label.length > 0,
       )
     : [];
-  const githubAssignee = assignee.startsWith("@") ? assignee.slice(1) : "";
-  const assignees = githubAssignee.length > 0 ? [githubAssignee] : [];
 
   try {
     logger.info("Creating GitHub issue", { workspaceId, repoFullName, owner, repo, title });
@@ -1766,7 +1815,6 @@ export const createGitHubIssue = onCall<
         title,
         body,
         labels,
-        assignees,
       },
     });
 
@@ -1787,7 +1835,6 @@ export const createGitHubIssue = onCall<
         title: asString(issue.title, title),
         body: asString(issue.body, body),
         repo: repoFullName,
-        assignee: issueAssignee(issue),
         labels: issueLabels(issue),
         comments: asNumber(issue.comments),
         priority: asString(request.data?.priority, "medium"),
@@ -1854,9 +1901,6 @@ export const createGitHubSubIssue = onCall<
     throw new HttpsError("failed-precondition", "Parent GitHub issue number is missing");
   }
 
-  const assignee = asString(parentIssue.assignee);
-  const githubAssignee = assignee.startsWith("@") ? assignee.slice(1) : "";
-  const assignees = githubAssignee.length > 0 ? [githubAssignee] : [];
   const labels = asStringList(parentIssue.labels);
 
   try {
@@ -1877,7 +1921,6 @@ export const createGitHubSubIssue = onCall<
         title,
         body,
         labels,
-        assignees,
       },
     });
 
@@ -1919,7 +1962,6 @@ export const createGitHubSubIssue = onCall<
         title: asString(issue.title, title),
         body: asString(issue.body, body),
         repo: `${owner}/${repo}`,
-        assignee: issueAssignee(issue),
         labels: issueLabels(issue),
         comments: asNumber(issue.comments),
         priority: asString(parentIssue.priority, "medium"),
@@ -2643,10 +2685,6 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
       const labels = (ghIssue.labels ?? [])
         .map((label) => (typeof label === "string" ? label : asString(label.name)))
         .filter((label) => label.length > 0);
-      const assignees = (ghIssue.assignees ?? [])
-        .map((assignee) => asString(assignee.login))
-        .filter((login) => login.length > 0);
-      const assignee = assignees[0] ?? asString(ghIssue.assignee?.login, "-");
 
       const keyFields = await issueKeyFields(workspaceRef.id, existingData);
 
@@ -2664,7 +2702,6 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
           title,
           body,
           repo: repoFullName,
-          assignee,
           labels,
           comments: asNumber(ghIssue.comments),
           priority: asString(existingData.priority, "medium"),
@@ -3070,20 +3107,22 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
         const owner = requireNonEmptyString(githubIssue.owner, "githubIssue.owner");
         const repo = requireNonEmptyString(githubIssue.repo, "githubIssue.repo");
         const number = asNumber(githubIssue.number);
-        const assignee = asString(issue.assignee);
-        const assignees = assignee.length > 0 && assignee !== "-" ? [assignee] : [];
-
-        await githubRequest({
-          path: `/repos/${owner}/${repo}/issues/${number}`,
+        await patchGitHubIssueCore({
+          owner,
+          repo,
+          number,
           token,
-          method: "PATCH",
-          body: {
-            title: asString(issue.title),
-            body: asString(issue.body),
-            state: asString(issue.statusId) === "done" ? "closed" : "open",
-            labels: Array.isArray(issue.labels) ? issue.labels : [],
-            assignees,
-          },
+          title: issue.title,
+          body: issue.body,
+          statusId: issue.statusId,
+        });
+        await patchGitHubIssueLabelsSafely({
+          workspaceId,
+          owner,
+          repo,
+          number,
+          token,
+          labels: issue.labels,
         });
 
         await operation.ref.set(
@@ -3437,10 +3476,9 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
     const titleChanged = after.title !== before?.title;
     const bodyChanged = after.body !== before?.body;
     const labelsChanged = JSON.stringify(after.labels) !== JSON.stringify(before?.labels);
-    const assigneeChanged = after.assignee !== before?.assignee;
     const statusChanged = after.statusId !== before?.statusId;
 
-    if (!titleChanged && !bodyChanged && !labelsChanged && !assigneeChanged && !statusChanged) {
+    if (!titleChanged && !bodyChanged && !labelsChanged && !statusChanged) {
       return;
     }
 
@@ -3464,26 +3502,36 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
       return;
     }
 
-    const assignee = asString(after.assignee);
-    const assignees = assignee.length > 0 && assignee !== "-" ? [assignee] : [];
-
     try {
-      await githubRequest({
-        path: `/repos/${owner}/${repo}/issues/${number}`,
+      await patchGitHubIssueCore({
+        owner,
+        repo,
+        number,
         token,
-        method: "PATCH",
-        body: {
-          title: asString(after.title),
-          body: asString(after.body),
-          state: asString(after.statusId) === "done" ? "closed" : "open",
-          labels: Array.isArray(after.labels) ? after.labels : [],
-          assignees,
-        },
+        ...(titleChanged ? { title: after.title } : {}),
+        ...(bodyChanged ? { body: after.body } : {}),
+        ...(statusChanged ? { statusId: after.statusId } : {}),
       });
+      if (labelsChanged) {
+        await patchGitHubIssueLabelsSafely({
+          workspaceId,
+          owner,
+          repo,
+          number,
+          token,
+          labels: after.labels,
+        });
+      }
       logger.info("autoSyncIssueToGitHub: synced", { workspaceId, owner, repo, number });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.error("autoSyncIssueToGitHub: failed", { workspaceId, owner, repo, number, message });
+      logger.error("autoSyncIssueToGitHub: failed", {
+        workspaceId,
+        owner,
+        repo,
+        number,
+        errorMessage: errorMessage(error),
+        stack: errorStack(error),
+      });
     }
   },
 );
