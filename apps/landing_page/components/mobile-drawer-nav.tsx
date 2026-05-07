@@ -34,6 +34,7 @@ export function MobileDrawerNav({ title, homeHref, links, ariaLabel, menuLabel, 
     }
 
     const previousBodyOverflow = document.body.style.overflow;
+    const triggerElement = triggerRef.current;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false);
@@ -47,7 +48,7 @@ export function MobileDrawerNav({ title, homeHref, links, ariaLabel, menuLabel, 
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.removeEventListener('keydown', onKeyDown);
-      triggerRef.current?.focus();
+      triggerElement?.focus();
     };
   }, [open]);
 
