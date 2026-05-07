@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_logs/synced_spinner.dart';
+import 'package:dashboard/firebase/firestore.dart'
+    show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
+import 'package:dashboard/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -9,11 +13,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import 'package:dashboard/build_logs/synced_spinner.dart';
-import 'package:dashboard/firebase/firestore.dart'
-    show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
-import 'package:dashboard/firebase_options.dart';
 
 const _functionsRegion = 'asia-northeast1';
 const _reviewStatusId = 'review';
@@ -980,7 +979,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'title': draft.title,
       'body': draft.body,
       'repo': draft.repo,
-      'assignee': draft.assignee,
       'labels': draft.labels,
       'comments': 0,
       'priority': draft.priority.name,
@@ -1117,7 +1115,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'title': title,
       'body': body,
       'repo': parentIssue.repo,
-      'assignee': parentIssue.assignee,
       'labels': parentIssue.labels,
       'comments': 0,
       'priority': parentIssue.priority.name,
@@ -1183,7 +1180,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'title': draft.title,
       'body': draft.body,
       'repo': draft.repo,
-      'assignee': draft.assignee,
       'labels': draft.labels,
       'statusId': draft.columnId,
       'priority': draft.priority.name,
@@ -1217,7 +1213,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'title': draft.title,
       'body': draft.body,
       'repo': draft.repo,
-      'assignee': draft.assignee,
       'labels': draft.labels,
       'comments': 0,
       'priority': draft.priority.name,
@@ -4300,8 +4295,6 @@ class _IssueSearchResultTile extends StatelessWidget {
                           _IssueSearchMetaPill(label: issue.displayId),
                           _IssueSearchMetaPill(label: issue.repo),
                           _IssueSearchMetaPill(label: entry.column.title),
-                          if (issue.assignee.trim().isNotEmpty)
-                            _IssueSearchMetaPill(label: issue.assignee),
                           for (final label in labels)
                             _IssueSearchMetaPill(label: label),
                         ],
@@ -4369,7 +4362,6 @@ class _IssueSearchEntry {
       issue.repo,
       issue.title,
       issue.body,
-      issue.assignee,
       issue.priority.name,
       column.title,
       ...issue.labels,
@@ -4499,7 +4491,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   final _githubUrlController = TextEditingController();
-  final _assigneeController = TextEditingController(text: 'MF');
   final _labelsController = TextEditingController(text: 'feature, mobile');
   final _subIssueTitleController = TextEditingController();
   final _subIssueBodyController = TextEditingController();
@@ -4544,7 +4535,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     _selectedRepo = widget.repositoryOptions.contains(issue.repo)
         ? issue.repo
         : null;
-    _assigneeController.text = issue.assignee;
     _labelsController.text = issue.labels.join(', ');
     _priority = issue.priority;
     _dueDate = issue.dueDate;
@@ -4585,7 +4575,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     _titleController.dispose();
     _bodyController.dispose();
     _githubUrlController.dispose();
-    _assigneeController.dispose();
     _labelsController.dispose();
     _subIssueTitleController.dispose();
     _subIssueBodyController.dispose();
@@ -4608,7 +4597,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       body: _bodyController.text.trim(),
       repo: _selectedRepo ?? '',
       githubUrl: _normalizedOptionalUrl(_githubUrlController.text),
-      assignee: _assigneeController.text.trim(),
       labels: labels,
       columnId: _selectedColumnId,
       priority: _priority,
@@ -4811,6 +4799,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
         : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
     final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
+    final dialogBorderRadius = BorderRadius.circular(isCompactDialog ? 22 : 28);
     final formContent = Form(
       key: _formKey,
       child: Column(
@@ -4853,13 +4842,12 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             ),
           ),
           const SizedBox(height: 14),
-          _RepoAndAssigneeFields(
+          _RepoField(
             repositories: widget.repositoryOptions,
             selectedRepository: _selectedRepo,
             onRepositoryChanged: (value) {
               setState(() => _selectedRepo = value);
             },
-            assigneeController: _assigneeController,
             decorationBuilder: _inputDecoration,
           ),
           if (isEditing) ...[
@@ -4949,7 +4937,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final content = ClipRRect(
       borderRadius: widget.isBottomSheet
           ? const BorderRadius.vertical(top: Radius.circular(28))
-          : BorderRadius.circular(isCompactDialog ? 22 : 28),
+          : dialogBorderRadius,
       child: Material(
         color: Colors.white,
         child: widget.isBottomSheet
@@ -5043,7 +5031,10 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   horizontal: isCompactDialog ? 12 : 20,
                   vertical: isCompactDialog ? 12 : 24,
                 ),
-                backgroundColor: Colors.transparent,
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: dialogBorderRadius),
+                clipBehavior: Clip.antiAlias,
                 child: framedContent,
               ),
       ),
@@ -5628,77 +5619,46 @@ class _GitHubLinkField extends StatelessWidget {
   }
 }
 
-class _RepoAndAssigneeFields extends StatelessWidget {
-  const _RepoAndAssigneeFields({
+class _RepoField extends StatelessWidget {
+  const _RepoField({
     required this.repositories,
     required this.selectedRepository,
     required this.onRepositoryChanged,
-    required this.assigneeController,
     required this.decorationBuilder,
   });
 
   final List<String> repositories;
   final String? selectedRepository;
   final ValueChanged<String> onRepositoryChanged;
-  final TextEditingController assigneeController;
   final InputDecoration Function({required String label, String? hint})
   decorationBuilder;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final repositoryField = DropdownButtonFormField<String>(
-          initialValue: selectedRepository,
-          decoration: decorationBuilder(
-            label: 'repo',
-            hint: '連携済みrepoから選択',
+    return DropdownButtonFormField<String>(
+      initialValue: selectedRepository,
+      decoration: decorationBuilder(
+        label: 'repo',
+        hint: '連携済みrepoから選択',
+      ),
+      items: [
+        for (final repository in repositories)
+          DropdownMenuItem(
+            value: repository,
+            child: Text(repository, overflow: TextOverflow.ellipsis),
           ),
-          items: [
-            for (final repository in repositories)
-              DropdownMenuItem(
-                value: repository,
-                child: Text(repository, overflow: TextOverflow.ellipsis),
-              ),
-          ],
-          onChanged: repositories.isEmpty
-              ? null
-              : (value) {
-                  if (value == null) {
-                    return;
-                  }
+      ],
+      onChanged: repositories.isEmpty
+          ? null
+          : (value) {
+              if (value == null) {
+                return;
+              }
 
-                  onRepositoryChanged(value);
-                },
-          validator: (value) =>
-              value == null || value.trim().isEmpty ? '先にrepoを選択してください' : null,
-        );
-        final assigneeField = TextFormField(
-          controller: assigneeController,
-          textInputAction: TextInputAction.next,
-          decoration: decorationBuilder(label: '担当者', hint: 'MF'),
-          validator: (value) =>
-              value == null || value.trim().isEmpty ? '担当者を入力してください' : null,
-        );
-
-        if (constraints.maxWidth < 560) {
-          return Column(
-            children: [
-              repositoryField,
-              const SizedBox(height: 12),
-              assigneeField,
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: repositoryField),
-            const SizedBox(width: 12),
-            SizedBox(width: 170, child: assigneeField),
-          ],
-        );
-      },
+              onRepositoryChanged(value);
+            },
+      validator: (value) =>
+          value == null || value.trim().isEmpty ? '先にrepoを選択してください' : null,
     );
   }
 }
@@ -8210,7 +8170,6 @@ class IssueCard extends StatelessWidget {
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  AssigneeMetaChip(assignee: issue.assignee),
                   IssueIdMetaChip(issueId: issue.displayId),
                   if (issue.dueDate != null)
                     DueDatePill(dueDate: issue.dueDate!),
@@ -8319,11 +8278,6 @@ class ReviewGroupIssueCard extends StatelessWidget {
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _ReviewGroupPill(
-                label: issue.assignee,
-                color: const Color(0xFF64748B),
-                icon: Icons.person_outline_rounded,
-              ),
               if (weight != null)
                 _ReviewGroupPill(
                   label: 'W$weight',
@@ -8879,31 +8833,6 @@ class _SubIssueCreatingBadge extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class AssigneeMetaChip extends StatelessWidget {
-  const AssigneeMetaChip({super.key, required this.assignee});
-
-  final String assignee;
-
-  @override
-  Widget build(BuildContext context) {
-    return IssueMetaChip(
-      leading: CircleAvatar(
-        radius: 8,
-        backgroundColor: const Color(0xFFDBEAFE),
-        child: Text(
-          assignee,
-          style: const TextStyle(
-            color: Color(0xFF1D4ED8),
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-      label: assignee,
     );
   }
 }
@@ -9782,7 +9711,6 @@ class NewIssueDraft {
     required this.body,
     required this.repo,
     required this.githubUrl,
-    required this.assignee,
     required this.labels,
     required this.columnId,
     required this.priority,
@@ -9793,7 +9721,6 @@ class NewIssueDraft {
   final String body;
   final String repo;
   final String? githubUrl;
-  final String assignee;
   final List<String> labels;
   final String columnId;
   final Priority priority;
@@ -9972,7 +9899,6 @@ class Issue {
     required this.title,
     this.body = '',
     this.githubUrl,
-    required this.assignee,
     required this.labels,
     required this.comments,
     required this.priority,
@@ -10009,7 +9935,6 @@ class Issue {
       title: _asString(data['title'], '#$number'),
       body: _asString(data['body']),
       githubUrl: _normalizedOptionalUrl(_asString(githubIssue['url'])),
-      assignee: _asString(data['assignee'], '-'),
       labels: _asStringList(data['labels']),
       comments: _asInt(data['comments']),
       priority: _priorityFromString(_asString(data['priority'], 'medium')),
@@ -10049,7 +9974,6 @@ class Issue {
       title: title,
       body: body,
       githubUrl: githubUrl,
-      assignee: assignee,
       labels: labels,
       comments: comments,
       priority: priority,
@@ -10075,7 +9999,6 @@ class Issue {
   final String title;
   final String body;
   final String? githubUrl;
-  final String assignee;
   final List<String> labels;
   final int comments;
   final Priority priority;
