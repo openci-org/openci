@@ -7498,52 +7498,48 @@ class OverviewSectionHeader extends StatelessWidget {
         side: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 9, 8, 8),
-        child: Row(
-          children: [
-            Container(
-              width: 7,
-              height: 24,
-              decoration: BoxDecoration(
-                color: column.color,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                column.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
+      child: InkWell(
+        onTap: onToggleSize,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 9, 8, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 7,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: column.color,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            _OverviewMiniPill(
-              label: '${visibleIssues.length}件 / W$totalWeight',
-              foregroundColor: column.color,
-              backgroundColor: column.color.withValues(alpha: 0.1),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              tooltip: isShrunk ? '表示' : '縮小',
-              onPressed: onToggleSize,
-              icon: Icon(
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  column.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _OverviewMiniPill(
+                label: '${visibleIssues.length}件 / W$totalWeight',
+                foregroundColor: column.color,
+                backgroundColor: column.color.withValues(alpha: 0.1),
+              ),
+              const SizedBox(width: 4),
+              Icon(
                 isShrunk
                     ? Icons.keyboard_arrow_down_rounded
                     : Icons.keyboard_arrow_up_rounded,
+                size: 22,
               ),
-              iconSize: 22,
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints.tightFor(width: 34, height: 34),
-              padding: EdgeInsets.zero,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
