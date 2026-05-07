@@ -1,4 +1,4 @@
-export { appendBuildLogForWorker, BuildJobStatus, claimQueuedBuildJob, completeBuildJobForWorker, createBuildRunForWorker, getBuildJob, listWorkerEnvironmentVariables, listWorkerSecrets, updateBuildJobStatus, updateBuildRunStatusForWorker, updateEnvironmentVariableValueForWorker, } from "./firestoreData";
+export { appendBuildLogForWorker, BuildJobStatus, claimQueuedBuildJob, completeBuildJobForWorker, createBuildRunForWorker, getBuildJob, listWorkerEnvironmentVariables, listWorkerSecrets, updateBuildJobStatus, updateBuildRunStatusForWorker, updateEnvironmentVariableValueForWorker, upsertWorkerHeartbeat, } from "./firestoreData";
 import { BuildJobStatus } from "./firestoreData";
 type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
 export interface BuildJob {

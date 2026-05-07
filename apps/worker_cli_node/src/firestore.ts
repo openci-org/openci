@@ -12,10 +12,11 @@ import {
   updateBuildJobStatus,
   updateBuildRunStatusForWorker,
   updateEnvironmentVariableValueForWorker,
+  upsertWorkerHeartbeat,
 } from "@openci/build-job-services";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 
-import type { BuildJob } from "./types.js";
+import type { BuildJob, WorkerHeartbeatInput } from "./types.js";
 
 type SuccessfulBuildJobStatus = typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE;
 
@@ -85,6 +86,10 @@ export async function updateRunStatus(input: {
   conclusion?: string | null;
 }): Promise<void> {
   await updateBuildRunStatusForWorker(input);
+}
+
+export async function updateWorkerHeartbeat(input: WorkerHeartbeatInput): Promise<void> {
+  await upsertWorkerHeartbeat(input);
 }
 
 export async function isJobCancelled(buildJobId: string): Promise<boolean> {

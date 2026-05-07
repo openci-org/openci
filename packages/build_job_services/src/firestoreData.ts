@@ -35,6 +35,7 @@ const collections = {
   workflows: "workflows_v1",
   workflowFiles: "workflow_files_v0",
   buildJobs: "build_jobs_v0",
+  workerInstances: "worker_instances_v0",
 };
 
 function db() {
@@ -423,6 +424,35 @@ async function completeBuildJobForWorker(...args) {
   return { data: { buildJob_update: { id: vars.id } } };
 }
 
+async function upsertWorkerHeartbeat(...args) {
+  const vars = varsFromArgs(...args);
+  await db().runTransaction(async (tx) => {
+    const ref = db().collection(collections.workerInstances).doc(vars.workerId);
+    const snap = await tx.get(ref);
+    tx.set(
+      ref,
+      withTimestamps(
+        {
+          workerId: vars.workerId,
+          version: vars.version,
+          platform: vars.platform,
+          hostname: vars.hostname,
+          pid: vars.pid,
+          status: vars.status,
+          lastSeenAt: now(),
+          currentBuildJobId: vars.currentBuildJobId ?? null,
+          currentRunId: vars.currentRunId ?? null,
+          consecutiveFailures: vars.consecutiveFailures ?? 0,
+          lastError: vars.lastError ?? null,
+        },
+        !snap.exists,
+      ),
+      { merge: true },
+    );
+  });
+  return { data: { workerHeartbeat_upsert: { id: vars.workerId } } };
+}
+
 async function listLatestBuildLogs(...args) {
   const vars = varsFromArgs(...args);
   const buildLogs = await queryAll(
@@ -572,5 +602,6 @@ export {
   updateSecretMetadata,
   updateUserFcmTokens,
   updateWorkflowSecretKeys,
+  upsertWorkerHeartbeat,
   upsertWorkflowFile,
 };

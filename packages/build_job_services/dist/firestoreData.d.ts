@@ -201,6 +201,13 @@ declare function completeBuildJobForWorker(...args: any[]): Promise<{
         };
     };
 }>;
+declare function upsertWorkerHeartbeat(...args: any[]): Promise<{
+    data: {
+        workerHeartbeat_upsert: {
+            id: any;
+        };
+    };
+}>;
 declare function listLatestBuildLogs(...args: any[]): Promise<{
     data: {
         buildLogs: any;
@@ -290,4 +297,4 @@ declare function updateEnvironmentVariableValueForWorker(...args: any[]): Promis
         };
     };
 }>;
-export { acceptInvitationAndJoinTeam, addTeamMember, appendBuildLogForWorker, claimQueuedBuildJob, completeBuildJobForWorker, createBuildJob, createBuildRunForWorker, createInvitation, createSecretMetadata, deleteSecretMetadata, deleteWorkflowFile, expireInvitation, findExistingPendingInvitation, findSecretByNameForTeam, findTeamByInstallation, getBuildJob, getInvitationByToken, getSecretPathForTeam, getSecretsByNamesForTeam, getTeamById, getTeamForMember, getWorkflowFile, linkGitHubInstallation, listBuildJobsByWorkflowRun, listLatestBuildLogs, listMyPendingInvitations, listTeamMembers, listTeamNotificationUsers, listWaitingBuildJobs, listWorkerEnvironmentVariables, listWorkerSecrets, listWorkflowFilesForBranch, listWorkflowsForTeam, reinviteInvitation, updateBuildJobFailureSummary, updateBuildJobStatus, updateBuildRunStatusForWorker, updateEnvironmentVariableValueForWorker, updateSecretMetadata, updateUserFcmTokens, updateWorkflowSecretKeys, upsertWorkflowFile, };
+export { acceptInvitationAndJoinTeam, addTeamMember, appendBuildLogForWorker, claimQueuedBuildJob, completeBuildJobForWorker, createBuildJob, createBuildRunForWorker, createInvitation, createSecretMetadata, deleteSecretMetadata, deleteWorkflowFile, expireInvitation, findExistingPendingInvitation, findSecretByNameForTeam, findTeamByInstallation, getBuildJob, getInvitationByToken, getSecretPathForTeam, getSecretsByNamesForTeam, getTeamById, getTeamForMember, getWorkflowFile, linkGitHubInstallation, listBuildJobsByWorkflowRun, listLatestBuildLogs, listMyPendingInvitations, listTeamMembers, listTeamNotificationUsers, listWaitingBuildJobs, listWorkerEnvironmentVariables, listWorkerSecrets, listWorkflowFilesForBranch, listWorkflowsForTeam, reinviteInvitation, updateBuildJobFailureSummary, updateBuildJobStatus, updateBuildRunStatusForWorker, updateEnvironmentVariableValueForWorker, updateSecretMetadata, updateUserFcmTokens, updateWorkflowSecretKeys, upsertWorkerHeartbeat, upsertWorkflowFile, };
