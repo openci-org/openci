@@ -397,7 +397,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.openci.dashboard.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dashboard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/dashboard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenCI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpenCI";
 			};
 			name = Debug;
 		};
@@ -411,7 +411,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.openci.dashboard.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dashboard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/dashboard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenCI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpenCI";
 			};
 			name = Release;
 		};
@@ -425,7 +425,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.openci.dashboard.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dashboard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/dashboard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenCI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpenCI";
 			};
 			name = Profile;
 		};
