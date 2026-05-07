@@ -1652,22 +1652,24 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                       onChanged: (mode) =>
                           setState(() => _boardViewMode = mode),
                     ),
-                    CompactBoardMenuButton(
-                      isConnected: isConnected,
-                      isBusy: _isBusy,
-                      repoCount: _enabledRepoCount,
-                      onConnectGitHub: _connectGitHub,
-                      onSelectRepositories: _selectRepositories,
-                      onImportIssues: _importGitHubIssues,
-                      onSyncIssues: _syncGitHubIssues,
-                      onSearchIssues: _openIssueSearchDialog,
-                      onSignOut: onSignOut,
-                      workspaceName: widget.workspaceName,
-                      onSwitchTeam: widget.onSwitchTeam,
-                      onWorkersTap: _openWorkerInspector,
-                    ),
                     const SizedBox(width: 4),
                   ],
+                )
+              : null,
+          drawer: isCompactLayout
+              ? CompactBoardDrawer(
+                  isConnected: isConnected,
+                  isBusy: _isBusy,
+                  repoCount: _enabledRepoCount,
+                  onConnectGitHub: _connectGitHub,
+                  onSelectRepositories: _selectRepositories,
+                  onImportIssues: _importGitHubIssues,
+                  onSyncIssues: _syncGitHubIssues,
+                  onSearchIssues: _openIssueSearchDialog,
+                  onSignOut: onSignOut,
+                  workspaceName: widget.workspaceName,
+                  onSwitchTeam: widget.onSwitchTeam,
+                  onWorkersTap: _openWorkerInspector,
                 )
               : null,
           floatingActionButton: isCompactLayout
@@ -2223,9 +2225,9 @@ class WorkerOverviewMetric extends StatelessWidget {
           return _WorkerOverviewTapTarget(
             onTap: onTap,
             child: const OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '-',
-              detail: 'read error',
+              detail: '読み込みエラー',
               valueColor: Color(0xFFDC2626),
               width: 112,
             ),
@@ -2235,9 +2237,9 @@ class WorkerOverviewMetric extends StatelessWidget {
           return _WorkerOverviewTapTarget(
             onTap: onTap,
             child: const OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '-',
-              detail: 'loading',
+              detail: '読み込み中',
               width: 112,
             ),
           );
@@ -2246,16 +2248,16 @@ class WorkerOverviewMetric extends StatelessWidget {
         final summary = WorkerOverviewSummary.fromDocs(snapshot.data!.docs);
         final valueColor = summary.offlineCount > 0
             ? const Color(0xFFA16207)
-            : const Color(0xFF15803D);
+            : const Color(0xFF16A34A);
         return Tooltip(
           message:
-              'macOS ${summary.onlineMacos}/${summary.totalMacos} online / '
-              'Linux ${summary.onlineLinux}/${summary.totalLinux} online / '
-              'offline ${summary.offlineCount}',
+              'macOS ${summary.onlineMacos}/${summary.totalMacos} オンライン / '
+              'Linux ${summary.onlineLinux}/${summary.totalLinux} オンライン / '
+              'オフライン ${summary.offlineCount}',
           child: _WorkerOverviewTapTarget(
             onTap: onTap,
             child: OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '${summary.onlineCount}/${summary.totalCount}',
               valueColor: valueColor,
               detail:
@@ -2376,6 +2378,7 @@ class WorkerInspectorPanel extends StatelessWidget {
         final workers = snapshot.data!.docs
             .map(WorkerInspectorItem.fromDoc)
             .toList();
+        workers.sort(_compareWorkerInspectorItems);
         final macosWorkers = workers
             .where(
               (worker) => worker.platformGroup == WorkerPlatformGroup.macos,
@@ -2416,7 +2419,7 @@ class WorkerInspectorPanel extends StatelessWidget {
                     if (otherWorkers.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       _WorkerInspectorSection(
-                        title: 'Other',
+                        title: 'その他',
                         workers: otherWorkers,
                         icon: Icons.device_unknown_rounded,
                       ),
@@ -2454,7 +2457,7 @@ class _WorkerInspectorShell extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Workers',
+                      'ワーカー',
                       style: TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 18,
@@ -2504,7 +2507,7 @@ class _WorkerInspectorSummary extends StatelessWidget {
         _WorkerInspectorSummaryChip(
           label: 'オンライン',
           value: online,
-          color: const Color(0xFF15803D),
+          color: const Color(0xFF16A34A),
         ),
         _WorkerInspectorSummaryChip(
           label: '実行中',
@@ -2612,7 +2615,7 @@ class _WorkerInspectorSection extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$online/${workers.length} online',
+                  '$online/${workers.length} オンライン',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
                     fontSize: 12,
@@ -2721,8 +2724,8 @@ class _WorkerInspectorRow extends StatelessWidget {
             _WorkerInspectorDetail(
               icon: Icons.play_circle_outline_rounded,
               text: worker.currentRunId == null
-                  ? 'Current job: ${worker.currentBuildJobId}'
-                  : 'Current job: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
+                  ? '実行中のジョブ: ${worker.currentBuildJobId}'
+                  : '実行中のジョブ: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
             ),
           ],
           if (worker.lastError != null && worker.lastError!.isNotEmpty) ...[
@@ -2790,6 +2793,17 @@ class _WorkerInspectorEmpty extends StatelessWidget {
 
 enum WorkerPlatformGroup { macos, linux, other }
 
+int _compareWorkerInspectorItems(
+  WorkerInspectorItem a,
+  WorkerInspectorItem b,
+) {
+  final platformCompare = a.platformGroup.index.compareTo(
+    b.platformGroup.index,
+  );
+  if (platformCompare != 0) return platformCompare;
+  return a.workerId.toLowerCase().compareTo(b.workerId.toLowerCase());
+}
+
 class WorkerInspectorItem {
   const WorkerInspectorItem({
     required this.workerId,
@@ -2855,14 +2869,24 @@ class WorkerInspectorItem {
     return WorkerPlatformGroup.other;
   }
 
-  String get statusLabel => isOnline ? status : 'offline';
+  String get statusLabel {
+    if (!isOnline) return 'オフライン';
+    return switch (status) {
+      'busy' => '実行中',
+      'error' => 'エラー',
+      'idle' => '待機中',
+      'starting' => '起動中',
+      'stopping' => '停止中',
+      _ => '不明',
+    };
+  }
 
   Color get statusColor {
     if (!isOnline) return const Color(0xFF94A3B8);
     return switch (status) {
       'busy' => const Color(0xFF2563EB),
       'error' => const Color(0xFFDC2626),
-      'idle' => const Color(0xFF15803D),
+      'idle' => const Color(0xFF16A34A),
       'starting' => const Color(0xFFA16207),
       'stopping' => const Color(0xFFA16207),
       _ => const Color(0xFF94A3B8),
@@ -2872,10 +2896,11 @@ class WorkerInspectorItem {
 
 String _formatWorkerLastSeen(DateTime lastSeenAt) {
   final diff = DateTime.now().difference(lastSeenAt);
-  if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
-  return '${diff.inDays}d ago';
+  if (diff.inSeconds < 10) return 'たった今';
+  if (diff.inSeconds < 60) return '${diff.inSeconds}秒前';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}分前';
+  if (diff.inHours < 24) return '${diff.inHours}時間前';
+  return '${diff.inDays}日前';
 }
 
 class DailyProgressOverview extends StatelessWidget {
@@ -4422,7 +4447,7 @@ class BoardToolbar extends StatelessWidget {
                   ),
                   ToolbarChip(
                     icon: Icons.dns_outlined,
-                    label: 'Workers',
+                    label: 'ワーカー',
                     tooltip: 'OpenCI worker の稼動状況を開く',
                     onPressed: onWorkersTap,
                   ),
@@ -4612,8 +4637,8 @@ class _CompactBoardViewModeSegment extends StatelessWidget {
   }
 }
 
-class CompactBoardMenuButton extends StatelessWidget {
-  const CompactBoardMenuButton({
+class CompactBoardDrawer extends StatelessWidget {
+  const CompactBoardDrawer({
     super.key,
     required this.isConnected,
     required this.isBusy,
@@ -4644,149 +4669,204 @@ class CompactBoardMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'ボード操作',
-      icon: const Icon(Icons.menu_rounded),
-      onSelected: (value) {
-        switch (value) {
-          case 'github':
-            onConnectGitHub();
-          case 'repos':
-            onSelectRepositories();
-          case 'import':
-            onImportIssues();
-          case 'sync':
-            onSyncIssues();
-          case 'search':
-            onSearchIssues();
-          case 'switchTeam':
-            onSwitchTeam?.call();
-          case 'runs':
-            context.go('/runs');
-          case 'workers':
-            onWorkersTap();
-          case 'workflows':
-            context.go('/workflows');
-          case 'variables':
-            context.go('/variables');
-          case 'storeRelease':
-            context.go('/store-release');
-          case 'signOut':
-            unawaited(onSignOut());
-        }
-      },
-      itemBuilder: (context) => [
-        if (!isConnected)
-          PopupMenuItem(
-            value: 'github',
-            enabled: !isBusy,
-            child: const _CompactMenuItem(
-              icon: Icons.link_rounded,
-              label: 'GitHub App接続',
+    void closeDrawer() => Navigator.of(context).pop();
+    void runAfterClose(VoidCallback action) {
+      closeDrawer();
+      action();
+    }
+
+    return Drawer(
+      backgroundColor: const Color(0xFFF8FAFC),
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'OpenCI',
+                    style: TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    workspaceName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isConnected ? '$repoCount repo connected' : 'GitHub未接続',
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        PopupMenuItem(
-          value: 'repos',
-          enabled: !isBusy && isConnected,
-          child: _CompactMenuItem(
-            icon: Icons.account_tree_outlined,
-            label: '$repoCount repo',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'import',
-          enabled: !isBusy && isConnected,
-          child: const _CompactMenuItem(
-            icon: Icons.download_rounded,
-            label: 'issue取り込み',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'sync',
-          enabled: !isBusy && isConnected,
-          child: const _CompactMenuItem(
-            icon: Icons.sync_outlined,
-            label: '未同期を同期',
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'search',
-          child: _CompactMenuItem(
-            icon: Icons.search_outlined,
-            label: 'issue検索',
-          ),
-        ),
-        const PopupMenuDivider(),
-        if (onSwitchTeam != null) ...[
-          PopupMenuItem(
-            value: 'switchTeam',
-            child: _CompactMenuItem(
-              icon: Icons.groups_2_outlined,
-              label: workspaceName,
+            const Divider(height: 1),
+            const _CompactDrawerSectionLabel('ナビゲーション'),
+            _CompactDrawerTile(
+              icon: Icons.view_kanban_outlined,
+              label: 'Issue board',
+              selected: true,
+              onTap: closeDrawer,
             ),
-          ),
-          const PopupMenuDivider(),
-        ],
-        const PopupMenuItem(
-          value: 'runs',
-          child: _CompactMenuItem(
-            icon: Icons.history_rounded,
-            label: '実行履歴',
-          ),
+            _CompactDrawerTile(
+              icon: Icons.history_rounded,
+              label: '実行履歴',
+              onTap: () => runAfterClose(() => context.go('/runs')),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.dns_outlined,
+              label: 'ワーカー',
+              onTap: () => runAfterClose(onWorkersTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.schema_rounded,
+              label: 'ワークフロー',
+              onTap: () => runAfterClose(() => context.go('/workflows')),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.key_rounded,
+              label: '変数',
+              onTap: () => runAfterClose(() => context.go('/variables')),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.rocket_launch_outlined,
+              label: 'ストアリリース',
+              onTap: () => runAfterClose(() => context.go('/store-release')),
+            ),
+            const Divider(height: 24),
+            const _CompactDrawerSectionLabel('GitHub'),
+            if (!isConnected)
+              _CompactDrawerTile(
+                icon: Icons.link_rounded,
+                label: 'GitHub App接続',
+                enabled: !isBusy,
+                onTap: () => runAfterClose(onConnectGitHub),
+              ),
+            _CompactDrawerTile(
+              icon: Icons.account_tree_outlined,
+              label: '$repoCount repo',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onSelectRepositories),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.download_rounded,
+              label: 'issue取り込み',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onImportIssues),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.sync_outlined,
+              label: '未同期を同期',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onSyncIssues),
+            ),
+            const Divider(height: 24),
+            const _CompactDrawerSectionLabel('アカウント'),
+            _CompactDrawerTile(
+              icon: Icons.search_outlined,
+              label: 'issue検索',
+              onTap: () => runAfterClose(onSearchIssues),
+            ),
+            if (onSwitchTeam != null)
+              _CompactDrawerTile(
+                icon: Icons.groups_2_outlined,
+                label: 'チームを切り替え',
+                onTap: () => runAfterClose(onSwitchTeam!),
+              ),
+            _CompactDrawerTile(
+              icon: Icons.logout_rounded,
+              label: 'サインアウト',
+              onTap: () {
+                closeDrawer();
+                unawaited(onSignOut());
+              },
+            ),
+          ],
         ),
-        const PopupMenuItem(
-          value: 'workers',
-          child: _CompactMenuItem(
-            icon: Icons.dns_outlined,
-            label: 'Workers',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'workflows',
-          child: _CompactMenuItem(
-            icon: Icons.schema_rounded,
-            label: 'ワークフロー',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'variables',
-          child: _CompactMenuItem(
-            icon: Icons.key_rounded,
-            label: '変数',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'storeRelease',
-          child: _CompactMenuItem(
-            icon: Icons.rocket_launch_outlined,
-            label: 'ストアリリース',
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'signOut',
-          child: _CompactMenuItem(icon: Icons.logout_rounded, label: 'サインアウト'),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _CompactMenuItem extends StatelessWidget {
-  const _CompactMenuItem({required this.icon, required this.label});
+class _CompactDrawerSectionLabel extends StatelessWidget {
+  const _CompactDrawerSectionLabel(this.label);
 
-  final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 10),
-        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactDrawerTile extends StatelessWidget {
+  const _CompactDrawerTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool enabled;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? const Color(0xFF2563EB)
+        : enabled
+        ? const Color(0xFF0F172A)
+        : const Color(0xFFCBD5E1);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        enabled: enabled,
+        selected: selected,
+        selectedTileColor: const Color(0xFFEFF6FF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: Icon(icon, color: color),
+        title: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        onTap: enabled ? onTap : null,
+      ),
     );
   }
 }
