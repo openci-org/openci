@@ -55,6 +55,7 @@ export {
   createGitHubIssue,
   createGitHubSubIssue,
   importGitHubIssues,
+  linkIssueToGitHubPullRequest,
   syncGitHubIssues,
 } from "./issues/githubIssueHandlers";
 export { githubPullRequestWebhook } from "./issues/githubWebhookHandlers";

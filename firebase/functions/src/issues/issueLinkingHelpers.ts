@@ -42,8 +42,24 @@ export function upsertLinkedIssueBlock(
   githubIssueNumber: number,
   imaIssueKey: string,
 ): string {
-  const trimmedBody = (body ?? "").replace(managedBlockPattern, "").trim();
-  const block = linkedIssueBlock(githubIssueNumber, imaIssueKey);
+  const currentBody = body ?? "";
+  const existingBlock = currentBody.match(managedBlockPattern)?.[0] ?? "";
+  const entries = new Map<number, string>();
+  for (const match of existingBlock.matchAll(/Fixes #(\d+)\s*\nIma: ([^\n]+)/gu)) {
+    const number = Number(match[1]);
+    const key = match[2]?.trim();
+    if (Number.isInteger(number) && number > 0 && key !== undefined && key.length > 0) {
+      entries.set(number, key);
+    }
+  }
+  entries.set(githubIssueNumber, imaIssueKey);
+
+  const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
+  const block = [
+    imaLinkedIssueBlockStart,
+    ...Array.from(entries.entries()).flatMap(([number, key]) => [`Fixes #${number}`, `Ima: ${key}`]),
+    imaLinkedIssueBlockEnd,
+  ].join("\n");
   return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
 }
 
