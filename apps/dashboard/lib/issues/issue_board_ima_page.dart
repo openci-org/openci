@@ -5718,6 +5718,7 @@ class AddIssueDialog extends StatefulWidget {
 class _AddIssueDialogState extends State<AddIssueDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  final _titleFocusNode = FocusNode();
   final _bodyController = TextEditingController();
   final _githubUrlController = TextEditingController();
   final _labelsController = TextEditingController(text: 'feature, mobile');
@@ -5753,6 +5754,12 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     if (issue != null) {
       _issueStack.add(issue);
       _setCurrentIssue(issue, listen: true);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _titleFocusNode.requestFocus();
+        }
+      });
     }
   }
 
@@ -5802,6 +5809,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   void dispose() {
     _issueSubscription?.cancel();
     _titleController.dispose();
+    _titleFocusNode.dispose();
     _bodyController.dispose();
     _githubUrlController.dispose();
     _labelsController.dispose();
@@ -6053,6 +6061,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
           ],
           _TitleField(
             controller: _titleController,
+            focusNode: _titleFocusNode,
             decoration: _inputDecoration(
               label: 'タイトル',
               hint: '例: issueの同期ステータスを表示する',
@@ -6763,15 +6772,21 @@ class _IssueIdChipState extends State<_IssueIdChip> {
 }
 
 class _TitleField extends StatelessWidget {
-  const _TitleField({required this.controller, required this.decoration});
+  const _TitleField({
+    required this.controller,
+    required this.focusNode,
+    required this.decoration,
+  });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final InputDecoration decoration;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       autofocus: true,
       textInputAction: TextInputAction.next,
       decoration: decoration,
