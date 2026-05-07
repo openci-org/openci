@@ -82,6 +82,12 @@ interface CreateGitHubSubIssueRequest extends WorkspaceRequest {
   body?: string;
 }
 
+interface LinkIssueToGitHubPullRequestRequest extends WorkspaceRequest {
+  issueId: string;
+  repository: string;
+  pullRequestNumber: number;
+}
+
 interface GitHubRepository {
   fullName: string;
   name: string;
@@ -2021,6 +2027,62 @@ export const createGitHubSubIssue = onCall<
   }
 });
 
+export const linkIssueToGitHubPullRequest = onCall<
+  LinkIssueToGitHubPullRequestRequest,
+  Promise<{ linked: true }>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  await verifyWorkspaceMember(request.auth, workspaceId);
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const repoFullName = requireNonEmptyString(request.data?.repository, "repository");
+  const pullRequestNumber = asNumber(request.data?.pullRequestNumber);
+  if (pullRequestNumber <= 0) {
+    throw new HttpsError("invalid-argument", "pullRequestNumber is required");
+  }
+
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    throw new HttpsError("invalid-argument", "repository must be owner/repo");
+  }
+
+  const issueDoc = await db.doc(`workspaces/${workspaceId}/issues/${issueId}`).get();
+  const issue = issueDoc.data();
+  if (!issue) {
+    throw new HttpsError("not-found", "Issue was not found");
+  }
+  if (asString(issue.repo) !== repoFullName) {
+    throw new HttpsError("failed-precondition", "Issue repository does not match pull request");
+  }
+
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  const githubIssueNumber = asNumber(githubIssue?.number);
+  if (githubIssueNumber <= 0) {
+    throw new HttpsError("failed-precondition", "Issue is not linked to GitHub");
+  }
+
+  const issueKeyValue = asString(issue.issueKey, `#${githubIssueNumber}`).toUpperCase();
+  const { token } = await getWorkspaceGitHubToken(workspaceId);
+  const pullRequest = await githubRequest<GitHubPullRequestResponseItem>({
+    path: `/repos/${owner}/${repo}/pulls/${pullRequestNumber}`,
+    token,
+  });
+  const nextBody = upsertLinkedIssueBlock(
+    asString(pullRequest.body),
+    githubIssueNumber,
+    issueKeyValue,
+  );
+  if (nextBody !== asString(pullRequest.body)) {
+    await githubRequest({
+      path: `/repos/${owner}/${repo}/pulls/${pullRequestNumber}`,
+      token,
+      method: "PATCH",
+      body: { body: nextBody },
+    });
+  }
+
+  return { linked: true };
+});
+
 export const startIssueCursorAgent = onCall<
   StartIssueCursorAgentRequest,
   Promise<StartIssueCursorAgentResponse>
@@ -2394,6 +2456,7 @@ async function syncWorkspacePullRequestLinks({
       continue;
     }
 
+    const processedPullRequestNumbers = new Set<number>();
     for (const issueDoc of issues.docs) {
       const issue = issueDoc.data();
       if (asString(issue.repo) !== repoFullName) {
@@ -2437,6 +2500,36 @@ async function syncWorkspacePullRequestLinks({
         branch: asString(pullRequest.head?.ref),
         linkedIssues,
         skipIssueIds: new Set([issueDoc.id]),
+      });
+      processedPullRequestNumbers.add(pullRequestNumber);
+    }
+
+    for (const pullRequest of pullRequests) {
+      const pullRequestNumber = asNumber(pullRequest.number);
+      if (pullRequestNumber <= 0 || processedPullRequestNumbers.has(pullRequestNumber)) {
+        continue;
+      }
+
+      const linkedIssues = await fetchPullRequestLinkedIssuesSafely({
+        owner,
+        repo,
+        number: pullRequestNumber,
+        token,
+        workspaceId,
+      });
+      if (linkedIssues.length === 0) {
+        continue;
+      }
+
+      linked += await upsertPullRequestLinksForLinkedIssues({
+        workspaceId,
+        owner,
+        repo,
+        action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
+        pullRequest,
+        repoFullName,
+        branch: asString(pullRequest.head?.ref),
+        linkedIssues,
       });
     }
   }
@@ -2757,7 +2850,7 @@ async function linkPullRequestToImaIssues(
   payload: GitHubPullRequestWebhookPayload,
 ): Promise<number> {
   const action = asString(payload.action);
-  if (!["opened", "edited", "synchronize", "reopened", "closed"].includes(action)) {
+  if (action.length === 0) {
     return 0;
   }
 

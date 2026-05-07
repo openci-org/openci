@@ -3,5 +3,6 @@ export {
   createGitHubIssue,
   createGitHubSubIssue,
   importGitHubIssues,
+  linkIssueToGitHubPullRequest,
   syncGitHubIssues,
 } from "./imaHandlers";

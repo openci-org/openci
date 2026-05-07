@@ -778,6 +778,76 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         });
   }
 
+  Future<void> _linkIssueToPullRequest({
+    required String issueId,
+    required String repository,
+    required IssuePullRequest pullRequest,
+  }) async {
+    try {
+      final issue = _columns
+          .expand((column) => column.issues)
+          .firstWhere((issue) => issue.id == issueId);
+      final linkId = _pullRequestLinkId(repository, pullRequest.number);
+      await _callFunction('linkIssueToGitHubPullRequest', {
+        'workspaceId': _workspaceId,
+        'issueId': issueId,
+        'repository': repository,
+        'pullRequestNumber': pullRequest.number,
+      });
+
+      final issueRef = _firestore.doc(
+        'workspaces/$_workspaceId/issues/$issueId',
+      );
+      final snapshot = await issueRef.get();
+      final data = snapshot.data();
+      Map<String, dynamic>? existingLink;
+      final currentPullRequests = <Map<String, dynamic>>[];
+      for (final value in _asList(data?['pullRequests'])) {
+        final pullRequest = _asMap(value);
+        if (_asString(pullRequest['id']) == linkId) {
+          existingLink = pullRequest;
+        } else {
+          currentPullRequests.add(pullRequest);
+        }
+      }
+      final now = Timestamp.now();
+      final nextPullRequests = [
+        ...currentPullRequests,
+        {
+          'id': linkId,
+          ...pullRequest.toFirestore(repository: repository),
+          'linkedAt': existingLink?['linkedAt'] ?? now,
+          'updatedAt': now,
+        },
+      ];
+      final update = <String, Object?>{
+        'pullRequests': nextPullRequests,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (issue.statusId != _reviewStatusId &&
+          issue.statusId != _closedStatusId) {
+        final reviewColumn = _columns.firstWhere(
+          (column) => column.id == _reviewStatusId,
+        );
+        final reviewIssues = [
+          for (final candidate in reviewColumn.issues)
+            if (candidate.id != issueId) candidate,
+        ];
+        final previousRank = reviewIssues.isEmpty
+            ? null
+            : reviewIssues.last.rank;
+        update['statusId'] = _reviewStatusId;
+        update['rank'] = _rankBetween(previousRank, null);
+      }
+
+      await issueRef.update(update);
+      _showSavedSnackBar('PR #${pullRequest.number}に紐づけました');
+    } catch (error) {
+      _showSavedSnackBar(_friendlyError(error));
+    }
+  }
+
   Future<void> _closeIssue(String issueId) async {
     if (_closingIssueIds.contains(issueId)) {
       return;
@@ -1656,6 +1726,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                   _startingCursorAgentIssueIds,
                               requiresLongPressDrag: true,
                               onIssueDropped: _moveIssue,
+                              onIssueLinkedToPullRequest:
+                                  _linkIssueToPullRequest,
                               onAddIssue: (columnId) => unawaited(
                                 _openAddIssueDialog(initialColumnId: columnId),
                               ),
@@ -1693,6 +1765,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                         _startingCursorAgentIssueIds,
                                     requiresLongPressDrag: false,
                                     onIssueDropped: _moveIssue,
+                                    onIssueLinkedToPullRequest:
+                                        _linkIssueToPullRequest,
                                     onAddIssue: (columnId) => unawaited(
                                       _openAddIssueDialog(
                                         initialColumnId: columnId,
@@ -6019,6 +6093,7 @@ class BoardColumnView extends StatelessWidget {
     this.startingCursorAgentIssueIds = const {},
     required this.requiresLongPressDrag,
     required this.onIssueDropped,
+    this.onIssueLinkedToPullRequest,
     required this.onAddIssue,
     required this.onIssueTapped,
     this.onStartCursorAgent,
@@ -6030,6 +6105,7 @@ class BoardColumnView extends StatelessWidget {
   final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
+  final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String>? onStartCursorAgent;
@@ -6103,6 +6179,8 @@ class BoardColumnView extends StatelessWidget {
                           onSubIssueTap: onIssueTapped,
                           onStartCursorAgent: onStartCursorAgent,
                           onIssueDropped: onIssueDropped,
+                          onIssueLinkedToPullRequest:
+                              onIssueLinkedToPullRequest,
                         ),
                         const SizedBox(height: 8),
                       ]
@@ -6168,6 +6246,7 @@ class CompactBoardColumnView extends StatefulWidget {
     this.startingCursorAgentIssueIds = const {},
     required this.requiresLongPressDrag,
     required this.onIssueDropped,
+    this.onIssueLinkedToPullRequest,
     required this.onAddIssue,
     required this.onIssueTapped,
     this.onStartCursorAgent,
@@ -6179,6 +6258,7 @@ class CompactBoardColumnView extends StatefulWidget {
   final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
+  final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String>? onStartCursorAgent;
@@ -6260,6 +6340,8 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                     onSubIssueTap: widget.onIssueTapped,
                     onStartCursorAgent: widget.onStartCursorAgent,
                     onIssueDropped: widget.onIssueDropped,
+                    onIssueLinkedToPullRequest:
+                        widget.onIssueLinkedToPullRequest,
                   ),
                   const SizedBox(height: 8),
                 ]
@@ -6436,6 +6518,7 @@ class ReviewPullRequestGroupView extends StatelessWidget {
     required this.onIssueTapped,
     required this.onSubIssueTap,
     required this.onIssueDropped,
+    this.onIssueLinkedToPullRequest,
     this.onStartCursorAgent,
   });
 
@@ -6448,6 +6531,7 @@ class ReviewPullRequestGroupView extends StatelessWidget {
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String> onSubIssueTap;
   final IssueDropCallback onIssueDropped;
+  final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
   final ValueChanged<String>? onStartCursorAgent;
 
   @override
@@ -6488,88 +6572,132 @@ class ReviewPullRequestGroupView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: url == null
-                  ? null
-                  : () => unawaited(_launchUrlExternal(url)),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(11),
-                          ),
-                          child: const Icon(
-                            Icons.alt_route_rounded,
-                            size: 17,
-                            color: Color(0xFF2563EB),
-                          ),
-                        ),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Column(
+          DragTarget<IssueDragData>(
+            onWillAcceptWithDetails: (details) =>
+                pullRequest != null &&
+                onIssueLinkedToPullRequest != null &&
+                !group.issues.any((issue) => issue.id == details.data.issueId),
+            onAcceptWithDetails: (details) {
+              final targetPullRequest = pullRequest;
+              final onLink = onIssueLinkedToPullRequest;
+              if (targetPullRequest == null || onLink == null) {
+                return;
+              }
+
+              unawaited(
+                onLink(
+                  issueId: details.data.issueId,
+                  repository: group.repository,
+                  pullRequest: targetPullRequest,
+                ),
+              );
+            },
+            builder: (context, candidateData, rejectedData) {
+              final isHovering = candidateData.isNotEmpty;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: isHovering
+                      ? const Color(0xFFEFF6FF)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: isHovering
+                        ? const Color(0xFF60A5FA)
+                        : Colors.transparent,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: url == null
+                        ? null
+                        : () => unawaited(_launchUrlExternal(url)),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                pullRequest == null
-                                    ? 'PRなし'
-                                    : '${group.repository} #${pullRequest.number}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF475569),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: const Icon(
+                                  Icons.alt_route_rounded,
+                                  size: 17,
+                                  color: Color(0xFF2563EB),
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF0F172A),
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.25,
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      pullRequest == null
+                                          ? 'PRなし'
+                                          : '${group.repository} #${pullRequest.number}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFF475569),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFF0F172A),
+                                        fontWeight: FontWeight.w900,
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 9),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _ReviewGroupPill(
+                                label: stateLabel,
+                                color: stateColor,
+                                icon: pullRequest?.merged == true
+                                    ? Icons.call_merge_rounded
+                                    : Icons.circle_rounded,
+                              ),
+                              BuildStatusBadge(status: buildStatus),
+                              if (pullRequest != null)
+                                const _ReviewGroupPill(
+                                  label: 'drop issue to link',
+                                  color: Color(0xFF2563EB),
+                                  icon: Icons.add_link_rounded,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 9),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _ReviewGroupPill(
-                          label: stateLabel,
-                          color: stateColor,
-                          icon: pullRequest?.merged == true
-                              ? Icons.call_merge_rounded
-                              : Icons.circle_rounded,
-                        ),
-                        BuildStatusBadge(status: buildStatus),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           const SizedBox(height: 6),
           for (final entry in linkedIssueItems.indexed) ...[
@@ -9669,6 +9797,13 @@ typedef IssueDropCallback =
       required int targetIndex,
     });
 
+typedef IssuePullRequestLinkCallback =
+    Future<void> Function({
+      required String issueId,
+      required String repository,
+      required IssuePullRequest pullRequest,
+    });
+
 typedef IssueWeightOverrideCallback =
     Future<void> Function({
       required String issueId,
@@ -10078,6 +10213,25 @@ class IssuePullRequest {
     );
   }
 
+  Map<String, Object?> toFirestore({required String repository}) {
+    final parts = repository.split('/');
+    final owner = parts.isEmpty ? '' : parts.first;
+    final repo = parts.length > 1 ? parts[1] : '';
+    return {
+      'owner': owner,
+      'repo': repo,
+      'number': number,
+      'url': url,
+      'title': title,
+      'branch': branch,
+      'state': state,
+      'merged': merged,
+      'linkedIssues': [
+        for (final issue in linkedIssues) issue.toFirestore(),
+      ],
+    };
+  }
+
   final int number;
   final String title;
   final String? url;
@@ -10103,6 +10257,15 @@ class IssuePullRequestLinkedIssue {
       url: _normalizedOptionalUrl(_asString(data['url'])),
       state: _asString(data['state'], 'open').toLowerCase(),
     );
+  }
+
+  Map<String, Object?> toFirestore() {
+    return {
+      'number': number,
+      'title': title,
+      'url': url,
+      'state': state,
+    };
   }
 
   final int number;
@@ -10247,6 +10410,10 @@ List<String> _asStringList(Object? value) {
       .whereType<String>()
       .where((label) => label.trim().isNotEmpty)
       .toList();
+}
+
+String _pullRequestLinkId(String repository, int number) {
+  return '${repository}_$number'.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
 }
 
 int _issueProgressWeight(Issue issue) {
