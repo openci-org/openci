@@ -10,6 +10,7 @@ export {
   updateBuildJobStatus,
   updateBuildRunStatusForWorker,
   updateEnvironmentVariableValueForWorker,
+  upsertWorkerHeartbeat,
 } from "./firestoreData";
 
 import {
