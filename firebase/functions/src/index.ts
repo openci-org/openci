@@ -71,6 +71,8 @@ export {
   createSecretV1,
   deleteSecretV1,
   generateCertificateKeyV1,
+  generateDeveloperIdCsrV1,
+  registerDeveloperIdCertificateV1,
   setupAscApiKeyV1,
   updateSecretV1,
 } from "./secrets/secretHandlers";

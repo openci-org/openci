@@ -10,7 +10,9 @@ import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// Extract secret names referenced in workflow YAML content.
 Set<String> _extractSecretNames(String content) {
@@ -98,9 +100,13 @@ class SecretManagerTab extends HookConsumerWidget {
           final hasAscApiKey = secrets.any(
             (s) => s.name == 'OPENCI_ASC_ISSUER_ID',
           );
+          final hasDeveloperIdCertificate = secrets.any(
+            (s) => s.name == 'OPENCI_DEVELOPER_ID_CERTIFICATE_P12',
+          );
           final setupCards = <Widget>[
             if (!hasCertKey) _GenerateCertificateKeyButton(),
             if (!hasAscApiKey) _SetupAscApiKeyButton(),
+            if (!hasDeveloperIdCertificate) _SetupDeveloperIdCertificateCard(),
           ];
 
           if (secrets.isEmpty) {
@@ -152,60 +158,71 @@ class SecretManagerTab extends HookConsumerWidget {
             );
           }
 
-          final workflowFiles = workflowFilesAsync.value ?? [];
-          final grouped = _groupSecretsByWorkflow(secrets, workflowFiles);
+          return workflowFilesAsync.when(
+            loading: () => _SecretListSkeleton(setupCards: setupCards),
+            error: (error, stack) => Center(
+              child: Text(
+                t.common.error(error: error.toString()),
+                style: TextStyle(color: colors.error),
+              ),
+            ),
+            data: (workflowFiles) {
+              final grouped = _groupSecretsByWorkflow(secrets, workflowFiles);
 
-          return ListView(
-            padding: const EdgeInsets.only(top: 12, bottom: 80),
-            children: [
-              // Setup cards
-              ...setupCards.map(
-                (card) => Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
+              return ListView(
+                padding: const EdgeInsets.only(top: 12, bottom: 80),
+                children: [
+                  // Setup cards
+                  ...setupCards.map(
+                    (card) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: card,
+                        ),
                       ),
-                      child: card,
                     ),
                   ),
-                ),
-              ),
-              // Grouped sections
-              for (final group in grouped.groups) ...[
-                _SectionHeader(
-                  icon: Icons.description_outlined,
-                  title: group.workflowName,
-                  count: group.secrets.length,
-                ),
-                ...group.secrets.map(
-                  (secret) => _SecretListTile(secret: secret),
-                ),
-              ],
-              // Unused section
-              if (grouped.unused.isNotEmpty) ...[
-                _SectionHeader(
-                  icon: Icons.warning_amber_rounded,
-                  title: secretsT.unusedSecrets,
-                  count: grouped.unused.length,
-                  isWarning: true,
-                ),
-                ...grouped.unused.map(
-                  (secret) => _SecretListTile(
-                    secret: secret,
-                    isUnused: true,
-                  ),
-                ),
-              ],
-              // If no workflows loaded yet, show flat list
-              if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
-                ...secrets.map(
-                  (secret) => _SecretListTile(secret: secret),
-                ),
-              ],
-            ],
+                  // Grouped sections
+                  for (final group in grouped.groups) ...[
+                    _SectionHeader(
+                      icon: Icons.description_outlined,
+                      title: group.workflowName,
+                      count: group.secrets.length,
+                    ),
+                    ...group.secrets.map(
+                      (secret) => _SecretListTile(secret: secret),
+                    ),
+                  ],
+                  // Unused section
+                  if (workflowFiles.isNotEmpty &&
+                      grouped.unused.isNotEmpty) ...[
+                    _SectionHeader(
+                      icon: Icons.warning_amber_rounded,
+                      title: secretsT.unusedSecrets,
+                      count: grouped.unused.length,
+                      isWarning: true,
+                    ),
+                    ...grouped.unused.map(
+                      (secret) => _SecretListTile(
+                        secret: secret,
+                        isUnused: true,
+                      ),
+                    ),
+                  ],
+                  // If no workflows exist, show flat list without marking all as unused.
+                  if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
+                    ...secrets.map(
+                      (secret) => _SecretListTile(secret: secret),
+                    ),
+                  ],
+                ],
+              );
+            },
           );
         },
         loading: () => Center(
@@ -217,6 +234,74 @@ class SecretManagerTab extends HookConsumerWidget {
             style: TextStyle(color: colors.error),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SecretListSkeleton extends StatelessWidget {
+  const _SecretListSkeleton({required this.setupCards});
+
+  final List<Widget> setupCards;
+
+  static final _secrets = [
+    Secret(
+      id: 'skeleton-1',
+      name: 'OPENCI_GITHUB_TOKEN',
+      teamId: 'skeleton',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    ),
+    Secret(
+      id: 'skeleton-2',
+      name: 'OPENCI_ASC_KEY_ID',
+      teamId: 'skeleton',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    ),
+    Secret(
+      id: 'skeleton-3',
+      name: 'REVENUE_CAT_API_KEY',
+      teamId: 'skeleton',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      child: ListView(
+        padding: const EdgeInsets.only(top: 12, bottom: 80),
+        children: [
+          ...setupCards.map(
+            (card) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: card,
+                ),
+              ),
+            ),
+          ),
+          const _SectionHeader(
+            icon: Icons.description_outlined,
+            title: 'flutter-ci-cd.yaml',
+            count: 2,
+          ),
+          ..._secrets.take(2).map((secret) => _SecretListTile(secret: secret)),
+          _SectionHeader(
+            icon: Icons.warning_amber_rounded,
+            title: t.secrets.unusedSecrets,
+            count: 1,
+            isWarning: true,
+          ),
+          _SecretListTile(secret: _secrets.last, isUnused: true),
+        ],
       ),
     );
   }
@@ -1487,6 +1572,578 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SetupDeveloperIdCertificateCard extends HookConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
+    final isExpanded = useState(false);
+    final isGeneratingCsr = useState(false);
+    final isSavingCertificate = useState(false);
+    final csrPem = useState<String?>(null);
+    final certificateFileName = useState<String?>(null);
+    final certificateBase64 = useState<String?>(null);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => isExpanded.value = !isExpanded.value,
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF58A6FF).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.desktop_mac_outlined,
+                      size: 16,
+                      color: Color(0xFF58A6FF),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'macOS Developer ID 証明書',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD29922).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      '設定が必要',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD29922),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: isExpanded.value ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 20,
+                      color: colors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '直接ダウンロード配布する macOS アプリの署名と公証に必要です。Developer ID 証明書は Apple Developer Portal で Account Holder が発行します。',
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            if (isExpanded.value) ...[
+              const SizedBox(height: 16),
+              _DeveloperIdSetupStep(
+                number: 1,
+                title: 'OpenCI で CSR を生成',
+                description: 'OpenCI が秘密鍵を保持し、Apple に提出する証明書署名要求（CSR）を生成します。',
+                actionLabel: isGeneratingCsr.value ? '生成中...' : 'CSR を生成',
+                icon: Icons.description_outlined,
+                isComplete: csrPem.value != null,
+                onPressed: isGeneratingCsr.value
+                    ? null
+                    : () async {
+                        isGeneratingCsr.value = true;
+                        try {
+                          final csr = await ref
+                              .read(secretManagerProvider.notifier)
+                              .generateDeveloperIdCsr();
+                          csrPem.value = csr;
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage('CSR を生成しました');
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(errorMessage.message);
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage('$e');
+                        } finally {
+                          if (context.mounted) isGeneratingCsr.value = false;
+                        }
+                      },
+              ),
+              if (csrPem.value != null) ...[
+                const SizedBox(height: 10),
+                _DeveloperIdCsrPreview(csrPem: csrPem.value!),
+              ],
+              const SizedBox(height: 10),
+              _DeveloperIdSetupStep(
+                number: 2,
+                title: 'Developer ID Application 証明書を作成',
+                description:
+                    'Apple Developer Portal の Certificates 画面で「Developer ID Application」を選び、OpenCI で生成した CSR をアップロードします。',
+                icon: Icons.open_in_new_rounded,
+              ),
+              const SizedBox(height: 10),
+              const _DeveloperIdPortalGuide(),
+              const SizedBox(height: 10),
+              _DeveloperIdSetupStep(
+                number: 3,
+                title: '発行された証明書をアップロード',
+                description:
+                    'OpenCI が .cer と保存済みの秘密鍵を組み合わせ、CI で署名に使うシークレットを準備します。',
+                actionLabel:
+                    certificateFileName.value ?? 'Developer ID .cer をアップロード',
+                icon: certificateFileName.value == null
+                    ? Icons.upload_file
+                    : Icons.check_circle,
+                isComplete: certificateFileName.value != null,
+                onPressed: () async {
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['cer', 'crt'],
+                    withData: true,
+                  );
+                  if (result == null || result.files.isEmpty) return;
+                  final file = result.files.first;
+                  final bytes = file.bytes;
+                  if (bytes == null || bytes.isEmpty) {
+                    if (!context.mounted) return;
+                    context.showSnackBarMessage('証明書ファイルを読み込めませんでした');
+                    return;
+                  }
+                  certificateFileName.value = file.name;
+                  certificateBase64.value = base64Encode(bytes);
+                },
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colors.surfaceTertiary,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: colors.textTertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '証明書を登録したあとは、CI で Xcode アカウントにサインインする必要はありません。Apple が App Store Connect API 経由で Developer ID 証明書を発行していないため、Portal での手続きだけが必要です。',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: certificateFileName.value == null
+                        ? colors.textTertiary.withValues(alpha: 0.35)
+                        : colors.accent,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: certificateFileName.value == null
+                      ? null
+                      : isSavingCertificate.value
+                      ? null
+                      : () async {
+                          final encodedCertificate = certificateBase64.value;
+                          if (encodedCertificate == null) {
+                            context.showSnackBarMessage(
+                              '証明書ファイルを選択してください',
+                            );
+                            return;
+                          }
+                          isSavingCertificate.value = true;
+                          try {
+                            await ref
+                                .read(secretManagerProvider.notifier)
+                                .registerDeveloperIdCertificate(
+                                  certificateBase64: encodedCertificate,
+                                );
+                            ref.invalidate(secretManagerProvider);
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage(
+                              'Developer ID 証明書を保存しました',
+                            );
+                          } on FirebaseFunctionsException catch (e, s) {
+                            final errorMessage =
+                                await FunctionErrorMessage.capture(
+                                  e,
+                                  stackTrace: s,
+                                );
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage(errorMessage.message);
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            context.showSnackBarMessage('$e');
+                          } finally {
+                            if (context.mounted) {
+                              isSavingCertificate.value = false;
+                            }
+                          }
+                        },
+                  child: isSavingCertificate.value
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Developer ID 証明書を保存',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeveloperIdCsrPreview extends StatelessWidget {
+  const _DeveloperIdCsrPreview({required this.csrPem});
+
+  final String csrPem;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Apple Developer Portal に貼り付ける CSR',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: csrPem));
+                  if (!context.mounted) return;
+                  context.showSnackBarMessage('CSR をコピーしました');
+                },
+                icon: const Icon(Icons.copy, size: 14),
+                label: const Text('コピー'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  try {
+                    final path = await FilePicker.platform.saveFile(
+                      dialogTitle: 'CSR を保存',
+                      fileName: 'openci-developer-id.certSigningRequest',
+                      type: FileType.custom,
+                      allowedExtensions: ['certSigningRequest'],
+                      bytes: Uint8List.fromList(utf8.encode(csrPem)),
+                    );
+                    if (!context.mounted || path == null) return;
+                    context.showSnackBarMessage('CSR ファイルを保存しました');
+                  } on PlatformException catch (error) {
+                    await Clipboard.setData(ClipboardData(text: csrPem));
+                    if (!context.mounted) return;
+                    context.showSnackBarMessage(
+                      '保存できませんでした。CSR をコピーしました: ${error.code}',
+                    );
+                  }
+                },
+                icon: const Icon(Icons.download_rounded, size: 14),
+                label: const Text('保存'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 160),
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.border),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                csrPem,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.35,
+                  color: colors.textSecondary,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeveloperIdPortalGuide extends StatelessWidget {
+  const _DeveloperIdPortalGuide();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    const steps = [
+      'Apple Developer Portal に Account Holder でログインします。',
+      'Certificates, Identifiers & Profiles > Certificates を開き、追加（+）を押します。',
+      'Software の中から Developer ID Application を選び、Continue します。',
+      'OpenCI の「保存」ボタンで CSR を .certSigningRequest ファイルとして保存し、そのファイルをアップロードします。',
+      '発行された Developer ID Application 証明書（.cer）をダウンロードします。',
+      'ダウンロードした .cer を、この画面の「Developer ID .cer をアップロード」から登録します。',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.open_in_new_rounded,
+                size: 16,
+                color: colors.textTertiary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Apple Developer Portal での操作',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final (index, step) in steps.indexed) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${index + 1}.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textTertiary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    step,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (index != steps.length - 1) const SizedBox(height: 6),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            '※ Apple Portal では CSR のファイルアップロードが必要です。OpenCI の「保存」ボタンで作った .certSigningRequest ファイルを選択してください。',
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.4,
+              color: colors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeveloperIdSetupStep extends StatelessWidget {
+  const _DeveloperIdSetupStep({
+    required this.number,
+    required this.title,
+    required this.description,
+    required this.icon,
+    this.actionLabel,
+    this.onPressed,
+    this.isComplete = false,
+  });
+
+  final int number;
+  final String title;
+  final String description;
+  final IconData icon;
+  final String? actionLabel;
+  final VoidCallback? onPressed;
+  final bool isComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final accent = isComplete ? const Color(0xFF3FB950) : colors.accent;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$number',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: accent,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                if (actionLabel != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: accent,
+                        backgroundColor: accent.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: onPressed,
+                      icon: Icon(icon, size: 15),
+                      label: Text(
+                        actionLabel!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

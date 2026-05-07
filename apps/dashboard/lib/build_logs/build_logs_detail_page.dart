@@ -690,36 +690,19 @@ class _DetailLogsView extends HookConsumerWidget {
               Positioned(
                 right: 16,
                 bottom: 16,
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Material(
-                    color: AppColors.of(context).surface,
-                    borderRadius: BorderRadius.circular(10),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () {
-                        scrollController.animateTo(
-                          scrollController.position.maxScrollExtent,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.of(context).border,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.keyboard_double_arrow_down_rounded,
-                          size: 18,
-                          color: AppColors.of(context).textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
+                child: FloatingActionButton(
+                  heroTag: 'build-log-scroll-to-bottom',
+                  tooltip: 'ログの末尾へ移動',
+                  backgroundColor: AppColors.of(context).accent,
+                  foregroundColor: Colors.white,
+                  onPressed: () {
+                    scrollController.animateTo(
+                      scrollController.position.maxScrollExtent,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
+                  },
+                  child: const Icon(Icons.keyboard_double_arrow_down_rounded),
                 ),
               ),
           ],

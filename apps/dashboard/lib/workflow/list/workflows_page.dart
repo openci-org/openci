@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -9,6 +8,7 @@ import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class WorkflowsPage extends ConsumerWidget {
   const WorkflowsPage({super.key});
@@ -53,27 +53,15 @@ class WorkflowsBody extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: asyncErrorWidget,
       data: (user) {
-        final selectedRepository = user.selectedRepository;
-        final selectedBranch = user.selectedBranch;
-        if (selectedRepository == null || selectedBranch == null) {
-          return const _EmptyWorkflowsView(
-            icon: Icons.account_tree_outlined,
-            title: 'Repository が選択されていません',
-            message: 'Issue board のボード設定から対象 repository を選んでください。',
-          );
-        }
-
         return workflowFilesAsync.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator.adaptive()),
+          loading: () => const _WorkflowListSkeleton(),
           error: asyncErrorWidget,
           data: (files) {
             if (files.isEmpty) {
               return _EmptyWorkflowsView(
                 icon: Icons.schema_outlined,
                 title: 'Workflow がありません',
-                message:
-                    '$selectedRepository / $selectedBranch に .openci workflow が見つかりません。',
+                message: '選択中の GitHub repo に .openci workflow が見つかりません。',
               );
             }
 
@@ -83,14 +71,16 @@ class WorkflowsBody extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final file = files[index];
-                return _WorkflowFileTile(
-                  file: file,
-                  repository: selectedRepository,
-                  branch: selectedBranch,
-                  onTap: () => _openWorkflowEditor(
-                    context,
-                    ref,
-                    existingFile: file,
+                return _WorkflowListItemFrame(
+                  child: _WorkflowFileTile(
+                    file: file,
+                    repository: file.repository,
+                    branch: file.branch,
+                    onTap: () => _openWorkflowEditor(
+                      context,
+                      ref,
+                      existingFile: file,
+                    ),
                   ),
                 );
               },
@@ -102,17 +92,77 @@ class WorkflowsBody extends ConsumerWidget {
   }
 }
 
+class _WorkflowListSkeleton extends StatelessWidget {
+  const _WorkflowListSkeleton();
+
+  static const _files = [
+    WorkflowFile(
+      name: 'flutter-ci-cd.yaml',
+      path: '.openci/flutter-ci-cd.yaml',
+      content: '',
+      repository: 'openci-org/openci',
+      branch: 'develop',
+    ),
+    WorkflowFile(
+      name: 'deploy.yaml',
+      path: '.openci/deploy.yaml',
+      content: '',
+      repository: 'openci-org/dashboard',
+      branch: 'main',
+    ),
+    WorkflowFile(
+      name: 'release.yaml',
+      path: '.openci/release.yaml',
+      content: '',
+      repository: 'openci-org/worker',
+      branch: 'main',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+        itemCount: _files.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final file = _files[index];
+          return _WorkflowListItemFrame(
+            child: _WorkflowFileTile(
+              file: file,
+              repository: file.repository,
+              branch: file.branch,
+              onTap: () {},
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _WorkflowListItemFrame extends StatelessWidget {
+  const _WorkflowListItemFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: child,
+      ),
+    );
+  }
+}
+
 Future<void> _syncWorkflows(BuildContext context, WidgetRef ref) async {
-  try {
-    await ref.read(syncWorkflowFilesProvider.future);
-    ref.invalidate(workflowFilesProvider);
-    if (context.mounted) {
-      context.showSnackBarMessage('ワークフローを同期しました');
-    }
-  } catch (error) {
-    if (context.mounted) {
-      context.showSnackBarMessage('ワークフローの同期に失敗しました: $error');
-    }
+  ref.invalidate(workflowFilesProvider);
+  if (context.mounted) {
+    context.showSnackBarMessage('ワークフローを再読み込みしました');
   }
 }
 
@@ -122,11 +172,10 @@ void _openWorkflowEditor(
   WorkflowFile? existingFile,
 }) {
   final user = ref.read(userProvider).value;
-  final team = ref.read(teamStateProvider).value;
-  final repository = user?.selectedRepository;
-  final branch = user?.selectedBranch;
+  final repository = existingFile?.repository ?? user?.selectedRepository;
+  final branch = existingFile?.branch ?? user?.selectedBranch;
 
-  if (user == null || team == null || repository == null || branch == null) {
+  if (user == null || repository == null || branch == null) {
     context.showSnackBarMessage('Repository と branch を選択してください');
     return;
   }
@@ -136,7 +185,7 @@ void _openWorkflowEditor(
       builder: (_) => CreateWorkflowPage(
         repository: repository,
         branch: branch,
-        teamId: team.id,
+        teamId: user.selectedTeamId,
         existingFile: existingFile,
       ),
     ),
@@ -158,6 +207,52 @@ class _WorkflowFileTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final compact = MediaQuery.sizeOf(context).width < 520;
+    final switchWidget = Transform.scale(
+      scale: 0.82,
+      child: Switch(
+        value: file.enabled,
+        onChanged: (enabled) => unawaited(
+          ref.read(
+            toggleWorkflowEnabledProvider(
+              repository: file.repository,
+              branch: file.branch,
+              fileName: file.name,
+              enabled: enabled,
+            ).future,
+          ),
+        ),
+      ),
+    );
+    final details = Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            file.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '$repository · $branch · ${file.path}',
+            maxLines: compact ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
@@ -189,43 +284,9 @@ class _WorkflowFileTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      file.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      '$repository · $branch · ${file.path}',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Switch(
-                value: file.enabled,
-                onChanged: (enabled) => unawaited(
-                  ref.read(
-                    toggleWorkflowEnabledProvider(
-                      fileName: file.name,
-                      enabled: enabled,
-                    ).future,
-                  ),
-                ),
-              ),
+              details,
+              SizedBox(width: compact ? 4 : 8),
+              SizedBox(width: 44, child: Align(child: switchWidget)),
             ],
           ),
         ),

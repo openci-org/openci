@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/github/repository_aliases.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -120,9 +121,10 @@ class User extends _$User {
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
+    final canonicalRepository = canonicalRepositoryFullName(repository);
     await firestore.collection(usersCollection).doc(currentUserId).set({
       'id': currentUserId,
-      'selectedRepository': repository,
+      'selectedRepository': canonicalRepository,
       'selectedBranch': defaultBranch,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -158,9 +160,12 @@ OpenCIUser _openCIUserFromSnapshot(
       data['notificationPreference'] as String? ??
           NotificationPreference.all.name,
     ),
-    fcmTokens: (data['fcmTokens'] as List?)?.whereType<String>().toList() ??
-        const [],
-    selectedRepository: data['selectedRepository'] as String?,
+    fcmTokens:
+        (data['fcmTokens'] as List?)?.whereType<String>().toList() ?? const [],
+    selectedRepository: switch (data['selectedRepository']) {
+      final String repository => canonicalRepositoryFullName(repository),
+      _ => null,
+    },
     selectedBranch: data['selectedBranch'] as String?,
   );
 }

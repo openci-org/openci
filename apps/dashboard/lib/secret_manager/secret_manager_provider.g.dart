@@ -53,7 +53,7 @@ final class SecretManagerProvider
   SecretManager create() => SecretManager();
 }
 
-String _$secretManagerHash() => r'84828a08e45c03346bc6d79856d170b172f8aeb3';
+String _$secretManagerHash() => r'c8652372669edf44c813342bfd4aa34af5fb8a8e';
 
 abstract class _$SecretManager extends $StreamNotifier<List<Secret>> {
   Stream<List<Secret>> build();

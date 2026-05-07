@@ -1,4 +1,9 @@
-import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomBytes, randomUUID } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { execFile } from "node:child_process";
 
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
@@ -13,11 +18,14 @@ import {
   updateWorkflowSecretKeys,
 } from "../firestoreData";
 import {
+  accessSecretByPath,
   addSecretVersionByPath,
   createSecretWithValue,
   deleteSecretByPath,
 } from "../secretManager";
 import { verifyTeamMembership } from "../team/teamAuth";
+
+const execFileAsync = promisify(execFile);
 
 interface CreateSecretRequest {
   name: string;
@@ -39,6 +47,11 @@ interface GenerateCertificateKeyRequest {
   teamId: string;
 }
 
+interface RegisterDeveloperIdCertificateRequest {
+  teamId: string;
+  certificateBase64: string;
+}
+
 interface SetupAscApiKeyRequest {
   teamId: string;
   issuerId: string;
@@ -50,11 +63,23 @@ interface SuccessResponse {
   success: true;
 }
 
+const developerIdPrivateKeySecretName = "OPENCI_DEVELOPER_ID_PRIVATE_KEY";
+const developerIdCertificateP12SecretName = "OPENCI_DEVELOPER_ID_CERTIFICATE_P12";
+const developerIdCertificatePasswordSecretName = "OPENCI_DEVELOPER_ID_CERTIFICATE_PASSWORD";
+
 function requireNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new HttpsError("invalid-argument", `${field} is required`);
   }
   return value;
+}
+
+function emailAddressFromAuth(auth: { token?: { email?: unknown } } | undefined): string {
+  const email = auth?.token?.email;
+  if (typeof email === "string" && email.includes("@")) {
+    return email;
+  }
+  return "developer@openci.io";
 }
 
 async function assertSecretNameAvailable(teamId: string, name: string): Promise<void> {
@@ -71,6 +96,24 @@ async function createStoredSecret(teamId: string, name: string, value: string): 
   const documentId = randomUUID();
   await createSecretMetadata({ id: documentId, name, teamId, pathToSecret });
   return documentId;
+}
+
+async function findSingleSecretForTeam(teamId: string, name: string) {
+  const result = await findSecretByNameForTeam({ teamId, name });
+  const secrets = result.data.secrets;
+  if (secrets.length === 0) {
+    throw new HttpsError("failed-precondition", `Secret "${name}" is not configured`);
+  }
+  return secrets[0] as { id: string; name: string; teamId: string; pathToSecret?: string | null };
+}
+
+async function runOpenSsl(args: string[], cwd: string): Promise<void> {
+  try {
+    await execFileAsync("openssl", args, { cwd });
+  } catch (error) {
+    logger.error("openssl command failed", { args, error });
+    throw new HttpsError("internal", "Failed to process certificate with openssl");
+  }
 }
 
 async function getSecretForTeam(
@@ -228,6 +271,156 @@ export const generateCertificateKeyV1 = onCall<
     if (error instanceof HttpsError) throw error;
     logger.error("Failed to generate certificate key", { teamId, error });
     throw new HttpsError("internal", `Failed to generate certificate key: ${String(error)}`);
+  }
+});
+
+export const generateDeveloperIdCsrV1 = onCall<
+  GenerateCertificateKeyRequest,
+  Promise<SuccessResponse & { documentId: string; csrPem: string }>
+>(async (request) => {
+  const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
+  await verifyTeamMembership(request.auth, teamId);
+  await assertSecretNameAvailable(teamId, developerIdPrivateKeySecretName);
+
+  const tmpDir = await mkdtemp(join(tmpdir(), "openci-developer-id-csr-"));
+  try {
+    const keyPath = join(tmpDir, "developer-id.key.pem");
+    const csrPath = join(tmpDir, "developer-id.csr.pem");
+    const { privateKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      publicKeyEncoding: { type: "spki", format: "pem" },
+    });
+    await writeFile(keyPath, privateKey, "utf8");
+    await runOpenSsl(
+      [
+        "req",
+        "-new",
+        "-key",
+        keyPath,
+        "-out",
+        csrPath,
+        "-subj",
+        `/emailAddress=${emailAddressFromAuth(request.auth)}/CN=OpenCI Developer ID Application/C=JP/O=OpenCI`,
+      ],
+      tmpDir,
+    );
+    const csrPem = await readFile(csrPath, "utf8");
+    const documentId = await createStoredSecret(teamId, developerIdPrivateKeySecretName, privateKey);
+    logger.info("Developer ID CSR generated", { teamId, documentId });
+    return { success: true, documentId, csrPem };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    logger.error("Failed to generate Developer ID CSR", { teamId, error });
+    throw new HttpsError("internal", `Failed to generate Developer ID CSR: ${String(error)}`);
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+export const registerDeveloperIdCertificateV1 = onCall<
+  RegisterDeveloperIdCertificateRequest,
+  Promise<SuccessResponse & { documentIds: Record<string, string> }>
+>(async (request) => {
+  const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
+  const certificateBase64 = requireNonEmptyString(request.data?.certificateBase64, "certificateBase64");
+  await verifyTeamMembership(request.auth, teamId);
+
+  const finalSecretNames = [
+    developerIdCertificateP12SecretName,
+    developerIdCertificatePasswordSecretName,
+  ];
+  const existingFinalSecrets = await Promise.all(
+    finalSecretNames.map((name) => findSecretByNameForTeam({ teamId, name })),
+  );
+  const existingNames = existingFinalSecrets.flatMap((result) =>
+    result.data.secrets.map((secret: { name: string }) => secret.name),
+  );
+  if (existingNames.length > 0) {
+    throw new HttpsError(
+      "already-exists",
+      `Developer ID certificate secrets already exist: ${existingNames}. Delete them first to reconfigure.`,
+    );
+  }
+
+  const privateKeySecret = await findSingleSecretForTeam(teamId, developerIdPrivateKeySecretName);
+  const privateKeyPath = requireNonEmptyString(privateKeySecret.pathToSecret, "pathToSecret");
+  const privateKey = await accessSecretByPath(privateKeyPath);
+  const tmpDir = await mkdtemp(join(tmpdir(), "openci-developer-id-p12-"));
+
+  try {
+    const keyPath = join(tmpDir, "developer-id.key.pem");
+    const certInputPath = join(tmpDir, "developer-id.cer");
+    const certPemPath = join(tmpDir, "developer-id.cert.pem");
+    const p12Path = join(tmpDir, "developer-id.p12");
+    await writeFile(keyPath, privateKey, "utf8");
+    await writeFile(certInputPath, Buffer.from(certificateBase64, "base64"));
+
+    try {
+      await runOpenSsl(["x509", "-inform", "DER", "-in", certInputPath, "-out", certPemPath], tmpDir);
+    } catch {
+      await runOpenSsl(["x509", "-inform", "PEM", "-in", certInputPath, "-out", certPemPath], tmpDir);
+    }
+
+    const password = randomBytes(24).toString("base64url");
+    await runOpenSsl(
+      [
+        "pkcs12",
+        "-export",
+        "-inkey",
+        keyPath,
+        "-in",
+        certPemPath,
+        "-out",
+        p12Path,
+        "-passout",
+        `pass:${password}`,
+        "-legacy",
+        "-keypbe",
+        "PBE-SHA1-3DES",
+        "-certpbe",
+        "PBE-SHA1-3DES",
+        "-macalg",
+        "sha1",
+      ],
+      tmpDir,
+    );
+    await runOpenSsl(["pkcs12", "-in", p12Path, "-noout", "-passin", `pass:${password}`], tmpDir);
+    const p12Base64 = (await readFile(p12Path)).toString("base64");
+
+    const documentIds: Record<string, string> = {};
+    documentIds[developerIdCertificateP12SecretName] = await createStoredSecret(
+      teamId,
+      developerIdCertificateP12SecretName,
+      p12Base64,
+    );
+    documentIds[developerIdCertificatePasswordSecretName] = await createStoredSecret(
+      teamId,
+      developerIdCertificatePasswordSecretName,
+      password,
+    );
+
+    try {
+      await deleteSecretByPath(privateKeyPath);
+      await deleteSecretMetadata({ id: privateKeySecret.id });
+    } catch (cleanupError) {
+      logger.warn("Failed to clean up temporary Developer ID private key secret", {
+        teamId,
+        privateKeySecretId: privateKeySecret.id,
+        cleanupError,
+      });
+    }
+    logger.info("Developer ID certificate registered", { teamId, secrets: Object.keys(documentIds) });
+    return { success: true, documentIds };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    logger.error("Failed to register Developer ID certificate", { teamId, error });
+    throw new HttpsError(
+      "internal",
+      `Failed to register Developer ID certificate: ${String(error)}`,
+    );
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
   }
 });
 
