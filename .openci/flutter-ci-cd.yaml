@@ -45,8 +45,10 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
-      - uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
-        id: ios-build
+      - name: Build iOS IPA for Firebase App Distribution
+        if: github.event_name == 'pull_request'
+        uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        id: ios-build-fad
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
@@ -60,6 +62,7 @@ jobs:
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
 
       - name: Upload iOS IPA to Firebase App Distribution
+        if: github.event_name == 'pull_request'
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
@@ -68,7 +71,6 @@ jobs:
           RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
           RELEASE_HEAD_REF: ${{ github.head_ref }}
           RELEASE_BASE_REF: ${{ github.base_ref }}
-          RELEASE_REF_NAME: ${{ github.ref_name }}
           RELEASE_SHA: ${{ github.sha }}
         run: |
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-service-account.json
@@ -80,25 +82,32 @@ jobs:
             echo "OpenCI build"
             echo "Trigger: ${RELEASE_EVENT_NAME:-unknown}"
 
-            if [ "${RELEASE_EVENT_NAME:-}" = "pull_request" ]; then
-              echo "Pull Request: #${RELEASE_PR_NUMBER:-unknown}"
-              [ -n "${RELEASE_HEAD_REF:-}" ] && echo "Head branch: $RELEASE_HEAD_REF"
-              [ -n "${RELEASE_BASE_REF:-}" ] && echo "Base branch: $RELEASE_BASE_REF"
-            elif [ "${RELEASE_EVENT_NAME:-}" = "push" ]; then
-              branch="${RELEASE_REF_NAME:-}"
-              if [ -z "$branch" ] && [ -n "${GITHUB_REF:-}" ]; then
-                branch="${GITHUB_REF#refs/heads/}"
-              fi
-              [ -n "$branch" ] && echo "Branch: $branch"
-            fi
+            echo "Pull Request: #${RELEASE_PR_NUMBER:-unknown}"
+            [ -n "${RELEASE_HEAD_REF:-}" ] && echo "Head branch: $RELEASE_HEAD_REF"
+            [ -n "${RELEASE_BASE_REF:-}" ] && echo "Base branch: $RELEASE_BASE_REF"
 
             [ -n "${RELEASE_SHA:-}" ] && echo "Commit: $RELEASE_SHA"
           } > "$release_notes_file"
 
-          npx -y firebase-tools appdistribution:distribute "${{ steps.ios-build.outputs.ipa-path }}" \
+          npx -y firebase-tools appdistribution:distribute "${{ steps.ios-build-fad.outputs.ipa-path }}" \
             --app "$FIREBASE_IOS_APP_ID" \
             --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS" \
             --release-notes-file "$release_notes_file"
+
+      - name: Build and upload iOS IPA to TestFlight
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        with:
+          platform: "ios"
+          working-directory: "apps/dashboard"
+          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          distribution-method: "app-store"
+          upload-to-app-store-connect: "true"
+          certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
+          asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
+          asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
+          asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
 
   build-macos:
     needs: [ci]
