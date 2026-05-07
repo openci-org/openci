@@ -37,3 +37,18 @@ export interface WorkerConfig {
   pollIntervalMs: number;
   once: boolean;
 }
+
+export type WorkerStatus = "starting" | "idle" | "busy" | "error" | "stopping";
+
+export interface WorkerHeartbeatInput {
+  workerId: string;
+  version: string;
+  platform: NodeJS.Platform;
+  hostname: string;
+  pid: number;
+  status: WorkerStatus;
+  currentBuildJobId?: string | null;
+  currentRunId?: string | null;
+  consecutiveFailures?: number;
+  lastError?: string | null;
+}

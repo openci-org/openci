@@ -286,6 +286,11 @@ service cloud.firestore {
             }
         }
 
+        match /worker_instances_v0/{workerId} {
+            allow read: if isAuthenticated();
+            allow write: if false;
+        }
+
         match /workflows_v1/{workflowId} {
             allow create: if isValidWorkflow(request.resource.data)
                 && request.resource.data.id == workflowId

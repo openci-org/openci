@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defaultGitHubApiBaseUrl = exports.updateEnvironmentVariableValueForWorker = exports.updateBuildRunStatusForWorker = exports.updateBuildJobStatus = exports.listWorkerSecrets = exports.listWorkerEnvironmentVariables = exports.getBuildJob = exports.createBuildRunForWorker = exports.completeBuildJobForWorker = exports.claimQueuedBuildJob = exports.BuildJobStatus = exports.appendBuildLogForWorker = void 0;
+exports.defaultGitHubApiBaseUrl = exports.upsertWorkerHeartbeat = exports.updateEnvironmentVariableValueForWorker = exports.updateBuildRunStatusForWorker = exports.updateBuildJobStatus = exports.listWorkerSecrets = exports.listWorkerEnvironmentVariables = exports.getBuildJob = exports.createBuildRunForWorker = exports.completeBuildJobForWorker = exports.claimQueuedBuildJob = exports.BuildJobStatus = exports.appendBuildLogForWorker = void 0;
 exports.normalizeGitHubApiBaseUrl = normalizeGitHubApiBaseUrl;
 exports.buildDashboardRunUrl = buildDashboardRunUrl;
 exports.getBuildJobOrThrow = getBuildJobOrThrow;
@@ -20,6 +20,7 @@ Object.defineProperty(exports, "listWorkerSecrets", { enumerable: true, get: fun
 Object.defineProperty(exports, "updateBuildJobStatus", { enumerable: true, get: function () { return firestoreData_1.updateBuildJobStatus; } });
 Object.defineProperty(exports, "updateBuildRunStatusForWorker", { enumerable: true, get: function () { return firestoreData_1.updateBuildRunStatusForWorker; } });
 Object.defineProperty(exports, "updateEnvironmentVariableValueForWorker", { enumerable: true, get: function () { return firestoreData_1.updateEnvironmentVariableValueForWorker; } });
+Object.defineProperty(exports, "upsertWorkerHeartbeat", { enumerable: true, get: function () { return firestoreData_1.upsertWorkerHeartbeat; } });
 const firestoreData_2 = require("./firestoreData");
 const messaging_1 = require("firebase-admin/messaging");
 exports.defaultGitHubApiBaseUrl = "https://api.github.com";

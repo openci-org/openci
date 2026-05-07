@@ -4,7 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/firebase/firestore.dart'
-    show BuildJobStatus, buildJobStatusFromFirestore, buildJobsCollection;
+    show
+        BuildJobStatus,
+        buildJobStatusFromFirestore,
+        buildJobsCollection,
+        dateTimeFromFirestore,
+        workerInstancesCollection;
 import 'package:dashboard/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -424,6 +429,7 @@ class IssueBoardPage extends StatefulWidget {
 }
 
 class _IssueBoardPageState extends State<IssueBoardPage> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _boardScrollController = ScrollController();
   late final String _workspaceId;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _issuesSubscription;
@@ -514,9 +520,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 
   bool _handleIssueBoardKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent ||
-        event.logicalKey != LogicalKeyboardKey.keyK ||
-        !HardwareKeyboard.instance.isMetaPressed) {
+    if (event is! KeyDownEvent) {
       return false;
     }
 
@@ -524,8 +528,17 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return false;
     }
 
+    if (event.logicalKey != LogicalKeyboardKey.keyK ||
+        !HardwareKeyboard.instance.isMetaPressed) {
+      return false;
+    }
+
     unawaited(_openIssueSearchDialog());
     return true;
+  }
+
+  void _openWorkerInspector() {
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   Future<void> _bootstrapWorkspace() async {
@@ -1604,7 +1617,20 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         onAddIssue: () => unawaited(_openAddIssueDialog()),
         onSearchIssues: () => unawaited(_openIssueSearchDialog()),
         child: Scaffold(
+          key: _scaffoldKey,
           backgroundColor: const Color(0xFFF8FAFC),
+          endDrawer: Drawer(
+            width: 420,
+            shape: const RoundedRectangleBorder(
+              side: BorderSide(color: Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.horizontal(left: Radius.circular(22)),
+            ),
+            child: Builder(
+              builder: (context) => WorkerInspectorPanel(
+                onDismiss: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+          ),
           appBar: isCompactLayout
               ? AppBar(
                   title: const Text(
@@ -1638,6 +1664,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                       onSignOut: onSignOut,
                       workspaceName: widget.workspaceName,
                       onSwitchTeam: widget.onSwitchTeam,
+                      onWorkersTap: _openWorkerInspector,
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -1664,6 +1691,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     onSignOut: onSignOut,
                     workspaceName: widget.workspaceName,
                     onSwitchTeam: widget.onSwitchTeam,
+                    onWorkerOverviewTap: _openWorkerInspector,
                   ),
                 if (_isBootstrapping) const LinearProgressIndicator(),
                 if (isCompactLayout)
@@ -1686,6 +1714,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   githubLogin: _githubLogin,
                   repoCount: _enabledRepoCount,
                   isBusy: _isBusy,
+                  onWorkersTap: _openWorkerInspector,
                 ),
                 if (_loadError != null)
                   Padding(
@@ -1745,7 +1774,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                               onIssueLinkedToPullRequest:
                                   _linkIssueToPullRequest,
                               onAddIssue: (columnId) => unawaited(
-                                _openAddIssueDialog(initialColumnId: columnId),
+                                _openAddIssueDialog(
+                                  initialColumnId: columnId,
+                                ),
                               ),
                               onIssueTapped: _openEditIssueDialog,
                               onStartCursorAgent: _startCursorAgent,
@@ -1843,6 +1874,7 @@ class BoardHeader extends StatelessWidget {
     required this.closedIssues,
     required this.dailyProgressStats,
     required this.onChangeDailyWeightTarget,
+    required this.onWorkerOverviewTap,
     required this.onSignOut,
     required this.workspaceName,
     this.onSwitchTeam,
@@ -1852,6 +1884,7 @@ class BoardHeader extends StatelessWidget {
   final List<Issue> closedIssues;
   final DailyProgressStats dailyProgressStats;
   final VoidCallback onChangeDailyWeightTarget;
+  final VoidCallback onWorkerOverviewTap;
   final Future<void> Function() onSignOut;
   final String workspaceName;
   final VoidCallback? onSwitchTeam;
@@ -1926,6 +1959,7 @@ class BoardHeader extends StatelessWidget {
                     closedIssues: closedIssues,
                     dailyProgressStats: dailyProgressStats,
                     onDailyProgressTap: onChangeDailyWeightTarget,
+                    onWorkerOverviewTap: onWorkerOverviewTap,
                   ),
                 ),
               ),
@@ -2105,12 +2139,14 @@ class BoardOverviewPanel extends StatelessWidget {
     required this.closedIssues,
     required this.dailyProgressStats,
     required this.onDailyProgressTap,
+    required this.onWorkerOverviewTap,
   });
 
   final int openIssues;
   final List<Issue> closedIssues;
   final DailyProgressStats dailyProgressStats;
   final VoidCallback onDailyProgressTap;
+  final VoidCallback onWorkerOverviewTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2162,11 +2198,684 @@ class BoardOverviewPanel extends StatelessWidget {
                 ),
               ),
             ],
+            const _OverviewDivider(),
+            WorkerOverviewMetric(onTap: onWorkerOverviewTap),
           ],
         ),
       ),
     );
   }
+}
+
+class WorkerOverviewMetric extends StatelessWidget {
+  const WorkerOverviewMetric({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection(workerInstancesCollection)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _WorkerOverviewTapTarget(
+            onTap: onTap,
+            child: const OverviewMetric(
+              label: 'Workers',
+              value: '-',
+              detail: 'read error',
+              valueColor: Color(0xFFDC2626),
+              width: 112,
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return _WorkerOverviewTapTarget(
+            onTap: onTap,
+            child: const OverviewMetric(
+              label: 'Workers',
+              value: '-',
+              detail: 'loading',
+              width: 112,
+            ),
+          );
+        }
+
+        final summary = WorkerOverviewSummary.fromDocs(snapshot.data!.docs);
+        final valueColor = summary.offlineCount > 0
+            ? const Color(0xFFA16207)
+            : const Color(0xFF15803D);
+        return Tooltip(
+          message:
+              'macOS ${summary.onlineMacos}/${summary.totalMacos} online / '
+              'Linux ${summary.onlineLinux}/${summary.totalLinux} online / '
+              'offline ${summary.offlineCount}',
+          child: _WorkerOverviewTapTarget(
+            onTap: onTap,
+            child: OverviewMetric(
+              label: 'Workers',
+              value: '${summary.onlineCount}/${summary.totalCount}',
+              valueColor: valueColor,
+              detail:
+                  'mac ${summary.onlineMacos} / linux ${summary.onlineLinux}',
+              width: 112,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WorkerOverviewTapTarget extends StatelessWidget {
+  const _WorkerOverviewTapTarget({required this.onTap, required this.child});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: child,
+    );
+  }
+}
+
+class WorkerOverviewSummary {
+  const WorkerOverviewSummary({
+    required this.totalMacos,
+    required this.onlineMacos,
+    required this.totalLinux,
+    required this.onlineLinux,
+    required this.totalOther,
+    required this.onlineOther,
+  });
+
+  static const offlineAfter = Duration(minutes: 2);
+
+  final int totalMacos;
+  final int onlineMacos;
+  final int totalLinux;
+  final int onlineLinux;
+  final int totalOther;
+  final int onlineOther;
+
+  int get totalCount => totalMacos + totalLinux + totalOther;
+  int get onlineCount => onlineMacos + onlineLinux + onlineOther;
+  int get offlineCount => totalCount - onlineCount;
+
+  static WorkerOverviewSummary fromDocs(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    var totalMacos = 0;
+    var onlineMacos = 0;
+    var totalLinux = 0;
+    var onlineLinux = 0;
+    var totalOther = 0;
+    var onlineOther = 0;
+    final now = DateTime.now();
+
+    for (final doc in docs) {
+      final data = doc.data();
+      final platform = (data['platform'] as String? ?? '').toLowerCase();
+      final lastSeenAt = dateTimeFromFirestore(data['lastSeenAt']);
+      final isOnline = now.difference(lastSeenAt) < offlineAfter;
+
+      if (platform == 'darwin' || platform.contains('mac')) {
+        totalMacos += 1;
+        if (isOnline) onlineMacos += 1;
+      } else if (platform == 'linux') {
+        totalLinux += 1;
+        if (isOnline) onlineLinux += 1;
+      } else {
+        totalOther += 1;
+        if (isOnline) onlineOther += 1;
+      }
+    }
+
+    return WorkerOverviewSummary(
+      totalMacos: totalMacos,
+      onlineMacos: onlineMacos,
+      totalLinux: totalLinux,
+      onlineLinux: onlineLinux,
+      totalOther: totalOther,
+      onlineOther: onlineOther,
+    );
+  }
+}
+
+class WorkerInspectorPanel extends StatelessWidget {
+  const WorkerInspectorPanel({super.key, required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection(workerInstancesCollection)
+          .orderBy('lastSeenAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _WorkerInspectorShell(
+            onDismiss: onDismiss,
+            child: const Center(child: Text('Worker status を読み込めませんでした')),
+          );
+        }
+        if (!snapshot.hasData) {
+          return _WorkerInspectorShell(
+            onDismiss: onDismiss,
+            child: const Center(child: CircularProgressIndicator.adaptive()),
+          );
+        }
+
+        final workers = snapshot.data!.docs
+            .map(WorkerInspectorItem.fromDoc)
+            .toList();
+        final macosWorkers = workers
+            .where(
+              (worker) => worker.platformGroup == WorkerPlatformGroup.macos,
+            )
+            .toList();
+        final linuxWorkers = workers
+            .where(
+              (worker) => worker.platformGroup == WorkerPlatformGroup.linux,
+            )
+            .toList();
+        final otherWorkers = workers
+            .where(
+              (worker) => worker.platformGroup == WorkerPlatformGroup.other,
+            )
+            .toList();
+
+        return _WorkerInspectorShell(
+          onDismiss: onDismiss,
+          child: workers.isEmpty
+              ? const _WorkerInspectorEmpty()
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                  children: [
+                    SizedBox(height: 14),
+                    _WorkerInspectorSummary(workers: workers),
+                    const SizedBox(height: 14),
+                    _WorkerInspectorSection(
+                      title: 'macOS',
+                      workers: macosWorkers,
+                      icon: Icons.laptop_mac_rounded,
+                    ),
+                    const SizedBox(height: 14),
+                    _WorkerInspectorSection(
+                      title: 'Linux',
+                      workers: linuxWorkers,
+                      icon: Icons.cloud_queue_rounded,
+                    ),
+                    if (otherWorkers.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      _WorkerInspectorSection(
+                        title: 'Other',
+                        workers: otherWorkers,
+                        icon: Icons.device_unknown_rounded,
+                      ),
+                    ],
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _WorkerInspectorShell extends StatelessWidget {
+  const _WorkerInspectorShell({
+    required this.onDismiss,
+    required this.child,
+  });
+
+  final VoidCallback onDismiss;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 10, 12),
+          child: Row(
+            children: [
+              const Icon(Icons.dns_outlined, color: Color(0xFF2563EB)),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Workers',
+                      style: TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'Esc で閉じる',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: '閉じる',
+                onPressed: onDismiss,
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
+class _WorkerInspectorSummary extends StatelessWidget {
+  const _WorkerInspectorSummary({required this.workers});
+
+  final List<WorkerInspectorItem> workers;
+
+  @override
+  Widget build(BuildContext context) {
+    final online = workers.where((worker) => worker.isOnline).length;
+    final busy = workers.where((worker) => worker.isBusy).length;
+    final error = workers
+        .where((worker) => worker.hasError && worker.isOnline)
+        .length;
+    final offline = workers.length - online;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _WorkerInspectorSummaryChip(
+          label: 'オンライン',
+          value: online,
+          color: const Color(0xFF15803D),
+        ),
+        _WorkerInspectorSummaryChip(
+          label: '実行中',
+          value: busy,
+          color: const Color(0xFF2563EB),
+        ),
+        _WorkerInspectorSummaryChip(
+          label: 'エラー',
+          value: error,
+          color: const Color(0xFFDC2626),
+        ),
+        _WorkerInspectorSummaryChip(
+          label: 'オフライン',
+          value: offline,
+          color: const Color(0xFF64748B),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkerInspectorSummaryChip extends StatelessWidget {
+  const _WorkerInspectorSummaryChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 84,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$value',
+            style: TextStyle(
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkerInspectorSection extends StatelessWidget {
+  const _WorkerInspectorSection({
+    required this.title,
+    required this.workers,
+    required this.icon,
+  });
+
+  final String title;
+  final List<WorkerInspectorItem> workers;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final online = workers.where((worker) => worker.isOnline).length;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$online/${workers.length} online',
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          if (workers.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '登録された worker はありません',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                ),
+              ),
+            )
+          else
+            for (final worker in workers) _WorkerInspectorRow(worker: worker),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkerInspectorRow extends StatelessWidget {
+  const _WorkerInspectorRow({required this.worker});
+
+  final WorkerInspectorItem worker;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = worker.statusColor;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 9,
+                height: 9,
+                margin: const EdgeInsets.only(top: 5),
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      worker.workerId,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      [
+                        worker.statusLabel,
+                        'v${worker.version}',
+                        if (worker.hostname.isNotEmpty) worker.hostname,
+                        if (worker.pid != null) 'pid ${worker.pid}',
+                      ].join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _formatWorkerLastSeen(worker.lastSeenAt),
+                style: TextStyle(
+                  color: worker.isOnline
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFFDC2626),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          if (worker.currentBuildJobId != null) ...[
+            const SizedBox(height: 8),
+            _WorkerInspectorDetail(
+              icon: Icons.play_circle_outline_rounded,
+              text: worker.currentRunId == null
+                  ? 'Current job: ${worker.currentBuildJobId}'
+                  : 'Current job: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
+            ),
+          ],
+          if (worker.lastError != null && worker.lastError!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _WorkerInspectorDetail(
+              icon: Icons.error_outline_rounded,
+              text: worker.lastError!,
+              color: const Color(0xFFDC2626),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkerInspectorDetail extends StatelessWidget {
+  const _WorkerInspectorDetail({
+    required this.icon,
+    required this.text,
+    this.color = const Color(0xFF64748B),
+  });
+
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 15),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: color, fontSize: 12, height: 1.35),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkerInspectorEmpty extends StatelessWidget {
+  const _WorkerInspectorEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Worker heartbeat がまだありません\n0.1.27 以降の worker が起動すると表示されます',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF64748B), height: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+enum WorkerPlatformGroup { macos, linux, other }
+
+class WorkerInspectorItem {
+  const WorkerInspectorItem({
+    required this.workerId,
+    required this.version,
+    required this.platform,
+    required this.hostname,
+    required this.status,
+    required this.lastSeenAt,
+    this.pid,
+    this.currentBuildJobId,
+    this.currentRunId,
+    this.consecutiveFailures = 0,
+    this.lastError,
+  });
+
+  static const offlineAfter = Duration(minutes: 2);
+
+  final String workerId;
+  final String version;
+  final String platform;
+  final String hostname;
+  final String status;
+  final DateTime lastSeenAt;
+  final int? pid;
+  final String? currentBuildJobId;
+  final String? currentRunId;
+  final int consecutiveFailures;
+  final String? lastError;
+
+  factory WorkerInspectorItem.fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    return WorkerInspectorItem(
+      workerId: data['workerId'] as String? ?? doc.id,
+      version: data['version'] as String? ?? 'unknown',
+      platform: data['platform'] as String? ?? 'unknown',
+      hostname: data['hostname'] as String? ?? '',
+      status: data['status'] as String? ?? 'unknown',
+      lastSeenAt: dateTimeFromFirestore(data['lastSeenAt']),
+      pid: data['pid'] is int ? data['pid'] as int : null,
+      currentBuildJobId: data['currentBuildJobId'] as String?,
+      currentRunId: data['currentRunId'] as String?,
+      consecutiveFailures: data['consecutiveFailures'] is int
+          ? data['consecutiveFailures'] as int
+          : 0,
+      lastError: data['lastError'] as String?,
+    );
+  }
+
+  bool get isOnline => DateTime.now().difference(lastSeenAt) < offlineAfter;
+  bool get isBusy => isOnline && status == 'busy';
+  bool get hasError => status == 'error' || consecutiveFailures > 0;
+
+  WorkerPlatformGroup get platformGroup {
+    final normalized = platform.toLowerCase();
+    if (normalized == 'darwin' || normalized.contains('mac')) {
+      return WorkerPlatformGroup.macos;
+    }
+    if (normalized == 'linux') {
+      return WorkerPlatformGroup.linux;
+    }
+    return WorkerPlatformGroup.other;
+  }
+
+  String get statusLabel => isOnline ? status : 'offline';
+
+  Color get statusColor {
+    if (!isOnline) return const Color(0xFF94A3B8);
+    return switch (status) {
+      'busy' => const Color(0xFF2563EB),
+      'error' => const Color(0xFFDC2626),
+      'idle' => const Color(0xFF15803D),
+      'starting' => const Color(0xFFA16207),
+      'stopping' => const Color(0xFFA16207),
+      _ => const Color(0xFF94A3B8),
+    };
+  }
+}
+
+String _formatWorkerLastSeen(DateTime lastSeenAt) {
+  final diff = DateTime.now().difference(lastSeenAt);
+  if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  return '${diff.inDays}d ago';
 }
 
 class DailyProgressOverview extends StatelessWidget {
@@ -3633,6 +4342,7 @@ class BoardToolbar extends StatelessWidget {
     required this.githubLogin,
     required this.repoCount,
     required this.isBusy,
+    required this.onWorkersTap,
   });
 
   final VoidCallback onConnectGitHub;
@@ -3645,6 +4355,7 @@ class BoardToolbar extends StatelessWidget {
   final String? githubLogin;
   final int repoCount;
   final bool isBusy;
+  final VoidCallback onWorkersTap;
 
   @override
   Widget build(BuildContext context) {
@@ -3708,6 +4419,12 @@ class BoardToolbar extends StatelessWidget {
                     label: '実行履歴',
                     tooltip: 'CI/CD の実行履歴を開く',
                     onPressed: () => context.go('/runs'),
+                  ),
+                  ToolbarChip(
+                    icon: Icons.dns_outlined,
+                    label: 'Workers',
+                    tooltip: 'OpenCI worker の稼動状況を開く',
+                    onPressed: onWorkersTap,
                   ),
                   ToolbarChip(
                     icon: Icons.schema_rounded,
@@ -3908,6 +4625,7 @@ class CompactBoardMenuButton extends StatelessWidget {
     required this.onSearchIssues,
     required this.onSignOut,
     required this.workspaceName,
+    required this.onWorkersTap,
     this.onSwitchTeam,
   });
 
@@ -3921,6 +4639,7 @@ class CompactBoardMenuButton extends StatelessWidget {
   final VoidCallback onSearchIssues;
   final Future<void> Function() onSignOut;
   final String workspaceName;
+  final VoidCallback onWorkersTap;
   final VoidCallback? onSwitchTeam;
 
   @override
@@ -3944,6 +4663,8 @@ class CompactBoardMenuButton extends StatelessWidget {
             onSwitchTeam?.call();
           case 'runs':
             context.go('/runs');
+          case 'workers':
+            onWorkersTap();
           case 'workflows':
             context.go('/workflows');
           case 'variables':
@@ -4012,6 +4733,13 @@ class CompactBoardMenuButton extends StatelessWidget {
           child: _CompactMenuItem(
             icon: Icons.history_rounded,
             label: '実行履歴',
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'workers',
+          child: _CompactMenuItem(
+            icon: Icons.dns_outlined,
+            label: 'Workers',
           ),
         ),
         const PopupMenuItem(
