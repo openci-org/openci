@@ -2378,17 +2378,17 @@ class WorkerInspectorPanel extends StatelessWidget {
             .toList();
         final macosWorkers = workers
             .where(
-              (worker) => worker.platformGroup == _WorkerPlatformGroup.macos,
+              (worker) => worker.platformGroup == WorkerPlatformGroup.macos,
             )
             .toList();
         final linuxWorkers = workers
             .where(
-              (worker) => worker.platformGroup == _WorkerPlatformGroup.linux,
+              (worker) => worker.platformGroup == WorkerPlatformGroup.linux,
             )
             .toList();
         final otherWorkers = workers
             .where(
-              (worker) => worker.platformGroup == _WorkerPlatformGroup.other,
+              (worker) => worker.platformGroup == WorkerPlatformGroup.other,
             )
             .toList();
 
@@ -2788,7 +2788,7 @@ class _WorkerInspectorEmpty extends StatelessWidget {
   }
 }
 
-enum _WorkerPlatformGroup { macos, linux, other }
+enum WorkerPlatformGroup { macos, linux, other }
 
 class WorkerInspectorItem {
   const WorkerInspectorItem({
@@ -2844,15 +2844,15 @@ class WorkerInspectorItem {
   bool get isBusy => isOnline && status == 'busy';
   bool get hasError => status == 'error' || consecutiveFailures > 0;
 
-  _WorkerPlatformGroup get platformGroup {
+  WorkerPlatformGroup get platformGroup {
     final normalized = platform.toLowerCase();
     if (normalized == 'darwin' || normalized.contains('mac')) {
-      return _WorkerPlatformGroup.macos;
+      return WorkerPlatformGroup.macos;
     }
     if (normalized == 'linux') {
-      return _WorkerPlatformGroup.linux;
+      return WorkerPlatformGroup.linux;
     }
-    return _WorkerPlatformGroup.other;
+    return WorkerPlatformGroup.other;
   }
 
   String get statusLabel => isOnline ? status : 'offline';
