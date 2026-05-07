@@ -1597,7 +1597,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           appBar: isCompactLayout
               ? AppBar(
                   title: const Text(
-                    'イマ',
+                    'OpenCI',
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   backgroundColor: const Color(0xFFF8FAFC),
@@ -1848,7 +1848,7 @@ class BoardHeader extends StatelessWidget {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 520;
         final title = Text(
-          'イマ',
+          'OpenCI',
           style:
               (isCompact ? textTheme.headlineSmall : textTheme.headlineMedium)
                   ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.8),
