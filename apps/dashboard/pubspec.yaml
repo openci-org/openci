@@ -54,6 +54,7 @@ dependencies:
   google_fonts: ^8.0.2
   xml: ^6.6.1
   cloud_firestore: ^6.3.0
+  flutter_sticky_header: ^0.8.0
 
 dev_dependencies:
   sentry_dart_plugin: ^3.3.0
