@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/store_release/store_release_page.dart';

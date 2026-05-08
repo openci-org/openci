@@ -52,6 +52,15 @@ enum _CompactBoardDestination {
   storeRelease,
 }
 
+const _boardNavigationDestinations = [
+  _CompactBoardDestination.issueBoard,
+  _CompactBoardDestination.runs,
+  _CompactBoardDestination.workers,
+  _CompactBoardDestination.workflows,
+  _CompactBoardDestination.variables,
+  _CompactBoardDestination.storeRelease,
+];
+
 extension _CompactBoardDestinationLabel on _CompactBoardDestination {
   String get label => switch (this) {
     _CompactBoardDestination.issueBoard => 'Issue board',
@@ -60,6 +69,24 @@ extension _CompactBoardDestinationLabel on _CompactBoardDestination {
     _CompactBoardDestination.workflows => 'ワークフロー',
     _CompactBoardDestination.variables => '変数',
     _CompactBoardDestination.storeRelease => 'ストアリリース',
+  };
+
+  IconData get icon => switch (this) {
+    _CompactBoardDestination.issueBoard => Icons.view_kanban_outlined,
+    _CompactBoardDestination.runs => Icons.history_rounded,
+    _CompactBoardDestination.workers => Icons.dns_outlined,
+    _CompactBoardDestination.workflows => Icons.schema_rounded,
+    _CompactBoardDestination.variables => Icons.key_rounded,
+    _CompactBoardDestination.storeRelease => Icons.rocket_launch_outlined,
+  };
+
+  IconData get selectedIcon => switch (this) {
+    _CompactBoardDestination.issueBoard => Icons.view_kanban_rounded,
+    _CompactBoardDestination.runs => Icons.history_rounded,
+    _CompactBoardDestination.workers => Icons.dns_rounded,
+    _CompactBoardDestination.workflows => Icons.schema_rounded,
+    _CompactBoardDestination.variables => Icons.key_rounded,
+    _CompactBoardDestination.storeRelease => Icons.rocket_launch_rounded,
   };
 }
 
@@ -481,6 +508,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
   _CompactBoardDestination _compactDestination =
       _CompactBoardDestination.issueBoard;
+  bool _isDesktopRailCollapsed = false;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -566,23 +594,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     unawaited(_openIssueSearchDialog());
     return true;
   }
-
-  void _openSidePanel(_BoardSidePanel panel) {
-    if (_sidePanel != panel) {
-      setState(() => _sidePanel = panel);
-    }
-    _scaffoldKey.currentState?.openEndDrawer();
-  }
-
-  void _openRunHistory() => _openSidePanel(_BoardSidePanel.runs);
-
-  void _openWorkerInspector() => _openSidePanel(_BoardSidePanel.workers);
-
-  void _openWorkflowsPanel() => _openSidePanel(_BoardSidePanel.workflows);
-
-  void _openVariablesPanel() => _openSidePanel(_BoardSidePanel.variables);
-
-  void _openStoreReleasePanel() => _openSidePanel(_BoardSidePanel.storeRelease);
 
   void _selectCompactDestination(_CompactBoardDestination destination) {
     if (_compactDestination == destination) {
@@ -1661,21 +1672,16 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         (isCompactLayout ? BoardViewMode.overview : BoardViewMode.standard);
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final onSignOut = FirebaseAuth.instance.signOut;
-    final onRunsTap = isCompactLayout
-        ? () => _selectCompactDestination(_CompactBoardDestination.runs)
-        : _openRunHistory;
-    final onWorkersTap = isCompactLayout
-        ? () => _selectCompactDestination(_CompactBoardDestination.workers)
-        : _openWorkerInspector;
-    final onWorkflowsTap = isCompactLayout
-        ? () => _selectCompactDestination(_CompactBoardDestination.workflows)
-        : _openWorkflowsPanel;
-    final onVariablesTap = isCompactLayout
-        ? () => _selectCompactDestination(_CompactBoardDestination.variables)
-        : _openVariablesPanel;
-    final onStoreReleaseTap = isCompactLayout
-        ? () => _selectCompactDestination(_CompactBoardDestination.storeRelease)
-        : _openStoreReleasePanel;
+    final onRunsTap = () =>
+        _selectCompactDestination(_CompactBoardDestination.runs);
+    final onWorkersTap = () =>
+        _selectCompactDestination(_CompactBoardDestination.workers);
+    final onWorkflowsTap = () =>
+        _selectCompactDestination(_CompactBoardDestination.workflows);
+    final onVariablesTap = () =>
+        _selectCompactDestination(_CompactBoardDestination.variables);
+    final onStoreReleaseTap = () =>
+        _selectCompactDestination(_CompactBoardDestination.storeRelease);
 
     return SyncedSpinnerScope(
       child: IssueBoardShortcuts(
@@ -1763,175 +1769,206 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   label: const Text('新規'),
                 )
               : null,
-          body: SafeArea(
-            child:
-                isCompactLayout &&
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final content = SafeArea(
+                child:
                     _compactDestination != _CompactBoardDestination.issueBoard
-                ? _CompactDestinationBody(destination: _compactDestination)
-                : Column(
-                    children: [
-                      if (!isCompactLayout)
-                        BoardHeader(
-                          openIssues: openIssues,
-                          closedIssues: closedIssues,
-                          dailyProgressStats: dailyProgressStats,
-                          onChangeDailyWeightTarget: () => unawaited(
-                            _openDailyWeightTargetDialog(dailyProgressStats),
-                          ),
-                          onSignOut: onSignOut,
-                          workspaceName: widget.workspaceName,
-                          onSwitchTeam: widget.onSwitchTeam,
-                          onWorkerOverviewTap: _openWorkerInspector,
-                        ),
-                      if (_isBootstrapping) const LinearProgressIndicator(),
-                      if (isCompactLayout)
-                        DailyProgressStrip(
-                          stats: dailyProgressStats,
-                          isCompact: true,
-                          onTap: () => unawaited(
-                            _openDailyWeightTargetDialog(dailyProgressStats),
-                          ),
-                        ),
-                      BoardToolbar(
-                        onConnectGitHub: _connectGitHub,
-                        onSelectRepositories: _selectRepositories,
-                        onImportIssues: _importGitHubIssues,
-                        onSyncIssues: _syncGitHubIssues,
-                        onSearchIssues: _openIssueSearchDialog,
-                        boardViewMode: boardViewMode,
-                        onBoardViewModeChanged: (mode) =>
-                            setState(() => _boardViewMode = mode),
-                        githubLogin: _githubLogin,
-                        repoCount: _enabledRepoCount,
-                        isBusy: _isBusy,
-                        onRunsTap: onRunsTap,
-                        onWorkersTap: onWorkersTap,
-                        onWorkflowsTap: onWorkflowsTap,
-                        onVariablesTap: onVariablesTap,
-                        onStoreReleaseTap: onStoreReleaseTap,
-                      ),
-                      if (_loadError != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                          child: Text(
-                            _loadError!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final boardHeight = constraints.maxHeight > 32
-                                ? constraints.maxHeight - 24
-                                : constraints.maxHeight;
-                            final isCompactBoard =
-                                constraints.maxWidth < _compactBoardBreakpoint;
-                            final allIssues = _columns
-                                .expand((column) => column.issues)
-                                .toList();
-
-                            if (boardViewMode == BoardViewMode.overview) {
-                              return OverviewBoard(
-                                columns: _columns,
-                                isCompact: isCompactBoard,
-                                onIssueTapped: _openEditIssueDialog,
-                                onIssueDropped: _moveIssue,
-                              );
-                            }
-
-                            if (isCompactBoard) {
-                              return ListView.separated(
-                                controller: _boardScrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  _boardHorizontalPadding,
-                                  4,
-                                  _boardHorizontalPadding,
-                                  _boardBottomPadding + 72,
-                                ),
-                                itemCount: _columns.length,
-                                separatorBuilder: (_, _) =>
-                                    const SizedBox(height: _boardColumnGap),
-                                itemBuilder: (context, index) {
-                                  final column = _columns[index];
-                                  return CompactBoardColumnView(
-                                    column: column,
-                                    allIssues: allIssues,
-                                    buildStatusesByPullRequest:
-                                        _buildStatusesByPullRequest,
-                                    startingCursorAgentIssueIds:
-                                        _startingCursorAgentIssueIds,
-                                    requiresLongPressDrag: true,
-                                    onIssueDropped: _moveIssue,
-                                    onIssueLinkedToPullRequest:
-                                        _linkIssueToPullRequest,
-                                    onAddIssue: (columnId) => unawaited(
-                                      _openAddIssueDialog(
-                                        initialColumnId: columnId,
-                                      ),
-                                    ),
-                                    onIssueTapped: _openEditIssueDialog,
-                                    onStartCursorAgent: _startCursorAgent,
-                                  );
-                                },
-                              );
-                            }
-
-                            return Scrollbar(
-                              controller: _boardScrollController,
-                              thumbVisibility: true,
-                              child: SingleChildScrollView(
-                                controller: _boardScrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  _boardHorizontalPadding,
-                                  6,
-                                  _boardHorizontalPadding,
-                                  _boardBottomPadding,
-                                ),
-                                scrollDirection: Axis.horizontal,
-                                child: SizedBox(
-                                  height: boardHeight,
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      for (final column in _columns) ...[
-                                        BoardColumnView(
-                                          column: column,
-                                          allIssues: allIssues,
-                                          buildStatusesByPullRequest:
-                                              _buildStatusesByPullRequest,
-                                          startingCursorAgentIssueIds:
-                                              _startingCursorAgentIssueIds,
-                                          requiresLongPressDrag: false,
-                                          onIssueDropped: _moveIssue,
-                                          onIssueLinkedToPullRequest:
-                                              _linkIssueToPullRequest,
-                                          onAddIssue: (columnId) => unawaited(
-                                            _openAddIssueDialog(
-                                              initialColumnId: columnId,
-                                            ),
-                                          ),
-                                          onIssueTapped: _openEditIssueDialog,
-                                          onStartCursorAgent: _startCursorAgent,
-                                        ),
-                                        if (column != _columns.last)
-                                          const SizedBox(
-                                            width: _boardColumnGap,
-                                          ),
-                                      ],
-                                    ],
-                                  ),
+                    ? _CompactDestinationBody(destination: _compactDestination)
+                    : Column(
+                        children: [
+                          if (!isCompactLayout)
+                            BoardHeader(
+                              openIssues: openIssues,
+                              closedIssues: closedIssues,
+                              dailyProgressStats: dailyProgressStats,
+                              onChangeDailyWeightTarget: () => unawaited(
+                                _openDailyWeightTargetDialog(
+                                  dailyProgressStats,
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                              onSignOut: onSignOut,
+                              workspaceName: widget.workspaceName,
+                              onSwitchTeam: widget.onSwitchTeam,
+                              onWorkerOverviewTap: onWorkersTap,
+                            ),
+                          if (_isBootstrapping) const LinearProgressIndicator(),
+                          if (isCompactLayout)
+                            DailyProgressStrip(
+                              stats: dailyProgressStats,
+                              isCompact: true,
+                              onTap: () => unawaited(
+                                _openDailyWeightTargetDialog(
+                                  dailyProgressStats,
+                                ),
+                              ),
+                            ),
+                          BoardToolbar(
+                            onConnectGitHub: _connectGitHub,
+                            onSelectRepositories: _selectRepositories,
+                            onImportIssues: _importGitHubIssues,
+                            onSyncIssues: _syncGitHubIssues,
+                            onSearchIssues: _openIssueSearchDialog,
+                            boardViewMode: boardViewMode,
+                            onBoardViewModeChanged: (mode) =>
+                                setState(() => _boardViewMode = mode),
+                            githubLogin: _githubLogin,
+                            repoCount: _enabledRepoCount,
+                            isBusy: _isBusy,
+                            onRunsTap: onRunsTap,
+                            onWorkersTap: onWorkersTap,
+                            onWorkflowsTap: onWorkflowsTap,
+                            onVariablesTap: onVariablesTap,
+                            onStoreReleaseTap: onStoreReleaseTap,
+                            showNavigationActions: isCompactLayout,
+                          ),
+                          if (_loadError != null)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                              child: Text(
+                                _loadError!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final boardHeight = constraints.maxHeight > 32
+                                    ? constraints.maxHeight - 24
+                                    : constraints.maxHeight;
+                                final isCompactBoard =
+                                    constraints.maxWidth <
+                                    _compactBoardBreakpoint;
+                                final allIssues = _columns
+                                    .expand((column) => column.issues)
+                                    .toList();
+
+                                if (boardViewMode == BoardViewMode.overview) {
+                                  return OverviewBoard(
+                                    columns: _columns,
+                                    isCompact: isCompactBoard,
+                                    onIssueTapped: _openEditIssueDialog,
+                                    onIssueDropped: _moveIssue,
+                                  );
+                                }
+
+                                if (isCompactBoard) {
+                                  return ListView.separated(
+                                    controller: _boardScrollController,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      _boardHorizontalPadding,
+                                      4,
+                                      _boardHorizontalPadding,
+                                      _boardBottomPadding + 72,
+                                    ),
+                                    itemCount: _columns.length,
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(height: _boardColumnGap),
+                                    itemBuilder: (context, index) {
+                                      final column = _columns[index];
+                                      return CompactBoardColumnView(
+                                        column: column,
+                                        allIssues: allIssues,
+                                        buildStatusesByPullRequest:
+                                            _buildStatusesByPullRequest,
+                                        startingCursorAgentIssueIds:
+                                            _startingCursorAgentIssueIds,
+                                        requiresLongPressDrag: true,
+                                        onIssueDropped: _moveIssue,
+                                        onIssueLinkedToPullRequest:
+                                            _linkIssueToPullRequest,
+                                        onAddIssue: (columnId) => unawaited(
+                                          _openAddIssueDialog(
+                                            initialColumnId: columnId,
+                                          ),
+                                        ),
+                                        onIssueTapped: _openEditIssueDialog,
+                                        onStartCursorAgent: _startCursorAgent,
+                                      );
+                                    },
+                                  );
+                                }
+
+                                return Scrollbar(
+                                  controller: _boardScrollController,
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    controller: _boardScrollController,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      _boardHorizontalPadding,
+                                      6,
+                                      _boardHorizontalPadding,
+                                      _boardBottomPadding,
+                                    ),
+                                    scrollDirection: Axis.horizontal,
+                                    child: SizedBox(
+                                      height: boardHeight,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          for (final column in _columns) ...[
+                                            BoardColumnView(
+                                              column: column,
+                                              allIssues: allIssues,
+                                              buildStatusesByPullRequest:
+                                                  _buildStatusesByPullRequest,
+                                              startingCursorAgentIssueIds:
+                                                  _startingCursorAgentIssueIds,
+                                              requiresLongPressDrag: false,
+                                              onIssueDropped: _moveIssue,
+                                              onIssueLinkedToPullRequest:
+                                                  _linkIssueToPullRequest,
+                                              onAddIssue: (columnId) =>
+                                                  unawaited(
+                                                    _openAddIssueDialog(
+                                                      initialColumnId: columnId,
+                                                    ),
+                                                  ),
+                                              onIssueTapped:
+                                                  _openEditIssueDialog,
+                                              onStartCursorAgent:
+                                                  _startCursorAgent,
+                                            ),
+                                            if (column != _columns.last)
+                                              const SizedBox(
+                                                width: _boardColumnGap,
+                                              ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+              );
+
+              if (isCompactLayout) {
+                return content;
+              }
+
+              return Row(
+                children: [
+                  _DesktopBoardNavigationRail(
+                    selectedDestination: _compactDestination,
+                    extended:
+                        constraints.maxWidth >= 960 && !_isDesktopRailCollapsed,
+                    onCollapsedChanged: (collapsed) =>
+                        setState(() => _isDesktopRailCollapsed = collapsed),
+                    onDestinationSelected: _selectCompactDestination,
                   ),
+                  const VerticalDivider(width: 1, color: Color(0xFFE2E8F0)),
+                  Expanded(child: content),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -1979,6 +2016,141 @@ class _CompactDestinationBody extends StatelessWidget {
       _CompactBoardDestination.variables => const VariablesBody(),
       _CompactBoardDestination.storeRelease => const StoreReleaseBody(),
     };
+  }
+}
+
+class _DesktopBoardNavigationRail extends StatelessWidget {
+  const _DesktopBoardNavigationRail({
+    required this.selectedDestination,
+    required this.extended,
+    required this.onCollapsedChanged,
+    required this.onDestinationSelected,
+  });
+
+  final _CompactBoardDestination selectedDestination;
+  final bool extended;
+  final ValueChanged<bool> onCollapsedChanged;
+  final ValueChanged<_CompactBoardDestination> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = _boardNavigationDestinations.indexOf(
+      selectedDestination,
+    );
+
+    return SizedBox(
+      width: extended ? 216 : 80,
+      child: NavigationRail(
+        backgroundColor: const Color(0xFFF8FAFC),
+        extended: extended,
+        minWidth: 80,
+        minExtendedWidth: 216,
+        groupAlignment: -1,
+        selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+        labelType: extended ? null : NavigationRailLabelType.all,
+        leading: _DesktopRailHeader(
+          extended: extended,
+          onCollapsedChanged: onCollapsedChanged,
+        ),
+        destinations: [
+          for (final destination in _boardNavigationDestinations)
+            NavigationRailDestination(
+              icon: Icon(destination.icon),
+              selectedIcon: Icon(destination.selectedIcon),
+              label: Text(destination.label),
+            ),
+        ],
+        onDestinationSelected: (index) {
+          onDestinationSelected(_boardNavigationDestinations[index]);
+        },
+      ),
+    );
+  }
+}
+
+class _DesktopRailHeader extends StatelessWidget {
+  const _DesktopRailHeader({
+    required this.extended,
+    required this.onCollapsedChanged,
+  });
+
+  final bool extended;
+  final ValueChanged<bool> onCollapsedChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!extended) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(8, 16, 8, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _OpenCiMark(),
+            const SizedBox(height: 12),
+            IconButton.filledTonal(
+              tooltip: 'ナビゲーションを展開',
+              onPressed: () => onCollapsedChanged(false),
+              icon: const Icon(Icons.chevron_right_rounded),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
+      child: Row(
+        children: [
+          const _OpenCiMark(),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'OpenCI',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'ナビゲーションを折りたたむ',
+            onPressed: () => onCollapsedChanged(true),
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OpenCiMark extends StatelessWidget {
+  const _OpenCiMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: const Text(
+        'OC',
+        style: TextStyle(
+          color: Color(0xFF1D4ED8),
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
   }
 }
 
@@ -4574,6 +4746,7 @@ class BoardToolbar extends StatelessWidget {
     required this.onWorkflowsTap,
     required this.onVariablesTap,
     required this.onStoreReleaseTap,
+    this.showNavigationActions = true,
   });
 
   final VoidCallback onConnectGitHub;
@@ -4591,6 +4764,7 @@ class BoardToolbar extends StatelessWidget {
   final VoidCallback onWorkflowsTap;
   final VoidCallback onVariablesTap;
   final VoidCallback onStoreReleaseTap;
+  final bool showNavigationActions;
 
   @override
   Widget build(BuildContext context) {
@@ -4649,36 +4823,38 @@ class BoardToolbar extends StatelessWidget {
                     value: boardViewMode,
                     onChanged: onBoardViewModeChanged,
                   ),
-                  ToolbarChip(
-                    icon: Icons.history_rounded,
-                    label: '実行履歴',
-                    tooltip: 'CI/CD の実行履歴を開く',
-                    onPressed: onRunsTap,
-                  ),
-                  ToolbarChip(
-                    icon: Icons.dns_outlined,
-                    label: 'ワーカー',
-                    tooltip: 'OpenCI worker の稼動状況を開く',
-                    onPressed: onWorkersTap,
-                  ),
-                  ToolbarChip(
-                    icon: Icons.schema_rounded,
-                    label: 'ワークフロー',
-                    tooltip: '.openci workflows を開く',
-                    onPressed: onWorkflowsTap,
-                  ),
-                  ToolbarChip(
-                    icon: Icons.key_rounded,
-                    label: '変数',
-                    tooltip: '変数 / シークレットを開く',
-                    onPressed: onVariablesTap,
-                  ),
-                  ToolbarChip(
-                    icon: Icons.rocket_launch_outlined,
-                    label: 'ストアリリース',
-                    tooltip: 'ストアリリースを開く',
-                    onPressed: onStoreReleaseTap,
-                  ),
+                  if (showNavigationActions) ...[
+                    ToolbarChip(
+                      icon: Icons.history_rounded,
+                      label: '実行履歴',
+                      tooltip: 'CI/CD の実行履歴を開く',
+                      onPressed: onRunsTap,
+                    ),
+                    ToolbarChip(
+                      icon: Icons.dns_outlined,
+                      label: 'ワーカー',
+                      tooltip: 'OpenCI worker の稼動状況を開く',
+                      onPressed: onWorkersTap,
+                    ),
+                    ToolbarChip(
+                      icon: Icons.schema_rounded,
+                      label: 'ワークフロー',
+                      tooltip: '.openci workflows を開く',
+                      onPressed: onWorkflowsTap,
+                    ),
+                    ToolbarChip(
+                      icon: Icons.key_rounded,
+                      label: '変数',
+                      tooltip: '変数 / シークレットを開く',
+                      onPressed: onVariablesTap,
+                    ),
+                    ToolbarChip(
+                      icon: Icons.rocket_launch_outlined,
+                      label: 'ストアリリース',
+                      tooltip: 'ストアリリースを開く',
+                      onPressed: onStoreReleaseTap,
+                    ),
+                  ],
                 ],
               ),
             ),
