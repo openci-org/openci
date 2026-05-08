@@ -63,6 +63,17 @@ export function upsertLinkedIssueBlock(
   return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
 }
 
+export function bodyWithoutLinkedIssueBlock(body: string | undefined | null): string {
+  return (body ?? "").replace(managedBlockPattern, "").trim();
+}
+
+export function isOnlyLinkedIssueBlockChange(
+  before: string | undefined | null,
+  after: string | undefined | null,
+): boolean {
+  return bodyWithoutLinkedIssueBlock(before) === bodyWithoutLinkedIssueBlock(after);
+}
+
 export function issueStatusForPullRequest({
   action,
   merged,
