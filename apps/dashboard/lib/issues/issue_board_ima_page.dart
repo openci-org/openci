@@ -505,7 +505,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   int _enabledRepoCount = 0;
   int _dailyWeightTarget = _defaultDailyWeightTarget;
   BoardViewMode? _boardViewMode;
-  _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
+  final _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
   _CompactBoardDestination _compactDestination =
       _CompactBoardDestination.issueBoard;
   bool _isDesktopRailCollapsed = false;
@@ -1672,15 +1672,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         (isCompactLayout ? BoardViewMode.overview : BoardViewMode.standard);
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final onSignOut = FirebaseAuth.instance.signOut;
-    final onRunsTap = () =>
+    void onRunsTap() =>
         _selectCompactDestination(_CompactBoardDestination.runs);
-    final onWorkersTap = () =>
+    void onWorkersTap() =>
         _selectCompactDestination(_CompactBoardDestination.workers);
-    final onWorkflowsTap = () =>
+    void onWorkflowsTap() =>
         _selectCompactDestination(_CompactBoardDestination.workflows);
-    final onVariablesTap = () =>
+    void onVariablesTap() =>
         _selectCompactDestination(_CompactBoardDestination.variables);
-    final onStoreReleaseTap = () =>
+    void onStoreReleaseTap() =>
         _selectCompactDestination(_CompactBoardDestination.storeRelease);
 
     return SyncedSpinnerScope(
@@ -1737,7 +1737,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 )
               : null,
           drawer: isCompactLayout
-              ? CompactBoardDrawer(
+              ? _CompactBoardDrawer(
                   isConnected: isConnected,
                   isBusy: _isBusy,
                   repoCount: _enabledRepoCount,
@@ -5023,9 +5023,8 @@ class _CompactBoardViewModeSegment extends StatelessWidget {
   }
 }
 
-class CompactBoardDrawer extends StatelessWidget {
-  const CompactBoardDrawer({
-    super.key,
+class _CompactBoardDrawer extends StatelessWidget {
+  const _CompactBoardDrawer({
     required this.isConnected,
     required this.isBusy,
     required this.repoCount,
