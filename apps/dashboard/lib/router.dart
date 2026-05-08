@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
@@ -19,7 +19,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = RouterRefreshNotifier(
@@ -136,7 +135,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 /// デスクトップ幅（>800px）ではフェードアニメーション、
-/// モバイル幅ではSwipeablePageを使用する
+/// モバイル幅ではMaterialの標準ページ遷移を使用する
 Page<void> _responsivePage({
   required LocalKey key,
   required Widget child,
@@ -170,7 +169,7 @@ Page<void> _responsivePage({
     );
   }
 
-  return SwipeablePage(key: key, builder: (context) => child);
+  return MaterialPage<void>(key: key, child: child);
 }
 
 class HomeRoutePage extends HookConsumerWidget {
