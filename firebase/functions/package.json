@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "OpenCI Cloud Functions (TypeScript)",
+  "type": "module",
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",

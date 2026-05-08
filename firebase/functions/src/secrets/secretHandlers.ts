@@ -16,14 +16,14 @@ import {
   listWorkflowsForTeam,
   updateSecretMetadata,
   updateWorkflowSecretKeys,
-} from "../firestoreData";
+} from "../firestoreData.js";
 import {
   accessSecretByPath,
   addSecretVersionByPath,
   createSecretWithValue,
   deleteSecretByPath,
-} from "../secretManager";
-import { verifyTeamMembership } from "../team/teamAuth";
+} from "../secretManager.js";
+import { verifyTeamMembership } from "../team/teamAuth.js";
 
 const execFileAsync = promisify(execFile);
 

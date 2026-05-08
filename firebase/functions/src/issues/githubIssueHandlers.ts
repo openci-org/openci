@@ -5,4 +5,4 @@ export {
   importGitHubIssues,
   linkIssueToGitHubPullRequest,
   syncGitHubIssues,
-} from "./imaHandlers";
+} from "./imaHandlers.js";

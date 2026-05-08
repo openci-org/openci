@@ -1,7 +1,10 @@
+import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 
-import { accessSecret } from "../secretManager";
-import { defaultGitHubApiBaseUrl, graphqlEndpoint } from "./githubUrls";
+import { defaultGitHubApiBaseUrl, graphqlEndpoint } from "./githubUrls.js";
+
+export const githubAppId = defineSecret("GITHUB_APP_ID");
+export const githubPrivateKey = defineSecret("GITHUB_PRIVATE_KEY");
 
 export interface InstallationToken {
   token: string;
@@ -59,8 +62,8 @@ export async function getInstallationToken(
     import("@octokit/auth-app"),
     import("@octokit/request"),
   ]);
-  const appId = await accessSecret("GITHUB_APP_ID");
-  const privateKey = await accessSecret("GITHUB_PRIVATE_KEY");
+  const appId = githubAppId.value();
+  const privateKey = githubPrivateKey.value();
   const auth = createAppAuth({
     appId,
     privateKey,

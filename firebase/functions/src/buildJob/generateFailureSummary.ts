@@ -1,12 +1,12 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 
-import { BuildJobStatus } from "../firestoreData";
-import { verifyBuildJobMembership } from "./auth";
+import { BuildJobStatus } from "../firestoreData.js";
+import { verifyBuildJobMembership } from "./auth.js";
 import {
   type BuildJob,
   generateFailureSummary as generateFailureSummaryForBuildJob,
-} from "./services";
+} from "./services.js";
 
 interface GenerateFailureSummaryRequest {
   buildJobId: string;

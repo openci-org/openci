@@ -6,7 +6,7 @@ import {
   expireInvitation,
   getInvitationByToken,
   type InvitationStatus,
-} from "../firestoreData";
+} from "../firestoreData.js";
 
 interface AcceptInvitationRequest {
   token: string;

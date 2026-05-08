@@ -3,15 +3,15 @@ import { randomUUID } from "node:crypto";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { createCheckRun, getInstallationToken } from "../github/githubApp";
-import { buildDashboardRunUrl } from "../github/githubUrls";
+import { createCheckRun, getInstallationToken } from "../github/githubApp.js";
+import { buildDashboardRunUrl } from "../github/githubUrls.js";
 import {
   BuildJobStatus,
   createBuildJob,
   getBuildJob as getBuildJobOperation,
   listBuildJobsByWorkflowRun,
-} from "../firestoreData";
-import { verifyTeamMembership } from "../team/teamAuth";
+} from "../firestoreData.js";
+import { verifyTeamMembership } from "../team/teamAuth.js";
 
 interface RetryBuildJobRequest {
   buildJobId: string;

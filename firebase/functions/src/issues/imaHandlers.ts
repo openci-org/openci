@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { getTeamById } from "../firestoreData";
+import { getTeamById } from "../firestoreData.js";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -19,7 +19,7 @@ import {
   type CallableRequest,
   type Request,
 } from "firebase-functions/v2/https";
-import { getInstallationToken, githubGraphql } from "../github/githubApp";
+import { getInstallationToken, githubGraphql } from "../github/githubApp.js";
 
 import {
   extractIssueKey,
@@ -28,7 +28,7 @@ import {
   isOnlyLinkedIssueBlockChange,
   normalizeIssueKeyPrefix,
   upsertLinkedIssueBlock,
-} from "./issueLinkingHelpers";
+} from "./issueLinkingHelpers.js";
 import {
   isAdjacentWeight,
   isValidWeight,
@@ -37,7 +37,7 @@ import {
   issueWeightPromptVersion,
   parseWeightEstimateResponse,
   truncateText,
-} from "./issueWeightHelpers";
+} from "./issueWeightHelpers.js";
 
 if (getApps().length === 0) {
   initializeApp();

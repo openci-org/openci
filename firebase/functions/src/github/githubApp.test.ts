@@ -5,19 +5,24 @@ import {
   githubGet,
   githubGraphql,
   githubPost,
-} from "./githubApp";
+} from "./githubApp.js";
 
-const { mockAccessSecret, mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest, mockFetch } =
+const { mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest, mockFetch } =
   vi.hoisted(() => ({
-    mockAccessSecret: vi.fn(),
     mockCreateAppAuth: vi.fn(),
     mockRequestDefaults: vi.fn(),
     mockOctokitRequest: vi.fn(),
     mockFetch: vi.fn(),
   }));
 
-vi.mock("../secretManager", () => ({
-  accessSecret: (secretId: string) => mockAccessSecret(secretId),
+vi.mock("firebase-functions/params", () => ({
+  defineSecret: (name: string) => ({
+    value: () => {
+      if (name === "GITHUB_APP_ID") return "12345";
+      if (name === "GITHUB_PRIVATE_KEY") return "private-key";
+      throw new Error(`unexpected secret: ${name}`);
+    },
+  }),
 }));
 
 vi.mock("@octokit/auth-app", () => ({
@@ -57,12 +62,6 @@ describe("GitHub API helpers", () => {
   });
 
   it("requests an installation token using GitHub App credentials", async () => {
-    mockAccessSecret.mockImplementation((secretId: string) => {
-      if (secretId === "GITHUB_APP_ID") return Promise.resolve("12345");
-      if (secretId === "GITHUB_PRIVATE_KEY") return Promise.resolve("private-key");
-      throw new Error(`unexpected secret: ${secretId}`);
-    });
-
     const result = await getInstallationToken(123);
 
     expect(result).toEqual({

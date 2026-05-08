@@ -1,4 +1,4 @@
-import { getTeamById } from "../firestoreData";
+import { getTeamById } from "../firestoreData.js";
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 export const defaultGitHubBaseUrl = "https://github.com";

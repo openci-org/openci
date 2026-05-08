@@ -1,10 +1,10 @@
 import { createSign } from "node:crypto";
 
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 
-import { getSecretsByNamesForTeam } from "../firestoreData";
-import { accessSecret } from "../secretManager";
+import { getSecretsByNamesForTeam } from "../firestoreData.js";
 
 const ascBaseUrl = "https://api.appstoreconnect.apple.com/v1";
 
@@ -88,12 +88,16 @@ export function generateAscJwt({ issuerId, keyId, privateKey }: AscCredentials):
   return `${signingInput}.${base64UrlEncode(derToJose(derSignature))}`;
 }
 
-function secretIdFromPath(pathToSecret: string): string {
-  const parts = pathToSecret.split("/");
-  if (parts.length >= 4 && parts[2] === "secrets" && parts[3]) {
-    return parts[3];
+async function accessSecretByPath(secretPath: string): Promise<string> {
+  const client = new SecretManagerServiceClient();
+  const [response] = await client.accessSecretVersion({
+    name: `${secretPath}/versions/latest`,
+  });
+  const data = response.payload?.data;
+  if (!data) {
+    throw new HttpsError("failed-precondition", `Secret at "${secretPath}" has no data.`);
   }
-  throw new HttpsError("failed-precondition", `Invalid secret path: ${pathToSecret}`);
+  return Buffer.from(data).toString("utf8");
 }
 
 export async function getAscCredentials(
@@ -118,7 +122,7 @@ export async function getAscCredentials(
   const secrets: Record<string, string> = {};
   for (const secret of result.data.secrets) {
     if (secret.pathToSecret) {
-      secrets[secret.name] = await accessSecret(secretIdFromPath(secret.pathToSecret));
+      secrets[secret.name] = await accessSecretByPath(secret.pathToSecret);
     }
   }
 

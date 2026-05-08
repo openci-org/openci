@@ -2,7 +2,7 @@ import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 
-import { ascApiFetch, generateAscJwt, getAscCredentials } from "./ascClient";
+import { ascApiFetch, generateAscJwt, getAscCredentials } from "./ascClient.js";
 import {
   ascAppFromJsonApi,
   ascBetaGroupFromJsonApi,
@@ -10,8 +10,8 @@ import {
   parseIncludedResources,
   type AscApp,
   type AscBuild,
-} from "./ascModels";
-import { verifyTeamMembership } from "../team/teamAuth";
+} from "./ascModels.js";
+import { verifyTeamMembership } from "../team/teamAuth.js";
 
 interface TeamRequest {
   teamId: string;

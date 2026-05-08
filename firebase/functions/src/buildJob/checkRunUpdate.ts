@@ -1,7 +1,7 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { verifyBuildJobMembership } from "./auth";
-import { updateCheckRun } from "./services";
+import { verifyBuildJobMembership } from "./auth.js";
+import { updateCheckRun } from "./services.js";
 
 interface CheckRunUpdateRequest {
   buildJobId: string;

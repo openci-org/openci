@@ -8,16 +8,16 @@ import {
   createBuildJob,
   findTeamByInstallation,
   getWorkflowFile,
-} from "../firestoreData";
-import { createCheckRun, getInstallationToken, githubGet, githubGraphql } from "./githubApp";
+} from "../firestoreData.js";
+import { createCheckRun, getInstallationToken, githubGet, githubGraphql } from "./githubApp.js";
 import {
   buildDashboardRunUrl,
   defaultGitHubApiBaseUrl,
   defaultGitHubBaseUrl,
   getGitHubApiBaseUrl,
   getGitHubBaseUrl,
-} from "./githubUrls";
-import { extractJobs, matchesTrigger, workflowFileDocId } from "./workflowParser";
+} from "./githubUrls.js";
+import { extractJobs, matchesTrigger, workflowFileDocId } from "./workflowParser.js";
 
 export type GitHubEventType =
   | "pull_request"
@@ -338,6 +338,7 @@ function parseYaml(content: string): Record<string, unknown> | undefined {
 export async function handleBuildTrigger(event: WebhookEvent): Promise<void> {
   const installationId = event.installation?.id;
   if (!installationId) throw new Error("No installation ID in webhook event");
+
   const triggerInfo = extractTriggerInfo(event);
   if (!triggerInfo || !event.repository) return;
 

@@ -5,8 +5,8 @@ import {
   deleteWorkflowFile,
   listWorkflowFilesForBranch,
   upsertWorkflowFile,
-} from "../firestoreData";
-import { verifyTeamMembership } from "../team/teamAuth";
+} from "../firestoreData.js";
+import { verifyTeamMembership } from "../team/teamAuth.js";
 import {
   getInstallationToken,
   githubGet,
@@ -14,8 +14,8 @@ import {
   githubPatch,
   githubPost,
   githubPut,
-} from "./githubApp";
-import { getApiBaseUrlFromTeamData } from "./githubUrls";
+} from "./githubApp.js";
+import { getApiBaseUrlFromTeamData } from "./githubUrls.js";
 
 function buildDirectoryTreeFragment(depth: number): string {
   if (depth === 0) {
