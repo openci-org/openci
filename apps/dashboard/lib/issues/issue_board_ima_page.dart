@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/firebase/firestore.dart'
     show
@@ -11,6 +12,9 @@ import 'package:dashboard/firebase/firestore.dart'
         dateTimeFromFirestore,
         workerInstancesCollection;
 import 'package:dashboard/firebase_options.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/variables/variables_page.dart';
+import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +39,8 @@ const _defaultDailyWeightTarget = 20;
 const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
 
 enum BoardViewMode { standard, overview }
+
+enum _BoardSidePanel { runs, workers, workflows, variables, storeRelease }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -451,6 +457,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   int _enabledRepoCount = 0;
   int _dailyWeightTarget = _defaultDailyWeightTarget;
   BoardViewMode? _boardViewMode;
+  _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -537,9 +544,22 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return true;
   }
 
-  void _openWorkerInspector() {
+  void _openSidePanel(_BoardSidePanel panel) {
+    if (_sidePanel != panel) {
+      setState(() => _sidePanel = panel);
+    }
     _scaffoldKey.currentState?.openEndDrawer();
   }
+
+  void _openRunHistory() => _openSidePanel(_BoardSidePanel.runs);
+
+  void _openWorkerInspector() => _openSidePanel(_BoardSidePanel.workers);
+
+  void _openWorkflowsPanel() => _openSidePanel(_BoardSidePanel.workflows);
+
+  void _openVariablesPanel() => _openSidePanel(_BoardSidePanel.variables);
+
+  void _openStoreReleasePanel() => _openSidePanel(_BoardSidePanel.storeRelease);
 
   Future<void> _bootstrapWorkspace() async {
     if (_workspaceId.isEmpty) {
@@ -1620,13 +1640,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           key: _scaffoldKey,
           backgroundColor: const Color(0xFFF8FAFC),
           endDrawer: Drawer(
-            width: 420,
+            width: _sidePanel == _BoardSidePanel.workers ? 420 : 560,
             shape: const RoundedRectangleBorder(
               side: BorderSide(color: Color(0xFFE2E8F0)),
               borderRadius: BorderRadius.horizontal(left: Radius.circular(22)),
             ),
             child: Builder(
-              builder: (context) => WorkerInspectorPanel(
+              builder: (context) => _BoardSidePanelDrawer(
+                panel: _sidePanel,
                 onDismiss: () => Navigator.of(context).maybePop(),
               ),
             ),
@@ -1652,22 +1673,28 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                       onChanged: (mode) =>
                           setState(() => _boardViewMode = mode),
                     ),
-                    CompactBoardMenuButton(
-                      isConnected: isConnected,
-                      isBusy: _isBusy,
-                      repoCount: _enabledRepoCount,
-                      onConnectGitHub: _connectGitHub,
-                      onSelectRepositories: _selectRepositories,
-                      onImportIssues: _importGitHubIssues,
-                      onSyncIssues: _syncGitHubIssues,
-                      onSearchIssues: _openIssueSearchDialog,
-                      onSignOut: onSignOut,
-                      workspaceName: widget.workspaceName,
-                      onSwitchTeam: widget.onSwitchTeam,
-                      onWorkersTap: _openWorkerInspector,
-                    ),
                     const SizedBox(width: 4),
                   ],
+                )
+              : null,
+          drawer: isCompactLayout
+              ? CompactBoardDrawer(
+                  isConnected: isConnected,
+                  isBusy: _isBusy,
+                  repoCount: _enabledRepoCount,
+                  onConnectGitHub: _connectGitHub,
+                  onSelectRepositories: _selectRepositories,
+                  onImportIssues: _importGitHubIssues,
+                  onSyncIssues: _syncGitHubIssues,
+                  onSearchIssues: _openIssueSearchDialog,
+                  onSignOut: onSignOut,
+                  workspaceName: widget.workspaceName,
+                  onSwitchTeam: widget.onSwitchTeam,
+                  onRunsTap: _openRunHistory,
+                  onWorkersTap: _openWorkerInspector,
+                  onWorkflowsTap: _openWorkflowsPanel,
+                  onVariablesTap: _openVariablesPanel,
+                  onStoreReleaseTap: _openStoreReleasePanel,
                 )
               : null,
           floatingActionButton: isCompactLayout
@@ -1714,7 +1741,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   githubLogin: _githubLogin,
                   repoCount: _enabledRepoCount,
                   isBusy: _isBusy,
+                  onRunsTap: _openRunHistory,
                   onWorkersTap: _openWorkerInspector,
+                  onWorkflowsTap: _openWorkflowsPanel,
+                  onVariablesTap: _openVariablesPanel,
+                  onStoreReleaseTap: _openStoreReleasePanel,
                 ),
                 if (_loadError != null)
                   Padding(
@@ -2223,9 +2254,9 @@ class WorkerOverviewMetric extends StatelessWidget {
           return _WorkerOverviewTapTarget(
             onTap: onTap,
             child: const OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '-',
-              detail: 'read error',
+              detail: '読み込みエラー',
               valueColor: Color(0xFFDC2626),
               width: 112,
             ),
@@ -2235,9 +2266,9 @@ class WorkerOverviewMetric extends StatelessWidget {
           return _WorkerOverviewTapTarget(
             onTap: onTap,
             child: const OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '-',
-              detail: 'loading',
+              detail: '読み込み中',
               width: 112,
             ),
           );
@@ -2246,16 +2277,16 @@ class WorkerOverviewMetric extends StatelessWidget {
         final summary = WorkerOverviewSummary.fromDocs(snapshot.data!.docs);
         final valueColor = summary.offlineCount > 0
             ? const Color(0xFFA16207)
-            : const Color(0xFF15803D);
+            : const Color(0xFF16A34A);
         return Tooltip(
           message:
-              'macOS ${summary.onlineMacos}/${summary.totalMacos} online / '
-              'Linux ${summary.onlineLinux}/${summary.totalLinux} online / '
-              'offline ${summary.offlineCount}',
+              'macOS ${summary.onlineMacos}/${summary.totalMacos} オンライン / '
+              'Linux ${summary.onlineLinux}/${summary.totalLinux} オンライン / '
+              'オフライン ${summary.offlineCount}',
           child: _WorkerOverviewTapTarget(
             onTap: onTap,
             child: OverviewMetric(
-              label: 'Workers',
+              label: 'ワーカー',
               value: '${summary.onlineCount}/${summary.totalCount}',
               valueColor: valueColor,
               detail:
@@ -2347,6 +2378,105 @@ class WorkerOverviewSummary {
   }
 }
 
+class _BoardSidePanelDrawer extends StatelessWidget {
+  const _BoardSidePanelDrawer({
+    required this.panel,
+    required this.onDismiss,
+  });
+
+  final _BoardSidePanel panel;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (panel) {
+      _BoardSidePanel.workers => WorkerInspectorPanel(onDismiss: onDismiss),
+      _BoardSidePanel.runs => _BoardSidePanelShell(
+        icon: Icons.history_rounded,
+        title: '実行履歴',
+        onDismiss: onDismiss,
+        child: const LogsBody(),
+      ),
+      _BoardSidePanel.workflows => _BoardSidePanelShell(
+        icon: Icons.schema_rounded,
+        title: 'ワークフロー',
+        onDismiss: onDismiss,
+        child: const WorkflowsBody(),
+      ),
+      _BoardSidePanel.variables => _BoardSidePanelShell(
+        icon: Icons.key_rounded,
+        title: '変数',
+        onDismiss: onDismiss,
+        child: const VariablesBody(),
+      ),
+      _BoardSidePanel.storeRelease => _BoardSidePanelShell(
+        icon: Icons.rocket_launch_outlined,
+        title: 'ストアリリース',
+        onDismiss: onDismiss,
+        child: const StoreReleaseBody(),
+      ),
+    };
+  }
+}
+
+class _BoardSidePanelShell extends StatelessWidget {
+  const _BoardSidePanelShell({
+    required this.icon,
+    required this.title,
+    required this.onDismiss,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onDismiss;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 10, 12),
+          child: Row(
+            children: [
+              Icon(icon, color: const Color(0xFF2563EB)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Text(
+                      'Esc で閉じる',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: '閉じる',
+                onPressed: onDismiss,
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
 class WorkerInspectorPanel extends StatelessWidget {
   const WorkerInspectorPanel({super.key, required this.onDismiss});
 
@@ -2376,6 +2506,7 @@ class WorkerInspectorPanel extends StatelessWidget {
         final workers = snapshot.data!.docs
             .map(WorkerInspectorItem.fromDoc)
             .toList();
+        workers.sort(_compareWorkerInspectorItems);
         final macosWorkers = workers
             .where(
               (worker) => worker.platformGroup == WorkerPlatformGroup.macos,
@@ -2416,7 +2547,7 @@ class WorkerInspectorPanel extends StatelessWidget {
                     if (otherWorkers.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       _WorkerInspectorSection(
-                        title: 'Other',
+                        title: 'その他',
                         workers: otherWorkers,
                         icon: Icons.device_unknown_rounded,
                       ),
@@ -2454,7 +2585,7 @@ class _WorkerInspectorShell extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Workers',
+                      'ワーカー',
                       style: TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 18,
@@ -2504,7 +2635,7 @@ class _WorkerInspectorSummary extends StatelessWidget {
         _WorkerInspectorSummaryChip(
           label: 'オンライン',
           value: online,
-          color: const Color(0xFF15803D),
+          color: const Color(0xFF16A34A),
         ),
         _WorkerInspectorSummaryChip(
           label: '実行中',
@@ -2612,7 +2743,7 @@ class _WorkerInspectorSection extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$online/${workers.length} online',
+                  '$online/${workers.length} オンライン',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
                     fontSize: 12,
@@ -2721,8 +2852,8 @@ class _WorkerInspectorRow extends StatelessWidget {
             _WorkerInspectorDetail(
               icon: Icons.play_circle_outline_rounded,
               text: worker.currentRunId == null
-                  ? 'Current job: ${worker.currentBuildJobId}'
-                  : 'Current job: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
+                  ? '実行中のジョブ: ${worker.currentBuildJobId}'
+                  : '実行中のジョブ: ${worker.currentBuildJobId} / run ${worker.currentRunId}',
             ),
           ],
           if (worker.lastError != null && worker.lastError!.isNotEmpty) ...[
@@ -2790,6 +2921,17 @@ class _WorkerInspectorEmpty extends StatelessWidget {
 
 enum WorkerPlatformGroup { macos, linux, other }
 
+int _compareWorkerInspectorItems(
+  WorkerInspectorItem a,
+  WorkerInspectorItem b,
+) {
+  final platformCompare = a.platformGroup.index.compareTo(
+    b.platformGroup.index,
+  );
+  if (platformCompare != 0) return platformCompare;
+  return a.workerId.toLowerCase().compareTo(b.workerId.toLowerCase());
+}
+
 class WorkerInspectorItem {
   const WorkerInspectorItem({
     required this.workerId,
@@ -2855,14 +2997,24 @@ class WorkerInspectorItem {
     return WorkerPlatformGroup.other;
   }
 
-  String get statusLabel => isOnline ? status : 'offline';
+  String get statusLabel {
+    if (!isOnline) return 'オフライン';
+    return switch (status) {
+      'busy' => '実行中',
+      'error' => 'エラー',
+      'idle' => '待機中',
+      'starting' => '起動中',
+      'stopping' => '停止中',
+      _ => '不明',
+    };
+  }
 
   Color get statusColor {
     if (!isOnline) return const Color(0xFF94A3B8);
     return switch (status) {
       'busy' => const Color(0xFF2563EB),
       'error' => const Color(0xFFDC2626),
-      'idle' => const Color(0xFF15803D),
+      'idle' => const Color(0xFF16A34A),
       'starting' => const Color(0xFFA16207),
       'stopping' => const Color(0xFFA16207),
       _ => const Color(0xFF94A3B8),
@@ -2872,10 +3024,11 @@ class WorkerInspectorItem {
 
 String _formatWorkerLastSeen(DateTime lastSeenAt) {
   final diff = DateTime.now().difference(lastSeenAt);
-  if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
-  return '${diff.inDays}d ago';
+  if (diff.inSeconds < 10) return 'たった今';
+  if (diff.inSeconds < 60) return '${diff.inSeconds}秒前';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}分前';
+  if (diff.inHours < 24) return '${diff.inHours}時間前';
+  return '${diff.inDays}日前';
 }
 
 class DailyProgressOverview extends StatelessWidget {
@@ -3695,104 +3848,94 @@ class BuildStatusJobsDialog extends StatelessWidget {
     final isCompactDialog = screenSize.width < 560;
     final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
     final maxHeight = screenSize.height * (isCompactDialog ? 0.9 : 0.82);
+    final dialogBorderRadius = BorderRadius.circular(28);
 
     return Dialog(
       insetPadding: EdgeInsets.symmetric(
         horizontal: isCompactDialog ? 12 : 20,
         vertical: isCompactDialog ? 12 : 24,
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: dialogBorderRadius),
+      clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 32,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: dialogPadding.copyWith(bottom: 16),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-                child: _DialogHeader(
-                  title: 'CI checks',
-                  description: status.summaryLabel,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: dialogPadding.copyWith(bottom: 16),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: dialogPadding.copyWith(top: 16, bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: status.color.withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: status.color.withValues(alpha: 0.18),
-                          ),
-                          borderRadius: BorderRadius.circular(18),
+              child: _DialogHeader(
+                title: 'CI checks',
+                description: status.summaryLabel,
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: dialogPadding.copyWith(top: 16, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: status.color.withValues(alpha: 0.08),
+                        border: Border.all(
+                          color: status.color.withValues(alpha: 0.18),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: status.color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: BuildStatusIndicator(
-                                  icon: status.icon,
-                                  color: status.color,
-                                  isSpinning: status.isSpinning,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                status.tooltip,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: status.color,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      const SizedBox(height: 14),
-                      for (final entry in status.jobs.indexed) ...[
-                        BuildStatusJobRow(job: entry.$2),
-                        if (entry.$1 != status.jobs.length - 1)
-                          const SizedBox(height: 8),
-                      ],
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: status.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: BuildStatusIndicator(
+                                icon: status.icon,
+                                color: status.color,
+                                isSpinning: status.isSpinning,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              status.tooltip,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: status.color,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    for (final entry in status.jobs.indexed) ...[
+                      BuildStatusJobRow(job: entry.$2),
+                      if (entry.$1 != status.jobs.length - 1)
+                        const SizedBox(height: 8),
                     ],
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -4342,7 +4485,11 @@ class BoardToolbar extends StatelessWidget {
     required this.githubLogin,
     required this.repoCount,
     required this.isBusy,
+    required this.onRunsTap,
     required this.onWorkersTap,
+    required this.onWorkflowsTap,
+    required this.onVariablesTap,
+    required this.onStoreReleaseTap,
   });
 
   final VoidCallback onConnectGitHub;
@@ -4355,7 +4502,11 @@ class BoardToolbar extends StatelessWidget {
   final String? githubLogin;
   final int repoCount;
   final bool isBusy;
+  final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
+  final VoidCallback onWorkflowsTap;
+  final VoidCallback onVariablesTap;
+  final VoidCallback onStoreReleaseTap;
 
   @override
   Widget build(BuildContext context) {
@@ -4418,11 +4569,11 @@ class BoardToolbar extends StatelessWidget {
                     icon: Icons.history_rounded,
                     label: '実行履歴',
                     tooltip: 'CI/CD の実行履歴を開く',
-                    onPressed: () => context.go('/runs'),
+                    onPressed: onRunsTap,
                   ),
                   ToolbarChip(
                     icon: Icons.dns_outlined,
-                    label: 'Workers',
+                    label: 'ワーカー',
                     tooltip: 'OpenCI worker の稼動状況を開く',
                     onPressed: onWorkersTap,
                   ),
@@ -4430,19 +4581,19 @@ class BoardToolbar extends StatelessWidget {
                     icon: Icons.schema_rounded,
                     label: 'ワークフロー',
                     tooltip: '.openci workflows を開く',
-                    onPressed: () => context.go('/workflows'),
+                    onPressed: onWorkflowsTap,
                   ),
                   ToolbarChip(
                     icon: Icons.key_rounded,
                     label: '変数',
                     tooltip: '変数 / シークレットを開く',
-                    onPressed: () => context.go('/variables'),
+                    onPressed: onVariablesTap,
                   ),
                   ToolbarChip(
                     icon: Icons.rocket_launch_outlined,
                     label: 'ストアリリース',
                     tooltip: 'ストアリリースを開く',
-                    onPressed: () => context.go('/store-release'),
+                    onPressed: onStoreReleaseTap,
                   ),
                 ],
               ),
@@ -4612,8 +4763,8 @@ class _CompactBoardViewModeSegment extends StatelessWidget {
   }
 }
 
-class CompactBoardMenuButton extends StatelessWidget {
-  const CompactBoardMenuButton({
+class CompactBoardDrawer extends StatelessWidget {
+  const CompactBoardDrawer({
     super.key,
     required this.isConnected,
     required this.isBusy,
@@ -4625,7 +4776,11 @@ class CompactBoardMenuButton extends StatelessWidget {
     required this.onSearchIssues,
     required this.onSignOut,
     required this.workspaceName,
+    required this.onRunsTap,
     required this.onWorkersTap,
+    required this.onWorkflowsTap,
+    required this.onVariablesTap,
+    required this.onStoreReleaseTap,
     this.onSwitchTeam,
   });
 
@@ -4639,154 +4794,213 @@ class CompactBoardMenuButton extends StatelessWidget {
   final VoidCallback onSearchIssues;
   final Future<void> Function() onSignOut;
   final String workspaceName;
+  final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
+  final VoidCallback onWorkflowsTap;
+  final VoidCallback onVariablesTap;
+  final VoidCallback onStoreReleaseTap;
   final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'ボード操作',
-      icon: const Icon(Icons.menu_rounded),
-      onSelected: (value) {
-        switch (value) {
-          case 'github':
-            onConnectGitHub();
-          case 'repos':
-            onSelectRepositories();
-          case 'import':
-            onImportIssues();
-          case 'sync':
-            onSyncIssues();
-          case 'search':
-            onSearchIssues();
-          case 'switchTeam':
-            onSwitchTeam?.call();
-          case 'runs':
-            context.go('/runs');
-          case 'workers':
-            onWorkersTap();
-          case 'workflows':
-            context.go('/workflows');
-          case 'variables':
-            context.go('/variables');
-          case 'storeRelease':
-            context.go('/store-release');
-          case 'signOut':
-            unawaited(onSignOut());
-        }
-      },
-      itemBuilder: (context) => [
-        if (!isConnected)
-          PopupMenuItem(
-            value: 'github',
-            enabled: !isBusy,
-            child: const _CompactMenuItem(
-              icon: Icons.link_rounded,
-              label: 'GitHub App接続',
+    void closeDrawer() => Navigator.of(context).pop();
+    void runAfterClose(VoidCallback action) {
+      closeDrawer();
+      action();
+    }
+
+    return Drawer(
+      backgroundColor: const Color(0xFFF8FAFC),
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'OpenCI',
+                    style: TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    workspaceName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isConnected ? '$repoCount repo connected' : 'GitHub未接続',
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        PopupMenuItem(
-          value: 'repos',
-          enabled: !isBusy && isConnected,
-          child: _CompactMenuItem(
-            icon: Icons.account_tree_outlined,
-            label: '$repoCount repo',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'import',
-          enabled: !isBusy && isConnected,
-          child: const _CompactMenuItem(
-            icon: Icons.download_rounded,
-            label: 'issue取り込み',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'sync',
-          enabled: !isBusy && isConnected,
-          child: const _CompactMenuItem(
-            icon: Icons.sync_outlined,
-            label: '未同期を同期',
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'search',
-          child: _CompactMenuItem(
-            icon: Icons.search_outlined,
-            label: 'issue検索',
-          ),
-        ),
-        const PopupMenuDivider(),
-        if (onSwitchTeam != null) ...[
-          PopupMenuItem(
-            value: 'switchTeam',
-            child: _CompactMenuItem(
-              icon: Icons.groups_2_outlined,
-              label: workspaceName,
+            const Divider(height: 1),
+            const _CompactDrawerSectionLabel('ナビゲーション'),
+            _CompactDrawerTile(
+              icon: Icons.view_kanban_outlined,
+              label: 'Issue board',
+              selected: true,
+              onTap: closeDrawer,
             ),
-          ),
-          const PopupMenuDivider(),
-        ],
-        const PopupMenuItem(
-          value: 'runs',
-          child: _CompactMenuItem(
-            icon: Icons.history_rounded,
-            label: '実行履歴',
-          ),
+            _CompactDrawerTile(
+              icon: Icons.history_rounded,
+              label: '実行履歴',
+              onTap: () => runAfterClose(onRunsTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.dns_outlined,
+              label: 'ワーカー',
+              onTap: () => runAfterClose(onWorkersTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.schema_rounded,
+              label: 'ワークフロー',
+              onTap: () => runAfterClose(onWorkflowsTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.key_rounded,
+              label: '変数',
+              onTap: () => runAfterClose(onVariablesTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.rocket_launch_outlined,
+              label: 'ストアリリース',
+              onTap: () => runAfterClose(onStoreReleaseTap),
+            ),
+            const Divider(height: 24),
+            const _CompactDrawerSectionLabel('GitHub'),
+            if (!isConnected)
+              _CompactDrawerTile(
+                icon: Icons.link_rounded,
+                label: 'GitHub App接続',
+                enabled: !isBusy,
+                onTap: () => runAfterClose(onConnectGitHub),
+              ),
+            _CompactDrawerTile(
+              icon: Icons.account_tree_outlined,
+              label: '$repoCount repo',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onSelectRepositories),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.download_rounded,
+              label: 'issue取り込み',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onImportIssues),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.sync_outlined,
+              label: '未同期を同期',
+              enabled: !isBusy && isConnected,
+              onTap: () => runAfterClose(onSyncIssues),
+            ),
+            const Divider(height: 24),
+            const _CompactDrawerSectionLabel('アカウント'),
+            _CompactDrawerTile(
+              icon: Icons.search_outlined,
+              label: 'issue検索',
+              onTap: () => runAfterClose(onSearchIssues),
+            ),
+            if (onSwitchTeam != null)
+              _CompactDrawerTile(
+                icon: Icons.groups_2_outlined,
+                label: 'チームを切り替え',
+                onTap: () => runAfterClose(onSwitchTeam!),
+              ),
+            _CompactDrawerTile(
+              icon: Icons.logout_rounded,
+              label: 'サインアウト',
+              onTap: () {
+                closeDrawer();
+                unawaited(onSignOut());
+              },
+            ),
+          ],
         ),
-        const PopupMenuItem(
-          value: 'workers',
-          child: _CompactMenuItem(
-            icon: Icons.dns_outlined,
-            label: 'Workers',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'workflows',
-          child: _CompactMenuItem(
-            icon: Icons.schema_rounded,
-            label: 'ワークフロー',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'variables',
-          child: _CompactMenuItem(
-            icon: Icons.key_rounded,
-            label: '変数',
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'storeRelease',
-          child: _CompactMenuItem(
-            icon: Icons.rocket_launch_outlined,
-            label: 'ストアリリース',
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'signOut',
-          child: _CompactMenuItem(icon: Icons.logout_rounded, label: 'サインアウト'),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _CompactMenuItem extends StatelessWidget {
-  const _CompactMenuItem({required this.icon, required this.label});
+class _CompactDrawerSectionLabel extends StatelessWidget {
+  const _CompactDrawerSectionLabel(this.label);
 
-  final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 10),
-        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactDrawerTile extends StatelessWidget {
+  const _CompactDrawerTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool enabled;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? const Color(0xFF2563EB)
+        : enabled
+        ? const Color(0xFF0F172A)
+        : const Color(0xFFCBD5E1);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        enabled: enabled,
+        selected: selected,
+        selectedTileColor: const Color(0xFFEFF6FF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: Icon(icon, color: color),
+        title: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        onTap: enabled ? onTap : null,
+      ),
     );
   }
 }

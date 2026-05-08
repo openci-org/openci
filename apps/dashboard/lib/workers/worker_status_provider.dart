@@ -18,7 +18,9 @@ final workerInstancesProvider =
                   b.platformGroup.index,
                 );
                 if (platformCompare != 0) return platformCompare;
-                return b.lastSeenAt.compareTo(a.lastSeenAt);
+                return a.workerId.toLowerCase().compareTo(
+                  b.workerId.toLowerCase(),
+                );
               });
               return workers;
             });

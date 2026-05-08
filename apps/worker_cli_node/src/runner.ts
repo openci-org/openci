@@ -1,4 +1,4 @@
-import { mkdtemp, open, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -15,9 +15,6 @@ const dockerImage = "openci-ubuntu:latest";
 const sshKeyPath = "/tmp/openci-ssh-key";
 const defaultLumeSshTimeoutSeconds = 10;
 const gitLumeSshTimeoutSeconds = 120;
-const macVmLockPath = process.env.OPENCI_MACOS_VM_LOCK ?? "/tmp/openci-macos-vm.lock";
-const macVmLockStaleMs = 6 * 60 * 60 * 1000;
-const macVmLockRetryMs = 5_000;
 
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
@@ -135,16 +132,6 @@ interface LumeVm {
   status: string;
 }
 
-interface VmHostLock {
-  release: () => Promise<void>;
-}
-
-interface VmLockFile {
-  pid: number;
-  workerId: string;
-  createdAt: number;
-}
-
 function parseLumeVmList(output: string): LumeVm[] {
   return output
     .split(/\r?\n/u)
@@ -166,78 +153,6 @@ async function listLumeVms(): Promise<LumeVm[]> {
 async function getLumeVmStatus(vmName: string): Promise<string | undefined> {
   const vms = await listLumeVms();
   return vms.find((vm) => vm.name === vmName)?.status;
-}
-
-function processExists(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readVmLockFile(): Promise<VmLockFile | undefined> {
-  try {
-    const content = await readFile(macVmLockPath, "utf8");
-    const parsed = JSON.parse(content) as Partial<VmLockFile>;
-    if (
-      typeof parsed.pid === "number" &&
-      typeof parsed.workerId === "string" &&
-      typeof parsed.createdAt === "number"
-    ) {
-      return parsed as VmLockFile;
-    }
-  } catch {
-    return undefined;
-  }
-  return undefined;
-}
-
-async function removeStaleVmLock(lock: VmLockFile | undefined): Promise<boolean> {
-  if (!lock) {
-    await unlink(macVmLockPath).catch(() => undefined);
-    return true;
-  }
-  const ageMs = Date.now() - lock.createdAt;
-  if (ageMs <= macVmLockStaleMs && processExists(lock.pid)) return false;
-  await unlink(macVmLockPath).catch(() => undefined);
-  return true;
-}
-
-async function acquireVmHostLock(workerId: string, warn: WarningLogger): Promise<VmHostLock> {
-  const lock: VmLockFile = { pid: process.pid, workerId, createdAt: Date.now() };
-  let lastNoticeAt = 0;
-
-  while (true) {
-    try {
-      const handle = await open(macVmLockPath, "wx");
-      await handle.writeFile(JSON.stringify(lock));
-      await handle.close();
-      return {
-        release: async () => {
-          const current = await readVmLockFile();
-          if (current?.pid === lock.pid && current.workerId === lock.workerId) {
-            await unlink(macVmLockPath).catch(() => undefined);
-          }
-        },
-      };
-    } catch (error) {
-      if (!(error instanceof Error) || !("code" in error) || error.code !== "EEXIST") {
-        throw error;
-      }
-      const current = await readVmLockFile();
-      if (await removeStaleVmLock(current)) continue;
-      if (Date.now() - lastNoticeAt > 60_000) {
-        lastNoticeAt = Date.now();
-        await warn(
-          `Waiting for macOS VM host lock held by ${current?.workerId ?? "unknown"} ` +
-            `(pid ${current?.pid ?? "unknown"})`,
-        );
-      }
-      await delay(macVmLockRetryMs);
-    }
-  }
 }
 
 function buildEventPayload(buildJob: BuildJob): string {
@@ -600,7 +515,6 @@ async function runMacVmBuild(input: {
   const vmName = `openci-vm-${workerId}-${shortJobId(buildJob.id)}`;
   let vmProcess: ChildProcess | undefined;
   const warn = (message: string) => logWarning(buildJob.id, runId, message);
-  const lock = await acquireVmHostLock(workerId, warn);
   try {
     await cleanupWorkerVms(workerId, warn);
     await logInfo(buildJob.id, runId, `Cloning VM ${baseVmName} to ${vmName}...`);
@@ -685,7 +599,6 @@ async function runMacVmBuild(input: {
     );
   } finally {
     await cleanupVm(vmName, warn, vmProcess);
-    await lock.release();
   }
 }
 

@@ -110,18 +110,19 @@ SA_PATH_EXPANDED="${SA_PATH/#\~/$HOME}"
 if [ -f "$SA_PATH_EXPANDED" ]; then
   echo "Starting $NUM_WORKERS worker(s)..."
   echo ""
+  HOST_ID=$(hostname -s 2>/dev/null || hostname)
 
   tmux rename-session -t "$SESSION_NAME" "openci-workers" 2>/dev/null || true
 
   WORKER_CMD='while true; do openci_worker --service-account '"$SA_PATH"' --worker-id WORKER_ID; echo "🔄 Worker exited. Restarting in 3s..."; sleep 3; done'
 
   for ((i = 2; i <= NUM_WORKERS; i++)); do
-    tmux split-window "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/worker-$i/")"
+    tmux split-window "$(echo "$WORKER_CMD" | sed "s/WORKER_ID/${HOST_ID}-worker$i/")"
     tmux select-layout tiled
   done
 
   while true; do
-    openci_worker --service-account "$SA_PATH_EXPANDED" --worker-id worker-1
+    openci_worker --service-account "$SA_PATH_EXPANDED" --worker-id "${HOST_ID}-worker1"
     echo "🔄 Worker exited. Restarting in 3s..."
     sleep 3
   done
