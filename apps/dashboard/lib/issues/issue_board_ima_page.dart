@@ -14,6 +14,7 @@ import 'package:dashboard/firebase/firestore.dart'
 import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/variables/variables_page.dart';
+import 'package:dashboard/workers/worker_status_page.dart';
 import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -41,6 +42,26 @@ const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
 enum BoardViewMode { standard, overview }
 
 enum _BoardSidePanel { runs, workers, workflows, variables, storeRelease }
+
+enum _CompactBoardDestination {
+  issueBoard,
+  runs,
+  workers,
+  workflows,
+  variables,
+  storeRelease,
+}
+
+extension _CompactBoardDestinationLabel on _CompactBoardDestination {
+  String get label => switch (this) {
+    _CompactBoardDestination.issueBoard => 'Issue board',
+    _CompactBoardDestination.runs => '実行履歴',
+    _CompactBoardDestination.workers => 'ワーカー',
+    _CompactBoardDestination.workflows => 'ワークフロー',
+    _CompactBoardDestination.variables => '変数',
+    _CompactBoardDestination.storeRelease => 'ストアリリース',
+  };
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -458,6 +479,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   int _dailyWeightTarget = _defaultDailyWeightTarget;
   BoardViewMode? _boardViewMode;
   _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
+  _CompactBoardDestination _compactDestination =
+      _CompactBoardDestination.issueBoard;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
@@ -560,6 +583,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   void _openVariablesPanel() => _openSidePanel(_BoardSidePanel.variables);
 
   void _openStoreReleasePanel() => _openSidePanel(_BoardSidePanel.storeRelease);
+
+  void _selectCompactDestination(_CompactBoardDestination destination) {
+    if (_compactDestination == destination) {
+      return;
+    }
+    setState(() => _compactDestination = destination);
+  }
 
   Future<void> _bootstrapWorkspace() async {
     if (_workspaceId.isEmpty) {
@@ -1631,6 +1661,21 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         (isCompactLayout ? BoardViewMode.overview : BoardViewMode.standard);
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final onSignOut = FirebaseAuth.instance.signOut;
+    final onRunsTap = isCompactLayout
+        ? () => _selectCompactDestination(_CompactBoardDestination.runs)
+        : _openRunHistory;
+    final onWorkersTap = isCompactLayout
+        ? () => _selectCompactDestination(_CompactBoardDestination.workers)
+        : _openWorkerInspector;
+    final onWorkflowsTap = isCompactLayout
+        ? () => _selectCompactDestination(_CompactBoardDestination.workflows)
+        : _openWorkflowsPanel;
+    final onVariablesTap = isCompactLayout
+        ? () => _selectCompactDestination(_CompactBoardDestination.variables)
+        : _openVariablesPanel;
+    final onStoreReleaseTap = isCompactLayout
+        ? () => _selectCompactDestination(_CompactBoardDestination.storeRelease)
+        : _openStoreReleasePanel;
 
     return SyncedSpinnerScope(
       child: IssueBoardShortcuts(
@@ -1639,42 +1684,50 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         child: Scaffold(
           key: _scaffoldKey,
           backgroundColor: const Color(0xFFF8FAFC),
-          endDrawer: Drawer(
-            width: _sidePanel == _BoardSidePanel.workers ? 420 : 560,
-            shape: const RoundedRectangleBorder(
-              side: BorderSide(color: Color(0xFFE2E8F0)),
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(22)),
-            ),
-            child: Builder(
-              builder: (context) => _BoardSidePanelDrawer(
-                panel: _sidePanel,
-                onDismiss: () => Navigator.of(context).maybePop(),
-              ),
-            ),
-          ),
+          endDrawer: isCompactLayout
+              ? null
+              : Drawer(
+                  width: _sidePanel == _BoardSidePanel.workers ? 420 : 560,
+                  shape: const RoundedRectangleBorder(
+                    side: BorderSide(color: Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(22),
+                    ),
+                  ),
+                  child: Builder(
+                    builder: (context) => _BoardSidePanelDrawer(
+                      panel: _sidePanel,
+                      onDismiss: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                ),
           appBar: isCompactLayout
               ? AppBar(
-                  title: const Text(
-                    'OpenCI',
+                  title: Text(
+                    _compactDestination.label,
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   backgroundColor: const Color(0xFFF8FAFC),
                   foregroundColor: const Color(0xFF0F172A),
                   elevation: 0,
                   scrolledUnderElevation: 0,
-                  actions: [
-                    IconButton(
-                      tooltip: 'issueを検索',
-                      onPressed: () => unawaited(_openIssueSearchDialog()),
-                      icon: const Icon(Icons.search_rounded),
-                    ),
-                    CompactBoardViewModeButton(
-                      value: boardViewMode,
-                      onChanged: (mode) =>
-                          setState(() => _boardViewMode = mode),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
+                  actions:
+                      _compactDestination == _CompactBoardDestination.issueBoard
+                      ? [
+                          IconButton(
+                            tooltip: 'issueを検索',
+                            onPressed: () =>
+                                unawaited(_openIssueSearchDialog()),
+                            icon: const Icon(Icons.search_rounded),
+                          ),
+                          CompactBoardViewModeButton(
+                            value: boardViewMode,
+                            onChanged: (mode) =>
+                                setState(() => _boardViewMode = mode),
+                          ),
+                          const SizedBox(width: 4),
+                        ]
+                      : null,
                 )
               : null,
           drawer: isCompactLayout
@@ -1690,14 +1743,20 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   onSignOut: onSignOut,
                   workspaceName: widget.workspaceName,
                   onSwitchTeam: widget.onSwitchTeam,
-                  onRunsTap: _openRunHistory,
-                  onWorkersTap: _openWorkerInspector,
-                  onWorkflowsTap: _openWorkflowsPanel,
-                  onVariablesTap: _openVariablesPanel,
-                  onStoreReleaseTap: _openStoreReleasePanel,
+                  selectedDestination: _compactDestination,
+                  onIssueBoardTap: () => _selectCompactDestination(
+                    _CompactBoardDestination.issueBoard,
+                  ),
+                  onRunsTap: onRunsTap,
+                  onWorkersTap: onWorkersTap,
+                  onWorkflowsTap: onWorkflowsTap,
+                  onVariablesTap: onVariablesTap,
+                  onStoreReleaseTap: onStoreReleaseTap,
                 )
               : null,
-          floatingActionButton: isCompactLayout
+          floatingActionButton:
+              isCompactLayout &&
+                  _compactDestination == _CompactBoardDestination.issueBoard
               ? FloatingActionButton.extended(
                   onPressed: () => unawaited(_openAddIssueDialog()),
                   icon: const Icon(Icons.add_rounded),
@@ -1705,143 +1764,106 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 )
               : null,
           body: SafeArea(
-            child: Column(
-              children: [
-                if (!isCompactLayout)
-                  BoardHeader(
-                    openIssues: openIssues,
-                    closedIssues: closedIssues,
-                    dailyProgressStats: dailyProgressStats,
-                    onChangeDailyWeightTarget: () => unawaited(
-                      _openDailyWeightTargetDialog(dailyProgressStats),
-                    ),
-                    onSignOut: onSignOut,
-                    workspaceName: widget.workspaceName,
-                    onSwitchTeam: widget.onSwitchTeam,
-                    onWorkerOverviewTap: _openWorkerInspector,
-                  ),
-                if (_isBootstrapping) const LinearProgressIndicator(),
-                if (isCompactLayout)
-                  DailyProgressStrip(
-                    stats: dailyProgressStats,
-                    isCompact: true,
-                    onTap: () => unawaited(
-                      _openDailyWeightTargetDialog(dailyProgressStats),
-                    ),
-                  ),
-                BoardToolbar(
-                  onConnectGitHub: _connectGitHub,
-                  onSelectRepositories: _selectRepositories,
-                  onImportIssues: _importGitHubIssues,
-                  onSyncIssues: _syncGitHubIssues,
-                  onSearchIssues: _openIssueSearchDialog,
-                  boardViewMode: boardViewMode,
-                  onBoardViewModeChanged: (mode) =>
-                      setState(() => _boardViewMode = mode),
-                  githubLogin: _githubLogin,
-                  repoCount: _enabledRepoCount,
-                  isBusy: _isBusy,
-                  onRunsTap: _openRunHistory,
-                  onWorkersTap: _openWorkerInspector,
-                  onWorkflowsTap: _openWorkflowsPanel,
-                  onVariablesTap: _openVariablesPanel,
-                  onStoreReleaseTap: _openStoreReleasePanel,
-                ),
-                if (_loadError != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: Text(
-                      _loadError!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w700,
+            child:
+                isCompactLayout &&
+                    _compactDestination != _CompactBoardDestination.issueBoard
+                ? _CompactDestinationBody(destination: _compactDestination)
+                : Column(
+                    children: [
+                      if (!isCompactLayout)
+                        BoardHeader(
+                          openIssues: openIssues,
+                          closedIssues: closedIssues,
+                          dailyProgressStats: dailyProgressStats,
+                          onChangeDailyWeightTarget: () => unawaited(
+                            _openDailyWeightTargetDialog(dailyProgressStats),
+                          ),
+                          onSignOut: onSignOut,
+                          workspaceName: widget.workspaceName,
+                          onSwitchTeam: widget.onSwitchTeam,
+                          onWorkerOverviewTap: _openWorkerInspector,
+                        ),
+                      if (_isBootstrapping) const LinearProgressIndicator(),
+                      if (isCompactLayout)
+                        DailyProgressStrip(
+                          stats: dailyProgressStats,
+                          isCompact: true,
+                          onTap: () => unawaited(
+                            _openDailyWeightTargetDialog(dailyProgressStats),
+                          ),
+                        ),
+                      BoardToolbar(
+                        onConnectGitHub: _connectGitHub,
+                        onSelectRepositories: _selectRepositories,
+                        onImportIssues: _importGitHubIssues,
+                        onSyncIssues: _syncGitHubIssues,
+                        onSearchIssues: _openIssueSearchDialog,
+                        boardViewMode: boardViewMode,
+                        onBoardViewModeChanged: (mode) =>
+                            setState(() => _boardViewMode = mode),
+                        githubLogin: _githubLogin,
+                        repoCount: _enabledRepoCount,
+                        isBusy: _isBusy,
+                        onRunsTap: onRunsTap,
+                        onWorkersTap: onWorkersTap,
+                        onWorkflowsTap: onWorkflowsTap,
+                        onVariablesTap: onVariablesTap,
+                        onStoreReleaseTap: onStoreReleaseTap,
                       ),
-                    ),
-                  ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final boardHeight = constraints.maxHeight > 32
-                          ? constraints.maxHeight - 24
-                          : constraints.maxHeight;
-                      final isCompactBoard =
-                          constraints.maxWidth < _compactBoardBreakpoint;
-                      final allIssues = _columns
-                          .expand((column) => column.issues)
-                          .toList();
-
-                      if (boardViewMode == BoardViewMode.overview) {
-                        return OverviewBoard(
-                          columns: _columns,
-                          isCompact: isCompactBoard,
-                          onIssueTapped: _openEditIssueDialog,
-                          onIssueDropped: _moveIssue,
-                        );
-                      }
-
-                      if (isCompactBoard) {
-                        return ListView.separated(
-                          controller: _boardScrollController,
-                          padding: const EdgeInsets.fromLTRB(
-                            _boardHorizontalPadding,
-                            4,
-                            _boardHorizontalPadding,
-                            _boardBottomPadding + 72,
+                      if (_loadError != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                          child: Text(
+                            _loadError!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          itemCount: _columns.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: _boardColumnGap),
-                          itemBuilder: (context, index) {
-                            final column = _columns[index];
-                            return CompactBoardColumnView(
-                              column: column,
-                              allIssues: allIssues,
-                              buildStatusesByPullRequest:
-                                  _buildStatusesByPullRequest,
-                              startingCursorAgentIssueIds:
-                                  _startingCursorAgentIssueIds,
-                              requiresLongPressDrag: true,
-                              onIssueDropped: _moveIssue,
-                              onIssueLinkedToPullRequest:
-                                  _linkIssueToPullRequest,
-                              onAddIssue: (columnId) => unawaited(
-                                _openAddIssueDialog(
-                                  initialColumnId: columnId,
+                        ),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final boardHeight = constraints.maxHeight > 32
+                                ? constraints.maxHeight - 24
+                                : constraints.maxHeight;
+                            final isCompactBoard =
+                                constraints.maxWidth < _compactBoardBreakpoint;
+                            final allIssues = _columns
+                                .expand((column) => column.issues)
+                                .toList();
+
+                            if (boardViewMode == BoardViewMode.overview) {
+                              return OverviewBoard(
+                                columns: _columns,
+                                isCompact: isCompactBoard,
+                                onIssueTapped: _openEditIssueDialog,
+                                onIssueDropped: _moveIssue,
+                              );
+                            }
+
+                            if (isCompactBoard) {
+                              return ListView.separated(
+                                controller: _boardScrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  _boardHorizontalPadding,
+                                  4,
+                                  _boardHorizontalPadding,
+                                  _boardBottomPadding + 72,
                                 ),
-                              ),
-                              onIssueTapped: _openEditIssueDialog,
-                              onStartCursorAgent: _startCursorAgent,
-                            );
-                          },
-                        );
-                      }
-
-                      return Scrollbar(
-                        controller: _boardScrollController,
-                        thumbVisibility: true,
-                        child: SingleChildScrollView(
-                          controller: _boardScrollController,
-                          padding: const EdgeInsets.fromLTRB(
-                            _boardHorizontalPadding,
-                            6,
-                            _boardHorizontalPadding,
-                            _boardBottomPadding,
-                          ),
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            height: boardHeight,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (final column in _columns) ...[
-                                  BoardColumnView(
+                                itemCount: _columns.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: _boardColumnGap),
+                                itemBuilder: (context, index) {
+                                  final column = _columns[index];
+                                  return CompactBoardColumnView(
                                     column: column,
                                     allIssues: allIssues,
                                     buildStatusesByPullRequest:
                                         _buildStatusesByPullRequest,
                                     startingCursorAgentIssueIds:
                                         _startingCursorAgentIssueIds,
-                                    requiresLongPressDrag: false,
+                                    requiresLongPressDrag: true,
                                     onIssueDropped: _moveIssue,
                                     onIssueLinkedToPullRequest:
                                         _linkIssueToPullRequest,
@@ -1852,20 +1874,64 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     ),
                                     onIssueTapped: _openEditIssueDialog,
                                     onStartCursorAgent: _startCursorAgent,
+                                  );
+                                },
+                              );
+                            }
+
+                            return Scrollbar(
+                              controller: _boardScrollController,
+                              thumbVisibility: true,
+                              child: SingleChildScrollView(
+                                controller: _boardScrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  _boardHorizontalPadding,
+                                  6,
+                                  _boardHorizontalPadding,
+                                  _boardBottomPadding,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                child: SizedBox(
+                                  height: boardHeight,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      for (final column in _columns) ...[
+                                        BoardColumnView(
+                                          column: column,
+                                          allIssues: allIssues,
+                                          buildStatusesByPullRequest:
+                                              _buildStatusesByPullRequest,
+                                          startingCursorAgentIssueIds:
+                                              _startingCursorAgentIssueIds,
+                                          requiresLongPressDrag: false,
+                                          onIssueDropped: _moveIssue,
+                                          onIssueLinkedToPullRequest:
+                                              _linkIssueToPullRequest,
+                                          onAddIssue: (columnId) => unawaited(
+                                            _openAddIssueDialog(
+                                              initialColumnId: columnId,
+                                            ),
+                                          ),
+                                          onIssueTapped: _openEditIssueDialog,
+                                          onStartCursorAgent: _startCursorAgent,
+                                        ),
+                                        if (column != _columns.last)
+                                          const SizedBox(
+                                            width: _boardColumnGap,
+                                          ),
+                                      ],
+                                    ],
                                   ),
-                                  if (column != _columns.last)
-                                    const SizedBox(width: _boardColumnGap),
-                                ],
-                              ],
-                            ),
-                          ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -1895,6 +1961,24 @@ class IssueBoardShortcuts extends StatelessWidget {
       },
       child: Focus(autofocus: true, child: child),
     );
+  }
+}
+
+class _CompactDestinationBody extends StatelessWidget {
+  const _CompactDestinationBody({required this.destination});
+
+  final _CompactBoardDestination destination;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (destination) {
+      _CompactBoardDestination.issueBoard => const SizedBox.shrink(),
+      _CompactBoardDestination.runs => const LogsBody(),
+      _CompactBoardDestination.workers => const WorkerStatusBody(),
+      _CompactBoardDestination.workflows => const WorkflowsBody(),
+      _CompactBoardDestination.variables => const VariablesBody(),
+      _CompactBoardDestination.storeRelease => const StoreReleaseBody(),
+    };
   }
 }
 
@@ -4776,6 +4860,8 @@ class CompactBoardDrawer extends StatelessWidget {
     required this.onSearchIssues,
     required this.onSignOut,
     required this.workspaceName,
+    required this.selectedDestination,
+    required this.onIssueBoardTap,
     required this.onRunsTap,
     required this.onWorkersTap,
     required this.onWorkflowsTap,
@@ -4794,6 +4880,8 @@ class CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onSearchIssues;
   final Future<void> Function() onSignOut;
   final String workspaceName;
+  final _CompactBoardDestination selectedDestination;
+  final VoidCallback onIssueBoardTap;
   final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
   final VoidCallback onWorkflowsTap;
@@ -4855,32 +4943,41 @@ class CompactBoardDrawer extends StatelessWidget {
             _CompactDrawerTile(
               icon: Icons.view_kanban_outlined,
               label: 'Issue board',
-              selected: true,
-              onTap: closeDrawer,
+              selected:
+                  selectedDestination == _CompactBoardDestination.issueBoard,
+              onTap: () => runAfterClose(onIssueBoardTap),
             ),
             _CompactDrawerTile(
               icon: Icons.history_rounded,
               label: '実行履歴',
+              selected: selectedDestination == _CompactBoardDestination.runs,
               onTap: () => runAfterClose(onRunsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.dns_outlined,
               label: 'ワーカー',
+              selected: selectedDestination == _CompactBoardDestination.workers,
               onTap: () => runAfterClose(onWorkersTap),
             ),
             _CompactDrawerTile(
               icon: Icons.schema_rounded,
               label: 'ワークフロー',
+              selected:
+                  selectedDestination == _CompactBoardDestination.workflows,
               onTap: () => runAfterClose(onWorkflowsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.key_rounded,
               label: '変数',
+              selected:
+                  selectedDestination == _CompactBoardDestination.variables,
               onTap: () => runAfterClose(onVariablesTap),
             ),
             _CompactDrawerTile(
               icon: Icons.rocket_launch_outlined,
               label: 'ストアリリース',
+              selected:
+                  selectedDestination == _CompactBoardDestination.storeRelease,
               onTap: () => runAfterClose(onStoreReleaseTap),
             ),
             const Divider(height: 24),
