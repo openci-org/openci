@@ -25,6 +25,7 @@ import {
   extractIssueKey,
   issueKey,
   issueStatusForPullRequest,
+  isOnlyLinkedIssueBlockChange,
   normalizeIssueKeyPrefix,
   upsertLinkedIssueBlock,
 } from "./issueLinkingHelpers";
@@ -250,6 +251,14 @@ interface GitHubPullRequestLinkedIssuesGraphqlResponse {
 
 interface GitHubPullRequestWebhookPayload {
   action?: unknown;
+  changes?: {
+    body?: {
+      from?: unknown;
+    };
+    title?: {
+      from?: unknown;
+    };
+  };
   repository?: {
     full_name?: unknown;
   };
@@ -2562,6 +2571,46 @@ function parseWebhookPayload(rawBody: Buffer): GitHubPullRequestWebhookPayload {
   return JSON.parse(rawBody.toString("utf8")) as GitHubPullRequestWebhookPayload;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function closingIssueReferences(value: string): string[] {
+  const references = value.match(
+    /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+\/[\w.-]+)?#\d+/giu,
+  );
+  return references?.map((reference) => reference.toLowerCase()).sort() ?? [];
+}
+
+function pullRequestEditedAffectsIssueLinking(
+  payload: GitHubPullRequestWebhookPayload,
+  pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>,
+  branch: string,
+): boolean {
+  const titleChanged = isRecord(payload.changes?.title);
+  const bodyChanged = isRecord(payload.changes?.body);
+  if (!titleChanged && !bodyChanged) {
+    return false;
+  }
+
+  const currentTitle = asString(pullRequest.title);
+  const currentBody = asString(pullRequest.body);
+  const previousTitle = titleChanged ? asString(payload.changes?.title?.from) : currentTitle;
+  const previousBody = bodyChanged ? asString(payload.changes?.body?.from) : currentBody;
+
+  if (!titleChanged && bodyChanged && isOnlyLinkedIssueBlockChange(previousBody, currentBody)) {
+    return false;
+  }
+
+  const previousIssueKey = extractIssueKey(branch, previousTitle, previousBody);
+  const currentIssueKey = extractIssueKey(branch, currentTitle, currentBody);
+  if (previousIssueKey !== currentIssueKey) {
+    return true;
+  }
+
+  return closingIssueReferences(previousBody).join("\n") !== closingIssueReferences(currentBody).join("\n");
+}
+
 export async function processImaGitHubAppWebhook(
   event: string,
   body: Record<string, unknown>,
@@ -2850,15 +2899,21 @@ async function linkPullRequestToImaIssues(
   payload: GitHubPullRequestWebhookPayload,
 ): Promise<number> {
   const action = asString(payload.action);
-  if (action.length === 0) {
-    return 0;
-  }
-
   const pullRequest = payload.pull_request;
   const repoFullName = asString(payload.repository?.full_name);
   const branch = asString(pullRequest?.head?.ref);
-  const parsedIssueKey = extractIssueKey(branch);
+  const parsedIssueKey = extractIssueKey(branch, asString(pullRequest?.title), asString(pullRequest?.body));
   if (!pullRequest || repoFullName.length === 0) {
+    return 0;
+  }
+
+  const shouldProcess =
+    action === "opened" ||
+    action === "synchronize" ||
+    action === "closed" ||
+    action === "reopened" ||
+    (action === "edited" && pullRequestEditedAffectsIssueLinking(payload, pullRequest, branch));
+  if (!shouldProcess) {
     return 0;
   }
 
