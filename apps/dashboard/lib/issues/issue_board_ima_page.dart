@@ -1684,9 +1684,18 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         _selectCompactDestination(_CompactBoardDestination.storeRelease);
 
     return SyncedSpinnerScope(
-      child: IssueBoardShortcuts(
+      child: _IssueBoardShortcuts(
         onAddIssue: () => unawaited(_openAddIssueDialog()),
         onSearchIssues: () => unawaited(_openIssueSearchDialog()),
+        onToggleNavigation: () {
+          if (isCompactLayout) {
+            return;
+          }
+          setState(
+            () => _isDesktopRailCollapsed = !_isDesktopRailCollapsed,
+          );
+        },
+        onDestinationSelected: _selectCompactDestination,
         child: Scaffold(
           key: _scaffoldKey,
           backgroundColor: const Color(0xFFF8FAFC),
@@ -1787,9 +1796,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                   dailyProgressStats,
                                 ),
                               ),
-                              onSignOut: onSignOut,
-                              workspaceName: widget.workspaceName,
-                              onSwitchTeam: widget.onSwitchTeam,
                               onWorkerOverviewTap: onWorkersTap,
                             ),
                           if (_isBootstrapping) const LinearProgressIndicator(),
@@ -1958,8 +1964,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 children: [
                   _DesktopBoardNavigationRail(
                     selectedDestination: _compactDestination,
+                    workspaceName: widget.workspaceName,
                     extended:
                         constraints.maxWidth >= 960 && !_isDesktopRailCollapsed,
+                    onSwitchTeam: widget.onSwitchTeam,
+                    onSignOut: onSignOut,
                     onCollapsedChanged: (collapsed) =>
                         setState(() => _isDesktopRailCollapsed = collapsed),
                     onDestinationSelected: _selectCompactDestination,
@@ -1976,16 +1985,19 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 }
 
-class IssueBoardShortcuts extends StatelessWidget {
-  const IssueBoardShortcuts({
-    super.key,
+class _IssueBoardShortcuts extends StatelessWidget {
+  const _IssueBoardShortcuts({
     required this.onAddIssue,
     required this.onSearchIssues,
+    required this.onToggleNavigation,
+    required this.onDestinationSelected,
     required this.child,
   });
 
   final VoidCallback onAddIssue;
   final VoidCallback onSearchIssues;
+  final VoidCallback onToggleNavigation;
+  final ValueChanged<_CompactBoardDestination> onDestinationSelected;
   final Widget child;
 
   @override
@@ -1995,6 +2007,20 @@ class IssueBoardShortcuts extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.keyT, meta: true): onAddIssue,
         const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
             onSearchIssues,
+        const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
+            onToggleNavigation,
+        const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
+            onDestinationSelected(_CompactBoardDestination.issueBoard),
+        const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
+            onDestinationSelected(_CompactBoardDestination.runs),
+        const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
+            onDestinationSelected(_CompactBoardDestination.workers),
+        const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
+            onDestinationSelected(_CompactBoardDestination.workflows),
+        const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
+            onDestinationSelected(_CompactBoardDestination.variables),
+        const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
+            onDestinationSelected(_CompactBoardDestination.storeRelease),
       },
       child: Focus(autofocus: true, child: child),
     );
@@ -2022,15 +2048,21 @@ class _CompactDestinationBody extends StatelessWidget {
 class _DesktopBoardNavigationRail extends StatelessWidget {
   const _DesktopBoardNavigationRail({
     required this.selectedDestination,
+    required this.workspaceName,
     required this.extended,
+    required this.onSignOut,
     required this.onCollapsedChanged,
     required this.onDestinationSelected,
+    this.onSwitchTeam,
   });
 
   final _CompactBoardDestination selectedDestination;
+  final String workspaceName;
   final bool extended;
+  final Future<void> Function() onSignOut;
   final ValueChanged<bool> onCollapsedChanged;
   final ValueChanged<_CompactBoardDestination> onDestinationSelected;
+  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -2051,6 +2083,12 @@ class _DesktopBoardNavigationRail extends StatelessWidget {
         leading: _DesktopRailHeader(
           extended: extended,
           onCollapsedChanged: onCollapsedChanged,
+        ),
+        trailing: _DesktopRailAccountSection(
+          extended: extended,
+          workspaceName: workspaceName,
+          onSwitchTeam: onSwitchTeam,
+          onSignOut: onSignOut,
         ),
         destinations: [
           for (final destination in _boardNavigationDestinations)
@@ -2154,6 +2192,120 @@ class _OpenCiMark extends StatelessWidget {
   }
 }
 
+class _DesktopRailAccountSection extends StatelessWidget {
+  const _DesktopRailAccountSection({
+    required this.extended,
+    required this.workspaceName,
+    required this.onSignOut,
+    this.onSwitchTeam,
+  });
+
+  final bool extended;
+  final String workspaceName;
+  final Future<void> Function() onSignOut;
+  final VoidCallback? onSwitchTeam;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!extended) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(8, 18, 8, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onSwitchTeam != null) ...[
+              IconButton(
+                tooltip: workspaceName,
+                onPressed: onSwitchTeam,
+                icon: const Icon(Icons.groups_2_outlined),
+              ),
+              const SizedBox(height: 4),
+            ],
+            IconButton(
+              tooltip: 'サインアウト',
+              onPressed: () => unawaited(onSignOut()),
+              icon: const Icon(Icons.logout_rounded),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (onSwitchTeam != null) ...[
+            _DesktopRailActionTile(
+              icon: Icons.groups_2_outlined,
+              label: workspaceName,
+              onTap: onSwitchTeam!,
+            ),
+            const SizedBox(height: 8),
+          ],
+          _DesktopRailActionTile(
+            icon: Icons.logout_rounded,
+            label: 'サインアウト',
+            onTap: () => unawaited(onSignOut()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopRailActionTile extends StatelessWidget {
+  const _DesktopRailActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF475569)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF334155),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class BoardHeader extends StatelessWidget {
   const BoardHeader({
     super.key,
@@ -2162,9 +2314,6 @@ class BoardHeader extends StatelessWidget {
     required this.dailyProgressStats,
     required this.onChangeDailyWeightTarget,
     required this.onWorkerOverviewTap,
-    required this.onSignOut,
-    required this.workspaceName,
-    this.onSwitchTeam,
   });
 
   final int openIssues;
@@ -2172,9 +2321,6 @@ class BoardHeader extends StatelessWidget {
   final DailyProgressStats dailyProgressStats;
   final VoidCallback onChangeDailyWeightTarget;
   final VoidCallback onWorkerOverviewTap;
-  final Future<void> Function() onSignOut;
-  final String workspaceName;
-  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -2189,23 +2335,13 @@ class BoardHeader extends StatelessWidget {
               (isCompact ? textTheme.headlineSmall : textTheme.headlineMedium)
                   ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.8),
         );
-        final teamSwitcher = TeamSwitcherButton(
-          workspaceName: workspaceName,
-          onPressed: onSwitchTeam,
-        );
-
         if (isCompact) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(child: title),
-                    if (onSwitchTeam != null) teamSwitcher,
-                  ],
-                ),
+                title,
                 const SizedBox(height: 10),
                 DailyProgressStrip(
                   stats: dailyProgressStats,
@@ -2224,17 +2360,7 @@ class BoardHeader extends StatelessWidget {
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: title),
-                  if (onSwitchTeam != null) ...[
-                    teamSwitcher,
-                    const SizedBox(width: 8),
-                  ],
-                  TextButton(
-                    onPressed: () => unawaited(onSignOut()),
-                    child: const Text('サインアウト'),
-                  ),
-                ],
+                children: [Expanded(child: title)],
               ),
               const SizedBox(height: 10),
               Align(
