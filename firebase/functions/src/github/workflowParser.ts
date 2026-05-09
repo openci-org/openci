@@ -89,11 +89,3 @@ export function extractJobs(parsed: JsonMap): JobInfo[] {
   return jobInfos;
 }
 
-export function workflowFileDocId(
-  teamId: string,
-  repository: string,
-  branch: string,
-  fileName: string,
-): string {
-  return `${teamId}_${repository.replaceAll("/", "_")}_${branch}_${fileName}`;
-}

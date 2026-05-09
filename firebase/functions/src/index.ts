@@ -34,7 +34,6 @@ export {
   listDirectories,
   listRepositories,
   listWorkflowFiles,
-  syncWorkflowFiles,
 } from "./github/repositories.js";
 export { createGitHubSetupUrl, githubSetup } from "./github/setup.js";
 export { githubWebhook } from "./github/webhook.js";

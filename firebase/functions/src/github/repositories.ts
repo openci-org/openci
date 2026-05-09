@@ -1,11 +1,6 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import {
-  deleteWorkflowFile,
-  listWorkflowFilesForBranch,
-  upsertWorkflowFile,
-} from "../firestoreData.js";
 import { verifyTeamMembership } from "../team/teamAuth.js";
 import {
   getInstallationToken,
@@ -112,11 +107,6 @@ export interface CreateWorkflowFileResponse {
   pullRequestUrl?: string;
   pullRequestNumber?: number;
   branch: string;
-}
-
-export interface SyncWorkflowFilesResponse {
-  synced: number;
-  deleted: number;
 }
 
 interface GitHubInstallationRepositoriesResponse extends Record<string, unknown> {
@@ -448,105 +438,6 @@ export const listWorkflowFiles = onCall<
   }
 });
 
-function workflowFileDocId(
-  teamId: string,
-  repository: string,
-  branch: string,
-  fileName: string,
-): string {
-  return `${teamId}_${repository.replaceAll("/", "_")}_${branch}_${fileName}`;
-}
-
-async function deleteRemovedWorkflowFiles(
-  teamId: string,
-  repository: string,
-  branch: string,
-  currentFileNames: Set<string>,
-): Promise<number> {
-  const result = await listWorkflowFilesForBranch({ teamId, repository, branch });
-  const toDelete = result.data.workflowFiles.filter(
-    (file: { fileName: string }) => !currentFileNames.has(file.fileName),
-  );
-  for (const file of toDelete) {
-    await deleteWorkflowFile({ id: file.id });
-  }
-  return toDelete.length;
-}
-
-async function deleteAllWorkflowFiles(
-  teamId: string,
-  repository: string,
-  branch: string,
-): Promise<number> {
-  const result = await listWorkflowFilesForBranch({ teamId, repository, branch });
-  for (const file of result.data.workflowFiles) {
-    await deleteWorkflowFile({ id: file.id });
-  }
-  return result.data.workflowFiles.length;
-}
-
-async function syncWorkflowFilesToFirestore({
-  teamId,
-  repository,
-  branch,
-  token,
-  apiBaseUrl,
-}: {
-  teamId: string;
-  repository: string;
-  branch: string;
-  token: string;
-  apiBaseUrl: string;
-}): Promise<SyncWorkflowFilesResponse> {
-  const [owner, repo] = repository.split("/");
-  const expression = `${branch}:.openci`;
-
-  let entries: OpenciDirEntry[];
-  try {
-    const result = await githubGraphql<OpenciDirGraphqlResponse>(openciDirQuery, token, {
-      variables: { owner, repo, expression },
-      apiBaseUrl,
-    });
-    entries = result.data?.repository?.object?.entries ?? [];
-  } catch (error) {
-    if (String(error).includes("Could not resolve to an object")) {
-      await deleteAllWorkflowFiles(teamId, repository, branch);
-      return { synced: 0, deleted: 0 };
-    }
-    throw error;
-  }
-
-  const yamlEntries = entries.filter(
-    (entry) =>
-      entry.type === "blob" &&
-      typeof entry.name === "string" &&
-      (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")) &&
-      typeof entry.object?.text === "string",
-  );
-
-  const currentFileNames = new Set<string>();
-  let synced = 0;
-
-  for (const entry of yamlEntries) {
-    const name = entry.name as string;
-    currentFileNames.add(name);
-    await upsertWorkflowFile({
-      id: workflowFileDocId(teamId, repository, branch, name),
-      teamId,
-      repository,
-      branch,
-      fileName: name,
-      filePath: `.openci/${name}`,
-      content: entry.object?.text as string,
-    });
-    synced += 1;
-  }
-
-  const deleted = await deleteRemovedWorkflowFiles(teamId, repository, branch, currentFileNames);
-  logger.info("Synced workflow files", { synced, deleted, repository, branch });
-  return { synced, deleted };
-}
-
 export const createWorkflowFile = onCall<
   CreateWorkflowFileRequest,
   Promise<CreateWorkflowFileResponse>
@@ -679,43 +570,3 @@ export const createWorkflowFile = onCall<
   }
 });
 
-export const syncWorkflowFiles = onCall<
-  ListWorkflowFilesRequest,
-  Promise<SyncWorkflowFilesResponse>
->(async (request) => {
-  const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
-  const repository = requireNonEmptyString(request.data?.repository, "repository");
-  const targetBranch = typeof request.data?.branch === "string" ? request.data.branch : "HEAD";
-  const [owner, repo] = repository.split("/");
-  if (!owner || !repo) {
-    throw new HttpsError("invalid-argument", "repository must be in owner/repo format");
-  }
-
-  const teamData = await verifyTeamMembership(request.auth, teamId);
-  const installationIds = getInstallationIds(teamData);
-  const apiBaseUrl = getApiBaseUrlFromTeamData(teamData);
-
-  try {
-    for (const installationId of installationIds) {
-      try {
-        const { token } = await getInstallationToken(installationId, { apiBaseUrl });
-        await githubGet(`/repos/${owner}/${repo}`, token, { apiBaseUrl });
-        return await syncWorkflowFilesToFirestore({
-          teamId,
-          repository,
-          branch: targetBranch,
-          token,
-          apiBaseUrl,
-        });
-      } catch (error) {
-        if (error instanceof HttpsError) throw error;
-        continue;
-      }
-    }
-    throw new HttpsError("not-found", "Repository not found in any installation");
-  } catch (error) {
-    if (error instanceof HttpsError) throw error;
-    logger.error("Failed to sync workflow files", { teamId, repository, error });
-    throw new HttpsError("internal", "Failed to sync workflow files");
-  }
-});

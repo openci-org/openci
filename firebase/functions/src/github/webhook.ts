@@ -3,7 +3,7 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onRequest } from "firebase-functions/v2/https";
 
-import { addBuildJob } from "../buildJob/addBuildJob.js";
+import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
 import { routeWebhookEvent, webhookEventFromRequest } from "./buildTrigger.js";
 

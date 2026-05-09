@@ -33,7 +33,6 @@ export const firestoreCollectionPaths = {
   secrets: "secrets_v0",
   env: "environment_variables_v0",
   workflows: "workflows_v1",
-  workflowFiles: "workflow_files_v0",
   buildJobs: "build_jobs_v0",
 };
 
@@ -330,46 +329,6 @@ async function acceptInvitationAndJoinTeam(...args) {
       teamMember_upsert: { teamId: vars.teamId, userId: uid },
     },
   };
-}
-
-async function listWorkflowFilesForBranch(...args) {
-  const vars = varsFromArgs(...args);
-  let query = db()
-    .collection(firestoreCollectionPaths.workflowFiles)
-    .where("teamId", "==", vars.teamId)
-    .where("repository", "==", vars.repository);
-  if (vars.branch) query = query.where("branch", "==", vars.branch);
-  const workflowFiles = await queryAll(query.orderBy("fileName"));
-  return { data: { workflowFiles } };
-}
-
-async function upsertWorkflowFile(...args) {
-  const vars = varsFromArgs(...args);
-  await db()
-    .collection(firestoreCollectionPaths.workflowFiles)
-    .doc(vars.id)
-    .set(
-      {
-        id: vars.id,
-        teamId: vars.teamId,
-        repository: vars.repository,
-        branch: vars.branch,
-        fileName: vars.fileName,
-        filePath: vars.filePath,
-        content: vars.content,
-        enabled: vars.enabled ?? true,
-        syncedAt: now(),
-        updatedAt: now(),
-      },
-      { merge: true },
-    );
-  return { data: { workflowFile_upsert: { id: vars.id } } };
-}
-
-async function deleteWorkflowFile(...args) {
-  const vars = varsFromArgs(...args);
-  await db().collection(firestoreCollectionPaths.workflowFiles).doc(vars.id).delete();
-  return { data: { workflowFile_delete: { id: vars.id } } };
 }
 
 async function createBuildJob(...args) {
@@ -669,7 +628,6 @@ export {
   createInvitation,
   createSecretMetadata,
   deleteSecretMetadata,
-  deleteWorkflowFile,
   expireInvitation,
   findExistingPendingInvitation,
   findSecretByNameForTeam,
@@ -689,7 +647,6 @@ export {
   listWaitingBuildJobs,
   listWorkerEnvironmentVariables,
   listWorkerSecrets,
-  listWorkflowFilesForBranch,
   listWorkflowsForTeam,
   reinviteInvitation,
   updateBuildJobFailureSummary,
@@ -699,5 +656,4 @@ export {
   updateSecretMetadata,
   updateUserFcmTokens,
   updateWorkflowSecretKeys,
-  upsertWorkflowFile,
 };
