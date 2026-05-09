@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkflowFile {
 
- String get name; String get path; String get content; String get repository; String get branch; bool get enabled;
+ String get name; String get path; String get content; String get repository; String get branch;
 /// Create a copy of WorkflowFile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $WorkflowFileCopyWith<WorkflowFile> get copyWith => _$WorkflowFileCopyWithImpl<W
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content)&&(identical(other.repository, repository) || other.repository == repository)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.enabled, enabled) || other.enabled == enabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content)&&(identical(other.repository, repository) || other.repository == repository)&&(identical(other.branch, branch) || other.branch == branch));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,path,content,repository,branch,enabled);
+int get hashCode => Object.hash(runtimeType,name,path,content,repository,branch);
 
 @override
 String toString() {
-  return 'WorkflowFile(name: $name, path: $path, content: $content, repository: $repository, branch: $branch, enabled: $enabled)';
+  return 'WorkflowFile(name: $name, path: $path, content: $content, repository: $repository, branch: $branch)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $WorkflowFileCopyWith<$Res>  {
   factory $WorkflowFileCopyWith(WorkflowFile value, $Res Function(WorkflowFile) _then) = _$WorkflowFileCopyWithImpl;
 @useResult
 $Res call({
- String name, String path, String content, String repository, String branch, bool enabled
+ String name, String path, String content, String repository, String branch
 });
 
 
@@ -65,15 +65,14 @@ class _$WorkflowFileCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowFile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? path = null,Object? content = null,Object? repository = null,Object? branch = null,Object? enabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? path = null,Object? content = null,Object? repository = null,Object? branch = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,repository: null == repository ? _self.repository : repository // ignore: cast_nullable_to_non_nullable
 as String,branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
-as String,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,
   ));
 }
 
@@ -158,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String path,  String content,  String repository,  String branch,  bool enabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String path,  String content,  String repository,  String branch)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowFile() when $default != null:
-return $default(_that.name,_that.path,_that.content,_that.repository,_that.branch,_that.enabled);case _:
+return $default(_that.name,_that.path,_that.content,_that.repository,_that.branch);case _:
   return orElse();
 
 }
@@ -179,10 +178,10 @@ return $default(_that.name,_that.path,_that.content,_that.repository,_that.branc
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String path,  String content,  String repository,  String branch,  bool enabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String path,  String content,  String repository,  String branch)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowFile():
-return $default(_that.name,_that.path,_that.content,_that.repository,_that.branch,_that.enabled);case _:
+return $default(_that.name,_that.path,_that.content,_that.repository,_that.branch);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +198,10 @@ return $default(_that.name,_that.path,_that.content,_that.repository,_that.branc
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String path,  String content,  String repository,  String branch,  bool enabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String path,  String content,  String repository,  String branch)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowFile() when $default != null:
-return $default(_that.name,_that.path,_that.content,_that.repository,_that.branch,_that.enabled);case _:
+return $default(_that.name,_that.path,_that.content,_that.repository,_that.branch);case _:
   return null;
 
 }
@@ -214,7 +213,7 @@ return $default(_that.name,_that.path,_that.content,_that.repository,_that.branc
 @JsonSerializable()
 
 class _WorkflowFile implements WorkflowFile {
-  const _WorkflowFile({required this.name, required this.path, required this.content, required this.repository, required this.branch, this.enabled = true});
+  const _WorkflowFile({required this.name, required this.path, required this.content, required this.repository, required this.branch});
   factory _WorkflowFile.fromJson(Map<String, dynamic> json) => _$WorkflowFileFromJson(json);
 
 @override final  String name;
@@ -222,7 +221,6 @@ class _WorkflowFile implements WorkflowFile {
 @override final  String content;
 @override final  String repository;
 @override final  String branch;
-@override@JsonKey() final  bool enabled;
 
 /// Create a copy of WorkflowFile
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content)&&(identical(other.repository, repository) || other.repository == repository)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.enabled, enabled) || other.enabled == enabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content)&&(identical(other.repository, repository) || other.repository == repository)&&(identical(other.branch, branch) || other.branch == branch));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,path,content,repository,branch,enabled);
+int get hashCode => Object.hash(runtimeType,name,path,content,repository,branch);
 
 @override
 String toString() {
-  return 'WorkflowFile(name: $name, path: $path, content: $content, repository: $repository, branch: $branch, enabled: $enabled)';
+  return 'WorkflowFile(name: $name, path: $path, content: $content, repository: $repository, branch: $branch)';
 }
 
 
@@ -257,7 +255,7 @@ abstract mixin class _$WorkflowFileCopyWith<$Res> implements $WorkflowFileCopyWi
   factory _$WorkflowFileCopyWith(_WorkflowFile value, $Res Function(_WorkflowFile) _then) = __$WorkflowFileCopyWithImpl;
 @override @useResult
 $Res call({
- String name, String path, String content, String repository, String branch, bool enabled
+ String name, String path, String content, String repository, String branch
 });
 
 
@@ -274,15 +272,14 @@ class __$WorkflowFileCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowFile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? path = null,Object? content = null,Object? repository = null,Object? branch = null,Object? enabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? path = null,Object? content = null,Object? repository = null,Object? branch = null,}) {
   return _then(_WorkflowFile(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,repository: null == repository ? _self.repository : repository // ignore: cast_nullable_to_non_nullable
 as String,branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
-as String,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,
   ));
 }
 

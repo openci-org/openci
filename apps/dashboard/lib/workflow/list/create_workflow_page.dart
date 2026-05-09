@@ -19,8 +19,6 @@ import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/monokai.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
-import 'status_dot.dart';
-
 class CreateWorkflowPage extends HookConsumerWidget {
   const CreateWorkflowPage({
     super.key,
@@ -647,73 +645,6 @@ class _EditorTab extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            if (existingFile != null)
-              HookConsumer(
-                builder: (context, ref, child) {
-                  final isEnabled = useState(existingFile!.enabled);
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppColors.of(context).border,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        StatusDot(
-                          active: isEnabled.value,
-                          size: 8,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isEnabled.value
-                                    ? t.workflow.enabled
-                                    : t.workflow.disabled,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                isEnabled.value
-                                    ? t.workflow.enabledDescription
-                                    : t.workflow.disabledDescription,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.of(context).textTertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: isEnabled.value,
-                          onChanged: (value) {
-                            isEnabled.value = value;
-                            ref.read(
-                              toggleWorkflowEnabledProvider(
-                                repository: existingFile!.repository,
-                                branch: existingFile!.branch,
-                                fileName: existingFile!.name,
-                                enabled: value,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
             const SizedBox(height: 12),
             // ── Variables shortcut ──
             InkWell(

@@ -26,7 +26,7 @@ export const connectorConfig = {
   location: "asia-northeast1",
 };
 
-const collections = {
+export const firestoreCollectionPaths = {
   teams: "teams_v0",
   users: "users_v0",
   invitations: "invitations_v0",
@@ -120,22 +120,22 @@ async function queryAll(query) {
 }
 
 function teamRef(teamId) {
-  return db().collection(collections.teams).doc(teamId);
+  return db().collection(firestoreCollectionPaths.teams).doc(teamId);
 }
 
 function userRef(userId) {
-  return db().collection(collections.users).doc(userId);
+  return db().collection(firestoreCollectionPaths.users).doc(userId);
 }
 
 async function teamForMember(teamId, uid) {
-  const team = await getDoc(collections.teams, teamId);
+  const team = await getDoc(firestoreCollectionPaths.teams, teamId);
   if (!team || !Array.isArray(team.members) || !team.members.includes(uid)) return undefined;
   return team;
 }
 
 async function getTeamById(...args) {
   const vars = varsFromArgs(...args);
-  return { data: { team: (await getDoc(collections.teams, vars.teamId)) ?? null } };
+  return { data: { team: (await getDoc(firestoreCollectionPaths.teams, vars.teamId)) ?? null } };
 }
 
 async function getTeamForMember(...args) {
@@ -148,7 +148,7 @@ async function findTeamByInstallation(...args) {
   const vars = varsFromArgs(...args);
   const teams = await queryAll(
     db()
-      .collection(collections.teams)
+      .collection(firestoreCollectionPaths.teams)
       .where("installationIds", "array-contains", vars.installationId)
       .limit(1),
   );
@@ -166,9 +166,11 @@ async function linkGitHubInstallation(...args) {
 
 async function listTeamMembers(...args) {
   const vars = varsFromArgs(...args);
-  const team = (await getDoc(collections.teams, vars.teamId)) ?? {};
+  const team = (await getDoc(firestoreCollectionPaths.teams, vars.teamId)) ?? {};
   const members = Array.isArray(team.members) ? team.members : [];
-  const users = await Promise.all(members.map((uid) => getDoc(collections.users, uid)));
+  const users = await Promise.all(
+    members.map((uid) => getDoc(firestoreCollectionPaths.users, uid)),
+  );
   return {
     data: {
       teamMembers: members.map((uid, index) => ({
@@ -188,7 +190,10 @@ async function addTeamMember(...args) {
     if (members.includes(vars.userId)) throw new Error("already a member");
     tx.set(
       userRef(vars.userId),
-      withTimestamps({ id: vars.userId, email: vars.email }, !(await tx.get(userRef(vars.userId))).exists),
+      withTimestamps(
+        { id: vars.userId, email: vars.email },
+        !(await tx.get(userRef(vars.userId))).exists,
+      ),
       {
         merge: true,
       },
@@ -210,8 +215,8 @@ async function createInvitation(...args) {
   const vars = varsFromArgs(...args);
   const options = optionsFromArgs(...args);
   await db()
-    .collection(collections.invitations)
-    .doc(vars.id ?? db().collection(collections.invitations).doc().id)
+    .collection(firestoreCollectionPaths.invitations)
+    .doc(vars.id ?? db().collection(firestoreCollectionPaths.invitations).doc().id)
     .set(
       withTimestamps(
         {
@@ -233,7 +238,7 @@ async function reinviteInvitation(...args) {
   const vars = varsFromArgs(...args);
   const options = optionsFromArgs(...args);
   await db()
-    .collection(collections.invitations)
+    .collection(firestoreCollectionPaths.invitations)
     .doc(vars.id)
     .update({
       token: vars.token,
@@ -248,7 +253,7 @@ async function findExistingPendingInvitation(...args) {
   const vars = varsFromArgs(...args);
   const invitations = await queryAll(
     db()
-      .collection(collections.invitations)
+      .collection(firestoreCollectionPaths.invitations)
       .where("email", "==", vars.email)
       .where("teamId", "==", vars.teamId)
       .where("status", "==", InvitationStatus.PENDING)
@@ -258,7 +263,9 @@ async function findExistingPendingInvitation(...args) {
 }
 
 async function invitationWithTeam(invitation) {
-  const team = invitation?.teamId ? await getDoc(collections.teams, invitation.teamId) : undefined;
+  const team = invitation?.teamId
+    ? await getDoc(firestoreCollectionPaths.teams, invitation.teamId)
+    : undefined;
   return invitation
     ? { ...invitation, team: team ?? { id: invitation.teamId, name: invitation.teamNameSnapshot } }
     : undefined;
@@ -267,7 +274,7 @@ async function invitationWithTeam(invitation) {
 async function getInvitationByToken(...args) {
   const vars = varsFromArgs(...args);
   const invitations = await queryAll(
-    db().collection(collections.invitations).where("token", "==", vars.token).limit(1),
+    db().collection(firestoreCollectionPaths.invitations).where("token", "==", vars.token).limit(1),
   );
   return {
     data: { invitations: (await Promise.all(invitations.map(invitationWithTeam))).filter(Boolean) },
@@ -280,7 +287,7 @@ async function listMyPendingInvitations(...args) {
   if (!email) return { data: { invitations: [] } };
   const invitations = await queryAll(
     db()
-      .collection(collections.invitations)
+      .collection(firestoreCollectionPaths.invitations)
       .where("email", "==", email.trim().toLowerCase())
       .where("status", "==", InvitationStatus.PENDING)
       .orderBy("createdAt", "desc"),
@@ -293,7 +300,7 @@ async function listMyPendingInvitations(...args) {
 async function expireInvitation(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.invitations)
+    .collection(firestoreCollectionPaths.invitations)
     .doc(vars.id)
     .update({ status: InvitationStatus.EXPIRED, updatedAt: now() });
   return { data: { invitation_update: { id: vars.id } } };
@@ -308,7 +315,7 @@ async function acceptInvitationAndJoinTeam(...args) {
     tx.set(userRef(uid), withTimestamps({ id: uid, email, selectedTeamId: vars.teamId }, true), {
       merge: true,
     });
-    tx.update(db().collection(collections.invitations).doc(vars.id), {
+    tx.update(db().collection(firestoreCollectionPaths.invitations).doc(vars.id), {
       status: InvitationStatus.ACCEPTED,
       acceptedById: uid,
       acceptedAt: now(),
@@ -328,7 +335,7 @@ async function acceptInvitationAndJoinTeam(...args) {
 async function listWorkflowFilesForBranch(...args) {
   const vars = varsFromArgs(...args);
   let query = db()
-    .collection(collections.workflowFiles)
+    .collection(firestoreCollectionPaths.workflowFiles)
     .where("teamId", "==", vars.teamId)
     .where("repository", "==", vars.repository);
   if (vars.branch) query = query.where("branch", "==", vars.branch);
@@ -336,15 +343,10 @@ async function listWorkflowFilesForBranch(...args) {
   return { data: { workflowFiles } };
 }
 
-async function getWorkflowFile(...args) {
-  const vars = varsFromArgs(...args);
-  return { data: { workflowFile: (await getDoc(collections.workflowFiles, vars.id)) ?? null } };
-}
-
 async function upsertWorkflowFile(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.workflowFiles)
+    .collection(firestoreCollectionPaths.workflowFiles)
     .doc(vars.id)
     .set(
       {
@@ -366,25 +368,30 @@ async function upsertWorkflowFile(...args) {
 
 async function deleteWorkflowFile(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.workflowFiles).doc(vars.id).delete();
+  await db().collection(firestoreCollectionPaths.workflowFiles).doc(vars.id).delete();
   return { data: { workflowFile_delete: { id: vars.id } } };
 }
 
 async function createBuildJob(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.buildJobs).doc(vars.id).set(withTimestamps(vars, true));
+  await db()
+    .collection(firestoreCollectionPaths.buildJobs)
+    .doc(vars.id)
+    .set(withTimestamps(vars, true));
   return { data: { buildJob_insert: { id: vars.id } } };
 }
 
 async function getBuildJob(...args) {
   const vars = varsFromArgs(...args);
-  return { data: { buildJob: (await getDoc(collections.buildJobs, vars.id)) ?? null } };
+  return {
+    data: { buildJob: (await getDoc(firestoreCollectionPaths.buildJobs, vars.id)) ?? null },
+  };
 }
 
 async function updateBuildJobStatus(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.buildJobs)
+    .collection(firestoreCollectionPaths.buildJobs)
     .doc(vars.id)
     .update({ status: vars.status, updatedAt: now() });
   return { data: { buildJob_update: { id: vars.id } } };
@@ -394,7 +401,7 @@ async function listBuildJobsByWorkflowRun(...args) {
   const vars = varsFromArgs(...args);
   const buildJobs = await queryAll(
     db()
-      .collection(collections.buildJobs)
+      .collection(firestoreCollectionPaths.buildJobs)
       .where("workflowRunId", "==", vars.workflowRunId)
       .orderBy("createdAt"),
   );
@@ -405,7 +412,7 @@ async function listWaitingBuildJobs(...args) {
   const vars = varsFromArgs(...args);
   const buildJobs = await queryAll(
     db()
-      .collection(collections.buildJobs)
+      .collection(firestoreCollectionPaths.buildJobs)
       .where("workflowRunId", "==", vars.workflowRunId)
       .where("status", "==", BuildJobStatus.WAITING),
   );
@@ -416,7 +423,7 @@ async function claimQueuedBuildJob(...args) {
   const vars = varsFromArgs(...args);
   const platform = String(vars.runsOnPattern ?? "").includes("macos") ? "macos" : "ubuntu";
   const candidates = await db()
-    .collection(collections.buildJobs)
+    .collection(firestoreCollectionPaths.buildJobs)
     .where("status", "==", BuildJobStatus.QUEUED)
     .orderBy("createdAt")
     .limit(50)
@@ -443,7 +450,7 @@ async function claimQueuedBuildJob(...args) {
 async function createBuildRunForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db().runTransaction(async (tx) => {
-    const job = db().collection(collections.buildJobs).doc(vars.buildJobId);
+    const job = db().collection(firestoreCollectionPaths.buildJobs).doc(vars.buildJobId);
     tx.set(
       job.collection("runs").doc(vars.id),
       withTimestamps({ id: vars.id, status: "in_progress" }, true),
@@ -462,7 +469,7 @@ async function createBuildRunForWorker(...args) {
 async function appendBuildLogForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.buildJobs)
+    .collection(firestoreCollectionPaths.buildJobs)
     .doc(vars.buildJobId)
     .collection("runs")
     .doc(vars.runId)
@@ -485,7 +492,7 @@ async function appendBuildLogForWorker(...args) {
 async function updateBuildRunStatusForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.buildJobs)
+    .collection(firestoreCollectionPaths.buildJobs)
     .doc(vars.buildJobId)
     .collection("runs")
     .doc(vars.runId)
@@ -498,7 +505,7 @@ async function updateBuildRunStatusForWorker(...args) {
 async function completeBuildJobForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.buildJobs)
+    .collection(firestoreCollectionPaths.buildJobs)
     .doc(vars.id)
     .update({
       status: vars.status,
@@ -512,7 +519,7 @@ async function listLatestBuildLogs(...args) {
   const vars = varsFromArgs(...args);
   const buildLogs = await queryAll(
     db()
-      .collection(collections.buildJobs)
+      .collection(firestoreCollectionPaths.buildJobs)
       .doc(vars.buildJobId)
       .collection("runs")
       .doc(vars.runId)
@@ -536,7 +543,7 @@ async function updateUserFcmTokens(...args) {
 async function updateBuildJobFailureSummary(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.buildJobs)
+    .collection(firestoreCollectionPaths.buildJobs)
     .doc(vars.id)
     .update({
       failureSummaryStatus: vars.failureSummaryStatus ?? null,
@@ -552,7 +559,7 @@ async function findSecretByNameForTeam(...args) {
   const vars = varsFromArgs(...args);
   const secrets = await queryAll(
     db()
-      .collection(collections.secrets)
+      .collection(firestoreCollectionPaths.secrets)
       .where("teamId", "==", vars.teamId)
       .where("name", "==", vars.name)
       .limit(1),
@@ -565,7 +572,7 @@ async function getSecretsByNamesForTeam(...args) {
   if (!Array.isArray(vars.names) || vars.names.length === 0) return { data: { secrets: [] } };
   const secrets = await queryAll(
     db()
-      .collection(collections.secrets)
+      .collection(firestoreCollectionPaths.secrets)
       .where("teamId", "==", vars.teamId)
       .where("name", "in", vars.names.slice(0, 10)),
   );
@@ -575,7 +582,7 @@ async function getSecretsByNamesForTeam(...args) {
 async function listWorkerSecrets(...args) {
   const vars = varsFromArgs(...args);
   const secrets = await queryAll(
-    db().collection(collections.secrets).where("teamId", "==", vars.teamId),
+    db().collection(firestoreCollectionPaths.secrets).where("teamId", "==", vars.teamId),
   );
   return { data: { secrets } };
 }
@@ -583,7 +590,7 @@ async function listWorkerSecrets(...args) {
 async function createSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.secrets)
+    .collection(firestoreCollectionPaths.secrets)
     .doc(vars.id)
     .set(
       withTimestamps(
@@ -596,14 +603,14 @@ async function createSecretMetadata(...args) {
 
 async function getSecretPathForTeam(...args) {
   const vars = varsFromArgs(...args);
-  const secret = await getDoc(collections.secrets, vars.id);
+  const secret = await getDoc(firestoreCollectionPaths.secrets, vars.id);
   return { data: { secret: secret && secret.teamId === vars.teamId ? secret : null } };
 }
 
 async function updateSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.secrets)
+    .collection(firestoreCollectionPaths.secrets)
     .doc(vars.id)
     .update({ name: vars.name, updatedAt: now() });
   return { data: { secret_update: { id: vars.id } } };
@@ -611,7 +618,7 @@ async function updateSecretMetadata(...args) {
 
 async function deleteSecretMetadata(...args) {
   const vars = varsFromArgs(...args);
-  await db().collection(collections.secrets).doc(vars.id).delete();
+  await db().collection(firestoreCollectionPaths.secrets).doc(vars.id).delete();
   return { data: { secret_delete: { id: vars.id } } };
 }
 
@@ -619,7 +626,7 @@ async function listWorkflowsForTeam(...args) {
   const vars = varsFromArgs(...args);
   const workflows = await queryAll(
     db()
-      .collection(collections.workflows)
+      .collection(firestoreCollectionPaths.workflows)
       .where("teamId", "==", vars.teamId)
       .orderBy("updatedAt", "desc"),
   );
@@ -629,7 +636,7 @@ async function listWorkflowsForTeam(...args) {
 async function updateWorkflowSecretKeys(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.workflows)
+    .collection(firestoreCollectionPaths.workflows)
     .doc(vars.id)
     .update({ workflowSteps: vars.workflowSteps ?? [], updatedAt: now() });
   return { data: { workflow_update: { id: vars.id } } };
@@ -638,7 +645,7 @@ async function updateWorkflowSecretKeys(...args) {
 async function listWorkerEnvironmentVariables(...args) {
   const vars = varsFromArgs(...args);
   const environmentVariables = await queryAll(
-    db().collection(collections.env).where("teamId", "==", vars.teamId).orderBy("key"),
+    db().collection(firestoreCollectionPaths.env).where("teamId", "==", vars.teamId).orderBy("key"),
   );
   return { data: { environmentVariables } };
 }
@@ -646,7 +653,7 @@ async function listWorkerEnvironmentVariables(...args) {
 async function updateEnvironmentVariableValueForWorker(...args) {
   const vars = varsFromArgs(...args);
   await db()
-    .collection(collections.env)
+    .collection(firestoreCollectionPaths.env)
     .doc(vars.id)
     .update({ value: vars.value, updatedAt: now() });
   return { data: { environmentVariable_update: { id: vars.id } } };
@@ -673,7 +680,6 @@ export {
   getSecretsByNamesForTeam,
   getTeamById,
   getTeamForMember,
-  getWorkflowFile,
   linkGitHubInstallation,
   listBuildJobsByWorkflowRun,
   listLatestBuildLogs,

@@ -7,7 +7,6 @@ import {
   BuildJobStatus,
   createBuildJob,
   findTeamByInstallation,
-  getWorkflowFile,
 } from "../firestoreData.js";
 import { createCheckRun, getInstallationToken, githubGet, githubGraphql } from "./githubApp.js";
 import {
@@ -17,7 +16,7 @@ import {
   getGitHubApiBaseUrl,
   getGitHubBaseUrl,
 } from "./githubUrls.js";
-import { extractJobs, matchesTrigger, workflowFileDocId } from "./workflowParser.js";
+import { extractJobs, matchesTrigger } from "./workflowParser.js";
 
 export type GitHubEventType =
   | "pull_request"
@@ -375,14 +374,6 @@ export async function handleBuildTrigger(event: WebhookEvent): Promise<void> {
       if (!matchesTrigger(parsed, triggerInfo.triggerType, triggerInfo.triggerBranch)) continue;
       const jobInfos = extractJobs(parsed);
       if (jobInfos.length === 0) continue;
-
-      if (teamId) {
-        const wfBranch = triggerInfo.triggerBranch ?? "HEAD";
-        const wfDoc = await getWorkflowFile({
-          id: workflowFileDocId(teamId, event.repository.fullName, wfBranch, entry.name!),
-        });
-        if (wfDoc.data.workflowFile?.enabled === false) continue;
-      }
 
       const workflowRunId = randomUUID();
       const jobDocIds = new Map(jobInfos.map((job) => [job.jobKey, randomUUID()]));
