@@ -23,6 +23,10 @@ class Root extends ConsumerWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
       theme: _buildTheme(),
+      builder: (context, child) => TooltipVisibility(
+        visible: false,
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
