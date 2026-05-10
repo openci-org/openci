@@ -6,45 +6,26 @@ import { onRequest } from "firebase-functions/v2/https";
 import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
 import { githubAppId, githubPrivateKey } from "./githubApp.js";
-import { branchFromRef, ownerFromFullName } from "./webhookPayloadHelpers.js";
+import {
+  branchFromRef,
+  ownerFromFullName,
+  parseWebhookRequest,
+  requireInstallationId,
+} from "./webhookPayloadHelpers.js";
 
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
 export const githubWebhook = onRequest(
   { secrets: [githubWebhookSecret, githubAppId, githubPrivateKey] },
   async (request, response) => {
-    const eventType = request.header("x-github-event");
-    if (!eventType) {
-      response.status(400).send("Missing x-github-event header");
-      return;
-    }
-
-    const payload = request.rawBody?.toString("utf8");
-    if (!payload) {
-      response.status(400).send("Missing request body");
-      return;
-    }
-
-    const signatureHeader = request.header("x-hub-signature-256");
-    if (!signatureHeader) {
-      response.status(400).send("Missing x-hub-signature-256 header");
-      return;
-    }
-
-    const deliveryId = request.header("x-github-delivery");
-    if (!deliveryId) {
-      response.status(400).send("Missing x-github-delivery header");
-      return;
-    }
+    const webhookRequest = parseWebhookRequest(request, response);
+    if (!webhookRequest) return;
 
     const webhooks = new Webhooks({ secret: githubWebhookSecret.value() });
 
     webhooks.on(["pull_request.opened", "pull_request.synchronize"], async ({ payload }) => {
-      const installationId = payload.installation?.id;
-      if (!installationId) {
-        response.status(400).send("Missing installation ID in webhook payload");
-        return;
-      }
+      const installationId = requireInstallationId(payload.installation, response);
+      if (!installationId) return;
       await addBuildJob({
         installationId,
         commitSha: payload.pull_request.head.sha,
@@ -77,11 +58,8 @@ export const githubWebhook = onRequest(
 
     webhooks.on("push", async ({ name, payload }) => {
       const body = payload as unknown as Record<string, unknown>;
-      const installationId = payload.installation?.id;
-      if (!installationId) {
-        response.status(400).send("Missing installation ID in webhook payload");
-        return;
-      }
+      const installationId = requireInstallationId(payload.installation, response);
+      if (!installationId) return;
       if (!payload.deleted) {
         const branch = branchFromRef(payload.ref);
         await addBuildJob({
@@ -110,10 +88,10 @@ export const githubWebhook = onRequest(
 
     try {
       await webhooks.verifyAndReceive({
-        id: deliveryId,
-        name: eventType as any,
-        payload,
-        signature: signatureHeader,
+        id: webhookRequest.deliveryId,
+        name: webhookRequest.eventType as any,
+        payload: webhookRequest.payload,
+        signature: webhookRequest.signatureHeader,
       });
       response.status(200).json({ status: "ok" });
     } catch (error) {
