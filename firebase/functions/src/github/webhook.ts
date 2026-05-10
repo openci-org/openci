@@ -5,7 +5,8 @@ import { logger } from "firebase-functions/v2";
 import { onRequest } from "firebase-functions/v2/https";
 
 import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
-import { syncGitHubPullRequestStatusToDashboardIssueStatus } from "../dashboard/syncGitHubPullRequestStatusToDashboardIssueStatus.js";
+import { linkGitHubIssueToPullRequest } from "../dashboard/linkGitHubIssueToPullRequest/linkGitHubIssueToPullRequest.js";
+import { syncGitHubPullRequestStatusToDashboardIssueStatus } from "../dashboard/syncGitHubPullRequestStatusToDashboardIssueStatus/syncGitHubPullRequestStatusToDashboardIssueStatus.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
 import { githubAppId, githubPrivateKey } from "./githubApp.js";
 import {
@@ -45,6 +46,10 @@ export const githubWebhook = onRequest(
 
     webhooks.on("pull_request.opened", async ({ payload }) => {
       await syncGitHubPullRequestStatusToDashboardIssueStatus(db, payload);
+    });
+
+    webhooks.on("pull_request.opened", async ({ payload }) => {
+      await linkGitHubIssueToPullRequest(db, payload);
     });
 
     webhooks.on("push", async ({ name, payload }) => {

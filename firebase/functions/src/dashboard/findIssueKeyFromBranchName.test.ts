@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findIssueKeyFromBranchName } from "./dashboardIssueKey.js";
+import { findIssueKeyFromBranchName } from "./findIssueKeyFromBranchName.js";
 
 describe("findIssueKeyFromBranchName", () => {
   it("extracts a Dashboard issue key from the branch name", () => {

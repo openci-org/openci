@@ -1,30 +1,40 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
-import { firestoreCollectionPaths } from "../firestoreData.js";
+import { firestoreCollectionPaths } from "../../firestoreData.js";
+import { asString } from "../dashboardPayloadHelpers.js";
 import {
-  type DashboardPullRequestWebhookPayload,
-  findDashboardIssueStatusSyncTarget,
-} from "./dashboardIssueStatusSyncTarget.js";
+  findIssueKeyFromPullRequestBranch,
+  findRepoFullNameFromPullRequestPayload,
+  isOpenedPullRequestPayload,
+  type DashboardPullRequestPayload,
+} from "../dashboardPullRequestPayloadHelpers.js";
 
 const reviewStatusId = "review";
 const doneStatusId = "done";
 
-function asString(value: unknown, fallback = ""): string {
-  return typeof value === "string" && value.length > 0 ? value : fallback;
-}
+export type DashboardPullRequestWebhookPayload = DashboardPullRequestPayload;
 
 export async function syncGitHubPullRequestStatusToDashboardIssueStatus(
   db: Firestore,
   payload: DashboardPullRequestWebhookPayload,
 ): Promise<void> {
-  const target = findDashboardIssueStatusSyncTarget(payload);
-  if (target === null) {
+  if (!isOpenedPullRequestPayload(payload)) {
+    return;
+  }
+
+  const repoFullName = findRepoFullNameFromPullRequestPayload(payload);
+  if (repoFullName === null) {
+    return;
+  }
+
+  const issueKey = findIssueKeyFromPullRequestBranch(payload);
+  if (issueKey === null) {
     return;
   }
 
   const workspacesRef = db.collection(firestoreCollectionPaths.workspaces);
   const workspacesQuerySnapshot = await workspacesRef
-    .where("syncedGitHubRepoFullNames", "array-contains", target.repoFullName)
+    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
     .get();
 
   if (workspacesQuerySnapshot.empty) {
@@ -34,8 +44,8 @@ export async function syncGitHubPullRequestStatusToDashboardIssueStatus(
   for (const workspaceQueryDocumentSnapshot of workspacesQuerySnapshot.docs) {
     const issueDocs = await workspaceQueryDocumentSnapshot.ref
       .collection("issues")
-      .where("issueKey", "==", target.issueKey)
-      .where("repo", "==", target.repoFullName)
+      .where("issueKey", "==", issueKey)
+      .where("repo", "==", repoFullName)
       .limit(1)
       .get();
 
