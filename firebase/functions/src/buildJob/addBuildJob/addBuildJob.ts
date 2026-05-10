@@ -1,5 +1,6 @@
 import { getFirestore } from "firebase-admin/firestore";
 
+import { extractJobs, filterValidWorkflows } from "./extractJobs.js";
 import { fetchOpenCIWorkflowYamlFiles } from "./fetchOpenCIWorkflowYamlFiles.js";
 import { getGitHubApiBaseUrl, getGitHubBaseUrl } from "./getGitHubApiBaseUrl.js";
 import { getInstallationToken } from "./getInstallationToken.js";
@@ -56,7 +57,12 @@ export async function addBuildJob(params: AddBuildJobParams) {
     return;
   }
 
-  // TODO: マッチした workflow から jobs を抽出
+  const validWorkflows = filterValidWorkflows(matchedWorkflows);
+  const jobs = extractJobs(validWorkflows);
+  if (jobs.length === 0) {
+    return;
+  }
+
   // TODO: GitHub Check Run を作成
   // TODO: build job を Firestore に保存
 }
