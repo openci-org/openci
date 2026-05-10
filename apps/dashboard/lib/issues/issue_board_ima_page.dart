@@ -18,6 +18,7 @@ import 'package:dashboard/workers/worker_status_page.dart';
 import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -1979,28 +1980,46 @@ class _IssueBoardShortcuts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
+    final bindings = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.keyN): () {
+        if (_hasTextInputFocus()) {
+          return;
+        }
+        onAddIssue();
+      },
+      const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+          onSearchIssues,
+      const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
+          onDestinationSelected(_CompactBoardDestination.issueBoard),
+      const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
+          onDestinationSelected(_CompactBoardDestination.runs),
+      const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
+          onDestinationSelected(_CompactBoardDestination.workers),
+      const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
+          onDestinationSelected(_CompactBoardDestination.workflows),
+      const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
+          onDestinationSelected(_CompactBoardDestination.variables),
+      const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
+          onDestinationSelected(_CompactBoardDestination.storeRelease),
+    };
+
+    if (!kIsWeb) {
+      bindings.addAll({
         const SingleActivator(LogicalKeyboardKey.keyT, meta: true): onAddIssue,
-        const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-            onSearchIssues,
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
             onToggleNavigation,
-        const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
-            onDestinationSelected(_CompactBoardDestination.issueBoard),
-        const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
-            onDestinationSelected(_CompactBoardDestination.runs),
-        const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-            onDestinationSelected(_CompactBoardDestination.workers),
-        const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
-            onDestinationSelected(_CompactBoardDestination.workflows),
-        const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
-            onDestinationSelected(_CompactBoardDestination.variables),
-        const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
-            onDestinationSelected(_CompactBoardDestination.storeRelease),
-      },
+      });
+    }
+
+    return CallbackShortcuts(
+      bindings: bindings,
       child: Focus(autofocus: true, child: child),
     );
+  }
+
+  bool _hasTextInputFocus() {
+    final context = FocusManager.instance.primaryFocus?.context;
+    return context?.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 }
 
@@ -6629,7 +6648,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final title = isEditing ? 'GitHub issueを編集' : 'GitHub issueを新規作成';
     final description = isEditing
         ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
-        : 'GitHub issueを作成してボードへ追加します。⌘Tで開いて、⌘Enterで保存できます。';
+        : 'GitHub issueを作成してボードへ追加します。入力欄にいない時はNで開けます。⌘Enterで保存できます。';
     final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
     final dialogBorderRadius = BorderRadius.circular(isCompactDialog ? 22 : 28);
     final formContent = Form(

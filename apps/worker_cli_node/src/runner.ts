@@ -1,10 +1,10 @@
+import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn, type ChildProcess } from "node:child_process";
 
-import { isJobCancelled } from "./firestore.js";
 import { envFileContent } from "./env.js";
+import { isJobCancelled } from "./firestore.js";
 import { logInfo, logWarning } from "./logger.js";
 import type { BuildJob } from "./types.js";
 
@@ -158,9 +158,7 @@ export function parseLumeVmJsonList(output: string): LumeVm[] {
     : isRecord(parsed) && Array.isArray(parsed.vms)
       ? parsed.vms
       : [];
-  return items
-    .map((item) => normalizeLumeVm(item))
-    .filter((vm): vm is LumeVm => vm !== null);
+  return items.map((item) => normalizeLumeVm(item)).filter((vm): vm is LumeVm => vm !== null);
 }
 
 function normalizeLumeVmTextColumns(parts: string[]): string[] {
