@@ -1,10 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { extractJobs, filterValidWorkflows, type WorkflowWithJobs } from "./extractJobs.js";
 import type { ParsedWorkflowFile } from "./parseWorkflowYaml.js";
 
 beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("filterValidWorkflows", () => {
@@ -33,6 +37,15 @@ describe("filterValidWorkflows", () => {
     expect(filterValidWorkflows(workflows)).toEqual([
       { name: "ok.yaml", jobs: { build: { "runs-on": "ubuntu-latest" } } },
     ]);
+  });
+
+  it("logs when workflow jobs are invalid", () => {
+    const workflows: ParsedWorkflowFile[] = [{ name: "ci.yaml", parsed: { jobs: [] } }];
+
+    expect(filterValidWorkflows(workflows)).toEqual([]);
+    expect(console.warn).toHaveBeenCalledWith(
+      "extractJobs: skipping ci.yaml (no valid jobs object)",
+    );
   });
 });
 
@@ -96,6 +109,9 @@ describe("extractJobs", () => {
     const result = extractJobs(workflows);
     expect(result).toHaveLength(1);
     expect(result[0].jobId).toBe("ok");
+    expect(console.warn).toHaveBeenCalledWith(
+      'extractJobs: skipping job "broken" in mixed.yaml (not an object)',
+    );
   });
 
   it("skips individual jobs whose values are null or arrays", () => {
@@ -117,5 +133,13 @@ describe("extractJobs", () => {
         spec: { "runs-on": "ubuntu-latest" },
       },
     ]);
+  });
+
+  it("logs when no jobs are extracted from a workflow", () => {
+    expect(extractJobs([{ name: "ci.yaml", jobs: { build: "npm test" } }])).toEqual([]);
+    expect(console.warn).toHaveBeenCalledWith(
+      'extractJobs: skipping job "build" in ci.yaml (not an object)',
+    );
+    expect(console.warn).toHaveBeenCalledWith("extractJobs: no jobs extracted from ci.yaml");
   });
 });

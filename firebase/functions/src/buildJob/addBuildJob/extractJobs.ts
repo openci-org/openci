@@ -7,9 +7,9 @@ export interface ExtractedJob {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object") return false; // 文字列・数値などを除外
-  if (value === null) return false; // typeof null === "object" のバグを除外
-  if (Array.isArray(value)) return false; // 配列を除外
+  if (typeof value !== "object") return false;
+  if (value === null) return false;
+  if (Array.isArray(value)) return false;
   return true;
 }
 

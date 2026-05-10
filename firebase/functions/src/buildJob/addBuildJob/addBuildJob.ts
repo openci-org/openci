@@ -1,5 +1,6 @@
 import { getFirestore } from "firebase-admin/firestore";
 
+import { createCheckRun } from "./createCheckRun.js";
 import { extractJobs, filterValidWorkflows } from "./extractJobs.js";
 import { fetchOpenCIWorkflowYamlFiles } from "./fetchOpenCIWorkflowYamlFiles.js";
 import { getGitHubApiBaseUrl, getGitHubBaseUrl } from "./getGitHubApiBaseUrl.js";
@@ -7,11 +8,13 @@ import { getInstallationToken } from "./getInstallationToken.js";
 import { getTeamIdByInstallationId } from "./getTeamIdByInstallationId.js";
 import { matchesTrigger } from "./matchesTrigger.js";
 import { parseWorkflowYaml } from "./parseWorkflowYaml.js";
+import { saveBuildJobToFirestore } from "./saveBuildJobToFirestore.js";
 
 export interface AddBuildJobParams {
   installationId: number;
   commitSha: string;
   branch: string;
+  triggerBranch?: string;
   owner: string;
   repo: string;
   appId: string;
@@ -50,7 +53,7 @@ export async function addBuildJob(params: AddBuildJobParams) {
   }
 
   const matchedWorkflows = parsedWorkflows.filter((w) =>
-    matchesTrigger(w.parsed, params.triggerType, params.branch),
+    matchesTrigger(w.parsed, params.triggerType, params.triggerBranch ?? params.branch),
   );
 
   if (matchedWorkflows.length === 0) {
@@ -63,6 +66,32 @@ export async function addBuildJob(params: AddBuildJobParams) {
     return;
   }
 
-  // TODO: GitHub Check Run を作成
-  // TODO: build job を Firestore に保存
+  const jobsWithCheckRuns = await createCheckRun({
+    jobs,
+    token,
+    owner: params.owner,
+    repo: params.repo,
+    headSha: params.commitSha,
+    apiBaseUrl,
+  });
+
+  if (jobsWithCheckRuns.length === 0) {
+    return;
+  }
+
+  await saveBuildJobToFirestore({
+    db,
+    jobs: jobsWithCheckRuns,
+    owner: params.owner,
+    repo: params.repo,
+    teamId,
+    installationId: params.installationId,
+    installationToken: token,
+    tokenExpiresAt: expiresAt,
+    checkRunCommitSha: params.commitSha,
+    triggerType: params.triggerType,
+    branch: params.branch,
+    apiBaseUrl,
+    githubBaseUrl,
+  });
 }

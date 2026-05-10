@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { matchesTrigger } from "./matchesTrigger";
+import { matchesTrigger } from "./matchesTrigger.js";
 
 describe("matchesTrigger", () => {
   it("returns false when on is missing", () => {
@@ -63,6 +63,22 @@ describe("matchesTrigger", () => {
 
       it("matches when triggerBranch is undefined regardless of branches", () => {
         expect(matchesTrigger({ on: { push: { branches: ["main"] } } }, "push")).toBe(true);
+      });
+
+      it("matches pull request branch filters", () => {
+        expect(
+          matchesTrigger(
+            {
+              on: {
+                pull_request: {
+                  branches: ["main", "develop"],
+                },
+              },
+            },
+            "pull_request",
+            "main",
+          ),
+        ).toBe(true);
       });
     });
   });

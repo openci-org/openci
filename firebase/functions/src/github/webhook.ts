@@ -6,11 +6,12 @@ import { onRequest } from "firebase-functions/v2/https";
 import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
 import { routeWebhookEvent, webhookEventFromRequest } from "./buildTrigger.js";
+import { githubAppId, githubPrivateKey } from "./githubApp.js";
 
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
 export const githubWebhook = onRequest(
-  { secrets: [githubWebhookSecret] },
+  { secrets: [githubWebhookSecret, githubAppId, githubPrivateKey] },
   async (request, response) => {
     const eventType = request.header("x-github-event");
     if (!eventType) {
@@ -48,8 +49,12 @@ export const githubWebhook = onRequest(
         installationId,
         commitSha: payload.pull_request.head.sha,
         branch: payload.pull_request.head.ref,
+        triggerBranch: payload.pull_request.base.ref,
         owner: payload.repository.owner.login,
         repo: payload.repository.name,
+        appId: githubAppId.value(),
+        privateKey: githubPrivateKey.value(),
+        triggerType: "pull_request",
       });
       // const body = payload as unknown as Record<string, unknown>;
       // await routeWebhookEvent(webhookEventFromRequest(name, body));
