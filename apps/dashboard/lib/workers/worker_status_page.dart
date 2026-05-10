@@ -5,6 +5,7 @@ import 'package:dashboard/workers/worker_status_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -59,14 +60,14 @@ class WorkerStatusBody extends HookConsumerWidget {
                       _WorkerPlatformSection(
                         title: 'macOS workers',
                         subtitle: 'runs-on に macos を含むジョブを処理します',
-                        icon: Icons.laptop_mac_rounded,
+                        icon: const FaIcon(FontAwesomeIcons.apple),
                         workers: macosWorkers,
                       ),
                       const SizedBox(height: 16),
                       _WorkerPlatformSection(
                         title: 'Linux workers',
                         subtitle: 'runs-on に ubuntu を含むジョブを処理します',
-                        icon: Icons.cloud_queue_rounded,
+                        icon: const FaIcon(FontAwesomeIcons.linux),
                         workers: linuxWorkers,
                       ),
                       if (otherWorkers.isNotEmpty) ...[
@@ -74,7 +75,7 @@ class WorkerStatusBody extends HookConsumerWidget {
                         _WorkerPlatformSection(
                           title: 'Other workers',
                           subtitle: 'platform が macOS / Linux と判定できない worker',
-                          icon: Icons.device_unknown_rounded,
+                          icon: const Icon(Icons.device_unknown_rounded),
                           workers: otherWorkers,
                         ),
                       ],
@@ -216,7 +217,7 @@ class _WorkerPlatformSection extends StatelessWidget {
 
   final String title;
   final String subtitle;
-  final IconData icon;
+  final Widget icon;
   final List<WorkerInstance> workers;
 
   @override
@@ -237,7 +238,10 @@ class _WorkerPlatformSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Row(
               children: [
-                Icon(icon, color: colors.accent),
+                IconTheme(
+                  data: IconThemeData(color: colors.accent, size: 24),
+                  child: icon,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

@@ -127,27 +127,70 @@ async function runSimpleWithRetry(
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-interface LumeVm {
+export interface LumeVm {
   name: string;
   status: string;
 }
 
-function parseLumeVmList(output: string): LumeVm[] {
+const lumeVmOs = "macOS";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeLumeVm(value: unknown): LumeVm | null {
+  if (!isRecord(value) || typeof value.name !== "string" || value.name.length === 0) {
+    return null;
+  }
+  const status =
+    typeof value.status === "string"
+      ? value.status
+      : typeof value.state === "string"
+        ? value.state
+        : "";
+  return { name: value.name, status };
+}
+
+export function parseLumeVmJsonList(output: string): LumeVm[] {
+  const parsed: unknown = JSON.parse(output);
+  const items = Array.isArray(parsed)
+    ? parsed
+    : isRecord(parsed) && Array.isArray(parsed.vms)
+      ? parsed.vms
+      : [];
+  return items
+    .map((item) => normalizeLumeVm(item))
+    .filter((vm): vm is LumeVm => vm !== null);
+}
+
+function normalizeLumeVmTextColumns(parts: string[]): string[] {
+  const [first = "", second = ""] = parts;
+  if (second === lumeVmOs) return parts;
+  if (!first.endsWith(lumeVmOs) || first.length <= lumeVmOs.length) return parts;
+  return [first.slice(0, -lumeVmOs.length), lumeVmOs, ...parts.slice(1)];
+}
+
+export function parseLumeVmTextList(output: string): LumeVm[] {
   return output
     .split(/\r?\n/u)
     .slice(1)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => {
-      const parts = line.split(/\s+/u);
+      const parts = normalizeLumeVmTextColumns(line.split(/\s+/u));
       return { name: parts[0] ?? "", status: parts[6] ?? "" };
     })
     .filter((vm) => vm.name.length > 0);
 }
 
 async function listLumeVms(): Promise<LumeVm[]> {
-  const output = await runSimple("lume", ["ls"], "Failed to list Lume VMs");
-  return parseLumeVmList(output);
+  try {
+    const output = await runSimple("lume", ["ls", "--format", "json"], "Failed to list Lume VMs");
+    return parseLumeVmJsonList(output);
+  } catch {
+    const output = await runSimple("lume", ["ls"], "Failed to list Lume VMs");
+    return parseLumeVmTextList(output);
+  }
 }
 
 async function getLumeVmStatus(vmName: string): Promise<string | undefined> {
@@ -403,6 +446,10 @@ async function killLumeRunByName(vmName: string): Promise<void> {
   ).catch(() => undefined);
 }
 
+function isLumeVmNotFoundError(error: unknown): boolean {
+  return /\bVirtual machine not found\b/u.test(String(error));
+}
+
 async function cleanupVm(
   vmName: string,
   warn: WarningLogger,
@@ -417,6 +464,7 @@ async function cleanupVm(
   let stopped = true;
   await runSimpleWithRetry("lume", ["stop", vmName], `Failed to stop VM ${vmName}`, 3).catch(
     async (error: unknown) => {
+      if (isLumeVmNotFoundError(error)) return;
       stopped = false;
       await warn(`Error stopping VM: ${String(error)}`);
     },
@@ -431,7 +479,10 @@ async function cleanupVm(
     ["delete", vmName, "--force"],
     `Failed to delete VM ${vmName}`,
     3,
-  ).catch((error: unknown) => warn(`Error deleting VM: ${String(error)}`));
+  ).catch((error: unknown) => {
+    if (isLumeVmNotFoundError(error)) return;
+    return warn(`Error deleting VM: ${String(error)}`);
+  });
 }
 
 async function cleanupWorkerVms(workerId: string, warn: WarningLogger): Promise<void> {
