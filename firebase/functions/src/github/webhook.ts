@@ -38,8 +38,6 @@ export const githubWebhook = onRequest(
         privateKey: githubPrivateKey.value(),
         triggerType: "pull_request",
       });
-      // const body = payload as unknown as Record<string, unknown>;
-      // await routeWebhookEvent(webhookEventFromRequest(name, body));
     });
 
     webhooks.on(
