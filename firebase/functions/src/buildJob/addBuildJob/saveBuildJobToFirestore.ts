@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
 import { defaultGitHubApiBaseUrl, defaultGitHubBaseUrl } from "../../github/githubUrls.js";
+import type { AddBuildJobTriggerType } from "./addBuildJob.js";
 import type { JobWithCheckRun } from "./createCheckRun.js";
 
 const buildJobsCollection = "build_jobs_v0";
@@ -47,7 +48,8 @@ export interface SaveBuildJobToFirestoreParams {
   installationToken: string;
   tokenExpiresAt: string;
   checkRunCommitSha: string;
-  triggerType: string;
+  pullRequestNumber: number | null;
+  triggerType: AddBuildJobTriggerType;
   branch: string;
   apiBaseUrl: string;
   githubBaseUrl: string;
@@ -74,7 +76,7 @@ export async function saveBuildJobToFirestore(
       repo: params.repo,
       teamId: params.teamId,
       workflowId: null,
-      workflowFileName: job.workflowName,
+      workflowFileName: job.workflowFileName,
       workflowName: job.workflowName,
       jobKey: job.jobId,
       workflowRunId,
@@ -85,7 +87,7 @@ export async function saveBuildJobToFirestore(
       tokenExpiresAt: params.tokenExpiresAt,
       checkRunId: String(job.checkRunId),
       commitSha: params.checkRunCommitSha,
-      pullRequestNumber: null,
+      pullRequestNumber: params.pullRequestNumber,
       event: params.triggerType,
       action: null,
       repository: `${params.owner}/${params.repo}`,

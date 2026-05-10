@@ -1,6 +1,7 @@
 import type { ParsedWorkflowFile } from "./parseWorkflowYaml.js";
 
 export interface ExtractedJob {
+  workflowFileName: string;
   workflowName: string;
   jobId: string;
   spec: Record<string, unknown>;
@@ -14,7 +15,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export interface WorkflowWithJobs {
-  name: string;
+  workflowFileName: string;
+  workflowName: string;
   jobs: Record<string, unknown>;
 }
 
@@ -23,10 +25,14 @@ export function filterValidWorkflows(workflows: ParsedWorkflowFile[]): WorkflowW
   for (const workflow of workflows) {
     const jobs = workflow.parsed.jobs;
     if (!isRecord(jobs)) {
-      console.warn(`extractJobs: skipping ${workflow.name} (no valid jobs object)`);
+      console.warn(`extractJobs: skipping ${workflow.workflowFileName} (no valid jobs object)`);
       continue;
     }
-    validWorkflows.push({ name: workflow.name, jobs });
+    validWorkflows.push({
+      workflowFileName: workflow.workflowFileName,
+      workflowName: workflow.workflowName,
+      jobs,
+    });
   }
   return validWorkflows;
 }
@@ -37,15 +43,22 @@ export function extractJobs(workflows: WorkflowWithJobs[]): ExtractedJob[] {
     let didExtract = false;
     for (const [jobId, spec] of Object.entries(workflow.jobs)) {
       if (!isRecord(spec)) {
-        console.warn(`extractJobs: skipping job "${jobId}" in ${workflow.name} (not an object)`);
+        console.warn(
+          `extractJobs: skipping job "${jobId}" in ${workflow.workflowFileName} (not an object)`,
+        );
         continue;
       }
-      result.push({ workflowName: workflow.name, jobId, spec });
+      result.push({
+        workflowFileName: workflow.workflowFileName,
+        workflowName: workflow.workflowName,
+        jobId,
+        spec,
+      });
       didExtract = true;
     }
 
     if (!didExtract) {
-      console.warn(`extractJobs: no jobs extracted from ${workflow.name}`);
+      console.warn(`extractJobs: no jobs extracted from ${workflow.workflowFileName}`);
     }
   }
 

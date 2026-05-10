@@ -10,16 +10,19 @@ import { matchesTrigger } from "./matchesTrigger.js";
 import { parseWorkflowYaml } from "./parseWorkflowYaml.js";
 import { saveBuildJobToFirestore } from "./saveBuildJobToFirestore.js";
 
+export type AddBuildJobTriggerType = "push" | "pull_request";
+
 export interface AddBuildJobParams {
   installationId: number;
   commitSha: string;
   branch: string;
   triggerBranch?: string;
+  pullRequestNumber?: number | null;
   owner: string;
   repo: string;
   appId: string;
   privateKey: string;
-  triggerType: string;
+  triggerType: AddBuildJobTriggerType;
 }
 
 export async function addBuildJob(params: AddBuildJobParams) {
@@ -89,6 +92,7 @@ export async function addBuildJob(params: AddBuildJobParams) {
     installationToken: token,
     tokenExpiresAt: expiresAt,
     checkRunCommitSha: params.commitSha,
+    pullRequestNumber: params.pullRequestNumber ?? null,
     triggerType: params.triggerType,
     branch: params.branch,
     apiBaseUrl,

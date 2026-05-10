@@ -18,7 +18,8 @@ jobs:
     });
 
     expect(result).toEqual({
-      name: "ci.yaml",
+      workflowFileName: "ci.yaml",
+      workflowName: "CI",
       parsed: {
         name: "CI",
         on: {

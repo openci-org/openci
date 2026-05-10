@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AddBuildJobParams } from "./addBuildJob.js";
+
 const {
   mockCreateCheckRun,
   mockDb,
@@ -74,11 +76,12 @@ vi.mock("./saveBuildJobToFirestore.js", () => ({
 
 const { addBuildJob } = await import("./addBuildJob.js");
 
-const params = {
+const params: AddBuildJobParams = {
   installationId: 123,
   commitSha: "abc123",
   branch: "feature/test",
   triggerBranch: "main",
+  pullRequestNumber: 42,
   owner: "openci",
   repo: "openci",
   appId: "app-id",
@@ -118,7 +121,11 @@ describe("addBuildJob", () => {
 
   it("filters workflows using the trigger branch when provided", async () => {
     const workflowFile = { name: "ci.yaml", content: "name: CI" };
-    const parsedWorkflow = { name: "ci.yaml", parsed: { on: { pull_request: {} } } };
+    const parsedWorkflow = {
+      workflowFileName: "ci.yaml",
+      workflowName: "CI",
+      parsed: { on: { pull_request: {} } },
+    };
     mockFetchOpenCIWorkflowYamlFiles.mockResolvedValue([workflowFile]);
     mockParseWorkflowYaml.mockReturnValue(parsedWorkflow);
     mockMatchesTrigger.mockReturnValue(false);
@@ -133,9 +140,18 @@ describe("addBuildJob", () => {
 
   it("creates check runs and saves matched jobs", async () => {
     const workflowFile = { name: "ci.yaml", content: "name: CI" };
-    const parsedWorkflow = { name: "ci.yaml", parsed: { on: { pull_request: {} } } };
-    const validWorkflow = { name: "ci.yaml", jobs: { build: {} } };
-    const extractedJob = { workflowName: "ci.yaml", jobId: "build", spec: {} };
+    const parsedWorkflow = {
+      workflowFileName: "ci.yaml",
+      workflowName: "CI",
+      parsed: { on: { pull_request: {} } },
+    };
+    const validWorkflow = { workflowFileName: "ci.yaml", workflowName: "CI", jobs: { build: {} } };
+    const extractedJob = {
+      workflowFileName: "ci.yaml",
+      workflowName: "CI",
+      jobId: "build",
+      spec: {},
+    };
     const jobWithCheckRun = { ...extractedJob, documentId: "job-1", checkRunId: 101 };
     mockFetchOpenCIWorkflowYamlFiles.mockResolvedValue([workflowFile]);
     mockParseWorkflowYaml.mockReturnValue(parsedWorkflow);
@@ -164,6 +180,7 @@ describe("addBuildJob", () => {
       installationToken: "installation-token",
       tokenExpiresAt: "2026-01-01T00:00:00Z",
       checkRunCommitSha: "abc123",
+      pullRequestNumber: 42,
       triggerType: "pull_request",
       branch: "feature/test",
       apiBaseUrl: "https://api.github.com",

@@ -39,6 +39,7 @@ describe("saveBuildJobToFirestore", () => {
         {
           documentId: "doc-build",
           checkRunId: 101,
+          workflowFileName: "ci.yaml",
           workflowName: "CI",
           jobId: "build",
           spec: { "runs-on": "ubuntu-latest" },
@@ -46,6 +47,7 @@ describe("saveBuildJobToFirestore", () => {
         {
           documentId: "doc-test",
           checkRunId: 102,
+          workflowFileName: "ci.yaml",
           workflowName: "CI",
           jobId: "test",
           spec: { needs: "build", "runs-on": "macos-latest" },
@@ -58,6 +60,7 @@ describe("saveBuildJobToFirestore", () => {
       installationToken: "token-123",
       tokenExpiresAt: "2026-01-01T00:00:00Z",
       checkRunCommitSha: "abc123",
+      pullRequestNumber: 42,
       triggerType: "pull_request",
       branch: "feature/test",
       apiBaseUrl: "https://api.github.com",
@@ -73,6 +76,7 @@ describe("saveBuildJobToFirestore", () => {
       expect.objectContaining({
         id: "doc-build",
         status: "QUEUED",
+        workflowFileName: "ci.yaml",
         workflowName: "CI",
         jobKey: "build",
         needs: null,
@@ -80,6 +84,7 @@ describe("saveBuildJobToFirestore", () => {
         runsOn: "ubuntu-latest",
         checkRunId: "101",
         commitSha: "abc123",
+        pullRequestNumber: 42,
         githubApiBaseUrl: null,
         githubBaseUrl: null,
         createdAt: serverTimestamp,
@@ -108,6 +113,7 @@ describe("saveBuildJobToFirestore", () => {
         {
           documentId: "doc-build",
           checkRunId: 101,
+          workflowFileName: "ci.yaml",
           workflowName: "CI",
           jobId: "build",
           spec: {},
@@ -120,6 +126,7 @@ describe("saveBuildJobToFirestore", () => {
       installationToken: "token-123",
       tokenExpiresAt: "2026-01-01T00:00:00Z",
       checkRunCommitSha: "abc123",
+      pullRequestNumber: null,
       triggerType: "push",
       branch: "main",
       apiBaseUrl: "https://github.example.com/api/v3",

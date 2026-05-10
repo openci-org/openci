@@ -5,8 +5,8 @@ import { onRequest } from "firebase-functions/v2/https";
 
 import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
-import { routeWebhookEvent, webhookEventFromRequest } from "./buildTrigger.js";
 import { githubAppId, githubPrivateKey } from "./githubApp.js";
+import { branchFromRef, ownerFromFullName } from "./webhookPayloadHelpers.js";
 
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
@@ -50,6 +50,7 @@ export const githubWebhook = onRequest(
         commitSha: payload.pull_request.head.sha,
         branch: payload.pull_request.head.ref,
         triggerBranch: payload.pull_request.base.ref,
+        pullRequestNumber: payload.pull_request.number,
         owner: payload.repository.owner.login,
         repo: payload.repository.name,
         appId: githubAppId.value(),
@@ -76,11 +77,29 @@ export const githubWebhook = onRequest(
 
     webhooks.on("push", async ({ name, payload }) => {
       const body = payload as unknown as Record<string, unknown>;
-      await routeWebhookEvent(webhookEventFromRequest(name, body));
+      const installationId = payload.installation?.id;
+      if (!installationId) {
+        response.status(400).send("Missing installation ID in webhook payload");
+        return;
+      }
+      if (!payload.deleted) {
+        const branch = branchFromRef(payload.ref);
+        await addBuildJob({
+          installationId,
+          commitSha: payload.head_commit?.id ?? payload.after,
+          branch,
+          triggerBranch: branch,
+          pullRequestNumber: null,
+          owner: ownerFromFullName(payload.repository.full_name),
+          repo: payload.repository.name,
+          appId: githubAppId.value(),
+          privateKey: githubPrivateKey.value(),
+          triggerType: "push",
+        });
+      }
       await processImaGitHubAppWebhook(name, body);
     });
 
-    // Issue Board: sync GitHub issues
     webhooks.on(
       ["issues.opened", "issues.edited", "issues.closed", "issues.reopened"],
       async ({ name, payload }) => {
