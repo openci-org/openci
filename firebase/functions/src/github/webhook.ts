@@ -1,9 +1,11 @@
 import { Webhooks } from "@octokit/webhooks";
+import { getFirestore } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onRequest } from "firebase-functions/v2/https";
 
 import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
+import { syncGitHubPullRequestStatusToDashboardIssueStatus } from "../dashboard/syncGitHubPullRequestStatusToDashboardIssueStatus.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
 import { githubAppId, githubPrivateKey } from "./githubApp.js";
 import {
@@ -22,6 +24,7 @@ export const githubWebhook = onRequest(
     if (!webhookRequest) return;
 
     const webhooks = new Webhooks({ secret: githubWebhookSecret.value() });
+    const db = getFirestore();
 
     webhooks.on(["pull_request.opened", "pull_request.synchronize"], async ({ payload }) => {
       const installationId = requireInstallationId(payload.installation, response);
@@ -40,19 +43,9 @@ export const githubWebhook = onRequest(
       });
     });
 
-    webhooks.on(
-      [
-        "pull_request.opened",
-        "pull_request.synchronize",
-        "pull_request.closed",
-        "pull_request.reopened",
-        "pull_request.edited",
-      ],
-      async ({ name, payload }) => {
-        const body = payload as unknown as Record<string, unknown>;
-        await processImaGitHubAppWebhook(name, body);
-      },
-    );
+    webhooks.on("pull_request.opened", async ({ payload }) => {
+      await syncGitHubPullRequestStatusToDashboardIssueStatus(db, payload);
+    });
 
     webhooks.on("push", async ({ name, payload }) => {
       const body = payload as unknown as Record<string, unknown>;

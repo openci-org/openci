@@ -441,7 +441,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _issuesSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _githubConnectionSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _reposSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _buildJobsSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
@@ -629,10 +628,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .doc('default')
         .snapshots()
         .listen(_replaceGitHubConnection, onError: _handleStreamError);
-    _reposSubscription = workspaceRef
-        .collection('githubRepos')
-        .snapshots()
-        .listen(_replaceRepositories, onError: _handleStreamError);
     _buildJobsSubscription = _firestore
         .collection(buildJobsCollection)
         .where('teamId', isEqualTo: _workspaceId)
@@ -652,10 +647,18 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    final stored = data['dailyWeightTarget'];
-    if (stored is int && stored > 0) {
-      setState(() => _dailyWeightTarget = stored);
-    }
+    final storedDailyWeightTarget = data['dailyWeightTarget'];
+    final repoFullNames = _asList(
+      data['syncedGitHubRepoFullNames'],
+    ).map(_asString).where((repo) => repo.isNotEmpty).toList();
+
+    setState(() {
+      if (storedDailyWeightTarget is int && storedDailyWeightTarget > 0) {
+        _dailyWeightTarget = storedDailyWeightTarget;
+      }
+      _enabledRepoCount = repoFullNames.length;
+      _enabledRepoFullNames = repoFullNames.toSet();
+    });
   }
 
   void _replaceIssuesFromSnapshot(
@@ -704,23 +707,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       _githubLogin = data?['connected'] == true
           ? _asString(data?['login'])
           : null;
-    });
-  }
-
-  void _replaceRepositories(QuerySnapshot<Map<String, dynamic>> snapshot) {
-    final enabledDocs = snapshot.docs
-        .where((doc) => doc.data()['enabled'] == true)
-        .toList();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _enabledRepoCount = enabledDocs.length;
-      _enabledRepoFullNames = {
-        for (final doc in enabledDocs) _asString(doc.data()['fullName']),
-      }..remove('');
     });
   }
 
@@ -1408,18 +1394,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         return;
       }
 
-      final batch = _firestore.batch();
-      final reposRef = _firestore.collection(
-        'workspaces/$_workspaceId/githubRepos',
-      );
-      for (final repo in repositories) {
-        batch.set(reposRef.doc(_repoDocId(repo.fullName)), {
-          ...repo.toFirestore(),
-          'enabled': selected.contains(repo.fullName),
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
-      await batch.commit();
+      final selectedRepoFullNames = selected.toList()..sort();
+      await _firestore.doc('workspaces/$_workspaceId').set({
+        'syncedGitHubRepoFullNames': selectedRepoFullNames,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       _showSavedSnackBar('${selected.length}件のrepoを選択しました');
     } catch (error) {
       _showSavedSnackBar(_friendlyError(error));
@@ -1605,7 +1584,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     HardwareKeyboard.instance.removeHandler(_handleIssueBoardKeyEvent);
     unawaited(_issuesSubscription?.cancel());
     unawaited(_githubConnectionSubscription?.cancel());
-    unawaited(_reposSubscription?.cancel());
     unawaited(_buildJobsSubscription?.cancel());
     unawaited(_workspaceSettingsSubscription?.cancel());
     _boardScrollController.dispose();
@@ -12001,16 +11979,6 @@ class GitHubRepository {
   final String owner;
   final bool private;
   final String defaultBranch;
-
-  Map<String, Object?> toFirestore() {
-    return {
-      'fullName': fullName,
-      'name': name,
-      'owner': owner,
-      'private': private,
-      'defaultBranch': defaultBranch,
-    };
-  }
 }
 
 Map<String, dynamic> _asMap(Object? value) {
@@ -12241,10 +12209,6 @@ double _rankBetween(double? previousRank, double? nextRank) {
     return nextRank - 1000;
   }
   return DateTime.now().millisecondsSinceEpoch.toDouble();
-}
-
-String _repoDocId(String fullName) {
-  return fullName.replaceAll('/', '__');
 }
 
 String _friendlyError(Object error) {

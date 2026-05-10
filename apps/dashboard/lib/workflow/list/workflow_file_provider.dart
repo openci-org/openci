@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/github/repository_aliases.dart';
@@ -32,13 +31,12 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
   }
   final teamId = user.selectedTeamId;
 
-  final repositorySnapshots = firestore
-      .collection('workspaces/$teamId/githubRepos')
-      .where('enabled', isEqualTo: true)
-      .snapshots();
+  final workspaceSnapshots = firestore.doc('workspaces/$teamId').snapshots();
 
-  await for (final snapshot in repositorySnapshots) {
-    final selections = _workflowRepositorySelectionsFromDocs(snapshot.docs);
+  await for (final snapshot in workspaceSnapshots) {
+    final selections = _workflowRepositorySelectionsFromWorkspace(
+      snapshot.data(),
+    );
     if (selections.isEmpty) {
       yield const [];
       continue;
@@ -61,18 +59,22 @@ class _WorkflowRepositorySelection {
   final String branch;
 }
 
-List<_WorkflowRepositorySelection> _workflowRepositorySelectionsFromDocs(
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+List<_WorkflowRepositorySelection> _workflowRepositorySelectionsFromWorkspace(
+  Map<String, dynamic>? data,
 ) {
   final selections = <_WorkflowRepositorySelection>[];
   final seen = <String>{};
-  for (final doc in docs) {
-    final data = doc.data();
+  final repositories = data?['syncedGitHubRepoFullNames'];
+  if (repositories is! List) {
+    return selections;
+  }
+
+  for (final value in repositories) {
     final repository = canonicalRepositoryFullName(
-      data['fullName'] as String? ?? '',
+      value is String ? value : '',
     );
     if (repository.isEmpty) continue;
-    final branch = data['defaultBranch'] as String? ?? 'HEAD';
+    const branch = 'HEAD';
     final key = '$repository@$branch';
     if (!seen.add(key)) continue;
     selections.add(

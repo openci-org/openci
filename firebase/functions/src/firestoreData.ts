@@ -34,6 +34,7 @@ export const firestoreCollectionPaths = {
   env: "environment_variables_v0",
   workflows: "workflows_v1",
   buildJobs: "build_jobs_v0",
+  workspaces: "workspaces",
 };
 
 function db() {

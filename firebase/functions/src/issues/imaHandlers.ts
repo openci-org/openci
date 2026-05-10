@@ -428,10 +428,6 @@ async function githubOAuthRequest<T>(path: string, body: Record<string, string>)
   return (await response.json()) as T;
 }
 
-function repoDocId(fullName: string): string {
-  return fullName.replace(/\//gu, "__");
-}
-
 function issueDocId(owner: string, repo: string, number: number): string {
   return `gh_${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
 }
@@ -510,13 +506,27 @@ function isActiveCursorAgentStatus(status: string): boolean {
 }
 
 async function resolveIssueCursorStartingRef(
-  workspaceId: string,
   repoFullName: string,
+  token: string,
 ): Promise<string> {
-  const repoDoc = await db
-    .doc(`workspaces/${workspaceId}/githubRepos/${repoDocId(repoFullName)}`)
-    .get();
-  return asString(repoDoc.get("defaultBranch"), "main");
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    return "main";
+  }
+
+  try {
+    const repository = await githubRequest<GitHubRepositoriesResponseItem>({
+      path: `/repos/${owner}/${repo}`,
+      token,
+    });
+    return asString(repository.default_branch, "main");
+  } catch (error) {
+    logger.warn("resolveIssueCursorStartingRef: failed to fetch repository", {
+      repoFullName,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return "main";
+  }
 }
 
 function buildCursorAgentPrompt(input: {
@@ -1096,18 +1106,19 @@ async function closeDescendantSubIssues(input: {
 }
 
 async function selectedRepositories(workspaceId: string): Promise<GitHubRepository[]> {
-  const snapshot = await db.collection(`workspaces/${workspaceId}/githubRepos`).get();
-  return snapshot.docs
-    .map((doc) => doc.data())
-    .filter((repo) => repo.enabled === true)
-    .map((repo) => ({
-      fullName: asString(repo.fullName),
-      name: asString(repo.name),
-      owner: asString(repo.owner),
-      private: repo.private === true,
-      defaultBranch: asString(repo.defaultBranch, "main"),
-    }))
-    .filter((repo) => repo.fullName.includes("/"));
+  const workspace = await db.doc(`workspaces/${workspaceId}`).get();
+  return asStringList(workspace.get("syncedGitHubRepoFullNames"))
+    .map((fullName) => {
+      const [owner, name] = fullName.split("/");
+      return {
+        fullName,
+        name: name ?? "",
+        owner: owner ?? "",
+        private: false,
+        defaultBranch: "main",
+      };
+    })
+    .filter((repo) => repo.owner.length > 0 && repo.name.length > 0);
 }
 
 function issueEventDocId(eventId: string | undefined, issueId: string, type: string): string {
@@ -1712,7 +1723,6 @@ export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubI
         }
 
         let page = 1;
-        let repoImported = 0;
         while (true) {
           const pageIssues = await githubRequest<GitHubIssueResponseItem[]>({
             path: `/repos/${owner}/${repo}/issues`,
@@ -1764,7 +1774,6 @@ export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubI
             );
             pendingWrites += 1;
             imported += 1;
-            repoImported += 1;
             await commitIfNeeded();
           }
 
@@ -1774,19 +1783,6 @@ export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubI
           page += 1;
         }
 
-        batch.set(
-          db.doc(`workspaces/${workspaceId}/githubRepos/${repoDocId(repository.fullName)}`),
-          {
-            ...repository,
-            enabled: true,
-            lastImportedAt: FieldValue.serverTimestamp(),
-            lastImportError: null,
-            lastImportCount: repoImported,
-          },
-          { merge: true },
-        );
-        pendingWrites += 1;
-        await commitIfNeeded();
       }
 
       await commitIfNeeded(true);
@@ -2134,7 +2130,7 @@ export const startIssueCursorAgent = onCall<
   }
 
   const runRef = issueRef.collection("cursorAgentRuns").doc();
-  const startingRef = await resolveIssueCursorStartingRef(workspaceId, repoFullName);
+  const startingRef = await resolveIssueCursorStartingRef(repoFullName, githubToken);
   const repositoryUrl = `https://github.com/${repoFullName}`;
   const prompt = buildCursorAgentPrompt({ issueId, issue, githubIssue, repoFullName });
   const now = FieldValue.serverTimestamp();
@@ -2436,14 +2432,13 @@ async function syncWorkspacePullRequestLinks({
   token: string;
 }): Promise<number> {
   const workspaceRef = db.doc(`workspaces/${workspaceId}`);
-  const [issues, repos] = await Promise.all([
+  const [issues, workspace] = await Promise.all([
     workspaceRef.collection("issues").limit(500).get(),
-    workspaceRef.collection("githubRepos").where("enabled", "==", true).get(),
+    workspaceRef.get(),
   ]);
   let linked = 0;
 
-  for (const repoDoc of repos.docs) {
-    const repoFullName = asString(repoDoc.get("fullName"));
+  for (const repoFullName of asStringList(workspace.get("syncedGitHubRepoFullNames"))) {
     const [owner, repo] = repoFullName.split("/");
     if (!owner || !repo) {
       continue;
@@ -2798,20 +2793,14 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
     return 0;
   }
 
-  const workspaces = await db.collection("workspaces").limit(100).get();
+  const workspaces = await db
+    .collection("workspaces")
+    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
+    .get();
   let updated = 0;
 
   for (const workspace of workspaces.docs) {
     const workspaceRef = workspace.ref;
-    const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
-    if (
-      !repoDoc.exists ||
-      repoDoc.get("enabled") !== true ||
-      asString(repoDoc.get("fullName")) !== repoFullName
-    ) {
-      continue;
-    }
-
     const { ref: issueRef, doc: issueDoc } = await resolveGitHubIssueDocument({
       workspaceId: workspace.id,
       owner,
@@ -2917,21 +2906,15 @@ async function linkPullRequestToImaIssues(
     return 0;
   }
 
-  const workspaces = await db.collection("workspaces").limit(100).get();
+  const workspaces = await db
+    .collection("workspaces")
+    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
+    .get();
 
   let linked = 0;
   for (const workspace of workspaces.docs) {
     const workspaceRef = workspace.ref;
     const workspaceId = workspace.id;
-    const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
-    if (
-      !repoDoc.exists ||
-      repoDoc.get("enabled") !== true ||
-      asString(repoDoc.get("fullName")) !== repoFullName
-    ) {
-      continue;
-    }
-
     const [owner, repo] = repoFullName.split("/");
     if (!owner || !repo) {
       continue;
@@ -3064,21 +3047,15 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
     return 0;
   }
 
-  const workspaces = await db.collection("workspaces").limit(100).get();
+  const workspaces = await db
+    .collection("workspaces")
+    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
+    .get();
   let recorded = 0;
 
   for (const workspace of workspaces.docs) {
     const workspaceRef = workspace.ref;
     const workspaceId = workspace.id;
-    const repoDoc = await workspaceRef.collection("githubRepos").doc(repoDocId(repoFullName)).get();
-    if (
-      !repoDoc.exists ||
-      repoDoc.get("enabled") !== true ||
-      asString(repoDoc.get("fullName")) !== repoFullName
-    ) {
-      continue;
-    }
-
     const ownerUid = asString(workspace.get("ownerUid"));
     if (ownerUid.length === 0) {
       continue;
