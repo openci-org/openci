@@ -241,10 +241,15 @@ jobs:
           REVENUE_CAT_WEB_API_KEY: ${{ secrets.REVENUE_CAT_WEB_API_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
+          BUILD_UPDATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          BUILD_SHA="$(git rev-parse --short HEAD)"
+
           flutter build web \
             --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
             --dart-define=REVENUE_CAT_WEB_API_KEY="$REVENUE_CAT_WEB_API_KEY" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
+            --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA"
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'

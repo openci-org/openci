@@ -19,7 +19,7 @@ class WorkflowsPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('ワークフロー'),
         leading: IconButton(
-          tooltip: 'Issueに戻る',
+          tooltip: 'ワークスペースに戻る',
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.go('/'),
         ),

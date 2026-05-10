@@ -1,36 +1,22 @@
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
-
+import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-
 import 'package:dashboard/i18n/strings.g.dart';
-
 import 'package:dashboard/notifications/notification_provider.dart';
-
 import 'package:dashboard/notifications/notification_settings_page.dart';
-
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
-
 import 'package:dashboard/revenue_cat/subscription_page.dart';
-
 import 'package:dashboard/settings/locale_provider.dart';
-
 import 'package:dashboard/team/team_provider.dart';
-
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
+import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
-
 import 'package:package_info_plus/package_info_plus.dart';
-
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class SettingsPage extends HookConsumerWidget {
@@ -599,6 +585,7 @@ class _AppVersionTile extends HookWidget {
     final versionText = info != null
         ? 'v${info.version} (${info.buildNumber})'
         : '...';
+    final buildUpdatedText = _formatBuildUpdatedText();
 
     return InkWell(
       onTap: null,
@@ -642,6 +629,16 @@ class _AppVersionTile extends HookWidget {
                       color: AppColors.of(context).textTertiary,
                     ),
                   ),
+                  if (buildUpdatedText != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      buildUpdatedText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.of(context).textTertiary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -650,6 +647,22 @@ class _AppVersionTile extends HookWidget {
       ),
     );
   }
+}
+
+String? _formatBuildUpdatedText() {
+  final updatedAt = BuildInfo.updatedAt;
+  if (updatedAt == null) {
+    return null;
+  }
+
+  final label = switch (LocaleSettings.currentLocale) {
+    AppLocale.ja => '最終更新',
+    AppLocale.es => 'Última actualización',
+    AppLocale.en => 'Last updated',
+  };
+  final formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(updatedAt);
+  final shaSuffix = BuildInfo.sha.isEmpty ? '' : ' (${BuildInfo.sha})';
+  return '$label: $formattedDate$shaSuffix';
 }
 
 class _SelfHostedIndicator extends StatelessWidget {

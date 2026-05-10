@@ -242,7 +242,7 @@ class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
           appBar: AppBar(
             title: Text(title),
             leading: IconButton(
-              tooltip: 'Issueに戻る',
+              tooltip: 'ワークスペースに戻る',
               icon: const Icon(Icons.arrow_back_rounded),
               onPressed: () => context.go('/'),
             ),
