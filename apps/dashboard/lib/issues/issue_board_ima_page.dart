@@ -117,6 +117,10 @@ class IssueBoardApp extends StatelessWidget {
       locale: const Locale('ja', 'JP'),
       supportedLocales: const [Locale('ja', 'JP')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      builder: (context, child) => TooltipVisibility(
+        visible: false,
+        child: child ?? const SizedBox.shrink(),
+      ),
       theme: baseTheme.copyWith(
         textTheme: _scaledTextTheme(baseTheme.textTheme),
         primaryTextTheme: _scaledTextTheme(baseTheme.primaryTextTheme),
