@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 
 import { firestoreCollectionPaths, getTeamById } from "../../firestoreData.js";
@@ -22,6 +22,11 @@ interface GitHubPullRequestIssueLinkPayload extends DashboardPullRequestPayload 
   };
 }
 
+interface GitHubIssueLink {
+  number: number;
+  issueKey: string;
+}
+
 function asNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
@@ -34,6 +39,73 @@ function splitRepoFullName(repoFullName: string): { owner: string; repo: string 
 async function githubApiBaseUrlForWorkspace(workspaceId: string): Promise<string> {
   const team = await getTeamById({ teamId: workspaceId });
   return asString(team.data.team?.githubApiBaseUrl, "https://api.github.com");
+}
+
+function githubIssueLinkFromIssueDoc(
+  issueDoc: QueryDocumentSnapshot,
+  repoFullName: string,
+  fallbackIssueKey: string,
+): GitHubIssueLink | null {
+  if (asString(issueDoc.get("repo")) !== repoFullName) {
+    return null;
+  }
+
+  const githubIssue = issueDoc.get("githubIssue") as Record<string, unknown> | undefined;
+  const number = asNumber(githubIssue?.number);
+  if (number <= 0) {
+    return null;
+  }
+
+  const issueKey = asString(issueDoc.get("issueKey"), fallbackIssueKey).toUpperCase();
+  if (issueKey.length === 0) {
+    return null;
+  }
+
+  return { number, issueKey };
+}
+
+async function findGitHubIssueLinksForIssueAndSubIssues({
+  issueDoc,
+  repoFullName,
+  fallbackIssueKey,
+}: {
+  issueDoc: QueryDocumentSnapshot;
+  repoFullName: string;
+  fallbackIssueKey: string;
+}): Promise<GitHubIssueLink[]> {
+  const links: GitHubIssueLink[] = [];
+  const parentLink = githubIssueLinkFromIssueDoc(issueDoc, repoFullName, fallbackIssueKey);
+  if (parentLink !== null) {
+    links.push(parentLink);
+  }
+
+  const seenIssueIds = new Set([issueDoc.id]);
+  const pendingParentIssueIds = [issueDoc.id];
+  while (pendingParentIssueIds.length > 0) {
+    const parentIssueId = pendingParentIssueIds.shift();
+    if (parentIssueId === undefined) {
+      continue;
+    }
+
+    const childIssues = await issueDoc.ref.parent
+      .where("githubIssue.parentIssue.issueId", "==", parentIssueId)
+      .get();
+    for (const childIssueDoc of childIssues.docs) {
+      if (seenIssueIds.has(childIssueDoc.id)) {
+        continue;
+      }
+
+      seenIssueIds.add(childIssueDoc.id);
+      pendingParentIssueIds.push(childIssueDoc.id);
+
+      const childLink = githubIssueLinkFromIssueDoc(childIssueDoc, repoFullName, fallbackIssueKey);
+      if (childLink !== null) {
+        links.push(childLink);
+      }
+    }
+  }
+
+  return links;
 }
 
 export async function linkGitHubIssueToPullRequest(
@@ -80,13 +152,19 @@ export async function linkGitHubIssueToPullRequest(
       continue;
     }
 
-    const githubIssue = issueDoc.get("githubIssue") as Record<string, unknown> | undefined;
-    const githubIssueNumber = asNumber(githubIssue?.number);
-    if (githubIssueNumber <= 0) {
+    const githubIssueLinks = await findGitHubIssueLinksForIssueAndSubIssues({
+      issueDoc,
+      repoFullName,
+      fallbackIssueKey: issueKey,
+    });
+    if (githubIssueLinks.length === 0) {
       continue;
     }
 
-    const nextBody = upsertLinkedIssueBlock(currentBody, githubIssueNumber, issueKey);
+    const nextBody = githubIssueLinks.reduce(
+      (body, link) => upsertLinkedIssueBlock(body, link.number, link.issueKey),
+      currentBody,
+    );
     if (nextBody === currentBody) {
       continue;
     }
@@ -107,7 +185,7 @@ export async function linkGitHubIssueToPullRequest(
         workspaceId: workspaceQueryDocumentSnapshot.id,
         repoFullName,
         issueKey,
-        githubIssueNumber,
+        githubIssueNumbers: githubIssueLinks.map((link) => link.number),
         message,
       });
     }
