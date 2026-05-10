@@ -37,10 +37,14 @@ export function linkedIssueBlock(githubIssueNumber: number, imaIssueKey: string)
   ].join("\n");
 }
 
-export function upsertLinkedIssueBlock(
+export interface LinkedIssueBlockEntry {
+  githubIssueNumber: number;
+  imaIssueKey: string;
+}
+
+export function upsertLinkedIssueBlocks(
   body: string | undefined | null,
-  githubIssueNumber: number,
-  imaIssueKey: string,
+  linkedIssues: LinkedIssueBlockEntry[],
 ): string {
   const currentBody = body ?? "";
   const existingBlock = currentBody.match(managedBlockPattern)?.[0] ?? "";
@@ -52,7 +56,9 @@ export function upsertLinkedIssueBlock(
       entries.set(number, key);
     }
   }
-  entries.set(githubIssueNumber, imaIssueKey);
+  for (const linkedIssue of linkedIssues) {
+    entries.set(linkedIssue.githubIssueNumber, linkedIssue.imaIssueKey);
+  }
 
   const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
   const block = [
@@ -61,6 +67,14 @@ export function upsertLinkedIssueBlock(
     imaLinkedIssueBlockEnd,
   ].join("\n");
   return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
+}
+
+export function upsertLinkedIssueBlock(
+  body: string | undefined | null,
+  githubIssueNumber: number,
+  imaIssueKey: string,
+): string {
+  return upsertLinkedIssueBlocks(body, [{ githubIssueNumber, imaIssueKey }]);
 }
 
 export function bodyWithoutLinkedIssueBlock(body: string | undefined | null): string {

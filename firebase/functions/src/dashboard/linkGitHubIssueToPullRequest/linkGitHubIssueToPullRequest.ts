@@ -3,7 +3,7 @@ import { logger } from "firebase-functions/v2";
 
 import { firestoreCollectionPaths, getTeamById } from "../../firestoreData.js";
 import { getInstallationToken, githubPatch } from "../../github/githubApp.js";
-import { upsertLinkedIssueBlock } from "../../issues/issueLinkingHelpers.js";
+import { upsertLinkedIssueBlocks } from "../../issues/issueLinkingHelpers.js";
 import { asString } from "../dashboardPayloadHelpers.js";
 import {
   findIssueKeyFromPullRequestBranch,
@@ -161,9 +161,12 @@ export async function linkGitHubIssueToPullRequest(
       continue;
     }
 
-    const nextBody = githubIssueLinks.reduce(
-      (body, link) => upsertLinkedIssueBlock(body, link.number, link.issueKey),
+    const nextBody = upsertLinkedIssueBlocks(
       currentBody,
+      githubIssueLinks.map((link) => ({
+        githubIssueNumber: link.number,
+        imaIssueKey: link.issueKey,
+      })),
     );
     if (nextBody === currentBody) {
       continue;
