@@ -130,12 +130,13 @@ jobs:
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
       - id: build_macos
-        uses: openci-org/flutter-cd@v2.0.9
+        uses: openci-org/flutter-cd@v2.0.10
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
