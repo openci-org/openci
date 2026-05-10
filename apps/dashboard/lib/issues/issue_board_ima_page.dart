@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -64,7 +65,7 @@ const _boardNavigationDestinations = [
 
 extension _CompactBoardDestinationLabel on _CompactBoardDestination {
   String get label => switch (this) {
-    _CompactBoardDestination.issueBoard => 'Issue board',
+    _CompactBoardDestination.issueBoard => 'ワークスペース',
     _CompactBoardDestination.runs => '実行履歴',
     _CompactBoardDestination.workers => 'ワーカー',
     _CompactBoardDestination.workflows => 'ワークフロー',
@@ -2913,20 +2914,20 @@ class WorkerInspectorPanel extends StatelessWidget {
                     _WorkerInspectorSection(
                       title: 'macOS',
                       workers: macosWorkers,
-                      icon: Icons.laptop_mac_rounded,
+                      icon: const FaIcon(FontAwesomeIcons.apple),
                     ),
                     const SizedBox(height: 14),
                     _WorkerInspectorSection(
                       title: 'Linux',
                       workers: linuxWorkers,
-                      icon: Icons.cloud_queue_rounded,
+                      icon: const FaIcon(FontAwesomeIcons.linux),
                     ),
                     if (otherWorkers.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       _WorkerInspectorSection(
                         title: 'その他',
                         workers: otherWorkers,
-                        icon: Icons.device_unknown_rounded,
+                        icon: const Icon(Icons.device_unknown_rounded),
                       ),
                     ],
                   ],
@@ -3090,7 +3091,7 @@ class _WorkerInspectorSection extends StatelessWidget {
 
   final String title;
   final List<WorkerInspectorItem> workers;
-  final IconData icon;
+  final Widget icon;
 
   @override
   Widget build(BuildContext context) {
@@ -3107,7 +3108,13 @@ class _WorkerInspectorSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+                IconTheme(
+                  data: const IconThemeData(
+                    color: Color(0xFF2563EB),
+                    size: 18,
+                  ),
+                  child: icon,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -5238,7 +5245,7 @@ class _CompactBoardDrawer extends StatelessWidget {
             const _CompactDrawerSectionLabel('ナビゲーション'),
             _CompactDrawerTile(
               icon: Icons.view_kanban_outlined,
-              label: 'Issue board',
+              label: 'ワークスペース',
               selected:
                   selectedDestination == _CompactBoardDestination.issueBoard,
               onTap: () => runAfterClose(onIssueBoardTap),
