@@ -809,12 +809,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           .expand((column) => column.issues)
           .firstWhere((issue) => issue.id == issueId);
       final linkId = _pullRequestLinkId(repository, pullRequest.number);
-      await _callFunction('linkIssueToGitHubPullRequest', {
-        'workspaceId': _workspaceId,
-        'issueId': issueId,
-        'repository': repository,
-        'pullRequestNumber': pullRequest.number,
-      });
 
       final issueRef = _firestore.doc(
         'workspaces/$_workspaceId/issues/$issueId',

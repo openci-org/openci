@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 import { getTeamById } from "../firestoreData.js";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
@@ -12,22 +10,14 @@ import {
 import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import {
-  HttpsError,
-  onCall,
-  onRequest,
-  type CallableRequest,
-  type Request,
-} from "firebase-functions/v2/https";
+import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { getInstallationToken, githubGraphql } from "../github/githubApp.js";
 
 import {
   extractIssueKey,
   issueKey,
   issueStatusForPullRequest,
-  isOnlyLinkedIssueBlockChange,
   normalizeIssueKeyPrefix,
-  upsertLinkedIssueBlock,
 } from "./issueLinkingHelpers.js";
 import {
   isAdjacentWeight,
@@ -81,12 +71,6 @@ interface CreateGitHubSubIssueRequest extends WorkspaceRequest {
   issueId?: string;
   title: string;
   body?: string;
-}
-
-interface LinkIssueToGitHubPullRequestRequest extends WorkspaceRequest {
-  issueId: string;
-  repository: string;
-  pullRequestNumber: number;
 }
 
 interface GitHubRepository {
@@ -318,7 +302,6 @@ interface GitHubIssueWebhookPayload {
 const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const cursorApiKey = defineSecret("CURSOR_API_KEY");
-const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 const closedStatusId = "done";
 const reviewStatusId = "review";
 const inProgressStatusIds = new Set(["doing", "review"]);
@@ -680,7 +663,7 @@ async function fetchPullRequestLinkedIssuesSafely({
     return await fetchPullRequestLinkedIssues({ owner, repo, number, token });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.warn("githubPullRequestWebhook: failed to fetch linked issues", {
+    logger.warn("failed to fetch pull request linked issues", {
       workspaceId,
       repository: `${owner}/${repo}`,
       pullRequestNumber: number,
@@ -2032,62 +2015,6 @@ export const createGitHubSubIssue = onCall<
   }
 });
 
-export const linkIssueToGitHubPullRequest = onCall<
-  LinkIssueToGitHubPullRequestRequest,
-  Promise<{ linked: true }>
->(async (request) => {
-  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  await verifyWorkspaceMember(request.auth, workspaceId);
-  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
-  const repoFullName = requireNonEmptyString(request.data?.repository, "repository");
-  const pullRequestNumber = asNumber(request.data?.pullRequestNumber);
-  if (pullRequestNumber <= 0) {
-    throw new HttpsError("invalid-argument", "pullRequestNumber is required");
-  }
-
-  const [owner, repo] = repoFullName.split("/");
-  if (!owner || !repo) {
-    throw new HttpsError("invalid-argument", "repository must be owner/repo");
-  }
-
-  const issueDoc = await db.doc(`workspaces/${workspaceId}/issues/${issueId}`).get();
-  const issue = issueDoc.data();
-  if (!issue) {
-    throw new HttpsError("not-found", "Issue was not found");
-  }
-  if (asString(issue.repo) !== repoFullName) {
-    throw new HttpsError("failed-precondition", "Issue repository does not match pull request");
-  }
-
-  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
-  const githubIssueNumber = asNumber(githubIssue?.number);
-  if (githubIssueNumber <= 0) {
-    throw new HttpsError("failed-precondition", "Issue is not linked to GitHub");
-  }
-
-  const issueKeyValue = asString(issue.issueKey, `#${githubIssueNumber}`).toUpperCase();
-  const { token } = await getWorkspaceGitHubToken(workspaceId);
-  const pullRequest = await githubRequest<GitHubPullRequestResponseItem>({
-    path: `/repos/${owner}/${repo}/pulls/${pullRequestNumber}`,
-    token,
-  });
-  const nextBody = upsertLinkedIssueBlock(
-    asString(pullRequest.body),
-    githubIssueNumber,
-    issueKeyValue,
-  );
-  if (nextBody !== asString(pullRequest.body)) {
-    await githubRequest({
-      path: `/repos/${owner}/${repo}/pulls/${pullRequestNumber}`,
-      token,
-      method: "PATCH",
-      body: { body: nextBody },
-    });
-  }
-
-  return { linked: true };
-});
-
 export const startIssueCursorAgent = onCall<
   StartIssueCursorAgentRequest,
   Promise<StartIssueCursorAgentResponse>
@@ -2541,71 +2468,6 @@ async function syncWorkspacePullRequestLinks({
   return linked;
 }
 
-function verifyGitHubSignature(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
-  if (!signatureHeader.startsWith("sha256=") || secret.length === 0) {
-    return false;
-  }
-
-  const expected = `sha256=${createHmac("sha256", secret).update(rawBody).digest("hex")}`;
-  const actualBuffer = Buffer.from(signatureHeader, "utf8");
-  const expectedBuffer = Buffer.from(expected, "utf8");
-  return (
-    actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
-  );
-}
-
-function requestRawBody(request: Request): Buffer {
-  const rawBody = (request as typeof request & { rawBody?: Buffer }).rawBody;
-  if (Buffer.isBuffer(rawBody)) {
-    return rawBody;
-  }
-  return Buffer.from(JSON.stringify(request.body ?? {}), "utf8");
-}
-
-function parseWebhookPayload(rawBody: Buffer): GitHubPullRequestWebhookPayload {
-  return JSON.parse(rawBody.toString("utf8")) as GitHubPullRequestWebhookPayload;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function closingIssueReferences(value: string): string[] {
-  const references = value.match(
-    /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+\/[\w.-]+)?#\d+/giu,
-  );
-  return references?.map((reference) => reference.toLowerCase()).sort() ?? [];
-}
-
-function pullRequestEditedAffectsIssueLinking(
-  payload: GitHubPullRequestWebhookPayload,
-  pullRequest: NonNullable<GitHubPullRequestWebhookPayload["pull_request"]>,
-  branch: string,
-): boolean {
-  const titleChanged = isRecord(payload.changes?.title);
-  const bodyChanged = isRecord(payload.changes?.body);
-  if (!titleChanged && !bodyChanged) {
-    return false;
-  }
-
-  const currentTitle = asString(pullRequest.title);
-  const currentBody = asString(pullRequest.body);
-  const previousTitle = titleChanged ? asString(payload.changes?.title?.from) : currentTitle;
-  const previousBody = bodyChanged ? asString(payload.changes?.body?.from) : currentBody;
-
-  if (!titleChanged && bodyChanged && isOnlyLinkedIssueBlockChange(previousBody, currentBody)) {
-    return false;
-  }
-
-  const previousIssueKey = extractIssueKey(branch, previousTitle, previousBody);
-  const currentIssueKey = extractIssueKey(branch, currentTitle, currentBody);
-  if (previousIssueKey !== currentIssueKey) {
-    return true;
-  }
-
-  return closingIssueReferences(previousBody).join("\n") !== closingIssueReferences(currentBody).join("\n");
-}
-
 export async function processImaGitHubAppWebhook(
   event: string,
   body: Record<string, unknown>,
@@ -2618,11 +2480,6 @@ export async function processImaGitHubAppWebhook(
   if (event === "push") {
     const recorded = await processBranchLogFromPush(body as GitHubPushWebhookPayload);
     return { recorded };
-  }
-
-  if (event === "pull_request") {
-    const linked = await linkPullRequestToImaIssues(body as GitHubPullRequestWebhookPayload);
-    return { linked };
   }
 
   return undefined;
@@ -2884,151 +2741,6 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
   return updated;
 }
 
-async function linkPullRequestToImaIssues(
-  payload: GitHubPullRequestWebhookPayload,
-): Promise<number> {
-  const action = asString(payload.action);
-  const pullRequest = payload.pull_request;
-  const repoFullName = asString(payload.repository?.full_name);
-  const branch = asString(pullRequest?.head?.ref);
-  const parsedIssueKey = extractIssueKey(branch, asString(pullRequest?.title), asString(pullRequest?.body));
-  if (!pullRequest || repoFullName.length === 0) {
-    return 0;
-  }
-
-  const shouldProcess =
-    action === "opened" ||
-    action === "synchronize" ||
-    action === "closed" ||
-    action === "reopened" ||
-    (action === "edited" && pullRequestEditedAffectsIssueLinking(payload, pullRequest, branch));
-  if (!shouldProcess) {
-    return 0;
-  }
-
-  const workspaces = await db
-    .collection("workspaces")
-    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
-    .get();
-
-  let linked = 0;
-  for (const workspace of workspaces.docs) {
-    const workspaceRef = workspace.ref;
-    const workspaceId = workspace.id;
-    const [owner, repo] = repoFullName.split("/");
-    if (!owner || !repo) {
-      continue;
-    }
-    const pullRequestNumber = asNumber(pullRequest.number);
-    let workspaceToken: string | undefined;
-    let linkedIssues: GitHubPullRequestLinkedIssue[] = [];
-    if (pullRequestNumber > 0) {
-      try {
-        ({ token: workspaceToken } = await getWorkspaceGitHubToken(workspaceId));
-        linkedIssues = await fetchPullRequestLinkedIssuesSafely({
-          owner,
-          repo,
-          number: pullRequestNumber,
-          token: workspaceToken,
-          workspaceId,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.warn("githubPullRequestWebhook: no GitHub App installation token", {
-          workspaceId,
-          repoFullName,
-          message,
-        });
-      }
-    }
-
-    const issueDocs =
-      parsedIssueKey === null
-        ? { docs: [] }
-        : await workspaceRef
-            .collection("issues")
-            .where("issueKey", "==", parsedIssueKey)
-            .limit(1)
-            .get();
-    const linkedIssueIds = new Set<string>();
-
-    for (const issueDoc of issueDocs.docs) {
-      const issue = issueDoc.data();
-      if (asString(issue.repo) !== repoFullName) {
-        continue;
-      }
-      const issueKeyValue = asString(issue.issueKey).toUpperCase();
-      if (issueKeyValue !== parsedIssueKey) {
-        continue;
-      }
-
-      const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
-      const githubIssueNumber = asNumber(githubIssue?.number);
-      if (githubIssueNumber <= 0) {
-        continue;
-      }
-
-      const workspace = await workspaceRef.get();
-      const ownerUid = asString(workspace.get("ownerUid"));
-      if (ownerUid.length > 0) {
-        try {
-          const token = workspaceToken ?? (await getWorkspaceGitHubToken(workspaceId)).token;
-          const nextBody = upsertLinkedIssueBlock(
-            asString(pullRequest.body),
-            githubIssueNumber,
-            issueKeyValue,
-          );
-          if (nextBody !== asString(pullRequest.body)) {
-            const prNumber = asNumber(pullRequest.number);
-            if (owner && repo && prNumber > 0) {
-              await githubRequest({
-                path: `/repos/${owner}/${repo}/pulls/${prNumber}`,
-                token,
-                method: "PATCH",
-                body: { body: nextBody },
-              });
-            }
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          logger.warn("githubPullRequestWebhook: failed to update PR body", {
-            workspaceId,
-            repoFullName,
-            issueKey: issueKeyValue,
-            message,
-          });
-        }
-      }
-
-      await upsertPullRequestLink({
-        workspaceId,
-        issueId: issueDoc.id,
-        action,
-        pullRequest,
-        repoFullName,
-        branch,
-        linkedIssues,
-      });
-      linkedIssueIds.add(issueDoc.id);
-      linked += 1;
-    }
-
-    linked += await upsertPullRequestLinksForLinkedIssues({
-      workspaceId,
-      owner,
-      repo,
-      action,
-      pullRequest,
-      repoFullName,
-      branch,
-      linkedIssues,
-      skipIssueIds: linkedIssueIds,
-    });
-  }
-
-  return linked;
-}
-
 async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Promise<number> {
   const repoFullName = asString(payload.repository?.full_name);
   if (repoFullName.length === 0) {
@@ -3153,53 +2865,6 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
 
   return recorded;
 }
-
-export const githubPullRequestWebhook = onRequest(
-  { secrets: [githubWebhookSecret] },
-  async (request, response) => {
-    if (request.method !== "POST") {
-      response.status(405).send("Method Not Allowed");
-      return;
-    }
-
-    const event = asString(request.header("x-github-event"));
-    if (event !== "pull_request" && event !== "issues" && event !== "push") {
-      response.status(204).send();
-      return;
-    }
-
-    const rawBody = requestRawBody(request);
-    const signature = asString(request.header("x-hub-signature-256"));
-    if (!verifyGitHubSignature(rawBody, signature, githubWebhookSecret.value())) {
-      response.status(401).send("Invalid signature");
-      return;
-    }
-
-    try {
-      if (event === "issues") {
-        const payload = JSON.parse(rawBody.toString("utf8")) as GitHubIssueWebhookPayload;
-        const updated = await syncGitHubIssueFromWebhook(payload);
-        response.status(200).json({ updated });
-        return;
-      }
-
-      if (event === "push") {
-        const payload = JSON.parse(rawBody.toString("utf8")) as GitHubPushWebhookPayload;
-        const recorded = await processBranchLogFromPush(payload);
-        response.status(200).json({ recorded });
-        return;
-      }
-
-      const linked = await linkPullRequestToImaIssues(parseWebhookPayload(rawBody));
-      response.status(200).json({ linked });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const stack = error instanceof Error ? error.stack : undefined;
-      logger.error("githubPullRequestWebhook: failed", { event, message, stack });
-      response.status(500).send("Webhook processing failed");
-    }
-  },
-);
 
 export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssuesResponse>>(
   async (request) => {

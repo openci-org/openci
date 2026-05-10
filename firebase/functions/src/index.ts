@@ -54,10 +54,8 @@ export {
   createGitHubIssue,
   createGitHubSubIssue,
   importGitHubIssues,
-  linkIssueToGitHubPullRequest,
   syncGitHubIssues,
 } from "./issues/githubIssueHandlers.js";
-export { githubPullRequestWebhook } from "./issues/githubWebhookHandlers.js";
 export {
   autoEstimateIssueWeightOnIssueWrite,
   estimateIssueWeight,

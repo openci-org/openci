@@ -1,1 +1,1 @@
-export { githubPullRequestWebhook, processImaGitHubAppWebhook } from "./imaHandlers.js";
+export { processImaGitHubAppWebhook } from "./imaHandlers.js";
