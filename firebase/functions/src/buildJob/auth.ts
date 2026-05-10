@@ -1,8 +1,8 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 
-import { verifyTeamMembership } from "../team/teamAuth";
-import { getBuildJobOrThrow, type BuildJob } from "./services";
+import { verifyTeamMembership } from "../team/teamAuth.js";
+import { getBuildJobOrThrow, type BuildJob } from "./services.js";
 
 function requireAuth(auth: CallableRequest["auth"]): NonNullable<CallableRequest["auth"]> {
   if (!auth) {

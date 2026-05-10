@@ -2,4 +2,4 @@ export {
   autoEstimateIssueWeightOnIssueWrite,
   estimateIssueWeight,
   recomputeResolutionWeights,
-} from "./imaHandlers";
+} from "./imaHandlers.js";

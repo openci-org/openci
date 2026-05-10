@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 
 import {
   addTeamMember,
@@ -10,9 +11,10 @@ import {
   findExistingPendingInvitation,
   listTeamMembers,
   reinviteInvitation,
-} from "../firestoreData";
-import { accessSecret } from "../secretManager";
-import { verifyTeamMembership } from "./teamAuth";
+} from "../firestoreData.js";
+import { verifyTeamMembership } from "./teamAuth.js";
+
+const resendApiKey = defineSecret("RESEND_API_KEY");
 
 interface TeamIdRequest {
   teamId: string;
@@ -38,7 +40,7 @@ async function sendEmail({
   subject: string;
   html: string;
 }): Promise<void> {
-  const apiKey = await accessSecret("RESEND_API_KEY");
+  const apiKey = resendApiKey.value();
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -142,7 +144,7 @@ export const getTeamMembers = onCall<TeamIdRequest, Promise<{ members: unknown[]
 export const inviteTeamMember = onCall<
   InviteTeamMemberRequest,
   Promise<{ status: "added" | "invited"; inviteeUid?: string }>
->(async (request) => {
+>({ secrets: [resendApiKey] }, async (request) => {
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Unauthenticated");

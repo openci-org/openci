@@ -5,7 +5,7 @@ import {
   acceptInvitationAndJoinTeam,
   expireInvitation,
   listMyPendingInvitations,
-} from "../firestoreData";
+} from "../firestoreData.js";
 
 export interface AcceptedInvitationTeam {
   teamId: string;

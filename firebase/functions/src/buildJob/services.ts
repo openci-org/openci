@@ -9,7 +9,7 @@ import {
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
   updateUserFcmTokens,
-} from "../firestoreData";
+} from "../firestoreData.js";
 import { getMessaging } from "firebase-admin/messaging";
 
 type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];

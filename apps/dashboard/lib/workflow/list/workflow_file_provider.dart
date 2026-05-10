@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/github/repository_aliases.dart';
@@ -17,7 +16,6 @@ abstract class WorkflowFile with _$WorkflowFile {
     required String content,
     required String repository,
     required String branch,
-    @Default(true) bool enabled,
   }) = _WorkflowFile;
 
   factory WorkflowFile.fromJson(Map<String, Object?> json) =>
@@ -33,13 +31,12 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
   }
   final teamId = user.selectedTeamId;
 
-  final repositorySnapshots = firestore
-      .collection('workspaces/$teamId/githubRepos')
-      .where('enabled', isEqualTo: true)
-      .snapshots();
+  final workspaceSnapshots = firestore.doc('workspaces/$teamId').snapshots();
 
-  await for (final snapshot in repositorySnapshots) {
-    final selections = _workflowRepositorySelectionsFromDocs(snapshot.docs);
+  await for (final snapshot in workspaceSnapshots) {
+    final selections = _workflowRepositorySelectionsFromWorkspace(
+      snapshot.data(),
+    );
     if (selections.isEmpty) {
       yield const [];
       continue;
@@ -62,18 +59,22 @@ class _WorkflowRepositorySelection {
   final String branch;
 }
 
-List<_WorkflowRepositorySelection> _workflowRepositorySelectionsFromDocs(
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+List<_WorkflowRepositorySelection> _workflowRepositorySelectionsFromWorkspace(
+  Map<String, dynamic>? data,
 ) {
   final selections = <_WorkflowRepositorySelection>[];
   final seen = <String>{};
-  for (final doc in docs) {
-    final data = doc.data();
+  final repositories = data?['syncedGitHubRepoFullNames'];
+  if (repositories is! List) {
+    return selections;
+  }
+
+  for (final value in repositories) {
     final repository = canonicalRepositoryFullName(
-      data['fullName'] as String? ?? '',
+      value is String ? value : '',
     );
     if (repository.isEmpty) continue;
-    final branch = data['defaultBranch'] as String? ?? 'HEAD';
+    const branch = 'HEAD';
     final key = '$repository@$branch';
     if (!seen.add(key)) continue;
     selections.add(
@@ -88,7 +89,6 @@ Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
   required String teamId,
   required List<_WorkflowRepositorySelection> selections,
 }) async {
-  final enabledOverrides = await _workflowEnabledOverrides(teamId);
   final allFiles = <WorkflowFile>[];
 
   for (final selection in selections) {
@@ -97,13 +97,7 @@ Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
       repository: selection.repository,
       branch: selection.branch,
     );
-    allFiles.addAll(
-      githubFiles.map(
-        (file) => file.copyWith(
-          enabled: enabledOverrides[_workflowFileKey(file)] ?? file.enabled,
-        ),
-      ),
-    );
+    allFiles.addAll(githubFiles);
   }
 
   final uniqueFiles = _uniqueWorkflowFiles(allFiles);
@@ -113,32 +107,6 @@ Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
     return a.name.compareTo(b.name);
   });
   return uniqueFiles;
-}
-
-Future<Map<String, bool>> _workflowEnabledOverrides(String teamId) async {
-  final snapshot = await firestore
-      .collection(workflowFilesCollection)
-      .where('teamId', isEqualTo: teamId)
-      .get();
-  final overrides = <String, bool>{};
-  for (final doc in snapshot.docs) {
-    final data = doc.data();
-    final repository = canonicalRepositoryFullName(
-      data['repository'] as String? ?? '',
-    );
-    final branch = data['branch'] as String? ?? '';
-    final path =
-        data['filePath'] as String? ?? data['fileName'] as String? ?? '';
-    final enabled = data['enabled'];
-    if (repository.isEmpty ||
-        branch.isEmpty ||
-        path.isEmpty ||
-        enabled is! bool) {
-      continue;
-    }
-    overrides['$repository@$branch:$path'] = enabled;
-  }
-  return overrides;
 }
 
 List<WorkflowFile> _uniqueWorkflowFiles(List<WorkflowFile> files) {
@@ -215,54 +183,4 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHub({
     );
   }).toList()..sort((a, b) => a.name.compareTo(b.name));
   return files;
-}
-
-/// Generate a stable document ID matching the Firebase Functions logic.
-String _workflowFileDocId(
-  String teamId,
-  String repository,
-  String branch,
-  String fileName,
-) {
-  return '${teamId}_${repository.replaceAll('/', '_')}_${branch}_$fileName';
-}
-
-@riverpod
-Future<void> toggleWorkflowEnabled(
-  Ref ref, {
-  required String repository,
-  required String branch,
-  required String fileName,
-  required bool enabled,
-}) async {
-  final user = await ref.read(userProvider.future);
-  final teamId = user.selectedTeamId;
-
-  final aliases = repositoryFullNameAliases(repository);
-  final result = await firestore
-      .collection(workflowFilesCollection)
-      .where('teamId', isEqualTo: teamId)
-      .where('repository', whereIn: aliases)
-      .where('branch', isEqualTo: branch)
-      .where('fileName', isEqualTo: fileName)
-      .limit(1)
-      .get();
-
-  final docRef = result.docs.isNotEmpty
-      ? result.docs.first.reference
-      : firestore
-            .collection(workflowFilesCollection)
-            .doc(
-              _workflowFileDocId(
-                teamId,
-                canonicalRepositoryFullName(repository),
-                branch,
-                fileName,
-              ),
-            );
-
-  await docRef.update({
-    'enabled': enabled,
-    'updatedAt': FieldValue.serverTimestamp(),
-  });
 }

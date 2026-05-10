@@ -18,9 +18,6 @@ const {
   mockGithubPost,
   mockGithubPatch,
   mockGithubPut,
-  mockUpsertWorkflowFile,
-  mockListWorkflowFilesForBranch,
-  mockDeleteWorkflowFile,
 } = vi.hoisted(() => ({
   mockVerifyTeamMembership: vi.fn(),
   mockGetInstallationToken: vi.fn(),
@@ -29,9 +26,6 @@ const {
   mockGithubPost: vi.fn(),
   mockGithubPatch: vi.fn(),
   mockGithubPut: vi.fn(),
-  mockUpsertWorkflowFile: vi.fn(),
-  mockListWorkflowFilesForBranch: vi.fn(),
-  mockDeleteWorkflowFile: vi.fn(),
 }));
 
 vi.mock("../team/teamAuth", () => ({
@@ -47,12 +41,6 @@ vi.mock("./githubApp", () => ({
   githubPut: (...args: unknown[]) => mockGithubPut(...args),
 }));
 
-vi.mock("../firestoreData", () => ({
-  upsertWorkflowFile: (...args: unknown[]) => mockUpsertWorkflowFile(...args),
-  listWorkflowFilesForBranch: (...args: unknown[]) => mockListWorkflowFilesForBranch(...args),
-  deleteWorkflowFile: (...args: unknown[]) => mockDeleteWorkflowFile(...args),
-}));
-
 const testEnv = firebaseFunctionsTest();
 
 const {
@@ -61,7 +49,6 @@ const {
   listDirectories,
   listRepositories,
   listWorkflowFiles,
-  syncWorkflowFiles,
 } = await import("./repositories");
 
 const wrappedListRepositories = testEnv.wrap(listRepositories) as (req: {
@@ -93,11 +80,6 @@ const wrappedCreateWorkflowFile = testEnv.wrap(createWorkflowFile) as (req: {
     content?: string;
     commitMode?: string;
   };
-  auth?: AuthData;
-}) => Promise<unknown>;
-
-const wrappedSyncWorkflowFiles = testEnv.wrap(syncWorkflowFiles) as (req: {
-  data: { teamId?: string; repository?: string; branch?: string };
   auth?: AuthData;
 }) => Promise<unknown>;
 
@@ -407,38 +389,3 @@ describe("createWorkflowFile", () => {
   });
 });
 
-describe("syncWorkflowFiles", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    mockVerifyTeamMembership.mockResolvedValue({ installationIds: [101] });
-    mockGetInstallationToken.mockResolvedValue({ token: "installation-token", expiresAt: "" });
-    mockUpsertWorkflowFile.mockResolvedValue({});
-    mockListWorkflowFilesForBranch.mockResolvedValue({ data: { workflowFiles: [] } });
-  });
-
-  it("syncs YAML workflow files to Firestore", async () => {
-    mockGithubGet.mockResolvedValue({});
-    mockGithubGraphql.mockResolvedValue({
-      data: {
-        repository: {
-          object: {
-            entries: [{ name: "build.yaml", type: "blob", object: { text: "name: build" } }],
-          },
-        },
-      },
-    });
-
-    const result = await wrappedSyncWorkflowFiles({
-      data: { teamId: "team-1", repository: "openci/openci", branch: "main" },
-      auth: makeAuth(),
-    });
-
-    expect(result).toEqual({ synced: 1, deleted: 0 });
-    expect(mockUpsertWorkflowFile).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fileName: "build.yaml",
-        content: "name: build",
-      }),
-    );
-  });
-});

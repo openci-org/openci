@@ -208,22 +208,6 @@ class _WorkflowFileTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final compact = MediaQuery.sizeOf(context).width < 520;
-    final switchWidget = Transform.scale(
-      scale: 0.82,
-      child: Switch(
-        value: file.enabled,
-        onChanged: (enabled) => unawaited(
-          ref.read(
-            toggleWorkflowEnabledProvider(
-              repository: file.repository,
-              branch: file.branch,
-              fileName: file.name,
-              enabled: enabled,
-            ).future,
-          ),
-        ),
-      ),
-    );
     final details = Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,22 +255,17 @@ class _WorkflowFileTile extends ConsumerWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: file.enabled
-                      ? const Color(0xFFEFF6FF)
-                      : const Color(0xFFF1F5F9),
+                  color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   Icons.schema_rounded,
-                  color: file.enabled
-                      ? const Color(0xFF2563EB)
-                      : const Color(0xFF64748B),
+                  color: const Color(0xFF2563EB),
                 ),
               ),
               const SizedBox(width: 14),
               details,
               SizedBox(width: compact ? 4 : 8),
-              SizedBox(width: 44, child: Align(child: switchWidget)),
             ],
           ),
         ),

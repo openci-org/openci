@@ -1,17 +1,18 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
-import { getTeamById, linkGitHubInstallation } from "../firestoreData";
+import { getTeamById, linkGitHubInstallation } from "../firestoreData.js";
 import { onRequest } from "firebase-functions/v2/https";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
+import { defineSecret } from "firebase-functions/params";
 
-import { accessSecret } from "../secretManager";
-import { verifyTeamMembership } from "../team/teamAuth";
-import { getBaseUrlFromTeamData } from "./githubUrls";
+import { verifyTeamMembership } from "../team/teamAuth.js";
+import { getBaseUrlFromTeamData } from "./githubUrls.js";
 
 const stateTtlMs = 10 * 60 * 1000;
-const githubSetupStateSecretName = "GITHUB_WEBHOOK_SECRET";
 const githubAppSlug = "openci-org";
+
+const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
 interface CreateGitHubSetupUrlRequest {
   teamId: string;
@@ -39,20 +40,18 @@ function signStatePayload(encodedPayload: string, secret: string): string {
   return createHmac("sha256", secret).update(encodedPayload).digest("base64url");
 }
 
-async function createSetupState(payload: GitHubSetupStatePayload): Promise<string> {
-  const secret = await accessSecret(githubSetupStateSecretName);
+function createSetupState(payload: GitHubSetupStatePayload): string {
   const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
-  return `${encodedPayload}.${signStatePayload(encodedPayload, secret)}`;
+  return `${encodedPayload}.${signStatePayload(encodedPayload, githubWebhookSecret.value())}`;
 }
 
-async function verifySetupState(state: string): Promise<GitHubSetupStatePayload> {
+function verifySetupState(state: string): GitHubSetupStatePayload {
   const [encodedPayload, signature, ...extra] = state.split(".");
   if (!encodedPayload || !signature || extra.length > 0) {
     throw new HttpsError("invalid-argument", "Invalid setup state");
   }
 
-  const secret = await accessSecret(githubSetupStateSecretName);
-  const expectedSignature = signStatePayload(encodedPayload, secret);
+  const expectedSignature = signStatePayload(encodedPayload, githubWebhookSecret.value());
   const signatureBuffer = Buffer.from(signature, "base64url");
   const expectedBuffer = Buffer.from(expectedSignature, "base64url");
   if (
@@ -110,10 +109,10 @@ function statusCodeForHttpsError(error: HttpsError): number {
 export const createGitHubSetupUrl = onCall<
   CreateGitHubSetupUrlRequest,
   Promise<CreateGitHubSetupUrlResponse>
->(async (request) => {
+>({ secrets: [githubWebhookSecret] }, async (request) => {
   const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
   const team = await verifyTeamMembership(request.auth, teamId);
-  const state = await createSetupState({
+  const state = createSetupState({
     teamId,
     uid: request.auth!.uid,
     expiresAt: Date.now() + stateTtlMs,
@@ -124,7 +123,7 @@ export const createGitHubSetupUrl = onCall<
   return { url: url.toString() };
 });
 
-export const githubSetup = onRequest(async (request, response) => {
+export const githubSetup = onRequest({ secrets: [githubWebhookSecret] }, async (request, response) => {
   try {
     const installationId = request.query.installation_id;
     const state = request.query.state;
@@ -135,7 +134,7 @@ export const githubSetup = onRequest(async (request, response) => {
       return;
     }
 
-    const setupState = await verifySetupState(state);
+    const setupState = verifySetupState(state);
     const { teamId } = setupState;
     logger.info("GitHub Setup callback received", {
       installationId,

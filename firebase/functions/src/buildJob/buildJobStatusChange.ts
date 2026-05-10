@@ -1,8 +1,8 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { BuildJobStatus } from "../firestoreData";
-import { verifyBuildJobMembership } from "./auth";
-import { handleBuildJobStatusChange } from "./services";
+import { BuildJobStatus } from "../firestoreData.js";
+import { verifyBuildJobMembership } from "./auth.js";
+import { handleBuildJobStatusChange } from "./services.js";
 
 interface BuildJobStatusChangeRequest {
   buildJobId: string;

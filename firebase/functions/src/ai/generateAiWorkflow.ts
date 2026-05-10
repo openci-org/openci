@@ -1,8 +1,8 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { createAnthropicMessage } from "./anthropic";
-import { verifyTeamMembership } from "../team/teamAuth";
+import { createAnthropicMessage } from "./anthropic.js";
+import { verifyTeamMembership } from "../team/teamAuth.js";
 
 interface GenerateAiWorkflowRequest {
   teamId: string;

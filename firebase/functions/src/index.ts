@@ -12,62 +12,59 @@ setGlobalOptions({
   ],
 });
 
-export { generateAiWorkflowResponse } from "./ai/generateAiWorkflow";
+export { generateAiWorkflowResponse } from "./ai/generateAiWorkflow.js";
 export {
   ascListApps,
   ascListBuilds,
   ascSubmitForReview,
   ascSubmitToTestFlight,
-} from "./asc/ascHandlers";
-export { buildJobStatusChange } from "./buildJob/buildJobStatusChange";
-export { cancelBuildJob } from "./buildJob/cancelBuildJob";
-export { checkRunUpdate } from "./buildJob/checkRunUpdate";
+} from "./asc/ascHandlers.js";
+export { buildJobStatusChange } from "./buildJob/buildJobStatusChange.js";
+export { cancelBuildJob } from "./buildJob/cancelBuildJob.js";
+export { checkRunUpdate } from "./buildJob/checkRunUpdate.js";
 export {
   generateFailureSummary,
   generateFailureSummaryOnBuildJobFailure,
-} from "./buildJob/generateFailureSummary";
-export { retryBuildJob, retryWorkflowRun } from "./buildJob/retryHandlers";
-export { searchGitHubActions } from "./github/actions";
+} from "./buildJob/generateFailureSummary.js";
+export { retryBuildJob, retryWorkflowRun } from "./buildJob/retryHandlers.js";
+export { searchGitHubActions } from "./github/actions.js";
 export {
   createWorkflowFile,
   listBranches,
   listDirectories,
   listRepositories,
   listWorkflowFiles,
-  syncWorkflowFiles,
-} from "./github/repositories";
-export { createGitHubSetupUrl, githubSetup } from "./github/setup";
-export { githubWebhook } from "./github/webhook";
-export { acceptInvitation } from "./invitation/acceptInvitation";
-export { acceptInvitations } from "./invitation/acceptInvitations";
+} from "./github/repositories.js";
+export { createGitHubSetupUrl, githubSetup } from "./github/setup.js";
+export { githubWebhook } from "./github/webhook.js";
+export { acceptInvitation } from "./invitation/acceptInvitation.js";
+export { acceptInvitations } from "./invitation/acceptInvitations.js";
 export {
   backfillCursorAgentPullRequests,
   startIssueCursorAgent,
-} from "./issues/cursorAgentHandlers";
+} from "./issues/cursorAgentHandlers.js";
 export {
   completeGitHubDeviceFlow,
   connectGitHub,
   listGitHubRepositories,
   startGitHubDeviceFlow,
-} from "./issues/githubConnectionHandlers";
+} from "./issues/githubConnectionHandlers.js";
 export {
   backfillIssueKeys,
   createGitHubIssue,
   createGitHubSubIssue,
   importGitHubIssues,
-  linkIssueToGitHubPullRequest,
   syncGitHubIssues,
-} from "./issues/githubIssueHandlers";
-export { githubPullRequestWebhook } from "./issues/githubWebhookHandlers";
+} from "./issues/githubIssueHandlers.js";
 export {
   autoEstimateIssueWeightOnIssueWrite,
   estimateIssueWeight,
   recomputeResolutionWeights,
-} from "./issues/issueWeightHandlers";
+} from "./issues/issueWeightHandlers.js";
 export {
   autoSyncIssueToGitHubOnIssueWrite,
   issueLifecycleEventLogger,
-} from "./issues/lifecycleHandlers";
+} from "./issues/lifecycleHandlers.js";
 export {
   createSecretV1,
   deleteSecretV1,
@@ -76,5 +73,5 @@ export {
   registerDeveloperIdCertificateV1,
   setupAscApiKeyV1,
   updateSecretV1,
-} from "./secrets/secretHandlers";
-export { getTeamMembers, inviteTeamMember } from "./team/teamHandlers";
+} from "./secrets/secretHandlers.js";
+export { getTeamMembers, inviteTeamMember } from "./team/teamHandlers.js";

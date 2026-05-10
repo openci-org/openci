@@ -3,4 +3,4 @@ export {
   connectGitHub,
   listGitHubRepositories,
   startGitHubDeviceFlow,
-} from "./imaHandlers";
+} from "./imaHandlers.js";

@@ -1,11 +1,6 @@
-import { accessSecret } from "../secretManager";
+import { defineSecret } from "firebase-functions/params";
 
-let cachedApiKey: string | undefined;
-
-async function getAnthropicApiKey(): Promise<string> {
-  cachedApiKey ??= await accessSecret("ANTHROPIC_API_KEY");
-  return cachedApiKey;
-}
+export const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 
 export async function createAnthropicMessage({
   model,
@@ -18,11 +13,10 @@ export async function createAnthropicMessage({
   system?: string;
   messages: Array<{ role: string; content: string }>;
 }): Promise<string> {
-  const apiKey = await getAnthropicApiKey();
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      "x-api-key": apiKey,
+      "x-api-key": anthropicApiKey.value(),
       "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
