@@ -3,8 +3,6 @@ import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/themes/tab_bar_theme.dart';
-import 'package:dashboard/update/update_check_provider.dart';
-import 'package:dashboard/update/update_available_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +15,6 @@ class Root extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(deepLinkListenerProvider);
-    final updateState = ref.watch(updateCheckProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -31,18 +28,7 @@ class Root extends ConsumerWidget {
           visible: false,
           child: child ?? const SizedBox.shrink(),
         );
-        if (!updateState.isUpdateAvailable) {
-          return app;
-        }
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned.fill(child: app),
-            const Positioned.fill(
-              child: UpdateAvailableBanner(),
-            ),
-          ],
-        );
+        return app;
       },
     );
   }
