@@ -74,4 +74,4 @@ export {
   setupAscApiKeyV1,
   updateSecretV1,
 } from "./secrets/secretHandlers.js";
-export { getTeamMembers, inviteTeamMember } from "./team/teamHandlers.js";
+export { ensureUserProfile, getTeamMembers, inviteTeamMember } from "./team/teamHandlers.js";
