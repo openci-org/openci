@@ -52,6 +52,7 @@ dependencies:
   slang_flutter: ^4.14.0
   swipeable_page_route: ^0.4.8
   url_launcher: ^6.3.2
+  web: ^1.1.1
   uuid: ^4.5.3
   xml: ^6.6.1
   yaml: ^3.1.3

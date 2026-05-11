@@ -1,31 +1,36 @@
+import 'dart:async';
 import 'dart:js_interop';
 
-@JS('eval')
-external JSAny? _eval(JSString code);
+import 'package:web/web.dart';
 
 void superReloadPage() {
-  _eval(
-    r'''
-(async () => {
-  try {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
-    }
+  unawaited(_superReloadPage());
+}
 
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((key) => caches.delete(key)));
+Future<void> _superReloadPage() async {
+  try {
+    final registrations = await window.navigator.serviceWorker
+        .getRegistrations()
+        .toDart;
+    for (final registration in registrations.toDart) {
+      await registration.unregister().toDart;
     }
-  } catch (error) {
-    console.warn('[OpenCI] Failed to clear web app caches before reload.', error);
-  } finally {
-    const url = new URL(window.location.href);
-    url.searchParams.set('_openci_reload', Date.now().toString());
-    window.location.replace(url.toString());
+  } catch (_) {
+    // Continue; reload still helps when no SW or unregister fails.
   }
-})()
-'''
-        .toJS,
-  );
+
+  try {
+    final keys = await window.caches.keys().toDart;
+    for (final key in keys.toDart) {
+      await window.caches.delete(key.toDart).toDart;
+    }
+  } catch (_) {
+    // Continue.
+  }
+
+  final href = window.location.href;
+  final uri = Uri.parse(href);
+  final params = Map<String, String>.from(uri.queryParameters);
+  params['_openci_reload'] = DateTime.now().millisecondsSinceEpoch.toString();
+  window.location.replace(uri.replace(queryParameters: params).toString());
 }
