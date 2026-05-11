@@ -107,7 +107,7 @@ class _WorkerEscapeShortcut extends StatelessWidget {
           if (context.canPop()) {
             context.pop();
           } else {
-            context.go('/');
+            context.go('/workspace');
           }
         },
       },

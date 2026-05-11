@@ -112,7 +112,7 @@ class AcceptInvitationPage extends HookConsumerWidget {
           ),
           const SizedBox(height: 32),
           ElevatedButton(
-            onPressed: () => context.go('/'),
+            onPressed: () => context.go('/workspace'),
             child: Text(t.team.goToDashboard),
           ),
         ],
@@ -148,7 +148,7 @@ class AcceptInvitationPage extends HookConsumerWidget {
           ),
           const SizedBox(height: 32),
           ElevatedButton(
-            onPressed: () => context.go('/'),
+            onPressed: () => context.go('/workspace'),
             child: Text(t.team.goToDashboard),
           ),
         ],
