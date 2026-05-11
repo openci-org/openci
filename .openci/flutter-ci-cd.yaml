@@ -242,6 +242,7 @@ jobs:
         run: |
           BUILD_UPDATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           BUILD_SHA="$(git rev-parse --short HEAD)"
+          APP_VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
 
           flutter build web \
             --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
@@ -249,6 +250,10 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
             --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
             --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA"
+
+          printf '{"version":"%s","sha":"%s","updatedAt":"%s"}\n' \
+            "$APP_VERSION" "$BUILD_SHA" "$BUILD_UPDATED_AT" \
+            > build/web/version.json
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
