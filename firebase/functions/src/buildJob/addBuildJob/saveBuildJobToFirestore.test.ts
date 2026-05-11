@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { serverTimestamp } = vi.hoisted(() => ({
+const { randomUUID, serverTimestamp } = vi.hoisted(() => ({
+  randomUUID: vi.fn(),
   serverTimestamp: Symbol("serverTimestamp"),
+}));
+
+vi.mock("node:crypto", () => ({
+  randomUUID,
 }));
 
 vi.mock("firebase-admin/firestore", () => ({
@@ -10,9 +15,9 @@ vi.mock("firebase-admin/firestore", () => ({
   },
 }));
 
-const { saveBuildJobToFirestore } = await import("./saveBuildJobToFirestore.js");
+const { saveBuildJobsToFirestore } = await import("./saveBuildJobToFirestore.js");
 
-describe("saveBuildJobToFirestore", () => {
+describe("saveBuildJobsToFirestore", () => {
   const mockBatchCommit = vi.fn();
   const mockBatchSet = vi.fn();
   const mockCollection = vi.fn();
@@ -27,13 +32,14 @@ describe("saveBuildJobToFirestore", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    randomUUID.mockReturnValue("workflow-run-1");
     mockCollection.mockReturnValue({ doc: mockDoc });
     mockDoc.mockImplementation((id: string) => ({ id }));
     mockBatchCommit.mockResolvedValue(undefined);
   });
 
   it("saves queued and waiting build jobs with resolved dependencies", async () => {
-    await saveBuildJobToFirestore({
+    await saveBuildJobsToFirestore({
       db: db as never,
       jobs: [
         {
@@ -78,6 +84,7 @@ describe("saveBuildJobToFirestore", () => {
         status: "QUEUED",
         workflowFileName: "ci.yaml",
         workflowName: "CI",
+        workflowRunId: "workflow-run-1",
         jobKey: "build",
         needs: null,
         resolvedNeeds: null,
@@ -96,6 +103,7 @@ describe("saveBuildJobToFirestore", () => {
       expect.objectContaining({
         id: "doc-test",
         status: "WAITING",
+        workflowRunId: "workflow-run-1",
         jobKey: "test",
         needs: ["build"],
         resolvedNeeds: { build: "doc-build" },
@@ -107,7 +115,7 @@ describe("saveBuildJobToFirestore", () => {
   });
 
   it("stores custom GitHub Enterprise URLs", async () => {
-    await saveBuildJobToFirestore({
+    await saveBuildJobsToFirestore({
       db: db as never,
       jobs: [
         {
@@ -138,6 +146,76 @@ describe("saveBuildJobToFirestore", () => {
       expect.objectContaining({
         githubApiBaseUrl: "https://github.example.com/api/v3",
         githubBaseUrl: "https://github.example.com",
+      }),
+    );
+  });
+
+  it("assigns workflow run ids and resolved dependencies per workflow file", async () => {
+    randomUUID
+      .mockReturnValueOnce("workflow-run-a")
+      .mockReturnValueOnce("workflow-run-b");
+
+    await saveBuildJobsToFirestore({
+      db: db as never,
+      jobs: [
+        {
+          documentId: "doc-a-build",
+          checkRunId: 101,
+          workflowFileName: "a.yaml",
+          workflowName: "A",
+          jobId: "build",
+          spec: {},
+        },
+        {
+          documentId: "doc-b-build",
+          checkRunId: 102,
+          workflowFileName: "b.yaml",
+          workflowName: "B",
+          jobId: "build",
+          spec: {},
+        },
+        {
+          documentId: "doc-b-test",
+          checkRunId: 103,
+          workflowFileName: "b.yaml",
+          workflowName: "B",
+          jobId: "test",
+          spec: { needs: "build" },
+        },
+      ],
+      owner: "openci",
+      repo: "openci",
+      teamId: "team-1",
+      installationId: 123,
+      installationToken: "token-123",
+      tokenExpiresAt: "2026-01-01T00:00:00Z",
+      checkRunCommitSha: "abc123",
+      pullRequestNumber: null,
+      triggerType: "push",
+      branch: "main",
+      apiBaseUrl: "https://api.github.com",
+      githubBaseUrl: "https://github.com",
+    });
+
+    expect(mockBatchSet).toHaveBeenCalledWith(
+      { id: "doc-a-build" },
+      expect.objectContaining({
+        workflowRunId: "workflow-run-a",
+        resolvedNeeds: null,
+      }),
+    );
+    expect(mockBatchSet).toHaveBeenCalledWith(
+      { id: "doc-b-build" },
+      expect.objectContaining({
+        workflowRunId: "workflow-run-b",
+        resolvedNeeds: null,
+      }),
+    );
+    expect(mockBatchSet).toHaveBeenCalledWith(
+      { id: "doc-b-test" },
+      expect.objectContaining({
+        workflowRunId: "workflow-run-b",
+        resolvedNeeds: { build: "doc-b-build" },
       }),
     );
   });

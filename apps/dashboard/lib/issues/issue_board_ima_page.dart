@@ -4625,6 +4625,7 @@ class _RecentRunSummary {
     required this.repo,
     required this.createdAt,
     required this.workflowName,
+    required this.workflowFileName,
     required this.jobKey,
     required this.branch,
     required this.workflowRunId,
@@ -4637,6 +4638,7 @@ class _RecentRunSummary {
   final String repo;
   final DateTime createdAt;
   final String workflowName;
+  final String workflowFileName;
   final String jobKey;
   final String branch;
   final String workflowRunId;
@@ -4645,6 +4647,9 @@ class _RecentRunSummary {
   String get repository => '$owner/$repo';
 
   String get workflowTitle => workflowName.isEmpty ? repository : workflowName;
+
+  String get workflowRunGroupKey =>
+      '${workflowRunId.isEmpty ? id : workflowRunId}:$workflowFileName';
 
   static _RecentRunSummary? fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
@@ -4660,6 +4665,7 @@ class _RecentRunSummary {
             _asDate(data['createdAt']) ??
             DateTime.fromMillisecondsSinceEpoch(0),
         workflowName: _asString(data['workflowName']),
+        workflowFileName: _asString(data['workflowFileName']),
         jobKey: _asString(data['jobKey']),
         branch: _asString(data['branch']),
         workflowRunId: _asString(data['workflowRunId']),
@@ -4704,21 +4710,16 @@ class CardBuildStatus {
     final selectedWorkflowKeys = <String>{};
     final selectedRunIds = <String>{};
     for (final run in sortedRuns) {
-      final workflowKey = run.workflowTitle;
+      final workflowKey = '${run.workflowTitle}:${run.workflowFileName}';
       if (!selectedWorkflowKeys.add(workflowKey)) {
         continue;
       }
-      selectedRunIds.add(
-        run.workflowRunId.isEmpty ? run.id : run.workflowRunId,
-      );
+      selectedRunIds.add(run.workflowRunGroupKey);
     }
     final currentRuns =
         [
           for (final run in sortedRuns)
-            if (selectedRunIds.contains(
-              run.workflowRunId.isEmpty ? run.id : run.workflowRunId,
-            ))
-              run,
+            if (selectedRunIds.contains(run.workflowRunGroupKey)) run,
         ]..sort((a, b) {
           final workflowCompare = a.workflowTitle.compareTo(b.workflowTitle);
           if (workflowCompare != 0) {

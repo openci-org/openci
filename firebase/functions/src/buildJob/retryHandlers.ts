@@ -3,14 +3,14 @@ import { randomUUID } from "node:crypto";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { createCheckRun, getInstallationToken } from "../github/githubApp.js";
-import { buildDashboardRunUrl } from "../github/githubUrls.js";
 import {
   BuildJobStatus,
   createBuildJob,
   getBuildJob as getBuildJobOperation,
   listBuildJobsByWorkflowRun,
 } from "../firestoreData.js";
+import { createCheckRun, getInstallationToken } from "../github/githubApp.js";
+import { buildDashboardRunUrl } from "../github/githubUrls.js";
 import { verifyTeamMembership } from "../team/teamAuth.js";
 
 interface RetryBuildJobRequest {
@@ -19,6 +19,7 @@ interface RetryBuildJobRequest {
 
 interface RetryWorkflowRunRequest {
   workflowRunId: string;
+  workflowFileName?: string;
 }
 
 function requireNonEmptyString(value: unknown, field: string): string {
@@ -168,13 +169,18 @@ export const retryWorkflowRun = onCall<
   }
 
   const workflowRunId = requireNonEmptyString(request.data?.workflowRunId, "workflowRunId");
+  const workflowFileName = stringFromUnknown(request.data?.workflowFileName);
   const jobsResult = await listBuildJobsByWorkflowRun({ workflowRunId });
+  const workflowRunJobs = jobsResult.data.buildJobs as FirebaseFirestore.DocumentData[];
 
-  if (jobsResult.data.buildJobs.length === 0) {
+  const originalJobs = workflowFileName
+    ? workflowRunJobs.filter((job) => job.workflowFileName === workflowFileName)
+    : workflowRunJobs;
+
+  if (originalJobs.length === 0) {
     throw new HttpsError("not-found", "No jobs found for this workflow run");
   }
 
-  const originalJobs = jobsResult.data.buildJobs;
   const teamId = typeof originalJobs[0]?.teamId === "string" ? originalJobs[0].teamId : undefined;
   if (teamId) {
     await verifyTeamMembership(auth, teamId);
@@ -267,6 +273,7 @@ export const retryWorkflowRun = onCall<
 
   logger.info("Workflow run retried", {
     workflowRunId,
+    workflowFileName,
     newWorkflowRunId,
     count: createdJobIds.length,
   });

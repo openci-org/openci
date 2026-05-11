@@ -29,7 +29,9 @@ class BuildJobs extends _$BuildJobs {
         .limit(_buildJobsHistoryLimit);
 
     final initialResult = await query.get();
-    final initialJobs = _sortedBuildJobs(initialResult.docs.map(_buildJobFromDoc));
+    final initialJobs = _sortedBuildJobs(
+      initialResult.docs.map(_buildJobFromDoc),
+    );
     _debugBuildJobsResult('execute', teamId, initialJobs);
     yield initialJobs;
 
@@ -60,10 +62,16 @@ class BuildJobs extends _$BuildJobs {
     ref.invalidateSelf();
   }
 
-  Future<void> retryWorkflowRun(String workflowRunId) async {
+  Future<void> retryWorkflowRun(
+    String workflowRunId, {
+    String? workflowFileName,
+  }) async {
     final functions = firebaseFunctions;
     await functions.httpsCallable('retryWorkflowRun').call({
       'workflowRunId': workflowRunId,
+      ...?workflowFileName == null
+          ? null
+          : {'workflowFileName': workflowFileName},
     });
     ref.invalidateSelf();
   }
@@ -185,4 +193,3 @@ void _debugBuildJobsResult(String source, String teamId, List<BuildJob> jobs) {
     'count=${jobs.length} first=${first?.id} firstCreatedAt=${first?.createdAt.toIso8601String()}',
   );
 }
-
