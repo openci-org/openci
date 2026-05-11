@@ -4,8 +4,14 @@ abstract final class BuildInfo {
   );
   static const sha = String.fromEnvironment('OPENCI_BUILD_SHA');
 
-  static DateTime? get updatedAt {
+  static bool get hasBuildIdentity => sha.isNotEmpty || updatedAtIso.isNotEmpty;
+
+  static DateTime? get updatedAtUtc {
     final parsed = DateTime.tryParse(updatedAtIso);
-    return parsed?.toLocal();
+    return parsed?.toUtc();
+  }
+
+  static DateTime? get updatedAt {
+    return updatedAtUtc?.toLocal();
   }
 }

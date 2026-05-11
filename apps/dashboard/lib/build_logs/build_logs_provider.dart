@@ -5,8 +5,8 @@ import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'logs_provider.freezed.dart';
-part 'logs_provider.g.dart';
+part 'build_logs_provider.freezed.dart';
+part 'build_logs_provider.g.dart';
 
 @riverpod
 Stream<List<BuildLog>> buildLogs(

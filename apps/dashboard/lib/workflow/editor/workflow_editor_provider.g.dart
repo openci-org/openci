@@ -77,7 +77,7 @@ final class WorkflowEditorProvider
   }
 }
 
-String _$workflowEditorHash() => r'59299f400bb5303ff51b183a271aa8690d716471';
+String _$workflowEditorHash() => r'b6cfdea0dc397715a05b1de6edbf6d79b8a76a50';
 
 final class WorkflowEditorFamily extends $Family
     with
