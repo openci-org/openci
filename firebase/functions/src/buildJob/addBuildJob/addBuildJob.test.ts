@@ -15,7 +15,7 @@ const {
   mockGetTeamIdByInstallationId,
   mockMatchesTrigger,
   mockParseWorkflowYaml,
-  mockSaveBuildJobToFirestore,
+  mockSaveBuildJobsToFirestore,
 } = vi.hoisted(() => ({
   mockCreateCheckRun: vi.fn(),
   mockDb: { id: "mock-db" },
@@ -29,7 +29,7 @@ const {
   mockGetTeamIdByInstallationId: vi.fn(),
   mockMatchesTrigger: vi.fn(),
   mockParseWorkflowYaml: vi.fn(),
-  mockSaveBuildJobToFirestore: vi.fn(),
+  mockSaveBuildJobsToFirestore: vi.fn(),
 }));
 
 vi.mock("firebase-admin/firestore", () => ({
@@ -71,7 +71,7 @@ vi.mock("./parseWorkflowYaml.js", () => ({
 }));
 
 vi.mock("./saveBuildJobToFirestore.js", () => ({
-  saveBuildJobToFirestore: (...args: unknown[]) => mockSaveBuildJobToFirestore(...args),
+  saveBuildJobsToFirestore: (...args: unknown[]) => mockSaveBuildJobsToFirestore(...args),
 }));
 
 const { addBuildJob } = await import("./addBuildJob.js");
@@ -100,7 +100,7 @@ describe("addBuildJob", () => {
       token: "installation-token",
       expiresAt: "2026-01-01T00:00:00Z",
     });
-    mockSaveBuildJobToFirestore.mockResolvedValue(undefined);
+    mockSaveBuildJobsToFirestore.mockResolvedValue(undefined);
   });
 
   it("does nothing when no workflow YAML files exist", async () => {
@@ -116,7 +116,7 @@ describe("addBuildJob", () => {
       "https://api.github.com",
     );
     expect(mockCreateCheckRun).not.toHaveBeenCalled();
-    expect(mockSaveBuildJobToFirestore).not.toHaveBeenCalled();
+    expect(mockSaveBuildJobsToFirestore).not.toHaveBeenCalled();
   });
 
   it("filters workflows using the trigger branch when provided", async () => {
@@ -135,7 +135,7 @@ describe("addBuildJob", () => {
     expect(mockMatchesTrigger).toHaveBeenCalledWith(parsedWorkflow.parsed, "pull_request", "main");
     expect(mockExtractJobs).not.toHaveBeenCalled();
     expect(mockCreateCheckRun).not.toHaveBeenCalled();
-    expect(mockSaveBuildJobToFirestore).not.toHaveBeenCalled();
+    expect(mockSaveBuildJobsToFirestore).not.toHaveBeenCalled();
   });
 
   it("creates check runs and saves matched jobs", async () => {
@@ -170,7 +170,7 @@ describe("addBuildJob", () => {
       headSha: "abc123",
       apiBaseUrl: "https://api.github.com",
     });
-    expect(mockSaveBuildJobToFirestore).toHaveBeenCalledWith({
+    expect(mockSaveBuildJobsToFirestore).toHaveBeenCalledWith({
       db: mockDb,
       jobs: [jobWithCheckRun],
       owner: "openci",
