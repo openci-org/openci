@@ -791,7 +791,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                     InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () async {
-                        final result = await FilePicker.platform.pickFiles(
+                        final result = await FilePicker.pickFiles(
                           withData: true,
                         );
                         if (result != null && result.files.isNotEmpty) {
@@ -1256,7 +1256,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                     InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () async {
-                        final result = await FilePicker.platform.pickFiles(
+                        final result = await FilePicker.pickFiles(
                           withData: true,
                         );
                         if (result != null && result.files.isNotEmpty) {
@@ -1731,7 +1731,7 @@ class _SetupDeveloperIdCertificateCard extends HookConsumerWidget {
                     : Icons.check_circle,
                 isComplete: certificateFileName.value != null,
                 onPressed: () async {
-                  final result = await FilePicker.platform.pickFiles(
+                  final result = await FilePicker.pickFiles(
                     type: FileType.custom,
                     allowedExtensions: ['cer', 'crt'],
                     withData: true,
@@ -1901,7 +1901,7 @@ class _DeveloperIdCsrPreview extends StatelessWidget {
               TextButton.icon(
                 onPressed: () async {
                   try {
-                    final path = await FilePicker.platform.saveFile(
+                    final path = await FilePicker.saveFile(
                       dialogTitle: 'CSR を保存',
                       fileName: 'openci-developer-id.certSigningRequest',
                       type: FileType.custom,
@@ -2322,7 +2322,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                           ),
                         ),
                         onPressed: () async {
-                          final result = await FilePicker.platform.pickFiles(
+                          final result = await FilePicker.pickFiles(
                             type: FileType.custom,
                             allowedExtensions: ['p8'],
                             withData: true,
