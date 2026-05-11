@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
 
 import {
   addTeamMember,
@@ -24,12 +25,84 @@ interface InviteTeamMemberRequest extends TeamIdRequest {
   email: string;
 }
 
+interface EnsureUserProfileResponse {
+  userId: string;
+  teamId: string;
+}
+
 function requireNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new HttpsError("invalid-argument", `${field} is required`);
   }
   return value;
 }
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+export const ensureUserProfile = onCall<unknown, Promise<EnsureUserProfileResponse>>(
+  async (request) => {
+    const auth = request.auth;
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "Unauthenticated");
+    }
+
+    const db = getFirestore();
+    const userId = auth.uid;
+    const teamId = userId;
+    const email = asString(auth.token.email);
+    const teamRef = db.collection("teams_v0").doc(teamId);
+    const userRef = db.collection("users_v0").doc(userId);
+
+    await db.runTransaction(async (transaction) => {
+      const [teamSnapshot, userSnapshot] = await Promise.all([
+        transaction.get(teamRef),
+        transaction.get(userRef),
+      ]);
+      const now = FieldValue.serverTimestamp();
+
+      if (!teamSnapshot.exists) {
+        transaction.set(teamRef, {
+          id: teamId,
+          name: email.length > 0 ? email : teamId,
+          members: [userId],
+          installationIds: [],
+          aiEnabled: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      } else if (
+        !(
+          Array.isArray(teamSnapshot.get("members")) &&
+          (teamSnapshot.get("members") as unknown[]).includes(userId)
+        )
+      ) {
+        transaction.update(teamRef, {
+          members: FieldValue.arrayUnion(userId),
+          updatedAt: now,
+        });
+      }
+
+      const existingSelectedTeamId = userSnapshot.exists
+        ? asString(userSnapshot.get("selectedTeamId"))
+        : "";
+      transaction.set(
+        userRef,
+        {
+          id: userId,
+          email,
+          selectedTeamId: existingSelectedTeamId.length > 0 ? existingSelectedTeamId : teamId,
+          ...(!userSnapshot.exists ? { createdAt: now } : {}),
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+    });
+
+    return { userId, teamId };
+  },
+);
 
 async function sendEmail({
   to,
