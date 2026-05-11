@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -48,14 +49,21 @@ class User extends _$User {
 
   Future<OpenCIUser> fetchUser() async {
     final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
+    final currentUser = auth.value;
+    if (currentUser == null) {
       throw Exception('User is not authenticated');
     }
-    final snapshot = await firestore
+    var snapshot = await firestore
         .collection(usersCollection)
-        .doc(currentUserId)
+        .doc(currentUser.uid)
         .get();
+    if (!snapshot.exists) {
+      await _ensureDefaultUserProfile();
+      snapshot = await firestore
+          .collection(usersCollection)
+          .doc(currentUser.uid)
+          .get();
+    }
     return _openCIUserFromSnapshot(snapshot);
   }
 
@@ -141,6 +149,10 @@ class User extends _$User {
       'selectedBranch': branch,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  Future<void> _ensureDefaultUserProfile() async {
+    await firebaseFunctions.httpsCallable('ensureUserProfile').call<void>();
   }
 }
 
