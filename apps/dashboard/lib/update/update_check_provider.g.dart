@@ -41,7 +41,7 @@ final class UpdateCheckProvider
   }
 }
 
-String _$updateCheckHash() => r'cd3bcd5e502c6fd42a9039559cb9de646e1d861a';
+String _$updateCheckHash() => r'3dec5602ef624f1fc82fbdc7033b5ec0d4bfa626';
 
 abstract class _$UpdateCheck extends $Notifier<UpdateCheckState> {
   UpdateCheckState build();
