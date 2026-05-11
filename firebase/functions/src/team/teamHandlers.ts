@@ -42,6 +42,7 @@ function asString(value: unknown): string {
 }
 
 export const ensureUserProfile = onCall<unknown, Promise<EnsureUserProfileResponse>>(
+  { region: "asia-northeast1" },
   async (request) => {
     const auth = request.auth;
     if (!auth) {
