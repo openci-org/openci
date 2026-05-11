@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_info.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/firebase/firestore.dart'
@@ -25,6 +26,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _functionsRegion = 'asia-northeast1';
@@ -40,6 +42,7 @@ const _compactColumnCollapsedLimit = 0;
 const _mobileDragStartDelay = Duration(milliseconds: 420);
 const _defaultDailyWeightTarget = 20;
 const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
+const _openCiRepositoryUrl = 'https://github.com/openci-org/openci';
 
 enum BoardViewMode { standard, overview }
 
@@ -2209,6 +2212,8 @@ class _DesktopRailAccountSection extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const _DesktopRailBuildInfo(extended: false),
+            if (_railBuildUpdatedAt != null) const SizedBox(height: 4),
             if (onSwitchTeam != null) ...[
               IconButton(
                 tooltip: workspaceName,
@@ -2233,6 +2238,8 @@ class _DesktopRailAccountSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _DesktopRailBuildInfo(extended: true),
+          if (_railBuildUpdatedAt != null) const SizedBox(height: 10),
           if (onSwitchTeam != null) ...[
             _DesktopRailActionTile(
               icon: Icons.groups_2_outlined,
@@ -2250,6 +2257,180 @@ class _DesktopRailAccountSection extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DesktopRailBuildInfo extends StatelessWidget {
+  const _DesktopRailBuildInfo({required this.extended});
+
+  final bool extended;
+
+  @override
+  Widget build(BuildContext context) {
+    final updatedAt = _railBuildUpdatedAt;
+    if (updatedAt == null) {
+      return const SizedBox.shrink();
+    }
+
+    final fullText = _formatRailBuildUpdatedText(updatedAt);
+    if (!extended) {
+      return Tooltip(
+        message: '最終更新: $fullText',
+        child: _AnimatedRailInk(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => unawaited(_launchUrlExternal(_openCiRepositoryUrl)),
+          child: Ink(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: const Icon(
+              Icons.update_rounded,
+              size: 20,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _AnimatedRailInk(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => unawaited(_launchUrlExternal(_openCiRepositoryUrl)),
+      child: Ink(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.update_rounded,
+                size: 17,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '最終更新',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    fullText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedRailInk extends StatefulWidget {
+  const _AnimatedRailInk({
+    required this.borderRadius,
+    required this.onTap,
+    required this.child,
+  });
+
+  final BorderRadius borderRadius;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_AnimatedRailInk> createState() => _AnimatedRailInkState();
+}
+
+class _AnimatedRailInkState extends State<_AnimatedRailInk> {
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: widget.borderRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: widget.borderRadius,
+        mouseCursor: SystemMouseCursors.click,
+        onTap: widget.onTap,
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return const Color(0xFF2563EB).withValues(alpha: 0.14);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return const Color(0xFF2563EB).withValues(alpha: 0.08);
+          }
+          return null;
+        }),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+String _formatRailBuildUpdatedText(DateTime updatedAt) {
+  final formattedDate = DateFormat('MM/dd HH:mm').format(updatedAt);
+  final sha = _railBuildSha;
+  final shaSuffix = sha.isEmpty ? '' : ' ($sha)';
+  return '$formattedDate$shaSuffix';
+}
+
+DateTime? get _railBuildUpdatedAt {
+  final updatedAt = BuildInfo.updatedAt;
+  if (updatedAt != null) {
+    return updatedAt;
+  }
+
+  return kDebugMode
+      ? DateTime.now().subtract(const Duration(minutes: 42))
+      : null;
+}
+
+String get _railBuildSha {
+  if (BuildInfo.sha.isNotEmpty) {
+    return BuildInfo.sha;
+  }
+
+  return kDebugMode ? 'mock' : '';
 }
 
 class _DesktopRailActionTile extends StatelessWidget {
