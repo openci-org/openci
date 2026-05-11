@@ -9,17 +9,25 @@ part of 'build_logs_provider.dart';
 _BuildLog _$BuildLogFromJson(Map<String, dynamic> json) => _BuildLog(
   message: json['message'] as String,
   level: json['level'] as String,
-  timestamp: const DateTimeConverter().fromJson(json['timestamp']),
+  timestamp: _$JsonConverterFromJson<Object, DateTime>(
+    json['timestamp'],
+    const DateTimeConverter().fromJson,
+  ),
 );
 
 Map<String, dynamic> _$BuildLogToJson(_BuildLog instance) => <String, dynamic>{
   'message': instance.message,
   'level': instance.level,
-  'timestamp': _$JsonConverterToJson<dynamic, DateTime>(
+  'timestamp': _$JsonConverterToJson<Object, DateTime>(
     instance.timestamp,
     const DateTimeConverter().toJson,
   ),
 };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
 
 Json? _$JsonConverterToJson<Json, Value>(
   Value? value,
@@ -46,11 +54,7 @@ final class BuildLogsProvider
     with $FutureModifier<List<BuildLog>>, $StreamProvider<List<BuildLog>> {
   BuildLogsProvider._({
     required BuildLogsFamily super.from,
-    required (
-      String,
-      String,
-    )
-    super.argument,
+    required (String, String) super.argument,
   }) : super(
          retry: null,
          name: r'buildLogsProvider',
@@ -77,17 +81,8 @@ final class BuildLogsProvider
 
   @override
   Stream<List<BuildLog>> create(Ref ref) {
-    final argument =
-        this.argument
-            as (
-              String,
-              String,
-            );
-    return buildLogs(
-      ref,
-      argument.$1,
-      argument.$2,
-    );
+    final argument = this.argument as (String, String);
+    return buildLogs(ref, argument.$1, argument.$2);
   }
 
   @override
@@ -101,17 +96,10 @@ final class BuildLogsProvider
   }
 }
 
-String _$buildLogsHash() => r'55b7b69b0cf6c73b3a52888305ecbd9b5cedd765';
+String _$buildLogsHash() => r'f437bb8d4dc3064095e941247706ce520bfbbb4f';
 
 final class BuildLogsFamily extends $Family
-    with
-        $FunctionalFamilyOverride<
-          Stream<List<BuildLog>>,
-          (
-            String,
-            String,
-          )
-        > {
+    with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
   BuildLogsFamily._()
     : super(
         retry: null,
@@ -121,16 +109,8 @@ final class BuildLogsFamily extends $Family
         isAutoDispose: true,
       );
 
-  BuildLogsProvider call(
-    String buildJobId,
-    String runId,
-  ) => BuildLogsProvider._(
-    argument: (
-      buildJobId,
-      runId,
-    ),
-    from: this,
-  );
+  BuildLogsProvider call(String buildJobId, String runId) =>
+      BuildLogsProvider._(argument: (buildJobId, runId), from: this);
 
   @override
   String toString() => r'buildLogsProvider';
