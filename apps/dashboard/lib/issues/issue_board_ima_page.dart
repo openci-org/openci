@@ -25,6 +25,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _functionsRegion = 'asia-northeast1';
@@ -11120,25 +11121,18 @@ class IssueIdCopyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 22,
-      child: IconButton(
-        tooltip: 'Issue IDをコピー',
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        onPressed: () => unawaited(
-          _copyTextToClipboard(
-            context,
-            text: issueId,
-            successMessage: 'Issue IDをコピーしました',
-          ),
-        ),
-        icon: const Icon(
-          Icons.copy_rounded,
-          size: 13,
-          color: Color(0xFF94A3B8),
-        ),
+    return _CopyFeedbackIconButton(
+      tooltip: 'Issue IDをコピー',
+      copiedTooltip: 'Issue IDをコピーしました',
+      text: issueId,
+      successMessage: 'Issue IDをコピーしました',
+      icon: const Icon(
+        Icons.copy_rounded,
+        size: 13,
+        color: Color(0xFF94A3B8),
       ),
+      iconSize: 13,
+      dimension: 22,
     );
   }
 }
@@ -11200,20 +11194,101 @@ class GitHubLinkCopyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
+    return _CopyFeedbackIconButton(
+      tooltip: 'GitHubリンクをコピー',
+      copiedTooltip: 'GitHubリンクをコピーしました',
+      text: url,
+      successMessage: 'GitHubリンクをコピーしました',
+      icon: const _CopyLinkIcon(),
+      iconSize: 14,
       dimension: 26,
+    );
+  }
+}
+
+class _CopyLinkIcon extends StatelessWidget {
+  const _CopyLinkIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Symbols.link_2_rounded,
+      size: 17,
+      color: Color(0xFF475569),
+    );
+  }
+}
+
+class _CopyFeedbackIconButton extends StatefulWidget {
+  const _CopyFeedbackIconButton({
+    required this.tooltip,
+    required this.copiedTooltip,
+    required this.text,
+    required this.successMessage,
+    required this.icon,
+    required this.iconSize,
+    required this.dimension,
+  });
+
+  final String tooltip;
+  final String copiedTooltip;
+  final String text;
+  final String successMessage;
+  final Widget icon;
+  final double iconSize;
+  final double dimension;
+
+  @override
+  State<_CopyFeedbackIconButton> createState() =>
+      _CopyFeedbackIconButtonState();
+}
+
+class _CopyFeedbackIconButtonState extends State<_CopyFeedbackIconButton> {
+  bool _copied = false;
+  int _copyVersion = 0;
+
+  Future<void> _handleCopy() async {
+    final version = ++_copyVersion;
+    await _copyTextToClipboard(
+      context,
+      text: widget.text,
+      successMessage: widget.successMessage,
+    );
+    if (!mounted) return;
+    setState(() => _copied = true);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!mounted || version != _copyVersion) return;
+    setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: widget.dimension,
       child: IconButton(
-        tooltip: 'GitHubリンクをコピー',
+        tooltip: _copied ? widget.copiedTooltip : widget.tooltip,
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
-        onPressed: () => unawaited(
-          _copyTextToClipboard(
-            context,
-            text: url,
-            successMessage: 'GitHubリンクをコピーしました',
-          ),
+        onPressed: () => unawaited(_handleCopy()),
+        icon: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) {
+            return ScaleTransition(scale: animation, child: child);
+          },
+          child: _copied
+              ? Icon(
+                  Icons.check_rounded,
+                  key: const ValueKey('copied'),
+                  size: widget.iconSize,
+                  color: const Color(0xFF22C55E),
+                )
+              : KeyedSubtree(
+                  key: const ValueKey('copyIcon'),
+                  child: widget.icon,
+                ),
         ),
-        icon: const Icon(Icons.link_rounded, size: 16),
       ),
     );
   }
