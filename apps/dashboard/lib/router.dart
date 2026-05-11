@@ -38,10 +38,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/',
-        pageBuilder: (context, state) => _responsivePage(
-          key: state.pageKey,
-          child: const WorkspaceRoutePage(),
-        ),
+        redirect: (context, state) =>
+            state.uri.path == '/' ? '/workspace' : null,
         routes: [
           GoRoute(
             path: 'workspace',
@@ -132,11 +130,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (isAuthed && onAuthRoute) {
         if (redirectTarget != null && redirectTarget.isNotEmpty) {
-          return redirectTarget;
+          return redirectTarget == '/' ? '/workspace' : redirectTarget;
         }
-        return '/workspace';
-      }
-      if (isAuthed && state.uri.path == '/') {
         return '/workspace';
       }
       return null;
