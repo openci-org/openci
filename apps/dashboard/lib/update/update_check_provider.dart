@@ -73,8 +73,15 @@ class UpdateCheck extends _$UpdateCheck {
         latest: latest,
         isUpdateAvailable: isUpdateAvailable,
       );
-    } catch (_) {
-      rethrow;
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'update_check',
+          context: ErrorDescription('checking for web app updates'),
+        ),
+      );
     }
   }
 
