@@ -29,7 +29,9 @@ class BuildJobs extends _$BuildJobs {
         .limit(_buildJobsHistoryLimit);
 
     final initialResult = await query.get();
-    final initialJobs = _sortedBuildJobs(initialResult.docs.map(_buildJobFromDoc));
+    final initialJobs = _sortedBuildJobs(
+      initialResult.docs.map(_buildJobFromDoc),
+    );
     _debugBuildJobsResult('execute', teamId, initialJobs);
     yield initialJobs;
 
@@ -87,11 +89,6 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
       });
 }
 
-@riverpod
-Future<String?> workflowName(Ref ref, BuildJob buildJob) async {
-  return buildJob.workflowName;
-}
-
 @freezed
 abstract class BuildJob with _$BuildJob {
   const factory BuildJob({
@@ -99,9 +96,9 @@ abstract class BuildJob with _$BuildJob {
     required BuildJobStatus status,
     required String owner,
     required String repo,
+    required String workflowName,
     String? teamId,
     String? workflowId,
-    String? workflowName,
     String? workflowFileName,
     String? commitSha,
     int? pullRequestNumber,
@@ -148,9 +145,9 @@ BuildJob _buildJobFromData(String id, Map<String, dynamic> job) {
     status: buildJobStatusFromFirestore(job['status']),
     owner: job['owner'] as String? ?? '',
     repo: job['repo'] as String? ?? '',
+    workflowName: job['workflowName'] as String,
     teamId: job['teamId'] as String?,
     workflowId: job['workflowId'] as String?,
-    workflowName: job['workflowName'] as String?,
     workflowFileName: job['workflowFileName'] as String?,
     commitSha: job['commitSha'] as String?,
     pullRequestNumber: job['pullRequestNumber'] as int?,
@@ -185,4 +182,3 @@ void _debugBuildJobsResult(String source, String teamId, List<BuildJob> jobs) {
     'count=${jobs.length} first=${first?.id} firstCreatedAt=${first?.createdAt.toIso8601String()}',
   );
 }
-
