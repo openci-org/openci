@@ -7,8 +7,8 @@ setGlobalOptions({
     "GITHUB_APP_ID",
     "GITHUB_PRIVATE_KEY",
     "GITHUB_WEBHOOK_SECRET",
-    "ANTHROPIC_API_KEY",
     "CURSOR_API_KEY",
+    "ANTHROPIC_API_KEY",
   ],
 });
 

@@ -1,7 +1,5 @@
 name: Flutter Dashboard CI/CD (iOS, macOS & Web)
 
-This is a test.
-
 on:
   push:
     branches:
