@@ -8499,6 +8499,10 @@ class ReviewPullRequestGroupView extends StatelessWidget {
           )];
     final title = pullRequest?.title ?? 'PR未紐づけ';
     final url = pullRequest?.url;
+    final isOpenPullRequest =
+        pullRequest != null &&
+        !pullRequest.merged &&
+        pullRequest.state.toLowerCase() == 'open';
     final stateLabel = pullRequest == null
         ? 'no PR'
         : pullRequest.merged
@@ -8625,13 +8629,14 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                             runSpacing: 6,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              _ReviewGroupPill(
-                                label: stateLabel,
-                                color: stateColor,
-                                icon: pullRequest?.merged == true
-                                    ? Icons.call_merge_rounded
-                                    : Icons.circle_rounded,
-                              ),
+                              if (!isOpenPullRequest)
+                                _ReviewGroupPill(
+                                  label: stateLabel,
+                                  color: stateColor,
+                                  icon: pullRequest?.merged == true
+                                      ? Icons.call_merge_rounded
+                                      : Icons.circle_rounded,
+                                ),
                               BuildStatusBadge(status: buildStatus),
                               if (pullRequest != null)
                                 const _ReviewGroupPill(
