@@ -30,14 +30,16 @@ class BuildJobs extends _$BuildJobs {
 
     final initialResult = await query.get();
     final initialJobs = _sortedBuildJobs(
-      initialResult.docs.map(_buildJobFromDoc),
+      initialResult.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
     );
     _debugBuildJobsResult('execute', teamId, initialJobs);
     yield initialJobs;
 
     yield* query.snapshots().map(
       (result) {
-        final jobs = _sortedBuildJobs(result.docs.map(_buildJobFromDoc));
+        final jobs = _sortedBuildJobs(
+          result.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
+        );
         _debugBuildJobsResult('subscribe', teamId, jobs);
         return jobs;
       },
@@ -138,10 +140,6 @@ Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
   final completedAt = buildJob.completedAt;
   if (completedAt == null) return Stream.value(null);
   return Stream.value(completedAt.difference(buildJob.createdAt));
-}
-
-BuildJob _buildJobFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-  return _buildJobFromData(doc.id, doc.data());
 }
 
 BuildJob? _buildJobFromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
