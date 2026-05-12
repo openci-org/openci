@@ -34,6 +34,7 @@ export const firestoreCollectionPaths = {
   env: "environment_variables_v0",
   workflows: "workflows_v1",
   buildJobs: "build_jobs_v0",
+  ciNotifications: "ci_notifications_v0",
   workspaces: "workspaces",
 };
 
@@ -379,6 +380,36 @@ async function listWaitingBuildJobs(...args) {
   return { data: { buildJobs } };
 }
 
+async function tryMarkCiNotificationSent(...args) {
+  const vars = varsFromArgs(...args);
+  const id = vars.id;
+  if (typeof id !== "string" || id.length === 0) {
+    return { data: { inserted: false } };
+  }
+
+  const ref = db().collection(firestoreCollectionPaths.ciNotifications).doc(id);
+  const inserted = await db().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) return false;
+    tx.set(
+      ref,
+      withTimestamps(
+        {
+          id: ref.id,
+          owner: vars.owner ?? null,
+          repo: vars.repo ?? null,
+          pullRequestNumber: vars.pullRequestNumber ?? null,
+          headSha: vars.headSha ?? null,
+          kind: vars.kind ?? "success",
+        },
+        true,
+      ),
+    );
+    return true;
+  });
+  return { data: { inserted } };
+}
+
 async function claimQueuedBuildJob(...args) {
   const vars = varsFromArgs(...args);
   const platform = String(vars.runsOnPattern ?? "").includes("macos") ? "macos" : "ubuntu";
@@ -650,6 +681,7 @@ export {
   listWorkerSecrets,
   listWorkflowsForTeam,
   reinviteInvitation,
+  tryMarkCiNotificationSent,
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
   updateBuildRunStatusForWorker,
