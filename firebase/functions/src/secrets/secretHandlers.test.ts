@@ -232,8 +232,7 @@ describe("secret handlers", () => {
     mockFindSecretByNameForTeam.mockImplementation(({ name }: { name: string }) =>
       Promise.resolve({
         data: {
-          secrets:
-            name === "OPENCI_DEVELOPER_ID_CERTIFICATE_P12" ? [{ name }] : [],
+          secrets: name === "OPENCI_DEVELOPER_ID_CERTIFICATE_P12" ? [{ name }] : [],
         },
       }),
     );

@@ -9,16 +9,15 @@ import { linkGitHubIssueToPullRequest } from "../dashboard/linkGitHubIssueToPull
 import { syncGitHubPullRequestStatusToDashboardIssueStatus } from "../dashboard/syncGitHubPullRequestStatusToDashboardIssueStatus/syncGitHubPullRequestStatusToDashboardIssueStatus.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
 import { githubAppId, githubPrivateKey } from "./githubApp.js";
-import {
-  branchFromRef,
-  ownerFromFullName,
-  parseWebhookRequest,
-} from "./webhookPayloadHelpers.js";
+import { notifyPullRequestCiPassedIfReady } from "./pullRequestCiNotifications.js";
+import { branchFromRef, ownerFromFullName, parseWebhookRequest } from "./webhookPayloadHelpers.js";
 
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : undefined;
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 function asString(value: unknown): string | undefined {
@@ -27,6 +26,12 @@ function asString(value: unknown): string | undefined {
 
 function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function firstCheckRunPullRequestNumber(
+  pullRequests: Array<{ number?: number }> | undefined,
+): number | undefined {
+  return pullRequests?.find((pullRequest) => typeof pullRequest.number === "number")?.number;
 }
 
 function requireWebhookInstallationId(installation: { id?: number } | undefined): number {
@@ -208,6 +213,26 @@ export const githubWebhook = onRequest(
         payload,
         handler: async () => {
           await syncGitHubPullRequestStatusToDashboardIssueStatus(db, payload);
+        },
+      });
+    });
+
+    webhooks.on("check_run.completed", async ({ name, payload }) => {
+      await runWebhookHandler({
+        handlerName: "notifyPullRequestCiPassedIfReady",
+        deliveryId: webhookRequest.deliveryId,
+        eventType: name,
+        payload,
+        handler: async () => {
+          if (payload.check_run.conclusion !== "success") return;
+          const installationId = requireWebhookInstallationId(payload.installation);
+          await notifyPullRequestCiPassedIfReady({
+            installationId,
+            owner: payload.repository.owner.login,
+            repo: payload.repository.name,
+            headSha: payload.check_run.head_sha,
+            pullRequestNumber: firstCheckRunPullRequestNumber(payload.check_run.pull_requests),
+          });
         },
       });
     });

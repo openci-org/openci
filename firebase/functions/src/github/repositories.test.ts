@@ -43,13 +43,8 @@ vi.mock("./githubApp", () => ({
 
 const testEnv = firebaseFunctionsTest();
 
-const {
-  createWorkflowFile,
-  listBranches,
-  listDirectories,
-  listRepositories,
-  listWorkflowFiles,
-} = await import("./repositories");
+const { createWorkflowFile, listBranches, listDirectories, listRepositories, listWorkflowFiles } =
+  await import("./repositories");
 
 const wrappedListRepositories = testEnv.wrap(listRepositories) as (req: {
   data: { teamId?: string };
@@ -388,4 +383,3 @@ describe("createWorkflowFile", () => {
     expect(mockGithubPatch).toHaveBeenCalledOnce();
   });
 });
-

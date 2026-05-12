@@ -11,6 +11,37 @@ export interface InstallationToken {
   expiresAt: string;
 }
 
+function graphqlErrorSummary(errors: unknown): string {
+  if (errors === undefined) return "";
+  try {
+    return ` ${JSON.stringify(errors)}`;
+  } catch {
+    return ` ${String(errors)}`;
+  }
+}
+
+export class GitHubGraphqlError extends Error {
+  readonly status: number;
+  readonly statusText: string;
+  readonly errors: unknown;
+
+  constructor({
+    status,
+    statusText,
+    errors,
+  }: {
+    status: number;
+    statusText: string;
+    errors: unknown;
+  }) {
+    super(`GitHub GraphQL request failed: ${status} ${statusText}${graphqlErrorSummary(errors)}`);
+    this.name = "GitHubGraphqlError";
+    this.status = status;
+    this.statusText = statusText;
+    this.errors = errors;
+  }
+}
+
 async function createOctokit(token: string, apiBaseUrl: string) {
   const { Octokit } = await import("@octokit/rest");
   return new Octokit({
@@ -175,7 +206,11 @@ export async function githubGraphql<T>(
   });
   const data = (await response.json()) as T & { errors?: unknown };
   if (!response.ok || data.errors !== undefined) {
-    throw new Error(`GitHub GraphQL request failed: ${response.status} ${response.statusText}`);
+    throw new GitHubGraphqlError({
+      status: response.status,
+      statusText: response.statusText,
+      errors: data.errors,
+    });
   }
   return data;
 }

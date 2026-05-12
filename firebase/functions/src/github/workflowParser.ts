@@ -88,4 +88,3 @@ export function extractJobs(parsed: JsonMap): JobInfo[] {
 
   return jobInfos;
 }
-
