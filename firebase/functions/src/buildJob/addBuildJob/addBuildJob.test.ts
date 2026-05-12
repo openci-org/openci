@@ -71,7 +71,7 @@ vi.mock("./parseWorkflowYaml.js", () => ({
 }));
 
 vi.mock("./saveBuildJobToFirestore.js", () => ({
-  saveBuildJobToFirestore: (...args: unknown[]) => mockSaveBuildJobToFirestore(...args),
+  saveBuildJobsToFirestore: (...args: unknown[]) => mockSaveBuildJobToFirestore(...args),
 }));
 
 const { addBuildJob } = await import("./addBuildJob.js");
