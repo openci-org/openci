@@ -38,11 +38,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/',
-        pageBuilder: (context, state) => _responsivePage(
-          key: state.pageKey,
-          child: const HomeRoutePage(),
-        ),
+        redirect: (context, state) =>
+            state.uri.path == '/' ? '/workspace' : null,
         routes: [
+          GoRoute(
+            path: 'workspace',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const WorkspaceRoutePage(),
+            ),
+          ),
           GoRoute(
             path: 'runs',
             pageBuilder: (context, state) => _responsivePage(
@@ -125,9 +130,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (isAuthed && onAuthRoute) {
         if (redirectTarget != null && redirectTarget.isNotEmpty) {
-          return redirectTarget;
+          return redirectTarget == '/' ? '/workspace' : redirectTarget;
         }
-        return '/';
+        return '/workspace';
       }
       return null;
     },
@@ -172,8 +177,8 @@ Page<void> _responsivePage({
   return MaterialPage<void>(key: key, child: child);
 }
 
-class HomeRoutePage extends HookConsumerWidget {
-  const HomeRoutePage({super.key});
+class WorkspaceRoutePage extends HookConsumerWidget {
+  const WorkspaceRoutePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -203,7 +208,7 @@ class HomeRoutePage extends HookConsumerWidget {
           ),
           error: asyncErrorWidget,
           data: (_) {
-            return const WorkflowListPage();
+            return const WorkspacePage();
           },
         );
       },
@@ -244,7 +249,7 @@ class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
             leading: IconButton(
               tooltip: 'ワークスペースに戻る',
               icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => context.go('/'),
+              onPressed: () => context.go('/workspace'),
             ),
           ),
           body: child,

@@ -21,7 +21,7 @@ class WorkflowsPage extends ConsumerWidget {
         leading: IconButton(
           tooltip: 'ワークスペースに戻る',
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
+          onPressed: () => context.go('/workspace'),
         ),
         actions: [
           IconButton(

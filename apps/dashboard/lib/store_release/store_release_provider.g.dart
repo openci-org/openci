@@ -36,7 +36,7 @@ final class IsAscConfiguredProvider
   IsAscConfigured create() => IsAscConfigured();
 }
 
-String _$isAscConfiguredHash() => r'cb89d0ae7a256c29a6852189bfe7483ed3aecc46';
+String _$isAscConfiguredHash() => r'2fb815f059cbbc9b7b49503b70483ed44e83bf0d';
 
 /// Whether ASC API credentials are configured for the current team.
 

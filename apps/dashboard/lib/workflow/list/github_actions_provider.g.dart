@@ -71,7 +71,7 @@ final class SearchGitHubActionsProvider
 }
 
 String _$searchGitHubActionsHash() =>
-    r'1ba475a8fedf4a875c3d86430365d8111dc044fa';
+    r'65efca0fb75137e24eb74bf59a06df946f54cd0d';
 
 final class SearchGitHubActionsFamily extends $Family
     with
@@ -236,7 +236,7 @@ final class ActionTagsProvider
   }
 }
 
-String _$actionTagsHash() => r'3423eab79236ae63013478bf9fd4e2986b477da1';
+String _$actionTagsHash() => r'667b073f320750a4dbd37a80c21823140e468488';
 
 final class ActionTagsFamily extends $Family
     with

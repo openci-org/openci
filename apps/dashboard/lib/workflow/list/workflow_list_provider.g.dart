@@ -33,7 +33,7 @@ final class WorkflowListProvider
   WorkflowList create() => WorkflowList();
 }
 
-String _$workflowListHash() => r'f6a8e9bf1fc7de3aed250db1befd347b1c48b3c1';
+String _$workflowListHash() => r'024a541f49e77ea2521a4ec125c78d981510710b';
 
 abstract class _$WorkflowList extends $StreamNotifier<List<Workflow>> {
   Stream<List<Workflow>> build();

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_info.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/firebase/firestore.dart'
@@ -25,6 +26,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _functionsRegion = 'asia-northeast1';
@@ -40,6 +43,7 @@ const _compactColumnCollapsedLimit = 0;
 const _mobileDragStartDelay = Duration(milliseconds: 420);
 const _defaultDailyWeightTarget = 20;
 const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
+const _openCiRepositoryUrl = 'https://github.com/openci-org/openci';
 
 enum BoardViewMode { standard, overview }
 
@@ -2209,6 +2213,8 @@ class _DesktopRailAccountSection extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const _DesktopRailBuildInfo(extended: false),
+            if (_railBuildUpdatedAt != null) const SizedBox(height: 4),
             if (onSwitchTeam != null) ...[
               IconButton(
                 tooltip: workspaceName,
@@ -2233,6 +2239,8 @@ class _DesktopRailAccountSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _DesktopRailBuildInfo(extended: true),
+          if (_railBuildUpdatedAt != null) const SizedBox(height: 10),
           if (onSwitchTeam != null) ...[
             _DesktopRailActionTile(
               icon: Icons.groups_2_outlined,
@@ -2250,6 +2258,180 @@ class _DesktopRailAccountSection extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DesktopRailBuildInfo extends StatelessWidget {
+  const _DesktopRailBuildInfo({required this.extended});
+
+  final bool extended;
+
+  @override
+  Widget build(BuildContext context) {
+    final updatedAt = _railBuildUpdatedAt;
+    if (updatedAt == null) {
+      return const SizedBox.shrink();
+    }
+
+    final fullText = _formatRailBuildUpdatedText(updatedAt);
+    if (!extended) {
+      return Tooltip(
+        message: '最終更新: $fullText',
+        child: _AnimatedRailInk(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => unawaited(_launchUrlExternal(_openCiRepositoryUrl)),
+          child: Ink(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: const Icon(
+              Icons.update_rounded,
+              size: 20,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _AnimatedRailInk(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => unawaited(_launchUrlExternal(_openCiRepositoryUrl)),
+      child: Ink(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.update_rounded,
+                size: 17,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '最終更新',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    fullText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedRailInk extends StatefulWidget {
+  const _AnimatedRailInk({
+    required this.borderRadius,
+    required this.onTap,
+    required this.child,
+  });
+
+  final BorderRadius borderRadius;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_AnimatedRailInk> createState() => _AnimatedRailInkState();
+}
+
+class _AnimatedRailInkState extends State<_AnimatedRailInk> {
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: widget.borderRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: widget.borderRadius,
+        mouseCursor: SystemMouseCursors.click,
+        onTap: widget.onTap,
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return const Color(0xFF2563EB).withValues(alpha: 0.14);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return const Color(0xFF2563EB).withValues(alpha: 0.08);
+          }
+          return null;
+        }),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+String _formatRailBuildUpdatedText(DateTime updatedAt) {
+  final formattedDate = DateFormat('MM/dd HH:mm').format(updatedAt);
+  final sha = _railBuildSha;
+  final shaSuffix = sha.isEmpty ? '' : ' ($sha)';
+  return '$formattedDate$shaSuffix';
+}
+
+DateTime? get _railBuildUpdatedAt {
+  final updatedAt = BuildInfo.updatedAt;
+  if (updatedAt != null) {
+    return updatedAt;
+  }
+
+  return kDebugMode
+      ? DateTime.now().subtract(const Duration(minutes: 42))
+      : null;
+}
+
+String get _railBuildSha {
+  if (BuildInfo.sha.isNotEmpty) {
+    return BuildInfo.sha;
+  }
+
+  return kDebugMode ? 'mock' : '';
 }
 
 class _DesktopRailActionTile extends StatelessWidget {
@@ -4443,6 +4625,7 @@ class _RecentRunSummary {
     required this.repo,
     required this.createdAt,
     required this.workflowName,
+    required this.workflowFileName,
     required this.jobKey,
     required this.branch,
     required this.workflowRunId,
@@ -4455,6 +4638,7 @@ class _RecentRunSummary {
   final String repo;
   final DateTime createdAt;
   final String workflowName;
+  final String workflowFileName;
   final String jobKey;
   final String branch;
   final String workflowRunId;
@@ -4463,6 +4647,9 @@ class _RecentRunSummary {
   String get repository => '$owner/$repo';
 
   String get workflowTitle => workflowName.isEmpty ? repository : workflowName;
+
+  String get workflowRunGroupKey =>
+      '${workflowRunId.isEmpty ? id : workflowRunId}:$workflowFileName';
 
   static _RecentRunSummary? fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
@@ -4478,6 +4665,7 @@ class _RecentRunSummary {
             _asDate(data['createdAt']) ??
             DateTime.fromMillisecondsSinceEpoch(0),
         workflowName: _asString(data['workflowName']),
+        workflowFileName: _asString(data['workflowFileName']),
         jobKey: _asString(data['jobKey']),
         branch: _asString(data['branch']),
         workflowRunId: _asString(data['workflowRunId']),
@@ -4522,21 +4710,16 @@ class CardBuildStatus {
     final selectedWorkflowKeys = <String>{};
     final selectedRunIds = <String>{};
     for (final run in sortedRuns) {
-      final workflowKey = run.workflowTitle;
+      final workflowKey = '${run.workflowTitle}:${run.workflowFileName}';
       if (!selectedWorkflowKeys.add(workflowKey)) {
         continue;
       }
-      selectedRunIds.add(
-        run.workflowRunId.isEmpty ? run.id : run.workflowRunId,
-      );
+      selectedRunIds.add(run.workflowRunGroupKey);
     }
     final currentRuns =
         [
           for (final run in sortedRuns)
-            if (selectedRunIds.contains(
-              run.workflowRunId.isEmpty ? run.id : run.workflowRunId,
-            ))
-              run,
+            if (selectedRunIds.contains(run.workflowRunGroupKey)) run,
         ]..sort((a, b) {
           final workflowCompare = a.workflowTitle.compareTo(b.workflowTitle);
           if (workflowCompare != 0) {
@@ -11120,25 +11303,18 @@ class IssueIdCopyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 22,
-      child: IconButton(
-        tooltip: 'Issue IDをコピー',
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        onPressed: () => unawaited(
-          _copyTextToClipboard(
-            context,
-            text: issueId,
-            successMessage: 'Issue IDをコピーしました',
-          ),
-        ),
-        icon: const Icon(
-          Icons.copy_rounded,
-          size: 13,
-          color: Color(0xFF94A3B8),
-        ),
+    return _CopyFeedbackIconButton(
+      tooltip: 'Issue IDをコピー',
+      copiedTooltip: 'Issue IDをコピーしました',
+      text: issueId,
+      successMessage: 'Issue IDをコピーしました',
+      icon: const Icon(
+        Icons.copy_rounded,
+        size: 13,
+        color: Color(0xFF94A3B8),
       ),
+      iconSize: 13,
+      dimension: 22,
     );
   }
 }
@@ -11200,20 +11376,101 @@ class GitHubLinkCopyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
+    return _CopyFeedbackIconButton(
+      tooltip: 'GitHubリンクをコピー',
+      copiedTooltip: 'GitHubリンクをコピーしました',
+      text: url,
+      successMessage: 'GitHubリンクをコピーしました',
+      icon: const _CopyLinkIcon(),
+      iconSize: 14,
       dimension: 26,
+    );
+  }
+}
+
+class _CopyLinkIcon extends StatelessWidget {
+  const _CopyLinkIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Symbols.link_2_rounded,
+      size: 17,
+      color: Color(0xFF475569),
+    );
+  }
+}
+
+class _CopyFeedbackIconButton extends StatefulWidget {
+  const _CopyFeedbackIconButton({
+    required this.tooltip,
+    required this.copiedTooltip,
+    required this.text,
+    required this.successMessage,
+    required this.icon,
+    required this.iconSize,
+    required this.dimension,
+  });
+
+  final String tooltip;
+  final String copiedTooltip;
+  final String text;
+  final String successMessage;
+  final Widget icon;
+  final double iconSize;
+  final double dimension;
+
+  @override
+  State<_CopyFeedbackIconButton> createState() =>
+      _CopyFeedbackIconButtonState();
+}
+
+class _CopyFeedbackIconButtonState extends State<_CopyFeedbackIconButton> {
+  bool _copied = false;
+  int _copyVersion = 0;
+
+  Future<void> _handleCopy() async {
+    final version = ++_copyVersion;
+    await _copyTextToClipboard(
+      context,
+      text: widget.text,
+      successMessage: widget.successMessage,
+    );
+    if (!mounted) return;
+    setState(() => _copied = true);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!mounted || version != _copyVersion) return;
+    setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: widget.dimension,
       child: IconButton(
-        tooltip: 'GitHubリンクをコピー',
+        tooltip: _copied ? widget.copiedTooltip : widget.tooltip,
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
-        onPressed: () => unawaited(
-          _copyTextToClipboard(
-            context,
-            text: url,
-            successMessage: 'GitHubリンクをコピーしました',
-          ),
+        onPressed: () => unawaited(_handleCopy()),
+        icon: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) {
+            return ScaleTransition(scale: animation, child: child);
+          },
+          child: _copied
+              ? Icon(
+                  Icons.check_rounded,
+                  key: const ValueKey('copied'),
+                  size: widget.iconSize,
+                  color: const Color(0xFF22C55E),
+                )
+              : KeyedSubtree(
+                  key: const ValueKey('copyIcon'),
+                  child: widget.icon,
+                ),
         ),
-        icon: const Icon(Icons.link_rounded, size: 16),
       ),
     );
   }

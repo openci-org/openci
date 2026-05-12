@@ -596,7 +596,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
     }
 
     Future<void> pickConfigFile() async {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json', 'plist'],
         withData: true,
