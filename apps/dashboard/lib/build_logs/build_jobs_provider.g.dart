@@ -11,9 +11,9 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   status: $enumDecode(_$BuildJobStatusEnumMap, json['status']),
   owner: json['owner'] as String,
   repo: json['repo'] as String,
+  workflowName: json['workflowName'] as String,
   teamId: json['teamId'] as String?,
   workflowId: json['workflowId'] as String?,
-  workflowName: json['workflowName'] as String?,
   workflowFileName: json['workflowFileName'] as String?,
   commitSha: json['commitSha'] as String?,
   pullRequestNumber: (json['pullRequestNumber'] as num?)?.toInt(),
@@ -41,9 +41,9 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'status': _$BuildJobStatusEnumMap[instance.status]!,
   'owner': instance.owner,
   'repo': instance.repo,
+  'workflowName': instance.workflowName,
   'teamId': instance.teamId,
   'workflowId': instance.workflowId,
-  'workflowName': instance.workflowName,
   'workflowFileName': instance.workflowFileName,
   'commitSha': instance.commitSha,
   'pullRequestNumber': instance.pullRequestNumber,
@@ -206,75 +206,6 @@ final class BuildJobByIdFamily extends $Family
 
   @override
   String toString() => r'buildJobByIdProvider';
-}
-
-@ProviderFor(workflowName)
-final workflowNameProvider = WorkflowNameFamily._();
-
-final class WorkflowNameProvider
-    extends $FunctionalProvider<AsyncValue<String?>, String?, FutureOr<String?>>
-    with $FutureModifier<String?>, $FutureProvider<String?> {
-  WorkflowNameProvider._({
-    required WorkflowNameFamily super.from,
-    required BuildJob super.argument,
-  }) : super(
-         retry: null,
-         name: r'workflowNameProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$workflowNameHash();
-
-  @override
-  String toString() {
-    return r'workflowNameProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $FutureProviderElement<String?> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<String?> create(Ref ref) {
-    final argument = this.argument as BuildJob;
-    return workflowName(ref, argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is WorkflowNameProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$workflowNameHash() => r'07633eebc89139fcd641639d010777ca4a97f3c2';
-
-final class WorkflowNameFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<String?>, BuildJob> {
-  WorkflowNameFamily._()
-    : super(
-        retry: null,
-        name: r'workflowNameProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  WorkflowNameProvider call(BuildJob buildJob) =>
-      WorkflowNameProvider._(argument: buildJob, from: this);
-
-  @override
-  String toString() => r'workflowNameProvider';
 }
 
 @ProviderFor(runDuration)
