@@ -58,8 +58,8 @@ bool _isTerminalStatus(BuildJobStatus status) =>
     status == BuildJobStatus.SKIPPED ||
     status == BuildJobStatus.TIMED_OUT;
 
-SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  return responsiveSnackBar(
+void _showMaterialDefaultSnackBar(BuildContext context, String message) {
+  showResponsiveSnackBar(
     context,
     content: Text(message),
   );
@@ -287,11 +287,9 @@ class BuildJobCard extends HookConsumerWidget {
                               .read(buildJobsProvider.notifier)
                               .retryBuildJob(buildJob.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              _materialDefaultSnackBar(
-                                context,
-                                t.buildLogs.detail.retrySuccess,
-                              ),
+                            _showMaterialDefaultSnackBar(
+                              context,
+                              t.buildLogs.detail.retrySuccess,
                             );
                           }
                         } on FirebaseFunctionsException catch (e, s) {
@@ -301,22 +299,18 @@ class BuildJobCard extends HookConsumerWidget {
                                 stackTrace: s,
                               );
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              _materialDefaultSnackBar(
-                                context,
-                                errorMessage.message,
-                              ),
+                            _showMaterialDefaultSnackBar(
+                              context,
+                              errorMessage.message,
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
                             debugPrint('failed to retry: $e');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              _materialDefaultSnackBar(
-                                context,
-                                t.buildLogs.detail.failedToRetry(
-                                  error: e.toString(),
-                                ),
+                            _showMaterialDefaultSnackBar(
+                              context,
+                              t.buildLogs.detail.failedToRetry(
+                                error: e.toString(),
                               ),
                             );
                           }
@@ -373,12 +367,10 @@ class BuildJobCard extends HookConsumerWidget {
                               .read(buildJobsProvider.notifier)
                               .cancelBuildJob(buildJob.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              responsiveSnackBar(
-                                context,
-                                content: Text(
-                                  t.buildLogs.detail.buildCancelled,
-                                ),
+                            showResponsiveSnackBar(
+                              context,
+                              content: Text(
+                                t.buildLogs.detail.buildCancelled,
                               ),
                             );
                           }
@@ -389,22 +381,18 @@ class BuildJobCard extends HookConsumerWidget {
                                 stackTrace: s,
                               );
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              responsiveSnackBar(
-                                context,
-                                content: Text(errorMessage.message),
-                              ),
+                            showResponsiveSnackBar(
+                              context,
+                              content: Text(errorMessage.message),
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              responsiveSnackBar(
-                                context,
-                                content: Text(
-                                  t.buildLogs.detail.failedToCancel(
-                                    error: e.toString(),
-                                  ),
+                            showResponsiveSnackBar(
+                              context,
+                              content: Text(
+                                t.buildLogs.detail.failedToCancel(
+                                  error: e.toString(),
                                 ),
                               ),
                             );
@@ -582,11 +570,9 @@ class WorkflowRunCard extends HookConsumerWidget {
                                   mainJob.workflowRunId!,
                                 );
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                _materialDefaultSnackBar(
-                                  context,
-                                  t.buildLogs.detail.retrySuccess,
-                                ),
+                              _showMaterialDefaultSnackBar(
+                                context,
+                                t.buildLogs.detail.retrySuccess,
                               );
                             }
                           } on FirebaseFunctionsException catch (e, s) {
@@ -596,21 +582,17 @@ class WorkflowRunCard extends HookConsumerWidget {
                                   stackTrace: s,
                                 );
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                _materialDefaultSnackBar(
-                                  context,
-                                  errorMessage.message,
-                                ),
+                              _showMaterialDefaultSnackBar(
+                                context,
+                                errorMessage.message,
                               );
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                _materialDefaultSnackBar(
-                                  context,
-                                  t.buildLogs.detail.failedToRetry(
-                                    error: e.toString(),
-                                  ),
+                              _showMaterialDefaultSnackBar(
+                                context,
+                                t.buildLogs.detail.failedToRetry(
+                                  error: e.toString(),
                                 ),
                               );
                             }
