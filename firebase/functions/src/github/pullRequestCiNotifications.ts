@@ -100,6 +100,19 @@ function isSuccessfulContext(context: StatusCheckRollupContext): boolean {
   );
 }
 
+function serializeNotificationError(error: unknown): unknown {
+  if (error instanceof Error) {
+    const record = error as unknown as Record<string, unknown>;
+    return {
+      name: error.name,
+      message: error.message,
+      ...(record.status !== undefined ? { status: record.status } : {}),
+      ...(record.errors !== undefined ? { errors: record.errors } : {}),
+    };
+  }
+  return error;
+}
+
 function resolvePullRequest(
   state: CommitCiState,
   headSha: string,
@@ -129,10 +142,22 @@ async function fetchCommitCiState({
   token: string;
   apiBaseUrl: string;
 }): Promise<CommitCiState | undefined> {
-  const response = await githubGraphql<StatusCheckRollupResponse>(statusCheckRollupQuery, token, {
-    variables: { owner, repo, headSha },
-    apiBaseUrl,
-  });
+  let response: StatusCheckRollupResponse;
+  try {
+    response = await githubGraphql<StatusCheckRollupResponse>(statusCheckRollupQuery, token, {
+      variables: { owner, repo, headSha },
+      apiBaseUrl,
+    });
+  } catch (error) {
+    logger.warn("Skipping CI passed notification because commit CI state could not be fetched", {
+      owner,
+      repo,
+      headSha,
+      error: serializeNotificationError(error),
+    });
+    return undefined;
+  }
+
   const commit = response.repository?.object;
   if (!commit) return undefined;
 

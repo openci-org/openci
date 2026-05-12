@@ -1,9 +1,9 @@
+import { execFile } from "node:child_process";
 import { generateKeyPairSync, randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { execFile } from "node:child_process";
 
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
@@ -306,7 +306,11 @@ export const generateDeveloperIdCsrV1 = onCall<
       tmpDir,
     );
     const csrPem = await readFile(csrPath, "utf8");
-    const documentId = await createStoredSecret(teamId, developerIdPrivateKeySecretName, privateKey);
+    const documentId = await createStoredSecret(
+      teamId,
+      developerIdPrivateKeySecretName,
+      privateKey,
+    );
     logger.info("Developer ID CSR generated", { teamId, documentId });
     return { success: true, documentId, csrPem };
   } catch (error) {
@@ -323,7 +327,10 @@ export const registerDeveloperIdCertificateV1 = onCall<
   Promise<SuccessResponse & { documentIds: Record<string, string> }>
 >(async (request) => {
   const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
-  const certificateBase64 = requireNonEmptyString(request.data?.certificateBase64, "certificateBase64");
+  const certificateBase64 = requireNonEmptyString(
+    request.data?.certificateBase64,
+    "certificateBase64",
+  );
   await verifyTeamMembership(request.auth, teamId);
 
   const finalSecretNames = [
@@ -357,9 +364,15 @@ export const registerDeveloperIdCertificateV1 = onCall<
     await writeFile(certInputPath, Buffer.from(certificateBase64, "base64"));
 
     try {
-      await runOpenSsl(["x509", "-inform", "DER", "-in", certInputPath, "-out", certPemPath], tmpDir);
+      await runOpenSsl(
+        ["x509", "-inform", "DER", "-in", certInputPath, "-out", certPemPath],
+        tmpDir,
+      );
     } catch {
-      await runOpenSsl(["x509", "-inform", "PEM", "-in", certInputPath, "-out", certPemPath], tmpDir);
+      await runOpenSsl(
+        ["x509", "-inform", "PEM", "-in", certInputPath, "-out", certPemPath],
+        tmpDir,
+      );
     }
 
     const password = randomBytes(24).toString("base64url");
@@ -410,7 +423,10 @@ export const registerDeveloperIdCertificateV1 = onCall<
         cleanupError,
       });
     }
-    logger.info("Developer ID certificate registered", { teamId, secrets: Object.keys(documentIds) });
+    logger.info("Developer ID certificate registered", {
+      teamId,
+      secrets: Object.keys(documentIds),
+    });
     return { success: true, documentIds };
   } catch (error) {
     if (error instanceof HttpsError) throw error;
