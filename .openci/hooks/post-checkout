@@ -1,5 +1,5 @@
 #!/bin/sh
-# Records branch switch timestamps to .openci/branch-log.jsonl.
+# Records the first observed checkout timestamp for each branch.
 # Install: git config core.hooksPath .openci/hooks
 
 prev_head="$1"
@@ -24,5 +24,13 @@ if [ ! -d "$openci_dir" ]; then
   exit 0
 fi
 
-echo "{\"branch\":\"$branch\",\"at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
-  >> "$openci_dir/branch-log.jsonl"
+branch_log_dir="$openci_dir/branch-log"
+branch_log_file="$branch_log_dir/$(printf '%s' "$branch" | git hash-object --stdin).json"
+if [ -f "$branch_log_file" ]; then
+  exit 0
+fi
+
+mkdir -p "$branch_log_dir"
+escaped_branch=$(printf '%s' "$branch" | sed 's/\\/\\\\/g; s/"/\\"/g')
+echo "{\"branch\":\"$escaped_branch\",\"at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+  > "$branch_log_file"
