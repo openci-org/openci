@@ -849,6 +849,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     required String issueId,
     required String targetColumnId,
     required int targetIndex,
+    bool clearPullRequests = false,
   }) async {
     final sourceColumn = _columns.firstWhere(
       (column) => column.issues.any((issue) => issue.id == issueId),
@@ -860,7 +861,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       (column) => column.id == targetColumnId,
     );
 
-    if (sourceColumn.id == targetColumnId && sourceIndex == targetIndex) {
+    if (sourceColumn.id == targetColumnId &&
+        sourceIndex == targetIndex &&
+        !clearPullRequests) {
       return;
     }
 
@@ -881,11 +884,16 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         ? null
         : targetIssues[insertIndex].rank;
     final nextRankValue = _rankBetween(previousRank, nextRank);
+    final shouldUnlinkPullRequests =
+        clearPullRequests || targetColumnId != _reviewStatusId;
     _applyOptimisticIssueMove(
       movingIssue.copyWith(
         statusId: targetColumnId,
         rank: nextRankValue,
         clearClosedAt: targetColumnId != _closedStatusId,
+        pullRequests: shouldUnlinkPullRequests
+            ? const <IssuePullRequest>[]
+            : null,
       ),
     );
 
@@ -894,6 +902,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .update({
           'statusId': targetColumnId,
           'rank': nextRankValue,
+          if (targetColumnId != _closedStatusId)
+            'closedAt': FieldValue.delete(),
+          if (shouldUnlinkPullRequests) 'pullRequests': FieldValue.delete(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
   }
@@ -965,6 +976,23 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         update['statusId'] = _reviewStatusId;
         update['rank'] = _rankBetween(previousRank, null);
       }
+
+      final nextStatusId = _asString(update['statusId'], issue.statusId);
+      final nextRank = update['rank'] is double
+          ? update['rank']! as double
+          : issue.rank;
+      _applyOptimisticIssueMove(
+        issue.copyWith(
+          statusId: nextStatusId,
+          rank: nextRank,
+          pullRequests: [
+            for (final existingPullRequest in issue.pullRequests)
+              if (existingPullRequest.number != pullRequest.number)
+                existingPullRequest,
+            pullRequest,
+          ],
+        ),
+      );
 
       await issueRef.update(update);
       _showSavedSnackBar('PR #${pullRequest.number}に紐づけました');
@@ -8206,10 +8234,12 @@ class BoardColumnView extends StatelessWidget {
     final reviewGroups = column.id == _reviewStatusId
         ? _reviewPullRequestGroupsForIssues(visibleIssues)
         : const <ReviewPullRequestGroup>[];
+    final acceptsColumnDrop =
+        column.id != _reviewStatusId || reviewGroups.isEmpty;
 
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
-          details.data.sourceColumnId != column.id,
+          acceptsColumnDrop && details.data.sourceColumnId != column.id,
       onAcceptWithDetails: (details) {
         onIssueDropped(
           issueId: details.data.issueId,
@@ -8372,12 +8402,14 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
     final reviewGroups = widget.column.id == _reviewStatusId
         ? _reviewPullRequestGroupsForIssues(displayedIssues)
         : const <ReviewPullRequestGroup>[];
+    final acceptsColumnDrop =
+        widget.column.id != _reviewStatusId || reviewGroups.isEmpty;
     final hiddenIssueCount = visibleIssues.length - displayedIssues.length;
     final canToggleSize = visibleIssues.length > _compactColumnCollapsedLimit;
 
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
-          details.data.sourceColumnId != widget.column.id,
+          acceptsColumnDrop && details.data.sourceColumnId != widget.column.id,
       onAcceptWithDetails: (details) {
         widget.onIssueDropped(
           issueId: details.data.issueId,
@@ -8614,6 +8646,12 @@ List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
           group.repository,
           reference.number,
         )];
+    if (issue != null &&
+        !issue.pullRequests.any(
+          (issuePullRequest) => issuePullRequest.number == pullRequest?.number,
+        )) {
+      continue;
+    }
     seenNumbers.add(reference.number);
     items.add(_ReviewLinkedIssueItem(issue: issue, reference: reference));
   }
@@ -8694,194 +8732,251 @@ class ReviewPullRequestGroupView extends StatelessWidget {
         : pullRequest.state == 'closed'
         ? const Color(0xFFB45309)
         : const Color(0xFF15803D);
+    final groupIssueIds = group.issues.map((issue) => issue.id).toSet();
 
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DragTarget<IssueDragData>(
-            onWillAcceptWithDetails: (details) =>
-                pullRequest != null &&
-                onIssueLinkedToPullRequest != null &&
-                !group.issues.any((issue) => issue.id == details.data.issueId),
-            onAcceptWithDetails: (details) {
-              final targetPullRequest = pullRequest;
-              final onLink = onIssueLinkedToPullRequest;
-              if (targetPullRequest == null || onLink == null) {
-                return;
-              }
+    void handleIssueDropped({
+      required String issueId,
+      required String targetColumnId,
+      required int targetIndex,
+      bool clearPullRequests = false,
+    }) {
+      final targetPullRequest = pullRequest;
+      final onLink = onIssueLinkedToPullRequest;
+      if (targetPullRequest != null &&
+          onLink != null &&
+          !groupIssueIds.contains(issueId)) {
+        unawaited(
+          onLink(
+            issueId: issueId,
+            repository: group.repository,
+            pullRequest: targetPullRequest,
+          ),
+        );
+        return;
+      }
 
-              unawaited(
-                onLink(
-                  issueId: details.data.issueId,
-                  repository: group.repository,
-                  pullRequest: targetPullRequest,
-                ),
-              );
-            },
-            builder: (context, candidateData, rejectedData) {
-              final isHovering = candidateData.isNotEmpty;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                decoration: BoxDecoration(
-                  color: isHovering
-                      ? const Color(0xFFEFF6FF)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: isHovering
-                        ? const Color(0xFF60A5FA)
-                        : Colors.transparent,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: url == null
-                        ? null
-                        : () => unawaited(_launchUrlExternal(url)),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+      onIssueDropped(
+        issueId: issueId,
+        targetColumnId: targetColumnId,
+        targetIndex: targetIndex,
+        clearPullRequests: clearPullRequests || pullRequest == null,
+      );
+    }
+
+    return DragTarget<IssueDragData>(
+      onWillAcceptWithDetails: (details) =>
+          pullRequest != null &&
+          onIssueLinkedToPullRequest != null &&
+          !groupIssueIds.contains(details.data.issueId),
+      onAcceptWithDetails: (details) {
+        handleIssueDropped(
+          issueId: details.data.issueId,
+          targetColumnId: column.id,
+          targetIndex: column.issues.length,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isGroupHovering = candidateData.isNotEmpty;
+        return Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isGroupHovering
+                ? const Color(0xFFEFF6FF)
+                : const Color(0xFFF8FAFC),
+            border: Border.all(
+              color: isGroupHovering
+                  ? const Color(0xFF60A5FA)
+                  : const Color(0xFFE2E8F0),
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DragTarget<IssueDragData>(
+                onWillAcceptWithDetails: (details) =>
+                    pullRequest != null &&
+                    onIssueLinkedToPullRequest != null &&
+                    !groupIssueIds.contains(details.data.issueId),
+                onAcceptWithDetails: (details) {
+                  final targetPullRequest = pullRequest;
+                  final onLink = onIssueLinkedToPullRequest;
+                  if (targetPullRequest == null || onLink == null) {
+                    return;
+                  }
+
+                  unawaited(
+                    onLink(
+                      issueId: details.data.issueId,
+                      repository: group.repository,
+                      pullRequest: targetPullRequest,
+                    ),
+                  );
+                },
+                builder: (context, candidateData, rejectedData) {
+                  final isHovering = candidateData.isNotEmpty;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      color: isHovering
+                          ? const Color(0xFFEFF6FF)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: isHovering
+                            ? const Color(0xFF60A5FA)
+                            : Colors.transparent,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(14),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: url == null
+                            ? null
+                            : () => unawaited(_launchUrlExternal(url)),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(11),
-                                ),
-                                child: const Icon(
-                                  Icons.alt_route_rounded,
-                                  size: 17,
-                                  color: Color(0xFF2563EB),
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(11),
+                                    ),
+                                    child: const Icon(
+                                      Icons.alt_route_rounded,
+                                      size: 17,
+                                      color: Color(0xFF2563EB),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 9),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          pullRequest == null
+                                              ? 'PRなし'
+                                              : '${group.repository} #${pullRequest.number}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Color(0xFF475569),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          title,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Color(0xFF0F172A),
+                                            fontWeight: FontWeight.w900,
+                                            height: 1.25,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      pullRequest == null
-                                          ? 'PRなし'
-                                          : '${group.repository} #${pullRequest.number}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFF475569),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                      ),
+                              const SizedBox(height: 9),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  if (!isOpenPullRequest)
+                                    _ReviewGroupPill(
+                                      label: stateLabel,
+                                      color: stateColor,
+                                      icon: pullRequest?.merged == true
+                                          ? Icons.call_merge_rounded
+                                          : Icons.circle_rounded,
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFF0F172A),
-                                        fontWeight: FontWeight.w900,
-                                        height: 1.25,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  BuildStatusBadge(status: buildStatus),
+                                ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 9),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              if (!isOpenPullRequest)
-                                _ReviewGroupPill(
-                                  label: stateLabel,
-                                  color: stateColor,
-                                  icon: pullRequest?.merged == true
-                                      ? Icons.call_merge_rounded
-                                      : Icons.circle_rounded,
-                                ),
-                              BuildStatusBadge(status: buildStatus),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 6),
-          for (final entry in linkedIssueItems.indexed) ...[
-            Builder(
-              builder: (context) {
-                final item = entry.$2;
-                final issue = item.issue;
-                if (issue == null) {
-                  final reference = item.reference;
-                  if (reference == null) {
-                    return const SizedBox.shrink();
-                  }
-                  return ReviewLinkedIssueReferenceCard(reference: reference);
-                }
-
-                final isReviewColumnIssue = group.issues.any(
-                  (candidate) => candidate.id == issue.id,
-                );
-                if (!isReviewColumnIssue) {
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => onIssueTapped(issue.id),
-                    child: ReviewGroupIssueCard(issue: issue),
                   );
-                }
+                },
+              ),
+              const SizedBox(height: 6),
+              for (final entry in linkedIssueItems.indexed) ...[
+                Builder(
+                  builder: (context) {
+                    final item = entry.$2;
+                    final issue = item.issue;
+                    if (issue == null) {
+                      final reference = item.reference;
+                      if (reference == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return ReviewLinkedIssueReferenceCard(
+                        reference: reference,
+                      );
+                    }
 
-                final rankIndex = rankIndicesByIssueId[issue.id];
+                    final isReviewColumnIssue = group.issues.any(
+                      (candidate) => candidate.id == issue.id,
+                    );
+                    if (!isReviewColumnIssue) {
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onIssueTapped(issue.id),
+                        child: ReviewGroupIssueCard(issue: issue),
+                      );
+                    }
 
-                return IssueCardDropTarget(
-                  key: ValueKey(issue.id),
-                  issue: issue,
-                  subIssues: subIssuesByParentId[issue.id] ?? const <Issue>[],
-                  buildStatus: pullRequest == null
-                      ? buildStatusesByIssueId[issue.id]
-                      : null,
-                  isReviewGroupCard: true,
-                  sourceColumnId: column.id,
-                  index: rankIndex ?? entry.$1,
-                  isStartingCursorAgent: startingCursorAgentIssueIds.contains(
-                    issue.id,
-                  ),
-                  requiresLongPressDrag: requiresLongPressDrag,
-                  onTap: () => onIssueTapped(issue.id),
-                  onSubIssueTap: onSubIssueTap,
-                  onStartCursorAgent: onStartCursorAgent == null
-                      ? null
-                      : () => onStartCursorAgent!(issue.id),
-                  onIssueDropped: onIssueDropped,
-                );
-              },
-            ),
-            if (entry.$1 != linkedIssueItems.length - 1)
-              const SizedBox(height: 8),
-          ],
-        ],
-      ),
+                    final rankIndex = rankIndicesByIssueId[issue.id];
+
+                    return IssueCardDropTarget(
+                      key: ValueKey(issue.id),
+                      issue: issue,
+                      subIssues:
+                          subIssuesByParentId[issue.id] ?? const <Issue>[],
+                      buildStatus: pullRequest == null
+                          ? buildStatusesByIssueId[issue.id]
+                          : null,
+                      isReviewGroupCard: true,
+                      sourceColumnId: column.id,
+                      index: rankIndex ?? entry.$1,
+                      isStartingCursorAgent: startingCursorAgentIssueIds
+                          .contains(
+                            issue.id,
+                          ),
+                      requiresLongPressDrag: requiresLongPressDrag,
+                      onTap: () => onIssueTapped(issue.id),
+                      onSubIssueTap: onSubIssueTap,
+                      onStartCursorAgent: onStartCursorAgent == null
+                          ? null
+                          : () => onStartCursorAgent!(issue.id),
+                      onIssueDropped: handleIssueDropped,
+                    );
+                  },
+                ),
+                if (entry.$1 != linkedIssueItems.length - 1)
+                  const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -12273,6 +12368,7 @@ typedef IssueDropCallback =
       required String issueId,
       required String targetColumnId,
       required int targetIndex,
+      bool clearPullRequests,
     });
 
 typedef IssuePullRequestLinkCallback =
@@ -12582,6 +12678,7 @@ class Issue {
     double? rank,
     DateTime? closedAt,
     bool clearClosedAt = false,
+    List<IssuePullRequest>? pullRequests,
   }) {
     return Issue(
       id: id,
@@ -12601,7 +12698,7 @@ class Issue {
       closedAt: clearClosedAt ? null : closedAt ?? this.closedAt,
       weightEstimate: weightEstimate,
       resolution: resolution,
-      pullRequests: pullRequests,
+      pullRequests: pullRequests ?? this.pullRequests,
       subIssuesSummary: subIssuesSummary,
       subIssues: subIssues,
       parentIssue: parentIssue,

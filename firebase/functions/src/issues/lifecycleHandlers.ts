@@ -1,1 +1,5 @@
-export { autoSyncIssueToGitHubOnIssueWrite, issueLifecycleEventLogger } from "./imaHandlers.js";
+export {
+  autoSyncIssueToGitHubOnIssueWrite,
+  issueLifecycleEventLogger,
+  syncIssuePullRequestLinksToGitHubOnIssueWrite,
+} from "./imaHandlers.js";

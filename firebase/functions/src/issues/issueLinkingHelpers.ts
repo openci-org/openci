@@ -42,26 +42,20 @@ export interface LinkedIssueBlockEntry {
   imaIssueKey: string;
 }
 
-export function upsertLinkedIssueBlocks(
-  body: string | undefined | null,
-  linkedIssues: LinkedIssueBlockEntry[],
-): string {
-  const currentBody = body ?? "";
-  const existingBlock = currentBody.match(managedBlockPattern)?.[0] ?? "";
+function linkedIssueEntriesFromBlock(block: string): Map<number, string> {
   const entries = new Map<number, string>();
-  for (const match of existingBlock.matchAll(/Fixes #(\d+)\s*\nIma: ([^\n]+)/gu)) {
+  for (const match of block.matchAll(/Fixes #(\d+)\s*\nIma: ([^\n]+)/gu)) {
     const number = Number(match[1]);
     const key = match[2]?.trim();
     if (Number.isInteger(number) && number > 0 && key !== undefined && key.length > 0) {
       entries.set(number, key);
     }
   }
-  for (const linkedIssue of linkedIssues) {
-    entries.set(linkedIssue.githubIssueNumber, linkedIssue.imaIssueKey);
-  }
+  return entries;
+}
 
-  const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
-  const block = [
+function linkedIssueBlockFromEntries(entries: Map<number, string>): string {
+  return [
     imaLinkedIssueBlockStart,
     ...Array.from(entries.entries()).flatMap(([number, key]) => [
       `Fixes #${number}`,
@@ -69,6 +63,21 @@ export function upsertLinkedIssueBlocks(
     ]),
     imaLinkedIssueBlockEnd,
   ].join("\n");
+}
+
+export function upsertLinkedIssueBlocks(
+  body: string | undefined | null,
+  linkedIssues: LinkedIssueBlockEntry[],
+): string {
+  const currentBody = body ?? "";
+  const existingBlock = currentBody.match(managedBlockPattern)?.[0] ?? "";
+  const entries = linkedIssueEntriesFromBlock(existingBlock);
+  for (const linkedIssue of linkedIssues) {
+    entries.set(linkedIssue.githubIssueNumber, linkedIssue.imaIssueKey);
+  }
+
+  const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
+  const block = linkedIssueBlockFromEntries(entries);
   return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
 }
 
@@ -78,6 +87,49 @@ export function upsertLinkedIssueBlock(
   imaIssueKey: string,
 ): string {
   return upsertLinkedIssueBlocks(body, [{ githubIssueNumber, imaIssueKey }]);
+}
+
+export function removeLinkedIssueBlocks(
+  body: string | undefined | null,
+  githubIssueNumbers: number[],
+): string {
+  const currentBody = body ?? "";
+  const existingBlock = currentBody.match(managedBlockPattern)?.[0];
+  if (existingBlock === undefined) {
+    return currentBody;
+  }
+
+  const entries = linkedIssueEntriesFromBlock(existingBlock);
+  for (const number of githubIssueNumbers) {
+    entries.delete(number);
+  }
+
+  const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
+  if (entries.size === 0) {
+    return trimmedBody;
+  }
+
+  const block = linkedIssueBlockFromEntries(entries);
+  return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
+}
+
+export function replaceLinkedIssueBlocks(
+  body: string | undefined | null,
+  linkedIssues: LinkedIssueBlockEntry[],
+): string {
+  const currentBody = body ?? "";
+  const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
+  if (linkedIssues.length === 0) {
+    return trimmedBody;
+  }
+
+  const entries = new Map<number, string>();
+  for (const linkedIssue of linkedIssues) {
+    entries.set(linkedIssue.githubIssueNumber, linkedIssue.imaIssueKey);
+  }
+
+  const block = linkedIssueBlockFromEntries(entries);
+  return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;
 }
 
 export function bodyWithoutLinkedIssueBlock(body: string | undefined | null): string {
