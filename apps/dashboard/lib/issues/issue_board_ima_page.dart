@@ -8677,12 +8677,6 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                                       : Icons.circle_rounded,
                                 ),
                               BuildStatusBadge(status: buildStatus),
-                              if (pullRequest != null)
-                                const _ReviewGroupPill(
-                                  label: 'drop issue to link',
-                                  color: Color(0xFF2563EB),
-                                  icon: Icons.add_link_rounded,
-                                ),
                             ],
                           ),
                         ],
