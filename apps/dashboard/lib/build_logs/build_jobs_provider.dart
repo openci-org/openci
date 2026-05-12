@@ -29,14 +29,14 @@ class BuildJobs extends _$BuildJobs {
         .limit(_buildJobsHistoryLimit);
 
     final initialResult = await query.get();
-    final initialJobs = _sortedBuildJobs(initialResult.docs.map(_buildJobFromDoc));
-    _debugBuildJobsResult('execute', teamId, initialJobs);
+    final initialJobs = _sortedBuildJobs(
+      initialResult.docs.map(_buildJobFromDoc),
+    );
     yield initialJobs;
 
     yield* query.snapshots().map(
       (result) {
         final jobs = _sortedBuildJobs(result.docs.map(_buildJobFromDoc));
-        _debugBuildJobsResult('subscribe', teamId, jobs);
         return jobs;
       },
     );
@@ -176,13 +176,3 @@ BuildJob _buildJobFromData(String id, Map<String, dynamic> job) {
 List<BuildJob> _sortedBuildJobs(Iterable<BuildJob> jobs) {
   return jobs.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }
-
-void _debugBuildJobsResult(String source, String teamId, List<BuildJob> jobs) {
-  if (!kDebugMode) return;
-  final first = jobs.isEmpty ? null : jobs.first;
-  debugPrint(
-    '[OpenCI] ListBuildJobsForTeam $source teamId=$teamId '
-    'count=${jobs.length} first=${first?.id} firstCreatedAt=${first?.createdAt.toIso8601String()}',
-  );
-}
-
