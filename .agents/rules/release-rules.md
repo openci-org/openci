@@ -27,7 +27,6 @@ Release notes MUST include a ## What's New section with a bulleted list of chang
 ## Tag Naming
 
 - Worker CLI: worker-node-v<version> (e.g., worker-node-v0.1.14) — npm package release marker
-- Shared Package: shared-v<version> (e.g., shared-v0.1.1) — triggers OpenCI publish to pub.dev
 - Dashboard: dashboard/v<version> (e.g., dashboard/v1.5.0)
 - Web: web/v<version> (e.g., web/v0.4.0)
 - Firebase Functions: functions/v<version> (e.g., functions/v1.0.0)

@@ -1,7 +1,7 @@
+import 'package:dashboard/firebase/callable_function_names.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:openci_shared/callable_function_names.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
