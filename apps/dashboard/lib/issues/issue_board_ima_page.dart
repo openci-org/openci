@@ -1495,23 +1495,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     setState(() => _isLoadingRepositories = true);
     try {
-      final data = await _callFunction('listGitHubRepositories', {
-        'workspaceId': _workspaceId,
-      });
-      final repositories = _asList(data['repositories'])
-          .map((repo) => GitHubRepository.fromMap(_asMap(repo)))
-          .where((repo) => repo.fullName.isNotEmpty)
-          .toList();
-
-      if (!mounted) {
-        return;
-      }
-
-      final selected = await showDialog<Set<String>>(
+      final selected = await showModalBottomSheet<Set<String>>(
         context: context,
-        builder: (context) => RepositoryPickerDialog(
-          repositories: repositories,
+        isScrollControlled: true,
+        showDragHandle: true,
+        useSafeArea: true,
+        builder: (context) => RepositoryPickerBottomSheet(
           initiallySelected: _enabledRepoFullNames,
+          loadRepositories: _loadGitHubRepositories,
         ),
       );
       if (selected == null) {
@@ -1531,6 +1522,16 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         setState(() => _isLoadingRepositories = false);
       }
     }
+  }
+
+  Future<List<GitHubRepository>> _loadGitHubRepositories() async {
+    final data = await _callFunction('listGitHubRepositories', {
+      'workspaceId': _workspaceId,
+    });
+    return _asList(data['repositories'])
+        .map((repo) => GitHubRepository.fromMap(_asMap(repo)))
+        .where((repo) => repo.fullName.isNotEmpty)
+        .toList();
   }
 
   Future<void> _importGitHubIssues() async {
@@ -6544,71 +6545,185 @@ class IssueSearchDialogResult {
   final String query;
 }
 
-class RepositoryPickerDialog extends StatefulWidget {
-  const RepositoryPickerDialog({
+class RepositoryPickerBottomSheet extends StatefulWidget {
+  const RepositoryPickerBottomSheet({
     super.key,
-    required this.repositories,
     required this.initiallySelected,
+    required this.loadRepositories,
   });
 
-  final List<GitHubRepository> repositories;
   final Set<String> initiallySelected;
+  final Future<List<GitHubRepository>> Function() loadRepositories;
 
   @override
-  State<RepositoryPickerDialog> createState() => _RepositoryPickerDialogState();
+  State<RepositoryPickerBottomSheet> createState() =>
+      _RepositoryPickerBottomSheetState();
 }
 
-class _RepositoryPickerDialogState extends State<RepositoryPickerDialog> {
+class _RepositoryPickerBottomSheetState
+    extends State<RepositoryPickerBottomSheet> {
   late final Set<String> _selected = {...widget.initiallySelected};
+  late Future<List<GitHubRepository>> _repositoriesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _repositoriesFuture = widget.loadRepositories();
+  }
+
+  void _retry() {
+    setState(() => _repositoriesFuture = widget.loadRepositories());
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('GitHub repoを選択'),
-      content: SizedBox(
-        width: 520,
-        height: 480,
-        child: widget.repositories.isEmpty
-            ? const Center(child: Text('repoが見つかりませんでした。'))
-            : ListView.builder(
-                itemCount: widget.repositories.length,
-                itemBuilder: (context, index) {
-                  final repo = widget.repositories[index];
-                  final selected = _selected.contains(repo.fullName);
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.78,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'GitHub repoを選択',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '同期するrepoを選んでください。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<GitHubRepository>>(
+              future: _repositoriesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const _RepositoryPickerLoading();
+                }
 
-                  return CheckboxListTile(
-                    value: selected,
-                    title: Text(repo.fullName),
-                    subtitle: Text(
-                      '${repo.private ? '非公開' : '公開'} / ${repo.defaultBranch}',
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        if (value == true) {
-                          _selected.add(repo.fullName);
-                        } else {
-                          _selected.remove(repo.fullName);
-                        }
-                      });
-                    },
-                  );
-                },
+                if (snapshot.hasError) {
+                  return _RepositoryPickerError(onRetry: _retry);
+                }
+
+                final repositories = snapshot.data ?? const [];
+                if (repositories.isEmpty) {
+                  return const Center(child: Text('repoが見つかりませんでした。'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  itemCount: repositories.length,
+                  itemBuilder: (context, index) {
+                    final repo = repositories[index];
+                    final selected = _selected.contains(repo.fullName);
+
+                    return CheckboxListTile(
+                      value: selected,
+                      title: Text(repo.fullName),
+                      subtitle: Text(
+                        '${repo.private ? '非公開' : '公開'} / ${repo.defaultBranch}',
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            _selected.add(repo.fullName);
+                          } else {
+                            _selected.remove(repo.fullName);
+                          }
+                        });
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('キャンセル'),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => setState(_selected.clear),
+                    child: const Text('クリア'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(_selected),
+                    child: Text('${_selected.length}件のrepoを保存'),
+                  ),
+                ],
               ),
+            ),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('キャンセル'),
+    );
+  }
+}
+
+class _RepositoryPickerLoading extends StatelessWidget {
+  const _RepositoryPickerLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('repoを読み込んでいます...'),
+        ],
+      ),
+    );
+  }
+}
+
+class _RepositoryPickerError extends StatelessWidget {
+  const _RepositoryPickerError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: colorScheme.error,
+              size: 32,
+            ),
+            const SizedBox(height: 12),
+            const Text('repoの読み込みに失敗しました。'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('再読み込み'),
+            ),
+          ],
         ),
-        TextButton(
-          onPressed: () => setState(_selected.clear),
-          child: const Text('クリア'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_selected),
-          child: Text('${_selected.length}件のrepoを保存'),
-        ),
-      ],
+      ),
     );
   }
 }
