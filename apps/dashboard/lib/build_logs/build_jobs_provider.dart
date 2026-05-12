@@ -64,10 +64,16 @@ class BuildJobs extends _$BuildJobs {
     ref.invalidateSelf();
   }
 
-  Future<void> retryWorkflowRun(String workflowRunId) async {
+  Future<void> retryWorkflowRun(
+    String workflowRunId, {
+    String? workflowFileName,
+  }) async {
     final functions = firebaseFunctions;
     await functions.httpsCallable('retryWorkflowRun').call({
       'workflowRunId': workflowRunId,
+      ...?workflowFileName == null
+          ? null
+          : {'workflowFileName': workflowFileName},
     });
     ref.invalidateSelf();
   }
