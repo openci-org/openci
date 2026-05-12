@@ -4747,17 +4747,18 @@ class CardBuildStatus {
     ];
     final summaryLabel =
         '$passed passed / $failed failed / $active running / $other other';
+
     final label = failed > 0
         ? 'fail'
         : active > 0
         ? queuedOnly
               ? 'queued'
-              : '$passed/$total ok'
+              : '$passed/$total CI pass'
         : passed == total
         ? total == 1
-              ? 'ok'
-              : '$passed ok'
-        : '$passed/$total ok';
+              ? 'CI pass'
+              : '$passed CI pass'
+        : '$passed/$total CI pass';
     final color = failed > 0
         ? const Color(0xFFB91C1C)
         : active > 0
