@@ -8417,7 +8417,43 @@ List<ReviewPullRequestGroup> _reviewPullRequestGroupsForIssues(
         pullRequest: group.pullRequest,
         issues: List.unmodifiable(group.issues),
       ),
-  ];
+  ]..sort(_compareReviewPullRequestGroups);
+}
+
+int _compareReviewPullRequestGroups(
+  ReviewPullRequestGroup a,
+  ReviewPullRequestGroup b,
+) {
+  final aCreatedAt = a.pullRequest?.createdAt;
+  final bCreatedAt = b.pullRequest?.createdAt;
+  if (aCreatedAt != null && bCreatedAt != null) {
+    final createdAtCompare = aCreatedAt.compareTo(bCreatedAt);
+    if (createdAtCompare != 0) {
+      return createdAtCompare;
+    }
+  } else if (aCreatedAt != null) {
+    return -1;
+  } else if (bCreatedAt != null) {
+    return 1;
+  }
+
+  final rankCompare = _firstReviewIssueRank(a).compareTo(
+    _firstReviewIssueRank(b),
+  );
+  if (rankCompare != 0) {
+    return rankCompare;
+  }
+
+  final repositoryCompare = a.repository.compareTo(b.repository);
+  if (repositoryCompare != 0) {
+    return repositoryCompare;
+  }
+
+  return (a.pullRequest?.number ?? 0).compareTo(b.pullRequest?.number ?? 0);
+}
+
+double _firstReviewIssueRank(ReviewPullRequestGroup group) {
+  return group.issues.isEmpty ? double.infinity : group.issues.first.rank;
 }
 
 List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
@@ -12479,6 +12515,7 @@ class IssuePullRequest {
     required this.state,
     required this.merged,
     required this.branch,
+    this.createdAt,
     this.linkedIssues = const [],
   });
 
@@ -12490,6 +12527,7 @@ class IssuePullRequest {
       state: _asString(data['state'], 'open'),
       merged: data['merged'] == true,
       branch: _asString(data['branch']),
+      createdAt: _asDate(data['createdAt']),
       linkedIssues: _asList(data['linkedIssues'])
           .map((value) => IssuePullRequestLinkedIssue.fromMap(_asMap(value)))
           .where((issue) => issue.number > 0)
@@ -12510,6 +12548,7 @@ class IssuePullRequest {
       'branch': branch,
       'state': state,
       'merged': merged,
+      if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       'linkedIssues': [
         for (final issue in linkedIssues) issue.toFirestore(),
       ],
@@ -12522,6 +12561,7 @@ class IssuePullRequest {
   final String state;
   final bool merged;
   final String branch;
+  final DateTime? createdAt;
   final List<IssuePullRequestLinkedIssue> linkedIssues;
 }
 
