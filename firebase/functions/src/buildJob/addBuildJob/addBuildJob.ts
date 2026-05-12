@@ -8,7 +8,7 @@ import { getInstallationToken } from "./getInstallationToken.js";
 import { getTeamIdByInstallationId } from "./getTeamIdByInstallationId.js";
 import { matchesTrigger } from "./matchesTrigger.js";
 import { parseWorkflowYaml } from "./parseWorkflowYaml.js";
-import { saveBuildJobToFirestore } from "./saveBuildJobToFirestore.js";
+import { saveBuildJobsToFirestore } from "./saveBuildJobToFirestore.js";
 
 export type AddBuildJobTriggerType = "push" | "pull_request";
 
@@ -82,7 +82,7 @@ export async function addBuildJob(params: AddBuildJobParams) {
     return;
   }
 
-  await saveBuildJobToFirestore({
+  await saveBuildJobsToFirestore({
     db,
     jobs: jobsWithCheckRuns,
     owner: params.owner,
