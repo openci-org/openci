@@ -204,6 +204,7 @@ interface GitHubPullRequestResponseItem {
   html_url?: unknown;
   state?: unknown;
   merged?: unknown;
+  created_at?: unknown;
   head?: {
     ref?: unknown;
   };
@@ -253,6 +254,7 @@ interface GitHubPullRequestWebhookPayload {
     html_url?: unknown;
     state?: unknown;
     merged?: unknown;
+    created_at?: unknown;
     head?: {
       ref?: unknown;
     };
@@ -593,6 +595,7 @@ function pullRequestSummary({
     branch,
     state: asString(pullRequest.state, "open"),
     merged: asBoolean(pullRequest.merged),
+    createdAt: asTimestamp(pullRequest.created_at),
     linkedIssues,
   };
 }
