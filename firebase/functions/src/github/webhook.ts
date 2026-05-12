@@ -72,6 +72,11 @@ export const githubWebhook = onRequest(
       await linkGitHubIssueToPullRequest(db, payload);
     });
 
+    webhooks.on("pull_request.edited", async ({ name, payload }) => {
+      const body = payload as unknown as Record<string, unknown>;
+      await processImaGitHubAppWebhook(name, body);
+    });
+
     webhooks.on("push", async ({ name, payload }) => {
       const body = payload as unknown as Record<string, unknown>;
       const installationId = requireInstallationId(payload.installation, response);
