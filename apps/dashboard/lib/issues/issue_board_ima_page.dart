@@ -27,8 +27,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:material_symbols_icons/symbols.dart';
 import 'package:intl/intl.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _functionsRegion = 'asia-northeast1';
@@ -4361,15 +4361,17 @@ class BuildStatusBadge extends StatelessWidget {
                 isSpinning: currentStatus.isSpinning,
                 size: 13,
               ),
-              const SizedBox(width: 4),
-              Text(
-                currentStatus.label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
+              if (currentStatus.label.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Text(
+                  currentStatus.label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -4745,17 +4747,18 @@ class CardBuildStatus {
     ];
     final summaryLabel =
         '$passed passed / $failed failed / $active running / $other other';
+
     final label = failed > 0
         ? 'fail'
         : active > 0
         ? queuedOnly
               ? 'queued'
-              : '$passed/$total passed'
+              : '$passed/$total CI pass'
         : passed == total
         ? total == 1
-              ? 'passed'
-              : '$passed passed'
-        : '$passed/$total passed';
+              ? 'CI pass'
+              : '$passed CI pass'
+        : '$passed/$total CI pass';
     final color = failed > 0
         ? const Color(0xFFB91C1C)
         : active > 0
