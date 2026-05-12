@@ -1,4 +1,9 @@
-import { FieldValue, Timestamp, type Firestore, type QueryDocumentSnapshot } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  Timestamp,
+  type Firestore,
+  type QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 
 import { firestoreCollectionPaths, getTeamById } from "../../firestoreData.js";
@@ -214,7 +219,12 @@ export async function linkGitHubIssueToPullRequest(
   const pullRequest = payload.pull_request;
   const pullRequestNumber = asNumber(pullRequest?.number);
   const installationId = asNumber(payload.installation?.id);
-  if (repoParts === null || pullRequest === undefined || pullRequestNumber <= 0 || installationId <= 0) {
+  if (
+    repoParts === null ||
+    pullRequest === undefined ||
+    pullRequestNumber <= 0 ||
+    installationId <= 0
+  ) {
     return;
   }
 
