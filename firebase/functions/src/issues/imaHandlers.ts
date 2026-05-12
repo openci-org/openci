@@ -1,4 +1,3 @@
-import { getTeamById } from "../firestoreData.js";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -11,6 +10,7 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
+import { firestoreCollectionPaths, getTeamById } from "../firestoreData.js";
 import { getInstallationToken, githubGraphql } from "../github/githubApp.js";
 
 import {
@@ -494,10 +494,7 @@ function isActiveCursorAgentStatus(status: string): boolean {
   return status === "starting" || status === "running";
 }
 
-async function resolveIssueCursorStartingRef(
-  repoFullName: string,
-  token: string,
-): Promise<string> {
+async function resolveIssueCursorStartingRef(repoFullName: string, token: string): Promise<string> {
   const [owner, repo] = repoFullName.split("/");
   if (!owner || !repo) {
     return "main";
@@ -1771,7 +1768,6 @@ export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubI
           }
           page += 1;
         }
-
       }
 
       await commitIfNeeded(true);
@@ -2478,6 +2474,13 @@ export async function processImaGitHubAppWebhook(
   event: string,
   body: Record<string, unknown>,
 ): Promise<Record<string, number> | undefined> {
+  if (event === "pull_request") {
+    const linked = await syncPullRequestLinksFromEditedWebhook(
+      body as GitHubPullRequestWebhookPayload,
+    );
+    return { linked };
+  }
+
   if (event === "issues") {
     const updated = await syncGitHubIssueFromWebhook(body as GitHubIssueWebhookPayload);
     return { updated };
@@ -2489,6 +2492,71 @@ export async function processImaGitHubAppWebhook(
   }
 
   return undefined;
+}
+
+async function syncPullRequestLinksFromEditedWebhook(
+  payload: GitHubPullRequestWebhookPayload,
+): Promise<number> {
+  const action = asString(payload.action);
+  if (action !== "edited") {
+    return 0;
+  }
+
+  const pullRequest = payload.pull_request;
+  const repoFullName = asString(payload.repository?.full_name);
+  const pullRequestNumber = asNumber(pullRequest?.number);
+  if (pullRequest === undefined || repoFullName.length === 0 || pullRequestNumber <= 0) {
+    return 0;
+  }
+
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    return 0;
+  }
+
+  const workspaces = await db
+    .collection(firestoreCollectionPaths.workspaces)
+    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
+    .get();
+  let linked = 0;
+
+  for (const workspace of workspaces.docs) {
+    let token: string;
+    try {
+      ({ token } = await getWorkspaceGitHubToken(workspace.id));
+    } catch (error) {
+      logger.warn("syncPullRequestLinks: no GitHub App installation token", {
+        workspaceId: workspace.id,
+        repoFullName,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    const linkedIssues = await fetchPullRequestLinkedIssuesSafely({
+      owner,
+      repo,
+      number: pullRequestNumber,
+      token,
+      workspaceId: workspace.id,
+    });
+    if (linkedIssues.length === 0) {
+      continue;
+    }
+
+    linked += await upsertPullRequestLinksForLinkedIssues({
+      workspaceId: workspace.id,
+      owner,
+      repo,
+      action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
+      pullRequest,
+      repoFullName,
+      branch: asString(pullRequest.head?.ref),
+      linkedIssues,
+    });
+  }
+
+  return linked;
 }
 
 async function upsertPullRequestLink({
@@ -2748,10 +2816,16 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
 }
 
 function isBranchLogPath(path: string): boolean {
-  return path.startsWith(branchLogPathPrefix) && path.endsWith(".json") && !path.includes("/", branchLogPathPrefix.length);
+  return (
+    path.startsWith(branchLogPathPrefix) &&
+    path.endsWith(".json") &&
+    !path.includes("/", branchLogPathPrefix.length)
+  );
 }
 
-function branchLogPathsFromCommits(commits: NonNullable<GitHubPushWebhookPayload["commits"]>): string[] {
+function branchLogPathsFromCommits(
+  commits: NonNullable<GitHubPushWebhookPayload["commits"]>,
+): string[] {
   const paths = new Set<string>();
   for (const commit of commits) {
     const files = [

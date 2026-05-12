@@ -119,6 +119,17 @@ describe("addBuildJob", () => {
     expect(mockSaveBuildJobToFirestore).not.toHaveBeenCalled();
   });
 
+  it("does nothing when the installation is not linked to a team", async () => {
+    mockGetTeamIdByInstallationId.mockResolvedValue(undefined);
+
+    await addBuildJob(params);
+
+    expect(mockGetInstallationToken).not.toHaveBeenCalled();
+    expect(mockFetchOpenCIWorkflowYamlFiles).not.toHaveBeenCalled();
+    expect(mockCreateCheckRun).not.toHaveBeenCalled();
+    expect(mockSaveBuildJobToFirestore).not.toHaveBeenCalled();
+  });
+
   it("filters workflows using the trigger branch when provided", async () => {
     const workflowFile = { name: "ci.yaml", content: "name: CI" };
     const parsedWorkflow = {

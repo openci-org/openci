@@ -18,6 +18,26 @@ import {
 
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
+function serializeError(error: unknown): unknown {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+  return error;
+}
+
+function webhookErrorLogData(error: unknown): Record<string, unknown> {
+  return {
+    error,
+    ...(error instanceof AggregateError
+      ? { errors: error.errors.map((innerError) => serializeError(innerError)) }
+      : {}),
+  };
+}
+
 export const githubWebhook = onRequest(
   { secrets: [githubWebhookSecret, githubAppId, githubPrivateKey] },
   async (request, response) => {
@@ -50,6 +70,11 @@ export const githubWebhook = onRequest(
 
     webhooks.on("pull_request.opened", async ({ payload }) => {
       await linkGitHubIssueToPullRequest(db, payload);
+    });
+
+    webhooks.on("pull_request.edited", async ({ name, payload }) => {
+      const body = payload as unknown as Record<string, unknown>;
+      await processImaGitHubAppWebhook(name, body);
     });
 
     webhooks.on("push", async ({ name, payload }) => {
@@ -91,7 +116,7 @@ export const githubWebhook = onRequest(
       });
       response.status(200).json({ status: "ok" });
     } catch (error) {
-      logger.error("GitHub webhook processing failed", { error });
+      logger.error("GitHub webhook processing failed", webhookErrorLogData(error));
       response.status(500).send("GitHub webhook processing failed");
     }
   },

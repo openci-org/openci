@@ -934,27 +934,19 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         final messenger = ScaffoldMessenger.of(context);
 
                         Navigator.of(context).pop();
-                        messenger
-                          ..removeCurrentSnackBar()
-                          ..showSnackBar(
-                            responsiveSnackBar(
-                              messenger.context,
-                              content: Text(secretsT.adding),
-                              duration: const Duration(days: 1),
-                            ),
-                          );
+                        showResponsiveSnackBar(
+                          messenger.context,
+                          content: Text(secretsT.adding),
+                          duration: const Duration(days: 1),
+                        );
 
                         try {
                           await secretManager.addSecret(name, value);
                           if (!messenger.mounted) return;
-                          messenger
-                            ..removeCurrentSnackBar()
-                            ..showSnackBar(
-                              responsiveSnackBar(
-                                messenger.context,
-                                content: Text(secretsT.addedSuccess),
-                              ),
-                            );
+                          showResponsiveSnackBar(
+                            messenger.context,
+                            content: Text(secretsT.addedSuccess),
+                          );
                         } on FirebaseFunctionsException catch (e, s) {
                           final errorMessage =
                               await FunctionErrorMessage.capture(
@@ -962,24 +954,16 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                                 stackTrace: s,
                               );
                           if (!messenger.mounted) return;
-                          messenger
-                            ..removeCurrentSnackBar()
-                            ..showSnackBar(
-                              responsiveSnackBar(
-                                messenger.context,
-                                content: Text(errorMessage.message),
-                              ),
-                            );
+                          showResponsiveSnackBar(
+                            messenger.context,
+                            content: Text(errorMessage.message),
+                          );
                         } catch (e) {
                           if (!messenger.mounted) return;
-                          messenger
-                            ..removeCurrentSnackBar()
-                            ..showSnackBar(
-                              responsiveSnackBar(
-                                messenger.context,
-                                content: Text('$e'),
-                              ),
-                            );
+                          showResponsiveSnackBar(
+                            messenger.context,
+                            content: Text('$e'),
+                          );
                         }
                       },
                       child: Text(

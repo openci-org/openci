@@ -28,6 +28,9 @@ export interface AddBuildJobParams {
 export async function addBuildJob(params: AddBuildJobParams) {
   const db = getFirestore();
   const teamId = await getTeamIdByInstallationId(db, params.installationId);
+  if (!teamId) {
+    return;
+  }
   const githubBaseUrl = await getGitHubBaseUrl(db, teamId);
   const apiBaseUrl = getGitHubApiBaseUrl(githubBaseUrl);
   const { token, expiresAt } = await getInstallationToken(

@@ -13,7 +13,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 
 Color _statusColor(BuildJobStatus status) => switch (status) {
   BuildJobStatus.SUCCESS => const Color(0xFF2DA44E),
@@ -64,8 +63,8 @@ String _workflowRunGroupKey(BuildJob job) {
   return '$runId:${job.workflowFileName ?? ''}';
 }
 
-SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  return responsiveSnackBar(
+void _showMaterialDefaultSnackBar(BuildContext context, String message) {
+  showResponsiveSnackBar(
     context,
     content: Text(message),
   );
@@ -162,8 +161,6 @@ class BuildJobCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync = ref.watch(workflowNameProvider(buildJob));
-
     final color = _statusColor(buildJob.status);
     final statusLabel = _statusLabel(buildJob.status);
     final isRunning = _isRunningStatus(buildJob.status);
@@ -197,37 +194,16 @@ class BuildJobCard extends HookConsumerWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: workflowNameAsync.when(
-                              data: (name) {
-                                final title =
-                                    name ??
-                                    '${buildJob.owner}/${buildJob.repo}';
-                                final displayTitle = buildJob.jobKey != null
-                                    ? '$title (${buildJob.jobKey})'
-                                    : title;
-                                return Text(
-                                  displayTitle,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.of(context).textPrimary,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                );
-                              },
-                              loading: () => Skeletonizer(
-                                child: Text(
-                                  buildJob.jobKey != null
-                                      ? '${buildJob.owner}/${buildJob.repo} (${buildJob.jobKey})'
-                                      : '${buildJob.owner}/${buildJob.repo}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                            child: Text(
+                              buildJob.jobKey != null
+                                  ? '${buildJob.workflowName} (${buildJob.jobKey})'
+                                  : buildJob.workflowName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.of(context).textPrimary,
                               ),
-                              error: asyncErrorWidget,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -294,11 +270,9 @@ class BuildJobCard extends HookConsumerWidget {
                               .read(buildJobsProvider.notifier)
                               .retryBuildJob(buildJob.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              _materialDefaultSnackBar(
-                                context,
-                                t.buildLogs.detail.retrySuccess,
-                              ),
+                            _showMaterialDefaultSnackBar(
+                              context,
+                              t.buildLogs.detail.retrySuccess,
                             );
                           }
                         } on FirebaseFunctionsException catch (e, s) {
@@ -308,22 +282,18 @@ class BuildJobCard extends HookConsumerWidget {
                                 stackTrace: s,
                               );
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              _materialDefaultSnackBar(
-                                context,
-                                errorMessage.message,
-                              ),
+                            _showMaterialDefaultSnackBar(
+                              context,
+                              errorMessage.message,
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
                             debugPrint('failed to retry: $e');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              _materialDefaultSnackBar(
-                                context,
-                                t.buildLogs.detail.failedToRetry(
-                                  error: e.toString(),
-                                ),
+                            _showMaterialDefaultSnackBar(
+                              context,
+                              t.buildLogs.detail.failedToRetry(
+                                error: e.toString(),
                               ),
                             );
                           }
@@ -380,12 +350,10 @@ class BuildJobCard extends HookConsumerWidget {
                               .read(buildJobsProvider.notifier)
                               .cancelBuildJob(buildJob.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              responsiveSnackBar(
-                                context,
-                                content: Text(
-                                  t.buildLogs.detail.buildCancelled,
-                                ),
+                            showResponsiveSnackBar(
+                              context,
+                              content: Text(
+                                t.buildLogs.detail.buildCancelled,
                               ),
                             );
                           }
@@ -396,22 +364,18 @@ class BuildJobCard extends HookConsumerWidget {
                                 stackTrace: s,
                               );
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              responsiveSnackBar(
-                                context,
-                                content: Text(errorMessage.message),
-                              ),
+                            showResponsiveSnackBar(
+                              context,
+                              content: Text(errorMessage.message),
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              responsiveSnackBar(
-                                context,
-                                content: Text(
-                                  t.buildLogs.detail.failedToCancel(
-                                    error: e.toString(),
-                                  ),
+                            showResponsiveSnackBar(
+                              context,
+                              content: Text(
+                                t.buildLogs.detail.failedToCancel(
+                                  error: e.toString(),
                                 ),
                               ),
                             );
@@ -499,7 +463,6 @@ class WorkflowRunCard extends HookConsumerWidget {
     if (jobs.isEmpty) return const SizedBox.shrink();
 
     final mainJob = jobs.first;
-    final workflowNameAsync = ref.watch(workflowNameProvider(mainJob));
 
     BuildJobStatus overallStatus = BuildJobStatus.SUCCESS;
     if (jobs.any((j) => j.status == BuildJobStatus.IN_PROGRESS)) {
@@ -548,27 +511,14 @@ class WorkflowRunCard extends HookConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: workflowNameAsync.when(
-                        data: (name) => Text(
-                          name ?? '${mainJob.owner}/${mainJob.repo}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.of(context).textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        mainJob.workflowName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.of(context).textPrimary,
                         ),
-                        loading: () => Skeletonizer(
-                          child: Text(
-                            '${mainJob.owner}/${mainJob.repo}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        error: asyncErrorWidget,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
@@ -590,11 +540,9 @@ class WorkflowRunCard extends HookConsumerWidget {
                                   workflowFileName: mainJob.workflowFileName,
                                 );
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                _materialDefaultSnackBar(
-                                  context,
-                                  t.buildLogs.detail.retrySuccess,
-                                ),
+                              _showMaterialDefaultSnackBar(
+                                context,
+                                t.buildLogs.detail.retrySuccess,
                               );
                             }
                           } on FirebaseFunctionsException catch (e, s) {
@@ -604,21 +552,17 @@ class WorkflowRunCard extends HookConsumerWidget {
                                   stackTrace: s,
                                 );
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                _materialDefaultSnackBar(
-                                  context,
-                                  errorMessage.message,
-                                ),
+                              _showMaterialDefaultSnackBar(
+                                context,
+                                errorMessage.message,
                               );
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                _materialDefaultSnackBar(
-                                  context,
-                                  t.buildLogs.detail.failedToRetry(
-                                    error: e.toString(),
-                                  ),
+                              _showMaterialDefaultSnackBar(
+                                context,
+                                t.buildLogs.detail.failedToRetry(
+                                  error: e.toString(),
                                 ),
                               );
                             }

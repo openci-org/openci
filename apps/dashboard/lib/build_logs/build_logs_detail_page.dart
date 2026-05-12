@@ -6,7 +6,6 @@ import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
-import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -18,8 +17,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 enum _ActionState { idle, loading, done }
 
-SnackBar _materialDefaultSnackBar(BuildContext context, String message) {
-  return responsiveSnackBar(
+void _showMaterialDefaultSnackBar(BuildContext context, String message) {
+  showResponsiveSnackBar(
     context,
     content: Text(message),
   );
@@ -31,9 +30,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workflowNameAsync = ref.watch(
-      workflowNameProvider(buildJob),
-    );
+    final workflowName = buildJob.workflowName;
     final detailT = t.buildLogs.detail;
     final retryState = useState(_ActionState.idle);
 
@@ -89,25 +86,14 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: workflowNameAsync.when(
-            data: (name) => Text(
-              name ?? '${buildJob.owner}/${buildJob.repo}',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: AppColors.of(context).textPrimary,
-                letterSpacing: -0.3,
-              ),
+          title: Text(
+            workflowName,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: AppColors.of(context).textPrimary,
+              letterSpacing: -0.3,
             ),
-            loading: () => SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.of(context).textTertiary,
-              ),
-            ),
-            error: asyncErrorWidget,
           ),
           actions: [
             if (canCancel)
@@ -208,11 +194,9 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           }
                         });
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            _materialDefaultSnackBar(
-                              context,
-                              detailT.retrySuccess,
-                            ),
+                          _showMaterialDefaultSnackBar(
+                            context,
+                            detailT.retrySuccess,
                           );
                         }
                       } on FirebaseFunctionsException catch (e, s) {
@@ -224,11 +208,9 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           retryState.value = _ActionState.idle;
                         }
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            _materialDefaultSnackBar(
-                              context,
-                              errorMessage.message,
-                            ),
+                          _showMaterialDefaultSnackBar(
+                            context,
+                            errorMessage.message,
                           );
                         }
                       } catch (e) {
@@ -236,11 +218,9 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           retryState.value = _ActionState.idle;
                         }
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            _materialDefaultSnackBar(
-                              context,
-                              detailT.failedToRetry(error: e.toString()),
-                            ),
+                          _showMaterialDefaultSnackBar(
+                            context,
+                            detailT.failedToRetry(error: e.toString()),
                           );
                         }
                       }
