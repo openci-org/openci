@@ -4780,7 +4780,11 @@ class CardBuildStatus {
       label: label,
       color: color,
       icon: icon,
-      isSpinning: active > 0 && !queuedOnly,
+      isSpinning: shouldSpinCardBuildStatus(
+        failed: failed,
+        active: active,
+        queuedOnly: queuedOnly,
+      ),
       signature: jobs.map((job) => '${job.id}:${job.status.name}').join(','),
       workflowTitle: 'PR checks',
       summaryLabel: summaryLabel,
@@ -4788,6 +4792,15 @@ class CardBuildStatus {
       tooltip: 'PR checks: $summaryLabel',
     );
   }
+}
+
+@visibleForTesting
+bool shouldSpinCardBuildStatus({
+  required int failed,
+  required int active,
+  required bool queuedOnly,
+}) {
+  return failed == 0 && active > 0 && !queuedOnly;
 }
 
 class BuildStatusJob {
