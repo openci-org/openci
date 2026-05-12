@@ -29,7 +29,7 @@ The worker claims `ubuntu` jobs on Linux and runs them inside `openci-ubuntu:lat
 
 ## Publishing
 
-The worker build bundles the shared Firestore data and build-job services into `dist/index.cjs` so it can be installed from npm without repository-local `file:` dependencies.
+The worker build bundles its Firestore data and build-job services into `dist/index.cjs` so it can be installed from npm without repository-local dependencies.
 
 Before publishing from this package directory:
 
@@ -38,7 +38,7 @@ npm run pack:dry-run
 npm publish
 ```
 
-The dry run should only include `dist`, `README.md`, and `package.json`; it should not list `../../packages/...` paths or bundled dependencies.
+The dry run should only include `dist`, `README.md`, and `package.json`; it should not list bundled dependencies.
 
 ## Requirements
 

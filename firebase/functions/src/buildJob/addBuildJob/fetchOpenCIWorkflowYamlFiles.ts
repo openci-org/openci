@@ -8,12 +8,7 @@ export interface WorkflowFile {
 }
 
 function isNotFoundError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    error.status === 404
-  );
+  return typeof error === "object" && error !== null && "status" in error && error.status === 404;
 }
 
 export async function fetchOpenCIWorkflowYamlFiles(

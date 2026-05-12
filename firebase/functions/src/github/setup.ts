@@ -123,40 +123,42 @@ export const createGitHubSetupUrl = onCall<
   return { url: url.toString() };
 });
 
-export const githubSetup = onRequest({ secrets: [githubWebhookSecret] }, async (request, response) => {
-  try {
-    const installationId = request.query.installation_id;
-    const state = request.query.state;
-    const setupAction = request.query.setup_action;
+export const githubSetup = onRequest(
+  { secrets: [githubWebhookSecret] },
+  async (request, response) => {
+    try {
+      const installationId = request.query.installation_id;
+      const state = request.query.state;
+      const setupAction = request.query.setup_action;
 
-    if (typeof installationId !== "string" || typeof state !== "string") {
-      response.status(400).send("Missing installation_id or state");
-      return;
-    }
+      if (typeof installationId !== "string" || typeof state !== "string") {
+        response.status(400).send("Missing installation_id or state");
+        return;
+      }
 
-    const setupState = verifySetupState(state);
-    const { teamId } = setupState;
-    logger.info("GitHub Setup callback received", {
-      installationId,
-      teamId,
-      setupAction,
-      requestedByUid: setupState.uid,
-    });
+      const setupState = verifySetupState(state);
+      const { teamId } = setupState;
+      logger.info("GitHub Setup callback received", {
+        installationId,
+        teamId,
+        setupAction,
+        requestedByUid: setupState.uid,
+      });
 
-    const team = await getTeamById({ teamId });
-    if (!team.data.team) {
-      response.status(404).send("Team not found");
-      return;
-    }
+      const team = await getTeamById({ teamId });
+      if (!team.data.team) {
+        response.status(404).send("Team not found");
+        return;
+      }
 
-    const newId = Number.parseInt(installationId, 10);
-    if (!Number.isInteger(newId) || newId <= 0) {
-      response.status(400).send("Invalid installation_id");
-      return;
-    }
+      const newId = Number.parseInt(installationId, 10);
+      if (!Number.isInteger(newId) || newId <= 0) {
+        response.status(400).send("Invalid installation_id");
+        return;
+      }
 
-    await linkGitHubInstallation({ teamId, installationId: newId });
-    response.status(200).set("Content-Type", "text/html").send(`<!DOCTYPE html>
+      await linkGitHubInstallation({ teamId, installationId: newId });
+      response.status(200).set("Content-Type", "text/html").send(`<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -176,13 +178,14 @@ export const githubSetup = onRequest({ secrets: [githubWebhookSecret] }, async (
     </div>
   </body>
 </html>`);
-  } catch (error) {
-    if (error instanceof HttpsError) {
-      logger.warn("Rejected GitHub setup callback", { code: error.code, message: error.message });
-      response.status(statusCodeForHttpsError(error)).send(error.message);
-      return;
+    } catch (error) {
+      if (error instanceof HttpsError) {
+        logger.warn("Rejected GitHub setup callback", { code: error.code, message: error.message });
+        response.status(statusCodeForHttpsError(error)).send(error.message);
+        return;
+      }
+      logger.error("Failed to link GitHub installation", { error });
+      response.status(500).send("Internal server error");
     }
-    logger.error("Failed to link GitHub installation", { error });
-    response.status(500).send("Internal server error");
-  }
-});
+  },
+);

@@ -13,7 +13,7 @@ import {
   updateBuildRunStatusForWorker,
   updateEnvironmentVariableValueForWorker,
   upsertWorkerHeartbeat,
-} from "@openci/build-job-services";
+} from "./build_job_services.js";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 
 import type { BuildJob, WorkerHeartbeatInput } from "./types.js";

@@ -1,4 +1,4 @@
-import type { BuildJobStatus } from "@openci/build-job-services";
+import type { BuildJobStatus } from "./build_job_services.js";
 
 export interface BuildJob {
   id: string;

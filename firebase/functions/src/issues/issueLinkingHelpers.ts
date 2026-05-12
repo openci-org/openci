@@ -63,7 +63,10 @@ export function upsertLinkedIssueBlocks(
   const trimmedBody = currentBody.replace(managedBlockPattern, "").trim();
   const block = [
     imaLinkedIssueBlockStart,
-    ...Array.from(entries.entries()).flatMap(([number, key]) => [`Fixes #${number}`, `Ima: ${key}`]),
+    ...Array.from(entries.entries()).flatMap(([number, key]) => [
+      `Fixes #${number}`,
+      `Ima: ${key}`,
+    ]),
     imaLinkedIssueBlockEnd,
   ].join("\n");
   return trimmedBody.length === 0 ? block : `${trimmedBody}\n\n${block}`;

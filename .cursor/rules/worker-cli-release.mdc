@@ -1,12 +1,12 @@
 ---
 description: Worker CLI release and auto-update expectations
-globs: apps/worker_cli_node/**/*,packages/build_job_services/**/*
+globs: apps/worker_cli_node/**/*
 alwaysApply: false
 ---
 
 # Worker CLI Release
 
-When changing the worker CLI, shared build job services, or Firestore data contracts used by the worker:
+When changing the worker CLI or Firestore data contracts used by the worker:
 
 - Bump `apps/worker_cli_node/package.json` version before publishing.
 - Run the worker build/check before release.

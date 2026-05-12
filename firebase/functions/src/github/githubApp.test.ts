@@ -2,18 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createCheckRun,
   getInstallationToken,
+  GitHubGraphqlError,
   githubGet,
   githubGraphql,
   githubPost,
 } from "./githubApp.js";
 
-const { mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest, mockFetch } =
-  vi.hoisted(() => ({
+const { mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest, mockFetch } = vi.hoisted(
+  () => ({
     mockCreateAppAuth: vi.fn(),
     mockRequestDefaults: vi.fn(),
     mockOctokitRequest: vi.fn(),
     mockFetch: vi.fn(),
-  }));
+  }),
+);
 
 vi.mock("firebase-functions/params", () => ({
   defineSecret: (name: string) => ({
@@ -123,6 +125,26 @@ describe("GitHub API helpers", () => {
           variables: { owner: "openci" },
         }),
       }),
+    );
+  });
+
+  it("throws GraphQL errors with the response details", async () => {
+    const errors = [{ message: "Resource not accessible by integration" }];
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: () => Promise.resolve({ data: null, errors }),
+    });
+
+    await expect(githubGraphql("query { viewer { login } }", "token-123")).rejects.toMatchObject({
+      name: "GitHubGraphqlError",
+      status: 200,
+      statusText: "OK",
+      errors,
+    });
+    await expect(githubGraphql("query { viewer { login } }", "token-123")).rejects.toBeInstanceOf(
+      GitHubGraphqlError,
     );
   });
 
