@@ -58,6 +58,12 @@ bool _isTerminalStatus(BuildJobStatus status) =>
     status == BuildJobStatus.SKIPPED ||
     status == BuildJobStatus.TIMED_OUT;
 
+String _workflowRunGroupKey(BuildJob job) {
+  final runId = job.workflowRunId;
+  if (runId == null || runId.isEmpty) return job.id;
+  return '$runId:${job.workflowFileName ?? ''}';
+}
+
 void _showMaterialDefaultSnackBar(BuildContext context, String message) {
   showResponsiveSnackBar(
     context,
@@ -113,12 +119,13 @@ class LogsBody extends HookConsumerWidget {
 
         for (final job in buildJobs) {
           if (job.workflowRunId != null) {
-            if (!groups.containsKey(job.workflowRunId!)) {
+            final groupKey = _workflowRunGroupKey(job);
+            if (!groups.containsKey(groupKey)) {
               final list = <BuildJob>[];
-              groups[job.workflowRunId!] = list;
+              groups[groupKey] = list;
               orderedDisplayList.add(list);
             }
-            groups[job.workflowRunId!]!.add(job);
+            groups[groupKey]!.add(job);
           } else {
             orderedDisplayList.add([job]);
           }
@@ -568,6 +575,7 @@ class WorkflowRunCard extends HookConsumerWidget {
                                 .read(buildJobsProvider.notifier)
                                 .retryWorkflowRun(
                                   mainJob.workflowRunId!,
+                                  workflowFileName: mainJob.workflowFileName,
                                 );
                             if (context.mounted) {
                               _showMaterialDefaultSnackBar(
