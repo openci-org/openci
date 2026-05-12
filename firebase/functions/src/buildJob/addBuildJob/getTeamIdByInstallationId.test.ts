@@ -24,11 +24,9 @@ describe("getTeamIdByInstallationId", () => {
     expect(result).toBe("team-abc");
   });
 
-  it("throws when no team found", async () => {
+  it("returns undefined when no team found", async () => {
     const db = fakeDb({ empty: true, docs: [] });
 
-    await expect(getTeamIdByInstallationId(db, 99999)).rejects.toThrow(
-      "No team found for installation 99999",
-    );
+    await expect(getTeamIdByInstallationId(db, 99999)).resolves.toBeUndefined();
   });
 });
