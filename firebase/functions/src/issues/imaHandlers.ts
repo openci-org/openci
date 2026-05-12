@@ -278,6 +278,11 @@ interface BranchLogEntry {
   at: string;
 }
 
+interface GitHubContentFileResponse {
+  content?: unknown;
+  encoding?: unknown;
+}
+
 interface GitHubIssueWebhookPayload {
   action?: unknown;
   repository?: {
@@ -306,6 +311,7 @@ const closedStatusId = "done";
 const reviewStatusId = "review";
 const inProgressStatusIds = new Set(["doing", "review"]);
 const issueWeightModel = "claude-opus-4-6";
+const branchLogPathPrefix = ".openci/branch-log/";
 
 function requireNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -2741,6 +2747,70 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
   return updated;
 }
 
+function isBranchLogPath(path: string): boolean {
+  return path.startsWith(branchLogPathPrefix) && path.endsWith(".json") && !path.includes("/", branchLogPathPrefix.length);
+}
+
+function branchLogPathsFromCommits(commits: NonNullable<GitHubPushWebhookPayload["commits"]>): string[] {
+  const paths = new Set<string>();
+  for (const commit of commits) {
+    const files = [
+      ...((commit.added as string[] | undefined) ?? []),
+      ...((commit.modified as string[] | undefined) ?? []),
+    ];
+    for (const file of files) {
+      if (isBranchLogPath(file)) {
+        paths.add(file);
+      }
+    }
+  }
+  return [...paths].sort();
+}
+
+function parseBranchLogEntry(content: string): BranchLogEntry | null {
+  try {
+    return JSON.parse(content) as BranchLogEntry;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchBranchLogEntries({
+  owner,
+  repo,
+  token,
+  ref,
+  paths,
+}: {
+  owner: string;
+  repo: string;
+  token: string;
+  ref: string;
+  paths: string[];
+}): Promise<BranchLogEntry[]> {
+  const entries: BranchLogEntry[] = [];
+  const queryParameters = ref.length > 0 ? { ref } : undefined;
+
+  for (const path of paths) {
+    const fileResponse = await githubRequest<GitHubContentFileResponse>({
+      path: `/repos/${owner}/${repo}/contents/${path}`,
+      token,
+      queryParameters,
+    });
+    if (asString(fileResponse.encoding) !== "base64") {
+      continue;
+    }
+
+    const content = Buffer.from(asString(fileResponse.content), "base64").toString("utf8");
+    const entry = parseBranchLogEntry(content);
+    if (entry !== null) {
+      entries.push(entry);
+    }
+  }
+
+  return entries;
+}
+
 async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Promise<number> {
   const repoFullName = asString(payload.repository?.full_name);
   if (repoFullName.length === 0) {
@@ -2748,14 +2818,8 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
   }
 
   const commits = payload.commits ?? [];
-  const branchLogTouched = commits.some((commit) => {
-    const files = [
-      ...((commit.added as string[] | undefined) ?? []),
-      ...((commit.modified as string[] | undefined) ?? []),
-    ];
-    return files.includes(".openci/branch-log.jsonl");
-  });
-  if (!branchLogTouched) {
+  const branchLogPaths = branchLogPathsFromCommits(commits);
+  if (branchLogPaths.length === 0) {
     return 0;
   }
 
@@ -2786,35 +2850,25 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
       continue;
     }
 
-    let branchLogContent: string;
+    let branchLogEntries: BranchLogEntry[];
     try {
       const ref = asString(payload.ref).replace(/^refs\/heads\//u, "");
-      const fileResponse = await githubRequest<{ content?: unknown; encoding?: unknown }>({
-        path: `/repos/${owner}/${repo}/contents/.openci/branch-log.jsonl`,
+      branchLogEntries = await fetchBranchLogEntries({
+        owner,
+        repo,
         token,
-        queryParameters: ref.length > 0 ? { ref } : {},
+        ref,
+        paths: branchLogPaths,
       });
-      if (asString(fileResponse.encoding) !== "base64") {
-        continue;
-      }
-      branchLogContent = Buffer.from(asString(fileResponse.content), "base64").toString("utf8");
     } catch {
-      logger.warn("processBranchLog: failed to fetch branch-log.jsonl", {
+      logger.warn("processBranchLog: failed to fetch branch log", {
         workspaceId,
         repoFullName,
       });
       continue;
     }
 
-    const lines = branchLogContent.split("\n").filter((line) => line.trim().length > 0);
-    for (const line of lines) {
-      let entry: BranchLogEntry;
-      try {
-        entry = JSON.parse(line) as BranchLogEntry;
-      } catch {
-        continue;
-      }
-
+    for (const entry of branchLogEntries) {
       const branchName = asString(entry.branch);
       const createdAtStr = asString(entry.at);
       if (branchName.length === 0 || createdAtStr.length === 0) {
