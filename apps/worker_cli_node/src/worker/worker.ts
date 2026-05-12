@@ -2,9 +2,12 @@ import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import { setTimeout } from "node:timers/promises";
 
-import { handleBuildJobStatusChange, updateCheckRun } from "@openci/build-job-services";
-import { BuildJobStatus } from "@openci/build-job-services";
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
+import {
+  BuildJobStatus,
+  handleBuildJobStatusChange,
+  updateCheckRun,
+} from "../build_job_services.js";
 import {
   claimNextJob,
   completeJob,

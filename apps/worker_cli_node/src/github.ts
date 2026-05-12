@@ -1,8 +1,8 @@
 import { createSign } from "node:crypto";
 
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
-import { normalizeGitHubApiBaseUrl } from "@openci/build-job-services";
 
+import { normalizeGitHubApiBaseUrl } from "./build_job_services.js";
 import type { BuildJob } from "./types.js";
 
 const tokenRefreshBufferMs = 5 * 60 * 1000;
