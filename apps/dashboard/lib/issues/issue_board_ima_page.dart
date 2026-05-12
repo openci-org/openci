@@ -492,6 +492,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   var _isImportingIssues = false;
   var _isSyncingIssues = false;
   var _isIssueSearchDialogOpen = false;
+  var _hasLoadedIssuesSnapshot = false;
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
@@ -698,6 +699,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   void _replaceIssuesFromSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,
   ) {
+    if (!mounted) {
+      return;
+    }
+
+    if (_hasLoadedIssuesSnapshot) {
+      _applyIssueDocumentChanges(snapshot.docChanges);
+      return;
+    }
+
     final nextColumns = [
       for (final column in _columns)
         BoardColumn(
@@ -718,17 +728,65 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       column.issues.add(issue);
     }
 
-    if (!mounted) {
-      return;
-    }
-
     setState(() {
       _columns
         ..clear()
         ..addAll(nextColumns);
+      _hasLoadedIssuesSnapshot = true;
       _isBootstrapping = false;
       _loadError = null;
     });
+  }
+
+  void _applyIssueDocumentChanges(
+    List<DocumentChange<Map<String, dynamic>>> changes,
+  ) {
+    if (changes.isEmpty) {
+      setState(() {
+        _isBootstrapping = false;
+        _loadError = null;
+      });
+      return;
+    }
+
+    setState(() {
+      for (final change in changes) {
+        switch (change.type) {
+          case DocumentChangeType.added:
+          case DocumentChangeType.modified:
+            final issue = Issue.fromDocument(change.doc);
+            _removeIssueFromColumns(issue.id);
+            _insertIssueInRankOrder(issue);
+            break;
+          case DocumentChangeType.removed:
+            _removeIssueFromColumns(change.doc.id);
+            break;
+        }
+      }
+      _isBootstrapping = false;
+      _loadError = null;
+    });
+  }
+
+  void _removeIssueFromColumns(String issueId) {
+    for (final column in _columns) {
+      column.issues.removeWhere((issue) => issue.id == issueId);
+    }
+  }
+
+  void _insertIssueInRankOrder(Issue issue) {
+    final column = _columns.firstWhere(
+      (column) => column.id == issue.statusId,
+      orElse: () => _columns.first,
+    );
+    final insertIndex = column.issues.indexWhere(
+      (candidate) => candidate.rank > issue.rank,
+    );
+    if (insertIndex == -1) {
+      column.issues.add(issue);
+      return;
+    }
+    column.issues.insert(insertIndex, issue);
   }
 
   void _replaceGitHubConnection(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -823,6 +881,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         ? null
         : targetIssues[insertIndex].rank;
     final nextRankValue = _rankBetween(previousRank, nextRank);
+    _applyOptimisticIssueMove(
+      movingIssue.copyWith(
+        statusId: targetColumnId,
+        rank: nextRankValue,
+        clearClosedAt: targetColumnId != _closedStatusId,
+      ),
+    );
 
     await _firestore
         .doc('workspaces/$_workspaceId/issues/${movingIssue.id}')
@@ -831,6 +896,17 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           'rank': nextRankValue,
           'updatedAt': FieldValue.serverTimestamp(),
         });
+  }
+
+  void _applyOptimisticIssueMove(Issue issue) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _removeIssueFromColumns(issue.id);
+      _insertIssueInRankOrder(issue);
+    });
   }
 
   Future<void> _linkIssueToPullRequest({
@@ -1808,6 +1884,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                 final allIssues = _columns
                                     .expand((column) => column.issues)
                                     .toList();
+                                final subIssuesByParentId =
+                                    _subIssuesByParentId(allIssues);
+                                final buildStatusesByIssueId =
+                                    _buildStatusesByIssueId(
+                                      allIssues,
+                                      _buildStatusesByPullRequest,
+                                    );
+                                final issuesByRepositoryNumber =
+                                    _issuesByRepositoryNumber(allIssues);
 
                                 if (boardViewMode == BoardViewMode.overview) {
                                   return OverviewBoard(
@@ -1833,10 +1918,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     itemBuilder: (context, index) {
                                       final column = _columns[index];
                                       return CompactBoardColumnView(
+                                        key: ValueKey(column.id),
                                         column: column,
-                                        allIssues: allIssues,
-                                        buildStatusesByPullRequest:
-                                            _buildStatusesByPullRequest,
+                                        subIssuesByParentId:
+                                            subIssuesByParentId,
+                                        buildStatusesByIssueId:
+                                            buildStatusesByIssueId,
+                                        issuesByRepositoryNumber:
+                                            issuesByRepositoryNumber,
                                         startingCursorAgentIssueIds:
                                             _startingCursorAgentIssueIds,
                                         requiresLongPressDrag: true,
@@ -1875,10 +1964,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                         children: [
                                           for (final column in _columns) ...[
                                             BoardColumnView(
+                                              key: ValueKey(column.id),
                                               column: column,
-                                              allIssues: allIssues,
-                                              buildStatusesByPullRequest:
-                                                  _buildStatusesByPullRequest,
+                                              subIssuesByParentId:
+                                                  subIssuesByParentId,
+                                              buildStatusesByIssueId:
+                                                  buildStatusesByIssueId,
+                                              issuesByRepositoryNumber:
+                                                  issuesByRepositoryNumber,
                                               startingCursorAgentIssueIds:
                                                   _startingCursorAgentIssueIds,
                                               requiresLongPressDrag: false,
@@ -4858,8 +4951,38 @@ CardBuildStatus? _buildStatusForIssue(
   return null;
 }
 
+Map<String, CardBuildStatus> _buildStatusesByIssueId(
+  List<Issue> issues,
+  Map<String, CardBuildStatus> statusesByPullRequest,
+) {
+  final statuses = <String, CardBuildStatus>{};
+  for (final issue in issues) {
+    final status = _buildStatusForIssue(issue, statusesByPullRequest);
+    if (status != null) {
+      statuses[issue.id] = status;
+    }
+  }
+  return statuses;
+}
+
 String _buildStatusKey(String repository, int pullRequestNumber) {
   return '$repository#$pullRequestNumber';
+}
+
+String _issueRepositoryNumberKey(String repository, int number) {
+  return '$repository#$number';
+}
+
+Map<String, Issue> _issuesByRepositoryNumber(List<Issue> issues) {
+  final issuesByNumber = <String, Issue>{};
+  for (final issue in issues) {
+    if (issue.repo.isEmpty || issue.githubNumber <= 0) {
+      continue;
+    }
+    issuesByNumber[_issueRepositoryNumberKey(issue.repo, issue.githubNumber)] =
+        issue;
+  }
+  return issuesByNumber;
 }
 
 String _buildStatusMapSignature(Map<String, CardBuildStatus> statuses) {
@@ -8039,8 +8162,9 @@ class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
     super.key,
     required this.column,
-    this.allIssues = const [],
-    this.buildStatusesByPullRequest = const {},
+    this.subIssuesByParentId = const {},
+    this.buildStatusesByIssueId = const {},
+    this.issuesByRepositoryNumber = const {},
     this.startingCursorAgentIssueIds = const {},
     required this.requiresLongPressDrag,
     required this.onIssueDropped,
@@ -8051,8 +8175,9 @@ class BoardColumnView extends StatelessWidget {
   });
 
   final BoardColumn column;
-  final List<Issue> allIssues;
-  final Map<String, CardBuildStatus> buildStatusesByPullRequest;
+  final Map<String, List<Issue>> subIssuesByParentId;
+  final Map<String, CardBuildStatus> buildStatusesByIssueId;
+  final Map<String, Issue> issuesByRepositoryNumber;
   final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
@@ -8064,6 +8189,7 @@ class BoardColumnView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleIssues = _visibleIssuesForColumn(column);
+    final rankIndicesByIssueId = _rankIndicesByIssueId(column.issues);
     final reviewGroups = column.id == _reviewStatusId
         ? _reviewPullRequestGroupsForIssues(visibleIssues)
         : const <ReviewPullRequestGroup>[];
@@ -8121,9 +8247,10 @@ class BoardColumnView extends StatelessWidget {
                         ReviewPullRequestGroupView(
                           group: group,
                           column: column,
-                          allIssues: allIssues,
-                          buildStatusesByPullRequest:
-                              buildStatusesByPullRequest,
+                          subIssuesByParentId: subIssuesByParentId,
+                          buildStatusesByIssueId: buildStatusesByIssueId,
+                          issuesByRepositoryNumber: issuesByRepositoryNumber,
+                          rankIndicesByIssueId: rankIndicesByIssueId,
                           startingCursorAgentIssueIds:
                               startingCursorAgentIssueIds,
                           requiresLongPressDrag: requiresLongPressDrag,
@@ -8145,19 +8272,17 @@ class BoardColumnView extends StatelessWidget {
                         Builder(
                           builder: (context) {
                             final issue = visibleIssues[index];
-                            final rankIndex = column.issues.indexWhere(
-                              (candidate) => candidate.id == issue.id,
-                            );
+                            final rankIndex = rankIndicesByIssueId[issue.id];
 
                             return IssueCardDropTarget(
+                              key: ValueKey(issue.id),
                               issue: issue,
-                              subIssues: _subIssuesForParent(issue, allIssues),
-                              buildStatus: _buildStatusForIssue(
-                                issue,
-                                buildStatusesByPullRequest,
-                              ),
+                              subIssues:
+                                  subIssuesByParentId[issue.id] ??
+                                  const <Issue>[],
+                              buildStatus: buildStatusesByIssueId[issue.id],
                               sourceColumnId: column.id,
-                              index: rankIndex < 0 ? index : rankIndex,
+                              index: rankIndex ?? index,
                               isStartingCursorAgent: startingCursorAgentIssueIds
                                   .contains(issue.id),
                               requiresLongPressDrag: requiresLongPressDrag,
@@ -8193,8 +8318,9 @@ class CompactBoardColumnView extends StatefulWidget {
   const CompactBoardColumnView({
     super.key,
     required this.column,
-    this.allIssues = const [],
-    this.buildStatusesByPullRequest = const {},
+    this.subIssuesByParentId = const {},
+    this.buildStatusesByIssueId = const {},
+    this.issuesByRepositoryNumber = const {},
     this.startingCursorAgentIssueIds = const {},
     required this.requiresLongPressDrag,
     required this.onIssueDropped,
@@ -8205,8 +8331,9 @@ class CompactBoardColumnView extends StatefulWidget {
   });
 
   final BoardColumn column;
-  final List<Issue> allIssues;
-  final Map<String, CardBuildStatus> buildStatusesByPullRequest;
+  final Map<String, List<Issue>> subIssuesByParentId;
+  final Map<String, CardBuildStatus> buildStatusesByIssueId;
+  final Map<String, Issue> issuesByRepositoryNumber;
   final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
@@ -8228,6 +8355,7 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
     final displayedIssues = _isShrunk
         ? visibleIssues.take(_compactColumnCollapsedLimit).toList()
         : visibleIssues;
+    final rankIndicesByIssueId = _rankIndicesByIssueId(widget.column.issues);
     final reviewGroups = widget.column.id == _reviewStatusId
         ? _reviewPullRequestGroupsForIssues(displayedIssues)
         : const <ReviewPullRequestGroup>[];
@@ -8283,9 +8411,10 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                   ReviewPullRequestGroupView(
                     group: group,
                     column: widget.column,
-                    allIssues: widget.allIssues,
-                    buildStatusesByPullRequest:
-                        widget.buildStatusesByPullRequest,
+                    subIssuesByParentId: widget.subIssuesByParentId,
+                    buildStatusesByIssueId: widget.buildStatusesByIssueId,
+                    issuesByRepositoryNumber: widget.issuesByRepositoryNumber,
+                    rankIndicesByIssueId: rankIndicesByIssueId,
                     startingCursorAgentIssueIds:
                         widget.startingCursorAgentIssueIds,
                     requiresLongPressDrag: widget.requiresLongPressDrag,
@@ -8307,19 +8436,17 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                   Builder(
                     builder: (context) {
                       final issue = displayedIssues[index];
-                      final rankIndex = widget.column.issues.indexWhere(
-                        (candidate) => candidate.id == issue.id,
-                      );
+                      final rankIndex = rankIndicesByIssueId[issue.id];
 
                       return IssueCardDropTarget(
+                        key: ValueKey(issue.id),
                         issue: issue,
-                        subIssues: _subIssuesForParent(issue, widget.allIssues),
-                        buildStatus: _buildStatusForIssue(
-                          issue,
-                          widget.buildStatusesByPullRequest,
-                        ),
+                        subIssues:
+                            widget.subIssuesByParentId[issue.id] ??
+                            const <Issue>[],
+                        buildStatus: widget.buildStatusesByIssueId[issue.id],
                         sourceColumnId: widget.column.id,
-                        index: rankIndex < 0 ? index : rankIndex,
+                        index: rankIndex ?? index,
                         isStartingCursorAgent: widget
                             .startingCursorAgentIssueIds
                             .contains(issue.id),
@@ -8461,7 +8588,7 @@ double _firstReviewIssueRank(ReviewPullRequestGroup group) {
 
 List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
   required ReviewPullRequestGroup group,
-  required List<Issue> allIssues,
+  required Map<String, Issue> issuesByRepositoryNumber,
 }) {
   final pullRequest = group.pullRequest;
   final seenNumbers = <int>{};
@@ -8469,14 +8596,11 @@ List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
 
   for (final reference
       in pullRequest?.linkedIssues ?? const <IssuePullRequestLinkedIssue>[]) {
-    Issue? issue;
-    for (final candidate in allIssues) {
-      if (candidate.repo == group.repository &&
-          candidate.githubNumber == reference.number) {
-        issue = candidate;
-        break;
-      }
-    }
+    final issue =
+        issuesByRepositoryNumber[_issueRepositoryNumberKey(
+          group.repository,
+          reference.number,
+        )];
     seenNumbers.add(reference.number);
     items.add(_ReviewLinkedIssueItem(issue: issue, reference: reference));
   }
@@ -8500,8 +8624,10 @@ class ReviewPullRequestGroupView extends StatelessWidget {
     super.key,
     required this.group,
     required this.column,
-    required this.allIssues,
-    required this.buildStatusesByPullRequest,
+    required this.subIssuesByParentId,
+    required this.buildStatusesByIssueId,
+    required this.issuesByRepositoryNumber,
+    required this.rankIndicesByIssueId,
     required this.startingCursorAgentIssueIds,
     required this.requiresLongPressDrag,
     required this.onIssueTapped,
@@ -8513,8 +8639,10 @@ class ReviewPullRequestGroupView extends StatelessWidget {
 
   final ReviewPullRequestGroup group;
   final BoardColumn column;
-  final List<Issue> allIssues;
-  final Map<String, CardBuildStatus> buildStatusesByPullRequest;
+  final Map<String, List<Issue>> subIssuesByParentId;
+  final Map<String, CardBuildStatus> buildStatusesByIssueId;
+  final Map<String, Issue> issuesByRepositoryNumber;
+  final Map<String, int> rankIndicesByIssueId;
   final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final ValueChanged<String> onIssueTapped;
@@ -8528,14 +8656,13 @@ class ReviewPullRequestGroupView extends StatelessWidget {
     final pullRequest = group.pullRequest;
     final linkedIssueItems = _linkedIssueItemsForPullRequest(
       group: group,
-      allIssues: allIssues,
+      issuesByRepositoryNumber: issuesByRepositoryNumber,
     );
     final buildStatus = pullRequest == null
         ? null
-        : buildStatusesByPullRequest[_buildStatusKey(
-            group.repository,
-            pullRequest.number,
-          )];
+        : group.issues.isEmpty
+        ? null
+        : buildStatusesByIssueId[group.issues.first.id];
     final title = pullRequest?.title ?? 'PR未紐づけ';
     final url = pullRequest?.url;
     final isOpenPullRequest =
@@ -8712,19 +8839,18 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                   );
                 }
 
-                final rankIndex = column.issues.indexWhere(
-                  (candidate) => candidate.id == issue.id,
-                );
+                final rankIndex = rankIndicesByIssueId[issue.id];
 
                 return IssueCardDropTarget(
+                  key: ValueKey(issue.id),
                   issue: issue,
-                  subIssues: _subIssuesForParent(issue, allIssues),
+                  subIssues: subIssuesByParentId[issue.id] ?? const <Issue>[],
                   buildStatus: pullRequest == null
-                      ? _buildStatusForIssue(issue, buildStatusesByPullRequest)
+                      ? buildStatusesByIssueId[issue.id]
                       : null,
                   isReviewGroupCard: true,
                   sourceColumnId: column.id,
-                  index: rankIndex < 0 ? entry.$1 : rankIndex,
+                  index: rankIndex ?? entry.$1,
                   isStartingCursorAgent: startingCursorAgentIssueIds.contains(
                     issue.id,
                   ),
@@ -8939,6 +9065,7 @@ class OverviewList extends StatelessWidget {
                   SizedBox(
                     width: 286,
                     child: OverviewSection(
+                      key: ValueKey(column.id),
                       column: column,
                       isCompact: false,
                       requiresLongPressDrag: false,
@@ -9398,18 +9525,18 @@ class _OverviewSectionState extends State<OverviewSection> {
   }
 
   List<Widget> _issueRows(List<Issue> visibleIssues) {
+    final rankIndicesByIssueId = _rankIndicesByIssueId(widget.column.issues);
     return [
       for (final entry in visibleIssues.indexed) ...[
         Builder(
           builder: (context) {
             final issue = entry.$2;
-            final rankIndex = widget.column.issues.indexWhere(
-              (candidate) => candidate.id == issue.id,
-            );
+            final rankIndex = rankIndicesByIssueId[issue.id];
             return OverviewIssueDropTarget(
+              key: ValueKey(issue.id),
               issue: issue,
               columnId: widget.column.id,
-              index: rankIndex < 0 ? entry.$1 : rankIndex,
+              index: rankIndex ?? entry.$1,
               accentColor: widget.column.color,
               isCompact: widget.isCompact,
               requiresLongPressDrag: widget.requiresLongPressDrag,
@@ -9739,12 +9866,33 @@ List<Issue> _visibleIssuesForColumn(BoardColumn column) {
   return [...column.issues]..sort(_compareDoneIssues);
 }
 
+Map<String, int> _rankIndicesByIssueId(List<Issue> issues) {
+  return {
+    for (final entry in issues.indexed) entry.$2.id: entry.$1,
+  };
+}
+
 List<Issue> _subIssuesForParent(Issue parent, List<Issue> allIssues) {
   final subIssues = allIssues
       .where((issue) => issue.parentIssue?.issueId == parent.id)
       .toList();
   subIssues.sort((left, right) => left.rank.compareTo(right.rank));
   return subIssues;
+}
+
+Map<String, List<Issue>> _subIssuesByParentId(List<Issue> allIssues) {
+  final subIssuesByParentId = <String, List<Issue>>{};
+  for (final issue in allIssues) {
+    final parentId = issue.parentIssue?.issueId;
+    if (parentId == null || parentId.isEmpty) {
+      continue;
+    }
+    subIssuesByParentId.putIfAbsent(parentId, () => []).add(issue);
+  }
+  for (final subIssues in subIssuesByParentId.values) {
+    subIssues.sort((left, right) => left.rank.compareTo(right.rank));
+  }
+  return subIssuesByParentId;
 }
 
 List<Issue> _descendantSubIssuesForParent(Issue parent, List<Issue> allIssues) {
@@ -12416,7 +12564,12 @@ class Issue {
     );
   }
 
-  Issue copyWith({String? statusId, double? rank, DateTime? closedAt}) {
+  Issue copyWith({
+    String? statusId,
+    double? rank,
+    DateTime? closedAt,
+    bool clearClosedAt = false,
+  }) {
     return Issue(
       id: id,
       displayId: displayId,
@@ -12432,7 +12585,7 @@ class Issue {
       dueDate: dueDate,
       statusId: statusId ?? this.statusId,
       rank: rank ?? this.rank,
-      closedAt: closedAt,
+      closedAt: clearClosedAt ? null : closedAt ?? this.closedAt,
       weightEstimate: weightEstimate,
       resolution: resolution,
       pullRequests: pullRequests,
