@@ -64,6 +64,7 @@ export {
 export {
   autoSyncIssueToGitHubOnIssueWrite,
   issueLifecycleEventLogger,
+  syncIssuePullRequestLinksToGitHubOnIssueWrite,
 } from "./issues/lifecycleHandlers.js";
 export {
   createSecretV1,
