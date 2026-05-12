@@ -2,11 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
+import { firestoreCollectionPaths } from "../../firestoreData.js";
 import { defaultGitHubApiBaseUrl, defaultGitHubBaseUrl } from "../../github/githubUrls.js";
 import type { AddBuildJobTriggerType } from "./addBuildJob.js";
 import type { JobWithCheckRun } from "./createCheckRun.js";
-
-const buildJobsCollection = "build_jobs_v0";
 
 const BuildJobStatus = {
   WAITING: "WAITING",
@@ -38,7 +37,19 @@ function buildJobSpecFields(spec: Record<string, unknown>, jobDocumentIds: Recor
   };
 }
 
-export interface SaveBuildJobToFirestoreParams {
+function getOrCreateWorkflowRunId(
+  workflowRunIds: Map<string, string>,
+  workflowFileName: string,
+): string {
+  const existing = workflowRunIds.get(workflowFileName);
+  if (existing) return existing;
+
+  const workflowRunId = randomUUID();
+  workflowRunIds.set(workflowFileName, workflowRunId);
+  return workflowRunId;
+}
+
+export interface SaveBuildJobsToFirestoreParams {
   db: Firestore;
   jobs: JobWithCheckRun[];
   owner: string;
@@ -55,19 +66,27 @@ export interface SaveBuildJobToFirestoreParams {
   githubBaseUrl: string;
 }
 
-export async function saveBuildJobToFirestore(
-  params: SaveBuildJobToFirestoreParams,
+export async function saveBuildJobsToFirestore(
+  params: SaveBuildJobsToFirestoreParams,
 ): Promise<void> {
   const batch = params.db.batch();
-  const workflowRunId = randomUUID();
-  const jobDocumentIds: Record<string, string> = {};
+  const workflowRunIds = new Map<string, string>();
+  const jobDocumentIdsByWorkflow = new Map<string, Record<string, string>>();
   for (const job of params.jobs) {
+    getOrCreateWorkflowRunId(workflowRunIds, job.workflowFileName);
+
+    const jobDocumentIds = jobDocumentIdsByWorkflow.get(job.workflowFileName) ?? {};
     jobDocumentIds[job.jobId] = job.documentId;
+    jobDocumentIdsByWorkflow.set(job.workflowFileName, jobDocumentIds);
   }
 
   for (const job of params.jobs) {
+    const workflowRunId = getOrCreateWorkflowRunId(workflowRunIds, job.workflowFileName);
+    const jobDocumentIds = jobDocumentIdsByWorkflow.get(job.workflowFileName) ?? {};
     const specFields = buildJobSpecFields(job.spec, jobDocumentIds);
-    const buildJobRef = params.db.collection(buildJobsCollection).doc(job.documentId);
+    const buildJobRef = params.db
+      .collection(firestoreCollectionPaths.buildJobs)
+      .doc(job.documentId);
 
     batch.set(buildJobRef, {
       id: job.documentId,
