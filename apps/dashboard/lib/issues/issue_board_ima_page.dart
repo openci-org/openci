@@ -14,6 +14,7 @@ import 'package:dashboard/firebase/firestore.dart'
         workerInstancesCollection;
 import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workers/worker_status_page.dart';
 import 'package:dashboard/workflow/list/workflows_page.dart';
@@ -185,37 +186,19 @@ String? _validateOptionalHttpUrl(String? value) {
 }
 
 void _showFloatingSnackBar(BuildContext context, String message) {
-  final messenger = ScaffoldMessenger.maybeOf(context);
-  final screenWidth = MediaQuery.sizeOf(context).width;
-  final snackBarWidth = (screenWidth - 32).clamp(160.0, 260.0);
-  messenger
-    ?..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        width: snackBarWidth,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(milliseconds: 1400),
-      ),
-    );
+  showResponsiveSnackBar(
+    context,
+    content: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
+    duration: const Duration(milliseconds: 1400),
+  );
 }
 
 void _showOverlaySnackBar(BuildContext context, String message) {
-  final overlay = Overlay.maybeOf(context);
-  if (overlay == null) return;
-  final screenWidth = MediaQuery.sizeOf(context).width;
-  final width = (screenWidth - 32).clamp(160.0, 260.0);
-  late final OverlayEntry entry;
-  entry = OverlayEntry(
-    builder: (_) => _OverlaySnackBar(
-      message: message,
-      width: width,
-      onDismissed: entry.remove,
-    ),
+  showResponsiveSnackBar(
+    context,
+    content: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
+    duration: const Duration(milliseconds: 1400),
   );
-  overlay.insert(entry);
 }
 
 Future<void> _copyTextToClipboard(
@@ -1374,19 +1357,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final snackBarWidth = screenWidth < 420 ? screenWidth - 32 : 320.0;
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          width: snackBarWidth,
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(milliseconds: 1400),
-        ),
-      );
+    showResponsiveSnackBar(
+      context,
+      content: Text(message),
+      duration: const Duration(milliseconds: 1400),
+    );
   }
 
   Future<void> _connectGitHub() async {
@@ -12959,94 +12934,3 @@ DueDateStatus _dueDateStatus(DateTime date) {
 enum DueDateStatus { overdue, today, soon, later }
 
 enum Priority { high, medium, low }
-
-class _OverlaySnackBar extends StatefulWidget {
-  const _OverlaySnackBar({
-    required this.message,
-    required this.width,
-    required this.onDismissed,
-  });
-
-  final String message;
-  final double width;
-  final VoidCallback onDismissed;
-
-  @override
-  State<_OverlaySnackBar> createState() => _OverlaySnackBarState();
-}
-
-class _OverlaySnackBarState extends State<_OverlaySnackBar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    );
-    _opacity = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0, end: 1), weight: 10),
-      TweenSequenceItem(tween: ConstantTween(1), weight: 70),
-      TweenSequenceItem(tween: Tween(begin: 1, end: 0), weight: 20),
-    ]).animate(_controller);
-    _slide = TweenSequence<Offset>([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: const Offset(0, 0.3),
-          end: Offset.zero,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 10,
-      ),
-      TweenSequenceItem(tween: ConstantTween(Offset.zero), weight: 90),
-    ]).animate(_controller);
-    _controller.forward().then((_) => widget.onDismissed());
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    return Positioned(
-      bottom: bottomPadding + 32,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: SlideTransition(
-          position: _slide,
-          child: FadeTransition(
-            opacity: _opacity,
-            child: Material(
-              elevation: 6,
-              borderRadius: BorderRadius.circular(12),
-              color: const Color(0xFF323232),
-              child: Container(
-                width: widget.width,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Center(
-                  child: Text(
-                    widget.message,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

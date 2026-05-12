@@ -7,6 +7,15 @@ export interface WorkflowFile {
   content: string;
 }
 
+function isNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    error.status === 404
+  );
+}
+
 export async function fetchOpenCIWorkflowYamlFiles(
   owner: string,
   repo: string,
@@ -14,14 +23,20 @@ export async function fetchOpenCIWorkflowYamlFiles(
   token: string,
   apiBaseUrl: string,
 ): Promise<WorkflowFile[]> {
-  const res = await request("GET /repos/{owner}/{repo}/contents/{path}", {
-    baseUrl: apiBaseUrl,
-    owner,
-    repo,
-    path: ".openci",
-    ref: commitSha,
-    headers: { authorization: `bearer ${token}` },
-  });
+  let res;
+  try {
+    res = await request("GET /repos/{owner}/{repo}/contents/{path}", {
+      baseUrl: apiBaseUrl,
+      owner,
+      repo,
+      path: ".openci",
+      ref: commitSha,
+      headers: { authorization: `bearer ${token}` },
+    });
+  } catch (error) {
+    if (isNotFoundError(error)) return [];
+    throw error;
+  }
 
   if (!Array.isArray(res.data)) {
     throw new Error(`.openci is not a directory in ${owner}/${repo} at ${commitSha}`);
