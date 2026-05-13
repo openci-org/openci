@@ -16,13 +16,18 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class InviteTeamMemberBottomSheet extends HookConsumerWidget {
-  const InviteTeamMemberBottomSheet({super.key});
+  const InviteTeamMemberBottomSheet({
+    super.key,
+    this.initialTeamId,
+  });
+
+  final String? initialTeamId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final emailController = useTextEditingController();
     final teamListAsync = ref.watch(teamListProvider);
-    final selectedTeamId = useState<String?>(null);
+    final selectedTeamId = useState<String?>(initialTeamId);
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
     final teamT = t.team;
