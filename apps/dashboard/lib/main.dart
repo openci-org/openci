@@ -1,6 +1,5 @@
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase_options.dart';
-import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -28,7 +27,6 @@ Future<void> main() async {
   if (kIsWeb) {
     usePathUrlStrategy();
   }
-  await LocaleSettings.useDeviceLocale();
 
   final selfHosted = await loadSelfHostedConfig();
 
@@ -54,9 +52,7 @@ Future<void> main() async {
   }
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  final app = TranslationProvider(
-    child: ProviderScope(child: Root()),
-  );
+  final app = ProviderScope(child: Root());
 
   if (kDebugMode) {
     runApp(app);

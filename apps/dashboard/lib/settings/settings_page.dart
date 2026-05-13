@@ -1,12 +1,11 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
-import 'package:dashboard/settings/locale_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -74,8 +73,6 @@ class SettingsPage extends HookConsumerWidget {
                   _SectionHeader(label: settingsT.preferences),
                   _SettingsGroup(
                     children: [
-                      const _LanguageTile(),
-                      const _GroupDivider(),
                       const _AppVersionTile(),
                     ],
                   ),
@@ -404,174 +401,6 @@ class _AiFeaturesTile extends ConsumerWidget {
   }
 }
 
-class _LanguageTile extends ConsumerWidget {
-  const _LanguageTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final localeAsync = ref.watch(localeProvider);
-    final langT = t.settings.language;
-
-    final currentLabel = localeAsync.when(
-      data: (savedLocale) => switch (savedLocale) {
-        'en' => langT.english,
-        'ja' => langT.japanese,
-        'es' => langT.spanish,
-        _ => langT.system,
-      },
-      loading: () => '...',
-      error: (_, _) => langT.system,
-    );
-
-    return _SettingsItem(
-      icon: Symbols.language,
-      title: langT.title,
-      subtitle: currentLabel,
-      onTap: () {
-        showModalBottomSheet(
-          showDragHandle: true,
-          context: context,
-          builder: (_) => const _LanguageBottomSheet(),
-        );
-      },
-    );
-  }
-}
-
-class _LanguageBottomSheet extends ConsumerWidget {
-  const _LanguageBottomSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final localeAsync = ref.watch(localeProvider);
-    final langT = t.settings.language;
-
-    final options = <({String? tag, String label, String subtitle})>[
-      (tag: null, label: langT.system, subtitle: ''),
-      (tag: 'en', label: langT.english, subtitle: 'English'),
-      (tag: 'ja', label: langT.japanese, subtitle: '日本語'),
-      (tag: 'es', label: langT.spanish, subtitle: 'Español'),
-    ];
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 12),
-              child: Text(
-                langT.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.of(context).textPrimary,
-                ),
-              ),
-            ),
-            _SettingsGroup(
-              children: localeAsync.when(
-                loading: () => [
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Center(
-                      child: CircularProgressIndicator.adaptive(),
-                    ),
-                  ),
-                ],
-                error: (error, _) {
-                  debugPrint(error.toString());
-                  return [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(t.common.error(error: error.toString())),
-                    ),
-                  ];
-                },
-                data: (savedLocale) {
-                  final items = <Widget>[];
-                  for (var i = 0; i < options.length; i++) {
-                    if (i > 0) items.add(const _GroupDivider());
-                    final option = options[i];
-                    final isSelected = option.tag == savedLocale;
-                    items.add(
-                      InkWell(
-                        onTap: () async {
-                          await ref
-                              .read(localeProvider.notifier)
-                              .setLocale(option.tag);
-                          if (context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        hoverColor: AppColors.of(context).borderSubtle,
-                        splashColor: AppColors.of(context).borderSubtle,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 13,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      option.label,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.w500,
-                                        color: isSelected
-                                            ? AppColors.of(context).accent
-                                            : AppColors.of(context).textPrimary,
-                                      ),
-                                    ),
-                                    if (option.subtitle.isNotEmpty) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        option.subtitle,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.of(context)
-                                              .textPrimary
-                                              .withValues(
-                                                alpha: 0.4,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              if (isSelected)
-                                Icon(
-                                  Icons.check_rounded,
-                                  size: 18,
-                                  color: AppColors.of(context).accent,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return items;
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _AppVersionTile extends HookWidget {
   const _AppVersionTile();
 
@@ -655,14 +484,9 @@ String? _formatBuildUpdatedText() {
     return null;
   }
 
-  final label = switch (LocaleSettings.currentLocale) {
-    AppLocale.ja => '最終更新',
-    AppLocale.es => 'Última actualización',
-    AppLocale.en => 'Last updated',
-  };
   final formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(updatedAt);
   final shaSuffix = BuildInfo.sha.isEmpty ? '' : ' (${BuildInfo.sha})';
-  return '$label: $formattedDate$shaSuffix';
+  return '最終更新: $formattedDate$shaSuffix';
 }
 
 class _SelfHostedIndicator extends StatelessWidget {

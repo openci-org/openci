@@ -3,7 +3,7 @@ import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/function_error_message.dart';

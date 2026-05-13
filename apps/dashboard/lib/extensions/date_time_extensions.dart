@@ -1,4 +1,4 @@
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:intl/intl.dart';
 
 extension DateTimeExtensions on DateTime {

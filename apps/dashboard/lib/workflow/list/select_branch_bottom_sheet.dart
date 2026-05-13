@@ -2,7 +2,7 @@ import 'package:dashboard/theme/app_colors.dart';
 import 'dart:async';
 
 
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 
 import 'package:dashboard/users/user_provider.dart';
 
