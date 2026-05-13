@@ -2,7 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/theme/app_colors.dart';
 
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 
 import 'package:dashboard/team/team_provider.dart';
 

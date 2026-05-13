@@ -1,5 +1,4 @@
 import 'package:dashboard/deep_link/deep_link_listener.dart';
-import 'package:dashboard/i18n/strings.g.dart';
 import 'package:dashboard/router.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/themes/tab_bar_theme.dart';
@@ -18,8 +17,8 @@ class Root extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      locale: TranslationProvider.of(context).flutterLocale,
-      supportedLocales: AppLocaleUtils.supportedLocales,
+      locale: const Locale('ja', 'JP'),
+      supportedLocales: const [Locale('ja', 'JP')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
       theme: _buildTheme(),

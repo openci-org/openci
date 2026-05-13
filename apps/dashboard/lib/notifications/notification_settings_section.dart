@@ -1,4 +1,4 @@
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';

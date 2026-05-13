@@ -1,4 +1,4 @@
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 

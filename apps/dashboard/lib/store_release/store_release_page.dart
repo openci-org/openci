@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/store_release/store_release_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';

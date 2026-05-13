@@ -1,6 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/firebase/functions.dart';
-import 'package:dashboard/i18n/strings.g.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
