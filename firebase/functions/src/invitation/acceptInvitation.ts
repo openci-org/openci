@@ -25,13 +25,6 @@ export const acceptInvitation = onCall<AcceptInvitationRequest, Promise<AcceptIn
       throw new HttpsError("unauthenticated", "Sign in required");
     }
     const authClaims = auth.token;
-    if (authClaims.email_verified !== true) {
-      throw new HttpsError(
-        "failed-precondition",
-        "A verified email is required to accept invitations",
-      );
-    }
-
     const email = authClaims.email;
     if (!email) {
       throw new HttpsError("failed-precondition", "Account has no email address");
@@ -63,6 +56,18 @@ export const acceptInvitation = onCall<AcceptInvitationRequest, Promise<AcceptIn
       case "PENDING":
         break;
       case "ACCEPTED":
+        if (invitation.acceptedById === auth.uid) {
+          await acceptInvitationAndJoinTeam(
+            { id: invitation.id, teamId: invitation.team.id },
+            { impersonate },
+          );
+
+          return {
+            status: "accepted",
+            teamId: invitation.team.id,
+            teamName: invitation.team.name,
+          };
+        }
         throw new HttpsError("failed-precondition", "Invitation has already been accepted");
       case "EXPIRED":
         throw new HttpsError("deadline-exceeded", "Invitation has expired");

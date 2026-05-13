@@ -89,18 +89,22 @@ describe("acceptInvitation", () => {
     );
   });
 
-  it("rejects unverified email", async () => {
-    await expect(
-      wrapped({
-        data: { token: VALID_TOKEN },
-        auth: makeAuth({ email_verified: false }),
-      }),
-    ).rejects.toThrow(
-      expect.objectContaining({
-        code: "failed-precondition",
-        message: expect.stringContaining("verified email"),
-      }),
-    );
+  it("accepts a valid token invitation even when email is unverified", async () => {
+    mockGetInvitationByToken.mockResolvedValue({
+      data: { invitations: [makePendingInvitation()] },
+    });
+    mockAcceptInvitationAndJoinTeam.mockResolvedValue({});
+
+    const result = await wrapped({
+      data: { token: VALID_TOKEN },
+      auth: makeAuth({ email_verified: false }),
+    });
+
+    expect(result).toEqual({
+      status: "accepted",
+      teamId: TEAM_ID,
+      teamName: "Team Alpha",
+    });
   });
 
   it("rejects auth with no email", async () => {
@@ -158,6 +162,27 @@ describe("acceptInvitation", () => {
         message: expect.stringContaining("already been accepted"),
       }),
     );
+  });
+
+  it("repairs and accepts an already accepted invitation for the same user", async () => {
+    mockGetInvitationByToken.mockResolvedValue({
+      data: {
+        invitations: [makePendingInvitation({ status: "ACCEPTED", acceptedById: "user-123" })],
+      },
+    });
+    mockAcceptInvitationAndJoinTeam.mockResolvedValue({});
+
+    const result = await wrapped({
+      data: { token: VALID_TOKEN },
+      auth: makeAuth({ uid: "user-123" }),
+    });
+
+    expect(result).toEqual({
+      status: "accepted",
+      teamId: TEAM_ID,
+      teamName: "Team Alpha",
+    });
+    expect(mockAcceptInvitationAndJoinTeam).toHaveBeenCalledOnce();
   });
 
   it("throws deadline-exceeded for EXPIRED invitation", async () => {

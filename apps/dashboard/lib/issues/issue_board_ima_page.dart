@@ -601,7 +601,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     try {
-      await _ensurePersonalWorkspace();
+      await _ensureWorkspace();
       _listenToWorkspace();
     } catch (error) {
       if (!mounted) {
@@ -614,7 +614,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
   }
 
-  Future<void> _ensurePersonalWorkspace() async {
+  Future<void> _ensureWorkspace() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return;
@@ -623,17 +623,20 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final batch = _firestore.batch();
     final now = FieldValue.serverTimestamp();
     final workspaceRef = _firestore.doc('workspaces/$_workspaceId');
-    batch.set(workspaceRef, {
-      'ownerUid': user.uid,
-      'name': widget.workspaceName,
-      'updatedAt': now,
-      'createdAt': now,
-    }, SetOptions(merge: true));
-    batch.set(workspaceRef.collection('members').doc(user.uid), {
-      'role': 'owner',
-      'updatedAt': now,
-      'createdAt': now,
-    }, SetOptions(merge: true));
+    final isPersonalWorkspace = _workspaceId == user.uid;
+    if (isPersonalWorkspace) {
+      batch.set(workspaceRef, {
+        'ownerUid': user.uid,
+        'name': widget.workspaceName,
+        'updatedAt': now,
+        'createdAt': now,
+      }, SetOptions(merge: true));
+      batch.set(workspaceRef.collection('members').doc(user.uid), {
+        'role': 'owner',
+        'updatedAt': now,
+        'createdAt': now,
+      }, SetOptions(merge: true));
+    }
 
     for (final column in _columns) {
       batch.set(

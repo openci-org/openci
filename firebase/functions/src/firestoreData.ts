@@ -128,6 +128,19 @@ function userRef(userId) {
   return db().collection(firestoreCollectionPaths.users).doc(userId);
 }
 
+function workspaceRef(teamId) {
+  return db().collection(firestoreCollectionPaths.workspaces).doc(teamId);
+}
+
+function workspaceMemberRef(teamId, userId) {
+  return workspaceRef(teamId).collection("members").doc(userId);
+}
+
+function firstTeamMember(team) {
+  const members = Array.isArray(team?.data()?.members) ? team.data().members : [];
+  return typeof members[0] === "string" && members[0].length > 0 ? members[0] : undefined;
+}
+
 async function teamForMember(teamId, uid) {
   const team = await getDoc(firestoreCollectionPaths.teams, teamId);
   if (!team || !Array.isArray(team.members) || !team.members.includes(uid)) return undefined;
@@ -186,20 +199,36 @@ async function listTeamMembers(...args) {
 async function addTeamMember(...args) {
   const vars = varsFromArgs(...args);
   await db().runTransaction(async (tx) => {
-    const team = await tx.get(teamRef(vars.teamId));
+    const teamDocument = teamRef(vars.teamId);
+    const workspaceDocument = workspaceRef(vars.teamId);
+    const team = await tx.get(teamDocument);
+    const user = await tx.get(userRef(vars.userId));
+    const workspace = await tx.get(workspaceDocument);
     const members = Array.isArray(team.data()?.members) ? team.data().members : [];
     if (members.includes(vars.userId)) throw new Error("already a member");
     tx.set(
       userRef(vars.userId),
-      withTimestamps(
-        { id: vars.userId, email: vars.email },
-        !(await tx.get(userRef(vars.userId))).exists,
-      ),
+      withTimestamps({ id: vars.userId, email: vars.email }, !user.exists),
       {
         merge: true,
       },
     );
-    tx.update(teamRef(vars.teamId), {
+    if (!workspace.exists) {
+      tx.set(
+        workspaceDocument,
+        withTimestamps(
+          {
+            ownerUid: firstTeamMember(team) ?? vars.userId,
+            name: team.get("name") ?? vars.teamId,
+          },
+          true,
+        ),
+      );
+    }
+    tx.set(workspaceMemberRef(vars.teamId, vars.userId), withTimestamps({ role: "member" }, true), {
+      merge: true,
+    });
+    tx.update(teamDocument, {
       members: FieldValue.arrayUnion(vars.userId),
       updatedAt: now(),
     });
@@ -313,7 +342,26 @@ async function acceptInvitationAndJoinTeam(...args) {
   const uid = uidFromOptions(options);
   const email = emailFromOptions(options);
   await db().runTransaction(async (tx) => {
+    const teamDocument = teamRef(vars.teamId);
+    const workspaceDocument = workspaceRef(vars.teamId);
+    const team = await tx.get(teamDocument);
+    const workspace = await tx.get(workspaceDocument);
     tx.set(userRef(uid), withTimestamps({ id: uid, email, selectedTeamId: vars.teamId }, true), {
+      merge: true,
+    });
+    if (!workspace.exists) {
+      tx.set(
+        workspaceDocument,
+        withTimestamps(
+          {
+            ownerUid: firstTeamMember(team) ?? uid,
+            name: team.get("name") ?? vars.teamId,
+          },
+          true,
+        ),
+      );
+    }
+    tx.set(workspaceMemberRef(vars.teamId, uid), withTimestamps({ role: "member" }, true), {
       merge: true,
     });
     tx.update(db().collection(firestoreCollectionPaths.invitations).doc(vars.id), {
@@ -322,7 +370,7 @@ async function acceptInvitationAndJoinTeam(...args) {
       acceptedAt: now(),
       updatedAt: now(),
     });
-    tx.update(teamRef(vars.teamId), { members: FieldValue.arrayUnion(uid), updatedAt: now() });
+    tx.update(teamDocument, { members: FieldValue.arrayUnion(uid), updatedAt: now() });
   });
   return {
     data: {
