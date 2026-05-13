@@ -51,7 +51,6 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 	@override late final _TranslationsTeamJa team = _TranslationsTeamJa._(_root);
 	@override late final _TranslationsGithubJa github = _TranslationsGithubJa._(_root);
 	@override late final _TranslationsSubscriptionJa subscription = _TranslationsSubscriptionJa._(_root);
-	@override late final _TranslationsAiWorkflowJa aiWorkflow = _TranslationsAiWorkflowJa._(_root);
 	@override late final _TranslationsStoreReleaseJa storeRelease = _TranslationsStoreReleaseJa._(_root);
 }
 
@@ -96,7 +95,7 @@ class _TranslationsNavJa implements TranslationsNavEn {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get workflows => 'ワークフロー';
+	@override String get workflows => 'CI/CD設定';
 	@override String get variables => '変数';
 	@override String get logs => 'ログ';
 	@override String get release => 'リリース';
@@ -132,14 +131,14 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'ワークフロー';
-	@override String get tabWorkflows => 'ワークフロー';
-	@override String get tabRuns => '実行履歴';
-	@override String get addWorkflow => 'ワークフロー追加';
+	@override String get title => 'CI/CD設定';
+	@override String get tabWorkflows => 'CI/CD設定';
+	@override String get tabRuns => 'CI/CDログ';
+	@override String get addWorkflow => 'CI/CD設定を作成';
 	@override String get noWorkflowFiles => 'ワークフローファイルが見つかりません';
 	@override String get addYamlHint => 'リポジトリの .openci/ にYAMLファイルを追加してください。';
 	@override String get selectRepo => 'リポジトリを選択';
-	@override String get selectRepoHint => 'ワークフローを管理するGitHubリポジトリを選択してください。';
+	@override String get selectRepoHint => 'CI/CD設定を管理するGitHubリポジトリを選択してください。';
 	@override String get selectRepoButton => 'リポジトリを選択';
 	@override String get enabled => '有効';
 	@override String get disabled => '無効';
@@ -154,7 +153,7 @@ class _TranslationsWorkflowJa implements TranslationsWorkflowEn {
 	@override String get selectBranchHint => 'ワークフローを表示するブランチを選択してください。';
 	@override String get noBranches => 'ブランチが見つかりません';
 	@override String get selectRepository => 'リポジトリを選択';
-	@override String get selectRepositoryHint => 'ワークフローを管理するGitHubリポジトリを選択してください。';
+	@override String get selectRepositoryHint => 'CI/CD設定を管理するGitHubリポジトリを選択してください。';
 	@override String get searchRepositories => 'リポジトリを検索...';
 	@override String get noRepositories => 'リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。';
 	@override String noMatchingRepositories({required Object query}) => '「${query}」に一致するリポジトリはありません';
@@ -386,24 +385,6 @@ class _TranslationsSubscriptionJa implements TranslationsSubscriptionEn {
 	@override String get perYear => '年額';
 }
 
-// Path: aiWorkflow
-class _TranslationsAiWorkflowJa implements TranslationsAiWorkflowEn {
-	_TranslationsAiWorkflowJa._(this._root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get title => 'AI ワークフロービルダー';
-	@override String get inputHint => 'ワークフローの内容を入力...';
-	@override String get generatedWorkflow => '生成されたワークフロー';
-	@override String get useThisWorkflow => 'このワークフローを使う';
-	@override late final _TranslationsAiWorkflowChatJa chat = _TranslationsAiWorkflowChatJa._(_root);
-	@override late final _TranslationsAiWorkflowSuggestionJa suggestion = _TranslationsAiWorkflowSuggestionJa._(_root);
-	@override late final _TranslationsAiWorkflowProjectLabelJa projectLabel = _TranslationsAiWorkflowProjectLabelJa._(_root);
-	@override late final _TranslationsAiWorkflowGoalLabelJa goalLabel = _TranslationsAiWorkflowGoalLabelJa._(_root);
-	@override late final _TranslationsAiWorkflowTriggerLabelJa triggerLabel = _TranslationsAiWorkflowTriggerLabelJa._(_root);
-}
-
 // Path: storeRelease
 class _TranslationsStoreReleaseJa implements TranslationsStoreReleaseEn {
 	_TranslationsStoreReleaseJa._(this._root);
@@ -558,8 +539,8 @@ class _TranslationsWorkflowEditorJa implements TranslationsWorkflowEditorEn {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get createTitle => 'ワークフロー作成';
-	@override String get editTitle => 'ワークフロー編集';
+	@override String get createTitle => 'CI/CD設定を作成';
+	@override String get editTitle => 'CI/CD設定を編集';
 	@override String get editorTab => 'エディター';
 	@override String get yamlTab => 'YAML';
 	@override String get basicInfo => '基本情報';
@@ -645,6 +626,12 @@ class _TranslationsBuildLogsDetailJa implements TranslationsBuildLogsDetailEn {
 	@override String lines({required Object count}) => '${count}行';
 	@override String get generatingSummary => 'AI要約を生成中...';
 	@override String get failureSummaryTitle => 'AI 失敗要約';
+	@override String get aiFixTitle => 'CI/CDの修正案を作る';
+	@override String get aiFixDescription => '失敗ログとCI/CD設定を読み取り、修正ブランチまたはPRの作成につなげます。';
+	@override String get aiFixButton => '修正を依頼';
+	@override String get aiFixDialogTitle => 'CI/CD修正の入口';
+	@override String get aiFixDialogBody => 'この実行ログをもとに、失敗原因を特定してCI/CD設定の修正案を作る予定です。次の実装で、ログ収集、設定ファイル取得、修正PR作成に接続します。';
+	@override String get aiFixDialogPrimary => '準備中';
 }
 
 // Path: buildLogs.duration
@@ -668,7 +655,7 @@ class _TranslationsSettingsAiFeaturesJa implements TranslationsSettingsAiFeature
 
 	// Translations
 	@override String get title => 'AI機能';
-	@override String get subtitle => 'AIワークフロービルダーや失敗要約などのAI機能を有効にする';
+	@override String get subtitle => '失敗要約などのAI機能を有効にする';
 	@override String get enabled => 'AI機能が有効です';
 	@override String get disabled => 'AI機能が無効です';
 	@override String get updated => 'AI機能の設定が更新されました';
@@ -687,93 +674,6 @@ class _TranslationsSettingsLanguageJa implements TranslationsSettingsLanguageEn 
 	@override String get english => 'English';
 	@override String get japanese => '日本語';
 	@override String get spanish => 'Español';
-}
-
-// Path: aiWorkflow.chat
-class _TranslationsAiWorkflowChatJa implements TranslationsAiWorkflowChatEn {
-	_TranslationsAiWorkflowChatJa._(this._root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get greeting => 'どんなワークフローを作りたいですか？プロジェクトについて教えてください。セットアップをお手伝いします。';
-	@override String projectSelected({required Object project}) => '${project} のプロジェクトですね！ワークフローで何をしたいですか？';
-	@override String get triggerQuestion => 'このワークフローはいつ実行しますか？';
-	@override String workflowGenerated({required Object plan}) => 'ワークフローを生成しました！内容は以下の通りです：\n\n${plan}\n\nこのまま使うことも、変更を指示することもできます。';
-	@override String get stepAdded => 'プレースホルダーのステップを追加しました。エディターで自由にカスタマイズできます。';
-	@override String get changeTriggerPrompt => '了解！いつワークフローを実行しますか？';
-	@override String get followUp => '「このワークフローを使う」をタップして適用するか、変更したい内容を教えてください。';
-	@override String planFormat({required Object project, required Object steps, required Object trigger}) => '- プロジェクト: ${project}\n- ステップ: ${steps}\n- トリガー: ${trigger}';
-	@override String get errorMessage => '申し訳ありません、エラーが発生しました。もう一度お試しいただくか、最初からやり直してください。';
-}
-
-// Path: aiWorkflow.suggestion
-class _TranslationsAiWorkflowSuggestionJa implements TranslationsAiWorkflowSuggestionEn {
-	_TranslationsAiWorkflowSuggestionJa._(this._root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get flutterCiCd => 'Flutter アプリの CI/CD';
-	@override String get iosBuildTest => 'iOS アプリのビルド＆テスト';
-	@override String get androidBuild => 'Android アプリのビルド';
-	@override String get testOnPr => 'PRでテスト実行';
-	@override String get customWorkflow => 'カスタムワークフロー';
-	@override String get buildAndTest => 'ビルド＆テスト';
-	@override String get testOnly => 'テストのみ';
-	@override String get lintAnalyze => 'Lint＆静的解析';
-	@override String get buildDeploy => 'ビルド＆デプロイ';
-	@override String get unitTests => 'ユニットテスト実行';
-	@override String get swiftlint => 'SwiftLintでLint';
-	@override String get buildArchive => 'アーカイブビルド';
-	@override String get lintCheck => 'Lintチェック';
-	@override String get buildApk => 'APKビルド';
-	@override String get pushToMain => 'mainへのpush時';
-	@override String get onPullRequest => 'プルリクエスト時';
-	@override String get pushToDevelop => 'developへのpush時';
-	@override String get tagCreation => 'タグ作成時';
-	@override String get everyPush => 'すべてのpush時';
-	@override String get looksGood => 'これで良さそう！';
-	@override String get addSteps => 'ステップを追加';
-	@override String get changeTrigger => 'トリガーを変更';
-	@override String get startOver => '最初からやり直す';
-}
-
-// Path: aiWorkflow.projectLabel
-class _TranslationsAiWorkflowProjectLabelJa implements TranslationsAiWorkflowProjectLabelEn {
-	_TranslationsAiWorkflowProjectLabelJa._(this._root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get flutter => 'Flutter';
-	@override String get ios => 'iOS（ネイティブ）';
-	@override String get android => 'Android（ネイティブ）';
-	@override String get node => 'Node.js';
-	@override String get custom => 'カスタム';
-}
-
-// Path: aiWorkflow.goalLabel
-class _TranslationsAiWorkflowGoalLabelJa implements TranslationsAiWorkflowGoalLabelEn {
-	_TranslationsAiWorkflowGoalLabelJa._(this._root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get test => 'テスト実行';
-	@override String get buildAndTest => 'ビルド＆テスト';
-	@override String get deploy => 'ビルド＆デプロイ';
-	@override String get lint => 'Lint / 静的解析';
-}
-
-// Path: aiWorkflow.triggerLabel
-class _TranslationsAiWorkflowTriggerLabelJa implements TranslationsAiWorkflowTriggerLabelEn {
-	_TranslationsAiWorkflowTriggerLabelJa._(this._root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get pullRequest => 'プルリクエスト';
 }
 
 /// The flat map containing all translations for locale <ja>.
@@ -812,7 +712,7 @@ extension on TranslationsJa {
 			'timeAgo.hoursAgo' => ({required Object count}) => '${count}時間前',
 			'timeAgo.daysAgo' => ({required Object count}) => '${count}日前',
 			'timeAgo.monthsAgo' => ({required Object count}) => '${count}ヶ月前',
-			'nav.workflows' => 'ワークフロー',
+			'nav.workflows' => 'CI/CD設定',
 			'nav.variables' => '変数',
 			'nav.logs' => 'ログ',
 			'nav.release' => 'リリース',
@@ -847,14 +747,14 @@ extension on TranslationsJa {
 			'auth.firebaseForm.active' => '有効',
 			'auth.firebaseForm.useProject' => 'このプロジェクトを使用',
 			'auth.firebaseForm.editProject' => 'プロジェクトを編集',
-			'workflow.title' => 'ワークフロー',
-			'workflow.tabWorkflows' => 'ワークフロー',
-			'workflow.tabRuns' => '実行履歴',
-			'workflow.addWorkflow' => 'ワークフロー追加',
+			'workflow.title' => 'CI/CD設定',
+			'workflow.tabWorkflows' => 'CI/CD設定',
+			'workflow.tabRuns' => 'CI/CDログ',
+			'workflow.addWorkflow' => 'CI/CD設定を作成',
 			'workflow.noWorkflowFiles' => 'ワークフローファイルが見つかりません',
 			'workflow.addYamlHint' => 'リポジトリの .openci/ にYAMLファイルを追加してください。',
 			'workflow.selectRepo' => 'リポジトリを選択',
-			'workflow.selectRepoHint' => 'ワークフローを管理するGitHubリポジトリを選択してください。',
+			'workflow.selectRepoHint' => 'CI/CD設定を管理するGitHubリポジトリを選択してください。',
 			'workflow.selectRepoButton' => 'リポジトリを選択',
 			'workflow.enabled' => '有効',
 			'workflow.disabled' => '無効',
@@ -869,13 +769,13 @@ extension on TranslationsJa {
 			'workflow.selectBranchHint' => 'ワークフローを表示するブランチを選択してください。',
 			'workflow.noBranches' => 'ブランチが見つかりません',
 			'workflow.selectRepository' => 'リポジトリを選択',
-			'workflow.selectRepositoryHint' => 'ワークフローを管理するGitHubリポジトリを選択してください。',
+			'workflow.selectRepositoryHint' => 'CI/CD設定を管理するGitHubリポジトリを選択してください。',
 			'workflow.searchRepositories' => 'リポジトリを検索...',
 			'workflow.noRepositories' => 'リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。',
 			'workflow.noMatchingRepositories' => ({required Object query}) => '「${query}」に一致するリポジトリはありません',
 			'workflow.defaultBranch' => ({required Object branch}) => 'デフォルト: ${branch}',
-			'workflow.editor.createTitle' => 'ワークフロー作成',
-			'workflow.editor.editTitle' => 'ワークフロー編集',
+			'workflow.editor.createTitle' => 'CI/CD設定を作成',
+			'workflow.editor.editTitle' => 'CI/CD設定を編集',
 			'workflow.editor.editorTab' => 'エディター',
 			'workflow.editor.yamlTab' => 'YAML',
 			'workflow.editor.basicInfo' => '基本情報',
@@ -945,6 +845,12 @@ extension on TranslationsJa {
 			'buildLogs.detail.lines' => ({required Object count}) => '${count}行',
 			'buildLogs.detail.generatingSummary' => 'AI要約を生成中...',
 			'buildLogs.detail.failureSummaryTitle' => 'AI 失敗要約',
+			'buildLogs.detail.aiFixTitle' => 'CI/CDの修正案を作る',
+			'buildLogs.detail.aiFixDescription' => '失敗ログとCI/CD設定を読み取り、修正ブランチまたはPRの作成につなげます。',
+			'buildLogs.detail.aiFixButton' => '修正を依頼',
+			'buildLogs.detail.aiFixDialogTitle' => 'CI/CD修正の入口',
+			'buildLogs.detail.aiFixDialogBody' => 'この実行ログをもとに、失敗原因を特定してCI/CD設定の修正案を作る予定です。次の実装で、ログ収集、設定ファイル取得、修正PR作成に接続します。',
+			'buildLogs.detail.aiFixDialogPrimary' => '準備中',
 			'buildLogs.duration.lessThanMinute' => '<1分',
 			'buildLogs.duration.minutes' => ({required Object count}) => '${count}分',
 			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}時間${minutes}分',
@@ -1017,7 +923,7 @@ extension on TranslationsJa {
 			'settings.requiresRecentLogin' => 'アカウンを削除する前に、一度ログアウトしてから再度ログインしてください',
 			'settings.deleteFailed' => ({required Object error}) => 'アカウントの削除に失敗: ${error}',
 			'settings.aiFeatures.title' => 'AI機能',
-			'settings.aiFeatures.subtitle' => 'AIワークフロービルダーや失敗要約などのAI機能を有効にする',
+			'settings.aiFeatures.subtitle' => '失敗要約などのAI機能を有効にする',
 			'settings.aiFeatures.enabled' => 'AI機能が有効です',
 			'settings.aiFeatures.disabled' => 'AI機能が無効です',
 			'settings.aiFeatures.updated' => 'AI機能の設定が更新されました',
@@ -1096,52 +1002,6 @@ extension on TranslationsJa {
 			'subscription.per3Months' => '3ヶ月ごと',
 			'subscription.per6Months' => '6ヶ月ごと',
 			'subscription.perYear' => '年額',
-			'aiWorkflow.title' => 'AI ワークフロービルダー',
-			'aiWorkflow.inputHint' => 'ワークフローの内容を入力...',
-			'aiWorkflow.generatedWorkflow' => '生成されたワークフロー',
-			'aiWorkflow.useThisWorkflow' => 'このワークフローを使う',
-			'aiWorkflow.chat.greeting' => 'どんなワークフローを作りたいですか？プロジェクトについて教えてください。セットアップをお手伝いします。',
-			'aiWorkflow.chat.projectSelected' => ({required Object project}) => '${project} のプロジェクトですね！ワークフローで何をしたいですか？',
-			'aiWorkflow.chat.triggerQuestion' => 'このワークフローはいつ実行しますか？',
-			'aiWorkflow.chat.workflowGenerated' => ({required Object plan}) => 'ワークフローを生成しました！内容は以下の通りです：\n\n${plan}\n\nこのまま使うことも、変更を指示することもできます。',
-			'aiWorkflow.chat.stepAdded' => 'プレースホルダーのステップを追加しました。エディターで自由にカスタマイズできます。',
-			'aiWorkflow.chat.changeTriggerPrompt' => '了解！いつワークフローを実行しますか？',
-			'aiWorkflow.chat.followUp' => '「このワークフローを使う」をタップして適用するか、変更したい内容を教えてください。',
-			'aiWorkflow.chat.planFormat' => ({required Object project, required Object steps, required Object trigger}) => '- プロジェクト: ${project}\n- ステップ: ${steps}\n- トリガー: ${trigger}',
-			'aiWorkflow.chat.errorMessage' => '申し訳ありません、エラーが発生しました。もう一度お試しいただくか、最初からやり直してください。',
-			'aiWorkflow.suggestion.flutterCiCd' => 'Flutter アプリの CI/CD',
-			'aiWorkflow.suggestion.iosBuildTest' => 'iOS アプリのビルド＆テスト',
-			'aiWorkflow.suggestion.androidBuild' => 'Android アプリのビルド',
-			'aiWorkflow.suggestion.testOnPr' => 'PRでテスト実行',
-			'aiWorkflow.suggestion.customWorkflow' => 'カスタムワークフロー',
-			'aiWorkflow.suggestion.buildAndTest' => 'ビルド＆テスト',
-			'aiWorkflow.suggestion.testOnly' => 'テストのみ',
-			'aiWorkflow.suggestion.lintAnalyze' => 'Lint＆静的解析',
-			'aiWorkflow.suggestion.buildDeploy' => 'ビルド＆デプロイ',
-			'aiWorkflow.suggestion.unitTests' => 'ユニットテスト実行',
-			'aiWorkflow.suggestion.swiftlint' => 'SwiftLintでLint',
-			'aiWorkflow.suggestion.buildArchive' => 'アーカイブビルド',
-			'aiWorkflow.suggestion.lintCheck' => 'Lintチェック',
-			'aiWorkflow.suggestion.buildApk' => 'APKビルド',
-			'aiWorkflow.suggestion.pushToMain' => 'mainへのpush時',
-			'aiWorkflow.suggestion.onPullRequest' => 'プルリクエスト時',
-			'aiWorkflow.suggestion.pushToDevelop' => 'developへのpush時',
-			'aiWorkflow.suggestion.tagCreation' => 'タグ作成時',
-			'aiWorkflow.suggestion.everyPush' => 'すべてのpush時',
-			'aiWorkflow.suggestion.looksGood' => 'これで良さそう！',
-			'aiWorkflow.suggestion.addSteps' => 'ステップを追加',
-			'aiWorkflow.suggestion.changeTrigger' => 'トリガーを変更',
-			'aiWorkflow.suggestion.startOver' => '最初からやり直す',
-			'aiWorkflow.projectLabel.flutter' => 'Flutter',
-			'aiWorkflow.projectLabel.ios' => 'iOS（ネイティブ）',
-			'aiWorkflow.projectLabel.android' => 'Android（ネイティブ）',
-			'aiWorkflow.projectLabel.node' => 'Node.js',
-			'aiWorkflow.projectLabel.custom' => 'カスタム',
-			'aiWorkflow.goalLabel.test' => 'テスト実行',
-			'aiWorkflow.goalLabel.buildAndTest' => 'ビルド＆テスト',
-			'aiWorkflow.goalLabel.deploy' => 'ビルド＆デプロイ',
-			'aiWorkflow.goalLabel.lint' => 'Lint / 静的解析',
-			'aiWorkflow.triggerLabel.pullRequest' => 'プルリクエスト',
 			'storeRelease.title' => 'ストアリリース',
 			'storeRelease.setupTitle' => 'App Store Connectを接続',
 			'storeRelease.setupDescription' => 'App Store Connect APIの認証情報を入力して、OpenCIから直接リリースを管理しましょう。',

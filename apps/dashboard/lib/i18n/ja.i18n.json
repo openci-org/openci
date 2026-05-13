@@ -34,7 +34,7 @@
     "monthsAgo": "${count}ヶ月前"
   },
   "nav": {
-    "workflows": "ワークフロー",
+    "workflows": "CI/CD設定",
     "variables": "変数",
     "logs": "ログ",
     "release": "リリース",
@@ -75,14 +75,14 @@
     }
   },
   "workflow": {
-    "title": "ワークフロー",
-    "tabWorkflows": "ワークフロー",
-    "tabRuns": "実行履歴",
-    "addWorkflow": "ワークフロー追加",
+    "title": "CI/CD設定",
+    "tabWorkflows": "CI/CD設定",
+    "tabRuns": "CI/CDログ",
+    "addWorkflow": "CI/CD設定を作成",
     "noWorkflowFiles": "ワークフローファイルが見つかりません",
     "addYamlHint": "リポジトリの .openci/ にYAMLファイルを追加してください。",
     "selectRepo": "リポジトリを選択",
-    "selectRepoHint": "ワークフローを管理するGitHubリポジトリを選択してください。",
+    "selectRepoHint": "CI/CD設定を管理するGitHubリポジトリを選択してください。",
     "selectRepoButton": "リポジトリを選択",
     "enabled": "有効",
     "disabled": "無効",
@@ -97,14 +97,14 @@
     "selectBranchHint": "ワークフローを表示するブランチを選択してください。",
     "noBranches": "ブランチが見つかりません",
     "selectRepository": "リポジトリを選択",
-    "selectRepositoryHint": "ワークフローを管理するGitHubリポジトリを選択してください。",
+    "selectRepositoryHint": "CI/CD設定を管理するGitHubリポジトリを選択してください。",
     "searchRepositories": "リポジトリを検索...",
     "noRepositories": "リポジトリが見つかりません。\nOpenCI GitHub Appをインストールしてください。",
     "noMatchingRepositories": "「$query」に一致するリポジトリはありません",
     "defaultBranch": "デフォルト: $branch",
     "editor": {
-      "createTitle": "ワークフロー作成",
-      "editTitle": "ワークフロー編集",
+      "createTitle": "CI/CD設定を作成",
+      "editTitle": "CI/CD設定を編集",
       "editorTab": "エディター",
       "yamlTab": "YAML",
       "basicInfo": "基本情報",
@@ -181,7 +181,13 @@
       "logsCopied": "ログがクリップボードにコピーされました",
       "lines": "$count行",
       "generatingSummary": "AI要約を生成中...",
-      "failureSummaryTitle": "AI 失敗要約"
+      "failureSummaryTitle": "AI 失敗要約",
+      "aiFixTitle": "CI/CDの修正案を作る",
+      "aiFixDescription": "失敗ログとCI/CD設定を読み取り、修正ブランチまたはPRの作成につなげます。",
+      "aiFixButton": "修正を依頼",
+      "aiFixDialogTitle": "CI/CD修正の入口",
+      "aiFixDialogBody": "この実行ログをもとに、失敗原因を特定してCI/CD設定の修正案を作る予定です。次の実装で、ログ収集、設定ファイル取得、修正PR作成に接続します。",
+      "aiFixDialogPrimary": "準備中"
     },
     "duration": {
       "lessThanMinute": "<1分",
@@ -266,7 +272,7 @@
     "deleteFailed": "アカウントの削除に失敗: $error",
     "aiFeatures": {
       "title": "AI機能",
-      "subtitle": "AIワークフロービルダーや失敗要約などのAI機能を有効にする",
+      "subtitle": "失敗要約などのAI機能を有効にする",
       "enabled": "AI機能が有効です",
       "disabled": "AI機能が無効です",
       "updated": "AI機能の設定が更新されました"
@@ -356,64 +362,6 @@
     "per3Months": "3ヶ月ごと",
     "per6Months": "6ヶ月ごと",
     "perYear": "年額"
-  },
-  "aiWorkflow": {
-    "title": "AI ワークフロービルダー",
-    "inputHint": "ワークフローの内容を入力...",
-    "generatedWorkflow": "生成されたワークフロー",
-    "useThisWorkflow": "このワークフローを使う",
-    "chat": {
-      "greeting": "どんなワークフローを作りたいですか？プロジェクトについて教えてください。セットアップをお手伝いします。",
-      "projectSelected": "$project のプロジェクトですね！ワークフローで何をしたいですか？",
-      "triggerQuestion": "このワークフローはいつ実行しますか？",
-      "workflowGenerated": "ワークフローを生成しました！内容は以下の通りです：\n\n$plan\n\nこのまま使うことも、変更を指示することもできます。",
-      "stepAdded": "プレースホルダーのステップを追加しました。エディターで自由にカスタマイズできます。",
-      "changeTriggerPrompt": "了解！いつワークフローを実行しますか？",
-      "followUp": "「このワークフローを使う」をタップして適用するか、変更したい内容を教えてください。",
-      "planFormat": "- プロジェクト: $project\n- ステップ: $steps\n- トリガー: $trigger",
-      "errorMessage": "申し訳ありません、エラーが発生しました。もう一度お試しいただくか、最初からやり直してください。"
-    },
-    "suggestion": {
-      "flutterCiCd": "Flutter アプリの CI/CD",
-      "iosBuildTest": "iOS アプリのビルド＆テスト",
-      "androidBuild": "Android アプリのビルド",
-      "testOnPr": "PRでテスト実行",
-      "customWorkflow": "カスタムワークフロー",
-      "buildAndTest": "ビルド＆テスト",
-      "testOnly": "テストのみ",
-      "lintAnalyze": "Lint＆静的解析",
-      "buildDeploy": "ビルド＆デプロイ",
-      "unitTests": "ユニットテスト実行",
-      "swiftlint": "SwiftLintでLint",
-      "buildArchive": "アーカイブビルド",
-      "lintCheck": "Lintチェック",
-      "buildApk": "APKビルド",
-      "pushToMain": "mainへのpush時",
-      "onPullRequest": "プルリクエスト時",
-      "pushToDevelop": "developへのpush時",
-      "tagCreation": "タグ作成時",
-      "everyPush": "すべてのpush時",
-      "looksGood": "これで良さそう！",
-      "addSteps": "ステップを追加",
-      "changeTrigger": "トリガーを変更",
-      "startOver": "最初からやり直す"
-    },
-    "projectLabel": {
-      "flutter": "Flutter",
-      "ios": "iOS（ネイティブ）",
-      "android": "Android（ネイティブ）",
-      "node": "Node.js",
-      "custom": "カスタム"
-    },
-    "goalLabel": {
-      "test": "テスト実行",
-      "buildAndTest": "ビルド＆テスト",
-      "deploy": "ビルド＆デプロイ",
-      "lint": "Lint / 静的解析"
-    },
-    "triggerLabel": {
-      "pullRequest": "プルリクエスト"
-    }
   },
   "storeRelease": {
     "title": "ストアリリース",

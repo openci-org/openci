@@ -53,7 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => _responsivePage(
               key: state.pageKey,
               child: const AuthenticatedScaffoldRoutePage(
-                title: '実行履歴',
+                title: 'CI/CDログ',
                 child: LogsBody(),
               ),
             ),

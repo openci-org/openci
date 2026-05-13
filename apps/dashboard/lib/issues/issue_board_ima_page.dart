@@ -71,9 +71,9 @@ const _boardNavigationDestinations = [
 extension _CompactBoardDestinationLabel on _CompactBoardDestination {
   String get label => switch (this) {
     _CompactBoardDestination.issueBoard => 'ワークスペース',
-    _CompactBoardDestination.runs => '実行履歴',
+    _CompactBoardDestination.runs => 'CI/CDログ',
     _CompactBoardDestination.workers => 'ワーカー',
-    _CompactBoardDestination.workflows => 'ワークフロー',
+    _CompactBoardDestination.workflows => 'CI/CD設定',
     _CompactBoardDestination.variables => '変数',
     _CompactBoardDestination.storeRelease => 'ストアリリース',
   };
@@ -3050,13 +3050,13 @@ class _BoardSidePanelDrawer extends StatelessWidget {
       _BoardSidePanel.workers => WorkerInspectorPanel(onDismiss: onDismiss),
       _BoardSidePanel.runs => _BoardSidePanelShell(
         icon: Icons.history_rounded,
-        title: '実行履歴',
+        title: 'CI/CDログ',
         onDismiss: onDismiss,
         child: const LogsBody(),
       ),
       _BoardSidePanel.workflows => _BoardSidePanelShell(
         icon: Icons.schema_rounded,
-        title: 'ワークフロー',
+        title: 'CI/CD設定',
         onDismiss: onDismiss,
         child: const WorkflowsBody(),
       ),
@@ -5280,8 +5280,8 @@ class BoardToolbar extends StatelessWidget {
                   if (showNavigationActions) ...[
                     ToolbarChip(
                       icon: Icons.history_rounded,
-                      label: '実行履歴',
-                      tooltip: 'CI/CD の実行履歴を開く',
+                      label: 'CI/CDログ',
+                      tooltip: 'CI/CD の実行ログを開く',
                       onPressed: onRunsTap,
                     ),
                     ToolbarChip(
@@ -5292,8 +5292,8 @@ class BoardToolbar extends StatelessWidget {
                     ),
                     ToolbarChip(
                       icon: Icons.schema_rounded,
-                      label: 'ワークフロー',
-                      tooltip: '.openci workflows を開く',
+                      label: 'CI/CD設定',
+                      tooltip: 'CI/CD設定を開く',
                       onPressed: onWorkflowsTap,
                     ),
                     ToolbarChip(
@@ -5578,7 +5578,7 @@ class _CompactBoardDrawer extends StatelessWidget {
             ),
             _CompactDrawerTile(
               icon: Icons.history_rounded,
-              label: '実行履歴',
+              label: 'CI/CDログ',
               selected: selectedDestination == _CompactBoardDestination.runs,
               onTap: () => runAfterClose(onRunsTap),
             ),
@@ -5590,7 +5590,7 @@ class _CompactBoardDrawer extends StatelessWidget {
             ),
             _CompactDrawerTile(
               icon: Icons.schema_rounded,
-              label: 'ワークフロー',
+              label: 'CI/CD設定',
               selected:
                   selectedDestination == _CompactBoardDestination.workflows,
               onTap: () => runAfterClose(onWorkflowsTap),
