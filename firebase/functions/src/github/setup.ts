@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getTeamById, linkGitHubInstallation } from "../firestoreData.js";
 import { onRequest } from "firebase-functions/v2/https";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
@@ -118,7 +119,10 @@ export const createGitHubSetupUrl = onCall<
     expiresAt: Date.now() + stateTtlMs,
     nonce: randomUUID(),
   });
-  const url = new URL(`/apps/${githubAppSlug}/installations/new`, getBaseUrlFromTeamData(team));
+  const url = new URL(
+    `/apps/${githubAppSlug}/installations/select_target`,
+    getBaseUrlFromTeamData(team),
+  );
   url.searchParams.set("state", state);
   return { url: url.toString() };
 });
@@ -132,6 +136,11 @@ export const githubSetup = onRequest(
       const setupAction = request.query.setup_action;
 
       if (typeof installationId !== "string" || typeof state !== "string") {
+        logger.warn("Rejected GitHub setup callback with missing query parameters", {
+          hasInstallationId: typeof installationId === "string",
+          hasState: typeof state === "string",
+          setupAction,
+        });
         response.status(400).send("Missing installation_id or state");
         return;
       }
@@ -158,6 +167,16 @@ export const githubSetup = onRequest(
       }
 
       await linkGitHubInstallation({ teamId, installationId: newId });
+      await getFirestore().doc(`workspaces/${teamId}/githubConnections/default`).set(
+        {
+          connected: true,
+          login: `GitHub App installation #${newId}`,
+          installationId: newId,
+          source: "github_app",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
       response.status(200).set("Content-Type", "text/html").send(`<!DOCTYPE html>
 <html>
   <head>
