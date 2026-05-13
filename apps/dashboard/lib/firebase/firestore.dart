@@ -18,6 +18,7 @@ enum BuildJobStatus {
 const teamsCollection = 'teams_v0';
 const usersCollection = 'users_v0';
 const buildJobsCollection = 'build_jobs_v0';
+const ciCdFixRequestsCollection = 'ci_cd_fix_requests_v0';
 const workerInstancesCollection = 'worker_instances_v0';
 const workflowsCollection = 'workflows_v1';
 const workflowFilesCollection = 'workflow_files_v0';

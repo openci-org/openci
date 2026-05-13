@@ -34,7 +34,7 @@
     "monthsAgo": "hace ${count}m"
   },
   "nav": {
-    "workflows": "Flujos de trabajo",
+    "workflows": "Configuración CI/CD",
     "variables": "Variables",
     "logs": "Registros",
     "release": "Lanzamiento",
@@ -75,14 +75,14 @@
     }
   },
   "workflow": {
-    "title": "Flujos de trabajo",
-    "tabWorkflows": "Flujos de trabajo",
-    "tabRuns": "Ejecuciones",
-    "addWorkflow": "Agregar flujo de trabajo",
+    "title": "Configuración CI/CD",
+    "tabWorkflows": "Configuración CI/CD",
+    "tabRuns": "Registros CI/CD",
+    "addWorkflow": "Crear configuración CI/CD",
     "noWorkflowFiles": "No se encontraron archivos de flujo de trabajo",
     "addYamlHint": "Agrega archivos YAML a .openci/ en tu repositorio.",
     "selectRepo": "Seleccionar un repositorio",
-    "selectRepoHint": "Elige un repositorio de GitHub para gestionar flujos de trabajo.",
+    "selectRepoHint": "Elige un repositorio de GitHub para gestionar la configuración CI/CD.",
     "selectRepoButton": "Seleccionar repositorio",
     "enabled": "Activo",
     "disabled": "Inactivo",
@@ -97,14 +97,14 @@
     "selectBranchHint": "Elige una rama para ver los flujos de trabajo.",
     "noBranches": "No se encontraron ramas",
     "selectRepository": "Seleccionar repositorio",
-    "selectRepositoryHint": "Elige un repositorio de GitHub para gestionar flujos de trabajo.",
+    "selectRepositoryHint": "Elige un repositorio de GitHub para gestionar la configuración CI/CD.",
     "searchRepositories": "Buscar repositorios...",
     "noRepositories": "No se encontraron repositorios.\nPor favor, instala la aplicación OpenCI GitHub.",
     "noMatchingRepositories": "No hay repositorios que coincidan con \"$query\"",
     "defaultBranch": "predeterminado: $branch",
     "editor": {
-      "createTitle": "Crear flujo de trabajo",
-      "editTitle": "Editar flujo de trabajo",
+      "createTitle": "Crear configuración CI/CD",
+      "editTitle": "Editar configuración CI/CD",
       "editorTab": "Editor",
       "yamlTab": "YAML",
       "basicInfo": "Información básica",
@@ -179,7 +179,13 @@
       "logsCopied": "Registros copiados al portapapeles",
       "lines": "$count líneas",
       "generatingSummary": "Generando resumen con IA...",
-      "failureSummaryTitle": "Resumen de fallo con IA"
+      "failureSummaryTitle": "Resumen de fallo con IA",
+      "aiFixTitle": "Preparar una corrección CI/CD",
+      "aiFixDescription": "Usa los registros fallidos y la configuración CI/CD para preparar una rama de corrección o un pull request.",
+      "aiFixButton": "Solicitar corrección",
+      "aiFixDialogTitle": "Entrada para corregir CI/CD",
+      "aiFixDialogBody": "Esto inspeccionará este registro de ejecución, identificará la causa del fallo y propondrá cambios en la configuración CI/CD. El siguiente paso puede conectar la recopilación de registros, la lectura de archivos de configuración y la creación del PR de corrección.",
+      "aiFixDialogPrimary": "Próximamente"
     },
     "duration": {
       "lessThanMinute": "<1m",
@@ -264,7 +270,7 @@
     "deleteFailed": "Error al eliminar la cuenta: $error",
     "aiFeatures": {
       "title": "Funciones de IA",
-      "subtitle": "Habilitar funciones impulsadas por IA como el constructor de flujos de trabajo y los resúmenes de fallos",
+      "subtitle": "Habilitar funciones impulsadas por IA como los resúmenes de fallos",
       "enabled": "Las funciones de IA están habilitadas",
       "disabled": "Las funciones de IA están deshabilitadas",
       "updated": "Configuración de funciones de IA actualizada"
@@ -354,64 +360,6 @@
     "per3Months": "por 3 meses",
     "per6Months": "por 6 meses",
     "perYear": "por año"
-  },
-  "aiWorkflow": {
-    "title": "Constructor de flujo de trabajo con IA",
-    "inputHint": "Describe tu flujo de trabajo...",
-    "generatedWorkflow": "Flujo de trabajo generado",
-    "useThisWorkflow": "Usar este flujo de trabajo",
-    "chat": {
-      "greeting": "¿Qué tipo de flujo de trabajo te gustaría crear? Cuéntame sobre tu proyecto y te ayudaré a configurarlo.",
-      "projectSelected": "¡Entendido! Un proyecto $project. ¿Qué te gustaría que haga el flujo de trabajo?",
-      "triggerQuestion": "¿Cuándo debería ejecutarse este flujo de trabajo?",
-      "workflowGenerated": "¡He generado tu flujo de trabajo! Esto es lo que incluye:\n\n$plan\n\nPuedes usarlo tal cual o decirme qué te gustaría cambiar.",
-      "stepAdded": "He agregado un paso de ejemplo. Puedes personalizarlo en el editor después de aplicar este flujo de trabajo.",
-      "changeTriggerPrompt": "¡Claro! ¿Cuándo debería ejecutarse este flujo de trabajo?",
-      "followUp": "Puedes usar el flujo generado tocando 'Usar este flujo de trabajo', o dime qué cambios deseas.",
-      "planFormat": "- Proyecto: $project\n- Pasos: $steps\n- Disparador: $trigger",
-      "errorMessage": "Lo siento, algo salió mal. Inténtalo de nuevo o empieza de nuevo."
-    },
-    "suggestion": {
-      "flutterCiCd": "CI/CD de app Flutter",
-      "iosBuildTest": "Compilar y probar app iOS",
-      "androidBuild": "Compilar app Android",
-      "testOnPr": "Ejecutar pruebas en PR",
-      "customWorkflow": "Flujo personalizado",
-      "buildAndTest": "Compilar y probar",
-      "testOnly": "Solo pruebas",
-      "lintAnalyze": "Lint y análisis",
-      "buildDeploy": "Compilar y desplegar",
-      "unitTests": "Pruebas unitarias",
-      "swiftlint": "Lint con SwiftLint",
-      "buildArchive": "Compilar archivo",
-      "lintCheck": "Verificación de Lint",
-      "buildApk": "Compilar APK",
-      "pushToMain": "Al hacer push a main",
-      "onPullRequest": "En pull request",
-      "pushToDevelop": "Al hacer push a develop",
-      "tagCreation": "Al crear un tag",
-      "everyPush": "En cada push",
-      "looksGood": "¡Se ve bien, usar esto!",
-      "addSteps": "Agregar más pasos",
-      "changeTrigger": "Cambiar el disparador",
-      "startOver": "Empezar de nuevo"
-    },
-    "projectLabel": {
-      "flutter": "Flutter",
-      "ios": "iOS (Nativo)",
-      "android": "Android (Nativo)",
-      "node": "Node.js",
-      "custom": "Personalizado"
-    },
-    "goalLabel": {
-      "test": "Ejecutar pruebas",
-      "buildAndTest": "Compilar y probar",
-      "deploy": "Compilar y desplegar",
-      "lint": "Lint / Análisis"
-    },
-    "triggerLabel": {
-      "pullRequest": "Pull Request"
-    }
   },
   "storeRelease": {
     "title": "Lanzamiento en tienda",

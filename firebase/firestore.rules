@@ -286,6 +286,11 @@ service cloud.firestore {
             }
         }
 
+        match /ci_cd_fix_requests_v0/{requestId} {
+            allow read: if isTeamMember(resource.data.teamId);
+            allow write: if false;
+        }
+
         match /worker_instances_v0/{workerId} {
             allow read: if isAuthenticated();
             allow write: if false;

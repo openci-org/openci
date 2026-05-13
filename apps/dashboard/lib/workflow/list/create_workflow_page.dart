@@ -27,6 +27,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
     required this.teamId,
     this.existingFile,
     this.initialYaml,
+    this.initialFileName,
   });
 
   final String repository;
@@ -34,6 +35,7 @@ class CreateWorkflowPage extends HookConsumerWidget {
   final String teamId;
   final WorkflowFile? existingFile;
   final String? initialYaml;
+  final String? initialFileName;
 
   bool get isEditing => existingFile != null;
 
@@ -93,7 +95,8 @@ class CreateWorkflowPage extends HookConsumerWidget {
             ),
       ),
     );
-    final existingFileName = existingFile?.name ?? 'workflow.yaml';
+    final existingFileName =
+        existingFile?.name ?? initialFileName ?? 'workflow.yaml';
     final fileName = useState(existingFileName);
     final isLoading = useState(false);
     final isSyncingFromEditor = useState(false);
@@ -117,8 +120,14 @@ class CreateWorkflowPage extends HookConsumerWidget {
       isSyncingFromEditor.value = false;
     }
 
+    final appColors = AppColors.of(context);
+
     return Scaffold(
+      backgroundColor: appColors.scaffold,
       appBar: AppBar(
+        backgroundColor: appColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,16 +145,16 @@ class CreateWorkflowPage extends HookConsumerWidget {
           ],
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
+          preferredSize: const Size.fromHeight(54),
           child: Container(
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: AppColors.of(context).divider,
+                  color: appColors.divider,
                 ),
               ),
             ),
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             child: Row(
               children: List.generate(2, (index) {
                 final labels = [
@@ -159,21 +168,26 @@ class CreateWorkflowPage extends HookConsumerWidget {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(999),
                       onTap: () => tabController.animateTo(index),
-                      hoverColor: AppColors.of(context).borderSubtle,
+                      hoverColor: appColors.surfaceHover,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         curve: Curves.easeOut,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
+                          horizontal: 14,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.of(context).border
+                              ? appColors.accentSubtle
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected
+                                ? appColors.accent.withValues(alpha: 0.24)
+                                : appColors.borderSubtle,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -182,18 +196,18 @@ class CreateWorkflowPage extends HookConsumerWidget {
                               icons[index],
                               size: 15,
                               color: isSelected
-                                  ? AppColors.of(context).textSecondary
-                                  : AppColors.of(context).textTertiary,
+                                  ? appColors.accent
+                                  : appColors.textTertiary,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               labels[index],
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w700,
                                 color: isSelected
-                                    ? AppColors.of(context).textPrimary
-                                    : AppColors.of(context).textTertiary,
+                                    ? appColors.textPrimary
+                                    : appColors.textTertiary,
                                 letterSpacing: -0.1,
                               ),
                             ),
@@ -309,6 +323,10 @@ class CreateWorkflowPage extends HookConsumerWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: AppColors.of(context).surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => _CommitBottomSheet(
         repository: repository,
         branch: branch,
@@ -352,35 +370,40 @@ class _EditorTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nameController = useTextEditingController(text: workflowName.value);
     final branchesAsync = ref.watch(gitHubBranchesProvider(repository));
+    final appColors = AppColors.of(context);
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
+        constraints: const BoxConstraints(maxWidth: 760),
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
           children: [
-            // ── Basic Info Section ──
+            _WorkflowEditorHero(
+              title: workflowName.value.isEmpty
+                  ? t.workflow.editor.createTitle
+                  : workflowName.value,
+              repository: repository,
+            ),
+            const SizedBox(height: 14),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
+                color: appColors.surface,
                 border: Border.all(
-                  color: AppColors.of(context).border,
+                  color: appColors.border,
                 ),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: _workflowCardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    t.workflow.editor.basicInfo,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.of(context).textTertiary,
-                      letterSpacing: 0.5,
-                    ),
+                  _WorkflowSectionTitle(
+                    icon: Icons.tune_rounded,
+                    title: t.workflow.editor.basicInfo,
+                    subtitle: 'いつ、どのブランチでこのワークフローを動かすかを決めます。',
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: nameController,
                     style: const TextStyle(fontSize: 14),
@@ -644,11 +667,10 @@ class _EditorTab extends HookConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             // ── Variables shortcut ──
             InkWell(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(18),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -658,23 +680,33 @@ class _EditorTab extends HookConsumerWidget {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: 18,
+                  vertical: 16,
                 ),
                 decoration: BoxDecoration(
+                  color: appColors.surface,
                   border: Border.all(
-                    color: AppColors.of(context).border,
+                    color: appColors.border,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: _workflowCardShadow,
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Symbols.key_rounded,
-                      size: 18,
-                      color: AppColors.of(context).textTertiary,
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: appColors.accentSubtle,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Symbols.key_rounded,
+                        size: 19,
+                        color: appColors.accent,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -682,8 +714,8 @@ class _EditorTab extends HookConsumerWidget {
                           Text(
                             t.variables.title,
                             style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -691,7 +723,8 @@ class _EditorTab extends HookConsumerWidget {
                             '${t.variables.secretsTab} / ${t.variables.envVarsTab}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.of(context).textTertiary,
+                              color: appColors.textTertiary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -700,12 +733,19 @@ class _EditorTab extends HookConsumerWidget {
                     Icon(
                       Icons.chevron_right,
                       size: 18,
-                      color: AppColors.of(context).textTertiary,
+                      color: appColors.textTertiary,
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 18),
+            _WorkflowSectionTitle(
+              icon: Icons.account_tree_rounded,
+              title: 'Jobs',
+              subtitle: '実行する作業のまとまりです。複数の job を順番または並列で実行できます。',
+            ),
+            const SizedBox(height: 10),
             ...List.generate(jobs.value.length, (jobIndex) {
               final job = jobs.value[jobIndex];
               final isParallel = job.needs.isEmpty && jobIndex > 0;
@@ -912,6 +952,142 @@ class _EditorTab extends HookConsumerWidget {
   }
 }
 
+const _workflowCardShadow = [
+  BoxShadow(
+    color: Color(0x080F172A),
+    blurRadius: 22,
+    offset: Offset(0, 10),
+  ),
+];
+
+class _WorkflowEditorHero extends StatelessWidget {
+  const _WorkflowEditorHero({
+    required this.title,
+    required this.repository,
+  });
+
+  final String title;
+  final String repository;
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: appColors.accentSubtle,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: appColors.accent.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: appColors.surface,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.schema_rounded,
+              color: appColors.accent,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: appColors.textPrimary,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  repository,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: appColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkflowSectionTitle extends StatelessWidget {
+  const _WorkflowSectionTitle({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: appColors.surfaceSecondary,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 17, color: appColors.textSecondary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: appColors.textPrimary,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: appColors.textTertiary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _JobSectionCard extends HookWidget {
   const _JobSectionCard({
     required this.job,
@@ -938,33 +1114,37 @@ class _JobSectionCard extends HookWidget {
     final isExpanded = useState(true);
     final isEditingId = useState(false);
 
+    final appColors = AppColors.of(context);
+
     return Container(
       decoration: BoxDecoration(
+        color: appColors.surface,
         border: Border.all(
-          color: AppColors.of(context).border,
+          color: appColors.border,
         ),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: _workflowCardShadow,
       ),
       child: Column(
         children: [
           // ── Job header ──
           InkWell(
             borderRadius: isExpanded.value
-                ? const BorderRadius.vertical(top: Radius.circular(10))
-                : BorderRadius.circular(10),
+                ? const BorderRadius.vertical(top: Radius.circular(20))
+                : BorderRadius.circular(20),
             onTap: () => isExpanded.value = !isExpanded.value,
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
+                horizontal: 16,
+                vertical: 14,
               ),
               decoration: BoxDecoration(
-                color: AppColors.of(context).borderSubtle,
+                color: appColors.surfaceSecondary,
                 borderRadius: isExpanded.value
                     ? const BorderRadius.vertical(
-                        top: Radius.circular(10),
+                        top: Radius.circular(20),
                       )
-                    : BorderRadius.circular(10),
+                    : BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
@@ -973,8 +1153,8 @@ class _JobSectionCard extends HookWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
+                      color: appColors.accentSubtle,
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
                       child: Text(
@@ -982,7 +1162,7 @@ class _JobSectionCard extends HookWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Colors.blue.withValues(alpha: 0.7),
+                          color: appColors.accent,
                         ),
                       ),
                     ),
@@ -1039,7 +1219,7 @@ class _JobSectionCard extends HookWidget {
                       job.name!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.of(context).textTertiary,
+                        color: appColors.textTertiary,
                       ),
                     ),
                   ],
@@ -1051,15 +1231,15 @@ class _JobSectionCard extends HookWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.of(context).borderSubtle,
-                      borderRadius: BorderRadius.circular(4),
+                      color: appColors.surface,
+                      borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       '${job.steps.length}',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.of(context).textTertiary,
+                        color: appColors.textTertiary,
                       ),
                     ),
                   ),
@@ -1073,7 +1253,7 @@ class _JobSectionCard extends HookWidget {
                       icon: Icon(
                         Icons.link,
                         size: 14,
-                        color: AppColors.of(context).textTertiary,
+                        color: appColors.textTertiary,
                       ),
                       onSelected: (selectedJobId) {
                         final currentNeeds = List<String>.from(job.needs);
@@ -1099,9 +1279,7 @@ class _JobSectionCard extends HookWidget {
                                       size: 16,
                                       color: job.needs.contains(id)
                                           ? Colors.blue
-                                          : AppColors.of(
-                                              context,
-                                            ).textPrimary.withValues(
+                                          : appColors.textPrimary.withValues(
                                               alpha: 0.3,
                                             ),
                                     ),
@@ -1130,7 +1308,7 @@ class _JobSectionCard extends HookWidget {
                         child: Icon(
                           Icons.delete_outline,
                           size: 14,
-                          color: AppColors.of(context).textTertiary,
+                          color: appColors.textTertiary,
                         ),
                       ),
                     ),
@@ -1142,7 +1320,7 @@ class _JobSectionCard extends HookWidget {
                     child: Icon(
                       Icons.keyboard_arrow_down,
                       size: 18,
-                      color: AppColors.of(context).textTertiary,
+                      color: appColors.textTertiary,
                     ),
                   ),
                 ],
@@ -1154,10 +1332,10 @@ class _JobSectionCard extends HookWidget {
             Container(
               width: double.infinity,
               height: 1,
-              color: AppColors.of(context).divider,
+              color: appColors.divider,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
               child: Column(
                 children: [
                   ...List.generate(job.steps.length, (stepIndex) {
@@ -1317,16 +1495,19 @@ class _StepEditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(14),
       onTap: () => _showEditSheet(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
+          color: appColors.surface,
           border: Border.all(
-            color: AppColors.of(context).border,
+            color: appColors.border,
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
           children: [
@@ -1335,7 +1516,7 @@ class _StepEditorCard extends StatelessWidget {
               height: 28,
               decoration: BoxDecoration(
                 color: AppColors.of(context).divider,
-                borderRadius: BorderRadius.circular(7),
+                borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -1508,6 +1689,10 @@ class _StepEditorCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: AppColors.of(context).surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => _EditStepSheet(
         step: step,
         onSave: onUpdate,
@@ -2098,46 +2283,99 @@ class _YamlTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
+        constraints: const BoxConstraints(maxWidth: 860),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CodeEditor(
-              padding: const EdgeInsets.all(12),
-              controller: yamlController.value,
-              wordWrap: true,
-              borderRadius: BorderRadius.circular(12),
-              onChanged: (_) => onChanged(),
-              style: CodeEditorStyle(
-                fontSize: 14,
-                backgroundColor: AppColors.of(context).surfaceSecondary,
-                textColor: AppColors.of(context).textPrimary,
-                codeTheme: CodeHighlightTheme(
-                  languages: {
-                    'yaml': CodeHighlightThemeMode(mode: langYaml),
-                  },
-                  theme: monokaiTheme,
-                ),
-              ),
-              indicatorBuilder:
-                  (
-                    context,
-                    editingController,
-                    chunkController,
-                    notifier,
-                  ) {
-                    return Row(
-                      children: [
-                        DefaultCodeLineNumber(
-                          controller: editingController,
-                          notifier: notifier,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
+          child: Container(
+            decoration: BoxDecoration(
+              color: appColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: appColors.border),
+              boxShadow: _workflowCardShadow,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appColors.surfaceSecondary,
+                    border: Border(
+                      bottom: BorderSide(color: appColors.divider),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.code_rounded,
+                        size: 18,
+                        color: appColors.textSecondary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        t.workflow.editor.yamlTab,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: appColors.textPrimary,
                         ),
-                      ],
-                    );
-                  },
+                      ),
+                      const Spacer(),
+                      Text(
+                        '.openci/workflow.yaml',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: appColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: CodeEditor(
+                    padding: const EdgeInsets.all(14),
+                    controller: yamlController.value,
+                    wordWrap: true,
+                    borderRadius: BorderRadius.zero,
+                    onChanged: (_) => onChanged(),
+                    style: CodeEditorStyle(
+                      fontSize: 14,
+                      backgroundColor: appColors.codeBackground,
+                      textColor: appColors.textPrimary,
+                      codeTheme: CodeHighlightTheme(
+                        languages: {
+                          'yaml': CodeHighlightThemeMode(mode: langYaml),
+                        },
+                        theme: monokaiTheme,
+                      ),
+                    ),
+                    indicatorBuilder:
+                        (
+                          context,
+                          editingController,
+                          chunkController,
+                          notifier,
+                        ) {
+                          return Row(
+                            children: [
+                              DefaultCodeLineNumber(
+                                controller: editingController,
+                                notifier: notifier,
+                              ),
+                            ],
+                          );
+                        },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -2168,6 +2406,7 @@ class _CommitBottomSheet extends HookConsumerWidget {
     final fileNameController = useTextEditingController(text: fileName.value);
     final commitMode = useState(CommitMode.direct);
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final appColors = AppColors.of(context);
 
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
@@ -2190,18 +2429,32 @@ class _CommitBottomSheet extends HookConsumerWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
       child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.5,
+        height: MediaQuery.of(context).size.height * 0.62,
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: appColors.accentSubtle,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.save_rounded,
+                      size: 18,
+                      color: appColors.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Text(
                     t.workflow.editor.saveToRepo,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                   const Spacer(),
@@ -2287,9 +2540,14 @@ class _CommitBottomSheet extends HookConsumerWidget {
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
               child: SizedBox(
                 width: double.infinity,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: isLoading.value
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: isLoading.value
                       ? null
                       : () => _onSubmit(
                           context: context,
@@ -2297,59 +2555,26 @@ class _CommitBottomSheet extends HookConsumerWidget {
                           fileName: fileNameController.text.trim(),
                           commitMode: commitMode.value,
                         ),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isLoading.value
-                          ? AppColors.of(context).borderSubtle
-                          : Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.15),
-                      border: Border.all(
-                        color: isLoading.value
-                            ? AppColors.of(context).border
-                            : Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.3),
-                      ),
-                      borderRadius: BorderRadius.circular(8),
+                  icon: isLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          commitMode.value == CommitMode.direct
+                              ? Icons.commit
+                              : Icons.call_merge,
+                          size: 18,
+                        ),
+                  label: Text(
+                    commitMode.value == CommitMode.direct
+                        ? t.workflow.editor.commitToBranchButton(branch: branch)
+                        : t.workflow.editor.createPRButton,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
                     ),
-                    alignment: Alignment.center,
-                    child: isLoading.value
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.of(context).textSecondary,
-                            ),
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                commitMode.value == CommitMode.direct
-                                    ? Icons.commit
-                                    : Icons.call_merge,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                commitMode.value == CommitMode.direct
-                                    ? t.workflow.editor.commitToBranchButton(
-                                        branch: branch,
-                                      )
-                                    : t.workflow.editor.createPRButton,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
                   ),
                 ),
               ),

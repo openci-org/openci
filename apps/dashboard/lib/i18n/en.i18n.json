@@ -34,7 +34,7 @@
     "monthsAgo": "${count}mo ago"
   },
   "nav": {
-    "workflows": "Workflows",
+    "workflows": "CI/CD Settings",
     "variables": "Variables",
     "logs": "Logs",
     "release": "Release",
@@ -75,14 +75,14 @@
     }
   },
   "workflow": {
-    "title": "Workflows",
-    "tabWorkflows": "Workflows",
-    "tabRuns": "Runs",
-    "addWorkflow": "Add Workflow",
+    "title": "CI/CD Settings",
+    "tabWorkflows": "CI/CD Settings",
+    "tabRuns": "CI/CD Logs",
+    "addWorkflow": "Create CI/CD Setting",
     "noWorkflowFiles": "No workflow files found",
     "addYamlHint": "Add YAML files to .openci/ in your repository.",
     "selectRepo": "Select a repository",
-    "selectRepoHint": "Choose a GitHub repository to manage workflows.",
+    "selectRepoHint": "Choose a GitHub repository to manage CI/CD settings.",
     "selectRepoButton": "Select Repository",
     "enabled": "Enabled",
     "disabled": "Disabled",
@@ -97,14 +97,14 @@
     "selectBranchHint": "Choose a branch to view workflows from.",
     "noBranches": "No branches found",
     "selectRepository": "Select Repository",
-    "selectRepositoryHint": "Choose a GitHub repository to manage workflows.",
+    "selectRepositoryHint": "Choose a GitHub repository to manage CI/CD settings.",
     "searchRepositories": "Search repositories...",
     "noRepositories": "No repositories found.\nPlease install the OpenCI GitHub App.",
     "noMatchingRepositories": "No repositories matching \"$query\"",
     "defaultBranch": "default: $branch",
     "editor": {
-      "createTitle": "Create Workflow",
-      "editTitle": "Edit Workflow",
+      "createTitle": "Create CI/CD Setting",
+      "editTitle": "Edit CI/CD Setting",
       "editorTab": "Editor",
       "yamlTab": "YAML",
       "basicInfo": "Basic Info",
@@ -181,7 +181,13 @@
       "logsCopied": "Logs copied to clipboard",
       "lines": "$count lines",
       "generatingSummary": "Generating AI summary...",
-      "failureSummaryTitle": "AI Failure Summary"
+      "failureSummaryTitle": "AI Failure Summary",
+      "aiFixTitle": "Prepare a CI/CD fix",
+      "aiFixDescription": "Use the failed logs and CI/CD settings to prepare a fix branch or pull request.",
+      "aiFixButton": "Request fix",
+      "aiFixDialogTitle": "CI/CD fix entry point",
+      "aiFixDialogBody": "This will inspect this run log, identify the failure cause, and propose CI/CD setting changes. The next implementation step can connect log collection, config file retrieval, and fix PR creation.",
+      "aiFixDialogPrimary": "Coming soon"
     },
     "duration": {
       "lessThanMinute": "<1m",
@@ -266,7 +272,7 @@
     "deleteFailed": "Failed to delete account: $error",
     "aiFeatures": {
       "title": "AI Features",
-      "subtitle": "Enable AI-powered features like workflow builder and failure summaries",
+      "subtitle": "Enable AI-powered features like failure summaries",
       "enabled": "AI features are enabled",
       "disabled": "AI features are disabled",
       "updated": "AI features setting updated"
@@ -356,64 +362,6 @@
     "per3Months": "per 3 months",
     "per6Months": "per 6 months",
     "perYear": "per year"
-  },
-  "aiWorkflow": {
-    "title": "AI Workflow Builder",
-    "inputHint": "Describe your workflow...",
-    "generatedWorkflow": "Generated Workflow",
-    "useThisWorkflow": "Use this workflow",
-    "chat": {
-      "greeting": "What kind of workflow would you like to create? Tell me about your project and I'll help you set it up.",
-      "projectSelected": "Got it! A $project project. What would you like the workflow to do?",
-      "triggerQuestion": "When should this workflow run?",
-      "workflowGenerated": "I've generated your workflow! Here's what it includes:\n\n$plan\n\nYou can use this workflow as-is, or tell me what you'd like to change.",
-      "stepAdded": "I've added a placeholder step. You can customize it in the editor after applying this workflow.",
-      "changeTriggerPrompt": "Sure! When should this workflow run?",
-      "followUp": "You can use the generated workflow by tapping 'Use this workflow', or tell me what changes you'd like.",
-      "planFormat": "- Project: $project\n- Steps: $steps\n- Trigger: $trigger",
-      "errorMessage": "Sorry, something went wrong. Please try again or start over."
-    },
-    "suggestion": {
-      "flutterCiCd": "Flutter app CI/CD",
-      "iosBuildTest": "iOS app build & test",
-      "androidBuild": "Android app build",
-      "testOnPr": "Run tests on PR",
-      "customWorkflow": "Custom workflow",
-      "buildAndTest": "Build & test",
-      "testOnly": "Run tests only",
-      "lintAnalyze": "Lint & analyze",
-      "buildDeploy": "Build & deploy",
-      "unitTests": "Run unit tests",
-      "swiftlint": "Lint with SwiftLint",
-      "buildArchive": "Build archive",
-      "lintCheck": "Lint check",
-      "buildApk": "Build APK",
-      "pushToMain": "On push to main",
-      "onPullRequest": "On pull request",
-      "pushToDevelop": "On push to develop",
-      "tagCreation": "On tag creation",
-      "everyPush": "On every push",
-      "looksGood": "Looks good, use this!",
-      "addSteps": "Add more steps",
-      "changeTrigger": "Change the trigger",
-      "startOver": "Start over"
-    },
-    "projectLabel": {
-      "flutter": "Flutter",
-      "ios": "iOS (Native)",
-      "android": "Android (Native)",
-      "node": "Node.js",
-      "custom": "Custom"
-    },
-    "goalLabel": {
-      "test": "Run tests",
-      "buildAndTest": "Build & Test",
-      "deploy": "Build & Deploy",
-      "lint": "Lint / Analyze"
-    },
-    "triggerLabel": {
-      "pullRequest": "Pull Request"
-    }
   },
   "storeRelease": {
     "title": "Store Release",

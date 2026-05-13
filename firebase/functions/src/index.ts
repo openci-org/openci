@@ -9,10 +9,18 @@ setGlobalOptions({
     "GITHUB_WEBHOOK_SECRET",
     "ANTHROPIC_API_KEY",
     "CURSOR_API_KEY",
+    "OPENAI_API_KEY",
   ],
 });
 
-export { generateAiWorkflowResponse } from "./ai/generateAiWorkflow.js";
+export {
+  commitCiCdFix,
+  createCiCdFixPullRequest,
+  generateCiCdFixOnRequest,
+  reviseCiCdFix,
+  startCiCdFix,
+} from "./ai/cicdFixRequests.js";
+export { suggestWorkflowTemplates } from "./ai/suggestWorkflowTemplates.js";
 export {
   ascListApps,
   ascListBuilds,

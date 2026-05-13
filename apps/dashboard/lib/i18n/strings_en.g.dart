@@ -54,7 +54,6 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final TranslationsTeamEn team = TranslationsTeamEn._(_root);
 	late final TranslationsGithubEn github = TranslationsGithubEn._(_root);
 	late final TranslationsSubscriptionEn subscription = TranslationsSubscriptionEn._(_root);
-	late final TranslationsAiWorkflowEn aiWorkflow = TranslationsAiWorkflowEn._(_root);
 	late final TranslationsStoreReleaseEn storeRelease = TranslationsStoreReleaseEn._(_root);
 }
 
@@ -131,8 +130,8 @@ class TranslationsNavEn {
 
 	// Translations
 
-	/// en: 'Workflows'
-	String get workflows => 'Workflows';
+	/// en: 'CI/CD Settings'
+	String get workflows => 'CI/CD Settings';
 
 	/// en: 'Variables'
 	String get variables => 'Variables';
@@ -202,17 +201,17 @@ class TranslationsWorkflowEn {
 
 	// Translations
 
-	/// en: 'Workflows'
-	String get title => 'Workflows';
+	/// en: 'CI/CD Settings'
+	String get title => 'CI/CD Settings';
 
-	/// en: 'Workflows'
-	String get tabWorkflows => 'Workflows';
+	/// en: 'CI/CD Settings'
+	String get tabWorkflows => 'CI/CD Settings';
 
-	/// en: 'Runs'
-	String get tabRuns => 'Runs';
+	/// en: 'CI/CD Logs'
+	String get tabRuns => 'CI/CD Logs';
 
-	/// en: 'Add Workflow'
-	String get addWorkflow => 'Add Workflow';
+	/// en: 'Create CI/CD Setting'
+	String get addWorkflow => 'Create CI/CD Setting';
 
 	/// en: 'No workflow files found'
 	String get noWorkflowFiles => 'No workflow files found';
@@ -223,8 +222,8 @@ class TranslationsWorkflowEn {
 	/// en: 'Select a repository'
 	String get selectRepo => 'Select a repository';
 
-	/// en: 'Choose a GitHub repository to manage workflows.'
-	String get selectRepoHint => 'Choose a GitHub repository to manage workflows.';
+	/// en: 'Choose a GitHub repository to manage CI/CD settings.'
+	String get selectRepoHint => 'Choose a GitHub repository to manage CI/CD settings.';
 
 	/// en: 'Select Repository'
 	String get selectRepoButton => 'Select Repository';
@@ -268,8 +267,8 @@ class TranslationsWorkflowEn {
 	/// en: 'Select Repository'
 	String get selectRepository => 'Select Repository';
 
-	/// en: 'Choose a GitHub repository to manage workflows.'
-	String get selectRepositoryHint => 'Choose a GitHub repository to manage workflows.';
+	/// en: 'Choose a GitHub repository to manage CI/CD settings.'
+	String get selectRepositoryHint => 'Choose a GitHub repository to manage CI/CD settings.';
 
 	/// en: 'Search repositories...'
 	String get searchRepositories => 'Search repositories...';
@@ -788,33 +787,6 @@ class TranslationsSubscriptionEn {
 	String get perYear => 'per year';
 }
 
-// Path: aiWorkflow
-class TranslationsAiWorkflowEn {
-	TranslationsAiWorkflowEn._(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'AI Workflow Builder'
-	String get title => 'AI Workflow Builder';
-
-	/// en: 'Describe your workflow...'
-	String get inputHint => 'Describe your workflow...';
-
-	/// en: 'Generated Workflow'
-	String get generatedWorkflow => 'Generated Workflow';
-
-	/// en: 'Use this workflow'
-	String get useThisWorkflow => 'Use this workflow';
-
-	late final TranslationsAiWorkflowChatEn chat = TranslationsAiWorkflowChatEn._(_root);
-	late final TranslationsAiWorkflowSuggestionEn suggestion = TranslationsAiWorkflowSuggestionEn._(_root);
-	late final TranslationsAiWorkflowProjectLabelEn projectLabel = TranslationsAiWorkflowProjectLabelEn._(_root);
-	late final TranslationsAiWorkflowGoalLabelEn goalLabel = TranslationsAiWorkflowGoalLabelEn._(_root);
-	late final TranslationsAiWorkflowTriggerLabelEn triggerLabel = TranslationsAiWorkflowTriggerLabelEn._(_root);
-}
-
 // Path: storeRelease
 class TranslationsStoreReleaseEn {
 	TranslationsStoreReleaseEn._(this._root);
@@ -1168,7 +1140,6 @@ class TranslationsAuthFirebaseFormEn {
 	/// en: 'Storage Bucket'
 	String get storageBucket => 'Storage Bucket';
 
-
 	/// en: 'Save configuration'
 	String get pickConfig => 'Save configuration';
 
@@ -1211,11 +1182,11 @@ class TranslationsWorkflowEditorEn {
 
 	// Translations
 
-	/// en: 'Create Workflow'
-	String get createTitle => 'Create Workflow';
+	/// en: 'Create CI/CD Setting'
+	String get createTitle => 'Create CI/CD Setting';
 
-	/// en: 'Edit Workflow'
-	String get editTitle => 'Edit Workflow';
+	/// en: 'Edit CI/CD Setting'
+	String get editTitle => 'Edit CI/CD Setting';
 
 	/// en: 'Editor'
 	String get editorTab => 'Editor';
@@ -1435,6 +1406,24 @@ class TranslationsBuildLogsDetailEn {
 
 	/// en: 'AI Failure Summary'
 	String get failureSummaryTitle => 'AI Failure Summary';
+
+	/// en: 'Prepare a CI/CD fix'
+	String get aiFixTitle => 'Prepare a CI/CD fix';
+
+	/// en: 'Use the failed logs and CI/CD settings to prepare a fix branch or pull request.'
+	String get aiFixDescription => 'Use the failed logs and CI/CD settings to prepare a fix branch or pull request.';
+
+	/// en: 'Request fix'
+	String get aiFixButton => 'Request fix';
+
+	/// en: 'CI/CD fix entry point'
+	String get aiFixDialogTitle => 'CI/CD fix entry point';
+
+	/// en: 'This will inspect this run log, identify the failure cause, and propose CI/CD setting changes. The next implementation step can connect log collection, config file retrieval, and fix PR creation.'
+	String get aiFixDialogBody => 'This will inspect this run log, identify the failure cause, and propose CI/CD setting changes. The next implementation step can connect log collection, config file retrieval, and fix PR creation.';
+
+	/// en: 'Coming soon'
+	String get aiFixDialogPrimary => 'Coming soon';
 }
 
 // Path: buildLogs.duration
@@ -1469,8 +1458,8 @@ class TranslationsSettingsAiFeaturesEn {
 	/// en: 'AI Features'
 	String get title => 'AI Features';
 
-	/// en: 'Enable AI-powered features like workflow builder and failure summaries'
-	String get subtitle => 'Enable AI-powered features like workflow builder and failure summaries';
+	/// en: 'Enable AI-powered features like failure summaries'
+	String get subtitle => 'Enable AI-powered features like failure summaries';
 
 	/// en: 'AI features are enabled'
 	String get enabled => 'AI features are enabled';
@@ -1509,177 +1498,6 @@ class TranslationsSettingsLanguageEn {
 	String get spanish => 'Español';
 }
 
-// Path: aiWorkflow.chat
-class TranslationsAiWorkflowChatEn {
-	TranslationsAiWorkflowChatEn._(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'What kind of workflow would you like to create? Tell me about your project and I'll help you set it up.'
-	String get greeting => 'What kind of workflow would you like to create? Tell me about your project and I\'ll help you set it up.';
-
-	/// en: 'Got it! A $project project. What would you like the workflow to do?'
-	String projectSelected({required Object project}) => 'Got it! A ${project} project. What would you like the workflow to do?';
-
-	/// en: 'When should this workflow run?'
-	String get triggerQuestion => 'When should this workflow run?';
-
-	/// en: 'I've generated your workflow! Here's what it includes: $plan You can use this workflow as-is, or tell me what you'd like to change.'
-	String workflowGenerated({required Object plan}) => 'I\'ve generated your workflow! Here\'s what it includes:\n\n${plan}\n\nYou can use this workflow as-is, or tell me what you\'d like to change.';
-
-	/// en: 'I've added a placeholder step. You can customize it in the editor after applying this workflow.'
-	String get stepAdded => 'I\'ve added a placeholder step. You can customize it in the editor after applying this workflow.';
-
-	/// en: 'Sure! When should this workflow run?'
-	String get changeTriggerPrompt => 'Sure! When should this workflow run?';
-
-	/// en: 'You can use the generated workflow by tapping 'Use this workflow', or tell me what changes you'd like.'
-	String get followUp => 'You can use the generated workflow by tapping \'Use this workflow\', or tell me what changes you\'d like.';
-
-	/// en: '- Project: $project - Steps: $steps - Trigger: $trigger'
-	String planFormat({required Object project, required Object steps, required Object trigger}) => '- Project: ${project}\n- Steps: ${steps}\n- Trigger: ${trigger}';
-
-	/// en: 'Sorry, something went wrong. Please try again or start over.'
-	String get errorMessage => 'Sorry, something went wrong. Please try again or start over.';
-}
-
-// Path: aiWorkflow.suggestion
-class TranslationsAiWorkflowSuggestionEn {
-	TranslationsAiWorkflowSuggestionEn._(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Flutter app CI/CD'
-	String get flutterCiCd => 'Flutter app CI/CD';
-
-	/// en: 'iOS app build & test'
-	String get iosBuildTest => 'iOS app build & test';
-
-	/// en: 'Android app build'
-	String get androidBuild => 'Android app build';
-
-	/// en: 'Run tests on PR'
-	String get testOnPr => 'Run tests on PR';
-
-	/// en: 'Custom workflow'
-	String get customWorkflow => 'Custom workflow';
-
-	/// en: 'Build & test'
-	String get buildAndTest => 'Build & test';
-
-	/// en: 'Run tests only'
-	String get testOnly => 'Run tests only';
-
-	/// en: 'Lint & analyze'
-	String get lintAnalyze => 'Lint & analyze';
-
-	/// en: 'Build & deploy'
-	String get buildDeploy => 'Build & deploy';
-
-	/// en: 'Run unit tests'
-	String get unitTests => 'Run unit tests';
-
-	/// en: 'Lint with SwiftLint'
-	String get swiftlint => 'Lint with SwiftLint';
-
-	/// en: 'Build archive'
-	String get buildArchive => 'Build archive';
-
-	/// en: 'Lint check'
-	String get lintCheck => 'Lint check';
-
-	/// en: 'Build APK'
-	String get buildApk => 'Build APK';
-
-	/// en: 'On push to main'
-	String get pushToMain => 'On push to main';
-
-	/// en: 'On pull request'
-	String get onPullRequest => 'On pull request';
-
-	/// en: 'On push to develop'
-	String get pushToDevelop => 'On push to develop';
-
-	/// en: 'On tag creation'
-	String get tagCreation => 'On tag creation';
-
-	/// en: 'On every push'
-	String get everyPush => 'On every push';
-
-	/// en: 'Looks good, use this!'
-	String get looksGood => 'Looks good, use this!';
-
-	/// en: 'Add more steps'
-	String get addSteps => 'Add more steps';
-
-	/// en: 'Change the trigger'
-	String get changeTrigger => 'Change the trigger';
-
-	/// en: 'Start over'
-	String get startOver => 'Start over';
-}
-
-// Path: aiWorkflow.projectLabel
-class TranslationsAiWorkflowProjectLabelEn {
-	TranslationsAiWorkflowProjectLabelEn._(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Flutter'
-	String get flutter => 'Flutter';
-
-	/// en: 'iOS (Native)'
-	String get ios => 'iOS (Native)';
-
-	/// en: 'Android (Native)'
-	String get android => 'Android (Native)';
-
-	/// en: 'Node.js'
-	String get node => 'Node.js';
-
-	/// en: 'Custom'
-	String get custom => 'Custom';
-}
-
-// Path: aiWorkflow.goalLabel
-class TranslationsAiWorkflowGoalLabelEn {
-	TranslationsAiWorkflowGoalLabelEn._(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Run tests'
-	String get test => 'Run tests';
-
-	/// en: 'Build & Test'
-	String get buildAndTest => 'Build & Test';
-
-	/// en: 'Build & Deploy'
-	String get deploy => 'Build & Deploy';
-
-	/// en: 'Lint / Analyze'
-	String get lint => 'Lint / Analyze';
-}
-
-// Path: aiWorkflow.triggerLabel
-class TranslationsAiWorkflowTriggerLabelEn {
-	TranslationsAiWorkflowTriggerLabelEn._(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Pull Request'
-	String get pullRequest => 'Pull Request';
-}
-
 /// The flat map containing all translations for locale <en>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -1716,7 +1534,7 @@ extension on Translations {
 			'timeAgo.hoursAgo' => ({required Object count}) => '${count}h ago',
 			'timeAgo.daysAgo' => ({required Object count}) => '${count}d ago',
 			'timeAgo.monthsAgo' => ({required Object count}) => '${count}mo ago',
-			'nav.workflows' => 'Workflows',
+			'nav.workflows' => 'CI/CD Settings',
 			'nav.variables' => 'Variables',
 			'nav.logs' => 'Logs',
 			'nav.release' => 'Release',
@@ -1751,14 +1569,14 @@ extension on Translations {
 			'auth.firebaseForm.active' => 'Active',
 			'auth.firebaseForm.useProject' => 'Use project',
 			'auth.firebaseForm.editProject' => 'Edit project',
-			'workflow.title' => 'Workflows',
-			'workflow.tabWorkflows' => 'Workflows',
-			'workflow.tabRuns' => 'Runs',
-			'workflow.addWorkflow' => 'Add Workflow',
+			'workflow.title' => 'CI/CD Settings',
+			'workflow.tabWorkflows' => 'CI/CD Settings',
+			'workflow.tabRuns' => 'CI/CD Logs',
+			'workflow.addWorkflow' => 'Create CI/CD Setting',
 			'workflow.noWorkflowFiles' => 'No workflow files found',
 			'workflow.addYamlHint' => 'Add YAML files to .openci/ in your repository.',
 			'workflow.selectRepo' => 'Select a repository',
-			'workflow.selectRepoHint' => 'Choose a GitHub repository to manage workflows.',
+			'workflow.selectRepoHint' => 'Choose a GitHub repository to manage CI/CD settings.',
 			'workflow.selectRepoButton' => 'Select Repository',
 			'workflow.enabled' => 'Enabled',
 			'workflow.disabled' => 'Disabled',
@@ -1773,13 +1591,13 @@ extension on Translations {
 			'workflow.selectBranchHint' => 'Choose a branch to view workflows from.',
 			'workflow.noBranches' => 'No branches found',
 			'workflow.selectRepository' => 'Select Repository',
-			'workflow.selectRepositoryHint' => 'Choose a GitHub repository to manage workflows.',
+			'workflow.selectRepositoryHint' => 'Choose a GitHub repository to manage CI/CD settings.',
 			'workflow.searchRepositories' => 'Search repositories...',
 			'workflow.noRepositories' => 'No repositories found.\nPlease install the OpenCI GitHub App.',
 			'workflow.noMatchingRepositories' => ({required Object query}) => 'No repositories matching "${query}"',
 			'workflow.defaultBranch' => ({required Object branch}) => 'default: ${branch}',
-			'workflow.editor.createTitle' => 'Create Workflow',
-			'workflow.editor.editTitle' => 'Edit Workflow',
+			'workflow.editor.createTitle' => 'Create CI/CD Setting',
+			'workflow.editor.editTitle' => 'Edit CI/CD Setting',
 			'workflow.editor.editorTab' => 'Editor',
 			'workflow.editor.yamlTab' => 'YAML',
 			'workflow.editor.basicInfo' => 'Basic Info',
@@ -1849,6 +1667,12 @@ extension on Translations {
 			'buildLogs.detail.lines' => ({required Object count}) => '${count} lines',
 			'buildLogs.detail.generatingSummary' => 'Generating AI summary...',
 			'buildLogs.detail.failureSummaryTitle' => 'AI Failure Summary',
+			'buildLogs.detail.aiFixTitle' => 'Prepare a CI/CD fix',
+			'buildLogs.detail.aiFixDescription' => 'Use the failed logs and CI/CD settings to prepare a fix branch or pull request.',
+			'buildLogs.detail.aiFixButton' => 'Request fix',
+			'buildLogs.detail.aiFixDialogTitle' => 'CI/CD fix entry point',
+			'buildLogs.detail.aiFixDialogBody' => 'This will inspect this run log, identify the failure cause, and propose CI/CD setting changes. The next implementation step can connect log collection, config file retrieval, and fix PR creation.',
+			'buildLogs.detail.aiFixDialogPrimary' => 'Coming soon',
 			'buildLogs.duration.lessThanMinute' => '<1m',
 			'buildLogs.duration.minutes' => ({required Object count}) => '${count}m',
 			'buildLogs.duration.hoursAndMinutes' => ({required Object hours, required Object minutes}) => '${hours}h ${minutes}m',
@@ -1921,7 +1745,7 @@ extension on Translations {
 			'settings.requiresRecentLogin' => 'Please sign out and sign in again before deleting your account',
 			'settings.deleteFailed' => ({required Object error}) => 'Failed to delete account: ${error}',
 			'settings.aiFeatures.title' => 'AI Features',
-			'settings.aiFeatures.subtitle' => 'Enable AI-powered features like workflow builder and failure summaries',
+			'settings.aiFeatures.subtitle' => 'Enable AI-powered features like failure summaries',
 			'settings.aiFeatures.enabled' => 'AI features are enabled',
 			'settings.aiFeatures.disabled' => 'AI features are disabled',
 			'settings.aiFeatures.updated' => 'AI features setting updated',
@@ -2000,52 +1824,6 @@ extension on Translations {
 			'subscription.per3Months' => 'per 3 months',
 			'subscription.per6Months' => 'per 6 months',
 			'subscription.perYear' => 'per year',
-			'aiWorkflow.title' => 'AI Workflow Builder',
-			'aiWorkflow.inputHint' => 'Describe your workflow...',
-			'aiWorkflow.generatedWorkflow' => 'Generated Workflow',
-			'aiWorkflow.useThisWorkflow' => 'Use this workflow',
-			'aiWorkflow.chat.greeting' => 'What kind of workflow would you like to create? Tell me about your project and I\'ll help you set it up.',
-			'aiWorkflow.chat.projectSelected' => ({required Object project}) => 'Got it! A ${project} project. What would you like the workflow to do?',
-			'aiWorkflow.chat.triggerQuestion' => 'When should this workflow run?',
-			'aiWorkflow.chat.workflowGenerated' => ({required Object plan}) => 'I\'ve generated your workflow! Here\'s what it includes:\n\n${plan}\n\nYou can use this workflow as-is, or tell me what you\'d like to change.',
-			'aiWorkflow.chat.stepAdded' => 'I\'ve added a placeholder step. You can customize it in the editor after applying this workflow.',
-			'aiWorkflow.chat.changeTriggerPrompt' => 'Sure! When should this workflow run?',
-			'aiWorkflow.chat.followUp' => 'You can use the generated workflow by tapping \'Use this workflow\', or tell me what changes you\'d like.',
-			'aiWorkflow.chat.planFormat' => ({required Object project, required Object steps, required Object trigger}) => '- Project: ${project}\n- Steps: ${steps}\n- Trigger: ${trigger}',
-			'aiWorkflow.chat.errorMessage' => 'Sorry, something went wrong. Please try again or start over.',
-			'aiWorkflow.suggestion.flutterCiCd' => 'Flutter app CI/CD',
-			'aiWorkflow.suggestion.iosBuildTest' => 'iOS app build & test',
-			'aiWorkflow.suggestion.androidBuild' => 'Android app build',
-			'aiWorkflow.suggestion.testOnPr' => 'Run tests on PR',
-			'aiWorkflow.suggestion.customWorkflow' => 'Custom workflow',
-			'aiWorkflow.suggestion.buildAndTest' => 'Build & test',
-			'aiWorkflow.suggestion.testOnly' => 'Run tests only',
-			'aiWorkflow.suggestion.lintAnalyze' => 'Lint & analyze',
-			'aiWorkflow.suggestion.buildDeploy' => 'Build & deploy',
-			'aiWorkflow.suggestion.unitTests' => 'Run unit tests',
-			'aiWorkflow.suggestion.swiftlint' => 'Lint with SwiftLint',
-			'aiWorkflow.suggestion.buildArchive' => 'Build archive',
-			'aiWorkflow.suggestion.lintCheck' => 'Lint check',
-			'aiWorkflow.suggestion.buildApk' => 'Build APK',
-			'aiWorkflow.suggestion.pushToMain' => 'On push to main',
-			'aiWorkflow.suggestion.onPullRequest' => 'On pull request',
-			'aiWorkflow.suggestion.pushToDevelop' => 'On push to develop',
-			'aiWorkflow.suggestion.tagCreation' => 'On tag creation',
-			'aiWorkflow.suggestion.everyPush' => 'On every push',
-			'aiWorkflow.suggestion.looksGood' => 'Looks good, use this!',
-			'aiWorkflow.suggestion.addSteps' => 'Add more steps',
-			'aiWorkflow.suggestion.changeTrigger' => 'Change the trigger',
-			'aiWorkflow.suggestion.startOver' => 'Start over',
-			'aiWorkflow.projectLabel.flutter' => 'Flutter',
-			'aiWorkflow.projectLabel.ios' => 'iOS (Native)',
-			'aiWorkflow.projectLabel.android' => 'Android (Native)',
-			'aiWorkflow.projectLabel.node' => 'Node.js',
-			'aiWorkflow.projectLabel.custom' => 'Custom',
-			'aiWorkflow.goalLabel.test' => 'Run tests',
-			'aiWorkflow.goalLabel.buildAndTest' => 'Build & Test',
-			'aiWorkflow.goalLabel.deploy' => 'Build & Deploy',
-			'aiWorkflow.goalLabel.lint' => 'Lint / Analyze',
-			'aiWorkflow.triggerLabel.pullRequest' => 'Pull Request',
 			'storeRelease.title' => 'Store Release',
 			'storeRelease.setupTitle' => 'Connect App Store Connect',
 			'storeRelease.setupDescription' => 'Enter your App Store Connect API credentials to manage releases directly from OpenCI.',
