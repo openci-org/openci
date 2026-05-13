@@ -130,7 +130,7 @@ jobs:
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
       - id: build_macos
-        uses: openci-org/flutter-cd@v2.0.11
+        uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
