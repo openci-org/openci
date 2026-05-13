@@ -166,7 +166,9 @@ describe("acceptInvitation", () => {
 
   it("repairs and accepts an already accepted invitation for the same user", async () => {
     mockGetInvitationByToken.mockResolvedValue({
-      data: { invitations: [makePendingInvitation({ status: "ACCEPTED", acceptedById: "user-123" })] },
+      data: {
+        invitations: [makePendingInvitation({ status: "ACCEPTED", acceptedById: "user-123" })],
+      },
     });
     mockAcceptInvitationAndJoinTeam.mockResolvedValue({});
 

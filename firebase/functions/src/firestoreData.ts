@@ -225,11 +225,9 @@ async function addTeamMember(...args) {
         ),
       );
     }
-    tx.set(
-      workspaceMemberRef(vars.teamId, vars.userId),
-      withTimestamps({ role: "member" }, true),
-      { merge: true },
-    );
+    tx.set(workspaceMemberRef(vars.teamId, vars.userId), withTimestamps({ role: "member" }, true), {
+      merge: true,
+    });
     tx.update(teamDocument, {
       members: FieldValue.arrayUnion(vars.userId),
       updatedAt: now(),
