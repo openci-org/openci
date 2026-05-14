@@ -131,7 +131,7 @@ jobs:
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
       - id: build_macos
-        uses: openci-org/flutter-cd@v2.0.7
+        uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
@@ -143,6 +143,7 @@ jobs:
           developer-id-certificate-p12: ${{ secrets.OPENCI_DEVELOPER_ID_CERTIFICATE_P12 }}
           developer-id-certificate-password: ${{ secrets.OPENCI_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
           macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
+          macos-provisioning-profile: "true"
           artifact-name: "OpenCI-dashboard-macos"
 
       - name: Upload macOS artifact to Firebase Storage
