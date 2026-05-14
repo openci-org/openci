@@ -149,6 +149,9 @@ jobs:
       - name: Upload macOS artifact to Firebase Storage
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
+          RELEASE_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
 
@@ -169,7 +172,15 @@ jobs:
             exit 1
           fi
 
-          object_name="artifacts/openci-dashboard/macos/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip"
+          object_names=()
+          if [ "${RELEASE_EVENT_NAME}" = "pull_request" ]; then
+            object_names+=("artifacts/openci-dashboard/macos/pr/${RELEASE_PR_NUMBER}/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip")
+          elif [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
+            object_names+=("artifacts/openci-dashboard/macos/develop/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip")
+            object_names+=("artifacts/openci-dashboard/macos/develop/latest/OpenCI-dashboard-macos.zip")
+          else
+            object_names+=("artifacts/openci-dashboard/macos/${RELEASE_EVENT_NAME}/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip")
+          fi
 
           client_email="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["client_email"])' "$service_account_file")"
           python3 -c 'import json, sys; open(sys.argv[2], "w").write(json.load(open(sys.argv[1]))["private_key"])' "$service_account_file" "$private_key_file"
@@ -184,7 +195,7 @@ jobs:
           now = int(time.time())
           payload = {
               "iss": sys.argv[1],
-              "scope": "https://www.googleapis.com/auth/devstorage.read_write",
+              "scope": "https://www.googleapis.com/auth/devstorage.full_control",
               "aud": "https://oauth2.googleapis.com/token",
               "iat": now,
               "exp": now + 3600,
@@ -202,23 +213,45 @@ jobs:
             --data-urlencode "assertion=${jwt_assertion}" \
             | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')"
 
-          encoded_object_name="$(python3 - "$object_name" <<'PY'
+          upload_object() {
+            local object_name="$1"
+            local encoded_object_name
+            encoded_object_name="$(python3 - "$object_name" <<'PY'
           import sys
           import urllib.parse
 
           print(urllib.parse.quote(sys.argv[1], safe=""))
           PY
-          )"
+            )"
 
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${access_token}" \
-            -H "Content-Type: application/zip" \
-            --data-binary "@${artifact_path}" \
-            "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encoded_object_name}" \
-            > /dev/null
+            curl -fsS -X POST \
+              -H "Authorization: Bearer ${access_token}" \
+              -H "Content-Type: application/zip" \
+              --data-binary "@${artifact_path}" \
+              "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encoded_object_name}" \
+              > /dev/null
+
+            if [ "$object_name" = "artifacts/openci-dashboard/macos/develop/latest/OpenCI-dashboard-macos.zip" ]; then
+              download_token="4b4e0ed8-e11c-46b8-9d10-cf1f3c8b926c"
+            else
+              download_token="$(uuidgen)"
+            fi
+            curl -fsS -X PATCH \
+              -H "Authorization: Bearer ${access_token}" \
+              -H "Content-Type: application/json" \
+              --data "{\"metadata\":{\"firebaseStorageDownloadTokens\":\"${download_token}\"},\"contentType\":\"application/zip\"}" \
+              "https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encoded_object_name}" \
+              > /dev/null
+
+            echo "Uploaded macOS artifact: gs://${bucket}/${object_name}"
+            echo "Download URL: https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encoded_object_name}?alt=media&token=${download_token}"
+          }
+
+          for object_name in "${object_names[@]}"; do
+            upload_object "$object_name"
+          done
 
           rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
-          echo "Uploaded macOS artifact: gs://${bucket}/${object_name}"
 
   deploy-web:
     needs: [ci]

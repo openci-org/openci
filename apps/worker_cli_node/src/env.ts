@@ -28,8 +28,10 @@ export async function buildEnvVars(input: {
     if (row.autoIncrement) {
       const current = Number.parseInt(value, 10);
       if (Number.isFinite(current)) {
-        await updateEnvironmentVariable(row.id, String(current + 1));
-        await logInfo(buildJobId, runId, `Auto-incremented ${row.key}: ${value} -> ${current + 1}`);
+        const nextValue = String(current + 1);
+        await updateEnvironmentVariable(row.id, nextValue);
+        await logInfo(buildJobId, runId, `Auto-incremented ${row.key}: ${value} -> ${nextValue}`);
+        value = nextValue;
       }
     }
     envVars[row.key] = value;
