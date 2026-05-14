@@ -195,7 +195,7 @@ jobs:
           now = int(time.time())
           payload = {
               "iss": sys.argv[1],
-              "scope": "https://www.googleapis.com/auth/devstorage.read_write",
+              "scope": "https://www.googleapis.com/auth/devstorage.full_control",
               "aud": "https://oauth2.googleapis.com/token",
               "iat": now,
               "exp": now + 3600,
