@@ -1,11 +1,10 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { getTeamById, linkGitHubInstallation } from "../firestoreData.js";
-import { onRequest } from "firebase-functions/v2/https";
-import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { logger } from "firebase-functions/v2";
 import { defineSecret } from "firebase-functions/params";
+import { logger } from "firebase-functions/v2";
+import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
+import { getTeamById, linkGitHubInstallation } from "../firestoreData.js";
 
 import { verifyTeamMembership } from "../team/teamAuth.js";
 import { getBaseUrlFromTeamData } from "./githubUrls.js";
@@ -167,16 +166,18 @@ export const githubSetup = onRequest(
       }
 
       await linkGitHubInstallation({ teamId, installationId: newId });
-      await getFirestore().doc(`workspaces/${teamId}/githubConnections/default`).set(
-        {
-          connected: true,
-          login: `GitHub App installation #${newId}`,
-          installationId: newId,
-          source: "github_app",
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      await getFirestore()
+        .doc(`workspaces/${teamId}/githubConnections/default`)
+        .set(
+          {
+            connected: true,
+            login: `GitHub App installation #${newId}`,
+            installationId: newId,
+            source: "github_app",
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
       response.status(200).set("Content-Type", "text/html").send(`<!DOCTYPE html>
 <html>
   <head>
