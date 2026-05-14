@@ -1483,12 +1483,36 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       });
       _showSavedSnackBar('GitHub Appに${_asString(data['login'])}として接続しました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      if (_isGitHubAppNotInstalledError(error)) {
+        try {
+          await _launchGitHubSetup();
+          _showSavedSnackBar('GitHub Appのインストール画面を開きました');
+        } catch (setupError) {
+          _showSavedSnackBar(_friendlyError(setupError));
+        }
+      } else {
+        _showSavedSnackBar(_friendlyError(error));
+      }
     } finally {
       if (mounted) {
         setState(() => _isConnectingGitHub = false);
       }
     }
+  }
+
+  Future<void> _launchGitHubSetup() async {
+    final data = await _callFunction('createGitHubSetupUrl', {
+      'teamId': _workspaceId,
+    });
+    final url = _asString(data['url']);
+    if (url.isEmpty) {
+      throw StateError('GitHub setup URL was not returned');
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null || !await canLaunchUrl(uri)) {
+      throw StateError('GitHub setup URL could not be opened');
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _selectRepositories() async {
@@ -13299,6 +13323,16 @@ String _friendlyError(Object error) {
     return error.toString();
   }
   return '$error';
+}
+
+bool _isGitHubAppNotInstalledError(Object error) {
+  if (error is! FirebaseFunctionsException) {
+    return false;
+  }
+  final message = error.message ?? '';
+  return error.code == 'failed-precondition' &&
+      message.contains('GitHub App') &&
+      message.contains('not installed');
 }
 
 DateTime _dateOnly(DateTime date) {
