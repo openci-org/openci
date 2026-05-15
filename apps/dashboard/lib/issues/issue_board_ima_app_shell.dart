@@ -336,7 +336,7 @@ class _EmailAuthPageState extends State<EmailAuthPage> {
                           'IssuePilot',
                           style: textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
+                            letterSpacing: 0,
                           ),
                         ),
                         const SizedBox(height: 8),

@@ -627,7 +627,7 @@ class _CompactDrawerSectionLabel extends StatelessWidget {
           color: Color(0xFF94A3B8),
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
+          letterSpacing: 0,
         ),
       ),
     );
@@ -904,7 +904,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                     textInputAction: TextInputAction.search,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
+                      letterSpacing: 0,
                     ),
                     onChanged: (_) => setState(() => _selectedIssueId = null),
                     onSubmitted: (_) => _selectFirstMatch(),
@@ -956,7 +956,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
                           color: Color(0xFF64748B),
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
+                          letterSpacing: 0,
                         ),
                       ),
                       const Spacer(),

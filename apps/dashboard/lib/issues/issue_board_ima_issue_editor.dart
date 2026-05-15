@@ -359,8 +359,8 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final canCloseIssue = isEditing && currentIssue.statusId != _closedStatusId;
     final title = isEditing ? 'GitHub issueを編集' : 'GitHub issueを新規作成';
     final description = isEditing
-        ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
-        : 'GitHub issueを作成してボードへ追加します。入力欄にいない時はNで開けます。⌘Enterで保存できます。';
+        ? '${currentIssue.displayId} の内容を更新します。'
+        : 'GitHub issueを作成してボードへ追加します。';
     final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
     final dialogBorderRadius = BorderRadius.circular(isCompactDialog ? 22 : 28);
     final formContent = Form(
@@ -514,7 +514,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   ),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                       child: formContent,
                     ),
                   ),
@@ -532,6 +532,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   Container(
                     padding: dialogPadding.copyWith(bottom: 16),
                     decoration: const BoxDecoration(
+                      color: Color(0xFFFAFBFC),
                       border: Border(
                         bottom: BorderSide(color: Color(0xFFE2E8F0)),
                       ),
@@ -544,7 +545,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   ),
                   Flexible(
                     child: SingleChildScrollView(
-                      padding: dialogPadding.copyWith(top: 6, bottom: 0),
+                      padding: dialogPadding.copyWith(top: 18, bottom: 2),
                       child: formContent,
                     ),
                   ),
@@ -624,6 +625,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
         borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
       ),
       floatingLabelStyle: const TextStyle(color: Color(0xFF1D4ED8)),
+      contentPadding: const EdgeInsets.fromLTRB(14, 15, 14, 15),
     );
   }
 
@@ -666,26 +668,15 @@ class _DialogActions extends StatelessWidget {
       ),
       child: const Text('キャンセル'),
     );
-    final closeButton = OutlinedButton.icon(
+    final closeButton = _IssueEditorCompleteButton(
       onPressed: onCloseIssue,
-      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-      label: const Text('issueを完了'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF15803D),
-        backgroundColor: const Color(0xFFF0FDF4),
-        side: const BorderSide(color: Color(0xFFBBF7D0)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
-      ),
+      minWidth: 136,
     );
-    final saveButton = FilledButton.icon(
+    final saveButton = _IssueEditorPrimaryButton(
       onPressed: onSaveIssue,
-      icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
-      label: Text(isEditing ? '変更を保存' : 'issueを追加'),
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        textStyle: const TextStyle(fontWeight: FontWeight.w800),
-      ),
+      icon: isEditing ? Icons.save_outlined : Icons.add_rounded,
+      label: isEditing ? '変更を保存' : 'issueを追加',
+      minWidth: 148,
     );
 
     return LayoutBuilder(
@@ -715,6 +706,83 @@ class _DialogActions extends StatelessWidget {
   }
 }
 
+class _IssueEditorPrimaryButton extends StatelessWidget {
+  const _IssueEditorPrimaryButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.minWidth,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+  final double minWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF1D4ED8),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: const Color(0xFFCBD5E1),
+        disabledForegroundColor: const Color(0xFF64748B),
+        elevation: 0,
+        minimumSize: Size(minWidth, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
+class _IssueEditorCompleteButton extends StatelessWidget {
+  const _IssueEditorCompleteButton({
+    required this.onPressed,
+    required this.minWidth,
+  });
+
+  final VoidCallback? onPressed;
+  final double minWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.check_rounded, size: 18),
+      label: const Text(
+        'issueを完了',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFFECFDF5),
+        foregroundColor: const Color(0xFF047857),
+        disabledBackgroundColor: const Color(0xFFE2E8F0),
+        disabledForegroundColor: const Color(0xFF64748B),
+        elevation: 0,
+        minimumSize: Size(minWidth, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        side: const BorderSide(color: Color(0xFFA7F3D0)),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
 class _BottomSheetHeader extends StatelessWidget {
   const _BottomSheetHeader({required this.title, this.issueDisplayId});
 
@@ -724,8 +792,9 @@ class _BottomSheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 10, 8, 12),
+      padding: const EdgeInsets.fromLTRB(20, 12, 10, 16),
       decoration: const BoxDecoration(
+        color: Color(0xFFFAFBFC),
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Column(
@@ -788,26 +857,15 @@ class _BottomSheetActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final closeButton = OutlinedButton.icon(
+    final closeButton = _IssueEditorCompleteButton(
       onPressed: onCloseIssue,
-      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-      label: const Text('issueを完了'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF15803D),
-        backgroundColor: const Color(0xFFF0FDF4),
-        side: const BorderSide(color: Color(0xFFBBF7D0)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
-      ),
+      minWidth: 0,
     );
-    final saveButton = FilledButton.icon(
+    final saveButton = _IssueEditorPrimaryButton(
       onPressed: onSaveIssue,
-      icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
-      label: Text(isEditing ? '変更を保存' : 'issueを追加'),
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        textStyle: const TextStyle(fontWeight: FontWeight.w800),
-      ),
+      icon: isEditing ? Icons.save_outlined : Icons.add_rounded,
+      label: isEditing ? '変更を保存' : 'issueを追加',
+      minWidth: 0,
     );
 
     return Container(
@@ -846,17 +904,23 @@ class _DialogHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   if (issueDisplayId != null) ...[
@@ -865,7 +929,7 @@ class _DialogHeader extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 description,
                 style: const TextStyle(color: Color(0xFF64748B)),
@@ -873,7 +937,9 @@ class _DialogHeader extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 8),
         IconButton(
+          tooltip: '閉じる',
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close_rounded),
         ),
@@ -1365,42 +1431,144 @@ class CreateSubIssuePanel extends StatelessWidget {
                     decoration: const InputDecoration(
                       labelText: '本文',
                       hintText: '任意: sub-issueの説明',
-                      helperText: '⌘Enterでsub-issueを作成',
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              FilledButton.icon(
-                onPressed: canCreate ? onCreate : null,
-                icon: isCreating
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_rounded, size: 18),
-                label: Text(isCreating ? '作成中...' : 'sub-issueを作成'),
-              ),
-              Text(
-                isLinkedToGitHub
-                    ? 'GitHubにissueを作成して、このissueのsub-issueとして紐づけます。'
-                    : 'GitHubに同期されたissueでのみ作成できます。',
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
+          _SubIssueCreateActionBar(
+            isLinkedToGitHub: isLinkedToGitHub,
+            isCreating: isCreating,
+            canCreate: canCreate,
+            onCreate: onCreate,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubIssueCreateActionBar extends StatelessWidget {
+  const _SubIssueCreateActionBar({
+    required this.isLinkedToGitHub,
+    required this.isCreating,
+    required this.canCreate,
+    required this.onCreate,
+  });
+
+  final bool isLinkedToGitHub;
+  final bool isCreating;
+  final bool canCreate;
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = isLinkedToGitHub
+        ? 'GitHubへ作成し、このissueのsub-issueに紐づけます。'
+        : 'GitHubに同期されたissueでのみ作成できます。';
+    final button = _SubIssueCreateButton(
+      isCreating: isCreating,
+      onPressed: canCreate ? onCreate : null,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 480;
+        final messageText = Text(
+          message,
+          maxLines: isCompact ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF475569),
+            fontSize: 12,
+            height: 1.35,
+            fontWeight: FontWeight.w700,
+          ),
+        );
+
+        return Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    messageText,
+                    const SizedBox(height: 10),
+                    button,
+                  ],
+                )
+              : Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Icon(
+                        Icons.account_tree_outlined,
+                        size: 16,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: messageText),
+                    const SizedBox(width: 12),
+                    button,
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _SubIssueCreateButton extends StatelessWidget {
+  const _SubIssueCreateButton({required this.isCreating, this.onPressed});
+
+  final bool isCreating;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: isCreating
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.add_task_rounded, size: 18),
+      label: Text(isCreating ? '作成中...' : 'sub-issueを作成'),
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF0F766E),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: isCreating
+            ? const Color(0xFF0F766E)
+            : const Color(0xFFE2E8F0),
+        disabledForegroundColor: isCreating
+            ? Colors.white
+            : const Color(0xFF64748B),
+        elevation: 0,
+        minimumSize: const Size(148, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        textStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
