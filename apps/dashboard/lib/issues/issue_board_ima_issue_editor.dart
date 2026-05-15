@@ -1,0 +1,1587 @@
+part of 'issue_board_ima_page.dart';
+
+class AddIssueDialog extends StatefulWidget {
+  const AddIssueDialog({
+    super.key,
+    required this.columns,
+    required this.repositoryOptions,
+    this.initialIssue,
+    this.allIssues = const [],
+    this.initialColumnId,
+    this.isEstimatingWeight = false,
+    this.onEstimateIssueWeight,
+    this.onOverrideIssueWeight,
+    this.isStartingCursorAgent = false,
+    this.onStartCursorAgent,
+    this.onCreateGitHubSubIssue,
+    this.isBottomSheet = false,
+    this.workspaceId,
+  });
+
+  final List<BoardColumn> columns;
+  final List<String> repositoryOptions;
+  final Issue? initialIssue;
+  final List<Issue> allIssues;
+  final String? initialColumnId;
+  final bool isEstimatingWeight;
+  final Future<void> Function(String issueId)? onEstimateIssueWeight;
+  final IssueWeightOverrideCallback? onOverrideIssueWeight;
+  final bool isStartingCursorAgent;
+  final Future<void> Function(String issueId)? onStartCursorAgent;
+  final Future<Map<String, dynamic>> Function({
+    required String parentIssueId,
+    required String title,
+    required String body,
+  })?
+  onCreateGitHubSubIssue;
+  final bool isBottomSheet;
+  final String? workspaceId;
+
+  @override
+  State<AddIssueDialog> createState() => _AddIssueDialogState();
+}
+
+class _AddIssueDialogState extends State<AddIssueDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _titleFocusNode = FocusNode();
+  final _bodyController = TextEditingController();
+  final _githubUrlController = TextEditingController();
+  final _labelsController = TextEditingController(text: 'feature, mobile');
+  final _subIssueTitleController = TextEditingController();
+  final _subIssueBodyController = TextEditingController();
+  String? _selectedRepo;
+  late String _selectedColumnId;
+  Priority _priority = Priority.medium;
+  DateTime? _dueDate;
+  var _isEstimatingWeight = false;
+  var _isOverridingWeight = false;
+  var _isStartingCursorAgent = false;
+  var _isCreatingSubIssue = false;
+  final List<Issue> _issueStack = [];
+  Issue? _liveIssue;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _issueSubscription;
+
+  Issue? get _currentIssue =>
+      _liveIssue ??
+      (_issueStack.isEmpty ? widget.initialIssue : _issueStack.last);
+
+  @override
+  void initState() {
+    super.initState();
+    final issue = widget.initialIssue;
+
+    _selectedColumnId = widget.initialColumnId ?? widget.columns.first.id;
+    _selectedRepo = widget.repositoryOptions.isEmpty
+        ? null
+        : widget.repositoryOptions.first;
+
+    if (issue != null) {
+      _issueStack.add(issue);
+      _setCurrentIssue(issue, listen: true);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _titleFocusNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  void _setCurrentIssue(Issue issue, {required bool listen}) {
+    _liveIssue = issue;
+    _titleController.text = issue.title;
+    _bodyController.text = issue.body;
+    _githubUrlController.text = issue.githubUrl ?? '';
+    _selectedRepo = widget.repositoryOptions.contains(issue.repo)
+        ? issue.repo
+        : null;
+    _labelsController.text = issue.labels.join(', ');
+    _priority = issue.priority;
+    _dueDate = issue.dueDate;
+    _subIssueTitleController.clear();
+    _subIssueBodyController.clear();
+    if (listen) {
+      _listenToIssue(issue.id);
+    }
+  }
+
+  void _listenToIssue(String issueId) {
+    final workspaceId = widget.workspaceId;
+    if (workspaceId == null || workspaceId.isEmpty) {
+      return;
+    }
+    final currentSubscription = _issueSubscription;
+    if (currentSubscription != null) {
+      unawaited(currentSubscription.cancel());
+    }
+    _issueSubscription = FirebaseFirestore.instance
+        .doc('workspaces/$workspaceId/issues/$issueId')
+        .snapshots()
+        .listen((snapshot) {
+          if (!mounted || !snapshot.exists) return;
+          final issue = Issue.fromDocument(snapshot);
+          setState(() {
+            _liveIssue = issue;
+            if (_issueStack.isNotEmpty && _issueStack.last.id == issue.id) {
+              _issueStack[_issueStack.length - 1] = issue;
+            }
+          });
+        });
+  }
+
+  @override
+  void dispose() {
+    _issueSubscription?.cancel();
+    _titleController.dispose();
+    _titleFocusNode.dispose();
+    _bodyController.dispose();
+    _githubUrlController.dispose();
+    _labelsController.dispose();
+    _subIssueTitleController.dispose();
+    _subIssueBodyController.dispose();
+    super.dispose();
+  }
+
+  void _saveIssue() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final labels = _labelsController.text
+        .split(',')
+        .map((label) => label.trim())
+        .where((label) => label.isNotEmpty)
+        .toList();
+
+    final draft = NewIssueDraft(
+      title: _titleController.text.trim(),
+      body: _bodyController.text.trim(),
+      repo: _selectedRepo ?? '',
+      githubUrl: _normalizedOptionalUrl(_githubUrlController.text),
+      labels: labels,
+      columnId: _selectedColumnId,
+      priority: _priority,
+      dueDate: _dueDate,
+    );
+    final currentIssue = _currentIssue;
+    Navigator.of(context).pop(
+      currentIssue == null
+          ? draft
+          : EditIssueDialogResult(issueId: currentIssue.id, draft: draft),
+    );
+  }
+
+  void _closeIssue() {
+    final issue = _currentIssue;
+    if (issue == null) {
+      return;
+    }
+    Navigator.of(context).pop(CloseIssueDialogResult(issue.id));
+  }
+
+  Future<void> _estimateIssueWeight() async {
+    final issue = _currentIssue;
+    final onEstimate = widget.onEstimateIssueWeight;
+    if (issue == null || onEstimate == null || _isEstimatingWeight) {
+      return;
+    }
+
+    setState(() => _isEstimatingWeight = true);
+    try {
+      await onEstimate(issue.id);
+    } finally {
+      if (mounted) {
+        setState(() => _isEstimatingWeight = false);
+      }
+    }
+  }
+
+  Future<void> _overrideIssueWeight() async {
+    final issue = _currentIssue;
+    final onOverride = widget.onOverrideIssueWeight;
+    if (issue == null || onOverride == null || _isOverridingWeight) {
+      return;
+    }
+
+    final draft = await showDialog<IssueWeightOverrideDraft>(
+      context: context,
+      builder: (context) => IssueWeightOverrideDialog(issue: issue),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+
+    setState(() => _isOverridingWeight = true);
+    try {
+      await onOverride(issueId: issue.id, draft: draft);
+    } finally {
+      if (mounted) {
+        setState(() => _isOverridingWeight = false);
+      }
+    }
+  }
+
+  Future<void> _startCursorAgent() async {
+    final issue = _currentIssue;
+    final onStart = widget.onStartCursorAgent;
+    if (issue == null || onStart == null || _isStartingCursorAgent) {
+      return;
+    }
+
+    setState(() => _isStartingCursorAgent = true);
+    try {
+      await onStart(issue.id);
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingCursorAgent = false);
+      }
+    }
+  }
+
+  Future<void> _createSubIssue() async {
+    final issue = _currentIssue;
+    final onCreate = widget.onCreateGitHubSubIssue;
+    final title = _subIssueTitleController.text.trim();
+    if (issue == null || onCreate == null || _isCreatingSubIssue) {
+      return;
+    }
+    if (title.isEmpty) {
+      _showFloatingSnackBar(context, 'Sub-issue titleを入力してください');
+      return;
+    }
+
+    setState(() => _isCreatingSubIssue = true);
+    try {
+      await onCreate(
+        parentIssueId: issue.id,
+        title: title,
+        body: _subIssueBodyController.text.trim(),
+      );
+      if (!mounted) {
+        return;
+      }
+      _subIssueTitleController.clear();
+      _subIssueBodyController.clear();
+      _showOverlaySnackBar(context, 'Sub-issue added');
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingSubIssue = false);
+      }
+    }
+  }
+
+  Future<void> _openIssueFromSubIssue(String issueId) async {
+    Issue? issue;
+    for (final candidate in widget.allIssues) {
+      if (candidate.id == issueId) {
+        issue = candidate;
+        break;
+      }
+    }
+    if (issue == null) {
+      final workspaceId = widget.workspaceId;
+      if (workspaceId != null && workspaceId.isNotEmpty) {
+        final snapshot = await FirebaseFirestore.instance
+            .doc('workspaces/$workspaceId/issues/$issueId')
+            .get();
+        if (snapshot.exists) {
+          issue = Issue.fromDocument(snapshot);
+        }
+      }
+      if (!mounted) {
+        return;
+      }
+    }
+    if (issue == null) {
+      _showFloatingSnackBar(context, 'Issueが見つかりません');
+      return;
+    }
+    final selectedIssue = issue;
+    setState(() {
+      _issueStack.add(selectedIssue);
+      _setCurrentIssue(selectedIssue, listen: true);
+    });
+  }
+
+  void _goBackIssue() {
+    if (_issueStack.length <= 1) {
+      return;
+    }
+    setState(() {
+      _issueStack.removeLast();
+      _setCurrentIssue(_issueStack.last, listen: true);
+    });
+  }
+
+  void _copyGitHubUrl() {
+    unawaited(
+      _copyTextToClipboard(
+        context,
+        text: _githubUrlController.text,
+        successMessage: 'GitHubリンクをコピーしました',
+      ),
+    );
+  }
+
+  void _openGitHubUrl() {
+    final url = _githubUrlController.text.trim();
+    if (url.isNotEmpty) {
+      unawaited(_launchUrlExternal(url));
+    }
+  }
+
+  Future<void> _pickDueDate() async {
+    final now = DateTime.now();
+    final initialDate = _dueDate ?? now;
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 3),
+    );
+
+    if (selectedDate == null) {
+      return;
+    }
+
+    setState(() => _dueDate = _dateOnly(selectedDate));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompactDialog = screenSize.width < 560;
+    final maxHeight = screenSize.height * (isCompactDialog ? 0.92 : 0.86);
+    final currentIssue = _currentIssue;
+    final isEditing = currentIssue != null;
+    final canCloseIssue = isEditing && currentIssue.statusId != _closedStatusId;
+    final title = isEditing ? 'GitHub issueを編集' : 'GitHub issueを新規作成';
+    final description = isEditing
+        ? '${currentIssue.displayId}を編集します。⌘Enterで保存できます。'
+        : 'GitHub issueを作成してボードへ追加します。入力欄にいない時はNで開けます。⌘Enterで保存できます。';
+    final dialogPadding = EdgeInsets.all(isCompactDialog ? 18 : 24);
+    final dialogBorderRadius = BorderRadius.circular(isCompactDialog ? 22 : 28);
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isEditing && _issueStack.length > 1) ...[
+            IssueBreadcrumb(
+              issues: _issueStack,
+              onBack: _goBackIssue,
+              onSelect: (index) {
+                if (index < 0 || index >= _issueStack.length - 1) {
+                  return;
+                }
+                setState(() {
+                  _issueStack.removeRange(index + 1, _issueStack.length);
+                  _setCurrentIssue(_issueStack.last, listen: true);
+                });
+              },
+            ),
+            const SizedBox(height: 14),
+          ],
+          _TitleField(
+            controller: _titleController,
+            focusNode: _titleFocusNode,
+            decoration: _inputDecoration(
+              label: 'タイトル',
+              hint: '例: issueの同期ステータスを表示する',
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _bodyController,
+            minLines: 7,
+            maxLines: 12,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            decoration: _inputDecoration(
+              label: '本文',
+              hint: '背景、やりたいこと、受け入れ条件などをMarkdownっぽく書けます。',
+            ),
+          ),
+          const SizedBox(height: 14),
+          _RepoField(
+            repositories: widget.repositoryOptions,
+            selectedRepository: _selectedRepo,
+            onRepositoryChanged: (value) {
+              setState(() => _selectedRepo = value);
+            },
+            decorationBuilder: _inputDecoration,
+          ),
+          if (isEditing) ...[
+            const SizedBox(height: 14),
+            _GitHubLinkField(
+              controller: _githubUrlController,
+              decoration: _inputDecoration(
+                label: 'GitHubリンク',
+                hint: 'https://github.com/openci/ima/issues/123',
+              ),
+              onOpen: _openGitHubUrl,
+              onCopy: _copyGitHubUrl,
+            ),
+            const SizedBox(height: 14),
+            CreateSubIssuePanel(
+              issue: currentIssue,
+              workspaceId: widget.workspaceId,
+              linkedSubIssues: _subIssuesForParent(
+                currentIssue,
+                widget.allIssues,
+              ),
+              onOpenIssue: _openIssueFromSubIssue,
+              titleController: _subIssueTitleController,
+              bodyController: _subIssueBodyController,
+              isCreating: _isCreatingSubIssue,
+              onCreate: widget.onCreateGitHubSubIssue == null
+                  ? null
+                  : _createSubIssue,
+            ),
+          ],
+          const SizedBox(height: 14),
+          _StatusAndPriorityFields(
+            columns: widget.columns,
+            selectedColumnId: _selectedColumnId,
+            priority: _priority,
+            decorationBuilder: _inputDecoration,
+            priorityLabelBuilder: _priorityLabel,
+            onColumnChanged: (value) {
+              setState(() => _selectedColumnId = value);
+            },
+            onPriorityChanged: (value) {
+              setState(() => _priority = value);
+            },
+          ),
+          const SizedBox(height: 14),
+          DueDateField(
+            dueDate: _dueDate,
+            onPick: _pickDueDate,
+            onClear: () => setState(() => _dueDate = null),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _labelsController,
+            textInputAction: TextInputAction.done,
+            decoration: _inputDecoration(
+              label: 'ラベル',
+              hint: 'feature, github, mobile',
+            ),
+            onFieldSubmitted: (_) => _saveIssue(),
+          ),
+          if (isEditing) ...[
+            const SizedBox(height: 14),
+            IssueWeightPanel(
+              issue: currentIssue,
+              isEstimating: widget.isEstimatingWeight || _isEstimatingWeight,
+              isOverriding: _isOverridingWeight,
+              onEstimate: widget.onEstimateIssueWeight == null
+                  ? null
+                  : _estimateIssueWeight,
+              onOverride: widget.onOverrideIssueWeight == null
+                  ? null
+                  : _overrideIssueWeight,
+            ),
+            const SizedBox(height: 14),
+            CursorAgentPanel(
+              issue: currentIssue,
+              isStarting:
+                  widget.isStartingCursorAgent || _isStartingCursorAgent,
+              onStart: widget.onStartCursorAgent == null
+                  ? null
+                  : _startCursorAgent,
+            ),
+          ],
+        ],
+      ),
+    );
+    final content = ClipRRect(
+      borderRadius: widget.isBottomSheet
+          ? const BorderRadius.vertical(top: Radius.circular(28))
+          : dialogBorderRadius,
+      child: Material(
+        color: Colors.white,
+        child: widget.isBottomSheet
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _BottomSheetHeader(
+                    title: title,
+                    issueDisplayId: isEditing ? currentIssue.displayId : null,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                      child: formContent,
+                    ),
+                  ),
+                  _BottomSheetActions(
+                    isEditing: isEditing,
+                    canCloseIssue: canCloseIssue,
+                    onCloseIssue: _closeIssue,
+                    onSaveIssue: _saveIssue,
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: dialogPadding.copyWith(bottom: 16),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    child: _DialogHeader(
+                      title: title,
+                      description: description,
+                      issueDisplayId: isEditing ? currentIssue.displayId : null,
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: dialogPadding.copyWith(top: 6, bottom: 0),
+                      child: formContent,
+                    ),
+                  ),
+                  Container(
+                    padding: dialogPadding.copyWith(top: 16),
+                    decoration: const BoxDecoration(
+                      border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                    child: _DialogActions(
+                      isEditing: isEditing,
+                      canCloseIssue: canCloseIssue,
+                      onCancel: () => Navigator.of(context).pop(),
+                      onCloseIssue: _closeIssue,
+                      onSaveIssue: _saveIssue,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+    final framedContent = widget.isBottomSheet
+        ? SizedBox(width: double.infinity, height: maxHeight, child: content)
+        : ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
+            child: content,
+          );
+
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): _saveIssue,
+      },
+      child: Focus(
+        autofocus: true,
+        child: widget.isBottomSheet
+            ? AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: framedContent,
+                ),
+              )
+            : Dialog(
+                insetPadding: EdgeInsets.symmetric(
+                  horizontal: isCompactDialog ? 12 : 20,
+                  vertical: isCompactDialog ? 12 : 24,
+                ),
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: dialogBorderRadius),
+                clipBehavior: Clip.antiAlias,
+                child: framedContent,
+              ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({required String label, String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: const Color(0xFFF8FAFC),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
+      ),
+      floatingLabelStyle: const TextStyle(color: Color(0xFF1D4ED8)),
+    );
+  }
+
+  String _priorityLabel(Priority priority) {
+    switch (priority) {
+      case Priority.high:
+        return '高';
+      case Priority.medium:
+        return '中';
+      case Priority.low:
+        return '低';
+    }
+  }
+}
+
+class _DialogActions extends StatelessWidget {
+  const _DialogActions({
+    required this.isEditing,
+    required this.canCloseIssue,
+    required this.onCancel,
+    required this.onCloseIssue,
+    required this.onSaveIssue,
+  });
+
+  final bool isEditing;
+  final bool canCloseIssue;
+  final VoidCallback onCancel;
+  final VoidCallback onCloseIssue;
+  final VoidCallback onSaveIssue;
+
+  @override
+  Widget build(BuildContext context) {
+    final cancelButton = TextButton(
+      onPressed: onCancel,
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF64748B),
+        minimumSize: const Size(0, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: const Text('キャンセル'),
+    );
+    final closeButton = OutlinedButton.icon(
+      onPressed: onCloseIssue,
+      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+      label: const Text('issueを完了'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF15803D),
+        backgroundColor: const Color(0xFFF0FDF4),
+        side: const BorderSide(color: Color(0xFFBBF7D0)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+    final saveButton = FilledButton.icon(
+      onPressed: onSaveIssue,
+      icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
+      label: Text(isEditing ? '変更を保存' : 'issueを追加'),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(alignment: Alignment.centerLeft, child: cancelButton),
+              const SizedBox(height: 10),
+              if (canCloseIssue) ...[closeButton, const SizedBox(height: 10)],
+              saveButton,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            cancelButton,
+            const Spacer(),
+            if (canCloseIssue) ...[closeButton, const SizedBox(width: 12)],
+            saveButton,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _BottomSheetHeader extends StatelessWidget {
+  const _BottomSheetHeader({required this.title, this.issueDisplayId});
+
+  final String title;
+  final String? issueDisplayId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 10, 8, 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFCBD5E1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    if (issueDisplayId != null) ...[
+                      const SizedBox(width: 8),
+                      _IssueIdChip(displayId: issueDisplayId!),
+                    ],
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: '閉じる',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomSheetActions extends StatelessWidget {
+  const _BottomSheetActions({
+    required this.isEditing,
+    required this.canCloseIssue,
+    required this.onCloseIssue,
+    required this.onSaveIssue,
+  });
+
+  final bool isEditing;
+  final bool canCloseIssue;
+  final VoidCallback onCloseIssue;
+  final VoidCallback onSaveIssue;
+
+  @override
+  Widget build(BuildContext context) {
+    final closeButton = OutlinedButton.icon(
+      onPressed: onCloseIssue,
+      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+      label: const Text('issueを完了'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF15803D),
+        backgroundColor: const Color(0xFFF0FDF4),
+        side: const BorderSide(color: Color(0xFFBBF7D0)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+    final saveButton = FilledButton.icon(
+      onPressed: onSaveIssue,
+      icon: Icon(isEditing ? Icons.save_outlined : Icons.add_rounded, size: 18),
+      label: Text(isEditing ? '変更を保存' : 'issueを追加'),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            if (canCloseIssue) ...[
+              Expanded(child: closeButton),
+              const SizedBox(width: 10),
+            ],
+            Expanded(child: saveButton),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogHeader extends StatelessWidget {
+  const _DialogHeader({
+    required this.title,
+    required this.description,
+    this.issueDisplayId,
+  });
+
+  final String title;
+  final String description;
+  final String? issueDisplayId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (issueDisplayId != null) ...[
+                    const SizedBox(width: 8),
+                    _IssueIdChip(displayId: issueDisplayId!),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close_rounded),
+        ),
+      ],
+    );
+  }
+}
+
+class IssueBreadcrumb extends StatelessWidget {
+  const IssueBreadcrumb({
+    super.key,
+    required this.issues,
+    required this.onBack,
+    required this.onSelect,
+  });
+
+  final List<Issue> issues;
+  final VoidCallback onBack;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final parentIssue = issues.first;
+    final currentIssue = issues.last;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.account_tree_outlined,
+                          size: 16,
+                          color: Color(0xFF2563EB),
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'sub-issueを表示中',
+                          style: TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      currentIssue.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 15,
+                        height: 1.25,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '親: ${parentIssue.displayId} · ${parentIssue.title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF475569),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 17),
+                label: Text('${parentIssue.displayId}に戻る'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1D4ED8),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF93C5FD)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 10,
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var index = 0; index < issues.length; index++) ...[
+                  if (index > 0)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ActionChip(
+                    avatar: Icon(
+                      index == 0
+                          ? Icons.flag_outlined
+                          : Icons.subdirectory_arrow_right_rounded,
+                      size: 15,
+                      color: index == issues.length - 1
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF2563EB),
+                    ),
+                    label: Text(issues[index].displayId),
+                    onPressed: index == issues.length - 1
+                        ? null
+                        : () => onSelect(index),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: index == issues.length - 1
+                        ? const Color(0xFFFFFFFF)
+                        : const Color(0xFFDBEAFE),
+                    side: BorderSide(
+                      color: index == issues.length - 1
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF93C5FD),
+                    ),
+                    labelStyle: TextStyle(
+                      color: index == issues.length - 1
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF1D4ED8),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IssueIdChip extends StatefulWidget {
+  const _IssueIdChip({required this.displayId});
+
+  final String displayId;
+
+  @override
+  State<_IssueIdChip> createState() => _IssueIdChipState();
+}
+
+class _IssueIdChipState extends State<_IssueIdChip> {
+  bool _copied = false;
+
+  Future<void> _handleCopy() async {
+    final trimmed = widget.displayId.trim();
+    if (trimmed.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: trimmed));
+    if (!mounted) return;
+    _showOverlaySnackBar(context, 'Issue IDがコピーされました');
+    setState(() => _copied = true);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _copied ? null : () => unawaited(_handleCopy()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.displayId,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 4),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                _copied ? Icons.check_rounded : Icons.copy_rounded,
+                key: ValueKey(_copied),
+                size: 13,
+                color: _copied
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TitleField extends StatelessWidget {
+  const _TitleField({
+    required this.controller,
+    required this.focusNode,
+    required this.decoration,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final InputDecoration decoration;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: true,
+      textInputAction: TextInputAction.next,
+      decoration: decoration,
+      validator: (value) =>
+          value == null || value.trim().isEmpty ? 'タイトルを入力してください' : null,
+    );
+  }
+}
+
+class _GitHubLinkField extends StatelessWidget {
+  const _GitHubLinkField({
+    required this.controller,
+    required this.decoration,
+    required this.onCopy,
+    required this.onOpen,
+  });
+
+  final TextEditingController controller;
+  final InputDecoration decoration;
+  final VoidCallback onCopy;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final field = TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.url,
+          textInputAction: TextInputAction.next,
+          decoration: decoration,
+          validator: _validateOptionalHttpUrl,
+        );
+        final actions = ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final hasUrl = value.text.trim().isNotEmpty;
+            final actionButtonStyle = OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            );
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: hasUrl ? onCopy : null,
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('コピー'),
+                  style: actionButtonStyle,
+                ),
+                OutlinedButton.icon(
+                  onPressed: hasUrl ? onOpen : null,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('開く'),
+                  style: actionButtonStyle,
+                ),
+              ],
+            );
+          },
+        );
+
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [field, const SizedBox(height: 10), actions],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: field),
+            const SizedBox(width: 12),
+            actions,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RepoField extends StatelessWidget {
+  const _RepoField({
+    required this.repositories,
+    required this.selectedRepository,
+    required this.onRepositoryChanged,
+    required this.decorationBuilder,
+  });
+
+  final List<String> repositories;
+  final String? selectedRepository;
+  final ValueChanged<String> onRepositoryChanged;
+  final InputDecoration Function({required String label, String? hint})
+  decorationBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      initialValue: selectedRepository,
+      decoration: decorationBuilder(
+        label: 'repo',
+        hint: '連携済みrepoから選択',
+      ),
+      items: [
+        for (final repository in repositories)
+          DropdownMenuItem(
+            value: repository,
+            child: Text(repository, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: repositories.isEmpty
+          ? null
+          : (value) {
+              if (value == null) {
+                return;
+              }
+
+              onRepositoryChanged(value);
+            },
+      validator: (value) =>
+          value == null || value.trim().isEmpty ? '先にrepoを選択してください' : null,
+    );
+  }
+}
+
+class CreateSubIssuePanel extends StatelessWidget {
+  const CreateSubIssuePanel({
+    super.key,
+    required this.issue,
+    this.workspaceId,
+    this.linkedSubIssues = const [],
+    this.onOpenIssue,
+    required this.titleController,
+    required this.bodyController,
+    required this.isCreating,
+    required this.onCreate,
+  });
+
+  final Issue issue;
+  final String? workspaceId;
+  final List<Issue> linkedSubIssues;
+  final ValueChanged<String>? onOpenIssue;
+  final TextEditingController titleController;
+  final TextEditingController bodyController;
+  final bool isCreating;
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLinkedToGitHub = issue.githubUrl != null;
+    final canCreate = isLinkedToGitHub && !isCreating && onCreate != null;
+    final summary = issue.subIssuesSummary;
+    final referencedSubIssues = _mergedSubIssueReferences(
+      linkedSubIssues: linkedSubIssues,
+      storedSubIssues: issue.subIssues,
+    );
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.account_tree_outlined,
+                size: 18,
+                color: Color(0xFF2563EB),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  summary == null
+                      ? 'Sub-issues'
+                      : 'Sub-issues ${summary.completed}/${summary.total}',
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (summary != null)
+                Text(
+                  '${summary.percentCompleted}%',
+                  style: const TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+          if (summary != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: summary.progress,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  summary.completed == summary.total
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          ],
+          if (linkedSubIssues.isNotEmpty || referencedSubIssues.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SubIssuesList(
+              workspaceId: workspaceId,
+              subIssues: linkedSubIssues,
+              referenceSubIssues: referencedSubIssues,
+              onIssueTap: onOpenIssue,
+            ),
+          ],
+          const SizedBox(height: 12),
+          CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              SingleActivator(LogicalKeyboardKey.enter, meta: true): () {
+                if (canCreate) {
+                  onCreate!();
+                }
+              },
+            },
+            child: Focus(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: titleController,
+                    enabled: canCreate,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: '新しいsub-issueのタイトル',
+                      hintText: '例: APIでsub-issueを同期する',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: bodyController,
+                    enabled: canCreate,
+                    minLines: 2,
+                    maxLines: 5,
+                    keyboardType: TextInputType.multiline,
+                    decoration: const InputDecoration(
+                      labelText: '本文',
+                      hintText: '任意: sub-issueの説明',
+                      helperText: '⌘Enterでsub-issueを作成',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: canCreate ? onCreate : null,
+                icon: isCreating
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_rounded, size: 18),
+                label: Text(isCreating ? '作成中...' : 'sub-issueを作成'),
+              ),
+              Text(
+                isLinkedToGitHub
+                    ? 'GitHubにissueを作成して、このissueのsub-issueとして紐づけます。'
+                    : 'GitHubに同期されたissueでのみ作成できます。',
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+List<IssueSubIssueReference> _mergedSubIssueReferences({
+  required List<Issue> linkedSubIssues,
+  required List<IssueSubIssueReference> storedSubIssues,
+}) {
+  final linkedIds = linkedSubIssues.map((issue) => issue.id).toSet();
+  final byKey = <String, IssueSubIssueReference>{};
+
+  for (final subIssue in storedSubIssues) {
+    if (subIssue.issueId.isNotEmpty && linkedIds.contains(subIssue.issueId)) {
+      continue;
+    }
+    final key = subIssue.issueId.isNotEmpty
+        ? subIssue.issueId
+        : subIssue.number.toString();
+    if (key.isNotEmpty) {
+      byKey[key] = subIssue;
+    }
+  }
+
+  return byKey.values.toList();
+}
+
+class _StatusAndPriorityFields extends StatelessWidget {
+  const _StatusAndPriorityFields({
+    required this.columns,
+    required this.selectedColumnId,
+    required this.priority,
+    required this.decorationBuilder,
+    required this.priorityLabelBuilder,
+    required this.onColumnChanged,
+    required this.onPriorityChanged,
+  });
+
+  final List<BoardColumn> columns;
+  final String selectedColumnId;
+  final Priority priority;
+  final InputDecoration Function({required String label, String? hint})
+  decorationBuilder;
+  final String Function(Priority priority) priorityLabelBuilder;
+  final ValueChanged<String> onColumnChanged;
+  final ValueChanged<Priority> onPriorityChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final statusField = DropdownButtonFormField<String>(
+          initialValue: selectedColumnId,
+          decoration: decorationBuilder(label: 'ステータス'),
+          items: [
+            for (final column in columns)
+              DropdownMenuItem(value: column.id, child: Text(column.title)),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+
+            onColumnChanged(value);
+          },
+        );
+        final priorityField = DropdownButtonFormField<Priority>(
+          initialValue: priority,
+          decoration: decorationBuilder(label: '優先度'),
+          items: [
+            for (final priority in Priority.values)
+              DropdownMenuItem(
+                value: priority,
+                child: Text(priorityLabelBuilder(priority)),
+              ),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+
+            onPriorityChanged(value);
+          },
+        );
+
+        if (constraints.maxWidth < 560) {
+          return Column(
+            children: [statusField, const SizedBox(height: 12), priorityField],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: statusField),
+            const SizedBox(width: 12),
+            Expanded(child: priorityField),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class DueDateField extends StatelessWidget {
+  const DueDateField({
+    super.key,
+    required this.dueDate,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final DateTime? dueDate;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: '締切',
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dateLabel = Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+                color: Color(0xFF64748B),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  dueDate == null ? '締切なし' : _formatDate(dueDate!),
+                  style: const TextStyle(
+                    color: Color(0xFF334155),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          );
+          final actions = Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton(onPressed: onPick, child: const Text('日付を選択')),
+              if (dueDate != null)
+                IconButton(
+                  tooltip: '締切をクリア',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                ),
+            ],
+          );
+
+          if (constraints.maxWidth < 360) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [dateLabel, const SizedBox(height: 8), actions],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: dateLabel),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
