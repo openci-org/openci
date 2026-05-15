@@ -153,6 +153,12 @@ class AppStringsBuildLogs {
   // Translations
   String title({required Object date}) => 'ビルドログ - ${date}';
   String get noJobs => 'ビルドジョブが見つかりません';
+  String get overviewTitle => '直近24時間の実行';
+  String latestRun({required Object time}) => '最新 ${time}';
+  String get summaryRuns => '実行';
+  String get summarySuccess => '成功';
+  String get summaryRunning => '実行中';
+  String get summaryFailed => '失敗';
   late final AppStringsBuildLogsStatus status = AppStringsBuildLogsStatus._(
     _root,
   );
