@@ -14,6 +14,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+const _recentBuildLogWindow = Duration(hours: 24);
+
 Color _statusColor(BuildJobStatus status) => switch (status) {
   BuildJobStatus.SUCCESS => const Color(0xFF2DA44E),
   BuildJobStatus.FAILURE => const Color(0xFFCF222E),
@@ -56,6 +58,38 @@ bool _isTerminalStatus(BuildJobStatus status) =>
     status == BuildJobStatus.CANCELLED ||
     status == BuildJobStatus.SKIPPED ||
     status == BuildJobStatus.TIMED_OUT;
+
+BuildJobStatus _overallBuildStatus(List<BuildJob> jobs) {
+  if (jobs.any((job) => job.status == BuildJobStatus.IN_PROGRESS)) {
+    return BuildJobStatus.IN_PROGRESS;
+  }
+  if (jobs.any((job) => job.status == BuildJobStatus.QUEUED)) {
+    return BuildJobStatus.QUEUED;
+  }
+  if (jobs.any((job) => job.status == BuildJobStatus.FAILURE)) {
+    return BuildJobStatus.FAILURE;
+  }
+  if (jobs.any((job) => job.status == BuildJobStatus.TIMED_OUT)) {
+    return BuildJobStatus.TIMED_OUT;
+  }
+  if (jobs.any((job) => job.status == BuildJobStatus.WAITING)) {
+    return BuildJobStatus.WAITING;
+  }
+  if (jobs.any((job) => job.status == BuildJobStatus.CANCELLED)) {
+    return BuildJobStatus.CANCELLED;
+  }
+  if (jobs.every((job) => job.status == BuildJobStatus.SKIPPED)) {
+    return BuildJobStatus.SKIPPED;
+  }
+  if (jobs.every(
+    (job) =>
+        job.status == BuildJobStatus.SUCCESS ||
+        job.status == BuildJobStatus.SKIPPED,
+  )) {
+    return BuildJobStatus.SUCCESS;
+  }
+  return BuildJobStatus.SUCCESS;
+}
 
 String _workflowRunGroupKey(BuildJob job) {
   final runId = job.workflowRunId;
@@ -130,28 +164,242 @@ class LogsBody extends HookConsumerWidget {
           }
         }
 
+        final cutoff = DateTime.now().subtract(_recentBuildLogWindow);
+        final recentDisplayList = orderedDisplayList
+            .where(
+              (jobs) => jobs.any((job) => !job.createdAt.isBefore(cutoff)),
+            )
+            .toList();
+        final recentStatuses = recentDisplayList
+            .map(_overallBuildStatus)
+            .toList();
+        final runningCount = recentStatuses.where(_isRunningStatus).length;
+        final successCount = recentStatuses
+            .where((status) => status == BuildJobStatus.SUCCESS)
+            .length;
+        final failedCount = recentStatuses
+            .where(
+              (status) =>
+                  status == BuildJobStatus.FAILURE ||
+                  status == BuildJobStatus.TIMED_OUT,
+            )
+            .length;
+
         return SyncedSpinnerScope(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                itemCount: orderedDisplayList.length,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding = constraints.maxWidth < 420
+                  ? 12.0
+                  : 16.0;
+              final topPadding = constraints.maxWidth >= 840 ? 28.0 : 20.0;
+
+              return ListView.builder(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  topPadding,
+                  horizontalPadding,
+                  24,
+                ),
+                itemCount: orderedDisplayList.length + 1,
                 itemBuilder: (_, index) {
-                  final jobs = orderedDisplayList[index];
-                  if (jobs.length == 1) {
-                    return BuildJobCard(buildJob: jobs.first);
-                  }
-                  return WorkflowRunCard(jobs: jobs);
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 640),
+                      child: index == 0
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _BuildLogsOverview(
+                                runCount: recentDisplayList.length,
+                                successCount: successCount,
+                                runningCount: runningCount,
+                                failedCount: failedCount,
+                                latestRunAt: buildJobs.first.createdAt,
+                              ),
+                            )
+                          : _BuildRunCard(
+                              jobs: orderedDisplayList[index - 1],
+                            ),
+                    ),
+                  );
                 },
-              ),
-            ),
+              );
+            },
           ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: asyncErrorWidget,
     );
+  }
+}
+
+class _BuildLogsOverview extends StatelessWidget {
+  const _BuildLogsOverview({
+    required this.runCount,
+    required this.successCount,
+    required this.runningCount,
+    required this.failedCount,
+    required this.latestRunAt,
+  });
+
+  final int runCount;
+  final int successCount;
+  final int runningCount;
+  final int failedCount;
+  final DateTime latestRunAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: colors.accentSubtle,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.history_rounded,
+                  color: colors.accent,
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.buildLogs.overviewTitle,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      t.buildLogs.latestRun(time: latestRunAt.toTimeAgo()),
+                      style: TextStyle(
+                        color: colors.textTertiary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _BuildLogSummaryPill(
+                icon: Icons.format_list_bulleted_rounded,
+                label: t.buildLogs.summaryRuns,
+                value: runCount.toString(),
+                color: colors.textSecondary,
+              ),
+              _BuildLogSummaryPill(
+                icon: Icons.check_circle_outline_rounded,
+                label: t.buildLogs.summarySuccess,
+                value: successCount.toString(),
+                color: colors.success,
+              ),
+              _BuildLogSummaryPill(
+                icon: Icons.play_circle_outline_rounded,
+                label: t.buildLogs.summaryRunning,
+                value: runningCount.toString(),
+                color: colors.accent,
+              ),
+              _BuildLogSummaryPill(
+                icon: Icons.error_outline_rounded,
+                label: t.buildLogs.summaryFailed,
+                value: failedCount.toString(),
+                color: colors.error,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BuildLogSummaryPill extends StatelessWidget {
+  const _BuildLogSummaryPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Container(
+      constraints: const BoxConstraints(minWidth: 112),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BuildRunCard extends StatelessWidget {
+  const _BuildRunCard({required this.jobs});
+
+  final List<BuildJob> jobs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (jobs.length == 1) {
+      return BuildJobCard(buildJob: jobs.first);
+    }
+    return WorkflowRunCard(jobs: jobs);
   }
 }
 
@@ -464,29 +712,7 @@ class WorkflowRunCard extends HookConsumerWidget {
 
     final mainJob = jobs.first;
 
-    BuildJobStatus overallStatus = BuildJobStatus.SUCCESS;
-    if (jobs.any((j) => j.status == BuildJobStatus.IN_PROGRESS)) {
-      overallStatus = BuildJobStatus.IN_PROGRESS;
-    } else if (jobs.any((j) => j.status == BuildJobStatus.QUEUED)) {
-      overallStatus = BuildJobStatus.QUEUED;
-    } else if (jobs.any((j) => j.status == BuildJobStatus.FAILURE)) {
-      overallStatus = BuildJobStatus.FAILURE;
-    } else if (jobs.any((j) => j.status == BuildJobStatus.TIMED_OUT)) {
-      overallStatus = BuildJobStatus.TIMED_OUT;
-    } else if (jobs.any((j) => j.status == BuildJobStatus.WAITING)) {
-      overallStatus = BuildJobStatus.WAITING;
-    } else if (jobs.any((j) => j.status == BuildJobStatus.CANCELLED)) {
-      overallStatus = BuildJobStatus.CANCELLED;
-    } else if (jobs.every((j) => j.status == BuildJobStatus.SKIPPED)) {
-      overallStatus = BuildJobStatus.SKIPPED;
-    } else if (jobs.every(
-      (j) =>
-          j.status == BuildJobStatus.SUCCESS ||
-          j.status == BuildJobStatus.SKIPPED,
-    )) {
-      overallStatus = BuildJobStatus.SUCCESS;
-    }
-
+    final overallStatus = _overallBuildStatus(jobs);
     final color = _statusColor(overallStatus);
     final statusLabel = _statusLabel(overallStatus);
 
