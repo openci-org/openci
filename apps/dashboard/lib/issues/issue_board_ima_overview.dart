@@ -27,7 +27,7 @@ class BoardHeader extends StatelessWidget {
           'OpenCI',
           style:
               (isCompact ? textTheme.headlineSmall : textTheme.headlineMedium)
-                  ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.8),
+                  ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0),
         );
         if (isCompact) {
           return Padding(
@@ -1154,7 +1154,7 @@ class DailyProgressOverview extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: const Color(0xFF0F172A),
                     fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1515,7 +1515,7 @@ class DailyProgressStrip extends StatelessWidget {
                                   ?.copyWith(
                                     color: const Color(0xFF0F172A),
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.3,
+                                    letterSpacing: 0,
                                   ),
                             ),
                           ),
@@ -1562,7 +1562,7 @@ class DailyProgressStrip extends StatelessWidget {
                                     ?.copyWith(
                                       color: const Color(0xFF0F172A),
                                       fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.4,
+                                      letterSpacing: 0,
                                     ),
                               ),
                               Text(
@@ -1696,7 +1696,7 @@ class _DailyProgressSheetState extends State<DailyProgressSheet> {
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(
                                     fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.5,
+                                    letterSpacing: 0,
                                   ),
                             ),
                             const SizedBox(height: 4),
@@ -1744,7 +1744,7 @@ class _DailyProgressSheetState extends State<DailyProgressSheet> {
                                         .headlineMedium
                                         ?.copyWith(
                                           fontWeight: FontWeight.w900,
-                                          letterSpacing: -1,
+                                          letterSpacing: 0,
                                         ),
                                   ),
                                   const Text(

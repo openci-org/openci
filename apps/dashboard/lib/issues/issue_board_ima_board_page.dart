@@ -1328,7 +1328,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         onDestinationSelected: _selectCompactDestination,
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: const Color(0xFFF4F7FB),
           endDrawer: isCompactLayout
               ? null
               : Drawer(
@@ -1350,9 +1350,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
               ? AppBar(
                   title: Text(
                     _compactDestination.label,
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  backgroundColor: const Color(0xFFF8FAFC),
+                  backgroundColor: const Color(0xFFF4F7FB),
                   foregroundColor: const Color(0xFF0F172A),
                   elevation: 0,
                   scrolledUnderElevation: 0,
@@ -1505,7 +1505,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     controller: _boardScrollController,
                                     padding: const EdgeInsets.fromLTRB(
                                       _boardHorizontalPadding,
-                                      4,
+                                      12,
                                       _boardHorizontalPadding,
                                       _boardBottomPadding + 72,
                                     ),
@@ -1548,7 +1548,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     controller: _boardScrollController,
                                     padding: const EdgeInsets.fromLTRB(
                                       _boardHorizontalPadding,
-                                      6,
+                                      12,
                                       _boardHorizontalPadding,
                                       _boardBottomPadding,
                                     ),

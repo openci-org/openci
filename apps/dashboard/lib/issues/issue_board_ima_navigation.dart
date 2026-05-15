@@ -158,7 +158,7 @@ class _OpenCiMark extends StatelessWidget {
           color: Color(0xFF1D4ED8),
           fontSize: 14,
           fontWeight: FontWeight.w900,
-          letterSpacing: -0.5,
+          letterSpacing: 0,
         ),
       ),
     );
