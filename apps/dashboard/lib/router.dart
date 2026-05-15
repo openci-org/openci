@@ -281,6 +281,20 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
           return const AuthPage();
         }
 
+        if (MediaQuery.sizeOf(context).width >= buildLogsSplitViewBreakpoint) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('CI/CDログ'),
+              leading: IconButton(
+                tooltip: 'ワークスペースに戻る',
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => context.go('/workspace'),
+              ),
+            ),
+            body: LogsBody(initialBuildJobId: buildJobId),
+          );
+        }
+
         final buildJobAsync = ref.watch(buildJobByIdProvider(buildJobId));
         return buildJobAsync.when(
           loading: () => const Scaffold(

@@ -26,8 +26,14 @@ void _showMaterialDefaultSnackBar(BuildContext context, String message) {
 }
 
 class BuildLogsDetailPage extends HookConsumerWidget {
-  const BuildLogsDetailPage({super.key, required this.buildJob});
+  const BuildLogsDetailPage({
+    super.key,
+    required this.buildJob,
+    this.showBackButton = true,
+  });
+
   final BuildJob buildJob;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -79,14 +85,18 @@ class BuildLogsDetailPage extends HookConsumerWidget {
           backgroundColor: AppColors.of(context).surface,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 16,
-              color: AppColors.of(context).textSecondary,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
+          automaticallyImplyLeading: showBackButton,
+          leading: showBackButton
+              ? IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 16,
+                    color: AppColors.of(context).textSecondary,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                )
+              : null,
+          titleSpacing: showBackButton ? null : 16,
           title: Text(
             workflowName,
             style: TextStyle(

@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
+import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
@@ -15,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 const _recentBuildLogWindow = Duration(hours: 24);
+const buildLogsSplitViewBreakpoint = 1040.0;
 
 Color _statusColor(BuildJobStatus status) => switch (status) {
   BuildJobStatus.SUCCESS => const Color(0xFF2DA44E),
@@ -105,10 +107,13 @@ void _showMaterialDefaultSnackBar(BuildContext context, String message) {
 }
 
 class LogsBody extends HookConsumerWidget {
-  const LogsBody({super.key});
+  const LogsBody({super.key, this.initialBuildJobId});
+
+  final String? initialBuildJobId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selectedBuildJobId = useState<String?>(null);
     final state = ref.watch(buildJobsProvider);
     return state.when(
       data: (buildJobs) {
@@ -188,40 +193,56 @@ class LogsBody extends HookConsumerWidget {
         return SyncedSpinnerScope(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth < 420
-                  ? 12.0
-                  : 16.0;
-              final topPadding = constraints.maxWidth >= 840 ? 28.0 : 20.0;
+              final usesSplitView =
+                  constraints.maxWidth >= buildLogsSplitViewBreakpoint;
+              final currentSelectedId =
+                  selectedBuildJobId.value ?? initialBuildJobId;
+              final selectedBuildJob =
+                  _selectedBuildJob(buildJobs, currentSelectedId) ??
+                  buildJobs.first;
 
-              return ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  topPadding,
-                  horizontalPadding,
-                  24,
-                ),
-                itemCount: orderedDisplayList.length + 1,
-                itemBuilder: (_, index) {
-                  return Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 640),
-                      child: index == 0
-                          ? Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _BuildLogsOverview(
-                                runCount: recentDisplayList.length,
-                                successCount: successCount,
-                                runningCount: runningCount,
-                                failedCount: failedCount,
-                                latestRunAt: buildJobs.first.createdAt,
-                              ),
-                            )
-                          : _BuildRunCard(
-                              jobs: orderedDisplayList[index - 1],
-                            ),
+              void openBuildJob(BuildJob buildJob) {
+                if (usesSplitView) {
+                  selectedBuildJobId.value = buildJob.id;
+                  return;
+                }
+
+                context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
+              }
+
+              final list = _BuildLogsList(
+                orderedDisplayList: orderedDisplayList,
+                recentRunCount: recentDisplayList.length,
+                successCount: successCount,
+                runningCount: runningCount,
+                failedCount: failedCount,
+                latestRunAt: buildJobs.first.createdAt,
+                selectedBuildJobId: usesSplitView ? selectedBuildJob.id : null,
+                onOpenBuildJob: openBuildJob,
+              );
+
+              if (!usesSplitView) {
+                return list;
+              }
+
+              final listWidth = constraints.maxWidth < 1180 ? 400.0 : 440.0;
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: listWidth, child: list),
+                  VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: AppColors.of(context).divider,
+                  ),
+                  Expanded(
+                    child: BuildLogsDetailPage(
+                      key: ValueKey(selectedBuildJob.id),
+                      buildJob: selectedBuildJob,
+                      showBackButton: false,
                     ),
-                  );
-                },
+                  ),
+                ],
               );
             },
           ),
@@ -229,6 +250,83 @@ class LogsBody extends HookConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: asyncErrorWidget,
+    );
+  }
+}
+
+BuildJob? _selectedBuildJob(List<BuildJob> buildJobs, String? buildJobId) {
+  if (buildJobId == null || buildJobId.isEmpty) {
+    return null;
+  }
+  for (final buildJob in buildJobs) {
+    if (buildJob.id == buildJobId) {
+      return buildJob;
+    }
+  }
+  return null;
+}
+
+class _BuildLogsList extends StatelessWidget {
+  const _BuildLogsList({
+    required this.orderedDisplayList,
+    required this.recentRunCount,
+    required this.successCount,
+    required this.runningCount,
+    required this.failedCount,
+    required this.latestRunAt,
+    required this.selectedBuildJobId,
+    required this.onOpenBuildJob,
+  });
+
+  final List<List<BuildJob>> orderedDisplayList;
+  final int recentRunCount;
+  final int successCount;
+  final int runningCount;
+  final int failedCount;
+  final DateTime latestRunAt;
+  final String? selectedBuildJobId;
+  final ValueChanged<BuildJob> onOpenBuildJob;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth < 420 ? 12.0 : 16.0;
+        final topPadding = constraints.maxWidth >= 840 ? 28.0 : 20.0;
+
+        return ListView.builder(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            topPadding,
+            horizontalPadding,
+            24,
+          ),
+          itemCount: orderedDisplayList.length + 1,
+          itemBuilder: (_, index) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: index == 0
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _BuildLogsOverview(
+                          runCount: recentRunCount,
+                          successCount: successCount,
+                          runningCount: runningCount,
+                          failedCount: failedCount,
+                          latestRunAt: latestRunAt,
+                        ),
+                      )
+                    : _BuildRunCard(
+                        jobs: orderedDisplayList[index - 1],
+                        selectedBuildJobId: selectedBuildJobId,
+                        onOpenBuildJob: onOpenBuildJob,
+                      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -390,22 +488,45 @@ class _BuildLogSummaryPill extends StatelessWidget {
 }
 
 class _BuildRunCard extends StatelessWidget {
-  const _BuildRunCard({required this.jobs});
+  const _BuildRunCard({
+    required this.jobs,
+    required this.selectedBuildJobId,
+    required this.onOpenBuildJob,
+  });
 
   final List<BuildJob> jobs;
+  final String? selectedBuildJobId;
+  final ValueChanged<BuildJob> onOpenBuildJob;
 
   @override
   Widget build(BuildContext context) {
     if (jobs.length == 1) {
-      return BuildJobCard(buildJob: jobs.first);
+      final buildJob = jobs.first;
+      return BuildJobCard(
+        buildJob: buildJob,
+        selected: selectedBuildJobId == buildJob.id,
+        onOpenBuildJob: onOpenBuildJob,
+      );
     }
-    return WorkflowRunCard(jobs: jobs);
+    return WorkflowRunCard(
+      jobs: jobs,
+      selectedBuildJobId: selectedBuildJobId,
+      onOpenBuildJob: onOpenBuildJob,
+    );
   }
 }
 
 class BuildJobCard extends HookConsumerWidget {
-  const BuildJobCard({super.key, required this.buildJob});
+  const BuildJobCard({
+    super.key,
+    required this.buildJob,
+    this.selected = false,
+    this.onOpenBuildJob,
+  });
+
   final BuildJob buildJob;
+  final bool selected;
+  final ValueChanged<BuildJob>? onOpenBuildJob;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -416,17 +537,26 @@ class BuildJobCard extends HookConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
+        color: selected
+            ? AppColors.of(context).accentSubtle.withValues(alpha: 0.35)
+            : AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.of(context).border,
+          color: selected
+              ? AppColors.of(context).borderFocused
+              : AppColors.of(context).border,
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
+            final onOpen = onOpenBuildJob;
+            if (onOpen == null) {
+              context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
+              return;
+            }
+            onOpen(buildJob);
           },
           borderRadius: BorderRadius.circular(12),
           hoverColor: AppColors.of(context).borderSubtle,
@@ -509,9 +639,14 @@ class BuildJobCard extends HookConsumerWidget {
                   onSelected: (value) async {
                     switch (value) {
                       case 'details':
-                        await context.push(
-                          '/runs/${Uri.encodeComponent(buildJob.id)}',
-                        );
+                        final onOpen = onOpenBuildJob;
+                        if (onOpen == null) {
+                          await context.push(
+                            '/runs/${Uri.encodeComponent(buildJob.id)}',
+                          );
+                          return;
+                        }
+                        onOpen(buildJob);
                       case 'retry':
                         try {
                           await ref
@@ -661,8 +796,16 @@ class BuildJobCard extends HookConsumerWidget {
 }
 
 class WorkflowRunCard extends HookConsumerWidget {
-  const WorkflowRunCard({super.key, required this.jobs});
+  const WorkflowRunCard({
+    super.key,
+    required this.jobs,
+    this.selectedBuildJobId,
+    this.onOpenBuildJob,
+  });
+
   final List<BuildJob> jobs;
+  final String? selectedBuildJobId;
+  final ValueChanged<BuildJob>? onOpenBuildJob;
 
   List<BuildJob> get _sortedJobs {
     final sorted = <BuildJob>[];
@@ -715,14 +858,19 @@ class WorkflowRunCard extends HookConsumerWidget {
     final overallStatus = _overallBuildStatus(jobs);
     final color = _statusColor(overallStatus);
     final statusLabel = _statusLabel(overallStatus);
+    final selected = jobs.any((job) => job.id == selectedBuildJobId);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
+        color: selected
+            ? AppColors.of(context).accentSubtle.withValues(alpha: 0.28)
+            : AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.of(context).border,
+          color: selected
+              ? AppColors.of(context).borderFocused
+              : AppColors.of(context).border,
         ),
       ),
       child: Column(
@@ -856,7 +1004,11 @@ class WorkflowRunCard extends HookConsumerWidget {
                   color: AppColors.of(context).divider,
                 ),
               ),
-              child: _JobTree(jobs: _sortedJobs),
+              child: _JobTree(
+                jobs: _sortedJobs,
+                selectedBuildJobId: selectedBuildJobId,
+                onOpenBuildJob: onOpenBuildJob,
+              ),
             ),
           ),
         ],
@@ -1064,8 +1216,15 @@ class _NeedsBadge extends StatelessWidget {
 
 /// ジョブをneeds依存関係に基づいてツリー構造で表示するウィジェット
 class _JobTree extends ConsumerWidget {
-  const _JobTree({required this.jobs});
+  const _JobTree({
+    required this.jobs,
+    required this.selectedBuildJobId,
+    required this.onOpenBuildJob,
+  });
+
   final List<BuildJob> jobs;
+  final String? selectedBuildJobId;
+  final ValueChanged<BuildJob>? onOpenBuildJob;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1110,6 +1269,8 @@ class _JobTree extends ConsumerWidget {
           depth: depth,
           isFirst: isFirst,
           isLast: isLast,
+          selected: job.id == selectedBuildJobId,
+          onOpenBuildJob: onOpenBuildJob,
         ),
       );
 
@@ -1145,12 +1306,16 @@ class _JobTreeRow extends ConsumerWidget {
     required this.depth,
     required this.isFirst,
     required this.isLast,
+    required this.selected,
+    required this.onOpenBuildJob,
   });
 
   final BuildJob job;
   final int depth;
   final bool isFirst;
   final bool isLast;
+  final bool selected;
+  final ValueChanged<BuildJob>? onOpenBuildJob;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1167,88 +1332,98 @@ class _JobTreeRow extends ConsumerWidget {
       hoverColor: AppColors.of(context).borderSubtle,
       splashColor: AppColors.of(context).borderSubtle,
       onTap: () {
-        context.push('/runs/${Uri.encodeComponent(job.id)}');
+        final onOpen = onOpenBuildJob;
+        if (onOpen == null) {
+          context.push('/runs/${Uri.encodeComponent(job.id)}');
+          return;
+        }
+        onOpen(job);
       },
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16 + (depth * 24.0),
-          right: 8,
-          top: 10,
-          bottom: 10,
-        ),
-        child: Row(
-          children: [
-            // 依存関係の視覚的コネクター
-            if (depth > 0) ...[
-              Icon(
-                Icons.subdirectory_arrow_right_rounded,
-                size: 14,
-                color: AppColors.of(context).border,
+      child: ColoredBox(
+        color: selected
+            ? AppColors.of(context).accentSubtle.withValues(alpha: 0.55)
+            : Colors.transparent,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16 + (depth * 24.0),
+            right: 8,
+            top: 10,
+            bottom: 10,
+          ),
+          child: Row(
+            children: [
+              // 依存関係の視覚的コネクター
+              if (depth > 0) ...[
+                Icon(
+                  Icons.subdirectory_arrow_right_rounded,
+                  size: 14,
+                  color: AppColors.of(context).border,
+                ),
+                const SizedBox(width: 8),
+              ],
+              _StatusIndicator(
+                status: job.status,
+                color: jobColor,
+                tooltip: jobLabel,
+                size: 16,
               ),
-              const SizedBox(width: 8),
-            ],
-            _StatusIndicator(
-              status: job.status,
-              color: jobColor,
-              tooltip: jobLabel,
-              size: 16,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    job.jobKey ?? 'Unnamed Job',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
-                      color: AppColors.of(context).textPrimary,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job.jobKey ?? 'Unnamed Job',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        color: AppColors.of(context).textPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      _LiveDurationBadge(buildJob: job),
-                      if (job.status == BuildJobStatus.FAILURE &&
-                          job.failureSummaryStatus == 'generating') ...[
-                        const SizedBox(width: 8),
-                        _AiGeneratingBadge(),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _LiveDurationBadge(buildJob: job),
+                        if (job.status == BuildJobStatus.FAILURE &&
+                            job.failureSummaryStatus == 'generating') ...[
+                          const SizedBox(width: 8),
+                          _AiGeneratingBadge(),
+                        ],
                       ],
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              _MoreMenuButton(
+                size: 18,
+                onSelected: (value) async {
+                  if (value == 'retry') {
+                    await ref
+                        .read(buildJobsProvider.notifier)
+                        .retryBuildJob(job.id);
+                  } else if (value == 'cancel') {
+                    await ref
+                        .read(buildJobsProvider.notifier)
+                        .cancelBuildJob(job.id);
+                  }
+                },
+                items: [
+                  _MenuItemData(
+                    value: 'retry',
+                    icon: Icons.refresh_rounded,
+                    label: t.buildLogs.detail.retry,
                   ),
+                  if (isRunning)
+                    _MenuItemData(
+                      value: 'cancel',
+                      icon: Icons.stop_circle_outlined,
+                      label: t.common.cancel,
+                      isDestructive: true,
+                    ),
                 ],
               ),
-            ),
-            _MoreMenuButton(
-              size: 18,
-              onSelected: (value) async {
-                if (value == 'retry') {
-                  await ref
-                      .read(buildJobsProvider.notifier)
-                      .retryBuildJob(job.id);
-                } else if (value == 'cancel') {
-                  await ref
-                      .read(buildJobsProvider.notifier)
-                      .cancelBuildJob(job.id);
-                }
-              },
-              items: [
-                _MenuItemData(
-                  value: 'retry',
-                  icon: Icons.refresh_rounded,
-                  label: t.buildLogs.detail.retry,
-                ),
-                if (isRunning)
-                  _MenuItemData(
-                    value: 'cancel',
-                    icon: Icons.stop_circle_outlined,
-                    label: t.common.cancel,
-                    isDestructive: true,
-                  ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
