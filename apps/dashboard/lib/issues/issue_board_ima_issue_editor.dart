@@ -494,6 +494,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                   ? null
                   : _startCursorAgent,
             ),
+            SizedBox(height: 14),
           ],
         ],
       ),
