@@ -35,306 +35,68 @@ import {
   parseWeightEstimateResponse,
   truncateText,
 } from "./issueWeightHelpers.js";
+import type {
+  WorkspaceRequest,
+  StartGitHubDeviceFlowRequest,
+  StartGitHubDeviceFlowResponse,
+  CompleteGitHubDeviceFlowRequest,
+  CreateGitHubIssueRequest,
+  CreateGitHubSubIssueRequest,
+  GitHubRepository,
+  ListGitHubRepositoriesResponse,
+  ImportGitHubIssuesResponse,
+  SyncGitHubIssuesResponse,
+  BackfillIssueKeysResponse,
+  BackfillCursorAgentPullRequestsResponse,
+  CreateGitHubIssueResponse,
+  CreateGitHubSubIssueResponse,
+  EstimateIssueWeightRequest,
+  StartIssueCursorAgentRequest,
+  StartIssueCursorAgentResponse,
+  IssueWeightEstimateResponse,
+  GitHubUserResponse,
+  GitHubDeviceCodeResponse,
+  GitHubDeviceTokenResponse,
+  GitHubRepositoriesResponseItem,
+  GitHubInstallationRepositoriesResponse,
+  GitHubIssueResponseItem,
+  GitHubPullRequestResponseItem,
+  GitHubPullRequestLinkedIssue,
+  GitHubPullRequestLinkedIssuesGraphqlResponse,
+  GitHubPullRequestWebhookPayload,
+  GitHubPushWebhookPayload,
+  BranchLogEntry,
+  GitHubContentFileResponse,
+  GitHubIssueWebhookPayload,
+} from "./types.js";
+import {
+  closedStatusId,
+  reviewStatusId,
+  inProgressStatusIds,
+  issueWeightModel,
+  branchLogPathPrefix,
+  requireNonEmptyString,
+  requireUid,
+  asString,
+  asNumber,
+  errorMessage,
+  errorStack,
+  asBoolean,
+  asStringList,
+  asTimestamp,
+  timestampFromValue,
+  roundedHours,
+  median,
+  recordList,
+} from "./shared.js";
 
 if (getApps().length === 0) {
   initializeApp();
 }
 
-interface WorkspaceRequest {
-  workspaceId: string;
-}
-
-interface StartGitHubDeviceFlowRequest extends WorkspaceRequest {
-  clientId: string;
-}
-
-interface StartGitHubDeviceFlowResponse {
-  deviceCode: string;
-  userCode: string;
-  verificationUri: string;
-  expiresIn: number;
-  interval: number;
-}
-
-interface CompleteGitHubDeviceFlowRequest extends WorkspaceRequest {
-  clientId: string;
-  deviceCode: string;
-}
-
-interface CreateGitHubIssueRequest extends WorkspaceRequest {
-  title: string;
-  body?: string;
-  repo: string;
-  labels?: string[];
-  statusId: string;
-  priority: string;
-  rank: number;
-  dueDate?: string;
-  issueId?: string;
-}
-
-interface CreateGitHubSubIssueRequest extends WorkspaceRequest {
-  parentIssueId: string;
-  issueId?: string;
-  title: string;
-  body?: string;
-}
-
-interface GitHubRepository {
-  fullName: string;
-  name: string;
-  owner: string;
-  private: boolean;
-  defaultBranch: string;
-}
-
-interface ListGitHubRepositoriesResponse {
-  repositories: GitHubRepository[];
-}
-
-interface ImportGitHubIssuesResponse {
-  imported: number;
-  repositories: number;
-}
-
-interface SyncGitHubIssuesResponse {
-  synced: number;
-  failed: number;
-}
-
-interface BackfillIssueKeysResponse {
-  updated: number;
-}
-
-interface BackfillCursorAgentPullRequestsResponse {
-  inspected: number;
-  linked: number;
-}
-
-interface CreateGitHubIssueResponse {
-  issueId: string;
-  number: number;
-  url: string;
-}
-
-interface CreateGitHubSubIssueResponse extends CreateGitHubIssueResponse {
-  parentIssueId: string;
-}
-
-interface EstimateIssueWeightRequest extends WorkspaceRequest {
-  issueId: string;
-  force?: boolean;
-}
-
-interface StartIssueCursorAgentRequest extends WorkspaceRequest {
-  issueId: string;
-}
-
-interface StartIssueCursorAgentResponse {
-  issueId: string;
-  agentId: string;
-  runId: string;
-  status: "running";
-}
-
-interface IssueWeightEstimateResponse {
-  value: number;
-  confidence: number;
-  reason: string;
-  model: string;
-  promptVersion: string;
-  inputHash: string;
-  source: "llm";
-  status: "done";
-}
-
-interface GitHubUserResponse {
-  login?: unknown;
-  avatar_url?: unknown;
-}
-
-interface GitHubDeviceCodeResponse {
-  device_code?: unknown;
-  user_code?: unknown;
-  verification_uri?: unknown;
-  expires_in?: unknown;
-  interval?: unknown;
-  error?: unknown;
-  error_description?: unknown;
-}
-
-interface GitHubDeviceTokenResponse {
-  access_token?: unknown;
-  token_type?: unknown;
-  scope?: unknown;
-  error?: unknown;
-  error_description?: unknown;
-}
-
-interface GitHubRepositoriesResponseItem {
-  full_name?: unknown;
-  name?: unknown;
-  owner?: { login?: unknown };
-  private?: unknown;
-  default_branch?: unknown;
-}
-
-interface GitHubInstallationRepositoriesResponse {
-  repositories?: GitHubRepositoriesResponseItem[];
-}
-
-interface GitHubIssueResponseItem {
-  id?: unknown;
-  node_id?: unknown;
-  number?: unknown;
-  title?: unknown;
-  body?: unknown;
-  html_url?: unknown;
-  state?: unknown;
-  comments?: unknown;
-  labels?: Array<string | { name?: unknown }>;
-  updated_at?: unknown;
-  created_at?: unknown;
-  pull_request?: unknown;
-  sub_issues_summary?: {
-    total?: unknown;
-    completed?: unknown;
-    percent_completed?: unknown;
-  };
-  parent_issue_url?: unknown;
-}
-
-interface GitHubPullRequestResponseItem {
-  number?: unknown;
-  title?: unknown;
-  body?: unknown;
-  html_url?: unknown;
-  state?: unknown;
-  merged?: unknown;
-  created_at?: unknown;
-  head?: {
-    ref?: unknown;
-  };
-}
-
-interface GitHubPullRequestLinkedIssue {
-  number: number;
-  title: string;
-  url: string;
-  state: string;
-}
-
-interface GitHubPullRequestLinkedIssuesGraphqlResponse {
-  data?: {
-    repository?: {
-      pullRequest?: {
-        closingIssuesReferences?: {
-          nodes?: Array<{
-            number?: unknown;
-            title?: unknown;
-            url?: unknown;
-            state?: unknown;
-          } | null>;
-        };
-      } | null;
-    } | null;
-  };
-}
-
-interface GitHubPullRequestWebhookPayload {
-  action?: unknown;
-  changes?: {
-    body?: {
-      from?: unknown;
-    };
-    title?: {
-      from?: unknown;
-    };
-  };
-  repository?: {
-    full_name?: unknown;
-  };
-  pull_request?: {
-    number?: unknown;
-    title?: unknown;
-    body?: unknown;
-    html_url?: unknown;
-    state?: unknown;
-    merged?: unknown;
-    created_at?: unknown;
-    head?: {
-      ref?: unknown;
-    };
-  };
-}
-
-interface GitHubPushWebhookPayload {
-  ref?: unknown;
-  repository?: {
-    full_name?: unknown;
-    default_branch?: unknown;
-  };
-  commits?: Array<{
-    id?: unknown;
-    timestamp?: unknown;
-    added?: unknown[];
-    modified?: unknown[];
-  }>;
-}
-
-interface BranchLogEntry {
-  branch: string;
-  at: string;
-}
-
-interface GitHubContentFileResponse {
-  content?: unknown;
-  encoding?: unknown;
-}
-
-interface GitHubIssueWebhookPayload {
-  action?: unknown;
-  repository?: {
-    full_name?: unknown;
-  };
-  issue?: {
-    node_id?: unknown;
-    number?: unknown;
-    title?: unknown;
-    body?: unknown;
-    html_url?: unknown;
-    state?: unknown;
-    state_reason?: unknown;
-    comments?: unknown;
-    labels?: Array<string | { name?: unknown }>;
-    updated_at?: unknown;
-    created_at?: unknown;
-    pull_request?: unknown;
-  };
-}
-
 const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const cursorApiKey = defineSecret("CURSOR_API_KEY");
-const closedStatusId = "done";
-const reviewStatusId = "review";
-const inProgressStatusIds = new Set(["doing", "review"]);
-const issueWeightModel = "claude-opus-4-6";
-const branchLogPathPrefix = ".openci/branch-log/";
-
-function requireNonEmptyString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new HttpsError("invalid-argument", `${field} is required`);
-  }
-  return value.trim();
-}
-
-function requireUid(auth: CallableRequest["auth"]): string {
-  if (!auth) {
-    throw new HttpsError("unauthenticated", "Unauthenticated");
-  }
-  return auth.uid;
-}
 
 async function verifyWorkspaceMember(
   auth: CallableRequest["auth"],
@@ -477,26 +239,6 @@ async function resolveGitHubIssueDocument(input: {
 
 function pullRequestLinkId(owner: string, repo: string, number: number): string {
   return `${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
-}
-
-function asString(value: unknown, fallback = ""): string {
-  return typeof value === "string" && value.length > 0 ? value : fallback;
-}
-
-function asNumber(value: unknown, fallback = 0): number {
-  return typeof value === "number" ? value : fallback;
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function errorStack(error: unknown): string | undefined {
-  return error instanceof Error ? error.stack : undefined;
-}
-
-function asBoolean(value: unknown, fallback = false): boolean {
-  return typeof value === "boolean" ? value : fallback;
 }
 
 function isActiveCursorAgentStatus(status: string): boolean {
@@ -924,13 +666,6 @@ async function issueKeyFields(
   return issueKeyFieldsFromData(data) ?? nextIssueKeyFields(workspaceId);
 }
 
-function asStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
-}
-
 async function patchGitHubIssueCore(input: {
   owner: string;
   repo: string;
@@ -987,48 +722,6 @@ async function patchGitHubIssueLabelsSafely(input: {
       stack: errorStack(error),
     });
   }
-}
-
-function asTimestamp(value: unknown): Timestamp | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? null : Timestamp.fromDate(date);
-}
-
-function timestampFromValue(value: unknown): Timestamp | null {
-  if (value instanceof Timestamp) {
-    return value;
-  }
-  if (value instanceof Date) {
-    return Timestamp.fromDate(value);
-  }
-  return asTimestamp(value);
-}
-
-function roundedHours(milliseconds: number | null): number | null {
-  if (milliseconds === null) {
-    return null;
-  }
-  return Math.round((milliseconds / 3_600_000) * 10) / 10;
-}
-
-function median(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
-  }
-  const sorted = values.slice().sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  const middleValue = sorted[middle];
-  if (middleValue === undefined) {
-    return null;
-  }
-  if (sorted.length % 2 === 1) {
-    return middleValue;
-  }
-  const previousValue = sorted[middle - 1];
-  return previousValue === undefined ? middleValue : (previousValue + middleValue) / 2;
 }
 
 function issueWeightEstimateMap(issue: Record<string, unknown>): Record<string, unknown> {
@@ -2387,14 +2080,6 @@ export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueK
     return { updated };
   },
 );
-
-function recordList(value: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is Record<string, unknown> => typeof item === "object" && item !== null,
-      )
-    : [];
-}
 
 async function completeCursorAgentFromExistingPullRequest({
   workspaceId,
