@@ -1920,7 +1920,8 @@ class BuildStatusBadge extends StatelessWidget {
           builder: (_) => BuildStatusJobsDialog(status: currentStatus),
         ),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          constraints: const BoxConstraints(minHeight: 22),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             border: Border.all(color: color.withValues(alpha: 0.28)),
@@ -1933,7 +1934,7 @@ class BuildStatusBadge extends StatelessWidget {
                 icon: currentStatus.icon,
                 color: color,
                 isSpinning: currentStatus.isSpinning,
-                size: 13,
+                size: 12,
               ),
               if (currentStatus.label.isNotEmpty) ...[
                 const SizedBox(width: 4),
@@ -1941,8 +1942,9 @@ class BuildStatusBadge extends StatelessWidget {
                   currentStatus.label,
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w900,
+                    height: 1.05,
                   ),
                 ),
               ],

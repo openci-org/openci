@@ -451,9 +451,6 @@ class IssueCard extends StatelessWidget {
         builder: (context, constraints) {
           final isTight = constraints.maxWidth < 300;
           final body = issue.body.trim();
-          final visibleLabelLimit = isTight ? 3 : 5;
-          final visibleLabels = issue.labels.take(visibleLabelLimit).toList();
-          final hiddenLabelCount = issue.labels.length - visibleLabels.length;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,47 +459,27 @@ class IssueCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        RepoBadge(repo: issue.repo),
-                        if (cardWeight != null)
-                          WeightBadge(
-                            value: cardWeight,
-                            tooltip: cardWeightTooltip,
-                            isActual: issue.statusId == closedStatusId,
-                          ),
-                      ],
+                    child: Text(
+                      issue.title,
+                      maxLines: isTight ? 2 : 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w700,
+                        height: 1.28,
+                      ),
                     ),
                   ),
                   if (githubUrl != null) ...[
                     const SizedBox(width: 6),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        GitHubLinkCopyButton(url: githubUrl),
-                        CursorAgentCardButton(
-                          issue: issue,
-                          isStarting: isStartingCursorAgent,
-                          onStart: onStartCursorAgent,
-                        ),
-                      ],
+                    _IssueCardActions(
+                      githubUrl: githubUrl,
+                      issue: issue,
+                      isStartingCursorAgent: isStartingCursorAgent,
+                      onStartCursorAgent: onStartCursorAgent,
                     ),
                   ],
                 ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                issue.title,
-                maxLines: isTight ? 2 : 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF0F172A),
-                  fontWeight: FontWeight.w700,
-                  height: 1.28,
-                ),
               ),
               if (body.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -524,25 +501,20 @@ class IssueCard extends StatelessWidget {
                   onIssueTap: onSubIssueTap,
                 ),
               ],
-              if (visibleLabels.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
-                  children: [
-                    for (final label in visibleLabels) LabelPill(label: label),
-                    if (hiddenLabelCount > 0)
-                      LabelPill(label: '+$hiddenLabelCount'),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 11),
+              const SizedBox(height: 9),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 5,
+                runSpacing: 5,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  RepoBadge(repo: issue.repo),
                   IssueIdMetaChip(issueId: issue.displayId),
+                  if (cardWeight != null)
+                    WeightBadge(
+                      value: cardWeight,
+                      tooltip: cardWeightTooltip,
+                      isActual: issue.statusId == closedStatusId,
+                    ),
                   if (issue.dueDate != null)
                     DueDatePill(dueDate: issue.dueDate!),
                   if (issue.parentIssue != null)
@@ -550,13 +522,44 @@ class IssueCard extends StatelessWidget {
                   if (issue.pullRequests.isNotEmpty)
                     PullRequestBadge(pullRequests: issue.pullRequests),
                   BuildStatusBadge(status: buildStatus),
-                  CommentMetaChip(comments: issue.comments),
+                  if (issue.comments > 0)
+                    CommentMetaChip(comments: issue.comments),
                 ],
               ),
             ],
           );
         },
       ),
+    );
+  }
+}
+
+class _IssueCardActions extends StatelessWidget {
+  const _IssueCardActions({
+    required this.githubUrl,
+    required this.issue,
+    required this.isStartingCursorAgent,
+    this.onStartCursorAgent,
+  });
+
+  final String githubUrl;
+  final Issue issue;
+  final bool isStartingCursorAgent;
+  final VoidCallback? onStartCursorAgent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 3,
+      runSpacing: 3,
+      children: [
+        GitHubLinkCopyButton(url: githubUrl),
+        CursorAgentCardButton(
+          issue: issue,
+          isStarting: isStartingCursorAgent,
+          onStart: onStartCursorAgent,
+        ),
+      ],
     );
   }
 }
@@ -611,23 +614,7 @@ class ReviewGroupIssueCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  issue.displayId,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
+              IssueMetaChip(label: issue.displayId, maxWidth: 52),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
@@ -696,25 +683,9 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '#${reference.number}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+                IssueMetaChip(
+                  label: '#${reference.number}',
+                  maxWidth: 48,
                 ),
                 const SizedBox(width: 7),
                 Expanded(
@@ -1177,7 +1148,8 @@ class _SubIssueCreatingBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      constraints: const BoxConstraints(minHeight: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(999),
@@ -1190,11 +1162,11 @@ class _SubIssueCreatingBadge extends StatelessWidget {
             width: 10,
             height: 10,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
+              strokeWidth: 1.8,
               color: Color(0xFFD97706),
             ),
           ),
-          SizedBox(width: 5),
+          SizedBox(width: 4),
           Text(
             '作成中',
             style: TextStyle(
@@ -1219,6 +1191,15 @@ class IssueIdMetaChip extends StatelessWidget {
     return IssueMetaChip(
       label: issueId,
       trailing: IssueIdCopyButton(issueId: issueId),
+      tooltip: 'Issue IDをコピー',
+      onTap: () => unawaited(
+        copyTextToClipboard(
+          context,
+          text: issueId,
+          successMessage: 'Issue IDをコピーしました',
+        ),
+      ),
+      maxWidth: 52,
     );
   }
 }
@@ -1232,9 +1213,8 @@ class ParentIssueMetaChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return IssueMetaChip(
       icon: Icons.account_tree_outlined,
-      label: parentIssue.number > 0
-          ? 'Parent #${parentIssue.number}'
-          : 'Parent',
+      label: parentIssue.number > 0 ? '親 #${parentIssue.number}' : '親',
+      maxWidth: 64,
     );
   }
 }
@@ -1249,6 +1229,7 @@ class CommentMetaChip extends StatelessWidget {
     return IssueMetaChip(
       icon: Icons.chat_bubble_outline_rounded,
       label: '$comments',
+      maxWidth: 28,
     );
   }
 }
@@ -1260,25 +1241,42 @@ class IssueMetaChip extends StatelessWidget {
     this.icon,
     this.leading,
     this.trailing,
+    this.backgroundColor = const Color(0xFFF8FAFC),
+    this.borderColor = const Color(0xFFE2E8F0),
+    this.foregroundColor = const Color(0xFF475569),
+    this.iconColor,
+    this.maxWidth = 92,
+    this.fontWeight = FontWeight.w700,
+    this.tooltip,
+    this.onTap,
   });
 
   final String label;
   final IconData? icon;
   final Widget? leading;
   final Widget? trailing;
+  final Color backgroundColor;
+  final Color borderColor;
+  final Color foregroundColor;
+  final Color? iconColor;
+  final double maxWidth;
+  final FontWeight fontWeight;
+  final String? tooltip;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final content = Container(
+      constraints: const BoxConstraints(minHeight: 22),
       padding: EdgeInsets.fromLTRB(
-        leading == null && icon == null ? 8 : 5,
-        3,
-        6,
-        3,
+        leading == null && icon == null ? 6 : 5,
+        2,
+        trailing == null ? 6 : 3,
+        2,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: backgroundColor,
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -1288,18 +1286,19 @@ class IssueMetaChip extends StatelessWidget {
             leading!,
             const SizedBox(width: 5),
           ] else if (icon != null) ...[
-            Icon(icon, size: 13, color: const Color(0xFF94A3B8)),
+            Icon(icon, size: 12, color: iconColor ?? foregroundColor),
             const SizedBox(width: 4),
           ],
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 96),
+            constraints: BoxConstraints(maxWidth: maxWidth),
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+              style: TextStyle(
+                color: foregroundColor,
+                fontSize: 11,
+                fontWeight: fontWeight,
+                height: 1.05,
               ),
             ),
           ),
@@ -1307,6 +1306,19 @@ class IssueMetaChip extends StatelessWidget {
         ],
       ),
     );
+
+    final interactive = onTap == null
+        ? content
+        : GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: content,
+          );
+    final tooltipMessage = tooltip;
+    if (tooltipMessage == null) {
+      return interactive;
+    }
+    return Tooltip(message: tooltipMessage, child: interactive);
   }
 }
 
@@ -1324,11 +1336,11 @@ class IssueIdCopyButton extends StatelessWidget {
       successMessage: 'Issue IDをコピーしました',
       icon: const Icon(
         Icons.copy_rounded,
-        size: 13,
+        size: 10,
         color: Color(0xFF94A3B8),
       ),
-      iconSize: 13,
-      dimension: 22,
+      iconSize: 10,
+      dimension: 16,
     );
   }
 }
@@ -1345,38 +1357,16 @@ class PullRequestBadge extends StatelessWidget {
         ? 'PR #${latest.number}'
         : '${pullRequests.length} PRs';
     final prUrl = latest.url;
-    return Tooltip(
-      message: prUrl ?? 'Linked pull request',
-      child: GestureDetector(
-        onTap: prUrl != null ? () => unawaited(launchUrlExternal(prUrl)) : null,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.alt_route_rounded,
-                size: 14,
-                color: Color(0xFF0EA5E9),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF0369A1),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return IssueMetaChip(
+      icon: Icons.alt_route_rounded,
+      label: label,
+      tooltip: prUrl ?? 'Linked pull request',
+      onTap: prUrl == null ? null : () => unawaited(launchUrlExternal(prUrl)),
+      backgroundColor: const Color(0xFFEFF6FF),
+      borderColor: const Color(0xFFBFDBFE),
+      foregroundColor: const Color(0xFF0369A1),
+      iconColor: const Color(0xFF0EA5E9),
+      maxWidth: 58,
     );
   }
 }
@@ -1394,8 +1384,8 @@ class GitHubLinkCopyButton extends StatelessWidget {
       text: url,
       successMessage: 'GitHubリンクをコピーしました',
       icon: const _CopyLinkIcon(),
-      iconSize: 14,
-      dimension: 26,
+      iconSize: 13,
+      dimension: 24,
     );
   }
 }
@@ -1407,7 +1397,7 @@ class _CopyLinkIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Icon(
       Symbols.link_2_rounded,
-      size: 17,
+      size: 15,
       color: Color(0xFF475569),
     );
   }
@@ -1506,7 +1496,7 @@ class CursorAgentCardButton extends StatelessWidget {
     final isRunning = issue.cursorAgent?.isActive == true && !hasPullRequest;
     final isBusy = isStarting || isRunning;
     return SizedBox.square(
-      dimension: 26,
+      dimension: 24,
       child: IconButton(
         tooltip: isRunning ? 'Cursor agentを実行中' : 'Cursor agentを開始',
         padding: EdgeInsets.zero,
@@ -1514,10 +1504,10 @@ class CursorAgentCardButton extends StatelessWidget {
         onPressed: isBusy ? null : onStart,
         icon: isBusy
             ? const SizedBox.square(
-                dimension: 14,
+                dimension: 13,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.smart_toy_outlined, size: 16),
+            : const Icon(Icons.smart_toy_outlined, size: 15),
       ),
     );
   }
@@ -1530,55 +1520,9 @@ class RepoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 150),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          repo,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFF475569),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class LabelPill extends StatelessWidget {
-  const LabelPill({super.key, required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 128),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFF475569),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+    return IssueMetaChip(
+      label: repo,
+      maxWidth: 116,
     );
   }
 }
@@ -1610,27 +1554,13 @@ class DueDatePill extends StatelessWidget {
       ),
     };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.event_outlined, size: 12, color: colors.foreground),
-          const SizedBox(width: 3),
-          Text(
-            dueDateLabel(dueDate),
-            style: TextStyle(
-              color: colors.foreground,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
+    return IssueMetaChip(
+      icon: Icons.event_outlined,
+      label: dueDateLabel(dueDate),
+      backgroundColor: colors.background,
+      borderColor: colors.foreground.withValues(alpha: 0.18),
+      foregroundColor: colors.foreground,
+      maxWidth: 64,
     );
   }
 }
@@ -1649,26 +1579,18 @@ class WeightBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: isActual ? const Color(0xFFF0FDF4) : const Color(0xFFEEF2FF),
-          border: Border.all(
-            color: isActual ? const Color(0xFFBBF7D0) : const Color(0xFFC7D2FE),
-          ),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          'W$value',
-          style: TextStyle(
-            color: isActual ? const Color(0xFF15803D) : const Color(0xFF4338CA),
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
+    return IssueMetaChip(
+      label: 'W$value',
+      tooltip: tooltip,
+      backgroundColor: isActual
+          ? const Color(0xFFF0FDF4)
+          : const Color(0xFFEEF2FF),
+      borderColor: isActual ? const Color(0xFFBBF7D0) : const Color(0xFFC7D2FE),
+      foregroundColor: isActual
+          ? const Color(0xFF15803D)
+          : const Color(0xFF4338CA),
+      maxWidth: 42,
+      fontWeight: FontWeight.w900,
     );
   }
 }

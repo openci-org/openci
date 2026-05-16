@@ -803,30 +803,15 @@ class ReviewGroupPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.09),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
+    return IssueMetaChip(
+      icon: icon,
+      label: label,
+      backgroundColor: color.withValues(alpha: 0.09),
+      borderColor: color.withValues(alpha: 0.22),
+      foregroundColor: color,
+      iconColor: color,
+      fontWeight: FontWeight.w900,
+      maxWidth: 72,
     );
   }
 }
