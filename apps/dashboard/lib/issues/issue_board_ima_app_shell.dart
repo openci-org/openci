@@ -12,7 +12,6 @@ const _compactColumnCollapsedLimit = 0;
 const _mobileDragStartDelay = Duration(milliseconds: 420);
 const _defaultDailyWeightTarget = 20;
 const _validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
-const _openCiRepositoryUrl = 'https://github.com/openci-org/openci';
 
 enum BoardViewMode { standard, overview }
 
