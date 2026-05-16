@@ -25,6 +25,7 @@ enum _CompactBoardDestination {
   workflows,
   variables,
   storeRelease,
+  settings,
 }
 
 const _boardNavigationDestinations = [
@@ -34,6 +35,7 @@ const _boardNavigationDestinations = [
   _CompactBoardDestination.workflows,
   _CompactBoardDestination.variables,
   _CompactBoardDestination.storeRelease,
+  _CompactBoardDestination.settings,
 ];
 
 extension _CompactBoardDestinationLabel on _CompactBoardDestination {
@@ -44,6 +46,7 @@ extension _CompactBoardDestinationLabel on _CompactBoardDestination {
     _CompactBoardDestination.workflows => 'CI/CD設定',
     _CompactBoardDestination.variables => '変数',
     _CompactBoardDestination.storeRelease => 'ストアリリース',
+    _CompactBoardDestination.settings => '設定',
   };
 
   IconData get icon => switch (this) {
@@ -53,6 +56,7 @@ extension _CompactBoardDestinationLabel on _CompactBoardDestination {
     _CompactBoardDestination.workflows => Icons.schema_rounded,
     _CompactBoardDestination.variables => Icons.key_rounded,
     _CompactBoardDestination.storeRelease => Icons.rocket_launch_outlined,
+    _CompactBoardDestination.settings => Icons.settings_outlined,
   };
 
   IconData get selectedIcon => switch (this) {
@@ -62,6 +66,7 @@ extension _CompactBoardDestinationLabel on _CompactBoardDestination {
     _CompactBoardDestination.workflows => Icons.schema_rounded,
     _CompactBoardDestination.variables => Icons.key_rounded,
     _CompactBoardDestination.storeRelease => Icons.rocket_launch_rounded,
+    _CompactBoardDestination.settings => Icons.settings_rounded,
   };
 }
 

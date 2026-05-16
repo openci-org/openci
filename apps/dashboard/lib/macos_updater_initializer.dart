@@ -13,9 +13,11 @@ const _macosUpdateCheckIntervalHours = int.fromEnvironment(
 );
 
 bool get isMacosUpdaterAvailable {
-  return !kIsWeb &&
-      !kDebugMode &&
-      defaultTargetPlatform == TargetPlatform.macOS;
+  return isMacosUpdaterSupportedPlatform && !kDebugMode;
+}
+
+bool get isMacosUpdaterSupportedPlatform {
+  return !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
 }
 
 Future<void> initializeMacosUpdater() async {
@@ -31,16 +33,24 @@ Future<void> initializeMacosUpdater() async {
   }
 }
 
-Future<void> checkForMacosUpdates() async {
-  if (!isMacosUpdaterAvailable) {
+Future<MacosUpdaterCheckResult> checkForMacosUpdates() async {
+  if (!isMacosUpdaterSupportedPlatform) {
     throw UnsupportedError(
-      'macOS updater is only available in macOS release builds.',
+      'macOS updater is only available on macOS.',
     );
   }
 
   final updater = MacosUpdater();
   await _configureMacosUpdater(updater);
+  final result = updater.checkResults.first.timeout(
+    const Duration(seconds: 45),
+    onTimeout: () => const MacosUpdaterCheckResult(
+      type: MacosUpdaterCheckResultType.failed,
+      message: 'Sparkle did not report an update check result.',
+    ),
+  );
   await updater.checkForUpdates();
+  return result;
 }
 
 Future<void> _configureMacosUpdater(MacosUpdater updater) async {
