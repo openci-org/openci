@@ -47,6 +47,7 @@ import {
   closedStatusId,
   errorMessage,
   errorStack,
+  githubMergePreconditionMessage,
   inProgressStatusIds,
   issueWeightModel,
   median,
@@ -2287,6 +2288,8 @@ export const getIssuePullRequestDiff = onCall<
       url: asString(pullRequest.html_url, asString(linkedPullRequest.pullRequest.url)),
       state: asString(pullRequest.state, asString(linkedPullRequest.pullRequest.state, "open")),
       merged: asBoolean(pullRequest.merged, asBoolean(linkedPullRequest.pullRequest.merged)),
+      mergeable: typeof pullRequest.mergeable === "boolean" ? pullRequest.mergeable : null,
+      mergeableState: asString(pullRequest.mergeable_state),
       branch: asString(pullRequest.head?.ref, asString(linkedPullRequest.pullRequest.branch)),
       additions: asNumber(pullRequest.additions, fallbackAdditions),
       deletions: asNumber(pullRequest.deletions, fallbackDeletions),
@@ -2592,6 +2595,10 @@ export const mergeIssuePullRequest = onCall<
   } catch (error) {
     if (error instanceof HttpsError) {
       throw error;
+    }
+    const preconditionMessage = githubMergePreconditionMessage(error);
+    if (preconditionMessage !== null) {
+      throw new HttpsError("failed-precondition", preconditionMessage);
     }
     logger.error("Failed to merge issue pull request", {
       workspaceId,

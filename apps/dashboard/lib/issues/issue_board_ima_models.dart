@@ -601,6 +601,8 @@ class IssuePullRequestDiff {
     required this.url,
     required this.state,
     required this.merged,
+    this.mergeable,
+    this.mergeableState = '',
     required this.branch,
     required this.additions,
     required this.deletions,
@@ -620,6 +622,8 @@ class IssuePullRequestDiff {
       url: _asString(data['url']),
       state: _asString(data['state'], 'open'),
       merged: data['merged'] == true,
+      mergeable: data['mergeable'] is bool ? data['mergeable'] as bool : null,
+      mergeableState: _asString(data['mergeableState']),
       branch: _asString(data['branch']),
       additions: _asInt(data['additions']),
       deletions: _asInt(data['deletions']),
@@ -644,6 +648,8 @@ class IssuePullRequestDiff {
   final String url;
   final String state;
   final bool merged;
+  final bool? mergeable;
+  final String mergeableState;
   final String branch;
   final int additions;
   final int deletions;

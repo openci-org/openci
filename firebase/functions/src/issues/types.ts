@@ -158,6 +158,8 @@ export interface GetIssuePullRequestDiffResponse {
   url: string;
   state: string;
   merged: boolean;
+  mergeable: boolean | null;
+  mergeableState: string;
   branch: string;
   additions: number;
   deletions: number;
@@ -292,6 +294,8 @@ export interface GitHubPullRequestResponseItem {
   html_url?: unknown;
   state?: unknown;
   merged?: unknown;
+  mergeable?: unknown;
+  mergeable_state?: unknown;
   created_at?: unknown;
   additions?: unknown;
   deletions?: unknown;

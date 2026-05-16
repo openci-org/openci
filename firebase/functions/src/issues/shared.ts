@@ -30,6 +30,35 @@ export function errorMessage(error: unknown): string {
 export function errorStack(error: unknown): string | undefined {
   return error instanceof Error ? error.stack : undefined;
 }
+export function githubRestErrorStatus(error: unknown): number | null {
+  const match = /^GitHub request failed: (?<status>\d{3}) /u.exec(errorMessage(error));
+  const status = Number(match?.groups?.status);
+  return Number.isInteger(status) ? status : null;
+}
+export function githubRestErrorResponseMessage(error: unknown): string {
+  const match = /^GitHub request failed: \d{3} (?<body>[\s\S]*)$/u.exec(errorMessage(error));
+  const body = match?.groups?.body?.trim() ?? "";
+  if (body.length === 0) {
+    return "";
+  }
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown };
+    return typeof parsed.message === "string" ? parsed.message : body;
+  } catch {
+    return body;
+  }
+}
+export function githubMergePreconditionMessage(error: unknown): string | null {
+  const status = githubRestErrorStatus(error);
+  if (status !== 405 && status !== 409) {
+    return null;
+  }
+  const message = githubRestErrorResponseMessage(error);
+  if (message.toLowerCase().includes("merge conflicts")) {
+    return "Pull request has merge conflicts. Resolve the conflicts and try again.";
+  }
+  return message.length > 0 ? message : "Pull request is not mergeable right now.";
+}
 export function asBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
 }

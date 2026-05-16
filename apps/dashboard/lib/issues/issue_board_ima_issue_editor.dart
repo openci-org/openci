@@ -61,6 +61,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   var _isStartingCursorAgent = false;
   var _isCreatingSubIssue = false;
   final List<Issue> _issueStack = [];
+  final Map<String, String> _mergeConflictMessagesByPullRequest = {};
   Issue? _liveIssue;
   IssuePullRequest? _selectedPullRequest;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
@@ -401,6 +402,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       if (!mounted) {
         return merged;
       }
+      setState(() {
+        _mergeConflictMessagesByPullRequest.remove(
+          _pullRequestMergeConflictKey(issue.repo, pullRequest.number),
+        );
+      });
       _showOverlaySnackBar(
         context,
         merged
@@ -410,7 +416,22 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       return merged;
     } catch (error) {
       if (mounted) {
-        _showFloatingSnackBar(context, _friendlyError(error));
+        final conflictMessage = _pullRequestMergeConflictMessage(error);
+        if (conflictMessage == null) {
+          _showFloatingSnackBar(context, _friendlyError(error));
+        } else {
+          setState(() {
+            _mergeConflictMessagesByPullRequest[_pullRequestMergeConflictKey(
+                  issue.repo,
+                  pullRequest.number,
+                )] =
+                conflictMessage;
+          });
+          _showOverlaySnackBar(
+            context,
+            'PR #${pullRequest.number}にconflictがあります',
+          );
+        }
       }
       return false;
     }
@@ -547,6 +568,8 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                     pullRequest: pullRequest,
                   ),
                 ),
+                mergeConflictMessagesByPullRequest:
+                    _mergeConflictMessagesByPullRequest,
               ),
             ],
             const SizedBox(height: 14),
@@ -632,6 +655,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             pullRequest: selectedPullRequest,
             buildStatus:
                 widget.buildStatusesByPullRequest[_buildStatusKey(
+                  currentIssue.repo,
+                  selectedPullRequest.number,
+                )],
+            mergeConflictMessage:
+                _mergeConflictMessagesByPullRequest[_pullRequestMergeConflictKey(
                   currentIssue.repo,
                   selectedPullRequest.number,
                 )],
@@ -1453,11 +1481,13 @@ class PullRequestReviewPanel extends StatelessWidget {
     required this.issue,
     required this.onOpenDiff,
     required this.onMergePullRequest,
+    required this.mergeConflictMessagesByPullRequest,
   });
 
   final Issue issue;
   final ValueChanged<IssuePullRequest> onOpenDiff;
   final ValueChanged<IssuePullRequest> onMergePullRequest;
+  final Map<String, String> mergeConflictMessagesByPullRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -1498,6 +1528,11 @@ class PullRequestReviewPanel extends StatelessWidget {
             PullRequestReviewTile(
               repository: issue.repo,
               pullRequest: entry.$2,
+              mergeConflictMessage:
+                  mergeConflictMessagesByPullRequest[_pullRequestMergeConflictKey(
+                    issue.repo,
+                    entry.$2.number,
+                  )],
               onOpenDiff: () => onOpenDiff(entry.$2),
               onMerge: entry.$2.merged || entry.$2.state.toLowerCase() != 'open'
                   ? null
@@ -1516,12 +1551,14 @@ class PullRequestReviewTile extends StatelessWidget {
     super.key,
     required this.repository,
     required this.pullRequest,
+    this.mergeConflictMessage,
     required this.onOpenDiff,
     required this.onMerge,
   });
 
   final String repository;
   final IssuePullRequest pullRequest;
+  final String? mergeConflictMessage;
   final VoidCallback onOpenDiff;
   final VoidCallback? onMerge;
 
@@ -1604,6 +1641,10 @@ class PullRequestReviewTile extends StatelessWidget {
               ),
             ],
           ),
+          if (mergeConflictMessage != null) ...[
+            const SizedBox(height: 10),
+            PullRequestMergeConflictBanner(message: mergeConflictMessage!),
+          ],
           const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -1733,12 +1774,68 @@ class PullRequestStatePill extends StatelessWidget {
   }
 }
 
+class PullRequestMergeConflictBanner extends StatelessWidget {
+  const PullRequestMergeConflictBanner({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFC2410C),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Conflictがあります',
+                  style: TextStyle(
+                    color: Color(0xFF9A3412),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: Color(0xFF7C2D12),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PullRequestDiffSheet extends StatelessWidget {
   const PullRequestDiffSheet({
     super.key,
     required this.issue,
     required this.pullRequest,
     this.buildStatus,
+    this.mergeConflictMessage,
     required this.loadDiff,
     required this.onMerge,
   });
@@ -1746,6 +1843,7 @@ class PullRequestDiffSheet extends StatelessWidget {
   final Issue issue;
   final IssuePullRequest pullRequest;
   final CardBuildStatus? buildStatus;
+  final String? mergeConflictMessage;
   final Future<IssuePullRequestDiff> Function() loadDiff;
   final Future<bool> Function()? onMerge;
 
@@ -1764,6 +1862,7 @@ class PullRequestDiffSheet extends StatelessWidget {
             issue: issue,
             pullRequest: pullRequest,
             buildStatus: buildStatus,
+            mergeConflictMessage: mergeConflictMessage,
             loadDiff: loadDiff,
             onMerge: onMerge,
             onClose: () => Navigator.of(context).pop(),
@@ -1783,6 +1882,7 @@ class PullRequestDiffView extends StatefulWidget {
     required this.issue,
     required this.pullRequest,
     this.buildStatus,
+    this.mergeConflictMessage,
     required this.loadDiff,
     required this.onMerge,
     required this.onClose,
@@ -1794,6 +1894,7 @@ class PullRequestDiffView extends StatefulWidget {
   final Issue issue;
   final IssuePullRequest pullRequest;
   final CardBuildStatus? buildStatus;
+  final String? mergeConflictMessage;
   final Future<IssuePullRequestDiff> Function() loadDiff;
   final Future<bool> Function()? onMerge;
   final VoidCallback onClose;
@@ -1887,6 +1988,7 @@ class _PullRequestDiffViewState extends State<PullRequestDiffView> {
               pullRequest: widget.pullRequest,
               diff: diff,
               buildStatus: widget.buildStatus,
+              mergeConflictMessage: widget.mergeConflictMessage,
               isMerging: _isMerging,
               merged: _merged || (diff?.merged ?? false),
               onMerge: widget.onMerge == null || _merged ? null : _merge,
@@ -1921,6 +2023,7 @@ class _PullRequestDiffHeader extends StatelessWidget {
     required this.pullRequest,
     required this.diff,
     required this.buildStatus,
+    required this.mergeConflictMessage,
     required this.isMerging,
     required this.merged,
     required this.onMerge,
@@ -1934,6 +2037,7 @@ class _PullRequestDiffHeader extends StatelessWidget {
   final IssuePullRequest pullRequest;
   final IssuePullRequestDiff? diff;
   final CardBuildStatus? buildStatus;
+  final String? mergeConflictMessage;
   final bool isMerging;
   final bool merged;
   final VoidCallback? onMerge;
@@ -1948,6 +2052,9 @@ class _PullRequestDiffHeader extends StatelessWidget {
     final url = diff?.url.isNotEmpty == true ? diff!.url : pullRequest.url;
     final headerCi = diff?.ci;
     final headerBuildStatus = buildStatus;
+    final activeMergeConflictMessage =
+        mergeConflictMessage ?? _pullRequestMergeConflictMessageFromDiff(diff);
+    final hasMergeConflict = activeMergeConflictMessage != null;
     return Container(
       padding: EdgeInsets.fromLTRB(20, showSheetHandle ? 12 : 16, 12, 14),
       decoration: const BoxDecoration(
@@ -2026,6 +2133,10 @@ class _PullRequestDiffHeader extends StatelessWidget {
               buildStatus: headerBuildStatus,
             ),
           ],
+          if (activeMergeConflictMessage != null) ...[
+            const SizedBox(height: 12),
+            PullRequestMergeConflictBanner(message: activeMergeConflictMessage),
+          ],
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -2043,22 +2154,33 @@ class _PullRequestDiffHeader extends StatelessWidget {
                   buildStatus?.allChecksPassed == true ||
                   (buildStatus == null && ci?.allPassed == true);
               final mergeButton = FilledButton.icon(
-                onPressed: merged || isMerging ? null : onMerge,
+                onPressed: merged || isMerging || hasMergeConflict
+                    ? null
+                    : onMerge,
                 icon: isMerging
                     ? const SizedBox.square(
                         dimension: 17,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Icon(_mergeButtonIcon(ci, buildStatus), size: 17),
+                    : Icon(
+                        hasMergeConflict
+                            ? Icons.warning_amber_rounded
+                            : _mergeButtonIcon(ci, buildStatus),
+                        size: 17,
+                      ),
                 label: Text(
                   merged
                       ? 'マージ済み'
+                      : hasMergeConflict
+                      ? 'Conflictあり'
                       : ciPassed
                       ? 'CI pass・マージ'
                       : _mergeButtonLabel(ci, buildStatus),
                 ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _mergeButtonColor(ci, buildStatus),
+                  backgroundColor: hasMergeConflict
+                      ? const Color(0xFFD97706)
+                      : _mergeButtonColor(ci, buildStatus),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(0xFFE2E8F0),
                   disabledForegroundColor: const Color(0xFF64748B),
@@ -3334,6 +3456,35 @@ String? diffLanguageForFilename(String filename) {
     'yaml' || 'yml' => 'yaml',
     _ => null,
   };
+}
+
+String _pullRequestMergeConflictKey(String repository, int number) {
+  return '$repository#$number';
+}
+
+String? _pullRequestMergeConflictMessage(Object error) {
+  if (error is! FirebaseFunctionsException) {
+    return null;
+  }
+  final message = error.message ?? '';
+  final normalized = message.toLowerCase();
+  if (error.code != 'failed-precondition' ||
+      !normalized.contains('merge conflict')) {
+    return null;
+  }
+  return 'このPRはbase branchとconflictしています。GitHubでconflictを解消してから、もう一度マージしてください。';
+}
+
+String? _pullRequestMergeConflictMessageFromDiff(IssuePullRequestDiff? diff) {
+  if (diff == null) {
+    return null;
+  }
+  final mergeableState = diff.mergeableState.toLowerCase();
+  if (mergeableState == 'dirty' ||
+      (diff.mergeable == false && mergeableState.contains('conflict'))) {
+    return 'このPRはbase branchとconflictしています。GitHubでconflictを解消してから、もう一度マージしてください。';
+  }
+  return null;
 }
 
 class _PullRequestDiffNotice extends StatelessWidget {
