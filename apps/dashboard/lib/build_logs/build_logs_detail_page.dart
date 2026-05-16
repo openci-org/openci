@@ -1925,8 +1925,8 @@ class _DetailLogLine extends HookWidget {
               _levelIconWidget(levelIcon, levelColor),
               const SizedBox(width: 8),
               Expanded(
-                child: SelectableText(
-                  log.message,
+                child: _HorizontalLogSelectableText(
+                  text: log.message,
                   style: TextStyle(
                     fontSize: 13,
                     fontFamily: 'monospace',
@@ -1975,16 +1975,14 @@ class _DetailLogLine extends HookWidget {
                       _levelIconWidget(levelIcon, levelColor),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          lines.first,
+                        child: _HorizontalLogText(
+                          text: lines.first,
                           style: TextStyle(
                             fontSize: 13,
                             fontFamily: 'monospace',
                             color: levelColor,
                             height: 1.5,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2047,8 +2045,8 @@ class _DetailLogLine extends HookWidget {
                   ),
                 ),
                 padding: const EdgeInsets.all(14),
-                child: SelectableText(
-                  log.message,
+                child: _HorizontalLogSelectableText(
+                  text: log.message,
                   style: TextStyle(
                     fontSize: 13,
                     fontFamily: 'monospace',
@@ -2099,6 +2097,50 @@ class _DetailLogLine extends HookWidget {
           size: log.level == 'info' ? 5 : 13,
           color: color.withValues(alpha: 0.6),
         ),
+      ),
+    );
+  }
+}
+
+class _HorizontalLogText extends StatelessWidget {
+  const _HorizontalLogText({
+    required this.text,
+    required this.style,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Text(
+        text,
+        softWrap: false,
+        style: style,
+      ),
+    );
+  }
+}
+
+class _HorizontalLogSelectableText extends StatelessWidget {
+  const _HorizontalLogSelectableText({
+    required this.text,
+    required this.style,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SelectableText(
+        text,
+        maxLines: null,
+        style: style,
       ),
     );
   }
