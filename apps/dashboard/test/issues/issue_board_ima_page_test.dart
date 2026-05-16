@@ -280,5 +280,76 @@ void main() {
       expect(find.byType(PullRequestDiffView), findsNothing);
       expect(detailsButton, findsOneWidget);
     });
+
+    testWidgets('creates a pull request from the recent branch dialog', (
+      tester,
+    ) async {
+      String? createdHead;
+      String? openedIssueId;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RecentRemoteBranchesMetric(
+              isCompact: false,
+              loadBranches: () async {
+                return const WorkspaceRecentBranchList(
+                  repositories: 1,
+                  branches: [
+                    WorkspaceRecentBranch(
+                      repository: 'openci-org/openci',
+                      name: 'IMA-1973-create-pr',
+                      sha: 'abc123456789',
+                      base: 'develop',
+                      issueId: 'issue-1973',
+                      issueKey: 'IMA-1973',
+                      issueTitle: 'PRの作成もOpenCI上で行いたい。',
+                      issueStatusId: 'review',
+                    ),
+                  ],
+                );
+              },
+              onCreatePullRequest: (branch) async {
+                createdHead = branch.name;
+                return const IssuePullRequest(
+                  number: 1974,
+                  title: 'PRの作成もOpenCI上で行いたい。 IMA-1973',
+                  state: 'open',
+                  merged: false,
+                  branch: 'IMA-1973-create-pr',
+                );
+              },
+              onOpenIssue: (issueId) {
+                openedIssueId = issueId;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.text('ブランチ'), findsOneWidget);
+      expect(find.text('1個'), findsOneWidget);
+      expect(find.text('IMA-1973-create-pr'), findsNothing);
+
+      await tester.tap(find.text('ブランチ'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('最近のブランチ'), findsOneWidget);
+      expect(find.text('IMA-1973-create-pr'), findsOneWidget);
+
+      await tester.tap(find.text('IMA-1973 PRの作成もOpenCI上で行いたい。'));
+      await tester.pumpAndSettle();
+      expect(openedIssueId, 'issue-1973');
+
+      await tester.tap(find.text('ブランチ'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('PR作成'));
+      await tester.pumpAndSettle();
+
+      expect(createdHead, 'IMA-1973-create-pr');
+      expect(find.text('作成済み'), findsOneWidget);
+    });
   });
 }

@@ -8,6 +8,7 @@ class BoardHeader extends StatelessWidget {
     required this.dailyProgressStats,
     required this.onChangeDailyWeightTarget,
     required this.onWorkerOverviewTap,
+    this.recentBranches,
   });
 
   final int openIssues;
@@ -15,6 +16,7 @@ class BoardHeader extends StatelessWidget {
   final DailyProgressStats dailyProgressStats;
   final VoidCallback onChangeDailyWeightTarget;
   final VoidCallback onWorkerOverviewTap;
+  final Widget? recentBranches;
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +62,16 @@ class BoardHeader extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 820),
+                  constraints: BoxConstraints(
+                    maxWidth: recentBranches == null ? 820 : 940,
+                  ),
                   child: BoardOverviewPanel(
                     openIssues: openIssues,
                     closedIssues: closedIssues,
                     dailyProgressStats: dailyProgressStats,
                     onDailyProgressTap: onChangeDailyWeightTarget,
                     onWorkerOverviewTap: onWorkerOverviewTap,
+                    recentBranches: recentBranches,
                   ),
                 ),
               ),
@@ -247,6 +252,7 @@ class BoardOverviewPanel extends StatelessWidget {
     required this.dailyProgressStats,
     required this.onDailyProgressTap,
     required this.onWorkerOverviewTap,
+    this.recentBranches,
   });
 
   final int openIssues;
@@ -254,6 +260,7 @@ class BoardOverviewPanel extends StatelessWidget {
   final DailyProgressStats dailyProgressStats;
   final VoidCallback onDailyProgressTap;
   final VoidCallback onWorkerOverviewTap;
+  final Widget? recentBranches;
 
   @override
   Widget build(BuildContext context) {
@@ -307,6 +314,10 @@ class BoardOverviewPanel extends StatelessWidget {
             ],
             const _OverviewDivider(),
             WorkerOverviewMetric(onTap: onWorkerOverviewTap),
+            if (recentBranches != null) ...[
+              const _OverviewDivider(),
+              recentBranches!,
+            ],
           ],
         ),
       ),

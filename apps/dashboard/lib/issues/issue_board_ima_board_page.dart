@@ -937,6 +937,54 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return {'issueId': subIssueRef.id, 'number': 0, 'url': ''};
   }
 
+  Future<IssuePullRequest> _createIssuePullRequest({
+    required String issueId,
+    required String repository,
+    required String head,
+    required String base,
+    required String title,
+    required String body,
+  }) async {
+    final data = await _callFunction(createIssuePullRequestFunction, {
+      'workspaceId': _workspaceId,
+      'issueId': issueId,
+      'repository': repository,
+      'head': head,
+      if (base.isNotEmpty) 'base': base,
+      if (title.isNotEmpty) 'title': title,
+      if (body.isNotEmpty) 'body': body,
+      'draft': false,
+    });
+    return IssuePullRequest.fromMap(_asMap(data['pullRequest']));
+  }
+
+  Future<WorkspaceRecentBranchList> _loadWorkspaceRecentBranches() async {
+    final data = await _callFunction(listWorkspaceRecentBranchesFunction, {
+      'workspaceId': _workspaceId,
+      'limit': 40,
+    });
+    return WorkspaceRecentBranchList.fromMap(_asMap(data));
+  }
+
+  Future<IssuePullRequest> _createPullRequestFromRecentBranch(
+    WorkspaceRecentBranch branch,
+  ) async {
+    if (!branch.hasIssue) {
+      throw StateError('issueに紐づくbranchを選んでください');
+    }
+
+    final pullRequest = await _createIssuePullRequest(
+      issueId: branch.issueId,
+      repository: branch.repository,
+      head: branch.name,
+      base: branch.base,
+      title: '',
+      body: '',
+    );
+    _showSavedSnackBar('PR #${pullRequest.number}を作成しました');
+    return pullRequest;
+  }
+
   int _issueNumberFromDisplayId(String displayId) {
     if (!displayId.startsWith('#')) {
       return 0;
@@ -1301,6 +1349,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         _boardViewMode ??
         (isCompactLayout ? BoardViewMode.overview : BoardViewMode.standard);
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
+    final canShowRecentBranches = isConnected && _enabledRepoCount > 0;
     final onSignOut = FirebaseAuth.instance.signOut;
     void onRunsTap() =>
         _selectCompactDestination(_CompactBoardDestination.runs);
@@ -1427,6 +1476,22 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                 ),
                               ),
                               onWorkerOverviewTap: onWorkersTap,
+                              recentBranches: canShowRecentBranches
+                                  ? RecentRemoteBranchesMetric(
+                                      key: ValueKey(
+                                        'overview-${_enabledRepositoryOptions.join('|')}',
+                                      ),
+                                      isCompact: false,
+                                      isEmbedded: true,
+                                      loadBranches:
+                                          _loadWorkspaceRecentBranches,
+                                      onCreatePullRequest:
+                                          _createPullRequestFromRecentBranch,
+                                      onOpenIssue: (issueId) => unawaited(
+                                        _openEditIssueDialog(issueId),
+                                      ),
+                                    )
+                                  : null,
                             ),
                           if (_isBootstrapping) const LinearProgressIndicator(),
                           if (isCompactLayout)
@@ -1458,6 +1523,19 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                             onStoreReleaseTap: onStoreReleaseTap,
                             showNavigationActions: isCompactLayout,
                           ),
+                          if (isCompactLayout && canShowRecentBranches)
+                            RecentRemoteBranchesMetric(
+                              key: ValueKey(
+                                _enabledRepositoryOptions.join('|'),
+                              ),
+                              isCompact: isCompactLayout,
+                              isEmbedded: false,
+                              loadBranches: _loadWorkspaceRecentBranches,
+                              onCreatePullRequest:
+                                  _createPullRequestFromRecentBranch,
+                              onOpenIssue: (issueId) =>
+                                  unawaited(_openEditIssueDialog(issueId)),
+                            ),
                           if (_loadError != null)
                             Padding(
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -1630,6 +1708,637 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       ),
     );
   }
+}
+
+class RecentRemoteBranchesMetric extends StatefulWidget {
+  const RecentRemoteBranchesMetric({
+    super.key,
+    required this.isCompact,
+    required this.loadBranches,
+    required this.onCreatePullRequest,
+    required this.onOpenIssue,
+    this.isEmbedded = false,
+  });
+
+  final bool isCompact;
+  final bool isEmbedded;
+  final WorkspaceRecentBranchLoadCallback loadBranches;
+  final WorkspaceRecentBranchCreatePullRequestCallback onCreatePullRequest;
+  final ValueChanged<String> onOpenIssue;
+
+  @override
+  State<RecentRemoteBranchesMetric> createState() =>
+      _RecentRemoteBranchesMetricState();
+}
+
+class _RecentRemoteBranchesMetricState
+    extends State<RecentRemoteBranchesMetric> {
+  late Future<WorkspaceRecentBranchList> _branchesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _branchesFuture = widget.loadBranches();
+  }
+
+  Future<WorkspaceRecentBranchList> _reloadBranches() {
+    final future = widget.loadBranches();
+    if (mounted) {
+      setState(() => _branchesFuture = future);
+    }
+    return future;
+  }
+
+  Future<void> _openBranchesDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _RecentRemoteBranchesDialog(
+        initialBranchesFuture: _branchesFuture,
+        reloadBranches: _reloadBranches,
+        onCreatePullRequest: widget.onCreatePullRequest,
+        onOpenIssue: (issueId) {
+          Navigator.of(dialogContext).maybePop();
+          widget.onOpenIssue(issueId);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<WorkspaceRecentBranchList>(
+      future: _branchesFuture,
+      builder: (context, snapshot) {
+        final hasError = snapshot.hasError;
+        final isLoading = snapshot.connectionState != ConnectionState.done;
+        final branches = snapshot.data?.branches ?? const [];
+        final latestPushedAt = _latestBranchPushedAt(branches);
+        final value = isLoading || hasError ? '-' : '${branches.length}個';
+        final detail = isLoading
+            ? '読み込み中'
+            : hasError
+            ? '読み込みエラー'
+            : branches.isEmpty
+            ? '最近なし'
+            : '最終更新 ${_formatRecentBranchPushedAt(latestPushedAt)}';
+        final valueColor = hasError
+            ? const Color(0xFFDC2626)
+            : branches.isEmpty
+            ? const Color(0xFF64748B)
+            : const Color(0xFF2563EB);
+
+        if (widget.isEmbedded) {
+          return Tooltip(
+            message: '最近 push されたブランチからPRを作成',
+            child: _RecentBranchesTapTarget(
+              onTap: () => unawaited(_openBranchesDialog()),
+              child: OverviewMetric(
+                label: 'ブランチ',
+                value: value,
+                detail: detail,
+                valueColor: valueColor,
+                width: 112,
+              ),
+            ),
+          );
+        }
+
+        final horizontalPadding = widget.isCompact ? 12.0 : 20.0;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            0,
+            horizontalPadding,
+            8,
+          ),
+          child: Material(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => unawaited(_openBranchesDialog()),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.account_tree_rounded,
+                      color: Color(0xFF2563EB),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'ブランチ',
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Row(
+                            children: [
+                              Text(
+                                value,
+                                style: TextStyle(
+                                  color: valueColor,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  detail,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RecentBranchesTapTarget extends StatelessWidget {
+  const _RecentBranchesTapTarget({required this.onTap, required this.child});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(onTap: onTap, child: child);
+  }
+}
+
+class _RecentRemoteBranchesDialog extends StatefulWidget {
+  const _RecentRemoteBranchesDialog({
+    required this.initialBranchesFuture,
+    required this.reloadBranches,
+    required this.onCreatePullRequest,
+    required this.onOpenIssue,
+  });
+
+  final Future<WorkspaceRecentBranchList> initialBranchesFuture;
+  final WorkspaceRecentBranchLoadCallback reloadBranches;
+  final WorkspaceRecentBranchCreatePullRequestCallback onCreatePullRequest;
+  final ValueChanged<String> onOpenIssue;
+
+  @override
+  State<_RecentRemoteBranchesDialog> createState() =>
+      _RecentRemoteBranchesDialogState();
+}
+
+class _RecentRemoteBranchesDialogState
+    extends State<_RecentRemoteBranchesDialog> {
+  late Future<WorkspaceRecentBranchList> _branchesFuture;
+  final Set<String> _createdBranchKeys = {};
+  var _creatingBranchKey = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _branchesFuture = widget.initialBranchesFuture;
+  }
+
+  void _reload() {
+    setState(() {
+      _branchesFuture = widget.reloadBranches();
+      _createdBranchKeys.clear();
+      _creatingBranchKey = '';
+    });
+  }
+
+  Future<void> _createPullRequest(WorkspaceRecentBranch branch) async {
+    if (_creatingBranchKey.isNotEmpty || !branch.hasIssue) {
+      return;
+    }
+
+    setState(() => _creatingBranchKey = branch.key);
+    try {
+      await widget.onCreatePullRequest(branch);
+      if (mounted) {
+        setState(() => _createdBranchKeys.add(branch.key));
+      }
+    } catch (error) {
+      if (mounted) {
+        showResponsiveSnackBar(
+          context,
+          content: Text(_friendlyError(error)),
+          duration: const Duration(milliseconds: 1800),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _creatingBranchKey = '');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final maxHeight = math.min(680.0, math.max(360.0, size.height - 48));
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 10, 12),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.account_tree_rounded,
+                    color: Color(0xFF2563EB),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '最近のブランチ',
+                          style: TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          'remote に push されたブランチからPRを作成',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '再読み込み',
+                    onPressed: _reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                  IconButton(
+                    tooltip: '閉じる',
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+            Expanded(
+              child: FutureBuilder<WorkspaceRecentBranchList>(
+                future: _branchesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(
+                      child: SizedBox.square(
+                        dimension: 28,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return _RecentRemoteBranchesEmptyState(
+                      icon: Icons.error_outline_rounded,
+                      title: 'ブランチを読み込めませんでした',
+                      actionLabel: '再試行',
+                      onAction: _reload,
+                    );
+                  }
+
+                  final branches = snapshot.data?.branches ?? const [];
+                  if (branches.isEmpty) {
+                    return _RecentRemoteBranchesEmptyState(
+                      icon: Icons.account_tree_outlined,
+                      title: '最近 push されたブランチはありません',
+                      actionLabel: '再読み込み',
+                      onAction: _reload,
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    itemCount: branches.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final branch = branches[index];
+                      return _RecentRemoteBranchDialogRow(
+                        branch: branch,
+                        isCreating: _creatingBranchKey == branch.key,
+                        isCreated: _createdBranchKeys.contains(branch.key),
+                        isAnyCreating: _creatingBranchKey.isNotEmpty,
+                        onCreate: () => unawaited(_createPullRequest(branch)),
+                        onOpenIssue: branch.hasIssue
+                            ? () => widget.onOpenIssue(branch.issueId)
+                            : null,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentRemoteBranchDialogRow extends StatelessWidget {
+  const _RecentRemoteBranchDialogRow({
+    required this.branch,
+    required this.isCreating,
+    required this.isCreated,
+    required this.isAnyCreating,
+    required this.onCreate,
+    required this.onOpenIssue,
+  });
+
+  final WorkspaceRecentBranch branch;
+  final bool isCreating;
+  final bool isCreated;
+  final bool isAnyCreating;
+  final VoidCallback onCreate;
+  final VoidCallback? onOpenIssue;
+
+  @override
+  Widget build(BuildContext context) {
+    final canCreate = branch.hasIssue && !isAnyCreating && !isCreated;
+    final buttonLabel = isCreated
+        ? '作成済み'
+        : isCreating
+        ? '作成中'
+        : branch.hasIssue
+        ? 'PR作成'
+        : 'issueなし';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 500;
+          final details = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.account_tree_rounded,
+                    size: 16,
+                    color: Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Tooltip(
+                      message: '${branch.repository}:${branch.name}',
+                      child: Text(
+                        branch.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '${branch.repository} / base ${branch.base} / ${_formatRecentBranchPushedAt(branch.pushedAt)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (branch.hasIssue) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Tooltip(
+                    message: branch.issueTitle,
+                    child: InkWell(
+                      onTap: onOpenIssue,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 220),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: const Color(0xFF86EFAC)),
+                        ),
+                        child: Text(
+                          branch.issueKey.isEmpty
+                              ? branch.issueId
+                              : '${branch.issueKey} ${branch.issueTitle}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF166534),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+          final action = SizedBox(
+            height: 34,
+            child: FilledButton.icon(
+              onPressed: canCreate ? onCreate : null,
+              icon: isCreating
+                  ? const SizedBox.square(
+                      dimension: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      isCreated
+                          ? Icons.check_rounded
+                          : Icons.call_merge_rounded,
+                      size: 16,
+                    ),
+              label: Text(buttonLabel),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFFE2E8F0),
+                disabledForegroundColor: const Color(0xFF64748B),
+                minimumSize: const Size(0, 34),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                details,
+                const SizedBox(height: 10),
+                Align(alignment: Alignment.centerRight, child: action),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: details),
+              const SizedBox(width: 14),
+              action,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _RecentRemoteBranchesEmptyState extends StatelessWidget {
+  const _RecentRemoteBranchesEmptyState({
+    required this.icon,
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: const Color(0xFF94A3B8), size: 34),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF475569),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.refresh_rounded, size: 17),
+              label: Text(actionLabel),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF2563EB),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+DateTime? _latestBranchPushedAt(Iterable<WorkspaceRecentBranch> branches) {
+  DateTime? latest;
+  for (final branch in branches) {
+    final pushedAt = branch.pushedAt;
+    if (pushedAt == null) {
+      continue;
+    }
+    if (latest == null || pushedAt.isAfter(latest)) {
+      latest = pushedAt;
+    }
+  }
+  return latest;
+}
+
+String _formatRecentBranchPushedAt(DateTime? value) {
+  if (value == null) {
+    return '日時なし';
+  }
+
+  final local = value.toLocal();
+  final difference = DateTime.now().difference(local);
+  if (!difference.isNegative) {
+    if (difference.inMinutes < 1) {
+      return 'たった今';
+    }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes}分前';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours}時間前';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays}日前';
+    }
+  }
+
+  return DateFormat('M/d').format(local);
 }
 
 class _IssueBoardShortcuts extends StatelessWidget {

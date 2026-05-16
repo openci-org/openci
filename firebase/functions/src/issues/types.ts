@@ -75,6 +75,42 @@ export interface GetIssuePullRequestDiffRequest extends WorkspaceRequest {
   pullRequestNumber: number;
 }
 
+export interface CreateIssuePullRequestRequest extends WorkspaceRequest {
+  issueId: string;
+  repository: string;
+  head: string;
+  base?: string;
+  title?: string;
+  body?: string;
+  draft?: boolean;
+}
+
+export interface ListWorkspaceRecentBranchesRequest extends WorkspaceRequest {
+  limit?: number;
+}
+
+export interface WorkspaceRecentBranchIssue {
+  id: string;
+  displayId: string;
+  issueKey: string;
+  title: string;
+  statusId: string;
+}
+
+export interface WorkspaceRecentBranch {
+  repository: string;
+  name: string;
+  sha: string;
+  base: string;
+  pushedAt: string;
+  issue?: WorkspaceRecentBranchIssue;
+}
+
+export interface ListWorkspaceRecentBranchesResponse {
+  branches: WorkspaceRecentBranch[];
+  repositories: number;
+}
+
 export interface IssuePullRequestDiffFile {
   filename: string;
   status: string;
@@ -141,6 +177,19 @@ export interface MergeIssuePullRequestResponse {
   merged: boolean;
   message: string;
   sha: string;
+}
+
+export interface CreateIssuePullRequestResponse {
+  pullRequest: {
+    number: number;
+    title: string;
+    url: string;
+    state: string;
+    merged: boolean;
+    branch: string;
+    createdAt: string;
+    linkedIssues: GitHubPullRequestLinkedIssue[];
+  };
 }
 
 export interface CreateGitHubIssueResponse {
