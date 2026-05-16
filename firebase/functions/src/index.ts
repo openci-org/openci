@@ -1,7 +1,8 @@
 import { setGlobalOptions } from "firebase-functions/v2";
+import { firebaseRegion } from "./firebaseRegion.js";
 
 setGlobalOptions({
-  region: "asia-northeast1",
+  region: firebaseRegion,
   maxInstances: 10,
   secrets: [
     "GITHUB_APP_ID",

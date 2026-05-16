@@ -1,6 +1,5 @@
 part of 'issue_board_ima_page.dart';
 
-const _functionsRegion = 'asia-northeast1';
 const _reviewStatusId = 'review';
 const _closedStatusId = 'done';
 const _compactTextScale = 0.94;

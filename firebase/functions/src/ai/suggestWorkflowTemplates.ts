@@ -1,6 +1,7 @@
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
+import { firebaseRegion } from "../firebaseRegion.js";
 import {
   getInstallationToken,
   githubAppId,
@@ -421,7 +422,7 @@ export const suggestWorkflowTemplates = onCall<
   {
     timeoutSeconds: 30,
     memory: "512MiB",
-    region: "asia-northeast1",
+    region: firebaseRegion,
     secrets: [githubAppId, githubPrivateKey],
   },
   async (request) => {

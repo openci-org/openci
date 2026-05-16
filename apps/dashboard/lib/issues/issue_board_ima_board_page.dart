@@ -88,8 +88,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
-  FirebaseFunctions get _functions =>
-      FirebaseFunctions.instanceFor(region: _functionsRegion);
+  FirebaseFunctions get _functions => firebaseFunctions;
 
   bool get _isBusy =>
       _isConnectingGitHub ||
@@ -650,6 +649,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         initialIssue: issue,
         allIssues: allIssues,
         initialColumnId: sourceColumn.id,
+        buildStatusesByPullRequest: _buildStatusesByPullRequest,
         isEstimatingWeight: _estimatingIssueIds.contains(issueId),
         onEstimateIssueWeight: _estimateIssueWeight,
         onOverrideIssueWeight: _overrideIssueWeight,

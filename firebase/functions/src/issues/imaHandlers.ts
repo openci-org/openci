@@ -10,6 +10,7 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
+import { firebaseRegion } from "../firebaseRegion.js";
 import { firestoreCollectionPaths, getTeamById } from "../firestoreData.js";
 import {
   getInstallationToken,
@@ -35,66 +36,70 @@ import {
   parseWeightEstimateResponse,
   truncateText,
 } from "./issueWeightHelpers.js";
-import type {
-  WorkspaceRequest,
-  StartGitHubDeviceFlowRequest,
-  StartGitHubDeviceFlowResponse,
-  CompleteGitHubDeviceFlowRequest,
-  CreateGitHubIssueRequest,
-  CreateGitHubSubIssueRequest,
-  GitHubRepository,
-  ListGitHubRepositoriesResponse,
-  ImportGitHubIssuesResponse,
-  SyncGitHubIssuesResponse,
-  BackfillIssueKeysResponse,
-  BackfillCursorAgentPullRequestsResponse,
-  GetIssuePullRequestDiffRequest,
-  GetIssuePullRequestDiffResponse,
-  MergeIssuePullRequestRequest,
-  MergeIssuePullRequestResponse,
-  CreateGitHubIssueResponse,
-  CreateGitHubSubIssueResponse,
-  EstimateIssueWeightRequest,
-  StartIssueCursorAgentRequest,
-  StartIssueCursorAgentResponse,
-  IssueWeightEstimateResponse,
-  GitHubUserResponse,
-  GitHubDeviceCodeResponse,
-  GitHubDeviceTokenResponse,
-  GitHubRepositoriesResponseItem,
-  GitHubInstallationRepositoriesResponse,
-  GitHubIssueResponseItem,
-  GitHubPullRequestResponseItem,
-  GitHubPullRequestFileResponseItem,
-  GitHubMergePullRequestResponseItem,
-  GitHubPullRequestLinkedIssue,
-  GitHubPullRequestLinkedIssuesGraphqlResponse,
-  GitHubPullRequestWebhookPayload,
-  GitHubPushWebhookPayload,
-  BranchLogEntry,
-  GitHubContentFileResponse,
-  GitHubIssueWebhookPayload,
-} from "./types.js";
 import {
-  closedStatusId,
-  reviewStatusId,
-  inProgressStatusIds,
-  issueWeightModel,
-  branchLogPathPrefix,
-  requireNonEmptyString,
-  requireUid,
-  asString,
-  asNumber,
-  errorMessage,
-  errorStack,
   asBoolean,
+  asNumber,
+  asString,
   asStringList,
   asTimestamp,
-  timestampFromValue,
-  roundedHours,
+  branchLogPathPrefix,
+  closedStatusId,
+  errorMessage,
+  errorStack,
+  inProgressStatusIds,
+  issueWeightModel,
   median,
   recordList,
+  requireNonEmptyString,
+  requireUid,
+  reviewStatusId,
+  roundedHours,
+  timestampFromValue,
 } from "./shared.js";
+import type {
+  BackfillCursorAgentPullRequestsResponse,
+  BackfillIssueKeysResponse,
+  BranchLogEntry,
+  CompleteGitHubDeviceFlowRequest,
+  CreateGitHubIssueRequest,
+  CreateGitHubIssueResponse,
+  CreateGitHubSubIssueRequest,
+  CreateGitHubSubIssueResponse,
+  EstimateIssueWeightRequest,
+  GetIssuePullRequestDiffRequest,
+  GetIssuePullRequestDiffResponse,
+  GitHubContentFileResponse,
+  GitHubDeviceCodeResponse,
+  GitHubDeviceTokenResponse,
+  GitHubInstallationRepositoriesResponse,
+  GitHubIssueCommentResponseItem,
+  GitHubIssueResponseItem,
+  GitHubIssueWebhookPayload,
+  GitHubMergePullRequestResponseItem,
+  GitHubPullRequestFileResponseItem,
+  GitHubPullRequestLinkedIssue,
+  GitHubPullRequestLinkedIssuesGraphqlResponse,
+  GitHubPullRequestResponseItem,
+  GitHubPullRequestReviewCommentResponseItem,
+  GitHubPullRequestWebhookPayload,
+  GitHubPushWebhookPayload,
+  GitHubRepositoriesResponseItem,
+  GitHubRepository,
+  GitHubUserResponse,
+  ImportGitHubIssuesResponse,
+  IssuePullRequestComment,
+  IssueWeightEstimateResponse,
+  ListGitHubRepositoriesResponse,
+  MergeIssuePullRequestRequest,
+  MergeIssuePullRequestResponse,
+  PullRequestCiSummary,
+  StartGitHubDeviceFlowRequest,
+  StartGitHubDeviceFlowResponse,
+  StartIssueCursorAgentRequest,
+  StartIssueCursorAgentResponse,
+  SyncGitHubIssuesResponse,
+  WorkspaceRequest,
+} from "./types.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -103,6 +108,7 @@ if (getApps().length === 0) {
 const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const cursorApiKey = defineSecret("CURSOR_API_KEY");
+const githubAppSecrets = [githubAppId, githubPrivateKey];
 
 async function verifyWorkspaceMember(
   auth: CallableRequest["auth"],
@@ -119,6 +125,7 @@ async function verifyWorkspaceMember(
 async function getWorkspaceGitHubToken(workspaceId: string): Promise<{
   token: string;
   installationId: number;
+  apiBaseUrl: string;
 }> {
   const team = await getTeamById({ teamId: workspaceId });
   const installationIds = team.data.team?.installationIds ?? [];
@@ -129,10 +136,9 @@ async function getWorkspaceGitHubToken(workspaceId: string): Promise<{
     throw new HttpsError("failed-precondition", "OpenCI GitHub App is not installed");
   }
 
-  const { token } = await getInstallationToken(installationId, {
-    apiBaseUrl: asString(team.data.team?.githubApiBaseUrl, "https://api.github.com"),
-  });
-  return { token, installationId };
+  const apiBaseUrl = asString(team.data.team?.githubApiBaseUrl, "https://api.github.com");
+  const { token } = await getInstallationToken(installationId, { apiBaseUrl });
+  return { token, installationId, apiBaseUrl };
 }
 
 async function githubRequest<T>({
@@ -378,6 +384,218 @@ function pullRequestDiffFile(file: GitHubPullRequestFileResponseItem): {
     rawUrl: asString(file.raw_url),
     ...(previousFilename.length > 0 ? { previousFilename } : {}),
   };
+}
+
+function pullRequestConversationComment(
+  comment: GitHubIssueCommentResponseItem,
+): IssuePullRequestComment {
+  return {
+    id: asString(comment.id),
+    author: asString(comment.user?.login, "unknown"),
+    authorAssociation: asString(comment.author_association),
+    body: asString(comment.body),
+    url: asString(comment.html_url),
+    createdAt: asString(comment.created_at),
+    updatedAt: asString(comment.updated_at),
+    kind: "conversation",
+  };
+}
+
+function pullRequestReviewComment(
+  comment: GitHubPullRequestReviewCommentResponseItem,
+): IssuePullRequestComment {
+  const line = asNumber(comment.line, asNumber(comment.original_line));
+  return {
+    id: asString(comment.id),
+    author: asString(comment.user?.login, "unknown"),
+    authorAssociation: asString(comment.author_association),
+    body: asString(comment.body),
+    url: asString(comment.html_url),
+    createdAt: asString(comment.created_at),
+    updatedAt: asString(comment.updated_at),
+    path: asString(comment.path),
+    ...(line > 0 ? { line } : {}),
+    side: asString(comment.side),
+    inReplyToId: asString(comment.in_reply_to_id),
+    kind: "review",
+  };
+}
+
+async function fetchPullRequestComments({
+  owner,
+  repo,
+  number,
+  token,
+}: {
+  owner: string;
+  repo: string;
+  number: number;
+  token: string;
+}): Promise<{ comments: IssuePullRequestComment[]; commentsTruncated: boolean }> {
+  const [conversationComments, reviewComments] = await Promise.all([
+    githubRequest<GitHubIssueCommentResponseItem[]>({
+      path: `/repos/${owner}/${repo}/issues/${number}/comments`,
+      token,
+      queryParameters: { per_page: 100 },
+    }),
+    githubRequest<GitHubPullRequestReviewCommentResponseItem[]>({
+      path: `/repos/${owner}/${repo}/pulls/${number}/comments`,
+      token,
+      queryParameters: { per_page: 100 },
+    }),
+  ]);
+  const comments = [
+    ...conversationComments.map(pullRequestConversationComment),
+    ...reviewComments.map(pullRequestReviewComment),
+  ]
+    .filter((comment) => comment.body.trim().length > 0)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  return {
+    comments,
+    commentsTruncated: conversationComments.length >= 100 || reviewComments.length >= 100,
+  };
+}
+
+interface PullRequestStatusCheckContext {
+  __typename?: string;
+  name?: string | null;
+  context?: string | null;
+  status?: string | null;
+  conclusion?: string | null;
+  state?: string | null;
+}
+
+interface PullRequestStatusCheckRollupResponse {
+  repository?: {
+    object?: {
+      statusCheckRollup?: {
+        contexts?: {
+          nodes?: PullRequestStatusCheckContext[];
+          pageInfo?: {
+            hasNextPage?: boolean;
+          };
+        } | null;
+      } | null;
+    } | null;
+  } | null;
+}
+
+const pullRequestStatusCheckRollupQuery = `
+  query PullRequestStatusCheckRollup($owner: String!, $repo: String!, $headSha: GitObjectID!) {
+    repository(owner: $owner, name: $repo) {
+      object(oid: $headSha) {
+        ... on Commit {
+          statusCheckRollup {
+            contexts(first: 100) {
+              nodes {
+                __typename
+                ... on CheckRun {
+                  name
+                  status
+                  conclusion
+                }
+                ... on StatusContext {
+                  context
+                  state
+                }
+              }
+              pageInfo {
+                hasNextPage
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const emptyPullRequestCiSummary: PullRequestCiSummary = {
+  status: "none",
+  total: 0,
+  passed: 0,
+  failed: 0,
+  pending: 0,
+  skipped: 0,
+  checksTruncated: false,
+};
+
+function pullRequestCheckBucket(
+  context: PullRequestStatusCheckContext,
+): "passed" | "failed" | "pending" | "skipped" {
+  if (context.__typename === "StatusContext") {
+    if (context.state === "SUCCESS") return "passed";
+    if (context.state === "FAILURE" || context.state === "ERROR") return "failed";
+    return "pending";
+  }
+
+  if (context.status !== "COMPLETED") {
+    return "pending";
+  }
+  if (context.conclusion === "SUCCESS") return "passed";
+  if (context.conclusion === "NEUTRAL" || context.conclusion === "SKIPPED") return "skipped";
+  return "failed";
+}
+
+function pullRequestCiSummaryFromContexts({
+  contexts,
+  checksTruncated,
+}: {
+  contexts: PullRequestStatusCheckContext[];
+  checksTruncated: boolean;
+}): PullRequestCiSummary {
+  const summary: PullRequestCiSummary = {
+    ...emptyPullRequestCiSummary,
+    checksTruncated,
+  };
+  for (const context of contexts) {
+    const bucket = pullRequestCheckBucket(context);
+    summary.total += 1;
+    summary[bucket] += 1;
+  }
+  summary.status =
+    summary.total === 0
+      ? "none"
+      : checksTruncated
+        ? "unknown"
+        : summary.failed > 0
+          ? "failure"
+          : summary.pending > 0
+            ? "pending"
+            : "success";
+  return summary;
+}
+
+async function fetchPullRequestCiSummary({
+  owner,
+  repo,
+  headSha,
+  token,
+  apiBaseUrl,
+}: {
+  owner: string;
+  repo: string;
+  headSha: string;
+  token: string;
+  apiBaseUrl: string;
+}): Promise<PullRequestCiSummary> {
+  if (headSha.length === 0) {
+    return emptyPullRequestCiSummary;
+  }
+  const response = await githubGraphql<PullRequestStatusCheckRollupResponse>(
+    pullRequestStatusCheckRollupQuery,
+    token,
+    {
+      variables: { owner, repo, headSha },
+      apiBaseUrl,
+    },
+  );
+  const contexts = response.repository?.object?.statusCheckRollup?.contexts;
+  return pullRequestCiSummaryFromContexts({
+    contexts: contexts?.nodes ?? [],
+    checksTruncated: contexts?.pageInfo?.hasNextPage === true,
+  });
 }
 
 function isActiveCursorAgentStatus(status: string): boolean {
@@ -1698,13 +1916,13 @@ export const listGitHubRepositories = onCall<
 export const getIssuePullRequestDiff = onCall<
   GetIssuePullRequestDiffRequest,
   Promise<GetIssuePullRequestDiffResponse>
->(async (request) => {
+>({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const repository = requireNonEmptyString(request.data?.repository, "repository");
   const pullRequestNumber = asNumber(request.data?.pullRequestNumber);
   const uid = await verifyWorkspaceMember(request.auth, workspaceId);
-  const { token } = await getWorkspaceGitHubToken(workspaceId);
+  const { token, apiBaseUrl } = await getWorkspaceGitHubToken(workspaceId);
 
   try {
     const linkedPullRequest = await linkedIssuePullRequest({
@@ -1713,7 +1931,7 @@ export const getIssuePullRequestDiff = onCall<
       repository,
       pullRequestNumber,
     });
-    const [pullRequest, filesResult] = await Promise.all([
+    const [pullRequest, filesResult, commentsResult] = await Promise.all([
       githubRequest<GitHubPullRequestResponseItem>({
         path: `/repos/${linkedPullRequest.owner}/${linkedPullRequest.repo}/pulls/${pullRequestNumber}`,
         token,
@@ -1724,7 +1942,20 @@ export const getIssuePullRequestDiff = onCall<
         number: pullRequestNumber,
         token,
       }),
+      fetchPullRequestComments({
+        owner: linkedPullRequest.owner,
+        repo: linkedPullRequest.repo,
+        number: pullRequestNumber,
+        token,
+      }),
     ]);
+    const ci = await fetchPullRequestCiSummary({
+      owner: linkedPullRequest.owner,
+      repo: linkedPullRequest.repo,
+      headSha: asString(pullRequest.head?.sha),
+      token,
+      apiBaseUrl,
+    });
     const files = filesResult.files.map(pullRequestDiffFile);
     const fallbackAdditions = files.reduce((total, file) => total + file.additions, 0);
     const fallbackDeletions = files.reduce((total, file) => total + file.deletions, 0);
@@ -1743,6 +1974,9 @@ export const getIssuePullRequestDiff = onCall<
       additions: asNumber(pullRequest.additions, fallbackAdditions),
       deletions: asNumber(pullRequest.deletions, fallbackDeletions),
       changedFiles: asNumber(pullRequest.changed_files, files.length),
+      ci,
+      comments: commentsResult.comments,
+      commentsTruncated: commentsResult.commentsTruncated,
       filesTruncated: filesResult.filesTruncated,
       files,
     };
@@ -1766,7 +2000,7 @@ export const getIssuePullRequestDiff = onCall<
 export const mergeIssuePullRequest = onCall<
   MergeIssuePullRequestRequest,
   Promise<MergeIssuePullRequestResponse>
->(async (request) => {
+>({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const repository = requireNonEmptyString(request.data?.repository, "repository");
@@ -2196,7 +2430,7 @@ export const createGitHubSubIssue = onCall<
 export const startIssueCursorAgent = onCall<
   StartIssueCursorAgentRequest,
   Promise<StartIssueCursorAgentResponse>
->({ timeoutSeconds: 120, secrets: [cursorApiKey] }, async (request) => {
+>({ timeoutSeconds: 120, secrets: [cursorApiKey, ...githubAppSecrets] }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const uid = await verifyWorkspaceMember(request.auth, workspaceId);
@@ -3742,7 +3976,7 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
 export const syncIssuePullRequestLinksToGitHubOnIssueWrite = onDocumentWritten(
   {
     document: "workspaces/{workspaceId}/issues/{issueId}",
-    secrets: [githubAppId, githubPrivateKey],
+    secrets: githubAppSecrets,
   },
   async (event) => {
     const before = event.data?.before?.data();
