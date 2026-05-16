@@ -1,6 +1,11 @@
-part of 'issue_board_ima_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_overview.dart';
 
-Map<String, dynamic> _asMap(Object? value) {
+Map<String, dynamic> asMap(Object? value) {
   if (value is Map<String, dynamic>) {
     return value;
   }
@@ -10,19 +15,19 @@ Map<String, dynamic> _asMap(Object? value) {
   return {};
 }
 
-List<Object?> _asList(Object? value) {
+List<Object?> asList(Object? value) {
   return value is List ? value : const [];
 }
 
-String _asString(Object? value, [String fallback = '']) {
+String asString(Object? value, [String fallback = '']) {
   return value is String && value.isNotEmpty ? value : fallback;
 }
 
-String? _emptyToNull(String value) {
+String? emptyToNull(String value) {
   return value.isEmpty ? null : value;
 }
 
-int _asInt(Object? value, [int fallback = 0]) {
+int asInt(Object? value, [int fallback = 0]) {
   if (value is int) {
     return value;
   }
@@ -32,14 +37,14 @@ int _asInt(Object? value, [int fallback = 0]) {
   return fallback;
 }
 
-double _asDouble(Object? value, [double fallback = 0]) {
+double asDouble(Object? value, [double fallback = 0]) {
   if (value is num) {
     return value.toDouble();
   }
   return fallback;
 }
 
-List<String> _asStringList(Object? value) {
+List<String> asStringList(Object? value) {
   if (value is! List) {
     return const [];
   }
@@ -50,18 +55,18 @@ List<String> _asStringList(Object? value) {
       .toList();
 }
 
-String _pullRequestLinkId(String repository, int number) {
+String pullRequestLinkId(String repository, int number) {
   return '${repository}_$number'.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
 }
 
-int _issueProgressWeight(Issue issue) {
+int issueProgressWeight(Issue issue) {
   return issue.resolution?.actualWeight ?? issue.weightEstimate?.value ?? 0;
 }
 
-DailyProgressPrediction _buildDailyProgressPrediction({
+DailyProgressPrediction buildDailyProgressPrediction({
   required int targetWeight,
-  required _DailyPaceBucket todayBucket,
-  required List<_DailyPaceBucket> historicalBuckets,
+  required DailyPaceBucket todayBucket,
+  required List<DailyPaceBucket> historicalBuckets,
   required DateTime now,
 }) {
   if (targetWeight <= 0) {
@@ -77,11 +82,11 @@ DailyProgressPrediction _buildDailyProgressPrediction({
     );
   }
 
-  final remainingWeight = _positive(targetWeight - todayBucket.totalWeight);
+  final remainingWeight = positive(targetWeight - todayBucket.totalWeight);
   final requiredAfternoonWeight = now.hour < 12
-      ? _positive(targetWeight - todayBucket.morningWeight)
+      ? positive(targetWeight - todayBucket.morningWeight)
       : remainingWeight;
-  final historicalAfternoonMedian = _median(
+  final historicalAfternoonMedian = median(
     historicalBuckets.map((bucket) => bucket.afternoonWeight).toList(),
   );
 
@@ -109,7 +114,7 @@ DailyProgressPrediction _buildDailyProgressPrediction({
   final futureWeights = historicalBuckets
       .where((bucket) => bucket.totalWeight > 0)
       .map(
-        (bucket) => _positive(bucket.totalWeight - bucket.weightAtCurrentTime),
+        (bucket) => positive(bucket.totalWeight - bucket.weightAtCurrentTime),
       )
       .toList();
 
@@ -124,7 +129,7 @@ DailyProgressPrediction _buildDailyProgressPrediction({
     sampleCount = comparableBuckets.length;
     usesFallback = false;
   } else {
-    final projectedWeight = todayBucket.totalWeight + _median(futureWeights);
+    final projectedWeight = todayBucket.totalWeight + median(futureWeights);
     finishProbability = (projectedWeight / targetWeight * 100)
         .round()
         .clamp(0, 95)
@@ -178,11 +183,11 @@ DailyProgressPrediction _buildDailyProgressPrediction({
   );
 }
 
-int _positive(num value) {
+int positive(num value) {
   return value > 0 ? value.round() : 0;
 }
 
-double _median(List<int> values) {
+double median(List<int> values) {
   if (values.isEmpty) {
     return 0;
   }
@@ -194,7 +199,7 @@ double _median(List<int> values) {
   return (values[middle - 1] + values[middle]) / 2;
 }
 
-bool _isAtOrBeforeTimeOfDay(DateTime value, DateTime cutoff) {
+bool isAtOrBeforeTimeOfDay(DateTime value, DateTime cutoff) {
   if (value.hour != cutoff.hour) {
     return value.hour < cutoff.hour;
   }
@@ -204,7 +209,7 @@ bool _isAtOrBeforeTimeOfDay(DateTime value, DateTime cutoff) {
   return value.second <= cutoff.second;
 }
 
-DateTime? _asDate(Object? value) {
+DateTime? asDate(Object? value) {
   if (value is Timestamp) {
     return value.toDate();
   }
@@ -214,14 +219,14 @@ DateTime? _asDate(Object? value) {
   return null;
 }
 
-Priority _priorityFromString(String value) {
+Priority priorityFromString(String value) {
   return Priority.values.firstWhere(
     (priority) => priority.name == value,
     orElse: () => Priority.medium,
   );
 }
 
-double _rankBetween(double? previousRank, double? nextRank) {
+double rankBetween(double? previousRank, double? nextRank) {
   if (previousRank != null && nextRank != null) {
     return (previousRank + nextRank) / 2;
   }
@@ -234,7 +239,7 @@ double _rankBetween(double? previousRank, double? nextRank) {
   return DateTime.now().millisecondsSinceEpoch.toDouble();
 }
 
-String _friendlyError(Object error) {
+String friendlyError(Object error) {
   if (error is FirebaseFunctionsException) {
     return error.message ?? error.code;
   }
@@ -247,7 +252,7 @@ String _friendlyError(Object error) {
   return '$error';
 }
 
-bool _isGitHubAppNotInstalledError(Object error) {
+bool isGitHubAppNotInstalledError(Object error) {
   if (error is! FirebaseFunctionsException) {
     return false;
   }
@@ -257,17 +262,17 @@ bool _isGitHubAppNotInstalledError(Object error) {
       message.contains('not installed');
 }
 
-DateTime _dateOnly(DateTime date) {
+DateTime dateOnly(DateTime date) {
   return DateTime(date.year, date.month, date.day);
 }
 
-String _formatDate(DateTime date) {
+String formatDate(DateTime date) {
   return '${date.month}月${date.day}日';
 }
 
-String _dailyHistoryDateLabel(DateTime date) {
-  final today = _dateOnly(DateTime.now());
-  final targetDate = _dateOnly(date);
+String dailyHistoryDateLabel(DateTime date) {
+  final today = dateOnly(DateTime.now());
+  final targetDate = dateOnly(date);
   final daysAgo = today.difference(targetDate).inDays;
 
   if (daysAgo == 0) {
@@ -276,23 +281,23 @@ String _dailyHistoryDateLabel(DateTime date) {
   if (daysAgo == 1) {
     return '昨日';
   }
-  return _formatDate(targetDate);
+  return formatDate(targetDate);
 }
 
-String _dueDateLabel(DateTime date) {
-  final status = _dueDateStatus(date);
+String dueDateLabel(DateTime date) {
+  final status = dueDateStatus(date);
 
   return switch (status) {
     DueDateStatus.overdue => '期限切れ',
     DueDateStatus.today => '今日',
-    DueDateStatus.soon => _formatDate(date),
-    DueDateStatus.later => _formatDate(date),
+    DueDateStatus.soon => formatDate(date),
+    DueDateStatus.later => formatDate(date),
   };
 }
 
-DueDateStatus _dueDateStatus(DateTime date) {
-  final today = _dateOnly(DateTime.now());
-  final dueDate = _dateOnly(date);
+DueDateStatus dueDateStatus(DateTime date) {
+  final today = dateOnly(DateTime.now());
+  final dueDate = dateOnly(date);
   final daysUntilDue = dueDate.difference(today).inDays;
 
   if (daysUntilDue < 0) {

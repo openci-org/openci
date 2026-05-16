@@ -1,4 +1,13 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'issue_board_ima_utils.dart';
+import 'issue_board_ima_board_columns.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_app_shell.dart';
+import 'issue_board_ima_overview.dart';
 
 class IssueCardDropTarget extends StatefulWidget {
   const IssueCardDropTarget({
@@ -343,7 +352,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
     final draggable = widget.requiresLongPressDrag
         ? LongPressDraggable<IssueDragData>(
             data: data,
-            delay: _mobileDragStartDelay,
+            delay: mobileDragStartDelay,
             hitTestBehavior: HitTestBehavior.opaque,
             onDragStarted: _finishDragInteraction,
             onDragCompleted: _finishDragInteraction,
@@ -405,10 +414,10 @@ class IssueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final githubUrl = issue.githubUrl;
     final weightEstimate = issue.weightEstimate;
-    final cardWeight = issue.statusId == _closedStatusId
+    final cardWeight = issue.statusId == closedStatusId
         ? issue.resolution?.actualWeight
         : weightEstimate?.value;
-    final cardWeightTooltip = issue.statusId == _closedStatusId
+    final cardWeightTooltip = issue.statusId == closedStatusId
         ? '実績weight $cardWeight'
         : 'Weight $cardWeight / 信頼度 ${((weightEstimate?.confidence ?? 0) * 100).round()}%';
 
@@ -462,7 +471,7 @@ class IssueCard extends StatelessWidget {
                           WeightBadge(
                             value: cardWeight,
                             tooltip: cardWeightTooltip,
-                            isActual: issue.statusId == _closedStatusId,
+                            isActual: issue.statusId == closedStatusId,
                           ),
                       ],
                     ),
@@ -566,7 +575,7 @@ class ReviewGroupIssueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final weight = issue.statusId == _closedStatusId
+    final weight = issue.statusId == closedStatusId
         ? issue.resolution?.actualWeight
         : issue.weightEstimate?.value;
 
@@ -642,9 +651,9 @@ class ReviewGroupIssueCard extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (weight != null)
-                _ReviewGroupPill(
+                ReviewGroupPill(
                   label: 'W$weight',
-                  color: issue.statusId == _closedStatusId
+                  color: issue.statusId == closedStatusId
                       ? const Color(0xFF15803D)
                       : const Color(0xFF2563EB),
                   icon: Icons.speed_rounded,
@@ -673,7 +682,7 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: reference.url == null
           ? null
-          : () => unawaited(_launchUrlExternal(reference.url!)),
+          : () => unawaited(launchUrlExternal(reference.url!)),
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
         decoration: BoxDecoration(
@@ -724,7 +733,7 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 7),
-            _ReviewGroupPill(
+            ReviewGroupPill(
               label: isClosed ? 'closed' : 'open',
               color: stateColor,
               icon: isClosed
@@ -988,7 +997,7 @@ class SubIssueListRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isClosed = issue.statusId == _closedStatusId;
+    final isClosed = issue.statusId == closedStatusId;
     final isCreating = issue.parentIssue != null && issue.issueKey == null;
     final iconColor = isClosed
         ? const Color(0xFF8250DF)
@@ -1071,7 +1080,7 @@ class SubIssueReferenceRow extends StatelessWidget {
             if (issue.issueKey == null) {
               return _SubIssueReferenceContent(
                 title: issue.title,
-                isClosed: issue.statusId == _closedStatusId,
+                isClosed: issue.statusId == closedStatusId,
                 isCreating: true,
               );
             }
@@ -1339,9 +1348,7 @@ class PullRequestBadge extends StatelessWidget {
     return Tooltip(
       message: prUrl ?? 'Linked pull request',
       child: GestureDetector(
-        onTap: prUrl != null
-            ? () => unawaited(_launchUrlExternal(prUrl))
-            : null,
+        onTap: prUrl != null ? () => unawaited(launchUrlExternal(prUrl)) : null,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
           decoration: BoxDecoration(
@@ -1436,7 +1443,7 @@ class _CopyFeedbackIconButtonState extends State<_CopyFeedbackIconButton> {
 
   Future<void> _handleCopy() async {
     final version = ++_copyVersion;
-    await _copyTextToClipboard(
+    await copyTextToClipboard(
       context,
       text: widget.text,
       successMessage: widget.successMessage,
@@ -1583,7 +1590,7 @@ class DueDatePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = _dueDateStatus(dueDate);
+    final status = dueDateStatus(dueDate);
     final colors = switch (status) {
       DueDateStatus.overdue => (
         background: const Color(0xFFFEE2E2),
@@ -1615,7 +1622,7 @@ class DueDatePill extends StatelessWidget {
           Icon(Icons.event_outlined, size: 12, color: colors.foreground),
           const SizedBox(width: 3),
           Text(
-            _dueDateLabel(dueDate),
+            dueDateLabel(dueDate),
             style: TextStyle(
               color: colors.foreground,
               fontSize: 12,
@@ -1685,10 +1692,10 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
     super.initState();
     final estimateWeight = widget.issue.weightEstimate?.value;
     final actualWeight = widget.issue.resolution?.actualWeight;
-    _estimateWeight = _validIssueWeights.contains(estimateWeight)
+    _estimateWeight = validIssueWeights.contains(estimateWeight)
         ? estimateWeight
         : null;
-    _actualWeight = _validIssueWeights.contains(actualWeight)
+    _actualWeight = validIssueWeights.contains(actualWeight)
         ? actualWeight
         : _estimateWeight;
   }
@@ -1698,10 +1705,10 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
     if (estimateWeight == null) {
       return;
     }
-    final actualWeight = widget.issue.statusId == _closedStatusId
+    final actualWeight = widget.issue.statusId == closedStatusId
         ? _actualWeight
         : null;
-    if (widget.issue.statusId == _closedStatusId && actualWeight == null) {
+    if (widget.issue.statusId == closedStatusId && actualWeight == null) {
       return;
     }
     Navigator.of(context).pop(
@@ -1714,7 +1721,7 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isClosed = widget.issue.statusId == _closedStatusId;
+    final isClosed = widget.issue.statusId == closedStatusId;
     final canSave =
         _estimateWeight != null && (!isClosed || _actualWeight != null);
 
@@ -1736,7 +1743,7 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
               border: OutlineInputBorder(),
             ),
             items: [
-              for (final weight in _validIssueWeights)
+              for (final weight in validIssueWeights)
                 DropdownMenuItem(value: weight, child: Text('W$weight')),
             ],
             onChanged: (value) => setState(() => _estimateWeight = value),
@@ -1750,7 +1757,7 @@ class _IssueWeightOverrideDialogState extends State<IssueWeightOverrideDialog> {
                 border: OutlineInputBorder(),
               ),
               items: [
-                for (final weight in _validIssueWeights)
+                for (final weight in validIssueWeights)
                   DropdownMenuItem(value: weight, child: Text('W$weight')),
               ],
               onChanged: (value) => setState(() => _actualWeight = value),
@@ -1799,7 +1806,7 @@ class IssueWeightPanel extends StatelessWidget {
       'done' when estimate?.manualOverride == true && value != null => '手動上書き',
       'done' when value != null =>
         '信頼度 ${(estimate!.confidence * 100).round()}%'
-            '${estimate.estimatedAt == null ? '' : ' / ${_formatDate(estimate.estimatedAt!)}'}',
+            '${estimate.estimatedAt == null ? '' : ' / ${formatDate(estimate.estimatedAt!)}'}',
       'failed' => estimate?.error ?? 'Weight推定に失敗しました',
       'estimating' => 'Weightを推定中...',
       _ => 'まだ推定していません',

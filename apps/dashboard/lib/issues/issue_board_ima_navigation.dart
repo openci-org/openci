@@ -1,25 +1,37 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
 
-class _CompactDestinationBody extends StatelessWidget {
-  const _CompactDestinationBody({required this.destination});
+import 'package:dashboard/build_info.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/variables/variables_page.dart';
+import 'package:dashboard/workers/worker_status_page.dart';
+import 'package:dashboard/workflow/list/workflows_page.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'issue_board_ima_app_shell.dart';
 
-  final _CompactBoardDestination destination;
+class CompactDestinationBody extends StatelessWidget {
+  const CompactDestinationBody({super.key, required this.destination});
+
+  final CompactBoardDestination destination;
 
   @override
   Widget build(BuildContext context) {
     return switch (destination) {
-      _CompactBoardDestination.issueBoard => const SizedBox.shrink(),
-      _CompactBoardDestination.runs => const LogsBody(),
-      _CompactBoardDestination.workers => const WorkerStatusBody(),
-      _CompactBoardDestination.workflows => const WorkflowsBody(),
-      _CompactBoardDestination.variables => const VariablesBody(),
-      _CompactBoardDestination.storeRelease => const StoreReleaseBody(),
+      CompactBoardDestination.issueBoard => const SizedBox.shrink(),
+      CompactBoardDestination.runs => const LogsBody(),
+      CompactBoardDestination.workers => const WorkerStatusBody(),
+      CompactBoardDestination.workflows => const WorkflowsBody(),
+      CompactBoardDestination.variables => const VariablesBody(),
+      CompactBoardDestination.storeRelease => const StoreReleaseBody(),
     };
   }
 }
 
-class _DesktopBoardNavigationRail extends StatelessWidget {
-  const _DesktopBoardNavigationRail({
+class DesktopBoardNavigationRail extends StatelessWidget {
+  const DesktopBoardNavigationRail({
+    super.key,
     required this.selectedDestination,
     required this.workspaceName,
     required this.extended,
@@ -29,17 +41,17 @@ class _DesktopBoardNavigationRail extends StatelessWidget {
     this.onSwitchTeam,
   });
 
-  final _CompactBoardDestination selectedDestination;
+  final CompactBoardDestination selectedDestination;
   final String workspaceName;
   final bool extended;
   final Future<void> Function() onSignOut;
   final ValueChanged<bool> onCollapsedChanged;
-  final ValueChanged<_CompactBoardDestination> onDestinationSelected;
+  final ValueChanged<CompactBoardDestination> onDestinationSelected;
   final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = _boardNavigationDestinations.indexOf(
+    final selectedIndex = boardNavigationDestinations.indexOf(
       selectedDestination,
     );
 
@@ -64,7 +76,7 @@ class _DesktopBoardNavigationRail extends StatelessWidget {
           onSignOut: onSignOut,
         ),
         destinations: [
-          for (final destination in _boardNavigationDestinations)
+          for (final destination in boardNavigationDestinations)
             NavigationRailDestination(
               icon: Icon(destination.icon),
               selectedIcon: Icon(destination.selectedIcon),
@@ -72,7 +84,7 @@ class _DesktopBoardNavigationRail extends StatelessWidget {
             ),
         ],
         onDestinationSelected: (index) {
-          onDestinationSelected(_boardNavigationDestinations[index]);
+          onDestinationSelected(boardNavigationDestinations[index]);
         },
       ),
     );
@@ -251,7 +263,7 @@ class _DesktopRailBuildInfo extends StatelessWidget {
         message: '最終更新: $fullText',
         child: _AnimatedRailInk(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => unawaited(_launchUrlExternal(_openCiRepositoryUrl)),
+          onTap: () => unawaited(launchUrlExternal(openCiRepositoryUrl)),
           child: Ink(
             width: 40,
             height: 40,
@@ -272,7 +284,7 @@ class _DesktopRailBuildInfo extends StatelessWidget {
 
     return _AnimatedRailInk(
       borderRadius: BorderRadius.circular(16),
-      onTap: () => unawaited(_launchUrlExternal(_openCiRepositoryUrl)),
+      onTap: () => unawaited(launchUrlExternal(openCiRepositoryUrl)),
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

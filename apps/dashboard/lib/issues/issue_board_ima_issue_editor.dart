@@ -1,4 +1,46 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/firebase/callable_function_names.dart';
+import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
+import 'package:dashboard/firebase/functions.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:re_highlight/languages/bash.dart';
+import 'package:re_highlight/languages/c.dart';
+import 'package:re_highlight/languages/cpp.dart';
+import 'package:re_highlight/languages/csharp.dart';
+import 'package:re_highlight/languages/css.dart';
+import 'package:re_highlight/languages/dart.dart';
+import 'package:re_highlight/languages/dockerfile.dart';
+import 'package:re_highlight/languages/go.dart';
+import 'package:re_highlight/languages/java.dart';
+import 'package:re_highlight/languages/javascript.dart';
+import 'package:re_highlight/languages/json.dart';
+import 'package:re_highlight/languages/kotlin.dart';
+import 'package:re_highlight/languages/markdown.dart';
+import 'package:re_highlight/languages/php.dart';
+import 'package:re_highlight/languages/python.dart';
+import 'package:re_highlight/languages/ruby.dart';
+import 'package:re_highlight/languages/rust.dart';
+import 'package:re_highlight/languages/scss.dart';
+import 'package:re_highlight/languages/shell.dart';
+import 'package:re_highlight/languages/sql.dart';
+import 'package:re_highlight/languages/swift.dart';
+import 'package:re_highlight/languages/typescript.dart';
+import 'package:re_highlight/languages/xml.dart';
+import 'package:re_highlight/languages/yaml.dart';
+import 'package:re_highlight/re_highlight.dart';
+import 'package:re_highlight/styles/github.dart';
+import 'issue_board_ima_issue_cards.dart';
+import 'issue_board_ima_utils.dart';
+import 'issue_board_ima_board_columns.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_app_shell.dart';
+import 'issue_board_ima_overview.dart';
 
 class AddIssueDialog extends StatefulWidget {
   const AddIssueDialog({
@@ -164,7 +206,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       title: _titleController.text.trim(),
       body: _bodyController.text.trim(),
       repo: _selectedRepo ?? '',
-      githubUrl: _normalizedOptionalUrl(_githubUrlController.text),
+      githubUrl: normalizedOptionalUrl(_githubUrlController.text),
       labels: labels,
       columnId: _selectedColumnId,
       priority: _priority,
@@ -253,7 +295,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       return;
     }
     if (title.isEmpty) {
-      _showFloatingSnackBar(context, 'Sub-issue titleを入力してください');
+      showFloatingSnackBar(context, 'Sub-issue titleを入力してください');
       return;
     }
 
@@ -269,7 +311,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       }
       _subIssueTitleController.clear();
       _subIssueBodyController.clear();
-      _showOverlaySnackBar(context, 'Sub-issue added');
+      showOverlaySnackBar(context, 'Sub-issue added');
     } finally {
       if (mounted) {
         setState(() => _isCreatingSubIssue = false);
@@ -300,7 +342,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       }
     }
     if (issue == null) {
-      _showFloatingSnackBar(context, 'Issueが見つかりません');
+      showFloatingSnackBar(context, 'Issueが見つかりません');
       return;
     }
     final selectedIssue = issue;
@@ -322,7 +364,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
 
   void _copyGitHubUrl() {
     unawaited(
-      _copyTextToClipboard(
+      copyTextToClipboard(
         context,
         text: _githubUrlController.text,
         successMessage: 'GitHubリンクをコピーしました',
@@ -333,7 +375,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   void _openGitHubUrl() {
     final url = _githubUrlController.text.trim();
     if (url.isNotEmpty) {
-      unawaited(_launchUrlExternal(url));
+      unawaited(launchUrlExternal(url));
     }
   }
 
@@ -356,7 +398,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
           'repository': issue.repo,
           'pullRequestNumber': pullRequest.number,
         });
-    return IssuePullRequestDiff.fromMap(_asMap(result.data));
+    return IssuePullRequestDiff.fromMap(asMap(result.data));
   }
 
   void _openPullRequestDiff(IssuePullRequest pullRequest) {
@@ -376,7 +418,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   }) async {
     final workspaceId = widget.workspaceId;
     if (workspaceId == null || workspaceId.isEmpty) {
-      _showFloatingSnackBar(context, 'workspaceId is required');
+      showFloatingSnackBar(context, 'workspaceId is required');
       return false;
     }
     final confirmed = await _confirmPullRequestMerge(pullRequest);
@@ -397,7 +439,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             'pullRequestNumber': pullRequest.number,
             'mergeMethod': 'squash',
           });
-      final data = _asMap(result.data);
+      final data = asMap(result.data);
       final merged = data['merged'] == true;
       if (!mounted) {
         return merged;
@@ -407,18 +449,18 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
           _pullRequestMergeConflictKey(issue.repo, pullRequest.number),
         );
       });
-      _showOverlaySnackBar(
+      showOverlaySnackBar(
         context,
         merged
             ? 'PR #${pullRequest.number}をマージしました'
-            : _asString(data['message'], 'PRのマージ結果を確認してください'),
+            : asString(data['message'], 'PRのマージ結果を確認してください'),
       );
       return merged;
     } catch (error) {
       if (mounted) {
         final conflictMessage = _pullRequestMergeConflictMessage(error);
         if (conflictMessage == null) {
-          _showFloatingSnackBar(context, _friendlyError(error));
+          showFloatingSnackBar(context, friendlyError(error));
         } else {
           setState(() {
             _mergeConflictMessagesByPullRequest[_pullRequestMergeConflictKey(
@@ -427,7 +469,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                 )] =
                 conflictMessage;
           });
-          _showOverlaySnackBar(
+          showOverlaySnackBar(
             context,
             'PR #${pullRequest.number}にconflictがあります',
           );
@@ -474,7 +516,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       return;
     }
 
-    setState(() => _dueDate = _dateOnly(selectedDate));
+    setState(() => _dueDate = dateOnly(selectedDate));
   }
 
   @override
@@ -484,7 +526,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     final maxHeight = screenSize.height * (isCompactDialog ? 0.92 : 0.86);
     final currentIssue = _currentIssue;
     final isEditing = currentIssue != null;
-    final canCloseIssue = isEditing && currentIssue.statusId != _closedStatusId;
+    final canCloseIssue = isEditing && currentIssue.statusId != closedStatusId;
     final selectedPullRequest = currentIssue == null
         ? null
         : _selectedPullRequestForIssue(currentIssue);
@@ -576,7 +618,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             CreateSubIssuePanel(
               issue: currentIssue,
               workspaceId: widget.workspaceId,
-              linkedSubIssues: _subIssuesForParent(
+              linkedSubIssues: subIssuesForParent(
                 currentIssue,
                 widget.allIssues,
               ),
@@ -654,7 +696,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
             issue: currentIssue,
             pullRequest: selectedPullRequest,
             buildStatus:
-                widget.buildStatusesByPullRequest[_buildStatusKey(
+                widget.buildStatusesByPullRequest[buildStatusKey(
                   currentIssue.repo,
                   selectedPullRequest.number,
                 )],
@@ -723,7 +765,7 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
                             bottom: BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                         ),
-                        child: _DialogHeader(
+                        child: DialogHeader(
                           title: title,
                           description: description,
                           issueDisplayId: isEditing
@@ -1104,8 +1146,9 @@ class _BottomSheetActions extends StatelessWidget {
   }
 }
 
-class _DialogHeader extends StatelessWidget {
-  const _DialogHeader({
+class DialogHeader extends StatelessWidget {
+  const DialogHeader({
+    super.key,
     required this.title,
     required this.description,
     this.issueDisplayId,
@@ -1329,7 +1372,7 @@ class _IssueIdChipState extends State<_IssueIdChip> {
     if (trimmed.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: trimmed));
     if (!mounted) return;
-    _showOverlaySnackBar(context, 'Issue IDがコピーされました');
+    showOverlaySnackBar(context, 'Issue IDがコピーされました');
     setState(() => _copied = true);
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
@@ -1424,7 +1467,7 @@ class _GitHubLinkField extends StatelessWidget {
           keyboardType: TextInputType.url,
           textInputAction: TextInputAction.next,
           decoration: decoration,
-          validator: _validateOptionalHttpUrl,
+          validator: validateOptionalHttpUrl,
         );
         final actions = ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
@@ -1666,7 +1709,7 @@ class PullRequestReviewTile extends StatelessWidget {
               final githubButton = OutlinedButton.icon(
                 onPressed: pullRequest.url == null
                     ? null
-                    : () => unawaited(_launchUrlExternal(pullRequest.url!)),
+                    : () => unawaited(launchUrlExternal(pullRequest.url!)),
                 icon: const Icon(Icons.open_in_new_rounded, size: 17),
                 label: const Text('GitHub'),
                 style: OutlinedButton.styleFrom(
@@ -2144,7 +2187,7 @@ class _PullRequestDiffHeader extends StatelessWidget {
               final openButton = OutlinedButton.icon(
                 onPressed: url == null || url.isEmpty
                     ? null
-                    : () => unawaited(_launchUrlExternal(url)),
+                    : () => unawaited(launchUrlExternal(url)),
                 icon: const Icon(Icons.open_in_new_rounded, size: 17),
                 label: const Text('GitHub'),
               );
@@ -2796,7 +2839,7 @@ class _PullRequestCommentTile extends StatelessWidget {
       child: InkWell(
         onTap: comment.url.isEmpty
             ? null
-            : () => unawaited(_launchUrlExternal(comment.url)),
+            : () => unawaited(launchUrlExternal(comment.url)),
         child: Container(
           padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
@@ -2856,7 +2899,7 @@ class _PullRequestCommentTile extends StatelessWidget {
                   if (href == null || href.isEmpty) {
                     return;
                   }
-                  unawaited(_launchUrlExternal(href));
+                  unawaited(launchUrlExternal(href));
                 },
                 styleSheet: MarkdownStyleSheet(
                   p: const TextStyle(
@@ -3535,7 +3578,7 @@ class _PullRequestDiffError extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              _friendlyError(error ?? '差分を読み込めませんでした'),
+              friendlyError(error ?? '差分を読み込めませんでした'),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF475569),
@@ -4006,7 +4049,7 @@ class DueDateField extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  dueDate == null ? '締切なし' : _formatDate(dueDate!),
+                  dueDate == null ? '締切なし' : formatDate(dueDate!),
                   style: const TextStyle(
                     color: Color(0xFF334155),
                     fontWeight: FontWeight.w700,

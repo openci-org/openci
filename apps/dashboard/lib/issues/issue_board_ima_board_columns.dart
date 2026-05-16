@@ -1,4 +1,11 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'issue_board_ima_issue_cards.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_app_shell.dart';
+import 'issue_board_ima_overview.dart';
 
 class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
@@ -30,13 +37,13 @@ class BoardColumnView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleIssues = _visibleIssuesForColumn(column);
+    final visibleIssues = visibleIssuesForColumn(column);
     final rankIndicesByIssueId = _rankIndicesByIssueId(column.issues);
-    final reviewGroups = column.id == _reviewStatusId
+    final reviewGroups = column.id == reviewStatusId
         ? _reviewPullRequestGroupsForIssues(visibleIssues)
         : const <ReviewPullRequestGroup>[];
     final acceptsColumnDrop =
-        column.id != _reviewStatusId || reviewGroups.isEmpty;
+        column.id != reviewStatusId || reviewGroups.isEmpty;
 
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
@@ -53,7 +60,7 @@ class BoardColumnView extends StatelessWidget {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          width: _boardColumnWidth,
+          width: boardColumnWidth,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isHovering
@@ -195,18 +202,18 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleIssues = _visibleIssuesForColumn(widget.column);
+    final visibleIssues = visibleIssuesForColumn(widget.column);
     final displayedIssues = _isShrunk
-        ? visibleIssues.take(_compactColumnCollapsedLimit).toList()
+        ? visibleIssues.take(compactColumnCollapsedLimit).toList()
         : visibleIssues;
     final rankIndicesByIssueId = _rankIndicesByIssueId(widget.column.issues);
-    final reviewGroups = widget.column.id == _reviewStatusId
+    final reviewGroups = widget.column.id == reviewStatusId
         ? _reviewPullRequestGroupsForIssues(displayedIssues)
         : const <ReviewPullRequestGroup>[];
     final acceptsColumnDrop =
-        widget.column.id != _reviewStatusId || reviewGroups.isEmpty;
+        widget.column.id != reviewStatusId || reviewGroups.isEmpty;
     final hiddenIssueCount = visibleIssues.length - displayedIssues.length;
-    final canToggleSize = visibleIssues.length > _compactColumnCollapsedLimit;
+    final canToggleSize = visibleIssues.length > compactColumnCollapsedLimit;
 
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
@@ -313,7 +320,7 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                   isShrunk: _isShrunk,
                   hiddenIssueCount: hiddenIssueCount,
                   totalIssueCount: visibleIssues.length,
-                  collapsedIssueCount: _compactColumnCollapsedLimit,
+                  collapsedIssueCount: compactColumnCollapsedLimit,
                   onPressed: () => setState(() => _isShrunk = !_isShrunk),
                 ),
                 const SizedBox(height: 8),
@@ -443,7 +450,7 @@ List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
   for (final reference
       in pullRequest?.linkedIssues ?? const <IssuePullRequestLinkedIssue>[]) {
     final issue =
-        issuesByRepositoryNumber[_issueRepositoryNumberKey(
+        issuesByRepositoryNumber[issueRepositoryNumberKey(
           group.repository,
           reference.number,
         )];
@@ -636,7 +643,7 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                       child: InkWell(
                         onTap: url == null
                             ? null
-                            : () => unawaited(_launchUrlExternal(url)),
+                            : () => unawaited(launchUrlExternal(url)),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
                           child: Column(
@@ -699,7 +706,7 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   if (!isOpenPullRequest)
-                                    _ReviewGroupPill(
+                                    ReviewGroupPill(
                                       label: stateLabel,
                                       color: stateColor,
                                       icon: pullRequest?.merged == true
@@ -782,8 +789,9 @@ class ReviewPullRequestGroupView extends StatelessWidget {
   }
 }
 
-class _ReviewGroupPill extends StatelessWidget {
-  const _ReviewGroupPill({
+class ReviewGroupPill extends StatelessWidget {
+  const ReviewGroupPill({
+    super.key,
     required this.label,
     required this.color,
     required this.icon,
@@ -917,7 +925,7 @@ class OverviewList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = isCompact ? _boardBottomPadding + 72 : 14.0;
+    final bottomPadding = isCompact ? boardBottomPadding + 72 : 14.0;
 
     if (isCompact) {
       return CompactOverviewList(
@@ -930,13 +938,13 @@ class OverviewList extends StatelessWidget {
 
     final allIssues = [
       for (final column in columns)
-        for (final issue in _visibleIssuesForColumn(column)) issue,
+        for (final issue in visibleIssuesForColumn(column)) issue,
     ];
     final totalWeight = allIssues.fold<int>(
       0,
       (total, issue) =>
           total +
-          (issue.statusId == _closedStatusId
+          (issue.statusId == closedStatusId
               ? issue.resolution?.actualWeight ?? 0
               : issue.weightEstimate?.value ?? 0),
     );
@@ -950,9 +958,9 @@ class OverviewList extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
-            _boardHorizontalPadding,
+            boardHorizontalPadding,
             4,
-            _boardHorizontalPadding,
+            boardHorizontalPadding,
             0,
           ),
           child: summary,
@@ -961,9 +969,9 @@ class OverviewList extends StatelessWidget {
         Expanded(
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
-              _boardHorizontalPadding,
+              boardHorizontalPadding,
               0,
-              _boardHorizontalPadding,
+              boardHorizontalPadding,
               bottomPadding,
             ),
             scrollDirection: Axis.horizontal,
@@ -1023,9 +1031,9 @@ class _CompactOverviewListState extends State<CompactOverviewList> {
           SliverStickyHeader(
             header: Padding(
               padding: EdgeInsets.fromLTRB(
-                _boardHorizontalPadding,
+                boardHorizontalPadding,
                 entry.$1 == 0 ? 4 : 8,
-                _boardHorizontalPadding,
+                boardHorizontalPadding,
                 0,
               ),
               child: OverviewSectionHeader(
@@ -1042,7 +1050,7 @@ class _CompactOverviewListState extends State<CompactOverviewList> {
             sliver: _expandedColumnIds.contains(entry.$2.id)
                 ? SliverPadding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: _boardHorizontalPadding,
+                      horizontal: boardHorizontalPadding,
                     ),
                     sliver: SliverToBoxAdapter(
                       child: _CompactOverviewSectionBody(
@@ -1077,12 +1085,12 @@ class OverviewSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleIssues = _visibleIssuesForColumn(column);
+    final visibleIssues = visibleIssuesForColumn(column);
     final totalWeight = visibleIssues.fold<int>(
       0,
       (total, issue) =>
           total +
-          (issue.statusId == _closedStatusId
+          (issue.statusId == closedStatusId
               ? issue.resolution?.actualWeight ?? 0
               : issue.weightEstimate?.value ?? 0),
     );
@@ -1156,7 +1164,7 @@ class _CompactOverviewSectionBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleIssues = _visibleIssuesForColumn(column);
+    final visibleIssues = visibleIssuesForColumn(column);
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -1292,19 +1300,19 @@ class _OverviewSectionState extends State<OverviewSection> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleIssues = _visibleIssuesForColumn(widget.column);
+    final visibleIssues = visibleIssuesForColumn(widget.column);
     final displayedIssues = widget.isCompact && _isShrunk
-        ? visibleIssues.take(_compactColumnCollapsedLimit).toList()
+        ? visibleIssues.take(compactColumnCollapsedLimit).toList()
         : visibleIssues;
     final hiddenIssueCount = visibleIssues.length - displayedIssues.length;
     final canToggleSize =
-        widget.isCompact && visibleIssues.length > _compactColumnCollapsedLimit;
+        widget.isCompact && visibleIssues.length > compactColumnCollapsedLimit;
     final showDropSlot = !widget.isCompact || !_isShrunk;
     final totalWeight = visibleIssues.fold<int>(
       0,
       (total, issue) =>
           total +
-          (issue.statusId == _closedStatusId
+          (issue.statusId == closedStatusId
               ? issue.resolution?.actualWeight ?? 0
               : issue.weightEstimate?.value ?? 0),
     );
@@ -1392,7 +1400,7 @@ class _OverviewSectionState extends State<OverviewSection> {
                             isShrunk: _isShrunk,
                             hiddenIssueCount: hiddenIssueCount,
                             totalIssueCount: visibleIssues.length,
-                            collapsedIssueCount: _compactColumnCollapsedLimit,
+                            collapsedIssueCount: compactColumnCollapsedLimit,
                             onPressed: () =>
                                 setState(() => _isShrunk = !_isShrunk),
                           ),
@@ -1415,7 +1423,7 @@ class _OverviewSectionState extends State<OverviewSection> {
                       isShrunk: _isShrunk,
                       hiddenIssueCount: hiddenIssueCount,
                       totalIssueCount: visibleIssues.length,
-                      collapsedIssueCount: _compactColumnCollapsedLimit,
+                      collapsedIssueCount: compactColumnCollapsedLimit,
                       onPressed: () => setState(() => _isShrunk = !_isShrunk),
                     ),
                   ),
@@ -1600,7 +1608,7 @@ class OverviewIssueRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repoName = _overviewRepoName(issue.repo);
-    final weight = issue.statusId == _closedStatusId
+    final weight = issue.statusId == closedStatusId
         ? issue.resolution?.actualWeight
         : issue.weightEstimate?.value;
     final weightPill = weight == null
@@ -1651,7 +1659,7 @@ class OverviewIssueRow extends StatelessWidget {
     if (requiresLongPressDrag) {
       return LongPressDraggable<IssueDragData>(
         data: data,
-        delay: _mobileDragStartDelay,
+        delay: mobileDragStartDelay,
         feedback: feedback,
         childWhenDragging: Opacity(opacity: 0.35, child: row),
         child: child,
@@ -1767,12 +1775,12 @@ class _OverviewMiniPill extends StatelessWidget {
   }
 }
 
-List<Issue> _visibleIssuesForColumn(BoardColumn column) {
-  if (column.id != _closedStatusId) {
+List<Issue> visibleIssuesForColumn(BoardColumn column) {
+  if (column.id != closedStatusId) {
     return column.issues;
   }
 
-  return [...column.issues]..sort(_compareDoneIssues);
+  return [...column.issues]..sort(compareDoneIssues);
 }
 
 Map<String, int> _rankIndicesByIssueId(List<Issue> issues) {
@@ -1781,7 +1789,7 @@ Map<String, int> _rankIndicesByIssueId(List<Issue> issues) {
   };
 }
 
-List<Issue> _subIssuesForParent(Issue parent, List<Issue> allIssues) {
+List<Issue> subIssuesForParent(Issue parent, List<Issue> allIssues) {
   final subIssues = allIssues
       .where((issue) => issue.parentIssue?.issueId == parent.id)
       .toList();
@@ -1789,7 +1797,7 @@ List<Issue> _subIssuesForParent(Issue parent, List<Issue> allIssues) {
   return subIssues;
 }
 
-Map<String, List<Issue>> _subIssuesByParentId(List<Issue> allIssues) {
+Map<String, List<Issue>> subIssuesByParentId(List<Issue> allIssues) {
   final subIssuesByParentId = <String, List<Issue>>{};
   for (final issue in allIssues) {
     final parentId = issue.parentIssue?.issueId;
@@ -1804,7 +1812,7 @@ Map<String, List<Issue>> _subIssuesByParentId(List<Issue> allIssues) {
   return subIssuesByParentId;
 }
 
-List<Issue> _descendantSubIssuesForParent(Issue parent, List<Issue> allIssues) {
+List<Issue> descendantSubIssuesForParent(Issue parent, List<Issue> allIssues) {
   final descendants = <Issue>[];
   final seenIssueIds = <String>{parent.id};
   var frontier = <Issue>[parent];
@@ -1812,7 +1820,7 @@ List<Issue> _descendantSubIssuesForParent(Issue parent, List<Issue> allIssues) {
   while (frontier.isNotEmpty) {
     final nextFrontier = <Issue>[];
     for (final issue in frontier) {
-      final children = _subIssuesForParent(issue, allIssues);
+      final children = subIssuesForParent(issue, allIssues);
       for (final child in children) {
         if (!seenIssueIds.add(child.id)) {
           continue;
@@ -1827,7 +1835,7 @@ List<Issue> _descendantSubIssuesForParent(Issue parent, List<Issue> allIssues) {
   return descendants;
 }
 
-int _compareDoneIssues(Issue left, Issue right) {
+int compareDoneIssues(Issue left, Issue right) {
   final leftClosedAt = left.closedAt;
   final rightClosedAt = right.closedAt;
 
