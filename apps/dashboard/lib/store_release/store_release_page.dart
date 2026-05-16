@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/store_release/store_release_time.dart';
 import 'package:dashboard/store_release/store_release_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -827,9 +828,10 @@ class _InReviewView extends HookConsumerWidget {
         ? Icons.hourglass_top
         : Icons.rate_review;
 
-    final uploadedAt = reviewBuild.uploadedDate != null
-        ? DateTime.tryParse(reviewBuild.uploadedDate!)
-        : null;
+    final uploadedLabel = formatAscTimestampJst(
+      reviewBuild.uploadedDate,
+      includeYear: true,
+    );
 
     return Center(
       child: SingleChildScrollView(
@@ -938,13 +940,11 @@ class _InReviewView extends HookConsumerWidget {
                       ),
                       value: reviewBuild.platform,
                     ),
-                    if (uploadedAt != null) ...[
+                    if (uploadedLabel != null) ...[
                       const SizedBox(height: 14),
                       _InfoRow(
                         label: releaseT.submittedOn,
-                        value:
-                            '${uploadedAt.year}/${uploadedAt.month}/${uploadedAt.day} '
-                            '${uploadedAt.hour}:${uploadedAt.minute.toString().padLeft(2, '0')}',
+                        value: uploadedLabel,
                       ),
                     ],
                     const SizedBox(height: 14),
@@ -1600,12 +1600,7 @@ class _SelectableBuildCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final releaseT = t.storeRelease;
 
-    final uploadedAt = ascBuild.uploadedDate != null
-        ? DateTime.tryParse(ascBuild.uploadedDate!)
-        : null;
-    final uploadedLabel = uploadedAt != null
-        ? '${uploadedAt.month}/${uploadedAt.day} ${uploadedAt.hour}:${uploadedAt.minute.toString().padLeft(2, '0')}'
-        : '';
+    final uploadedLabel = formatAscTimestampJst(ascBuild.uploadedDate);
 
     final betaStateLabel = switch (ascBuild.externalBuildState) {
       'READY_FOR_BETA_TESTING' => 'TestFlight Ready',
@@ -1698,7 +1693,7 @@ class _SelectableBuildCard extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          if (uploadedLabel.isNotEmpty)
+                          if (uploadedLabel != null)
                             Text(
                               uploadedLabel,
                               style: TextStyle(
