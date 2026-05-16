@@ -1744,7 +1744,9 @@ class _RecentRemoteBranchesMetricState
   Future<WorkspaceRecentBranchList> _reloadBranches() {
     final future = widget.loadBranches();
     if (mounted) {
-      setState(() => _branchesFuture = future);
+      setState(() {
+        _branchesFuture = future;
+      });
     }
     return future;
   }
@@ -1933,8 +1935,9 @@ class _RecentRemoteBranchesDialogState
   }
 
   void _reload() {
+    final future = widget.reloadBranches();
     setState(() {
-      _branchesFuture = widget.reloadBranches();
+      _branchesFuture = future;
       _createdBranchKeys.clear();
       _creatingBranchKey = '';
     });

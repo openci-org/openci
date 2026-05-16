@@ -351,5 +351,64 @@ void main() {
       expect(createdHead, 'IMA-1973-create-pr');
       expect(find.text('作成済み'), findsOneWidget);
     });
+
+    testWidgets('refreshes recent branches after a load error', (tester) async {
+      var loadCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RecentRemoteBranchesMetric(
+              isCompact: false,
+              loadBranches: () async {
+                loadCount += 1;
+                if (loadCount == 1) {
+                  throw StateError('temporary failure');
+                }
+                return const WorkspaceRecentBranchList(
+                  repositories: 1,
+                  branches: [
+                    WorkspaceRecentBranch(
+                      repository: 'openci-org/openci',
+                      name: 'IMA-1973-create-pr',
+                      sha: 'abc123456789',
+                      base: 'develop',
+                      issueId: 'issue-1973',
+                      issueKey: 'IMA-1973',
+                      issueTitle: 'PRの作成もOpenCI上で行いたい。',
+                      issueStatusId: 'review',
+                    ),
+                  ],
+                );
+              },
+              onCreatePullRequest: (branch) async {
+                return const IssuePullRequest(
+                  number: 1974,
+                  title: 'PRの作成もOpenCI上で行いたい。 IMA-1973',
+                  state: 'open',
+                  merged: false,
+                  branch: 'IMA-1973-create-pr',
+                );
+              },
+              onOpenIssue: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.text('読み込みエラー'), findsOneWidget);
+
+      await tester.tap(find.text('ブランチ'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ブランチを読み込めませんでした'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.refresh_rounded).first);
+      await tester.pumpAndSettle();
+
+      expect(loadCount, 2);
+      expect(find.text('IMA-1973-create-pr'), findsOneWidget);
+    });
   });
 }
