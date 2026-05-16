@@ -1,4 +1,5 @@
 import 'package:dashboard/issues/issue_board_ima_page.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -38,6 +39,32 @@ void main() {
         'additions': 12,
         'deletions': 3,
         'changedFiles': 1,
+        'ci': {
+          'status': 'success',
+          'total': 4,
+          'passed': 4,
+          'failed': 0,
+          'pending': 0,
+          'skipped': 0,
+          'checksTruncated': false,
+        },
+        'comments': [
+          {
+            'id': 'comment-1',
+            'author': 'coderabbitai',
+            'authorAssociation': 'NONE',
+            'body': 'Consider handling this edge case.',
+            'url':
+                'https://github.com/openci-org/openci/pull/1956#discussion_r1',
+            'createdAt': '2026-05-16T00:00:00Z',
+            'updatedAt': '2026-05-16T00:00:00Z',
+            'kind': 'review',
+            'path': 'lib/issues/issue_board_ima_issue_editor.dart',
+            'line': 42,
+            'side': 'RIGHT',
+          },
+        ],
+        'commentsTruncated': false,
         'filesTruncated': true,
         'files': [
           {
@@ -60,6 +87,35 @@ void main() {
       expect(diff.filesTruncated, isTrue);
       expect(diff.files.single.patchTruncated, isTrue);
       expect(diff.files.single.additions, 12);
+      expect(diff.ci.allPassed, isTrue);
+      expect(diff.ci.passed, 4);
+      expect(diff.comments.single.author, 'coderabbitai');
+      expect(diff.comments.single.kind, IssuePullRequestCommentKind.review);
+      expect(
+        diff.comments.single.path,
+        'lib/issues/issue_board_ima_issue_editor.dart',
+      );
+      expect(diff.comments.single.line, 42);
+    });
+
+    test('defaults missing CI summary to no checks', () {
+      final diff = IssuePullRequestDiff.fromMap({
+        'repository': 'openci-org/openci',
+        'pullRequestNumber': 1956,
+        'title': 'Show pull request diff',
+        'url': 'https://github.com/openci-org/openci/pull/1956',
+        'state': 'open',
+        'merged': false,
+        'branch': 'IMA-391',
+        'additions': 0,
+        'deletions': 0,
+        'changedFiles': 0,
+        'files': [],
+      });
+
+      expect(diff.ci.status, PullRequestCiStatus.none);
+      expect(diff.ci.total, 0);
+      expect(diff.ci.allPassed, isFalse);
     });
 
     test('expands small textual diffs by default', () {
@@ -76,6 +132,153 @@ void main() {
       );
 
       expect(diffFileInitiallyExpanded(file), isTrue);
+    });
+
+    test('detects syntax language from diff file names', () {
+      expect(
+        diffLanguageForFilename('lib/issues/issue_board_ima_page.dart'),
+        'dart',
+      );
+      expect(diffLanguageForFilename('.openci/functions-ci.yaml'), 'yaml');
+      expect(
+        diffLanguageForFilename('firebase/functions/src/index.ts'),
+        'typescript',
+      );
+      expect(diffLanguageForFilename('Dockerfile'), 'dockerfile');
+    });
+
+    test('parses patch line kinds and line numbers', () {
+      final lines = diffPatchLines(
+        '@@ -10,2 +10,3 @@\n'
+        ' final title = oldTitle;\n'
+        '-debugPrint(title);\n'
+        '+logger.info(title);\n'
+        '+logger.info("done");\n'
+        r'\ No newline at end of file',
+      );
+
+      expect(lines[0].kind, DiffPatchLineKind.hunk);
+      expect(lines[1].kind, DiffPatchLineKind.context);
+      expect(lines[1].oldLineNumber, 10);
+      expect(lines[1].newLineNumber, 10);
+      expect(lines[2].kind, DiffPatchLineKind.removed);
+      expect(lines[2].oldLineNumber, 11);
+      expect(lines[2].newLineNumber, isNull);
+      expect(lines[3].kind, DiffPatchLineKind.added);
+      expect(lines[3].oldLineNumber, isNull);
+      expect(lines[3].newLineNumber, 11);
+      expect(lines[4].newLineNumber, 12);
+      expect(lines[5].kind, DiffPatchLineKind.meta);
+    });
+
+    testWidgets('retry keeps async diff loading outside setState', (
+      tester,
+    ) async {
+      var attempts = 0;
+
+      Future<IssuePullRequestDiff> loadDiff() {
+        attempts += 1;
+        return Future<IssuePullRequestDiff>.error(
+          Exception('diff unavailable'),
+        );
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PullRequestDiffSheet(
+              issue: const Issue(
+                id: 'issue-1',
+                repo: 'openci-org/openci',
+                title: 'Review PR in OpenCI',
+                labels: [],
+                comments: 0,
+                priority: Priority.medium,
+              ),
+              pullRequest: const IssuePullRequest(
+                number: 1956,
+                title: 'Show pull request diff',
+                state: 'open',
+                merged: false,
+                branch: 'IMA-391',
+              ),
+              loadDiff: loadDiff,
+              onMerge: null,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+      expect(find.text('再読み込み'), findsOneWidget);
+
+      await tester.tap(find.text('再読み込み'));
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+
+      expect(attempts, 2);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('opens pull request details inside the issue editor', (
+      tester,
+    ) async {
+      const issue = Issue(
+        id: 'issue-1',
+        displayId: 'IMA-391',
+        repo: 'openci-org/openci',
+        title: 'Review PR in OpenCI',
+        labels: [],
+        comments: 0,
+        priority: Priority.medium,
+        githubUrl: 'https://github.com/openci-org/openci/issues/1956',
+        pullRequests: [
+          IssuePullRequest(
+            number: 1956,
+            title: 'PR details stay inside the issue editor',
+            state: 'open',
+            merged: false,
+            branch: 'IMA-391',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AddIssueDialog(
+              columns: [
+                BoardColumn(
+                  id: 'triage',
+                  title: 'Triage',
+                  description: 'New work',
+                  color: Colors.blue,
+                  issues: [issue],
+                ),
+              ],
+              repositoryOptions: ['openci-org/openci'],
+              initialIssue: issue,
+              initialColumnId: 'triage',
+            ),
+          ),
+        ),
+      );
+
+      final detailsButton = find.widgetWithText(FilledButton, 'PR詳細');
+      await tester.ensureVisible(detailsButton);
+      await tester.tap(detailsButton);
+      await tester.pump();
+
+      expect(find.byType(PullRequestDiffView), findsOneWidget);
+      expect(find.byType(PullRequestDiffSheet), findsNothing);
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.pump();
+
+      expect(find.byType(PullRequestDiffView), findsNothing);
+      expect(detailsButton, findsOneWidget);
     });
   });
 }

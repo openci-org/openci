@@ -7,6 +7,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import OpenAI from "openai";
 
+import { firebaseRegion } from "../firebaseRegion.js";
 import { BuildJobStatus, firestoreCollectionPaths, listLatestBuildLogs } from "../firestoreData.js";
 import {
   getInstallationToken,
@@ -504,7 +505,7 @@ async function applyFix({
 }
 
 export const startCiCdFix = onCall<StartCiCdFixRequest, Promise<StartCiCdFixResponse>>(
-  { region: "asia-northeast1", timeoutSeconds: 30, memory: "256MiB" },
+  { region: firebaseRegion, timeoutSeconds: 30, memory: "256MiB" },
   async (request) => {
     const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
     const buildJob = await getBuildJob(buildJobId);
@@ -542,7 +543,7 @@ export const startCiCdFix = onCall<StartCiCdFixRequest, Promise<StartCiCdFixResp
 );
 
 export const reviseCiCdFix = onCall<ReviseCiCdFixRequest, Promise<StartCiCdFixResponse>>(
-  { region: "asia-northeast1", timeoutSeconds: 30, memory: "256MiB" },
+  { region: firebaseRegion, timeoutSeconds: 30, memory: "256MiB" },
   async (request) => {
     const requestId = requireNonEmptyString(request.data?.requestId, "requestId");
     const instruction = requireNonEmptyString(request.data?.instruction, "instruction").slice(
@@ -584,7 +585,7 @@ export const reviseCiCdFix = onCall<ReviseCiCdFixRequest, Promise<StartCiCdFixRe
 export const generateCiCdFixOnRequest = onDocumentCreated(
   {
     document: `${ciCdFixRequestsCollection}/{requestId}`,
-    region: "asia-northeast1",
+    region: firebaseRegion,
     timeoutSeconds: 300,
     memory: "1GiB",
     secrets: [githubAppId, githubPrivateKey, openAiApiKey],
@@ -613,7 +614,7 @@ export const generateCiCdFixOnRequest = onDocumentCreated(
 
 export const commitCiCdFix = onCall<ApplyCiCdFixRequest, Promise<ApplyCiCdFixResponse>>(
   {
-    region: "asia-northeast1",
+    region: firebaseRegion,
     timeoutSeconds: 120,
     memory: "512MiB",
     secrets: [githubAppId, githubPrivateKey],
@@ -629,7 +630,7 @@ export const commitCiCdFix = onCall<ApplyCiCdFixRequest, Promise<ApplyCiCdFixRes
 
 export const createCiCdFixPullRequest = onCall<ApplyCiCdFixRequest, Promise<ApplyCiCdFixResponse>>(
   {
-    region: "asia-northeast1",
+    region: firebaseRegion,
     timeoutSeconds: 120,
     memory: "512MiB",
     secrets: [githubAppId, githubPrivateKey],

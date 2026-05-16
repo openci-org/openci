@@ -18,6 +18,10 @@ String _asString(Object? value, [String fallback = '']) {
   return value is String && value.isNotEmpty ? value : fallback;
 }
 
+String? _emptyToNull(String value) {
+  return value.isEmpty ? null : value;
+}
+
 int _asInt(Object? value, [int fallback = 0]) {
   if (value is int) {
     return value;

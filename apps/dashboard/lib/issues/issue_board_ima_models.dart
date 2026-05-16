@@ -520,6 +520,9 @@ class IssuePullRequestDiff {
     required this.additions,
     required this.deletions,
     required this.changedFiles,
+    required this.ci,
+    required this.comments,
+    required this.commentsTruncated,
     required this.filesTruncated,
     required this.files,
   });
@@ -536,6 +539,12 @@ class IssuePullRequestDiff {
       additions: _asInt(data['additions']),
       deletions: _asInt(data['deletions']),
       changedFiles: _asInt(data['changedFiles']),
+      ci: PullRequestCiSummary.fromMap(_asMap(data['ci'])),
+      comments: _asList(data['comments'])
+          .map((value) => IssuePullRequestComment.fromMap(_asMap(value)))
+          .where((comment) => comment.body.isNotEmpty)
+          .toList(),
+      commentsTruncated: data['commentsTruncated'] == true,
       filesTruncated: data['filesTruncated'] == true,
       files: _asList(data['files'])
           .map((value) => IssuePullRequestDiffFile.fromMap(_asMap(value)))
@@ -554,8 +563,105 @@ class IssuePullRequestDiff {
   final int additions;
   final int deletions;
   final int changedFiles;
+  final PullRequestCiSummary ci;
+  final List<IssuePullRequestComment> comments;
+  final bool commentsTruncated;
   final bool filesTruncated;
   final List<IssuePullRequestDiffFile> files;
+}
+
+enum IssuePullRequestCommentKind { conversation, review }
+
+class IssuePullRequestComment {
+  const IssuePullRequestComment({
+    required this.id,
+    required this.author,
+    required this.authorAssociation,
+    required this.body,
+    required this.url,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.kind,
+    this.path,
+    this.line,
+    this.side,
+    this.inReplyToId,
+  });
+
+  factory IssuePullRequestComment.fromMap(Map<String, dynamic> data) {
+    final line = _asInt(data['line']);
+    return IssuePullRequestComment(
+      id: _asString(data['id']),
+      author: _asString(data['author'], 'unknown'),
+      authorAssociation: _asString(data['authorAssociation']),
+      body: _asString(data['body']),
+      url: _asString(data['url']),
+      createdAt: _asString(data['createdAt']),
+      updatedAt: _asString(data['updatedAt']),
+      kind: _asString(data['kind']) == 'review'
+          ? IssuePullRequestCommentKind.review
+          : IssuePullRequestCommentKind.conversation,
+      path: _emptyToNull(_asString(data['path'])),
+      line: line > 0 ? line : null,
+      side: _emptyToNull(_asString(data['side'])),
+      inReplyToId: _emptyToNull(_asString(data['inReplyToId'])),
+    );
+  }
+
+  final String id;
+  final String author;
+  final String authorAssociation;
+  final String body;
+  final String url;
+  final String createdAt;
+  final String updatedAt;
+  final IssuePullRequestCommentKind kind;
+  final String? path;
+  final int? line;
+  final String? side;
+  final String? inReplyToId;
+}
+
+enum PullRequestCiStatus { success, failure, pending, none, unknown }
+
+class PullRequestCiSummary {
+  const PullRequestCiSummary({
+    required this.status,
+    required this.total,
+    required this.passed,
+    required this.failed,
+    required this.pending,
+    required this.skipped,
+    required this.checksTruncated,
+  });
+
+  factory PullRequestCiSummary.fromMap(Map<String, dynamic> data) {
+    return PullRequestCiSummary(
+      status: switch (_asString(data['status'])) {
+        'success' => PullRequestCiStatus.success,
+        'failure' => PullRequestCiStatus.failure,
+        'pending' => PullRequestCiStatus.pending,
+        'unknown' => PullRequestCiStatus.unknown,
+        _ => PullRequestCiStatus.none,
+      },
+      total: _asInt(data['total']),
+      passed: _asInt(data['passed']),
+      failed: _asInt(data['failed']),
+      pending: _asInt(data['pending']),
+      skipped: _asInt(data['skipped']),
+      checksTruncated: data['checksTruncated'] == true,
+    );
+  }
+
+  final PullRequestCiStatus status;
+  final int total;
+  final int passed;
+  final int failed;
+  final int pending;
+  final int skipped;
+  final bool checksTruncated;
+
+  bool get allPassed => status == PullRequestCiStatus.success && total > 0;
 }
 
 class IssuePullRequestDiffFile {

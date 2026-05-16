@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
+import { firebaseRegion } from "./firebaseRegion.js";
 
 export const BuildJobStatus = {
   WAITING: "WAITING",
@@ -23,7 +24,7 @@ export type InvitationStatus = (typeof InvitationStatus)[keyof typeof Invitation
 export const connectorConfig = {
   connector: "firestore",
   serviceId: "openci",
-  location: "asia-northeast1",
+  location: firebaseRegion,
 };
 
 export const firestoreCollectionPaths = {

@@ -88,6 +88,33 @@ export interface IssuePullRequestDiffFile {
   previousFilename?: string;
 }
 
+export interface IssuePullRequestComment {
+  id: string;
+  author: string;
+  authorAssociation: string;
+  body: string;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+  path?: string;
+  line?: number;
+  side?: string;
+  inReplyToId?: string;
+  kind: "conversation" | "review";
+}
+
+export type PullRequestCiStatus = "success" | "failure" | "pending" | "none" | "unknown";
+
+export interface PullRequestCiSummary {
+  status: PullRequestCiStatus;
+  total: number;
+  passed: number;
+  failed: number;
+  pending: number;
+  skipped: number;
+  checksTruncated: boolean;
+}
+
 export interface GetIssuePullRequestDiffResponse {
   repository: string;
   pullRequestNumber: number;
@@ -99,6 +126,9 @@ export interface GetIssuePullRequestDiffResponse {
   additions: number;
   deletions: number;
   changedFiles: number;
+  ci: PullRequestCiSummary;
+  comments: IssuePullRequestComment[];
+  commentsTruncated: boolean;
   filesTruncated: boolean;
   files: IssuePullRequestDiffFile[];
 }
@@ -219,6 +249,7 @@ export interface GitHubPullRequestResponseItem {
   changed_files?: unknown;
   head?: {
     ref?: unknown;
+    sha?: unknown;
   };
 }
 
@@ -232,6 +263,26 @@ export interface GitHubPullRequestFileResponseItem {
   blob_url?: unknown;
   raw_url?: unknown;
   previous_filename?: unknown;
+}
+
+export interface GitHubIssueCommentResponseItem {
+  id?: unknown;
+  body?: unknown;
+  html_url?: unknown;
+  created_at?: unknown;
+  updated_at?: unknown;
+  author_association?: unknown;
+  user?: {
+    login?: unknown;
+  };
+}
+
+export interface GitHubPullRequestReviewCommentResponseItem extends GitHubIssueCommentResponseItem {
+  path?: unknown;
+  line?: unknown;
+  original_line?: unknown;
+  side?: unknown;
+  in_reply_to_id?: unknown;
 }
 
 export interface GitHubMergePullRequestResponseItem {
