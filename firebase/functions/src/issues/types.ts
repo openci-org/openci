@@ -69,6 +69,50 @@ export interface BackfillCursorAgentPullRequestsResponse {
   linked: number;
 }
 
+export interface GetIssuePullRequestDiffRequest extends WorkspaceRequest {
+  issueId: string;
+  repository: string;
+  pullRequestNumber: number;
+}
+
+export interface IssuePullRequestDiffFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch: string;
+  patchTruncated: boolean;
+  blobUrl: string;
+  rawUrl: string;
+  previousFilename?: string;
+}
+
+export interface GetIssuePullRequestDiffResponse {
+  repository: string;
+  pullRequestNumber: number;
+  title: string;
+  url: string;
+  state: string;
+  merged: boolean;
+  branch: string;
+  additions: number;
+  deletions: number;
+  changedFiles: number;
+  filesTruncated: boolean;
+  files: IssuePullRequestDiffFile[];
+}
+
+export interface MergeIssuePullRequestRequest extends GetIssuePullRequestDiffRequest {
+  mergeMethod?: string;
+}
+
+export interface MergeIssuePullRequestResponse {
+  merged: boolean;
+  message: string;
+  sha: string;
+}
+
 export interface CreateGitHubIssueResponse {
   issueId: string;
   number: number;
@@ -170,9 +214,30 @@ export interface GitHubPullRequestResponseItem {
   state?: unknown;
   merged?: unknown;
   created_at?: unknown;
+  additions?: unknown;
+  deletions?: unknown;
+  changed_files?: unknown;
   head?: {
     ref?: unknown;
   };
+}
+
+export interface GitHubPullRequestFileResponseItem {
+  filename?: unknown;
+  status?: unknown;
+  additions?: unknown;
+  deletions?: unknown;
+  changes?: unknown;
+  patch?: unknown;
+  blob_url?: unknown;
+  raw_url?: unknown;
+  previous_filename?: unknown;
+}
+
+export interface GitHubMergePullRequestResponseItem {
+  sha?: unknown;
+  merged?: unknown;
+  message?: unknown;
 }
 
 export interface GitHubPullRequestLinkedIssue {
