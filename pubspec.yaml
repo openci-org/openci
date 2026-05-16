@@ -6,3 +6,4 @@ environment:
 
 workspace:
   - apps/dashboard
+  - packages/macos_updater

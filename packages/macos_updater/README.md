@@ -1,15 +1,29 @@
 # macos_updater
 
-A new Flutter plugin project.
+A macOS-only Flutter plugin that bridges Flutter to Sparkle 2.
 
-## Getting Started
+This package intentionally does not abstract other desktop platforms. It keeps
+the Dart API small and lets Sparkle own update UI, download, verification, and
+installation behavior on macOS.
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/to/develop-plugins),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+## API
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```dart
+final updater = MacosUpdater();
 
+await updater.setFeedUrl('https://example.com/appcast.xml');
+await updater.setScheduledCheckInterval(const Duration(hours: 24));
+await updater.checkForUpdates();
+```
+
+## Native setup
+
+The host app must configure Sparkle in its macOS bundle:
+
+- `SUFeedURL`
+- `SUPublicEDKey`
+- `SUEnableInstallerLauncherService` for sandboxed apps
+- Sparkle sandbox mach-lookup exceptions in entitlements
+
+Update archives must be signed with Sparkle's EdDSA key and listed in an
+appcast feed.

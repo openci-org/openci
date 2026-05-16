@@ -1,21 +1,24 @@
 name: macos_updater
-description: "A new Flutter plugin project."
+description: "A macOS-only Flutter plugin for Sparkle-based app updates."
 version: 0.0.1
-homepage:
+homepage: https://github.com/openci-org/openci
 
 environment:
-  sdk: ^3.11.5
-  flutter: '>=3.3.0'
+  sdk: 3.11.5
+  flutter: ">=3.41.0"
+
+resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
-  plugin_platform_interface: ^2.0.2
+  meta: ^1.17.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  pigeon: ^26.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

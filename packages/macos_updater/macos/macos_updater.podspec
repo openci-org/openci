@@ -5,13 +5,13 @@
 Pod::Spec.new do |s|
   s.name             = 'macos_updater'
   s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.summary          = 'A macOS-only Flutter plugin for Sparkle-based app updates.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+A macOS-only Flutter plugin for Sparkle-based app updates.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/openci-org/openci'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'OpenCI' => 'info@openci.org' }
 
   s.source           = { :path => '.' }
   s.source_files = 'macos_updater/Sources/macos_updater/**/*'
@@ -23,8 +23,9 @@ A new Flutter plugin project.
   # s.resource_bundles = {'macos_updater_privacy' => ['macos_updater/Sources/macos_updater/PrivacyInfo.xcprivacy']}
 
   s.dependency 'FlutterMacOS'
+  s.dependency 'Sparkle', '~> 2.9'
 
-  s.platform = :osx, '10.11'
+  s.platform = :osx, '10.13'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
 end

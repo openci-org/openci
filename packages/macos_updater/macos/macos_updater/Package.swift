@@ -11,11 +11,15 @@ let package = Package(
     products: [
         .library(name: "macos-updater", targets: ["macos_updater"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.1")
+    ],
     targets: [
         .target(
             name: "macos_updater",
-            dependencies: [],
+            dependencies: [
+                .product(name: "Sparkle", package: "Sparkle")
+            ],
             resources: [
                 // If your plugin requires a privacy manifest, for example if it collects user
                 // data, update the PrivacyInfo.xcprivacy file to describe your plugin's
