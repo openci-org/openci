@@ -35,6 +35,8 @@ void main() {
         'url': 'https://github.com/openci-org/openci/pull/1956',
         'state': 'open',
         'merged': false,
+        'mergeable': false,
+        'mergeableState': 'dirty',
         'branch': 'IMA-391',
         'additions': 12,
         'deletions': 3,
@@ -84,6 +86,8 @@ void main() {
 
       expect(diff.repository, 'openci-org/openci');
       expect(diff.pullRequestNumber, 1956);
+      expect(diff.mergeable, isFalse);
+      expect(diff.mergeableState, 'dirty');
       expect(diff.filesTruncated, isTrue);
       expect(diff.files.single.patchTruncated, isTrue);
       expect(diff.files.single.additions, 12);
@@ -221,6 +225,135 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('shows merge conflict status in pull request details', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PullRequestDiffSheet(
+              issue: const Issue(
+                id: 'issue-1',
+                repo: 'openci-org/openci',
+                title: 'Review PR in OpenCI',
+                labels: [],
+                comments: 0,
+                priority: Priority.medium,
+              ),
+              pullRequest: const IssuePullRequest(
+                number: 1977,
+                title: 'PRの作成もOpenCI上で行いたい。',
+                state: 'open',
+                merged: false,
+                branch: 'IMA-397',
+              ),
+              mergeConflictMessage:
+                  'このPRはbase branchとconflictしています。GitHubでconflictを解消してから、もう一度マージしてください。',
+              loadDiff: () async => const IssuePullRequestDiff(
+                repository: 'openci-org/openci',
+                pullRequestNumber: 1977,
+                title: 'PRの作成もOpenCI上で行いたい。',
+                url: 'https://github.com/openci-org/openci/pull/1977',
+                state: 'open',
+                merged: false,
+                branch: 'IMA-397',
+                additions: 0,
+                deletions: 0,
+                changedFiles: 0,
+                ci: PullRequestCiSummary(
+                  status: PullRequestCiStatus.none,
+                  total: 0,
+                  passed: 0,
+                  failed: 0,
+                  pending: 0,
+                  skipped: 0,
+                  checksTruncated: false,
+                ),
+                comments: [],
+                commentsTruncated: false,
+                filesTruncated: false,
+                files: [],
+              ),
+              onMerge: null,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.text('Conflictがあります'), findsOneWidget);
+      expect(find.textContaining('GitHubでconflictを解消'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('shows conflict before merge when GitHub marks PR dirty', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PullRequestDiffSheet(
+              issue: const Issue(
+                id: 'issue-1',
+                repo: 'openci-org/openci',
+                title: 'Review PR in OpenCI',
+                labels: [],
+                comments: 0,
+                priority: Priority.medium,
+              ),
+              pullRequest: const IssuePullRequest(
+                number: 1977,
+                title: 'PRの作成もOpenCI上で行いたい。',
+                state: 'open',
+                merged: false,
+                branch: 'IMA-397',
+              ),
+              loadDiff: () async => const IssuePullRequestDiff(
+                repository: 'openci-org/openci',
+                pullRequestNumber: 1977,
+                title: 'PRの作成もOpenCI上で行いたい。',
+                url: 'https://github.com/openci-org/openci/pull/1977',
+                state: 'open',
+                merged: false,
+                mergeable: false,
+                mergeableState: 'dirty',
+                branch: 'IMA-397',
+                additions: 0,
+                deletions: 0,
+                changedFiles: 0,
+                ci: PullRequestCiSummary(
+                  status: PullRequestCiStatus.success,
+                  total: 1,
+                  passed: 1,
+                  failed: 0,
+                  pending: 0,
+                  skipped: 0,
+                  checksTruncated: false,
+                ),
+                comments: [],
+                commentsTruncated: false,
+                filesTruncated: false,
+                files: [],
+              ),
+              onMerge: () async => true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.text('Conflictがあります'), findsOneWidget);
+      expect(find.text('Conflictあり'), findsOneWidget);
+      expect(find.text('CI pass・マージ'), findsNothing);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton).last).onPressed,
+        isNull,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('opens pull request details inside the issue editor', (
       tester,
     ) async {
@@ -279,6 +412,136 @@ void main() {
 
       expect(find.byType(PullRequestDiffView), findsNothing);
       expect(detailsButton, findsOneWidget);
+    });
+
+    testWidgets('creates a pull request from the recent branch dialog', (
+      tester,
+    ) async {
+      String? createdHead;
+      String? openedIssueId;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RecentRemoteBranchesMetric(
+              isCompact: false,
+              loadBranches: () async {
+                return const WorkspaceRecentBranchList(
+                  repositories: 1,
+                  branches: [
+                    WorkspaceRecentBranch(
+                      repository: 'openci-org/openci',
+                      name: 'IMA-1973-create-pr',
+                      sha: 'abc123456789',
+                      base: 'develop',
+                      issueId: 'issue-1973',
+                      issueKey: 'IMA-1973',
+                      issueTitle: 'PRの作成もOpenCI上で行いたい。',
+                      issueStatusId: 'review',
+                    ),
+                  ],
+                );
+              },
+              onCreatePullRequest: (branch) async {
+                createdHead = branch.name;
+                return const IssuePullRequest(
+                  number: 1974,
+                  title: 'PRの作成もOpenCI上で行いたい。 IMA-1973',
+                  state: 'open',
+                  merged: false,
+                  branch: 'IMA-1973-create-pr',
+                );
+              },
+              onOpenIssue: (issueId) {
+                openedIssueId = issueId;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.text('ブランチ'), findsOneWidget);
+      expect(find.text('1個'), findsOneWidget);
+      expect(find.text('IMA-1973-create-pr'), findsNothing);
+
+      await tester.tap(find.text('ブランチ'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('最近のブランチ'), findsOneWidget);
+      expect(find.text('IMA-1973-create-pr'), findsOneWidget);
+
+      await tester.tap(find.text('IMA-1973 PRの作成もOpenCI上で行いたい。'));
+      await tester.pumpAndSettle();
+      expect(openedIssueId, 'issue-1973');
+
+      await tester.tap(find.text('ブランチ'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('PR作成'));
+      await tester.pumpAndSettle();
+
+      expect(createdHead, 'IMA-1973-create-pr');
+      expect(find.text('作成済み'), findsOneWidget);
+    });
+
+    testWidgets('refreshes recent branches after a load error', (tester) async {
+      var loadCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RecentRemoteBranchesMetric(
+              isCompact: false,
+              loadBranches: () async {
+                loadCount += 1;
+                if (loadCount == 1) {
+                  throw StateError('temporary failure');
+                }
+                return const WorkspaceRecentBranchList(
+                  repositories: 1,
+                  branches: [
+                    WorkspaceRecentBranch(
+                      repository: 'openci-org/openci',
+                      name: 'IMA-1973-create-pr',
+                      sha: 'abc123456789',
+                      base: 'develop',
+                      issueId: 'issue-1973',
+                      issueKey: 'IMA-1973',
+                      issueTitle: 'PRの作成もOpenCI上で行いたい。',
+                      issueStatusId: 'review',
+                    ),
+                  ],
+                );
+              },
+              onCreatePullRequest: (branch) async {
+                return const IssuePullRequest(
+                  number: 1974,
+                  title: 'PRの作成もOpenCI上で行いたい。 IMA-1973',
+                  state: 'open',
+                  merged: false,
+                  branch: 'IMA-1973-create-pr',
+                );
+              },
+              onOpenIssue: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.text('読み込みエラー'), findsOneWidget);
+
+      await tester.tap(find.text('ブランチ'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ブランチを読み込めませんでした'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.refresh_rounded).first);
+      await tester.pumpAndSettle();
+
+      expect(loadCount, 2);
+      expect(find.text('IMA-1973-create-pr'), findsOneWidget);
     });
   });
 }

@@ -21,6 +21,22 @@ typedef IssueWeightOverrideCallback =
       required IssueWeightOverrideDraft draft,
     });
 
+typedef IssuePullRequestCreateCallback =
+    Future<IssuePullRequest> Function({
+      required String issueId,
+      required String repository,
+      required String head,
+      required String base,
+      required String title,
+      required String body,
+    });
+
+typedef WorkspaceRecentBranchLoadCallback =
+    Future<WorkspaceRecentBranchList> Function();
+
+typedef WorkspaceRecentBranchCreatePullRequestCallback =
+    Future<IssuePullRequest> Function(WorkspaceRecentBranch branch);
+
 class IssueDragData {
   const IssueDragData({required this.issueId, required this.sourceColumnId});
 
@@ -255,6 +271,7 @@ class Issue {
     this.weightEstimate,
     this.resolution,
     this.pullRequests = const [],
+    this.workBranch = '',
     this.subIssuesSummary,
     this.subIssues = const [],
     this.parentIssue,
@@ -296,6 +313,7 @@ class Issue {
           .map((value) => IssuePullRequest.fromMap(_asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
           .toList(),
+      workBranch: _asString(data['workBranch'] ?? data['branch']),
       subIssuesSummary: IssueSubIssuesSummary.fromMap(
         _asMap(
           githubIssue['subIssuesSummary'] ?? githubIssue['sub_issues_summary'],
@@ -336,6 +354,7 @@ class Issue {
       weightEstimate: weightEstimate,
       resolution: resolution,
       pullRequests: pullRequests ?? this.pullRequests,
+      workBranch: workBranch,
       subIssuesSummary: subIssuesSummary,
       subIssues: subIssues,
       parentIssue: parentIssue,
@@ -361,6 +380,7 @@ class Issue {
   final IssueWeightEstimate? weightEstimate;
   final IssueResolution? resolution;
   final List<IssuePullRequest> pullRequests;
+  final String workBranch;
   final IssueSubIssuesSummary? subIssuesSummary;
   final List<IssueSubIssueReference> subIssues;
   final IssueParentIssue? parentIssue;
@@ -475,6 +495,71 @@ class IssuePullRequest {
   final List<IssuePullRequestLinkedIssue> linkedIssues;
 }
 
+class WorkspaceRecentBranchList {
+  const WorkspaceRecentBranchList({
+    required this.branches,
+    required this.repositories,
+  });
+
+  factory WorkspaceRecentBranchList.fromMap(Map<String, dynamic> data) {
+    return WorkspaceRecentBranchList(
+      branches: _asList(data['branches'])
+          .map((value) => WorkspaceRecentBranch.fromMap(_asMap(value)))
+          .where(
+            (branch) => branch.name.isNotEmpty && branch.repository.isNotEmpty,
+          )
+          .toList(),
+      repositories: _asInt(data['repositories']),
+    );
+  }
+
+  final List<WorkspaceRecentBranch> branches;
+  final int repositories;
+}
+
+class WorkspaceRecentBranch {
+  const WorkspaceRecentBranch({
+    required this.repository,
+    required this.name,
+    this.sha = '',
+    this.base = 'main',
+    this.pushedAt,
+    this.issueId = '',
+    this.issueKey = '',
+    this.issueTitle = '',
+    this.issueStatusId = '',
+  });
+
+  factory WorkspaceRecentBranch.fromMap(Map<String, dynamic> data) {
+    final issue = _asMap(data['issue']);
+    return WorkspaceRecentBranch(
+      repository: _asString(data['repository']),
+      name: _asString(data['name']),
+      sha: _asString(data['sha']),
+      base: _asString(data['base'], 'main'),
+      pushedAt: DateTime.tryParse(_asString(data['pushedAt'])),
+      issueId: _asString(issue['id']),
+      issueKey: _asString(issue['issueKey'], _asString(issue['displayId'])),
+      issueTitle: _asString(issue['title']),
+      issueStatusId: _asString(issue['statusId']),
+    );
+  }
+
+  String get key => '$repository:$name';
+
+  bool get hasIssue => issueId.isNotEmpty;
+
+  final String repository;
+  final String name;
+  final String sha;
+  final String base;
+  final DateTime? pushedAt;
+  final String issueId;
+  final String issueKey;
+  final String issueTitle;
+  final String issueStatusId;
+}
+
 class IssuePullRequestLinkedIssue {
   const IssuePullRequestLinkedIssue({
     required this.number,
@@ -516,6 +601,8 @@ class IssuePullRequestDiff {
     required this.url,
     required this.state,
     required this.merged,
+    this.mergeable,
+    this.mergeableState = '',
     required this.branch,
     required this.additions,
     required this.deletions,
@@ -535,6 +622,8 @@ class IssuePullRequestDiff {
       url: _asString(data['url']),
       state: _asString(data['state'], 'open'),
       merged: data['merged'] == true,
+      mergeable: data['mergeable'] is bool ? data['mergeable'] as bool : null,
+      mergeableState: _asString(data['mergeableState']),
       branch: _asString(data['branch']),
       additions: _asInt(data['additions']),
       deletions: _asInt(data['deletions']),
@@ -559,6 +648,8 @@ class IssuePullRequestDiff {
   final String url;
   final String state;
   final bool merged;
+  final bool? mergeable;
+  final String mergeableState;
   final String branch;
   final int additions;
   final int deletions;

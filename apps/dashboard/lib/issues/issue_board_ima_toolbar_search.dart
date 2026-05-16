@@ -1520,7 +1520,10 @@ class _RepositoryPickerBottomSheetState
   }
 
   void _retry() {
-    setState(() => _repositoriesFuture = widget.loadRepositories());
+    final future = widget.loadRepositories();
+    setState(() {
+      _repositoriesFuture = future;
+    });
   }
 
   @override

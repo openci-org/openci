@@ -26,6 +26,7 @@ import {
   issueStatusForPullRequest,
   normalizeIssueKeyPrefix,
   replaceLinkedIssueBlocks,
+  upsertLinkedIssueBlock,
 } from "./issueLinkingHelpers.js";
 import {
   isAdjacentWeight,
@@ -46,6 +47,7 @@ import {
   closedStatusId,
   errorMessage,
   errorStack,
+  githubMergePreconditionMessage,
   inProgressStatusIds,
   issueWeightModel,
   median,
@@ -63,6 +65,8 @@ import type {
   CompleteGitHubDeviceFlowRequest,
   CreateGitHubIssueRequest,
   CreateGitHubIssueResponse,
+  CreateIssuePullRequestRequest,
+  CreateIssuePullRequestResponse,
   CreateGitHubSubIssueRequest,
   CreateGitHubSubIssueResponse,
   EstimateIssueWeightRequest,
@@ -90,6 +94,8 @@ import type {
   IssuePullRequestComment,
   IssueWeightEstimateResponse,
   ListGitHubRepositoriesResponse,
+  ListWorkspaceRecentBranchesRequest,
+  ListWorkspaceRecentBranchesResponse,
   MergeIssuePullRequestRequest,
   MergeIssuePullRequestResponse,
   PullRequestCiSummary,
@@ -98,6 +104,8 @@ import type {
   StartIssueCursorAgentRequest,
   StartIssueCursorAgentResponse,
   SyncGitHubIssuesResponse,
+  WorkspaceRecentBranch,
+  WorkspaceRecentBranchIssue,
   WorkspaceRequest,
 } from "./types.js";
 
@@ -511,6 +519,66 @@ const pullRequestStatusCheckRollupQuery = `
   }
 `;
 
+interface IssuePullRequestBranchRefNode {
+  name?: unknown;
+  target?: {
+    oid?: unknown;
+    committedDate?: unknown;
+  } | null;
+}
+
+interface IssuePullRequestBranchRefsResponse {
+  data?: {
+    repository?: {
+      defaultBranchRef?: {
+        name?: unknown;
+      } | null;
+      refs?: {
+        nodes?: Array<IssuePullRequestBranchRefNode | null>;
+        pageInfo?: {
+          hasNextPage?: boolean;
+        };
+      } | null;
+    } | null;
+  };
+}
+
+interface IssuePullRequestBranchCandidate {
+  name: string;
+  sha: string;
+  pushedAt: string;
+  isDefault: boolean;
+  matchesIssue: boolean;
+}
+
+const issuePullRequestBranchRefsQuery = `
+  query IssuePullRequestBranchRefs($owner: String!, $repo: String!, $first: Int!) {
+    repository(owner: $owner, name: $repo) {
+      defaultBranchRef {
+        name
+      }
+      refs(
+        refPrefix: "refs/heads/"
+        first: $first
+        orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
+      ) {
+        nodes {
+          name
+          target {
+            oid
+            ... on Commit {
+              committedDate
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+        }
+      }
+    }
+  }
+`;
+
 const emptyPullRequestCiSummary: PullRequestCiSummary = {
   status: "none",
   total: 0,
@@ -565,6 +633,204 @@ function pullRequestCiSummaryFromContexts({
             ? "pending"
             : "success";
   return summary;
+}
+
+function issueBranchSearchTerms(issueId: string, issue: Record<string, unknown>): string[] {
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  const githubIssueNumber = asNumber(githubIssue?.number);
+  const values = [
+    asString(issue.issueKey),
+    asString(issue.displayId),
+    asString(issue.workBranch),
+    githubIssueNumber > 0 ? String(githubIssueNumber) : "",
+    issueId,
+  ];
+  const normalized = new Set<string>();
+
+  for (const value of values) {
+    const term = value.trim().toLowerCase();
+    if (term.length >= 2) {
+      normalized.add(term);
+    }
+  }
+
+  return [...normalized];
+}
+
+function branchMatchesIssue({
+  name,
+  issue,
+  issueId,
+}: {
+  name: string;
+  issue: Record<string, unknown>;
+  issueId: string;
+}): boolean {
+  const workBranch = asString(issue.workBranch).trim();
+  if (workBranch.length > 0 && name === workBranch) {
+    return true;
+  }
+
+  const normalizedName = name.toLowerCase();
+  return issueBranchSearchTerms(issueId, issue).some((term) => normalizedName.includes(term));
+}
+
+async function fetchIssuePullRequestBranchCandidates({
+  owner,
+  repo,
+  token,
+  apiBaseUrl,
+  issueId,
+  issue,
+}: {
+  owner: string;
+  repo: string;
+  token: string;
+  apiBaseUrl: string;
+  issueId: string;
+  issue: Record<string, unknown>;
+}): Promise<{
+  base: string;
+  branches: IssuePullRequestBranchCandidate[];
+}> {
+  const response = await githubGraphql<IssuePullRequestBranchRefsResponse>(
+    issuePullRequestBranchRefsQuery,
+    token,
+    {
+      variables: { owner, repo, first: 100 },
+      apiBaseUrl,
+    },
+  );
+  const repository = response.data?.repository;
+  if (!repository) {
+    throw new HttpsError("not-found", "Repository was not found");
+  }
+
+  const base = asString(repository.defaultBranchRef?.name, "main");
+  const seen = new Set<string>();
+  const branches: IssuePullRequestBranchCandidate[] = [];
+
+  for (const node of repository.refs?.nodes ?? []) {
+    const name = asString(node?.name);
+    if (name.length === 0 || seen.has(name)) {
+      continue;
+    }
+    seen.add(name);
+
+    const isDefault = name === base;
+    if (isDefault) {
+      continue;
+    }
+
+    const sha = asString(node?.target?.oid);
+    const pushedAt = asString(node?.target?.committedDate);
+    branches.push({
+      name,
+      sha,
+      pushedAt,
+      isDefault,
+      matchesIssue: branchMatchesIssue({ name, issue, issueId }),
+    });
+  }
+
+  branches.sort((a, b) => {
+    if (a.matchesIssue !== b.matchesIssue) {
+      return a.matchesIssue ? -1 : 1;
+    }
+
+    const aTime = Date.parse(a.pushedAt);
+    const bTime = Date.parse(b.pushedAt);
+    if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+      return bTime - aTime;
+    }
+    if (Number.isFinite(aTime) !== Number.isFinite(bTime)) {
+      return Number.isFinite(aTime) ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return { base, branches: branches.slice(0, 30) };
+}
+
+interface WorkspaceIssueForBranchMatch {
+  id: string;
+  data: Record<string, unknown>;
+}
+
+function workspaceIssueSummary(issue: WorkspaceIssueForBranchMatch): WorkspaceRecentBranchIssue {
+  const githubIssue = issue.data.githubIssue as Record<string, unknown> | undefined;
+  const githubIssueNumber = asNumber(githubIssue?.number);
+  const issueKeyValue = asString(issue.data.issueKey);
+  const displayId =
+    issueKeyValue.length > 0
+      ? issueKeyValue
+      : githubIssueNumber > 0
+        ? `#${githubIssueNumber}`
+        : issue.id;
+
+  return {
+    id: issue.id,
+    displayId,
+    issueKey: issueKeyValue,
+    title: asString(issue.data.title, displayId),
+    statusId: asString(issue.data.statusId),
+  };
+}
+
+function branchIssueMatchScore(branchName: string, issue: Record<string, unknown>): number {
+  const normalizedName = branchName.toLowerCase();
+  const workBranch = asString(issue.workBranch).trim();
+  if (workBranch.length > 0 && branchName === workBranch) {
+    return 1000 + workBranch.length;
+  }
+
+  const issueKeyValue = asString(issue.issueKey).trim().toLowerCase();
+  if (issueKeyValue.length > 0 && normalizedName.includes(issueKeyValue)) {
+    return 800 + issueKeyValue.length;
+  }
+
+  const displayId = asString(issue.displayId).trim().toLowerCase();
+  if (displayId.length > 1 && normalizedName.includes(displayId)) {
+    return 600 + displayId.length;
+  }
+
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  const githubIssueNumber = asNumber(githubIssue?.number);
+  if (githubIssueNumber > 0 && normalizedName.includes(String(githubIssueNumber))) {
+    return 200;
+  }
+
+  return 0;
+}
+
+function matchingIssueForRecentBranch({
+  repository,
+  branchName,
+  issues,
+}: {
+  repository: string;
+  branchName: string;
+  issues: WorkspaceIssueForBranchMatch[];
+}): WorkspaceRecentBranchIssue | undefined {
+  let bestIssue: WorkspaceIssueForBranchMatch | undefined;
+  let bestScore = 0;
+
+  for (const issue of issues) {
+    if (asString(issue.data.repo) !== repository) {
+      continue;
+    }
+    if (asString(issue.data.statusId) === closedStatusId) {
+      continue;
+    }
+
+    const score = branchIssueMatchScore(branchName, issue.data);
+    if (score > bestScore) {
+      bestIssue = issue;
+      bestScore = score;
+    }
+  }
+
+  return bestIssue === undefined || bestScore <= 0 ? undefined : workspaceIssueSummary(bestIssue);
 }
 
 async function fetchPullRequestCiSummary({
@@ -704,6 +970,58 @@ function pullRequestSummary({
     createdAt: asTimestamp(pullRequest.created_at),
     linkedIssues,
   };
+}
+
+function issuePullRequestTitle(issue: Record<string, unknown>, fallback: string): string {
+  const title = asString(issue.title, fallback);
+  const issueKeyValue = asString(issue.issueKey);
+  if (issueKeyValue.length === 0 || title.toUpperCase().includes(issueKeyValue.toUpperCase())) {
+    return title;
+  }
+  return `${title} ${issueKeyValue}`;
+}
+
+function linkedIssueSummaryFromIssue(
+  issue: Record<string, unknown>,
+): GitHubPullRequestLinkedIssue[] {
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  const number = asNumber(githubIssue?.number);
+  if (number <= 0) {
+    return [];
+  }
+  return [
+    {
+      number,
+      title: asString(issue.title, `#${number}`),
+      url: asString(githubIssue?.url),
+      state: asString(githubIssue?.state, "open").toLowerCase(),
+    },
+  ];
+}
+
+function issuePullRequestBody({
+  body,
+  issueId,
+  issue,
+}: {
+  body: string;
+  issueId: string;
+  issue: Record<string, unknown>;
+}): string {
+  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
+  const issueUrl = asString(githubIssue?.url);
+  const githubIssueNumber = asNumber(githubIssue?.number);
+  const issueKeyValue = asString(issue.issueKey);
+  const baseBody =
+    body.trim().length > 0
+      ? body.trim()
+      : issueUrl.length > 0
+        ? `Issue: ${issueUrl}`
+        : `OpenCI issue: ${issueId}`;
+  if (githubIssueNumber <= 0 || issueKeyValue.length === 0) {
+    return baseBody;
+  }
+  return upsertLinkedIssueBlock(baseBody, githubIssueNumber, issueKeyValue);
 }
 
 async function fetchPullRequestLinkedIssues({
@@ -1970,6 +2288,8 @@ export const getIssuePullRequestDiff = onCall<
       url: asString(pullRequest.html_url, asString(linkedPullRequest.pullRequest.url)),
       state: asString(pullRequest.state, asString(linkedPullRequest.pullRequest.state, "open")),
       merged: asBoolean(pullRequest.merged, asBoolean(linkedPullRequest.pullRequest.merged)),
+      mergeable: typeof pullRequest.mergeable === "boolean" ? pullRequest.mergeable : null,
+      mergeableState: asString(pullRequest.mergeable_state),
       branch: asString(pullRequest.head?.ref, asString(linkedPullRequest.pullRequest.branch)),
       additions: asNumber(pullRequest.additions, fallbackAdditions),
       deletions: asNumber(pullRequest.deletions, fallbackDeletions),
@@ -1994,6 +2314,218 @@ export const getIssuePullRequestDiff = onCall<
       stack: errorStack(error),
     });
     throw new HttpsError("internal", "Failed to get pull request diff");
+  }
+});
+
+export const listWorkspaceRecentBranches = onCall<
+  ListWorkspaceRecentBranchesRequest,
+  Promise<ListWorkspaceRecentBranchesResponse>
+>({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const requestedLimit = Math.trunc(asNumber(request.data?.limit, 40));
+  const limit = Math.min(Math.max(requestedLimit, 1), 80);
+  const { token, apiBaseUrl } = await getWorkspaceGitHubToken(workspaceId);
+  const repositories = await selectedRepositories(workspaceId);
+
+  try {
+    if (repositories.length === 0) {
+      return { branches: [], repositories: 0 };
+    }
+
+    const issueSnapshot = await db.collection(`workspaces/${workspaceId}/issues`).get();
+    const issues = issueSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
+    const branches: WorkspaceRecentBranch[] = [];
+
+    await Promise.all(
+      repositories.slice(0, 12).map(async (repository) => {
+        const { owner, repo } = repositoryParts(repository.fullName);
+        try {
+          const result = await fetchIssuePullRequestBranchCandidates({
+            owner,
+            repo,
+            token,
+            apiBaseUrl,
+            issueId: "",
+            issue: {},
+          });
+
+          for (const branch of result.branches) {
+            const issue = matchingIssueForRecentBranch({
+              repository: repository.fullName,
+              branchName: branch.name,
+              issues,
+            });
+            branches.push({
+              repository: repository.fullName,
+              name: branch.name,
+              sha: branch.sha,
+              base: result.base,
+              pushedAt: branch.pushedAt,
+              ...(issue === undefined ? {} : { issue }),
+            });
+          }
+        } catch (error) {
+          logger.warn("Skipping recent branches for repository", {
+            workspaceId,
+            repository: repository.fullName,
+            message: errorMessage(error),
+          });
+        }
+      }),
+    );
+
+    branches.sort((a, b) => {
+      if ((a.issue !== undefined) !== (b.issue !== undefined)) {
+        return a.issue !== undefined ? -1 : 1;
+      }
+      const aTime = Date.parse(a.pushedAt);
+      const bTime = Date.parse(b.pushedAt);
+      if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+        return bTime - aTime;
+      }
+      if (Number.isFinite(aTime) !== Number.isFinite(bTime)) {
+        return Number.isFinite(aTime) ? -1 : 1;
+      }
+      return `${a.repository}:${a.name}`.localeCompare(`${b.repository}:${b.name}`);
+    });
+
+    return {
+      branches: branches.slice(0, limit),
+      repositories: repositories.length,
+    };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Failed to list workspace recent branches", {
+      workspaceId,
+      uid,
+      repositories: repositories.length,
+      message: errorMessage(error),
+      stack: errorStack(error),
+    });
+    throw new HttpsError("internal", "Failed to list recent branches");
+  }
+});
+
+export const createIssuePullRequest = onCall<
+  CreateIssuePullRequestRequest,
+  Promise<CreateIssuePullRequestResponse>
+>({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const repository = requireNonEmptyString(request.data?.repository, "repository");
+  const head = requireNonEmptyString(request.data?.head, "head");
+  const requestedBase = asString(request.data?.base).trim();
+  const requestedTitle = asString(request.data?.title).trim();
+  const requestedBody = asString(request.data?.body).trim();
+  const draft = asBoolean(request.data?.draft);
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const { token } = await getWorkspaceGitHubToken(workspaceId);
+  const { owner, repo } = repositoryParts(repository);
+
+  try {
+    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
+    const issueDoc = await issueRef.get();
+    if (!issueDoc.exists) {
+      throw new HttpsError("not-found", "Issue was not found");
+    }
+    if (asString(issueDoc.get("repo")) !== repository) {
+      throw new HttpsError("failed-precondition", "Pull request repository does not match issue");
+    }
+
+    const issue = issueDoc.data() ?? {};
+    const base =
+      requestedBase.length > 0
+        ? requestedBase
+        : await resolveIssueCursorStartingRef(repository, token);
+    if (head === base) {
+      throw new HttpsError("invalid-argument", "head and base must be different branches");
+    }
+
+    const linkedIssues = linkedIssueSummaryFromIssue(issue);
+    const title =
+      requestedTitle.length > 0 ? requestedTitle : issuePullRequestTitle(issue, "OpenCI update");
+    const body = issuePullRequestBody({
+      body: requestedBody,
+      issueId,
+      issue,
+    });
+    const headForQuery = head.includes(":") ? head : `${owner}:${head}`;
+    const existingPullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
+      path: `/repos/${owner}/${repo}/pulls`,
+      token,
+      queryParameters: {
+        state: "open",
+        head: headForQuery,
+        base,
+        per_page: 1,
+      },
+    });
+    const pullRequest =
+      existingPullRequests[0] ??
+      (await githubRequest<GitHubPullRequestResponseItem>({
+        path: `/repos/${owner}/${repo}/pulls`,
+        token,
+        method: "POST",
+        body: {
+          title,
+          head,
+          base,
+          body,
+          draft,
+        },
+      }));
+    const number = asNumber(pullRequest.number);
+    if (number <= 0) {
+      throw new HttpsError("internal", "GitHub did not return a pull request number");
+    }
+    const branch = asString(
+      pullRequest.head?.ref,
+      head.includes(":") ? (head.split(":").pop() ?? head) : head,
+    );
+
+    await upsertPullRequestLink({
+      workspaceId,
+      issueId,
+      action: "opened",
+      pullRequest,
+      repoFullName: repository,
+      branch,
+      linkedIssues,
+    });
+
+    return {
+      pullRequest: {
+        number,
+        title: asString(pullRequest.title, title),
+        url: asString(pullRequest.html_url),
+        state: asString(pullRequest.state, "open"),
+        merged: asBoolean(pullRequest.merged),
+        branch,
+        createdAt: asString(pullRequest.created_at),
+        linkedIssues,
+      },
+    };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Failed to create issue pull request", {
+      workspaceId,
+      uid,
+      issueId,
+      repository,
+      head,
+      requestedBase,
+      message: errorMessage(error),
+      stack: errorStack(error),
+    });
+    throw new HttpsError("internal", "Failed to create pull request");
   }
 });
 
@@ -2063,6 +2595,10 @@ export const mergeIssuePullRequest = onCall<
   } catch (error) {
     if (error instanceof HttpsError) {
       throw error;
+    }
+    const preconditionMessage = githubMergePreconditionMessage(error);
+    if (preconditionMessage !== null) {
+      throw new HttpsError("failed-precondition", preconditionMessage);
     }
     logger.error("Failed to merge issue pull request", {
       workspaceId,
@@ -3472,7 +4008,8 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
 
       const issueDoc = issueDocs.docs[0]!;
       const existingBranchCreatedAt = timestampFromValue(issueDoc.get("branchCreatedAt"));
-      if (existingBranchCreatedAt !== null) {
+      const existingWorkBranch = asString(issueDoc.get("workBranch"));
+      if (existingBranchCreatedAt !== null && existingWorkBranch.length > 0) {
         continue;
       }
 
@@ -3482,8 +4019,13 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
 
       await issueDoc.ref.set(
         {
-          branchCreatedAt,
-          workStartedAt,
+          ...(existingBranchCreatedAt === null
+            ? {
+                branchCreatedAt,
+                workStartedAt,
+              }
+            : {}),
+          ...(existingWorkBranch.length === 0 ? { workBranch: branchName } : {}),
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
