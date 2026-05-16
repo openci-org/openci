@@ -35,7 +35,6 @@ Stream<List<BuildLog>> buildLogs(
       .doc(runId)
       .collection('logs')
       .orderBy('timestamp')
-      .limit(1000)
       .snapshots()
       .map((result) => _buildLogsFromDocs(result.docs));
 }
