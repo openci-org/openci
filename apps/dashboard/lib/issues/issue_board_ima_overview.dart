@@ -1,4 +1,25 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/build_logs/synced_spinner.dart';
+import 'package:dashboard/firebase/firestore.dart'
+    show
+        BuildJobStatus,
+        buildJobStatusFromFirestore,
+        dateTimeFromFirestore,
+        workerInstancesCollection;
+import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/variables/variables_page.dart';
+import 'package:dashboard/workflow/list/workflows_page.dart';
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'issue_board_ima_utils.dart';
+import 'issue_board_ima_toolbar_search.dart';
+import 'issue_board_ima_issue_editor.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_app_shell.dart';
 
 class BoardHeader extends StatelessWidget {
   const BoardHeader({
@@ -465,38 +486,39 @@ class WorkerOverviewSummary {
   }
 }
 
-class _BoardSidePanelDrawer extends StatelessWidget {
-  const _BoardSidePanelDrawer({
+class BoardSidePanelDrawer extends StatelessWidget {
+  const BoardSidePanelDrawer({
+    super.key,
     required this.panel,
     required this.onDismiss,
   });
 
-  final _BoardSidePanel panel;
+  final BoardSidePanel panel;
   final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
     return switch (panel) {
-      _BoardSidePanel.workers => WorkerInspectorPanel(onDismiss: onDismiss),
-      _BoardSidePanel.runs => _BoardSidePanelShell(
+      BoardSidePanel.workers => WorkerInspectorPanel(onDismiss: onDismiss),
+      BoardSidePanel.runs => _BoardSidePanelShell(
         icon: Icons.history_rounded,
         title: 'CI/CDログ',
         onDismiss: onDismiss,
         child: const LogsBody(),
       ),
-      _BoardSidePanel.workflows => _BoardSidePanelShell(
+      BoardSidePanel.workflows => _BoardSidePanelShell(
         icon: Icons.schema_rounded,
         title: 'CI/CD設定',
         onDismiss: onDismiss,
         child: const WorkflowsBody(),
       ),
-      _BoardSidePanel.variables => _BoardSidePanelShell(
+      BoardSidePanel.variables => _BoardSidePanelShell(
         icon: Icons.key_rounded,
         title: '変数',
         onDismiss: onDismiss,
         child: const VariablesBody(),
       ),
-      _BoardSidePanel.storeRelease => _BoardSidePanelShell(
+      BoardSidePanel.storeRelease => _BoardSidePanelShell(
         icon: Icons.rocket_launch_outlined,
         title: 'ストアリリース',
         onDismiss: onDismiss,
@@ -929,7 +951,7 @@ class _WorkerInspectorRow extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                _formatWorkerLastSeen(worker.lastSeenAt),
+                formatWorkerLastSeen(worker.lastSeenAt),
                 style: TextStyle(
                   color: worker.isOnline
                       ? const Color(0xFF64748B)
@@ -1115,7 +1137,7 @@ class WorkerInspectorItem {
   }
 }
 
-String _formatWorkerLastSeen(DateTime lastSeenAt) {
+String formatWorkerLastSeen(DateTime lastSeenAt) {
   final diff = DateTime.now().difference(lastSeenAt);
   if (diff.inSeconds < 10) return 'たった今';
   if (diff.inSeconds < 60) return '${diff.inSeconds}秒前';
@@ -1431,7 +1453,7 @@ class DailyProgressPrediction {
   final bool usesFallback;
 }
 
-class _DailyPaceBucket {
+class DailyPaceBucket {
   int totalWeight = 0;
   int completedCount = 0;
   int morningWeight = 0;
@@ -1452,7 +1474,7 @@ class _DailyPaceBucket {
       afternoonWeight += weight;
     }
 
-    if (_isAtOrBeforeTimeOfDay(closedAt, now)) {
+    if (isAtOrBeforeTimeOfDay(closedAt, now)) {
       weightAtCurrentTime += weight;
     }
   }
@@ -1967,7 +1989,7 @@ class BuildStatusJobsDialog extends StatelessWidget {
                   bottom: BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
-              child: _DialogHeader(
+              child: DialogHeader(
                 title: 'CI checks',
                 description: status.summaryLabel,
               ),
@@ -2146,8 +2168,8 @@ class BuildStatusIndicator extends StatelessWidget {
   }
 }
 
-class _RecentRunSummary {
-  const _RecentRunSummary({
+class RecentRunSummary {
+  const RecentRunSummary({
     required this.id,
     required this.status,
     required this.owner,
@@ -2180,25 +2202,24 @@ class _RecentRunSummary {
   String get workflowRunGroupKey =>
       '${workflowRunId.isEmpty ? id : workflowRunId}:$workflowFileName';
 
-  static _RecentRunSummary? fromDoc(
+  static RecentRunSummary? fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) {
     final data = doc.data();
     try {
-      return _RecentRunSummary(
+      return RecentRunSummary(
         id: doc.id,
         status: buildJobStatusFromFirestore(data['status']),
-        owner: _asString(data['owner']),
-        repo: _asString(data['repo']),
+        owner: asString(data['owner']),
+        repo: asString(data['repo']),
         createdAt:
-            _asDate(data['createdAt']) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        workflowName: _asString(data['workflowName']),
-        workflowFileName: _asString(data['workflowFileName']),
-        jobKey: _asString(data['jobKey']),
-        branch: _asString(data['branch']),
-        workflowRunId: _asString(data['workflowRunId']),
-        pullRequestNumber: _asInt(data['pullRequestNumber']),
+            asDate(data['createdAt']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+        workflowName: asString(data['workflowName']),
+        workflowFileName: asString(data['workflowFileName']),
+        jobKey: asString(data['jobKey']),
+        branch: asString(data['branch']),
+        workflowRunId: asString(data['workflowRunId']),
+        pullRequestNumber: asInt(data['pullRequestNumber']),
       );
     } catch (_) {
       return null;
@@ -2229,7 +2250,7 @@ class CardBuildStatus {
   final String summaryLabel;
   final List<BuildStatusJob> jobs;
 
-  static CardBuildStatus? _fromRuns(List<_RecentRunSummary> runs) {
+  static CardBuildStatus? fromRuns(List<RecentRunSummary> runs) {
     if (runs.isEmpty) {
       return null;
     }
@@ -2291,7 +2312,7 @@ class CardBuildStatus {
           subtitle: [
             run.workflowTitle,
             if (run.branch.isNotEmpty) run.branch,
-            _relativeTimeLabel(run.createdAt),
+            relativeTimeLabel(run.createdAt),
           ].join(' / '),
           status: run.status,
           createdAt: run.createdAt,
@@ -2412,7 +2433,7 @@ CardBuildStatus? _buildStatusForIssue(
 ) {
   for (final pullRequest in issue.pullRequests.reversed) {
     final status =
-        statusesByPullRequest[_buildStatusKey(
+        statusesByPullRequest[buildStatusKey(
           issue.repo,
           pullRequest.number,
         )];
@@ -2423,7 +2444,7 @@ CardBuildStatus? _buildStatusForIssue(
   return null;
 }
 
-Map<String, CardBuildStatus> _buildStatusesByIssueId(
+Map<String, CardBuildStatus> buildStatusesByIssueId(
   List<Issue> issues,
   Map<String, CardBuildStatus> statusesByPullRequest,
 ) {
@@ -2437,34 +2458,34 @@ Map<String, CardBuildStatus> _buildStatusesByIssueId(
   return statuses;
 }
 
-String _buildStatusKey(String repository, int pullRequestNumber) {
+String buildStatusKey(String repository, int pullRequestNumber) {
   return '$repository#$pullRequestNumber';
 }
 
-String _issueRepositoryNumberKey(String repository, int number) {
+String issueRepositoryNumberKey(String repository, int number) {
   return '$repository#$number';
 }
 
-Map<String, Issue> _issuesByRepositoryNumber(List<Issue> issues) {
+Map<String, Issue> issuesByRepositoryNumber(List<Issue> issues) {
   final issuesByNumber = <String, Issue>{};
   for (final issue in issues) {
     if (issue.repo.isEmpty || issue.githubNumber <= 0) {
       continue;
     }
-    issuesByNumber[_issueRepositoryNumberKey(issue.repo, issue.githubNumber)] =
+    issuesByNumber[issueRepositoryNumberKey(issue.repo, issue.githubNumber)] =
         issue;
   }
   return issuesByNumber;
 }
 
-String _buildStatusMapSignature(Map<String, CardBuildStatus> statuses) {
+String buildStatusMapSignature(Map<String, CardBuildStatus> statuses) {
   final keys = statuses.keys.toList()..sort();
   return [
     for (final key in keys) '$key:${statuses[key]!.signature}',
   ].join('|');
 }
 
-String _relativeTimeLabel(DateTime value) {
+String relativeTimeLabel(DateTime value) {
   final difference = DateTime.now().difference(value);
   if (difference.inMinutes < 1) {
     return 'たった今';
