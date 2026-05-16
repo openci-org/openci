@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
+import 'package:dashboard/firebase/callable_function_names.dart';
 import 'package:dashboard/firebase/firestore.dart'
     show
         BuildJobStatus,
@@ -12,6 +13,7 @@ import 'package:dashboard/firebase/firestore.dart'
         buildJobsCollection,
         dateTimeFromFirestore,
         workerInstancesCollection;
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';

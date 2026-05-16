@@ -332,6 +332,119 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     }
   }
 
+  Future<IssuePullRequestDiff> _loadPullRequestDiff({
+    required Issue issue,
+    required IssuePullRequest pullRequest,
+  }) async {
+    final workspaceId = widget.workspaceId;
+    if (workspaceId == null || workspaceId.isEmpty) {
+      throw StateError('workspaceId is required');
+    }
+    final result = await firebaseFunctions
+        .httpsCallable(
+          getIssuePullRequestDiffFunction,
+          options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+        )
+        .call<Map<String, dynamic>>({
+          'workspaceId': workspaceId,
+          'issueId': issue.id,
+          'repository': issue.repo,
+          'pullRequestNumber': pullRequest.number,
+        });
+    return IssuePullRequestDiff.fromMap(_asMap(result.data));
+  }
+
+  Future<void> _openPullRequestDiff(IssuePullRequest pullRequest) async {
+    final issue = _currentIssue;
+    if (issue == null) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PullRequestDiffSheet(
+        issue: issue,
+        pullRequest: pullRequest,
+        loadDiff: () =>
+            _loadPullRequestDiff(issue: issue, pullRequest: pullRequest),
+        onMerge: pullRequest.merged || pullRequest.state.toLowerCase() != 'open'
+            ? null
+            : () => _mergePullRequest(issue: issue, pullRequest: pullRequest),
+      ),
+    );
+  }
+
+  Future<bool> _mergePullRequest({
+    required Issue issue,
+    required IssuePullRequest pullRequest,
+  }) async {
+    final workspaceId = widget.workspaceId;
+    if (workspaceId == null || workspaceId.isEmpty) {
+      _showFloatingSnackBar(context, 'workspaceId is required');
+      return false;
+    }
+    final confirmed = await _confirmPullRequestMerge(pullRequest);
+    if (confirmed != true) {
+      return false;
+    }
+
+    try {
+      final result = await firebaseFunctions
+          .httpsCallable(
+            mergeIssuePullRequestFunction,
+            options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
+          )
+          .call<Map<String, dynamic>>({
+            'workspaceId': workspaceId,
+            'issueId': issue.id,
+            'repository': issue.repo,
+            'pullRequestNumber': pullRequest.number,
+            'mergeMethod': 'squash',
+          });
+      final data = _asMap(result.data);
+      final merged = data['merged'] == true;
+      if (!mounted) {
+        return merged;
+      }
+      _showOverlaySnackBar(
+        context,
+        merged
+            ? 'PR #${pullRequest.number}をマージしました'
+            : _asString(data['message'], 'PRのマージ結果を確認してください'),
+      );
+      return merged;
+    } catch (error) {
+      if (mounted) {
+        _showFloatingSnackBar(context, _friendlyError(error));
+      }
+      return false;
+    }
+  }
+
+  Future<bool?> _confirmPullRequestMerge(IssuePullRequest pullRequest) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('PR #${pullRequest.number}をマージしますか？'),
+        content: Text(
+          'Squash mergeを実行し、このissueを完了へ移動します。\n${pullRequest.title}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.call_merge_rounded, size: 18),
+            label: const Text('マージする'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickDueDate() async {
     final now = DateTime.now();
     final initialDate = _dueDate ?? now;
@@ -425,6 +538,19 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
               onOpen: _openGitHubUrl,
               onCopy: _copyGitHubUrl,
             ),
+            if (currentIssue.pullRequests.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              PullRequestReviewPanel(
+                issue: currentIssue,
+                onOpenDiff: _openPullRequestDiff,
+                onMergePullRequest: (pullRequest) => unawaited(
+                  _mergePullRequest(
+                    issue: currentIssue,
+                    pullRequest: pullRequest,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
             CreateSubIssuePanel(
               issue: currentIssue,
@@ -1258,6 +1384,874 @@ class _GitHubLinkField extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class PullRequestReviewPanel extends StatelessWidget {
+  const PullRequestReviewPanel({
+    super.key,
+    required this.issue,
+    required this.onOpenDiff,
+    required this.onMergePullRequest,
+  });
+
+  final Issue issue;
+  final ValueChanged<IssuePullRequest> onOpenDiff;
+  final ValueChanged<IssuePullRequest> onMergePullRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    final pullRequests = issue.pullRequests.reversed.toList();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.alt_route_rounded,
+                size: 18,
+                color: Color(0xFF2563EB),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  pullRequests.length == 1
+                      ? 'Pull request'
+                      : 'Pull requests ${pullRequests.length}',
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final entry in pullRequests.indexed) ...[
+            PullRequestReviewTile(
+              repository: issue.repo,
+              pullRequest: entry.$2,
+              onOpenDiff: () => onOpenDiff(entry.$2),
+              onMerge: entry.$2.merged || entry.$2.state.toLowerCase() != 'open'
+                  ? null
+                  : () => onMergePullRequest(entry.$2),
+            ),
+            if (entry.$1 != pullRequests.length - 1) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class PullRequestReviewTile extends StatelessWidget {
+  const PullRequestReviewTile({
+    super.key,
+    required this.repository,
+    required this.pullRequest,
+    required this.onOpenDiff,
+    required this.onMerge,
+  });
+
+  final String repository;
+  final IssuePullRequest pullRequest;
+  final VoidCallback onOpenDiff;
+  final VoidCallback? onMerge;
+
+  @override
+  Widget build(BuildContext context) {
+    final branch = pullRequest.branch;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          '$repository #${pullRequest.number}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        PullRequestStatePill(pullRequest: pullRequest),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      pullRequest.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w900,
+                        height: 1.25,
+                      ),
+                    ),
+                    if (branch.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.fork_right_rounded,
+                            size: 14,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              branch,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 500;
+              final diffButton = FilledButton.icon(
+                onPressed: onOpenDiff,
+                icon: const Icon(Icons.code_rounded, size: 17),
+                label: const Text('差分を見る'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D4ED8),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              );
+              final githubButton = OutlinedButton.icon(
+                onPressed: pullRequest.url == null
+                    ? null
+                    : () => unawaited(_launchUrlExternal(pullRequest.url!)),
+                icon: const Icon(Icons.open_in_new_rounded, size: 17),
+                label: const Text('GitHub'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              );
+              final mergeButton = OutlinedButton.icon(
+                onPressed: onMerge,
+                icon: const Icon(Icons.call_merge_rounded, size: 17),
+                label: const Text('マージ'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF047857),
+                  side: const BorderSide(color: Color(0xFFA7F3D0)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              );
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    diffButton,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: githubButton),
+                        const SizedBox(width: 8),
+                        Expanded(child: mergeButton),
+                      ],
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  diffButton,
+                  const SizedBox(width: 8),
+                  githubButton,
+                  const Spacer(),
+                  mergeButton,
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PullRequestStatePill extends StatelessWidget {
+  const PullRequestStatePill({super.key, required this.pullRequest});
+
+  final IssuePullRequest pullRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = pullRequest.state.toLowerCase();
+    final label = pullRequest.merged
+        ? 'merged'
+        : state == 'closed'
+        ? 'closed'
+        : 'open';
+    final color = pullRequest.merged
+        ? const Color(0xFF7C3AED)
+        : state == 'closed'
+        ? const Color(0xFFB45309)
+        : const Color(0xFF15803D);
+    final icon = pullRequest.merged
+        ? Icons.call_merge_rounded
+        : state == 'closed'
+        ? Icons.circle_rounded
+        : Icons.radio_button_checked_rounded;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PullRequestDiffSheet extends StatefulWidget {
+  const PullRequestDiffSheet({
+    super.key,
+    required this.issue,
+    required this.pullRequest,
+    required this.loadDiff,
+    required this.onMerge,
+  });
+
+  final Issue issue;
+  final IssuePullRequest pullRequest;
+  final Future<IssuePullRequestDiff> Function() loadDiff;
+  final Future<bool> Function()? onMerge;
+
+  @override
+  State<PullRequestDiffSheet> createState() => _PullRequestDiffSheetState();
+}
+
+class _PullRequestDiffSheetState extends State<PullRequestDiffSheet> {
+  late Future<IssuePullRequestDiff> _future;
+  var _isMerging = false;
+  var _merged = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.loadDiff();
+    _merged = widget.pullRequest.merged;
+  }
+
+  void _retry() {
+    setState(() => _future = widget.loadDiff());
+  }
+
+  Future<void> _merge() async {
+    final onMerge = widget.onMerge;
+    if (onMerge == null || _isMerging || _merged) {
+      return;
+    }
+    setState(() => _isMerging = true);
+    final merged = await onMerge();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isMerging = false;
+      _merged = merged || _merged;
+      if (merged) {
+        _future = widget.loadDiff();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height * 0.9;
+    return SizedBox(
+      height: height,
+      child: Material(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
+          child: FutureBuilder<IssuePullRequestDiff>(
+            future: _future,
+            builder: (context, snapshot) {
+              final diff = snapshot.data;
+              return Column(
+                children: [
+                  _PullRequestDiffHeader(
+                    issue: widget.issue,
+                    pullRequest: widget.pullRequest,
+                    diff: diff,
+                    isMerging: _isMerging,
+                    merged: _merged || (diff?.merged ?? false),
+                    onMerge: widget.onMerge == null || _merged ? null : _merge,
+                  ),
+                  Expanded(
+                    child: switch (snapshot.connectionState) {
+                      ConnectionState.waiting => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      _ when snapshot.hasError => _PullRequestDiffError(
+                        error: snapshot.error,
+                        onRetry: _retry,
+                      ),
+                      _ when diff != null => PullRequestDiffBody(diff: diff),
+                      _ => const Center(child: Text('差分を読み込めませんでした')),
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PullRequestDiffHeader extends StatelessWidget {
+  const _PullRequestDiffHeader({
+    required this.issue,
+    required this.pullRequest,
+    required this.diff,
+    required this.isMerging,
+    required this.merged,
+    required this.onMerge,
+  });
+
+  final Issue issue;
+  final IssuePullRequest pullRequest;
+  final IssuePullRequestDiff? diff;
+  final bool isMerging;
+  final bool merged;
+  final VoidCallback? onMerge;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = diff?.title ?? pullRequest.title;
+    final url = diff?.url.isNotEmpty == true ? diff!.url : pullRequest.url;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 14),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAFBFC),
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          '${issue.repo} #${pullRequest.number}',
+                          style: const TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        PullRequestStatePill(
+                          pullRequest: pullRequest.copyWith(
+                            state: diff?.state,
+                            merged: merged || diff?.merged == true,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w900,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: '閉じる',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              final openButton = OutlinedButton.icon(
+                onPressed: url == null || url.isEmpty
+                    ? null
+                    : () => unawaited(_launchUrlExternal(url)),
+                icon: const Icon(Icons.open_in_new_rounded, size: 17),
+                label: const Text('GitHub'),
+              );
+              final mergeButton = FilledButton.icon(
+                onPressed: merged || isMerging ? null : onMerge,
+                icon: isMerging
+                    ? const SizedBox.square(
+                        dimension: 17,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.call_merge_rounded, size: 17),
+                label: Text(merged ? 'マージ済み' : 'マージ'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF047857),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFE2E8F0),
+                  disabledForegroundColor: const Color(0xFF64748B),
+                ),
+              );
+              if (compact) {
+                return Row(
+                  children: [
+                    Expanded(child: openButton),
+                    const SizedBox(width: 8),
+                    Expanded(child: mergeButton),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  openButton,
+                  const Spacer(),
+                  mergeButton,
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PullRequestDiffBody extends StatelessWidget {
+  const PullRequestDiffBody({super.key, required this.diff});
+
+  final IssuePullRequestDiff diff;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PullRequestDiffStats(diff: diff),
+          if (diff.filesTruncated) ...[
+            const SizedBox(height: 10),
+            const _PullRequestDiffNotice(
+              message: '変更ファイルが多いため、先頭300ファイルまで表示しています。',
+            ),
+          ],
+          const SizedBox(height: 12),
+          for (final entry in diff.files.indexed) ...[
+            PullRequestDiffFileView(file: entry.$2),
+            if (entry.$1 != diff.files.length - 1) const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PullRequestDiffStats extends StatelessWidget {
+  const _PullRequestDiffStats({required this.diff});
+
+  final IssuePullRequestDiff diff;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _PullRequestDiffStatPill(
+          icon: Icons.description_outlined,
+          label: '${diff.changedFiles} files',
+          color: const Color(0xFF2563EB),
+        ),
+        _PullRequestDiffStatPill(
+          icon: Icons.add_rounded,
+          label: '+${diff.additions}',
+          color: const Color(0xFF15803D),
+        ),
+        _PullRequestDiffStatPill(
+          icon: Icons.remove_rounded,
+          label: '-${diff.deletions}',
+          color: const Color(0xFFB91C1C),
+        ),
+        if (diff.branch.isNotEmpty)
+          _PullRequestDiffStatPill(
+            icon: Icons.fork_right_rounded,
+            label: diff.branch,
+            color: const Color(0xFF64748B),
+          ),
+      ],
+    );
+  }
+}
+
+class _PullRequestDiffStatPill extends StatelessWidget {
+  const _PullRequestDiffStatPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PullRequestDiffFileView extends StatelessWidget {
+  const PullRequestDiffFileView({super.key, required this.file});
+
+  final IssuePullRequestDiffFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    final patch = file.patch;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          initiallyExpanded: diffFileInitiallyExpanded(file),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                file.filename,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (file.previousFilename != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  'renamed from ${file.previousFilename}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _DiffFileStatusPill(status: file.status),
+                _DiffCountPill(
+                  label: '+${file.additions}',
+                  color: const Color(0xFF15803D),
+                ),
+                _DiffCountPill(
+                  label: '-${file.deletions}',
+                  color: const Color(0xFFB91C1C),
+                ),
+                _DiffCountPill(
+                  label: '${file.changes} changes',
+                  color: const Color(0xFF64748B),
+                ),
+              ],
+            ),
+          ),
+          children: [
+            if (patch.isEmpty)
+              const _PullRequestDiffNotice(
+                message: 'このファイルのdiff previewはありません。',
+              )
+            else
+              _PatchBlock(
+                patch: file.patchTruncated
+                    ? '$patch\n\n... patch truncated in OpenCI preview'
+                    : patch,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+bool diffFileInitiallyExpanded(IssuePullRequestDiffFile file) {
+  return file.patch.isNotEmpty && file.changes <= 80;
+}
+
+class _DiffFileStatusPill extends StatelessWidget {
+  const _DiffFileStatusPill({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      'added' => const Color(0xFF15803D),
+      'removed' => const Color(0xFFB91C1C),
+      'renamed' => const Color(0xFF7C3AED),
+      _ => const Color(0xFF2563EB),
+    };
+    return _DiffCountPill(label: status, color: color);
+  }
+}
+
+class _DiffCountPill extends StatelessWidget {
+  const _DiffCountPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _PatchBlock extends StatelessWidget {
+  const _PatchBlock({required this.patch});
+
+  final String patch;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.all(12),
+        child: SelectableText(
+          patch,
+          style: const TextStyle(
+            color: Color(0xFFE2E8F0),
+            fontFamily: 'monospace',
+            fontSize: 12,
+            height: 1.45,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PullRequestDiffNotice extends StatelessWidget {
+  const _PullRequestDiffNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Color(0xFF92400E),
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _PullRequestDiffError extends StatelessWidget {
+  const _PullRequestDiffError({required this.error, required this.onRetry});
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Color(0xFFB91C1C),
+              size: 28,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _friendlyError(error ?? '差分を読み込めませんでした'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF475569),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('再読み込み'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

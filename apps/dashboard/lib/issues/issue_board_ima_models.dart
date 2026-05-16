@@ -452,6 +452,19 @@ class IssuePullRequest {
     };
   }
 
+  IssuePullRequest copyWith({String? state, bool? merged}) {
+    return IssuePullRequest(
+      number: number,
+      title: title,
+      url: url,
+      state: state ?? this.state,
+      merged: merged ?? this.merged,
+      branch: branch,
+      createdAt: createdAt,
+      linkedIssues: linkedIssues,
+    );
+  }
+
   final int number;
   final String title;
   final String? url;
@@ -493,6 +506,98 @@ class IssuePullRequestLinkedIssue {
   final String title;
   final String? url;
   final String state;
+}
+
+class IssuePullRequestDiff {
+  const IssuePullRequestDiff({
+    required this.repository,
+    required this.pullRequestNumber,
+    required this.title,
+    required this.url,
+    required this.state,
+    required this.merged,
+    required this.branch,
+    required this.additions,
+    required this.deletions,
+    required this.changedFiles,
+    required this.filesTruncated,
+    required this.files,
+  });
+
+  factory IssuePullRequestDiff.fromMap(Map<String, dynamic> data) {
+    return IssuePullRequestDiff(
+      repository: _asString(data['repository']),
+      pullRequestNumber: _asInt(data['pullRequestNumber']),
+      title: _asString(data['title'], 'Pull request'),
+      url: _asString(data['url']),
+      state: _asString(data['state'], 'open'),
+      merged: data['merged'] == true,
+      branch: _asString(data['branch']),
+      additions: _asInt(data['additions']),
+      deletions: _asInt(data['deletions']),
+      changedFiles: _asInt(data['changedFiles']),
+      filesTruncated: data['filesTruncated'] == true,
+      files: _asList(data['files'])
+          .map((value) => IssuePullRequestDiffFile.fromMap(_asMap(value)))
+          .where((file) => file.filename.isNotEmpty)
+          .toList(),
+    );
+  }
+
+  final String repository;
+  final int pullRequestNumber;
+  final String title;
+  final String url;
+  final String state;
+  final bool merged;
+  final String branch;
+  final int additions;
+  final int deletions;
+  final int changedFiles;
+  final bool filesTruncated;
+  final List<IssuePullRequestDiffFile> files;
+}
+
+class IssuePullRequestDiffFile {
+  const IssuePullRequestDiffFile({
+    required this.filename,
+    required this.status,
+    required this.additions,
+    required this.deletions,
+    required this.changes,
+    required this.patch,
+    required this.patchTruncated,
+    required this.blobUrl,
+    required this.rawUrl,
+    this.previousFilename,
+  });
+
+  factory IssuePullRequestDiffFile.fromMap(Map<String, dynamic> data) {
+    final previousFilename = _asString(data['previousFilename']);
+    return IssuePullRequestDiffFile(
+      filename: _asString(data['filename']),
+      status: _asString(data['status'], 'modified'),
+      additions: _asInt(data['additions']),
+      deletions: _asInt(data['deletions']),
+      changes: _asInt(data['changes']),
+      patch: _asString(data['patch']),
+      patchTruncated: data['patchTruncated'] == true,
+      blobUrl: _asString(data['blobUrl']),
+      rawUrl: _asString(data['rawUrl']),
+      previousFilename: previousFilename.isEmpty ? null : previousFilename,
+    );
+  }
+
+  final String filename;
+  final String status;
+  final int additions;
+  final int deletions;
+  final int changes;
+  final String patch;
+  final bool patchTruncated;
+  final String blobUrl;
+  final String rawUrl;
+  final String? previousFilename;
 }
 
 class IssueWeightEstimate {

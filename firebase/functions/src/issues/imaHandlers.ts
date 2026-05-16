@@ -48,6 +48,10 @@ import type {
   SyncGitHubIssuesResponse,
   BackfillIssueKeysResponse,
   BackfillCursorAgentPullRequestsResponse,
+  GetIssuePullRequestDiffRequest,
+  GetIssuePullRequestDiffResponse,
+  MergeIssuePullRequestRequest,
+  MergeIssuePullRequestResponse,
   CreateGitHubIssueResponse,
   CreateGitHubSubIssueResponse,
   EstimateIssueWeightRequest,
@@ -61,6 +65,8 @@ import type {
   GitHubInstallationRepositoriesResponse,
   GitHubIssueResponseItem,
   GitHubPullRequestResponseItem,
+  GitHubPullRequestFileResponseItem,
+  GitHubMergePullRequestResponseItem,
   GitHubPullRequestLinkedIssue,
   GitHubPullRequestLinkedIssuesGraphqlResponse,
   GitHubPullRequestWebhookPayload,
@@ -139,7 +145,7 @@ async function githubRequest<T>({
 }: {
   path: string;
   token: string;
-  method?: "GET" | "PATCH" | "POST";
+  method?: "GET" | "PATCH" | "POST" | "PUT";
   body?: unknown;
   queryParameters?: Record<string, string | number | boolean>;
   apiVersion?: string;
@@ -239,6 +245,139 @@ async function resolveGitHubIssueDocument(input: {
 
 function pullRequestLinkId(owner: string, repo: string, number: number): string {
   return `${owner}_${repo}_${number}`.replace(/[^a-zA-Z0-9_-]/gu, "_");
+}
+
+function repositoryParts(repoFullName: string): {
+  owner: string;
+  repo: string;
+} {
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    throw new HttpsError("invalid-argument", "repository must be owner/repo");
+  }
+  return { owner, repo };
+}
+
+async function linkedIssuePullRequest(input: {
+  workspaceId: string;
+  issueId: string;
+  repository: string;
+  pullRequestNumber: number;
+}): Promise<{
+  issueRef: DocumentReference;
+  owner: string;
+  repo: string;
+  linkId: string;
+  pullRequest: Record<string, unknown>;
+}> {
+  const { owner, repo } = repositoryParts(input.repository);
+  if (input.pullRequestNumber <= 0) {
+    throw new HttpsError("invalid-argument", "pullRequestNumber must be positive");
+  }
+
+  const issueRef = db.doc(`workspaces/${input.workspaceId}/issues/${input.issueId}`);
+  const issueDoc = await issueRef.get();
+  if (!issueDoc.exists) {
+    throw new HttpsError("not-found", "Issue was not found");
+  }
+  if (asString(issueDoc.get("repo")) !== input.repository) {
+    throw new HttpsError("failed-precondition", "Pull request repository does not match issue");
+  }
+
+  const linkId = pullRequestLinkId(owner, repo, input.pullRequestNumber);
+  const pullRequest = recordList(issueDoc.get("pullRequests")).find((item) => {
+    if (asString(item.id) === linkId) {
+      return true;
+    }
+    return (
+      asString(item.owner) === owner &&
+      asString(item.repo) === repo &&
+      asNumber(item.number) === input.pullRequestNumber
+    );
+  });
+
+  if (pullRequest === undefined) {
+    throw new HttpsError("failed-precondition", "Pull request is not linked to this issue");
+  }
+
+  return {
+    issueRef,
+    owner,
+    repo,
+    linkId,
+    pullRequest,
+  };
+}
+
+function truncatePullRequestPatch(value: unknown): {
+  patch: string;
+  patchTruncated: boolean;
+} {
+  const patch = asString(value);
+  const maxPatchLength = 12000;
+  if (patch.length <= maxPatchLength) {
+    return { patch, patchTruncated: false };
+  }
+
+  return {
+    patch: patch.slice(0, maxPatchLength),
+    patchTruncated: true,
+  };
+}
+
+async function fetchPullRequestFiles(input: {
+  owner: string;
+  repo: string;
+  number: number;
+  token: string;
+}): Promise<{
+  files: GitHubPullRequestFileResponseItem[];
+  filesTruncated: boolean;
+}> {
+  const files: GitHubPullRequestFileResponseItem[] = [];
+  const maxPages = 3;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const pageFiles = await githubRequest<GitHubPullRequestFileResponseItem[]>({
+      path: `/repos/${input.owner}/${input.repo}/pulls/${input.number}/files`,
+      token: input.token,
+      queryParameters: { per_page: 100, page },
+    });
+    files.push(...pageFiles);
+    if (pageFiles.length < 100) {
+      return { files, filesTruncated: false };
+    }
+  }
+
+  return { files, filesTruncated: true };
+}
+
+function pullRequestDiffFile(file: GitHubPullRequestFileResponseItem): {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch: string;
+  patchTruncated: boolean;
+  blobUrl: string;
+  rawUrl: string;
+  previousFilename?: string;
+} {
+  const { patch, patchTruncated } = truncatePullRequestPatch(file.patch);
+  const previousFilename = asString(file.previous_filename);
+  return {
+    filename: asString(file.filename, "unknown"),
+    status: asString(file.status, "modified"),
+    additions: asNumber(file.additions),
+    deletions: asNumber(file.deletions),
+    changes: asNumber(file.changes),
+    patch,
+    patchTruncated,
+    blobUrl: asString(file.blob_url),
+    rawUrl: asString(file.raw_url),
+    ...(previousFilename.length > 0 ? { previousFilename } : {}),
+  };
 }
 
 function isActiveCursorAgentStatus(status: string): boolean {
@@ -543,7 +682,10 @@ async function linkedIssueBlockEntriesForPullRequest({
 
   return [...entries.entries()]
     .sort(([left], [right]) => left - right)
-    .map(([githubIssueNumber, imaIssueKey]) => ({ githubIssueNumber, imaIssueKey }));
+    .map(([githubIssueNumber, imaIssueKey]) => ({
+      githubIssueNumber,
+      imaIssueKey,
+    }));
 }
 
 async function syncPullRequestBodyToWorkspaceLinks({
@@ -761,7 +903,10 @@ function normalizeIssueWeightEstimate(
   };
 }
 
-const defaultWeightThresholdsHours: Array<{ weight: number; maxHours: number }> = [
+const defaultWeightThresholdsHours: Array<{
+  weight: number;
+  maxHours: number;
+}> = [
   { weight: 1, maxHours: 1 },
   { weight: 2, maxHours: 4 },
   { weight: 4, maxHours: 12 },
@@ -1409,7 +1554,11 @@ export const startGitHubDeviceFlow = onCall<
     }
     const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
-    logger.error(`startGitHubDeviceFlow failed at step=${step}`, { workspaceId, message, stack });
+    logger.error(`startGitHubDeviceFlow failed at step=${step}`, {
+      workspaceId,
+      message,
+      stack,
+    });
     throw new HttpsError("internal", `step=${step}: ${message}`);
   }
 });
@@ -1482,7 +1631,11 @@ export const completeGitHubDeviceFlow = onCall<
       throw error;
     }
     const message = error instanceof Error ? error.message : String(error);
-    logger.error("Failed to complete GitHub device flow", { workspaceId, uid, message });
+    logger.error("Failed to complete GitHub device flow", {
+      workspaceId,
+      uid,
+      message,
+    });
     throw new HttpsError("internal", "Failed to complete GitHub device flow");
   }
 });
@@ -1533,8 +1686,161 @@ export const listGitHubRepositories = onCall<
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error("Failed to list Ima GitHub repositories", { workspaceId, uid, message });
+    logger.error("Failed to list Ima GitHub repositories", {
+      workspaceId,
+      uid,
+      message,
+    });
     throw new HttpsError("internal", "Failed to list GitHub repositories");
+  }
+});
+
+export const getIssuePullRequestDiff = onCall<
+  GetIssuePullRequestDiffRequest,
+  Promise<GetIssuePullRequestDiffResponse>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const repository = requireNonEmptyString(request.data?.repository, "repository");
+  const pullRequestNumber = asNumber(request.data?.pullRequestNumber);
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const { token } = await getWorkspaceGitHubToken(workspaceId);
+
+  try {
+    const linkedPullRequest = await linkedIssuePullRequest({
+      workspaceId,
+      issueId,
+      repository,
+      pullRequestNumber,
+    });
+    const [pullRequest, filesResult] = await Promise.all([
+      githubRequest<GitHubPullRequestResponseItem>({
+        path: `/repos/${linkedPullRequest.owner}/${linkedPullRequest.repo}/pulls/${pullRequestNumber}`,
+        token,
+      }),
+      fetchPullRequestFiles({
+        owner: linkedPullRequest.owner,
+        repo: linkedPullRequest.repo,
+        number: pullRequestNumber,
+        token,
+      }),
+    ]);
+    const files = filesResult.files.map(pullRequestDiffFile);
+    const fallbackAdditions = files.reduce((total, file) => total + file.additions, 0);
+    const fallbackDeletions = files.reduce((total, file) => total + file.deletions, 0);
+
+    return {
+      repository,
+      pullRequestNumber,
+      title: asString(
+        pullRequest.title,
+        asString(linkedPullRequest.pullRequest.title, "Pull request"),
+      ),
+      url: asString(pullRequest.html_url, asString(linkedPullRequest.pullRequest.url)),
+      state: asString(pullRequest.state, asString(linkedPullRequest.pullRequest.state, "open")),
+      merged: asBoolean(pullRequest.merged, asBoolean(linkedPullRequest.pullRequest.merged)),
+      branch: asString(pullRequest.head?.ref, asString(linkedPullRequest.pullRequest.branch)),
+      additions: asNumber(pullRequest.additions, fallbackAdditions),
+      deletions: asNumber(pullRequest.deletions, fallbackDeletions),
+      changedFiles: asNumber(pullRequest.changed_files, files.length),
+      filesTruncated: filesResult.filesTruncated,
+      files,
+    };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Failed to get issue pull request diff", {
+      workspaceId,
+      uid,
+      issueId,
+      repository,
+      pullRequestNumber,
+      message: errorMessage(error),
+      stack: errorStack(error),
+    });
+    throw new HttpsError("internal", "Failed to get pull request diff");
+  }
+});
+
+export const mergeIssuePullRequest = onCall<
+  MergeIssuePullRequestRequest,
+  Promise<MergeIssuePullRequestResponse>
+>(async (request) => {
+  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
+  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
+  const repository = requireNonEmptyString(request.data?.repository, "repository");
+  const pullRequestNumber = asNumber(request.data?.pullRequestNumber);
+  const mergeMethod = asString(request.data?.mergeMethod, "squash");
+  if (!["merge", "squash", "rebase"].includes(mergeMethod)) {
+    throw new HttpsError("invalid-argument", "mergeMethod must be merge, squash, or rebase");
+  }
+
+  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
+  const { token } = await getWorkspaceGitHubToken(workspaceId);
+
+  try {
+    const linkedPullRequest = await linkedIssuePullRequest({
+      workspaceId,
+      issueId,
+      repository,
+      pullRequestNumber,
+    });
+    const result = await githubRequest<GitHubMergePullRequestResponseItem>({
+      path: `/repos/${linkedPullRequest.owner}/${linkedPullRequest.repo}/pulls/${pullRequestNumber}/merge`,
+      token,
+      method: "PUT",
+      body: { merge_method: mergeMethod },
+    });
+    const sha = asString(result.sha);
+    const merged = asBoolean(result.merged);
+    const message = asString(result.message);
+    if (merged) {
+      const now = Timestamp.now();
+      await db.runTransaction(async (transaction) => {
+        const issue = await transaction.get(linkedPullRequest.issueRef);
+        const pullRequests = recordList(issue.get("pullRequests")).map((item) => {
+          if (asString(item.id) !== linkedPullRequest.linkId) {
+            return item;
+          }
+          return {
+            ...item,
+            state: "closed",
+            merged: true,
+            mergeSha: sha,
+            mergedAt: now,
+            updatedAt: now,
+          };
+        });
+        transaction.set(
+          linkedPullRequest.issueRef,
+          {
+            pullRequests,
+            statusId: closedStatusId,
+            closedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      });
+    }
+
+    return { merged, message, sha };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Failed to merge issue pull request", {
+      workspaceId,
+      uid,
+      issueId,
+      repository,
+      pullRequestNumber,
+      mergeMethod,
+      message: errorMessage(error),
+      stack: errorStack(error),
+    });
+    throw new HttpsError("internal", "Failed to merge pull request");
   }
 });
 
@@ -1634,7 +1940,11 @@ export const importGitHubIssues = onCall<WorkspaceRequest, Promise<ImportGitHubI
       return { imported, repositories: repositories.length };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.error("Failed to import Ima GitHub issues", { workspaceId, uid, message });
+      logger.error("Failed to import Ima GitHub issues", {
+        workspaceId,
+        uid,
+        message,
+      });
       throw new HttpsError("internal", "Failed to import GitHub issues");
     }
   },
@@ -1662,7 +1972,13 @@ export const createGitHubIssue = onCall<
     : [];
 
   try {
-    logger.info("Creating GitHub issue", { workspaceId, repoFullName, owner, repo, title });
+    logger.info("Creating GitHub issue", {
+      workspaceId,
+      repoFullName,
+      owner,
+      repo,
+      title,
+    });
     const issue = await githubRequest<GitHubIssueResponseItem>({
       path: `/repos/${owner}/${repo}/issues`,
       token,
@@ -1921,7 +2237,12 @@ export const startIssueCursorAgent = onCall<
   const runRef = issueRef.collection("cursorAgentRuns").doc();
   const startingRef = await resolveIssueCursorStartingRef(repoFullName, githubToken);
   const repositoryUrl = `https://github.com/${repoFullName}`;
-  const prompt = buildCursorAgentPrompt({ issueId, issue, githubIssue, repoFullName });
+  const prompt = buildCursorAgentPrompt({
+    issueId,
+    issue,
+    githubIssue,
+    repoFullName,
+  });
   const now = FieldValue.serverTimestamp();
   const currentStatusId = asString(issue.statusId, "triage");
   const shouldMoveToDoing =
@@ -2048,7 +2369,12 @@ export const startIssueCursorAgent = onCall<
         { merge: true },
       ),
     ]);
-    logger.error("Failed to start Cursor agent", { workspaceId, issueId, repoFullName, message });
+    logger.error("Failed to start Cursor agent", {
+      workspaceId,
+      issueId,
+      repoFullName,
+      message,
+    });
     throw new HttpsError("internal", `Failed to start Cursor agent: ${message}`);
   } finally {
     await agent?.[Symbol.asyncDispose]?.();
@@ -2168,7 +2494,12 @@ export const backfillCursorAgentPullRequests = onCall<
       pullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
         path: `/repos/${owner}/${repo}/pulls`,
         token,
-        queryParameters: { state: "all", sort: "updated", direction: "desc", per_page: 100 },
+        queryParameters: {
+          state: "all",
+          sort: "updated",
+          direction: "desc",
+          per_page: 100,
+        },
       });
       pullRequestsByRepo.set(repoFullName, pullRequests);
     }
@@ -2230,7 +2561,12 @@ async function syncWorkspacePullRequestLinks({
       pullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
         path: `/repos/${owner}/${repo}/pulls`,
         token,
-        queryParameters: { state: "all", sort: "updated", direction: "desc", per_page: 100 },
+        queryParameters: {
+          state: "all",
+          sort: "updated",
+          direction: "desc",
+          per_page: 100,
+        },
       });
     } catch (error) {
       logger.warn("syncGitHubIssues: failed to list pull requests", {
@@ -2843,7 +3179,10 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
     try {
       ({ token } = await getWorkspaceGitHubToken(workspaceId));
     } catch {
-      logger.warn("processBranchLog: no GitHub App installation token", { workspaceId, ownerUid });
+      logger.warn("processBranchLog: no GitHub App installation token", {
+        workspaceId,
+        ownerUid,
+      });
       continue;
     }
 
@@ -2981,7 +3320,11 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
         );
         synced += 1;
       } catch (error) {
-        logger.warn("Failed to sync Ima GitHub issue", { workspaceId, issueId, error });
+        logger.warn("Failed to sync Ima GitHub issue", {
+          workspaceId,
+          issueId,
+          error,
+        });
         await operation.ref.set(
           {
             status: "failed",
@@ -3031,7 +3374,12 @@ export const estimateIssueWeight = onCall<
     return { issueId, weightEstimate };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error("Failed to estimate Ima issue weight", { workspaceId, issueId, uid, message });
+    logger.error("Failed to estimate Ima issue weight", {
+      workspaceId,
+      issueId,
+      uid,
+      message,
+    });
     throw new HttpsError("internal", "Failed to estimate issue weight");
   }
 });
@@ -3289,7 +3637,11 @@ export const autoEstimateIssueWeightOnIssueWrite = onDocumentWritten(
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.error("autoEstimateIssueWeight: failed", { workspaceId, issueId, message });
+      logger.error("autoEstimateIssueWeight: failed", {
+        workspaceId,
+        issueId,
+        message,
+      });
     }
   },
 );
@@ -3368,7 +3720,12 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
           labels: after.labels,
         });
       }
-      logger.info("autoSyncIssueToGitHub: synced", { workspaceId, owner, repo, number });
+      logger.info("autoSyncIssueToGitHub: synced", {
+        workspaceId,
+        owner,
+        repo,
+        number,
+      });
     } catch (error) {
       logger.error("autoSyncIssueToGitHub: failed", {
         workspaceId,
