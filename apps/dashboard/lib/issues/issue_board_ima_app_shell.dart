@@ -87,7 +87,7 @@ class IssueBoardApp extends StatelessWidget {
     );
 
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: kDebugMode,
       title: 'イマ',
       locale: const Locale('ja', 'JP'),
       supportedLocales: const [Locale('ja', 'JP')],
