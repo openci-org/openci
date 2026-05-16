@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workers/worker_status_page.dart';
@@ -12,9 +13,14 @@ import 'package:intl/intl.dart';
 import 'issue_board_ima_app_shell.dart';
 
 class CompactDestinationBody extends StatelessWidget {
-  const CompactDestinationBody({super.key, required this.destination});
+  const CompactDestinationBody({
+    super.key,
+    required this.destination,
+    this.onSwitchTeam,
+  });
 
   final CompactBoardDestination destination;
+  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +31,9 @@ class CompactDestinationBody extends StatelessWidget {
       CompactBoardDestination.workflows => const WorkflowsBody(),
       CompactBoardDestination.variables => const VariablesBody(),
       CompactBoardDestination.storeRelease => const StoreReleaseBody(),
+      CompactBoardDestination.settings => SettingsPage(
+        onSwitchTeam: onSwitchTeam,
+      ),
     };
   }
 }

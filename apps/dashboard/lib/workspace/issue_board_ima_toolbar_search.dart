@@ -155,6 +155,7 @@ class BoardToolbar extends StatelessWidget {
     required this.onWorkflowsTap,
     required this.onVariablesTap,
     required this.onStoreReleaseTap,
+    required this.onSettingsTap,
     this.showNavigationActions = true,
   });
 
@@ -173,6 +174,7 @@ class BoardToolbar extends StatelessWidget {
   final VoidCallback onWorkflowsTap;
   final VoidCallback onVariablesTap;
   final VoidCallback onStoreReleaseTap;
+  final VoidCallback onSettingsTap;
   final bool showNavigationActions;
 
   @override
@@ -452,6 +454,7 @@ class CompactBoardDrawer extends StatelessWidget {
     required this.onWorkflowsTap,
     required this.onVariablesTap,
     required this.onStoreReleaseTap,
+    required this.onSettingsTap,
     this.onSwitchTeam,
   });
 
@@ -472,6 +475,7 @@ class CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onWorkflowsTap;
   final VoidCallback onVariablesTap;
   final VoidCallback onStoreReleaseTap;
+  final VoidCallback onSettingsTap;
   final VoidCallback? onSwitchTeam;
 
   @override
@@ -564,6 +568,12 @@ class CompactBoardDrawer extends StatelessWidget {
               selected:
                   selectedDestination == CompactBoardDestination.storeRelease,
               onTap: () => runAfterClose(onStoreReleaseTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.settings_outlined,
+              label: '設定',
+              selected: selectedDestination == CompactBoardDestination.settings,
+              onTap: () => runAfterClose(onSettingsTap),
             ),
             const Divider(height: 24),
             const _CompactDrawerSectionLabel('GitHub'),

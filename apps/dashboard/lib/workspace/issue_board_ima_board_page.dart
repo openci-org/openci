@@ -1382,6 +1382,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         _selectCompactDestination(CompactBoardDestination.variables);
     void onStoreReleaseTap() =>
         _selectCompactDestination(CompactBoardDestination.storeRelease);
+    void onSettingsTap() =>
+        _selectCompactDestination(CompactBoardDestination.settings);
 
     return SyncedSpinnerScope(
       child: _IssueBoardShortcuts(
@@ -1467,6 +1469,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   onWorkflowsTap: onWorkflowsTap,
                   onVariablesTap: onVariablesTap,
                   onStoreReleaseTap: onStoreReleaseTap,
+                  onSettingsTap: onSettingsTap,
                 )
               : null,
           floatingActionButton:
@@ -1541,6 +1544,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                             onWorkflowsTap: onWorkflowsTap,
                             onVariablesTap: onVariablesTap,
                             onStoreReleaseTap: onStoreReleaseTap,
+                            onSettingsTap: onSettingsTap,
                             showNavigationActions: isCompactLayout,
                           ),
                           if (isCompactLayout && canShowRecentBranches)
@@ -2404,6 +2408,8 @@ class _IssueBoardShortcuts extends StatelessWidget {
           onDestinationSelected(CompactBoardDestination.variables),
       const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
           onDestinationSelected(CompactBoardDestination.storeRelease),
+      const SingleActivator(LogicalKeyboardKey.digit7, meta: true): () =>
+          onDestinationSelected(CompactBoardDestination.settings),
     };
 
     if (!kIsWeb) {
