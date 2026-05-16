@@ -1,4 +1,10 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'issue_board_ima_utils.dart';
+import 'issue_board_ima_app_shell.dart';
 
 typedef IssueDropCallback =
     void Function({
@@ -120,7 +126,7 @@ class IssueResolution {
       return null;
     }
     final hasActualWeight = data.containsKey('actualWeight');
-    final actualWeight = _asInt(data['actualWeight']);
+    final actualWeight = asInt(data['actualWeight']);
     return IssueResolution(
       actualWeight: hasActualWeight && actualWeight >= 0 ? actualWeight : null,
       weightDelta: data['weightDelta'] is num
@@ -132,7 +138,7 @@ class IssueResolution {
       leadTimeMs: data['leadTimeMs'] is num
           ? (data['leadTimeMs'] as num).toInt()
           : null,
-      workStartSource: _asString(data['workStartSource']),
+      workStartSource: asString(data['workStartSource']),
       actualWeightManualOverride: data['actualWeightManualOverride'] == true,
     );
   }
@@ -153,12 +159,12 @@ class IssueSubIssuesSummary {
   });
 
   static IssueSubIssuesSummary? fromMap(Map<String, dynamic> data) {
-    final total = _asInt(data['total']);
+    final total = asInt(data['total']);
     if (total <= 0) {
       return null;
     }
-    final completed = _asInt(data['completed']).clamp(0, total).toInt();
-    final rawPercent = _asInt(data['percentCompleted']);
+    final completed = asInt(data['completed']).clamp(0, total).toInt();
+    final rawPercent = asInt(data['percentCompleted']);
     final percentCompleted = rawPercent > 0
         ? rawPercent.clamp(0, 100).toInt()
         : ((completed / total) * 100).round();
@@ -196,10 +202,10 @@ class IssueParentIssue {
     if (data.isEmpty) {
       return null;
     }
-    final issueId = _asString(data['issueId']);
-    final nodeId = _asString(data['nodeId']);
-    final number = _asInt(data['number']);
-    final url = _normalizedOptionalUrl(_asString(data['url']));
+    final issueId = asString(data['issueId']);
+    final nodeId = asString(data['nodeId']);
+    final number = asInt(data['number']);
+    final url = normalizedOptionalUrl(asString(data['url']));
     if (issueId.isEmpty && nodeId.isEmpty && number <= 0 && url == null) {
       return null;
     }
@@ -228,18 +234,18 @@ class IssueSubIssueReference {
   });
 
   static IssueSubIssueReference? fromMap(Map<String, dynamic> data) {
-    final title = _asString(data['title']);
-    final number = _asInt(data['number']);
+    final title = asString(data['title']);
+    final number = asInt(data['number']);
     if (title.isEmpty && number <= 0) {
       return null;
     }
     return IssueSubIssueReference(
-      issueId: _asString(data['issueId']),
-      nodeId: _asString(data['nodeId']),
+      issueId: asString(data['issueId']),
+      nodeId: asString(data['nodeId']),
       number: number,
       title: title.isEmpty ? '#$number' : title,
-      url: _normalizedOptionalUrl(_asString(data['url'])),
-      state: _asString(data['state'], 'open'),
+      url: normalizedOptionalUrl(asString(data['url'])),
+      state: asString(data['state'], 'open'),
     );
   }
 
@@ -280,10 +286,10 @@ class Issue {
 
   factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
-    final githubIssue = _asMap(data['githubIssue']);
-    final number = _asInt(githubIssue['number']);
-    final repo = _asString(data['repo']);
-    final issueKey = _asString(data['issueKey']);
+    final githubIssue = asMap(data['githubIssue']);
+    final number = asInt(githubIssue['number']);
+    final repo = asString(data['repo']);
+    final issueKey = asString(data['issueKey']);
 
     return Issue(
       id: doc.id,
@@ -295,36 +301,36 @@ class Issue {
           ? '#$number'
           : doc.id,
       repo: repo,
-      title: _asString(data['title'], '#$number'),
-      body: _asString(data['body']),
-      githubUrl: _normalizedOptionalUrl(_asString(githubIssue['url'])),
-      labels: _asStringList(data['labels']),
-      comments: _asInt(data['comments']),
-      priority: _priorityFromString(_asString(data['priority'], 'medium')),
-      dueDate: _asDate(data['dueDate']),
-      statusId: _asString(data['statusId'], 'triage'),
-      rank: _asDouble(data['rank']),
-      closedAt: _asDate(data['closedAt']),
+      title: asString(data['title'], '#$number'),
+      body: asString(data['body']),
+      githubUrl: normalizedOptionalUrl(asString(githubIssue['url'])),
+      labels: asStringList(data['labels']),
+      comments: asInt(data['comments']),
+      priority: priorityFromString(asString(data['priority'], 'medium')),
+      dueDate: asDate(data['dueDate']),
+      statusId: asString(data['statusId'], 'triage'),
+      rank: asDouble(data['rank']),
+      closedAt: asDate(data['closedAt']),
       weightEstimate: IssueWeightEstimate.fromMap(
-        _asMap(data['weightEstimate']),
+        asMap(data['weightEstimate']),
       ),
-      resolution: IssueResolution.fromMap(_asMap(data['resolution'])),
-      pullRequests: _asList(data['pullRequests'])
-          .map((value) => IssuePullRequest.fromMap(_asMap(value)))
+      resolution: IssueResolution.fromMap(asMap(data['resolution'])),
+      pullRequests: asList(data['pullRequests'])
+          .map((value) => IssuePullRequest.fromMap(asMap(value)))
           .where((pullRequest) => pullRequest.number > 0)
           .toList(),
-      workBranch: _asString(data['workBranch'] ?? data['branch']),
+      workBranch: asString(data['workBranch'] ?? data['branch']),
       subIssuesSummary: IssueSubIssuesSummary.fromMap(
-        _asMap(
+        asMap(
           githubIssue['subIssuesSummary'] ?? githubIssue['sub_issues_summary'],
         ),
       ),
-      subIssues: _asList(githubIssue['subIssues'])
-          .map((value) => IssueSubIssueReference.fromMap(_asMap(value)))
+      subIssues: asList(githubIssue['subIssues'])
+          .map((value) => IssueSubIssueReference.fromMap(asMap(value)))
           .whereType<IssueSubIssueReference>()
           .toList(),
-      parentIssue: IssueParentIssue.fromMap(_asMap(githubIssue['parentIssue'])),
-      cursorAgent: CursorAgentState.fromMap(_asMap(data['cursorAgent'])),
+      parentIssue: IssueParentIssue.fromMap(asMap(githubIssue['parentIssue'])),
+      cursorAgent: CursorAgentState.fromMap(asMap(data['cursorAgent'])),
     );
   }
 
@@ -396,16 +402,16 @@ class CursorAgentState {
   });
 
   static CursorAgentState? fromMap(Map<String, dynamic> data) {
-    final status = _asString(data['status']);
+    final status = asString(data['status']);
     if (status.isEmpty) {
       return null;
     }
 
     return CursorAgentState(
       status: status,
-      agentId: _asString(data['agentId']),
-      runId: _asString(data['runId']),
-      errorMessage: _asString(data['errorMessage']),
+      agentId: asString(data['agentId']),
+      runId: asString(data['runId']),
+      errorMessage: asString(data['errorMessage']),
     );
   }
 
@@ -438,15 +444,15 @@ class IssuePullRequest {
 
   factory IssuePullRequest.fromMap(Map<String, dynamic> data) {
     return IssuePullRequest(
-      number: _asInt(data['number']),
-      title: _asString(data['title'], 'Pull request'),
-      url: _normalizedOptionalUrl(_asString(data['url'])),
-      state: _asString(data['state'], 'open'),
+      number: asInt(data['number']),
+      title: asString(data['title'], 'Pull request'),
+      url: normalizedOptionalUrl(asString(data['url'])),
+      state: asString(data['state'], 'open'),
       merged: data['merged'] == true,
-      branch: _asString(data['branch']),
-      createdAt: _asDate(data['createdAt']),
-      linkedIssues: _asList(data['linkedIssues'])
-          .map((value) => IssuePullRequestLinkedIssue.fromMap(_asMap(value)))
+      branch: asString(data['branch']),
+      createdAt: asDate(data['createdAt']),
+      linkedIssues: asList(data['linkedIssues'])
+          .map((value) => IssuePullRequestLinkedIssue.fromMap(asMap(value)))
           .where((issue) => issue.number > 0)
           .toList(),
     );
@@ -503,13 +509,13 @@ class WorkspaceRecentBranchList {
 
   factory WorkspaceRecentBranchList.fromMap(Map<String, dynamic> data) {
     return WorkspaceRecentBranchList(
-      branches: _asList(data['branches'])
-          .map((value) => WorkspaceRecentBranch.fromMap(_asMap(value)))
+      branches: asList(data['branches'])
+          .map((value) => WorkspaceRecentBranch.fromMap(asMap(value)))
           .where(
             (branch) => branch.name.isNotEmpty && branch.repository.isNotEmpty,
           )
           .toList(),
-      repositories: _asInt(data['repositories']),
+      repositories: asInt(data['repositories']),
     );
   }
 
@@ -531,17 +537,17 @@ class WorkspaceRecentBranch {
   });
 
   factory WorkspaceRecentBranch.fromMap(Map<String, dynamic> data) {
-    final issue = _asMap(data['issue']);
+    final issue = asMap(data['issue']);
     return WorkspaceRecentBranch(
-      repository: _asString(data['repository']),
-      name: _asString(data['name']),
-      sha: _asString(data['sha']),
-      base: _asString(data['base'], 'main'),
-      pushedAt: DateTime.tryParse(_asString(data['pushedAt'])),
-      issueId: _asString(issue['id']),
-      issueKey: _asString(issue['issueKey'], _asString(issue['displayId'])),
-      issueTitle: _asString(issue['title']),
-      issueStatusId: _asString(issue['statusId']),
+      repository: asString(data['repository']),
+      name: asString(data['name']),
+      sha: asString(data['sha']),
+      base: asString(data['base'], 'main'),
+      pushedAt: DateTime.tryParse(asString(data['pushedAt'])),
+      issueId: asString(issue['id']),
+      issueKey: asString(issue['issueKey'], asString(issue['displayId'])),
+      issueTitle: asString(issue['title']),
+      issueStatusId: asString(issue['statusId']),
     );
   }
 
@@ -569,12 +575,12 @@ class IssuePullRequestLinkedIssue {
   });
 
   factory IssuePullRequestLinkedIssue.fromMap(Map<String, dynamic> data) {
-    final number = _asInt(data['number']);
+    final number = asInt(data['number']);
     return IssuePullRequestLinkedIssue(
       number: number,
-      title: _asString(data['title'], '#$number'),
-      url: _normalizedOptionalUrl(_asString(data['url'])),
-      state: _asString(data['state'], 'open').toLowerCase(),
+      title: asString(data['title'], '#$number'),
+      url: normalizedOptionalUrl(asString(data['url'])),
+      state: asString(data['state'], 'open').toLowerCase(),
     );
   }
 
@@ -616,27 +622,27 @@ class IssuePullRequestDiff {
 
   factory IssuePullRequestDiff.fromMap(Map<String, dynamic> data) {
     return IssuePullRequestDiff(
-      repository: _asString(data['repository']),
-      pullRequestNumber: _asInt(data['pullRequestNumber']),
-      title: _asString(data['title'], 'Pull request'),
-      url: _asString(data['url']),
-      state: _asString(data['state'], 'open'),
+      repository: asString(data['repository']),
+      pullRequestNumber: asInt(data['pullRequestNumber']),
+      title: asString(data['title'], 'Pull request'),
+      url: asString(data['url']),
+      state: asString(data['state'], 'open'),
       merged: data['merged'] == true,
       mergeable: data['mergeable'] is bool ? data['mergeable'] as bool : null,
-      mergeableState: _asString(data['mergeableState']),
-      branch: _asString(data['branch']),
-      additions: _asInt(data['additions']),
-      deletions: _asInt(data['deletions']),
-      changedFiles: _asInt(data['changedFiles']),
-      ci: PullRequestCiSummary.fromMap(_asMap(data['ci'])),
-      comments: _asList(data['comments'])
-          .map((value) => IssuePullRequestComment.fromMap(_asMap(value)))
+      mergeableState: asString(data['mergeableState']),
+      branch: asString(data['branch']),
+      additions: asInt(data['additions']),
+      deletions: asInt(data['deletions']),
+      changedFiles: asInt(data['changedFiles']),
+      ci: PullRequestCiSummary.fromMap(asMap(data['ci'])),
+      comments: asList(data['comments'])
+          .map((value) => IssuePullRequestComment.fromMap(asMap(value)))
           .where((comment) => comment.body.isNotEmpty)
           .toList(),
       commentsTruncated: data['commentsTruncated'] == true,
       filesTruncated: data['filesTruncated'] == true,
-      files: _asList(data['files'])
-          .map((value) => IssuePullRequestDiffFile.fromMap(_asMap(value)))
+      files: asList(data['files'])
+          .map((value) => IssuePullRequestDiffFile.fromMap(asMap(value)))
           .where((file) => file.filename.isNotEmpty)
           .toList(),
     );
@@ -680,22 +686,22 @@ class IssuePullRequestComment {
   });
 
   factory IssuePullRequestComment.fromMap(Map<String, dynamic> data) {
-    final line = _asInt(data['line']);
+    final line = asInt(data['line']);
     return IssuePullRequestComment(
-      id: _asString(data['id']),
-      author: _asString(data['author'], 'unknown'),
-      authorAssociation: _asString(data['authorAssociation']),
-      body: _asString(data['body']),
-      url: _asString(data['url']),
-      createdAt: _asString(data['createdAt']),
-      updatedAt: _asString(data['updatedAt']),
-      kind: _asString(data['kind']) == 'review'
+      id: asString(data['id']),
+      author: asString(data['author'], 'unknown'),
+      authorAssociation: asString(data['authorAssociation']),
+      body: asString(data['body']),
+      url: asString(data['url']),
+      createdAt: asString(data['createdAt']),
+      updatedAt: asString(data['updatedAt']),
+      kind: asString(data['kind']) == 'review'
           ? IssuePullRequestCommentKind.review
           : IssuePullRequestCommentKind.conversation,
-      path: _emptyToNull(_asString(data['path'])),
+      path: emptyToNull(asString(data['path'])),
       line: line > 0 ? line : null,
-      side: _emptyToNull(_asString(data['side'])),
-      inReplyToId: _emptyToNull(_asString(data['inReplyToId'])),
+      side: emptyToNull(asString(data['side'])),
+      inReplyToId: emptyToNull(asString(data['inReplyToId'])),
     );
   }
 
@@ -728,18 +734,18 @@ class PullRequestCiSummary {
 
   factory PullRequestCiSummary.fromMap(Map<String, dynamic> data) {
     return PullRequestCiSummary(
-      status: switch (_asString(data['status'])) {
+      status: switch (asString(data['status'])) {
         'success' => PullRequestCiStatus.success,
         'failure' => PullRequestCiStatus.failure,
         'pending' => PullRequestCiStatus.pending,
         'unknown' => PullRequestCiStatus.unknown,
         _ => PullRequestCiStatus.none,
       },
-      total: _asInt(data['total']),
-      passed: _asInt(data['passed']),
-      failed: _asInt(data['failed']),
-      pending: _asInt(data['pending']),
-      skipped: _asInt(data['skipped']),
+      total: asInt(data['total']),
+      passed: asInt(data['passed']),
+      failed: asInt(data['failed']),
+      pending: asInt(data['pending']),
+      skipped: asInt(data['skipped']),
       checksTruncated: data['checksTruncated'] == true,
     );
   }
@@ -770,17 +776,17 @@ class IssuePullRequestDiffFile {
   });
 
   factory IssuePullRequestDiffFile.fromMap(Map<String, dynamic> data) {
-    final previousFilename = _asString(data['previousFilename']);
+    final previousFilename = asString(data['previousFilename']);
     return IssuePullRequestDiffFile(
-      filename: _asString(data['filename']),
-      status: _asString(data['status'], 'modified'),
-      additions: _asInt(data['additions']),
-      deletions: _asInt(data['deletions']),
-      changes: _asInt(data['changes']),
-      patch: _asString(data['patch']),
+      filename: asString(data['filename']),
+      status: asString(data['status'], 'modified'),
+      additions: asInt(data['additions']),
+      deletions: asInt(data['deletions']),
+      changes: asInt(data['changes']),
+      patch: asString(data['patch']),
       patchTruncated: data['patchTruncated'] == true,
-      blobUrl: _asString(data['blobUrl']),
-      rawUrl: _asString(data['rawUrl']),
+      blobUrl: asString(data['blobUrl']),
+      rawUrl: asString(data['rawUrl']),
       previousFilename: previousFilename.isEmpty ? null : previousFilename,
     );
   }
@@ -817,23 +823,23 @@ class IssueWeightEstimate {
       return null;
     }
     final hasValue = data.containsKey('value');
-    final value = _asInt(data['value']);
+    final value = asInt(data['value']);
     final normalizedValue = hasValue && value >= 0 ? value : null;
     return IssueWeightEstimate(
-      status: _asString(
+      status: asString(
         data['status'],
         normalizedValue == null ? 'unknown' : 'done',
       ),
       value: normalizedValue,
-      confidence: _asDouble(data['confidence']),
-      reason: _asString(data['reason']),
-      model: _asString(data['model']),
-      promptVersion: _asString(data['promptVersion']),
-      inputHash: _asString(data['inputHash']),
-      source: _asString(data['source']),
+      confidence: asDouble(data['confidence']),
+      reason: asString(data['reason']),
+      model: asString(data['model']),
+      promptVersion: asString(data['promptVersion']),
+      inputHash: asString(data['inputHash']),
+      source: asString(data['source']),
       manualOverride: data['manualOverride'] == true,
-      estimatedAt: _asDate(data['estimatedAt']),
-      error: _asString(data['error']).isEmpty ? null : _asString(data['error']),
+      estimatedAt: asDate(data['estimatedAt']),
+      error: asString(data['error']).isEmpty ? null : asString(data['error']),
     );
   }
 
@@ -860,15 +866,15 @@ class GitHubRepository {
   });
 
   factory GitHubRepository.fromMap(Map<String, dynamic> data) {
-    final fullName = _asString(data['fullName']);
+    final fullName = asString(data['fullName']);
     final parts = fullName.split('/');
 
     return GitHubRepository(
       fullName: fullName,
-      name: _asString(data['name'], parts.length > 1 ? parts[1] : fullName),
-      owner: _asString(data['owner'], parts.isEmpty ? '' : parts.first),
+      name: asString(data['name'], parts.length > 1 ? parts[1] : fullName),
+      owner: asString(data['owner'], parts.isEmpty ? '' : parts.first),
       private: data['private'] == true,
-      defaultBranch: _asString(data['defaultBranch'], 'main'),
+      defaultBranch: asString(data['defaultBranch'], 'main'),
     );
   }
 

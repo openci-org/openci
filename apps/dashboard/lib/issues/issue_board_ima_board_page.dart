@@ -1,4 +1,27 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/build_logs/synced_spinner.dart';
+import 'package:dashboard/firebase/callable_function_names.dart';
+import 'package:dashboard/firebase/firestore.dart' show buildJobsCollection;
+import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'issue_board_ima_utils.dart';
+import 'issue_board_ima_toolbar_search.dart';
+import 'issue_board_ima_issue_editor.dart';
+import 'issue_board_ima_navigation.dart';
+import 'issue_board_ima_board_columns.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_app_shell.dart';
+import 'issue_board_ima_overview.dart';
 
 class IssueBoardPage extends StatefulWidget {
   const IssueBoardPage({
@@ -37,11 +60,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
-  int _dailyWeightTarget = _defaultDailyWeightTarget;
+  int _dailyWeightTarget = defaultDailyWeightTarget;
   BoardViewMode? _boardViewMode;
-  final _BoardSidePanel _sidePanel = _BoardSidePanel.workers;
-  _CompactBoardDestination _compactDestination =
-      _CompactBoardDestination.issueBoard;
+  final BoardSidePanel _sidePanel = BoardSidePanel.workers;
+  CompactBoardDestination _compactDestination =
+      CompactBoardDestination.issueBoard;
   bool _isDesktopRailCollapsed = false;
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
@@ -128,7 +151,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return true;
   }
 
-  void _selectCompactDestination(_CompactBoardDestination destination) {
+  void _selectCompactDestination(CompactBoardDestination destination) {
     if (_compactDestination == destination) {
       return;
     }
@@ -149,7 +172,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       }
       setState(() {
         _isBootstrapping = false;
-        _loadError = _friendlyError(error);
+        _loadError = friendlyError(error);
       });
     }
   }
@@ -226,9 +249,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     final storedDailyWeightTarget = data['dailyWeightTarget'];
-    final repoFullNames = _asList(
+    final repoFullNames = asList(
       data['syncedGitHubRepoFullNames'],
-    ).map(_asString).where((repo) => repo.isNotEmpty).toList();
+    ).map(asString).where((repo) => repo.isNotEmpty).toList();
 
     setState(() {
       if (storedDailyWeightTarget is int && storedDailyWeightTarget > 0) {
@@ -340,21 +363,21 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     setState(() {
       _githubLogin = data?['connected'] == true
-          ? _asString(data?['login'])
+          ? asString(data?['login'])
           : null;
     });
   }
 
   void _replaceBuildStatuses(QuerySnapshot<Map<String, dynamic>> snapshot) {
-    final runsByPullRequest = <String, List<_RecentRunSummary>>{};
+    final runsByPullRequest = <String, List<RecentRunSummary>>{};
     for (final doc in snapshot.docs) {
-      final run = _RecentRunSummary.fromDoc(doc);
+      final run = RecentRunSummary.fromDoc(doc);
       if (run == null || run.pullRequestNumber <= 0 || run.repository.isEmpty) {
         continue;
       }
       runsByPullRequest
           .putIfAbsent(
-            _buildStatusKey(run.repository, run.pullRequestNumber),
+            buildStatusKey(run.repository, run.pullRequestNumber),
             () => [],
           )
           .add(run);
@@ -362,15 +385,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     final nextStatuses = <String, CardBuildStatus>{};
     for (final entry in runsByPullRequest.entries) {
-      final status = CardBuildStatus._fromRuns(entry.value);
+      final status = CardBuildStatus.fromRuns(entry.value);
       if (status != null) {
         nextStatuses[entry.key] = status;
       }
     }
 
     if (!mounted ||
-        _buildStatusMapSignature(_buildStatusesByPullRequest) ==
-            _buildStatusMapSignature(nextStatuses)) {
+        buildStatusMapSignature(_buildStatusesByPullRequest) ==
+            buildStatusMapSignature(nextStatuses)) {
       return;
     }
 
@@ -384,7 +407,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
     setState(() {
       _isBootstrapping = false;
-      _loadError = _friendlyError(error);
+      _loadError = friendlyError(error);
     });
   }
 
@@ -426,14 +449,14 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final nextRank = insertIndex >= targetIssues.length
         ? null
         : targetIssues[insertIndex].rank;
-    final nextRankValue = _rankBetween(previousRank, nextRank);
+    final nextRankValue = rankBetween(previousRank, nextRank);
     final shouldUnlinkPullRequests =
-        clearPullRequests || targetColumnId != _reviewStatusId;
+        clearPullRequests || targetColumnId != reviewStatusId;
     _applyOptimisticIssueMove(
       movingIssue.copyWith(
         statusId: targetColumnId,
         rank: nextRankValue,
-        clearClosedAt: targetColumnId != _closedStatusId,
+        clearClosedAt: targetColumnId != closedStatusId,
         pullRequests: shouldUnlinkPullRequests
             ? const <IssuePullRequest>[]
             : null,
@@ -445,8 +468,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .update({
           'statusId': targetColumnId,
           'rank': nextRankValue,
-          if (targetColumnId != _closedStatusId)
-            'closedAt': FieldValue.delete(),
+          if (targetColumnId != closedStatusId) 'closedAt': FieldValue.delete(),
           if (shouldUnlinkPullRequests) 'pullRequests': FieldValue.delete(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -472,7 +494,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       final issue = _columns
           .expand((column) => column.issues)
           .firstWhere((issue) => issue.id == issueId);
-      final linkId = _pullRequestLinkId(repository, pullRequest.number);
+      final linkId = pullRequestLinkId(repository, pullRequest.number);
 
       final issueRef = _firestore.doc(
         'workspaces/$_workspaceId/issues/$issueId',
@@ -481,9 +503,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       final data = snapshot.data();
       Map<String, dynamic>? existingLink;
       final currentPullRequests = <Map<String, dynamic>>[];
-      for (final value in _asList(data?['pullRequests'])) {
-        final pullRequest = _asMap(value);
-        if (_asString(pullRequest['id']) == linkId) {
+      for (final value in asList(data?['pullRequests'])) {
+        final pullRequest = asMap(value);
+        if (asString(pullRequest['id']) == linkId) {
           existingLink = pullRequest;
         } else {
           currentPullRequests.add(pullRequest);
@@ -504,10 +526,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      if (issue.statusId != _reviewStatusId &&
-          issue.statusId != _closedStatusId) {
+      if (issue.statusId != reviewStatusId &&
+          issue.statusId != closedStatusId) {
         final reviewColumn = _columns.firstWhere(
-          (column) => column.id == _reviewStatusId,
+          (column) => column.id == reviewStatusId,
         );
         final reviewIssues = [
           for (final candidate in reviewColumn.issues)
@@ -516,11 +538,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         final previousRank = reviewIssues.isEmpty
             ? null
             : reviewIssues.last.rank;
-        update['statusId'] = _reviewStatusId;
-        update['rank'] = _rankBetween(previousRank, null);
+        update['statusId'] = reviewStatusId;
+        update['rank'] = rankBetween(previousRank, null);
       }
 
-      final nextStatusId = _asString(update['statusId'], issue.statusId);
+      final nextStatusId = asString(update['statusId'], issue.statusId);
       final nextRank = update['rank'] is double
           ? update['rank']! as double
           : issue.rank;
@@ -540,7 +562,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       await issueRef.update(update);
       _showSavedSnackBar('PR #${pullRequest.number}に紐づけました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     }
   }
 
@@ -555,16 +577,16 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final issue = sourceColumn.issues.firstWhere(
       (issue) => issue.id == issueId,
     );
-    if (issue.statusId == _closedStatusId) {
+    if (issue.statusId == closedStatusId) {
       _showSavedSnackBar('すでに完了しています');
       return;
     }
 
     final allIssues = _columns.expand((column) => column.issues).toList();
-    final subIssuesToClose = _descendantSubIssuesForParent(
+    final subIssuesToClose = descendantSubIssuesForParent(
       issue,
       allIssues,
-    ).where((subIssue) => subIssue.statusId != _closedStatusId).toList();
+    ).where((subIssue) => subIssue.statusId != closedStatusId).toList();
     final closingIssueIds = {
       issueId,
       for (final subIssue in subIssuesToClose) subIssue.id,
@@ -574,7 +596,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     try {
       await _moveIssue(
         issueId: issueId,
-        targetColumnId: _closedStatusId,
+        targetColumnId: closedStatusId,
         targetIndex: 0,
       );
       if (subIssuesToClose.isNotEmpty) {
@@ -585,7 +607,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           batch.update(
             _firestore.doc('workspaces/$_workspaceId/issues/${subIssue.id}'),
             {
-              'statusId': _closedStatusId,
+              'statusId': closedStatusId,
               'rank': nowRank + index + 1,
               'updatedAt': FieldValue.serverTimestamp(),
             },
@@ -599,7 +621,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
             : '${subIssuesToClose.length}件のsub-issueと一緒に完了にしました',
       );
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _closingIssueIds.removeAll(closingIssueIds));
@@ -627,7 +649,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       await _addIssue(draft);
       _showSavedSnackBar('保存しました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     }
   }
 
@@ -675,7 +697,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         await _updateIssue(issueId: result.issueId, draft: result.draft);
         _showSavedSnackBar('保存しました');
       } catch (error) {
-        _showSavedSnackBar(_friendlyError(error));
+        _showSavedSnackBar(friendlyError(error));
       }
       return;
     }
@@ -688,7 +710,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       await _updateIssue(issueId: issueId, draft: result);
       _showSavedSnackBar('保存しました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     }
   }
 
@@ -717,7 +739,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   }
 
   bool get _usesBottomSheetEditor =>
-      MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
+      MediaQuery.sizeOf(context).width < compactBoardBreakpoint;
 
   Future<T?> _showIssueEditor<T>({
     required bool useBottomSheet,
@@ -787,7 +809,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       });
       _showSavedSnackBar('Weightを推定しました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _estimatingIssueIds.remove(issueId));
@@ -822,7 +844,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       data['weightEstimate.requestedBy'] = updatedBy;
     }
 
-    if (issue.statusId == _closedStatusId) {
+    if (issue.statusId == closedStatusId) {
       data['resolution.weightValue'] = draft.estimateWeight;
       if (actualWeight != null) {
         data['resolution.actualWeight'] = actualWeight;
@@ -855,7 +877,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       });
       _showSavedSnackBar('Cursor agentを開始しました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _startingCursorAgentIssueIds.remove(issueId));
@@ -929,7 +951,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'body': body,
       }).catchError((Object error) {
         if (mounted) {
-          _showOverlaySnackBar(context, _friendlyError(error));
+          showOverlaySnackBar(context, friendlyError(error));
         }
         return <String, dynamic>{};
       }),
@@ -955,7 +977,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       if (body.isNotEmpty) 'body': body,
       'draft': false,
     });
-    return IssuePullRequest.fromMap(_asMap(data['pullRequest']));
+    return IssuePullRequest.fromMap(asMap(data['pullRequest']));
   }
 
   Future<WorkspaceRecentBranchList> _loadWorkspaceRecentBranches() async {
@@ -963,7 +985,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       'workspaceId': _workspaceId,
       'limit': 40,
     });
-    return WorkspaceRecentBranchList.fromMap(_asMap(data));
+    return WorkspaceRecentBranchList.fromMap(asMap(data));
   }
 
   Future<IssuePullRequest> _createPullRequestFromRecentBranch(
@@ -1070,17 +1092,17 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       final data = await _callFunction('connectGitHub', {
         'workspaceId': _workspaceId,
       });
-      _showSavedSnackBar('GitHub Appに${_asString(data['login'])}として接続しました');
+      _showSavedSnackBar('GitHub Appに${asString(data['login'])}として接続しました');
     } catch (error) {
-      if (_isGitHubAppNotInstalledError(error)) {
+      if (isGitHubAppNotInstalledError(error)) {
         try {
           await _launchGitHubSetup();
           _showSavedSnackBar('GitHub Appのインストール画面を開きました');
         } catch (setupError) {
-          _showSavedSnackBar(_friendlyError(setupError));
+          _showSavedSnackBar(friendlyError(setupError));
         }
       } else {
-        _showSavedSnackBar(_friendlyError(error));
+        _showSavedSnackBar(friendlyError(error));
       }
     } finally {
       if (mounted) {
@@ -1093,7 +1115,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final data = await _callFunction('createGitHubSetupUrl', {
       'teamId': _workspaceId,
     });
-    final url = _asString(data['url']);
+    final url = asString(data['url']);
     if (url.isEmpty) {
       throw StateError('GitHub setup URL was not returned');
     }
@@ -1132,7 +1154,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       }, SetOptions(merge: true));
       _showSavedSnackBar('${selected.length}件のrepoを選択しました');
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _isLoadingRepositories = false);
@@ -1144,8 +1166,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final data = await _callFunction('listGitHubRepositories', {
       'workspaceId': _workspaceId,
     });
-    return _asList(data['repositories'])
-        .map((repo) => GitHubRepository.fromMap(_asMap(repo)))
+    return asList(data['repositories'])
+        .map((repo) => GitHubRepository.fromMap(asMap(repo)))
         .where((repo) => repo.fullName.isNotEmpty)
         .toList();
   }
@@ -1166,10 +1188,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'workspaceId': _workspaceId,
       });
       _showSavedSnackBar(
-        '${_asInt(data['repositories'])}件のrepoから${_asInt(data['imported'])}件のissueを取り込みました',
+        '${asInt(data['repositories'])}件のrepoから${asInt(data['imported'])}件のissueを取り込みました',
       );
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _isImportingIssues = false);
@@ -1188,10 +1210,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         'workspaceId': _workspaceId,
       });
       _showSavedSnackBar(
-        '${_asInt(data['synced'])}件同期、${_asInt(data['failed'])}件失敗',
+        '${asInt(data['synced'])}件同期、${asInt(data['failed'])}件失敗',
       );
     } catch (error) {
-      _showSavedSnackBar(_friendlyError(error));
+      _showSavedSnackBar(friendlyError(error));
     } finally {
       if (mounted) {
         setState(() => _isSyncingIssues = false);
@@ -1204,28 +1226,28 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     Map<String, Object?> data,
   ) async {
     final result = await _functions.httpsCallable(name).call(data);
-    return _asMap(result.data);
+    return asMap(result.data);
   }
 
   DailyProgressStats _dailyProgressStats(List<Issue> closedIssues) {
     final now = DateTime.now();
-    final today = _dateOnly(now);
+    final today = dateOnly(now);
     final tomorrow = today.add(const Duration(days: 1));
     final recentStart = today.subtract(const Duration(days: 29));
-    final paceBuckets = <DateTime, _DailyPaceBucket>{};
+    final paceBuckets = <DateTime, DailyPaceBucket>{};
 
     for (final issue in closedIssues) {
       final closedAt = issue.closedAt;
       if (closedAt == null) {
         continue;
       }
-      final closedDate = _dateOnly(closedAt);
-      final weight = _issueProgressWeight(issue);
+      final closedDate = dateOnly(closedAt);
+      final weight = issueProgressWeight(issue);
 
       if (!closedDate.isBefore(recentStart) && closedDate.isBefore(tomorrow)) {
         final bucket = paceBuckets.putIfAbsent(
           closedDate,
-          _DailyPaceBucket.new,
+          DailyPaceBucket.new,
         );
         bucket.add(closedAt: closedAt, weight: weight, now: now);
       }
@@ -1252,7 +1274,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
               0,
         ),
     ];
-    final todayBucket = paceBuckets[today] ?? _DailyPaceBucket();
+    final todayBucket = paceBuckets[today] ?? DailyPaceBucket();
     final historicalBuckets = [
       for (final entry in paceBuckets.entries)
         if (entry.key != today) entry.value,
@@ -1261,7 +1283,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       0,
       (total, day) => total + day.completedWeight,
     );
-    final prediction = _buildDailyProgressPrediction(
+    final prediction = buildDailyProgressPrediction(
       targetWeight: _dailyWeightTarget,
       todayBucket: todayBucket,
       historicalBuckets: historicalBuckets,
@@ -1290,7 +1312,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       }
     } catch (error) {
       if (mounted) {
-        _showSavedSnackBar(_friendlyError(error));
+        _showSavedSnackBar(friendlyError(error));
       }
     }
   }
@@ -1336,32 +1358,32 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     final openIssues = _columns.fold<int>(
       0,
       (total, column) =>
-          column.id == _closedStatusId ? total : total + column.issues.length,
+          column.id == closedStatusId ? total : total + column.issues.length,
     );
     final closedIssues = _columns
-        .where((col) => col.id == _closedStatusId)
+        .where((col) => col.id == closedStatusId)
         .expand((col) => col.issues)
         .toList();
     final dailyProgressStats = _dailyProgressStats(closedIssues);
     final isCompactLayout =
-        MediaQuery.sizeOf(context).width < _compactBoardBreakpoint;
+        MediaQuery.sizeOf(context).width < compactBoardBreakpoint;
     final boardViewMode =
         _boardViewMode ??
         (isCompactLayout ? BoardViewMode.overview : BoardViewMode.standard);
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final canShowRecentBranches = isConnected && _enabledRepoCount > 0;
-    void onRunsTap() =>
-        _selectCompactDestination(_CompactBoardDestination.runs);
+    final onSignOut = FirebaseAuth.instance.signOut;
+    void onRunsTap() => _selectCompactDestination(CompactBoardDestination.runs);
     void onWorkersTap() =>
-        _selectCompactDestination(_CompactBoardDestination.workers);
+        _selectCompactDestination(CompactBoardDestination.workers);
     void onWorkflowsTap() =>
-        _selectCompactDestination(_CompactBoardDestination.workflows);
+        _selectCompactDestination(CompactBoardDestination.workflows);
     void onVariablesTap() =>
-        _selectCompactDestination(_CompactBoardDestination.variables);
+        _selectCompactDestination(CompactBoardDestination.variables);
     void onStoreReleaseTap() =>
-        _selectCompactDestination(_CompactBoardDestination.storeRelease);
+        _selectCompactDestination(CompactBoardDestination.storeRelease);
     void onSettingsTap() =>
-        _selectCompactDestination(_CompactBoardDestination.settings);
+        _selectCompactDestination(CompactBoardDestination.settings);
 
     return SyncedSpinnerScope(
       child: _IssueBoardShortcuts(
@@ -1382,7 +1404,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           endDrawer: isCompactLayout
               ? null
               : Drawer(
-                  width: _sidePanel == _BoardSidePanel.workers ? 420 : 560,
+                  width: _sidePanel == BoardSidePanel.workers ? 420 : 560,
                   shape: const RoundedRectangleBorder(
                     side: BorderSide(color: Color(0xFFE2E8F0)),
                     borderRadius: BorderRadius.horizontal(
@@ -1390,7 +1412,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     ),
                   ),
                   child: Builder(
-                    builder: (context) => _BoardSidePanelDrawer(
+                    builder: (context) => BoardSidePanelDrawer(
                       panel: _sidePanel,
                       onDismiss: () => Navigator.of(context).maybePop(),
                     ),
@@ -1407,7 +1429,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   elevation: 0,
                   scrolledUnderElevation: 0,
                   actions:
-                      _compactDestination == _CompactBoardDestination.issueBoard
+                      _compactDestination == CompactBoardDestination.issueBoard
                       ? [
                           IconButton(
                             tooltip: 'issueを検索',
@@ -1426,7 +1448,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 )
               : null,
           drawer: isCompactLayout
-              ? _CompactBoardDrawer(
+              ? CompactBoardDrawer(
                   isConnected: isConnected,
                   isBusy: _isBusy,
                   repoCount: _enabledRepoCount,
@@ -1439,7 +1461,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   workspaceName: widget.workspaceName,
                   selectedDestination: _compactDestination,
                   onIssueBoardTap: () => _selectCompactDestination(
-                    _CompactBoardDestination.issueBoard,
+                    CompactBoardDestination.issueBoard,
                   ),
                   onRunsTap: onRunsTap,
                   onWorkersTap: onWorkersTap,
@@ -1450,7 +1472,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
               : null,
           floatingActionButton:
               isCompactLayout &&
-                  _compactDestination == _CompactBoardDestination.issueBoard
+                  _compactDestination == CompactBoardDestination.issueBoard
               ? FloatingActionButton.extended(
                   onPressed: () => unawaited(_openAddIssueDialog()),
                   icon: const Icon(Icons.add_rounded),
@@ -1460,9 +1482,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           body: LayoutBuilder(
             builder: (context, constraints) {
               final content = SafeArea(
-                child:
-                    _compactDestination != _CompactBoardDestination.issueBoard
-                    ? _CompactDestinationBody(
+                child: _compactDestination != CompactBoardDestination.issueBoard
+                    ? CompactDestinationBody(
                         destination: _compactDestination,
                         onSwitchTeam: widget.onSwitchTeam,
                       )
@@ -1558,19 +1579,21 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                     : constraints.maxHeight;
                                 final isCompactBoard =
                                     constraints.maxWidth <
-                                    _compactBoardBreakpoint;
+                                    compactBoardBreakpoint;
                                 final allIssues = _columns
                                     .expand((column) => column.issues)
                                     .toList();
-                                final subIssuesByParentId =
-                                    _subIssuesByParentId(allIssues);
-                                final buildStatusesByIssueId =
-                                    _buildStatusesByIssueId(
+                                final subIssuesByParentIdMap =
+                                    subIssuesByParentId(
+                                      allIssues,
+                                    );
+                                final buildStatusesByIssueIdMap =
+                                    buildStatusesByIssueId(
                                       allIssues,
                                       _buildStatusesByPullRequest,
                                     );
-                                final issuesByRepositoryNumber =
-                                    _issuesByRepositoryNumber(allIssues);
+                                final issuesByRepositoryNumberMap =
+                                    issuesByRepositoryNumber(allIssues);
 
                                 if (boardViewMode == BoardViewMode.overview) {
                                   return OverviewBoard(
@@ -1585,25 +1608,25 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                   return ListView.separated(
                                     controller: _boardScrollController,
                                     padding: const EdgeInsets.fromLTRB(
-                                      _boardHorizontalPadding,
+                                      boardHorizontalPadding,
                                       12,
-                                      _boardHorizontalPadding,
-                                      _boardBottomPadding + 72,
+                                      boardHorizontalPadding,
+                                      boardBottomPadding + 72,
                                     ),
                                     itemCount: _columns.length,
                                     separatorBuilder: (_, _) =>
-                                        const SizedBox(height: _boardColumnGap),
+                                        const SizedBox(height: boardColumnGap),
                                     itemBuilder: (context, index) {
                                       final column = _columns[index];
                                       return CompactBoardColumnView(
                                         key: ValueKey(column.id),
                                         column: column,
                                         subIssuesByParentId:
-                                            subIssuesByParentId,
+                                            subIssuesByParentIdMap,
                                         buildStatusesByIssueId:
-                                            buildStatusesByIssueId,
+                                            buildStatusesByIssueIdMap,
                                         issuesByRepositoryNumber:
-                                            issuesByRepositoryNumber,
+                                            issuesByRepositoryNumberMap,
                                         startingCursorAgentIssueIds:
                                             _startingCursorAgentIssueIds,
                                         requiresLongPressDrag: true,
@@ -1628,10 +1651,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                   child: SingleChildScrollView(
                                     controller: _boardScrollController,
                                     padding: const EdgeInsets.fromLTRB(
-                                      _boardHorizontalPadding,
+                                      boardHorizontalPadding,
                                       12,
-                                      _boardHorizontalPadding,
-                                      _boardBottomPadding,
+                                      boardHorizontalPadding,
+                                      boardBottomPadding,
                                     ),
                                     scrollDirection: Axis.horizontal,
                                     child: SizedBox(
@@ -1645,11 +1668,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                               key: ValueKey(column.id),
                                               column: column,
                                               subIssuesByParentId:
-                                                  subIssuesByParentId,
+                                                  subIssuesByParentIdMap,
                                               buildStatusesByIssueId:
-                                                  buildStatusesByIssueId,
+                                                  buildStatusesByIssueIdMap,
                                               issuesByRepositoryNumber:
-                                                  issuesByRepositoryNumber,
+                                                  issuesByRepositoryNumberMap,
                                               startingCursorAgentIssueIds:
                                                   _startingCursorAgentIssueIds,
                                               requiresLongPressDrag: false,
@@ -1669,7 +1692,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                             ),
                                             if (column != _columns.last)
                                               const SizedBox(
-                                                width: _boardColumnGap,
+                                                width: boardColumnGap,
                                               ),
                                           ],
                                         ],
@@ -1690,10 +1713,13 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
               return Row(
                 children: [
-                  _DesktopBoardNavigationRail(
+                  DesktopBoardNavigationRail(
                     selectedDestination: _compactDestination,
+                    workspaceName: widget.workspaceName,
                     extended:
                         constraints.maxWidth >= 960 && !_isDesktopRailCollapsed,
+                    onSwitchTeam: widget.onSwitchTeam,
+                    onSignOut: onSignOut,
                     onCollapsedChanged: (collapsed) =>
                         setState(() => _isDesktopRailCollapsed = collapsed),
                     onDestinationSelected: _selectCompactDestination,
@@ -1958,7 +1984,7 @@ class _RecentRemoteBranchesDialogState
       if (mounted) {
         showResponsiveSnackBar(
           context,
-          content: Text(_friendlyError(error)),
+          content: Text(friendlyError(error)),
           duration: const Duration(milliseconds: 1800),
         );
       }
@@ -2356,7 +2382,7 @@ class _IssueBoardShortcuts extends StatelessWidget {
   final VoidCallback onAddIssue;
   final VoidCallback onSearchIssues;
   final VoidCallback onToggleNavigation;
-  final ValueChanged<_CompactBoardDestination> onDestinationSelected;
+  final ValueChanged<CompactBoardDestination> onDestinationSelected;
   final Widget child;
 
   @override
@@ -2371,17 +2397,17 @@ class _IssueBoardShortcuts extends StatelessWidget {
       const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
           onSearchIssues,
       const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
-          onDestinationSelected(_CompactBoardDestination.issueBoard),
+          onDestinationSelected(CompactBoardDestination.issueBoard),
       const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
-          onDestinationSelected(_CompactBoardDestination.runs),
+          onDestinationSelected(CompactBoardDestination.runs),
       const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-          onDestinationSelected(_CompactBoardDestination.workers),
+          onDestinationSelected(CompactBoardDestination.workers),
       const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
-          onDestinationSelected(_CompactBoardDestination.workflows),
+          onDestinationSelected(CompactBoardDestination.workflows),
       const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
-          onDestinationSelected(_CompactBoardDestination.variables),
+          onDestinationSelected(CompactBoardDestination.variables),
       const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
-          onDestinationSelected(_CompactBoardDestination.storeRelease),
+          onDestinationSelected(CompactBoardDestination.storeRelease),
     };
 
     if (!kIsWeb) {

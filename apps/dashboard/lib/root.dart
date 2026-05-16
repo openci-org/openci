@@ -2,6 +2,7 @@ import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/router.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/themes/tab_bar_theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +17,7 @@ class Root extends ConsumerWidget {
     ref.watch(deepLinkListenerProvider);
 
     return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: kDebugMode,
       locale: const Locale('ja', 'JP'),
       supportedLocales: const [Locale('ja', 'JP')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,

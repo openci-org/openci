@@ -1,4 +1,11 @@
-part of 'issue_board_ima_page.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'issue_board_ima_utils.dart';
+import 'issue_board_ima_board_columns.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_app_shell.dart';
+import 'issue_board_ima_overview.dart';
 
 class DailyProgressHistoryRow extends StatelessWidget {
   const DailyProgressHistoryRow({
@@ -41,7 +48,7 @@ class DailyProgressHistoryRow extends StatelessWidget {
               SizedBox(
                 width: 72,
                 child: Text(
-                  _dailyHistoryDateLabel(day.date),
+                  dailyHistoryDateLabel(day.date),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -174,7 +181,7 @@ class BoardToolbar extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < _compactBoardBreakpoint) {
+        if (constraints.maxWidth < compactBoardBreakpoint) {
           return const SizedBox.shrink();
         }
 
@@ -425,8 +432,9 @@ class _CompactBoardViewModeSegment extends StatelessWidget {
   }
 }
 
-class _CompactBoardDrawer extends StatelessWidget {
-  const _CompactBoardDrawer({
+class CompactBoardDrawer extends StatelessWidget {
+  const CompactBoardDrawer({
+    super.key,
     required this.isConnected,
     required this.isBusy,
     required this.repoCount,
@@ -456,7 +464,7 @@ class _CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onSearchIssues;
   final VoidCallback onSettingsTap;
   final String workspaceName;
-  final _CompactBoardDestination selectedDestination;
+  final CompactBoardDestination selectedDestination;
   final VoidCallback onIssueBoardTap;
   final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
@@ -519,47 +527,46 @@ class _CompactBoardDrawer extends StatelessWidget {
               icon: Icons.view_kanban_outlined,
               label: 'ワークスペース',
               selected:
-                  selectedDestination == _CompactBoardDestination.issueBoard,
+                  selectedDestination == CompactBoardDestination.issueBoard,
               onTap: () => runAfterClose(onIssueBoardTap),
             ),
             _CompactDrawerTile(
               icon: Icons.history_rounded,
               label: 'CI/CDログ',
-              selected: selectedDestination == _CompactBoardDestination.runs,
+              selected: selectedDestination == CompactBoardDestination.runs,
               onTap: () => runAfterClose(onRunsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.dns_outlined,
               label: 'ワーカー',
-              selected: selectedDestination == _CompactBoardDestination.workers,
+              selected: selectedDestination == CompactBoardDestination.workers,
               onTap: () => runAfterClose(onWorkersTap),
             ),
             _CompactDrawerTile(
               icon: Icons.schema_rounded,
               label: 'CI/CD設定',
               selected:
-                  selectedDestination == _CompactBoardDestination.workflows,
+                  selectedDestination == CompactBoardDestination.workflows,
               onTap: () => runAfterClose(onWorkflowsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.key_rounded,
               label: '変数',
               selected:
-                  selectedDestination == _CompactBoardDestination.variables,
+                  selectedDestination == CompactBoardDestination.variables,
               onTap: () => runAfterClose(onVariablesTap),
             ),
             _CompactDrawerTile(
               icon: Icons.rocket_launch_outlined,
               label: 'ストアリリース',
               selected:
-                  selectedDestination == _CompactBoardDestination.storeRelease,
+                  selectedDestination == CompactBoardDestination.storeRelease,
               onTap: () => runAfterClose(onStoreReleaseTap),
             ),
             _CompactDrawerTile(
               icon: Icons.settings_outlined,
               label: '設定',
-              selected:
-                  selectedDestination == _CompactBoardDestination.settings,
+              selected: selectedDestination == CompactBoardDestination.settings,
               onTap: () => runAfterClose(onSettingsTap),
             ),
             const Divider(height: 24),
@@ -761,7 +768,7 @@ class _IssueSearchDialogState extends State<IssueSearchDialog> {
 
   List<_IssueSearchEntry> get _entries => [
     for (final column in widget.columns)
-      for (final issue in _visibleIssuesForColumn(column))
+      for (final issue in visibleIssuesForColumn(column))
         _IssueSearchEntry(issue: issue, column: column),
   ];
 
@@ -1254,7 +1261,7 @@ class _IssueSearchDetailPane extends StatelessWidget {
                       label: _issuePriorityLabel(issue.priority),
                     ),
                     if (issue.dueDate != null)
-                      _IssueSearchMetaPill(label: _formatDate(issue.dueDate!)),
+                      _IssueSearchMetaPill(label: formatDate(issue.dueDate!)),
                   ],
                 ),
                 const SizedBox(height: 14),
