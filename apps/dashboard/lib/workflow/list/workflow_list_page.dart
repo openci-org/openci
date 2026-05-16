@@ -1,4 +1,4 @@
-import 'package:dashboard/issues/issue_board_page.dart';
+import 'package:dashboard/workspace/issue_board_page.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
