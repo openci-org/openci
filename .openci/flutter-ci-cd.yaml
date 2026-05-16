@@ -130,6 +130,28 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
+      - name: Configure Sparkle update settings
+        env:
+          OPENCI_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.OPENCI_SPARKLE_PUBLIC_ED_KEY }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${OPENCI_SPARKLE_PUBLIC_ED_KEY:-}" ]; then
+            if [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
+              echo "OPENCI_SPARKLE_PUBLIC_ED_KEY is required for develop macOS builds" >&2
+              exit 1
+            fi
+            echo "OPENCI_SPARKLE_PUBLIC_ED_KEY is not set; macOS updater will be inert for this build"
+            exit 0
+          fi
+
+          {
+            echo ""
+            echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
+          } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
+
       - id: build_macos
         uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
         with:
@@ -149,6 +171,7 @@ jobs:
       - name: Upload macOS artifact to Firebase Storage
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_SPARKLE_PRIVATE_ED_KEY: ${{ secrets.OPENCI_SPARKLE_PRIVATE_ED_KEY }}
           RELEASE_EVENT_NAME: ${{ github.event_name }}
           RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
           RELEASE_REF: ${{ github.ref }}
@@ -250,6 +273,97 @@ jobs:
           for object_name in "${object_names[@]}"; do
             upload_object "$object_name"
           done
+
+          if [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
+            if [ -z "${OPENCI_SPARKLE_PRIVATE_ED_KEY:-}" ]; then
+              echo "OPENCI_SPARKLE_PRIVATE_ED_KEY is required to generate the macOS appcast" >&2
+              exit 1
+            fi
+
+            sparkle_tmp_dir="$(mktemp -d)"
+            sparkle_version="${OPENCI_SPARKLE_VERSION:-2.9.1}"
+            curl -fsSL \
+              "https://github.com/sparkle-project/Sparkle/releases/download/${sparkle_version}/Sparkle-${sparkle_version}.tar.xz" \
+              -o "${sparkle_tmp_dir}/sparkle.tar.xz"
+            tar -xJf "${sparkle_tmp_dir}/sparkle.tar.xz" -C "${sparkle_tmp_dir}"
+            sign_update="$(find "${sparkle_tmp_dir}" -path "*/bin/sign_update" -type f | head -n 1)"
+            if [ -z "${sign_update}" ]; then
+              echo "Sparkle sign_update tool was not found" >&2
+              exit 1
+            fi
+
+            latest_zip_object_name="artifacts/openci-dashboard/macos/develop/latest/OpenCI-dashboard-macos.zip"
+            latest_zip_encoded_object_name="$(python3 - "$latest_zip_object_name" <<'PY'
+          import sys
+          import urllib.parse
+
+          print(urllib.parse.quote(sys.argv[1], safe=""))
+          PY
+            )"
+            latest_zip_url="https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${latest_zip_encoded_object_name}?alt=media&token=4b4e0ed8-e11c-46b8-9d10-cf1f3c8b926c"
+            appcast_token="adfb1bbd-98ac-4d7d-8bfe-df57403ce6b0"
+            appcast_object_name="artifacts/openci-dashboard/macos/develop/latest/appcast.xml"
+            appcast_path="$(mktemp)"
+            signature_attributes="$(printf '%s' "${OPENCI_SPARKLE_PRIVATE_ED_KEY}" | "${sign_update}" --ed-key-file - "${artifact_path}")"
+            short_version="$(python3 - <<'PY'
+          import re
+
+          with open("apps/dashboard/pubspec.yaml", encoding="utf-8") as f:
+              match = re.search(r"^version:\s*([^+\s]+)", f.read(), re.MULTILINE)
+          print(match.group(1) if match else "1.0.0")
+          PY
+            )"
+            published_at="$(date -u +"%a, %d %b %Y %H:%M:%S %z")"
+
+            python3 - "$appcast_path" "$latest_zip_url" "$signature_attributes" "$OPENCI_RUN_NUMBER" "$short_version" "$published_at" <<'PY'
+          import html
+          import sys
+
+          output_path, zip_url, signature_attributes, version, short_version, published_at = sys.argv[1:]
+          xml = f'''<?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+            <channel>
+              <title>OpenCI macOS updates</title>
+              <description>OpenCI dashboard macOS updates</description>
+              <language>ja</language>
+              <item>
+                <title>OpenCI {html.escape(short_version)} ({html.escape(version)})</title>
+                <pubDate>{html.escape(published_at)}</pubDate>
+                <sparkle:version>{html.escape(version)}</sparkle:version>
+                <sparkle:shortVersionString>{html.escape(short_version)}</sparkle:shortVersionString>
+                <enclosure url="{html.escape(zip_url)}" {signature_attributes} type="application/zip"/>
+              </item>
+            </channel>
+          </rss>
+          '''
+          with open(output_path, "w", encoding="utf-8") as f:
+              f.write(xml)
+          PY
+
+            appcast_encoded_object_name="$(python3 - "$appcast_object_name" <<'PY'
+          import sys
+          import urllib.parse
+
+          print(urllib.parse.quote(sys.argv[1], safe=""))
+          PY
+            )"
+            curl -fsS -X POST \
+              -H "Authorization: Bearer ${access_token}" \
+              -H "Content-Type: application/rss+xml" \
+              --data-binary "@${appcast_path}" \
+              "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${appcast_encoded_object_name}" \
+              > /dev/null
+            curl -fsS -X PATCH \
+              -H "Authorization: Bearer ${access_token}" \
+              -H "Content-Type: application/json" \
+              --data "{\"metadata\":{\"firebaseStorageDownloadTokens\":\"${appcast_token}\"},\"contentType\":\"application/rss+xml\"}" \
+              "https://storage.googleapis.com/storage/v1/b/${bucket}/o/${appcast_encoded_object_name}" \
+              > /dev/null
+
+            echo "Uploaded macOS appcast: gs://${bucket}/${appcast_object_name}"
+            echo "Appcast URL: https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${appcast_encoded_object_name}?alt=media&token=${appcast_token}"
+            rm -rf "${sparkle_tmp_dir}" "${appcast_path}"
+          fi
 
           rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
 

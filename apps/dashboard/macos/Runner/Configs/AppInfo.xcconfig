@@ -12,3 +12,8 @@ PRODUCT_BUNDLE_IDENTIFIER = org.openci.dashboard
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 org.openci. All rights reserved.
+
+// Sparkle update settings. CI overrides SPARKLE_PUBLIC_ED_KEY with the public
+// key that matches OPENCI_SPARKLE_PRIVATE_ED_KEY.
+SPARKLE_FEED_URL = https:/$()/firebasestorage.googleapis.com/v0/b/openci-b1b91.firebasestorage.app/o/artifacts%2Fopenci-dashboard%2Fmacos%2Fdevelop%2Flatest%2Fappcast.xml?alt=media&token=adfb1bbd-98ac-4d7d-8bfe-df57403ce6b0
+SPARKLE_PUBLIC_ED_KEY =

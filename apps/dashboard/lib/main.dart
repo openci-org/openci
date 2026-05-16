@@ -1,5 +1,6 @@
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase_options.dart';
+import 'package:dashboard/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -50,6 +51,8 @@ Future<void> main() async {
   if (selfHosted == null) {
     await initializeRevenueCat();
   }
+
+  await initializeMacosUpdater();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   final app = ProviderScope(child: Root());
