@@ -39,7 +39,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
     }
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,

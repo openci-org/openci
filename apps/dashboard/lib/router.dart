@@ -7,6 +7,7 @@ import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
+import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/accept_invitation_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -102,6 +103,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: const AuthenticatedScaffoldRoutePage(
                 title: 'Workers',
                 child: WorkerStatusBody(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: 'settings',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const AuthenticatedScaffoldRoutePage(
+                title: '設定',
+                child: SettingsPage(),
               ),
             ),
           ),

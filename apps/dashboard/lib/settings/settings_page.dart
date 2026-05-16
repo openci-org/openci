@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
@@ -15,17 +17,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:macos_updater/macos_updater.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class SettingsPage extends HookConsumerWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.onSwitchTeam});
+
+  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDeleting = useState(false);
-    final isCheckingForUpdates = useState(false);
     final settingsT = t.settings;
 
     return Scaffold(
@@ -76,23 +80,24 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsGroup(
                     children: [
                       const _AppVersionTile(),
-                      if (isMacosUpdaterAvailable) ...[
+                      const _GroupDivider(),
+                      const _BuildUpdatedTile(),
+                      if (isMacosUpdaterSupportedPlatform) ...[
                         const _GroupDivider(),
                         _SettingsItem(
                           icon: Symbols.system_update_alt_rounded,
                           title: settingsT.checkForUpdates,
                           subtitle: settingsT.checkForUpdatesDescription,
-                          isLoading: isCheckingForUpdates.value,
+                          trailingIcon: null,
                           onTap: () async {
-                            if (isCheckingForUpdates.value) {
-                              return;
-                            }
-                            isCheckingForUpdates.value = true;
                             try {
-                              await checkForMacosUpdates();
+                              context.showSnackBarMessage(
+                                'アップデートを確認しています...',
+                              );
+                              final result = await checkForMacosUpdates();
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                settingsT.checkForUpdatesStarted,
+                                _formatUpdateCheckResult(result),
                               );
                             } catch (e, s) {
                               debugPrint(e.toString());
@@ -103,37 +108,35 @@ class SettingsPage extends HookConsumerWidget {
                                   error: e.toString(),
                                 ),
                               );
-                            } finally {
-                              isCheckingForUpdates.value = false;
                             }
                           },
                         ),
                       ],
                     ],
                   ),
+                  const SizedBox(height: 20),
+                  const _SectionHeader(label: 'ワークスペース'),
+                  _SettingsGroup(
+                    children: [
+                      _TeamSettingsTile(onSwitchTeam: onSwitchTeam),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const _SectionHeader(label: 'アカウント'),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsItem(
+                        icon: Icons.logout_rounded,
+                        title: settingsT.logout,
+                        subtitle: '現在のアカウントからサインアウト',
+                        trailingIcon: null,
+                        onTap: () => unawaited(_signOut(context, ref)),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   const _SelfHostedIndicator(),
-                  const SizedBox(height: 24),
-                  _ActionButton(
-                    label: settingsT.logout,
-                    onPressed: () async {
-                      try {
-                        await logoutRevenueCat();
-                        await FirebaseAuth.instance.signOut();
-                        ref.invalidate(notificationServiceProvider);
-                        ref.invalidate(authProvider);
-                        if (!context.mounted) return;
-                        context.showSnackBarMessage(settingsT.logoutSuccess);
-                      } catch (e, s) {
-                        debugPrint(e.toString());
-                        debugPrint(s.toString());
-                        context.showSnackBarMessage(
-                          settingsT.logoutFailed(error: e.toString()),
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   _DeleteAccountButton(isDeleting: isDeleting),
                 ],
               ),
@@ -145,6 +148,39 @@ class SettingsPage extends HookConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+String _formatUpdateCheckResult(MacosUpdaterCheckResult result) {
+  return switch (result.type) {
+    MacosUpdaterCheckResultType.updateAvailable =>
+      result.displayVersion == null || result.displayVersion!.isEmpty
+          ? '新しいアップデートがあります'
+          : '新しいアップデートがあります: v${result.displayVersion}',
+    MacosUpdaterCheckResultType.noUpdateFound => '利用可能なアップデートはありません',
+    MacosUpdaterCheckResultType.failed =>
+      result.message.isEmpty
+          ? 'アップデート確認に失敗しました'
+          : 'アップデート確認に失敗しました: ${result.message}',
+  };
+}
+
+Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+  final settingsT = t.settings;
+  try {
+    await logoutRevenueCat();
+    await FirebaseAuth.instance.signOut();
+    ref.invalidate(notificationServiceProvider);
+    ref.invalidate(authProvider);
+    if (!context.mounted) return;
+    context.showSnackBarMessage(settingsT.logoutSuccess);
+  } catch (e, s) {
+    debugPrint(e.toString());
+    debugPrint(s.toString());
+    if (!context.mounted) return;
+    context.showSnackBarMessage(
+      settingsT.logoutFailed(error: e.toString()),
     );
   }
 }
@@ -212,14 +248,14 @@ class _SettingsItem extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.isLoading = false,
+    this.trailingIcon = Icons.chevron_right,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final bool isLoading;
+  final IconData? trailingIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +276,7 @@ class _SettingsItem extends StatelessWidget {
               ),
               child: Center(
                 child: Icon(
-                  isLoading ? Symbols.progress_activity_rounded : icon,
+                  icon,
                   size: 18,
                   color: AppColors.of(context).textSecondary,
                 ),
@@ -270,13 +306,118 @@ class _SettingsItem extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              isLoading ? Icons.more_horiz_rounded : Icons.chevron_right,
-              size: 18,
-              color: AppColors.of(context).textTertiary,
-            ),
+            if (trailingIcon != null)
+              Icon(
+                trailingIcon,
+                size: 18,
+                color: AppColors.of(context).textTertiary,
+              ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsInfoItem extends StatelessWidget {
+  const _SettingsInfoItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.of(context).divider,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: 18,
+                color: AppColors.of(context).textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.of(context).textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.of(context).textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TeamSettingsTile extends ConsumerWidget {
+  const _TeamSettingsTile({required this.onSwitchTeam});
+
+  final VoidCallback? onSwitchTeam;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final teamAsync = ref.watch(teamStateProvider);
+
+    return teamAsync.when(
+      data: (team) {
+        final switchTeam = onSwitchTeam;
+        if (switchTeam == null) {
+          return _SettingsInfoItem(
+            icon: Icons.groups_2_outlined,
+            title: 'チーム',
+            subtitle: team.name,
+          );
+        }
+
+        return _SettingsItem(
+          icon: Icons.groups_2_outlined,
+          title: 'チーム',
+          subtitle: team.name,
+          trailingIcon: Icons.expand_more_rounded,
+          onTap: switchTeam,
+        );
+      },
+      loading: () => const _SettingsInfoItem(
+        icon: Icons.groups_2_outlined,
+        title: 'チーム',
+        subtitle: '読み込み中...',
+      ),
+      error: (_, _) => const _SettingsInfoItem(
+        icon: Icons.groups_2_outlined,
+        title: 'チーム',
+        subtitle: 'チーム情報を読み込めませんでした',
       ),
     );
   }
@@ -451,7 +592,6 @@ class _AppVersionTile extends HookWidget {
     final versionText = info != null
         ? 'v${info.version} (${info.buildNumber})'
         : '...';
-    final buildUpdatedText = _formatBuildUpdatedText();
 
     return InkWell(
       onTap: null,
@@ -495,22 +635,25 @@ class _AppVersionTile extends HookWidget {
                       color: AppColors.of(context).textTertiary,
                     ),
                   ),
-                  if (buildUpdatedText != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      buildUpdatedText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.of(context).textTertiary,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BuildUpdatedTile extends StatelessWidget {
+  const _BuildUpdatedTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsInfoItem(
+      icon: Icons.update_rounded,
+      title: '最終更新',
+      subtitle: _formatBuildUpdatedText() ?? 'ビルド情報がありません',
     );
   }
 }
@@ -646,44 +789,6 @@ class _SelfHostedIndicator extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.label,
-    required this.onPressed,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: TextButton(
-        style: TextButton.styleFrom(
-          foregroundColor: AppColors.of(context).textPrimary,
-          backgroundColor: AppColors.of(context).divider,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(
-              color: AppColors.of(context).border,
-            ),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
     );
   }
 }

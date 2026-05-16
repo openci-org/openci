@@ -29,6 +29,7 @@ enum CompactBoardDestination {
   workflows,
   variables,
   storeRelease,
+  settings,
 }
 
 const boardNavigationDestinations = [
@@ -38,6 +39,7 @@ const boardNavigationDestinations = [
   CompactBoardDestination.workflows,
   CompactBoardDestination.variables,
   CompactBoardDestination.storeRelease,
+  CompactBoardDestination.settings,
 ];
 
 extension CompactBoardDestinationLabel on CompactBoardDestination {
@@ -48,6 +50,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.workflows => 'CI/CD設定',
     CompactBoardDestination.variables => '変数',
     CompactBoardDestination.storeRelease => 'ストアリリース',
+    CompactBoardDestination.settings => '設定',
   };
 
   IconData get icon => switch (this) {
@@ -57,6 +60,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.workflows => Icons.schema_rounded,
     CompactBoardDestination.variables => Icons.key_rounded,
     CompactBoardDestination.storeRelease => Icons.rocket_launch_outlined,
+    CompactBoardDestination.settings => Icons.settings_outlined,
   };
 
   IconData get selectedIcon => switch (this) {
@@ -66,6 +70,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.workflows => Icons.schema_rounded,
     CompactBoardDestination.variables => Icons.key_rounded,
     CompactBoardDestination.storeRelease => Icons.rocket_launch_rounded,
+    CompactBoardDestination.settings => Icons.settings_rounded,
   };
 }
 

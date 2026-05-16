@@ -1382,6 +1382,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         _selectCompactDestination(CompactBoardDestination.variables);
     void onStoreReleaseTap() =>
         _selectCompactDestination(CompactBoardDestination.storeRelease);
+    void onSettingsTap() =>
+        _selectCompactDestination(CompactBoardDestination.settings);
 
     return SyncedSpinnerScope(
       child: _IssueBoardShortcuts(
@@ -1455,9 +1457,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   onImportIssues: _importGitHubIssues,
                   onSyncIssues: _syncGitHubIssues,
                   onSearchIssues: _openIssueSearchDialog,
-                  onSignOut: onSignOut,
+                  onSettingsTap: onSettingsTap,
                   workspaceName: widget.workspaceName,
-                  onSwitchTeam: widget.onSwitchTeam,
                   selectedDestination: _compactDestination,
                   onIssueBoardTap: () => _selectCompactDestination(
                     CompactBoardDestination.issueBoard,
@@ -1482,7 +1483,10 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
             builder: (context, constraints) {
               final content = SafeArea(
                 child: _compactDestination != CompactBoardDestination.issueBoard
-                    ? CompactDestinationBody(destination: _compactDestination)
+                    ? CompactDestinationBody(
+                        destination: _compactDestination,
+                        onSwitchTeam: widget.onSwitchTeam,
+                      )
                     : Column(
                         children: [
                           if (!isCompactLayout)
