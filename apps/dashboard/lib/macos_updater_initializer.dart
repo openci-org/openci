@@ -12,19 +12,40 @@ const _macosUpdateCheckIntervalHours = int.fromEnvironment(
   defaultValue: 24,
 );
 
+bool get isMacosUpdaterAvailable {
+  return !kIsWeb &&
+      !kDebugMode &&
+      defaultTargetPlatform == TargetPlatform.macOS;
+}
+
 Future<void> initializeMacosUpdater() async {
-  if (kIsWeb || kDebugMode || defaultTargetPlatform != TargetPlatform.macOS) {
+  if (!isMacosUpdaterAvailable) {
     return;
   }
 
   try {
-    final updater = MacosUpdater();
-    await updater.setFeedUrl(_macosUpdateFeedUrl);
-    await updater.setScheduledCheckInterval(
-      const Duration(hours: _macosUpdateCheckIntervalHours),
-    );
+    await _configureMacosUpdater(MacosUpdater());
   } catch (error, stackTrace) {
     debugPrint('[OpenCI] Failed to initialize macOS updater: $error');
     debugPrintStack(stackTrace: stackTrace);
   }
+}
+
+Future<void> checkForMacosUpdates() async {
+  if (!isMacosUpdaterAvailable) {
+    throw UnsupportedError(
+      'macOS updater is only available in macOS release builds.',
+    );
+  }
+
+  final updater = MacosUpdater();
+  await _configureMacosUpdater(updater);
+  await updater.checkForUpdates();
+}
+
+Future<void> _configureMacosUpdater(MacosUpdater updater) async {
+  await updater.setFeedUrl(_macosUpdateFeedUrl);
+  await updater.setScheduledCheckInterval(
+    const Duration(hours: _macosUpdateCheckIntervalHours),
+  );
 }

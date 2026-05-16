@@ -2,6 +2,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/macos_updater_initializer.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
@@ -24,6 +25,7 @@ class SettingsPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDeleting = useState(false);
+    final isCheckingForUpdates = useState(false);
     final settingsT = t.settings;
 
     return Scaffold(
@@ -74,6 +76,39 @@ class SettingsPage extends HookConsumerWidget {
                   _SettingsGroup(
                     children: [
                       const _AppVersionTile(),
+                      if (isMacosUpdaterAvailable) ...[
+                        const _GroupDivider(),
+                        _SettingsItem(
+                          icon: Symbols.system_update_alt_rounded,
+                          title: settingsT.checkForUpdates,
+                          subtitle: settingsT.checkForUpdatesDescription,
+                          isLoading: isCheckingForUpdates.value,
+                          onTap: () async {
+                            if (isCheckingForUpdates.value) {
+                              return;
+                            }
+                            isCheckingForUpdates.value = true;
+                            try {
+                              await checkForMacosUpdates();
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(
+                                settingsT.checkForUpdatesStarted,
+                              );
+                            } catch (e, s) {
+                              debugPrint(e.toString());
+                              debugPrint(s.toString());
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(
+                                settingsT.checkForUpdatesFailed(
+                                  error: e.toString(),
+                                ),
+                              );
+                            } finally {
+                              isCheckingForUpdates.value = false;
+                            }
+                          },
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -177,12 +212,14 @@ class _SettingsItem extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.isLoading = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +240,7 @@ class _SettingsItem extends StatelessWidget {
               ),
               child: Center(
                 child: Icon(
-                  icon,
+                  isLoading ? Symbols.progress_activity_rounded : icon,
                   size: 18,
                   color: AppColors.of(context).textSecondary,
                 ),
@@ -234,7 +271,7 @@ class _SettingsItem extends StatelessWidget {
               ),
             ),
             Icon(
-              Icons.chevron_right,
+              isLoading ? Icons.more_horiz_rounded : Icons.chevron_right,
               size: 18,
               color: AppColors.of(context).textTertiary,
             ),

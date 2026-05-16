@@ -251,6 +251,11 @@ class AppStringsSettings {
   String get preferences => '環境設定';
   String get buildNotifications => 'ビルド通知';
   String get configureNotifications => '通知を受け取るタイミングを設定';
+  String get checkForUpdates => 'アップデートを確認';
+  String get checkForUpdatesDescription => 'macOSアプリの新しいバージョンを手動で確認';
+  String get checkForUpdatesStarted => 'アップデート確認を開始しました';
+  String checkForUpdatesFailed({required Object error}) =>
+      'アップデート確認に失敗: ${error}';
   String get subscription => 'サブスクリプション';
   String get manageSubscription => 'サブスクリプションプランを管理';
   String firebaseAppName({required Object name}) => 'Firebaseアプリ名: ${name}';
