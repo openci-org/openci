@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
@@ -32,10 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
-
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
@@ -48,11 +41,12 @@ jobs:
 
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
-        uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
         id: ios-build-fad
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
+          swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "ad-hoc"
@@ -97,10 +91,11 @@ jobs:
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
+          swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "app-store"
@@ -115,10 +110,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
 
       - uses: openci-org/save-secret-file@v1
         with:
@@ -153,10 +144,11 @@ jobs:
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
       - id: build_macos
-        uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
+        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
+          swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
@@ -372,10 +364,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
 
       - uses: openci-org/save-secret-file@v1
         with:
