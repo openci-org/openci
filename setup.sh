@@ -79,11 +79,11 @@ else
 fi
 
 # 6. VM image
-if lume ls 2>/dev/null | grep -q "tahoe-base_v1.2.1"; then
-  echo "✅ VM image tahoe-base:v1.2.1 already pulled"
+if lume ls 2>/dev/null | grep -q "tahoe-base_v1.2.2"; then
+  echo "✅ VM image tahoe-base:v1.2.2 already pulled"
 else
-  echo "📦 Pulling VM image tahoe-base:v1.2.1 (this may take a while)..."
-  lume pull tahoe-base:v1.2.1 --organization openci-org
+  echo "📦 Pulling VM image tahoe-base:v1.2.2 (this may take a while)..."
+  lume pull tahoe-base:v1.2.2 --organization openci-org
 fi
 
 # 7. Worker CLI
