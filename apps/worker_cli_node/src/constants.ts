@@ -1,4 +1,6 @@
-export const baseVmName = "tahoe-base_v1.1.1";
+export const baseVmName = "tahoe-base_v1.2.2";
+export const baseVmImage = "tahoe-base:v1.2.2";
+export const baseVmOrganization = "openci-org";
 export const sshUser = "admin";
 export const sshPassword = "admin";
 export const dockerImage = "openci-ubuntu:latest";

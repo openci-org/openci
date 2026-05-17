@@ -3,15 +3,19 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import {
+  baseVmImage,
+  baseVmName,
+  baseVmOrganization,
+  dockerImage,
+  sshPassword,
+  sshUser,
+} from "./constants.js";
 import { envFileContent } from "./env.js";
 import { isJobCancelled } from "./firestore.js";
 import { logInfo, logWarning } from "./logger.js";
 import type { BuildJob } from "./types.js";
 
-const baseVmName = "tahoe-base_v1.1.1";
-const sshUser = "admin";
-const sshPassword = "admin";
-const dockerImage = "openci-ubuntu:latest";
 const sshKeyPath = "/tmp/openci-ssh-key";
 const defaultLumeSshTimeoutSeconds = 10;
 const gitLumeSshTimeoutSeconds = 120;
@@ -194,6 +198,17 @@ async function listLumeVms(): Promise<LumeVm[]> {
 async function getLumeVmStatus(vmName: string): Promise<string | undefined> {
   const vms = await listLumeVms();
   return vms.find((vm) => vm.name === vmName)?.status;
+}
+
+async function ensureBaseVm(): Promise<void> {
+  const vms = await listLumeVms();
+  if (vms.some((vm) => vm.name === baseVmName)) return;
+
+  await runSimple(
+    "lume",
+    ["pull", baseVmImage, "--organization", baseVmOrganization],
+    `Failed to pull VM image ${baseVmImage}`,
+  );
 }
 
 function buildEventPayload(buildJob: BuildJob): string {
@@ -566,6 +581,8 @@ async function runMacVmBuild(input: {
   const warn = (message: string) => logWarning(buildJob.id, runId, message);
   try {
     await cleanupWorkerVms(workerId, warn);
+    await logInfo(buildJob.id, runId, `Ensuring VM image ${baseVmImage} is available...`);
+    await ensureBaseVm();
     await logInfo(buildJob.id, runId, `Cloning VM ${baseVmName} to ${vmName}...`);
     await runSimple("lume", ["clone", baseVmName, vmName], `Failed to clone VM ${vmName}`);
 
