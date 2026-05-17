@@ -22,8 +22,10 @@ The host app must configure Sparkle in its macOS bundle:
 
 - `SUFeedURL`
 - `SUPublicEDKey`
-- `SUEnableInstallerLauncherService` for sandboxed apps
-- Sparkle sandbox mach-lookup exceptions in entitlements
+
+For sandboxed apps, also set `SUEnableInstallerLauncherService` and Sparkle's
+sandbox mach-lookup exceptions in entitlements. Leave them unset for
+non-sandboxed Developer ID apps.
 
 Update archives must be signed with Sparkle's EdDSA key and listed in an
 appcast feed.
