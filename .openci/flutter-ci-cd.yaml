@@ -39,10 +39,6 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
-      - name: Enable Swift Package Manager
-        if: github.event_name == 'pull_request'
-        run: flutter config --enable-swift-package-manager
-
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
         uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
@@ -148,9 +144,6 @@ jobs:
             echo ""
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
-
-      - name: Enable Swift Package Manager
-        run: flutter config --enable-swift-package-manager
 
       - id: build_macos
         uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
