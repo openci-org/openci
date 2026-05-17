@@ -46,4 +46,4 @@ The dry run should only include `dist`, `README.md`, and `package.json`; it shou
 - A Firebase service account JSON with Firestore, Secret Manager, and FCM permissions
 - `act` available in the worker runtime
 - Linux workers: Docker and the `openci-ubuntu:latest` image
-- macOS workers: Lume and the `tahoe-base_v1.1.1` base VM
+- macOS workers: Lume and the `tahoe-base_v1.2.0` base VM

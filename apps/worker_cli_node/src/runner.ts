@@ -8,7 +8,7 @@ import { isJobCancelled } from "./firestore.js";
 import { logInfo, logWarning } from "./logger.js";
 import type { BuildJob } from "./types.js";
 
-const baseVmName = "tahoe-base_v1.1.1";
+const baseVmName = "tahoe-base_v1.2.0";
 const sshUser = "admin";
 const sshPassword = "admin";
 const dockerImage = "openci-ubuntu:latest";

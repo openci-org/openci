@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
@@ -32,10 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
-
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
@@ -45,6 +38,10 @@ jobs:
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
+
+      - name: Enable Swift Package Manager
+        if: github.event_name == 'pull_request'
+        run: flutter config --enable-swift-package-manager
 
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
@@ -95,6 +92,10 @@ jobs:
             --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS" \
             --release-notes-file "$release_notes_file"
 
+      - name: Enable Swift Package Manager
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: flutter config --enable-swift-package-manager
+
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
@@ -115,10 +116,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
 
       - uses: openci-org/save-secret-file@v1
         with:
@@ -151,6 +148,9 @@ jobs:
             echo ""
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
+
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
 
       - id: build_macos
         uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
@@ -372,10 +372,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: openci-org/flutter-setup@v1
-        with:
-          flutter-version: "stable"
 
       - uses: openci-org/save-secret-file@v1
         with:
