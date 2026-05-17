@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'issue_board_ima_utils.dart';
 import 'issue_board_ima_board_columns.dart';
@@ -445,7 +443,6 @@ class CompactBoardDrawer extends StatelessWidget {
     required this.onImportIssues,
     required this.onSyncIssues,
     required this.onSearchIssues,
-    required this.onSignOut,
     required this.workspaceName,
     required this.selectedDestination,
     required this.onIssueBoardTap,
@@ -455,7 +452,6 @@ class CompactBoardDrawer extends StatelessWidget {
     required this.onVariablesTap,
     required this.onStoreReleaseTap,
     required this.onSettingsTap,
-    this.onSwitchTeam,
   });
 
   final bool isConnected;
@@ -466,7 +462,6 @@ class CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onImportIssues;
   final VoidCallback onSyncIssues;
   final VoidCallback onSearchIssues;
-  final Future<void> Function() onSignOut;
   final String workspaceName;
   final CompactBoardDestination selectedDestination;
   final VoidCallback onIssueBoardTap;
@@ -476,7 +471,6 @@ class CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onVariablesTap;
   final VoidCallback onStoreReleaseTap;
   final VoidCallback onSettingsTap;
-  final VoidCallback? onSwitchTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -603,25 +597,11 @@ class CompactBoardDrawer extends StatelessWidget {
               onTap: () => runAfterClose(onSyncIssues),
             ),
             const Divider(height: 24),
-            const _CompactDrawerSectionLabel('アカウント'),
+            const _CompactDrawerSectionLabel('操作'),
             _CompactDrawerTile(
               icon: Icons.search_outlined,
               label: 'issue検索',
               onTap: () => runAfterClose(onSearchIssues),
-            ),
-            if (onSwitchTeam != null)
-              _CompactDrawerTile(
-                icon: Icons.groups_2_outlined,
-                label: 'チームを切り替え',
-                onTap: () => runAfterClose(onSwitchTeam!),
-              ),
-            _CompactDrawerTile(
-              icon: Icons.logout_rounded,
-              label: 'サインアウト',
-              onTap: () {
-                closeDrawer();
-                unawaited(onSignOut());
-              },
             ),
           ],
         ),
