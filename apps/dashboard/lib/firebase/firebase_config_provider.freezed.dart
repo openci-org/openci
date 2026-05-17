@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SelfHostedConfig {
 
- String get apiKey; String get appId; String get messagingSenderId; String get projectId; String get storageBucket; String get dataConnectServiceId;
+ String get apiKey; String get appId; String get messagingSenderId; String get projectId; String get storageBucket;
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SelfHostedConfigCopyWith<SelfHostedConfig> get copyWith => _$SelfHostedConfigCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket)&&(identical(other.dataConnectServiceId, dataConnectServiceId) || other.dataConnectServiceId == dataConnectServiceId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket,dataConnectServiceId);
+int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket);
 
 @override
 String toString() {
-  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket, dataConnectServiceId: $dataConnectServiceId)';
+  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SelfHostedConfigCopyWith<$Res>  {
   factory $SelfHostedConfigCopyWith(SelfHostedConfig value, $Res Function(SelfHostedConfig) _then) = _$SelfHostedConfigCopyWithImpl;
 @useResult
 $Res call({
- String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket, String dataConnectServiceId
+ String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket
 });
 
 
@@ -65,14 +65,13 @@ class _$SelfHostedConfigCopyWithImpl<$Res>
 
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,Object? dataConnectServiceId = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,}) {
   return _then(_self.copyWith(
 apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,appId: null == appId ? _self.appId : appId // ignore: cast_nullable_to_non_nullable
 as String,messagingSenderId: null == messagingSenderId ? _self.messagingSenderId : messagingSenderId // ignore: cast_nullable_to_non_nullable
 as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String,storageBucket: null == storageBucket ? _self.storageBucket : storageBucket // ignore: cast_nullable_to_non_nullable
-as String,dataConnectServiceId: null == dataConnectServiceId ? _self.dataConnectServiceId : dataConnectServiceId // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -158,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket,  String dataConnectServiceId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SelfHostedConfig() when $default != null:
-return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket,_that.dataConnectServiceId);case _:
+return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket);case _:
   return orElse();
 
 }
@@ -179,10 +178,10 @@ return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket,  String dataConnectServiceId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket)  $default,) {final _that = this;
 switch (_that) {
 case _SelfHostedConfig():
-return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket,_that.dataConnectServiceId);case _:
+return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +198,10 @@ return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket,  String dataConnectServiceId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket)?  $default,) {final _that = this;
 switch (_that) {
 case _SelfHostedConfig() when $default != null:
-return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket,_that.dataConnectServiceId);case _:
+return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket);case _:
   return null;
 
 }
@@ -214,7 +213,7 @@ return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId
 @JsonSerializable()
 
 class _SelfHostedConfig extends SelfHostedConfig {
-  const _SelfHostedConfig({required this.apiKey, required this.appId, this.messagingSenderId = '', required this.projectId, this.storageBucket = '', this.dataConnectServiceId = ''}): super._();
+  const _SelfHostedConfig({required this.apiKey, required this.appId, this.messagingSenderId = '', required this.projectId, this.storageBucket = ''}): super._();
   factory _SelfHostedConfig.fromJson(Map<String, dynamic> json) => _$SelfHostedConfigFromJson(json);
 
 @override final  String apiKey;
@@ -222,7 +221,6 @@ class _SelfHostedConfig extends SelfHostedConfig {
 @override@JsonKey() final  String messagingSenderId;
 @override final  String projectId;
 @override@JsonKey() final  String storageBucket;
-@override@JsonKey() final  String dataConnectServiceId;
 
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket)&&(identical(other.dataConnectServiceId, dataConnectServiceId) || other.dataConnectServiceId == dataConnectServiceId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket,dataConnectServiceId);
+int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket);
 
 @override
 String toString() {
-  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket, dataConnectServiceId: $dataConnectServiceId)';
+  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket)';
 }
 
 
@@ -257,7 +255,7 @@ abstract mixin class _$SelfHostedConfigCopyWith<$Res> implements $SelfHostedConf
   factory _$SelfHostedConfigCopyWith(_SelfHostedConfig value, $Res Function(_SelfHostedConfig) _then) = __$SelfHostedConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket, String dataConnectServiceId
+ String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket
 });
 
 
@@ -274,14 +272,13 @@ class __$SelfHostedConfigCopyWithImpl<$Res>
 
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,Object? dataConnectServiceId = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,}) {
   return _then(_SelfHostedConfig(
 apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,appId: null == appId ? _self.appId : appId // ignore: cast_nullable_to_non_nullable
 as String,messagingSenderId: null == messagingSenderId ? _self.messagingSenderId : messagingSenderId // ignore: cast_nullable_to_non_nullable
 as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String,storageBucket: null == storageBucket ? _self.storageBucket : storageBucket // ignore: cast_nullable_to_non_nullable
-as String,dataConnectServiceId: null == dataConnectServiceId ? _self.dataConnectServiceId : dataConnectServiceId // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
