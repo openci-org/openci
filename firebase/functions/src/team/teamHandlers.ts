@@ -6,7 +6,6 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { firebaseRegion } from "../firebaseRegion.js";
 import {
   addTeamMember,
   createInvitation,
@@ -43,7 +42,6 @@ function asString(value: unknown): string {
 }
 
 export const ensureUserProfile = onCall<unknown, Promise<EnsureUserProfileResponse>>(
-  { region: firebaseRegion },
   async (request) => {
     const auth = request.auth;
     if (!auth) {

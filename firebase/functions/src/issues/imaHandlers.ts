@@ -10,7 +10,6 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
-import { firebaseRegion } from "../firebaseRegion.js";
 import { firestoreCollectionPaths, getTeamById } from "../firestoreData.js";
 import {
   getInstallationToken,
@@ -2234,7 +2233,7 @@ export const listGitHubRepositories = onCall<
 export const getIssuePullRequestDiff = onCall<
   GetIssuePullRequestDiffRequest,
   Promise<GetIssuePullRequestDiffResponse>
->({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
+>({ secrets: githubAppSecrets }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const repository = requireNonEmptyString(request.data?.repository, "repository");
@@ -2320,7 +2319,7 @@ export const getIssuePullRequestDiff = onCall<
 export const listWorkspaceRecentBranches = onCall<
   ListWorkspaceRecentBranchesRequest,
   Promise<ListWorkspaceRecentBranchesResponse>
->({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
+>({ secrets: githubAppSecrets }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const uid = await verifyWorkspaceMember(request.auth, workspaceId);
   const requestedLimit = Math.trunc(asNumber(request.data?.limit, 40));
@@ -2415,7 +2414,7 @@ export const listWorkspaceRecentBranches = onCall<
 export const createIssuePullRequest = onCall<
   CreateIssuePullRequestRequest,
   Promise<CreateIssuePullRequestResponse>
->({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
+>({ secrets: githubAppSecrets }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const repository = requireNonEmptyString(request.data?.repository, "repository");
@@ -2532,7 +2531,7 @@ export const createIssuePullRequest = onCall<
 export const mergeIssuePullRequest = onCall<
   MergeIssuePullRequestRequest,
   Promise<MergeIssuePullRequestResponse>
->({ region: firebaseRegion, secrets: githubAppSecrets }, async (request) => {
+>({ secrets: githubAppSecrets }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const repository = requireNonEmptyString(request.data?.repository, "repository");

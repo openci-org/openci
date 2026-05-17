@@ -1,18 +1,4 @@
-import { setGlobalOptions } from "firebase-functions/v2";
-import { firebaseRegion } from "./firebaseRegion.js";
-
-setGlobalOptions({
-  region: firebaseRegion,
-  maxInstances: 10,
-  secrets: [
-    "GITHUB_APP_ID",
-    "GITHUB_PRIVATE_KEY",
-    "GITHUB_WEBHOOK_SECRET",
-    "ANTHROPIC_API_KEY",
-    "CURSOR_API_KEY",
-    "OPENAI_API_KEY",
-  ],
-});
+import "./globalOptions.js";
 
 export {
   commitCiCdFix,
