@@ -41,7 +41,7 @@ jobs:
 
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
-        uses: openci-org/flutter-cd@22c6e82a2f9fceeb7efd0d39fd45059694fabe47
+        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
         id: ios-build-fad
         with:
           platform: "ios"
@@ -91,7 +91,7 @@ jobs:
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: openci-org/flutter-cd@22c6e82a2f9fceeb7efd0d39fd45059694fabe47
+        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
@@ -144,7 +144,7 @@ jobs:
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
       - id: build_macos
-        uses: openci-org/flutter-cd@22c6e82a2f9fceeb7efd0d39fd45059694fabe47
+        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
