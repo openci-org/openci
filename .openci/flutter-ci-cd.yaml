@@ -41,11 +41,12 @@ jobs:
 
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
-        uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        uses: openci-org/flutter-cd@7092efe0d5ba11818ae8157f9f9fd20ab064fb8f
         id: ios-build-fad
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
+          swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "ad-hoc"
@@ -88,15 +89,13 @@ jobs:
             --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS" \
             --release-notes-file "$release_notes_file"
 
-      - name: Enable Swift Package Manager
-        run: flutter config --enable-swift-package-manager
-
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: openci-org/flutter-cd@72b1ed9dfdcc5be3db35905a0d6c13819e4f546b
+        uses: openci-org/flutter-cd@7092efe0d5ba11818ae8157f9f9fd20ab064fb8f
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
+          swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "app-store"
@@ -144,14 +143,12 @@ jobs:
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
-      - name: Enable Swift Package Manager
-        run: flutter config --enable-swift-package-manager
-
       - id: build_macos
-        uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
+        uses: openci-org/flutter-cd@7092efe0d5ba11818ae8157f9f9fd20ab064fb8f
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
+          swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
