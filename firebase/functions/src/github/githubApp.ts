@@ -1,7 +1,11 @@
 import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 
-import { defaultGitHubApiBaseUrl, graphqlEndpoint } from "./githubUrls.js";
+import {
+  defaultGitHubApiBaseUrl,
+  getConfiguredGitHubApiBaseUrl,
+  graphqlEndpoint,
+} from "./githubUrls.js";
 
 export const githubAppId = defineSecret("GITHUB_APP_ID");
 export const githubPrivateKey = defineSecret("GITHUB_PRIVATE_KEY");
@@ -52,7 +56,7 @@ async function createOctokit(token: string, apiBaseUrl: string) {
 }
 
 function splitPath(path: string): { route: string; params: Record<string, string> } {
-  const url = new URL(path, "https://api.github.com");
+  const url = new URL(path, defaultGitHubApiBaseUrl);
   const route = url.pathname;
   return {
     route,
@@ -67,14 +71,14 @@ async function githubRequest<T>(
   {
     data,
     queryParameters,
-    apiBaseUrl = defaultGitHubApiBaseUrl,
+    apiBaseUrl,
   }: {
     data?: unknown;
     queryParameters?: Record<string, string | number | boolean | null | undefined>;
     apiBaseUrl?: string;
   } = {},
 ): Promise<T> {
-  const octokit = await createOctokit(token, apiBaseUrl);
+  const octokit = await createOctokit(token, apiBaseUrl ?? getConfiguredGitHubApiBaseUrl());
   const { route, params } = splitPath(path);
   const response = await octokit.request(`${method} ${route}`, {
     ...params,
@@ -87,7 +91,7 @@ async function githubRequest<T>(
 
 export async function getInstallationToken(
   installationId: number,
-  { apiBaseUrl = defaultGitHubApiBaseUrl }: { apiBaseUrl?: string } = {},
+  { apiBaseUrl }: { apiBaseUrl?: string } = {},
 ): Promise<InstallationToken> {
   const [{ createAppAuth }, { request }] = await Promise.all([
     import("@octokit/auth-app"),
@@ -99,7 +103,7 @@ export async function getInstallationToken(
     appId,
     privateKey,
     installationId,
-    request: request.defaults({ baseUrl: apiBaseUrl }),
+    request: request.defaults({ baseUrl: apiBaseUrl ?? getConfiguredGitHubApiBaseUrl() }),
   });
   const data = await auth({ type: "installation" });
 
@@ -117,7 +121,7 @@ export async function createCheckRun({
   headSha,
   status,
   detailsUrl,
-  apiBaseUrl = defaultGitHubApiBaseUrl,
+  apiBaseUrl,
 }: {
   token: string;
   owner: string;
@@ -139,7 +143,7 @@ export async function createCheckRun({
         started_at: new Date().toISOString(),
         details_url: detailsUrl,
       },
-      { apiBaseUrl },
+      { apiBaseUrl: apiBaseUrl ?? getConfiguredGitHubApiBaseUrl() },
     );
     return typeof data.id === "number" ? data.id : null;
   } catch (error) {
@@ -189,12 +193,9 @@ export function githubPut<T>(
 export async function githubGraphql<T>(
   query: string,
   token: string,
-  {
-    variables,
-    apiBaseUrl = defaultGitHubApiBaseUrl,
-  }: { variables?: Record<string, unknown>; apiBaseUrl?: string } = {},
+  { variables, apiBaseUrl }: { variables?: Record<string, unknown>; apiBaseUrl?: string } = {},
 ): Promise<T> {
-  const response = await fetch(graphqlEndpoint(apiBaseUrl), {
+  const response = await fetch(graphqlEndpoint(apiBaseUrl ?? getConfiguredGitHubApiBaseUrl()), {
     method: "POST",
     headers: {
       accept: "application/vnd.github.v3+json",

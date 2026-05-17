@@ -8,6 +8,7 @@ import { logger } from "firebase-functions/v2";
 
 import { firestoreCollectionPaths, getTeamById } from "../../firestoreData.js";
 import { getInstallationToken, githubPatch } from "../../github/githubApp.js";
+import { getApiBaseUrlFromTeamData } from "../../github/githubUrls.js";
 import { upsertLinkedIssueBlocks } from "../../issues/issueLinkingHelpers.js";
 import { asString } from "../dashboardPayloadHelpers.js";
 import {
@@ -65,7 +66,7 @@ function pullRequestLinkId(owner: string, repo: string, number: number): string 
 
 async function githubApiBaseUrlForWorkspace(workspaceId: string): Promise<string> {
   const team = await getTeamById({ teamId: workspaceId });
-  return asString(team.data.team?.githubApiBaseUrl, "https://api.github.com");
+  return getApiBaseUrlFromTeamData(team.data.team);
 }
 
 function githubIssueLinkFromIssueDoc(

@@ -2,6 +2,42 @@ import { getTeamById } from "../firestoreData.js";
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 export const defaultGitHubBaseUrl = "https://github.com";
+export const defaultGitHubAppSlug = "openci-org";
+
+function nonEmptyEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value && value.length > 0 ? value : undefined;
+}
+
+function normalizeUrl(value: string): string {
+  return value.trim().replace(/\/+$/u, "");
+}
+
+export function getConfiguredGitHubBaseUrl(): string {
+  const baseUrl = nonEmptyEnv("GITHUB_BASE_URL");
+  return baseUrl === undefined ? defaultGitHubBaseUrl : normalizeUrl(baseUrl);
+}
+
+export function getConfiguredGitHubApiBaseUrl(): string {
+  const apiBaseUrl = nonEmptyEnv("GITHUB_API_BASE_URL");
+  if (apiBaseUrl !== undefined) {
+    return getApiBaseUrlFromValue(apiBaseUrl);
+  }
+  return getApiBaseUrlFromValue(getConfiguredGitHubBaseUrl());
+}
+
+export function getConfiguredGitHubAppSlug(): string {
+  return nonEmptyEnv("GITHUB_APP_SLUG") ?? defaultGitHubAppSlug;
+}
+
+export function getGitHubAppInstallationPath(baseUrl: string): string {
+  const normalizedBaseUrl = normalizeUrl(baseUrl);
+  const appSlug = getConfiguredGitHubAppSlug();
+  if (normalizedBaseUrl === defaultGitHubBaseUrl) {
+    return `/apps/${appSlug}/installations/select_target`;
+  }
+  return `/github-apps/${appSlug}/installations/new`;
+}
 
 export async function getGitHubApiBaseUrl(teamId?: string | null): Promise<string> {
   if (!teamId) {
@@ -29,10 +65,14 @@ export function getApiBaseUrlFromTeamData(
       ? teamData.githubApiBaseUrl
       : teamData?.githubBaseUrl;
   if (typeof apiBaseUrl !== "string" || apiBaseUrl.trim().length === 0) {
-    return defaultGitHubApiBaseUrl;
+    return getConfiguredGitHubApiBaseUrl();
   }
 
-  const normalized = apiBaseUrl.trim().replace(/\/+$/u, "");
+  return getApiBaseUrlFromValue(apiBaseUrl);
+}
+
+function getApiBaseUrlFromValue(apiBaseUrl: string): string {
+  const normalized = normalizeUrl(apiBaseUrl);
   if (normalized === defaultGitHubApiBaseUrl) {
     return defaultGitHubApiBaseUrl;
   }
@@ -49,16 +89,18 @@ export function getApiBaseUrlFromTeamData(
     return `${new URL(normalized).origin}/api/v3`;
   }
   if (normalized.endsWith("/graphql")) {
-    return normalized.slice(0, -"/graphql".length);
+    return `${new URL(normalized).origin}/api/v3`;
   }
-  return `${normalized}/api/v3`;
+  return `${new URL(normalized).origin}/api/v3`;
 }
 
 export function getBaseUrlFromTeamData(
   teamData?: { githubBaseUrl?: string | null } | null,
 ): string {
-  const baseUrl = teamData?.githubBaseUrl;
-  return typeof baseUrl === "string" && baseUrl.length > 0 ? baseUrl : defaultGitHubBaseUrl;
+  const baseUrl = teamData?.githubBaseUrl?.trim();
+  return typeof baseUrl === "string" && baseUrl.length > 0
+    ? normalizeUrl(baseUrl)
+    : getConfiguredGitHubBaseUrl();
 }
 
 export function graphqlEndpoint(apiBaseUrl: string): string {

@@ -14,6 +14,7 @@ import {
 import { envFileContent } from "./env.js";
 import { isJobCancelled } from "./firestore.js";
 import { logInfo, logWarning } from "./logger.js";
+import { getConfiguredGitHubBaseUrl } from "./build_job_services.js";
 import type { BuildJob } from "./types.js";
 
 const sshKeyPath = "/tmp/openci-ssh-key";
@@ -250,7 +251,7 @@ function buildEventPayload(buildJob: BuildJob): string {
 }
 
 function githubHost(buildJob: BuildJob): string {
-  return buildJob.githubBaseUrl ? new URL(buildJob.githubBaseUrl).host : "github.com";
+  return new URL(buildJob.githubBaseUrl ?? getConfiguredGitHubBaseUrl()).host;
 }
 
 function actScript(buildJob: BuildJob): string {
