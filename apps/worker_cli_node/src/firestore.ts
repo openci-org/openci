@@ -20,10 +20,7 @@ import type { BuildJob, WorkerHeartbeatInput } from "./types.js";
 
 type SuccessfulBuildJobStatus = typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE;
 
-export function initFirebase(
-  serviceAccountPath: string,
-  _options: { dataConnectServiceId?: string; dataConnectLocation?: string } = {},
-): void {
+export function initFirebase(serviceAccountPath: string): void {
   if (getApps().length > 0) return;
   const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as Parameters<
     typeof cert

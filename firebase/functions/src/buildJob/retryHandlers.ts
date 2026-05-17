@@ -68,7 +68,7 @@ function copyRetryJobFields(
   };
 }
 
-function numberFromDataConnectInt64(value: unknown): number | undefined {
+function numberFromInt64Value(value: unknown): number | undefined {
   if (typeof value === "number") return value;
   if (typeof value === "string" && value.length > 0) {
     const parsed = Number(value);
@@ -105,11 +105,11 @@ export const retryBuildJob = onCall<
   }
 
   const newDocumentId = randomUUID();
-  const installationId = numberFromDataConnectInt64(originalJob.installationId);
+  const installationId = numberFromInt64Value(originalJob.installationId);
   const apiBaseUrl = stringFromUnknown(originalJob.githubApiBaseUrl);
   let installationToken = stringFromUnknown(originalJob.installationToken);
   let tokenExpiresAt = stringFromUnknown(originalJob.tokenExpiresAt);
-  let checkRunId = numberFromDataConnectInt64(originalJob.checkRunId);
+  let checkRunId = numberFromInt64Value(originalJob.checkRunId);
 
   if (
     installationId !== undefined &&
@@ -185,7 +185,7 @@ export const retryWorkflowRun = onCall<
     await verifyTeamMembership(auth, teamId);
   }
 
-  const installationId = numberFromDataConnectInt64(originalJobs[0]?.installationId);
+  const installationId = numberFromInt64Value(originalJobs[0]?.installationId);
   const apiBaseUrl = stringFromUnknown(originalJobs[0]?.githubApiBaseUrl);
   let installationToken = stringFromUnknown(originalJobs[0]?.installationToken);
   let tokenExpiresAt = stringFromUnknown(originalJobs[0]?.tokenExpiresAt);
