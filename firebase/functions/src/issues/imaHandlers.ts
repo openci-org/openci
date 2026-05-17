@@ -18,6 +18,11 @@ import {
   githubGraphql,
   githubPrivateKey,
 } from "../github/githubApp.js";
+import {
+  getApiBaseUrlFromTeamData,
+  getConfiguredGitHubApiBaseUrl,
+  getConfiguredGitHubBaseUrl,
+} from "../github/githubUrls.js";
 
 import {
   extractIssueKey,
@@ -144,7 +149,7 @@ async function getWorkspaceGitHubToken(workspaceId: string): Promise<{
     throw new HttpsError("failed-precondition", "OpenCI GitHub App is not installed");
   }
 
-  const apiBaseUrl = asString(team.data.team?.githubApiBaseUrl, "https://api.github.com");
+  const apiBaseUrl = getApiBaseUrlFromTeamData(team.data.team);
   const { token } = await getInstallationToken(installationId, { apiBaseUrl });
   return { token, installationId, apiBaseUrl };
 }
@@ -156,6 +161,7 @@ async function githubRequest<T>({
   body,
   queryParameters,
   apiVersion = "2022-11-28",
+  apiBaseUrl,
 }: {
   path: string;
   token: string;
@@ -163,8 +169,10 @@ async function githubRequest<T>({
   body?: unknown;
   queryParameters?: Record<string, string | number | boolean>;
   apiVersion?: string;
+  apiBaseUrl?: string;
 }): Promise<T> {
-  const url = new URL(path, "https://api.github.com");
+  const baseUrl = (apiBaseUrl ?? getConfiguredGitHubApiBaseUrl()).replace(/\/+$/u, "");
+  const url = new URL(path.replace(/^\/+/u, ""), `${baseUrl}/`);
   for (const [key, value] of Object.entries(queryParameters ?? {})) {
     url.searchParams.set(key, String(value));
   }
@@ -190,7 +198,7 @@ async function githubRequest<T>({
 }
 
 async function githubOAuthRequest<T>(path: string, body: Record<string, string>): Promise<T> {
-  const response = await fetch(new URL(path, "https://github.com"), {
+  const response = await fetch(new URL(path, getConfiguredGitHubBaseUrl()), {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -2182,7 +2190,7 @@ export const listGitHubRepositories = onCall<
 >(async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const uid = await verifyWorkspaceMember(request.auth, workspaceId);
-  const { token } = await getWorkspaceGitHubToken(workspaceId);
+  const { token, apiBaseUrl } = await getWorkspaceGitHubToken(workspaceId);
 
   try {
     const repositories: GitHubRepository[] = [];
@@ -2192,6 +2200,7 @@ export const listGitHubRepositories = onCall<
       const pageData = await githubRequest<GitHubInstallationRepositoriesResponse>({
         path: "/installation/repositories",
         token,
+        apiBaseUrl,
         queryParameters: {
           per_page: 100,
           page,
@@ -2225,7 +2234,8 @@ export const listGitHubRepositories = onCall<
     logger.error("Failed to list Ima GitHub repositories", {
       workspaceId,
       uid,
-      message,
+      errorMessage: message,
+      stack: errorStack(error),
     });
     throw new HttpsError("internal", "Failed to list GitHub repositories");
   }
@@ -3006,7 +3016,7 @@ export const startIssueCursorAgent = onCall<
 
   const runRef = issueRef.collection("cursorAgentRuns").doc();
   const startingRef = await resolveIssueCursorStartingRef(repoFullName, githubToken);
-  const repositoryUrl = `https://github.com/${repoFullName}`;
+  const repositoryUrl = `${getConfiguredGitHubBaseUrl()}/${repoFullName}`;
   const prompt = buildCursorAgentPrompt({
     issueId,
     issue,

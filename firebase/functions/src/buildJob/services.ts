@@ -11,6 +11,7 @@ import {
   updateUserFcmTokens,
 } from "../firestoreData.js";
 import { getMessaging } from "firebase-admin/messaging";
+import { defaultGitHubBaseUrl, getConfiguredGitHubApiBaseUrl } from "../github/githubUrls.js";
 
 type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
 type TerminalBuildJobStatus =
@@ -69,12 +70,15 @@ function resolveProjectId(override?: string): string {
 }
 
 export function normalizeGitHubApiBaseUrl(apiBaseUrl?: string | null): string {
-  if (!apiBaseUrl) return defaultGitHubApiBaseUrl;
+  if (!apiBaseUrl) return getConfiguredGitHubApiBaseUrl();
   const normalized = apiBaseUrl.replace(/\/+$/u, "");
+  if (normalized === defaultGitHubApiBaseUrl) return defaultGitHubApiBaseUrl;
+  if (normalized === defaultGitHubBaseUrl) return defaultGitHubApiBaseUrl;
   if (normalized === `${defaultGitHubApiBaseUrl}/graphql`) return defaultGitHubApiBaseUrl;
+  if (normalized.endsWith("/api/v3")) return normalized;
   if (normalized.endsWith("/api/graphql")) return `${new URL(normalized).origin}/api/v3`;
-  if (normalized.endsWith("/graphql")) return normalized.slice(0, -"/graphql".length);
-  return normalized;
+  if (normalized.endsWith("/graphql")) return `${new URL(normalized).origin}/api/v3`;
+  return `${new URL(normalized).origin}/api/v3`;
 }
 
 export function buildDashboardRunUrl(buildJobId: string): string {

@@ -7,10 +7,9 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { getTeamById, linkGitHubInstallation } from "../firestoreData.js";
 
 import { verifyTeamMembership } from "../team/teamAuth.js";
-import { getBaseUrlFromTeamData } from "./githubUrls.js";
+import { getBaseUrlFromTeamData, getGitHubAppInstallationPath } from "./githubUrls.js";
 
 const stateTtlMs = 10 * 60 * 1000;
-const githubAppSlug = "openci-org";
 
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
@@ -118,10 +117,8 @@ export const createGitHubSetupUrl = onCall<
     expiresAt: Date.now() + stateTtlMs,
     nonce: randomUUID(),
   });
-  const url = new URL(
-    `/apps/${githubAppSlug}/installations/select_target`,
-    getBaseUrlFromTeamData(team),
-  );
+  const baseUrl = getBaseUrlFromTeamData(team);
+  const url = new URL(getGitHubAppInstallationPath(baseUrl), baseUrl);
   url.searchParams.set("state", state);
   return { url: url.toString() };
 });
