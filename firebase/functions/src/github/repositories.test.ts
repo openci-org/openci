@@ -382,4 +382,178 @@ describe("createWorkflowFile", () => {
     expect(result).toEqual({ mode: "direct", commitSha: "commit-sha", branch: "main" });
     expect(mockGithubPatch).toHaveBeenCalledOnce();
   });
+
+  it("resolves HEAD to the repository default branch before writing", async () => {
+    mockGithubGet
+      .mockResolvedValueOnce({ default_branch: "trunk" })
+      .mockResolvedValueOnce({ object: { sha: "latest-sha" } })
+      .mockResolvedValueOnce({ tree: { sha: "base-tree-sha" } });
+    mockGithubPost
+      .mockResolvedValueOnce({ sha: "blob-sha" })
+      .mockResolvedValueOnce({ sha: "tree-sha" })
+      .mockResolvedValueOnce({ sha: "commit-sha" });
+    mockGithubPatch.mockResolvedValue({});
+
+    const result = await wrappedCreateWorkflowFile({
+      data: {
+        teamId: "team-1",
+        repository: "openci/openci",
+        branch: "HEAD",
+        fileName: "build.yaml",
+        content: "name: build",
+        commitMode: "direct",
+      },
+      auth: makeAuth(),
+    });
+
+    expect(result).toEqual({ mode: "direct", commitSha: "commit-sha", branch: "trunk" });
+    expect(mockGithubGet).toHaveBeenNthCalledWith(
+      1,
+      "/repos/openci/openci",
+      "installation-token",
+      expect.objectContaining({ apiBaseUrl: "https://api.github.com" }),
+    );
+    expect(mockGithubGet).toHaveBeenNthCalledWith(
+      2,
+      "/repos/openci/openci/git/ref/heads/trunk",
+      "installation-token",
+      expect.objectContaining({ apiBaseUrl: "https://api.github.com" }),
+    );
+    expect(mockGithubPatch).toHaveBeenCalledWith(
+      "/repos/openci/openci/git/refs/heads/trunk",
+      "installation-token",
+      { sha: "commit-sha" },
+      expect.objectContaining({ apiBaseUrl: "https://api.github.com" }),
+    );
+  });
+
+  it("uses a GHES API base URL when resolving HEAD before writing", async () => {
+    mockVerifyTeamMembership.mockResolvedValue({
+      installationIds: [39413],
+      githubBaseUrl: "https://github.enterprise.example",
+    });
+    mockGetInstallationToken.mockResolvedValue({ token: "ghes-token", expiresAt: "" });
+    mockGithubGet
+      .mockResolvedValueOnce({ default_branch: "main" })
+      .mockResolvedValueOnce({ object: { sha: "latest-sha" } })
+      .mockResolvedValueOnce({ tree: { sha: "base-tree-sha" } });
+    mockGithubPost
+      .mockResolvedValueOnce({ sha: "blob-sha" })
+      .mockResolvedValueOnce({ sha: "tree-sha" })
+      .mockResolvedValueOnce({ sha: "commit-sha" });
+    mockGithubPatch.mockResolvedValue({});
+
+    const result = await wrappedCreateWorkflowFile({
+      data: {
+        teamId: "team-1",
+        repository: "enterprise/mobile",
+        branch: "HEAD",
+        fileName: "build.yaml",
+        content: "name: build",
+        commitMode: "direct",
+      },
+      auth: makeAuth(),
+    });
+
+    const apiBaseUrl = "https://github.enterprise.example/api/v3";
+    expect(result).toEqual({ mode: "direct", commitSha: "commit-sha", branch: "main" });
+    expect(mockGetInstallationToken).toHaveBeenCalledWith(39413, { apiBaseUrl });
+    expect(mockGithubGet).toHaveBeenNthCalledWith(1, "/repos/enterprise/mobile", "ghes-token", {
+      apiBaseUrl,
+    });
+    expect(mockGithubGet).toHaveBeenNthCalledWith(
+      2,
+      "/repos/enterprise/mobile/git/ref/heads/main",
+      "ghes-token",
+      { apiBaseUrl },
+    );
+    expect(mockGithubPost).toHaveBeenNthCalledWith(
+      1,
+      "/repos/enterprise/mobile/git/blobs",
+      "ghes-token",
+      { content: Buffer.from("name: build", "utf8").toString("base64"), encoding: "base64" },
+      { apiBaseUrl },
+    );
+    expect(mockGithubPatch).toHaveBeenCalledWith(
+      "/repos/enterprise/mobile/git/refs/heads/main",
+      "ghes-token",
+      { sha: "commit-sha" },
+      { apiBaseUrl },
+    );
+  });
+
+  it("passes the existing content SHA when creating a PR for an existing GHES workflow file", async () => {
+    mockVerifyTeamMembership.mockResolvedValue({
+      installationIds: [39413],
+      githubBaseUrl: "https://github.enterprise.example",
+    });
+    mockGetInstallationToken.mockResolvedValue({ token: "ghes-token", expiresAt: "" });
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_779_029_000_000);
+    const newBranchName = "openci/add-flutter-ci-1779029000000";
+    mockGithubGet
+      .mockResolvedValueOnce({ object: { sha: "base-sha" } })
+      .mockResolvedValueOnce({ sha: "existing-content-sha" });
+    mockGithubPost.mockResolvedValueOnce({}).mockResolvedValueOnce({
+      html_url: "https://github.enterprise.example/enterprise/mobile/pull/12",
+      number: 12,
+    });
+
+    try {
+      const result = await wrappedCreateWorkflowFile({
+        data: {
+          teamId: "team-1",
+          repository: "enterprise/mobile",
+          branch: "main",
+          fileName: "flutter-ci.yaml",
+          content: "name: build",
+          commitMode: "pull_request",
+        },
+        auth: makeAuth(),
+      });
+
+      const apiBaseUrl = "https://github.enterprise.example/api/v3";
+      expect(result).toEqual({
+        mode: "pull_request",
+        pullRequestUrl: "https://github.enterprise.example/enterprise/mobile/pull/12",
+        pullRequestNumber: 12,
+        branch: newBranchName,
+      });
+      expect(mockGetInstallationToken).toHaveBeenCalledWith(39413, { apiBaseUrl });
+      expect(mockGithubGet).toHaveBeenNthCalledWith(
+        1,
+        "/repos/enterprise/mobile/git/ref/heads/main",
+        "ghes-token",
+        { apiBaseUrl },
+      );
+      expect(mockGithubGet).toHaveBeenNthCalledWith(
+        2,
+        "/repos/enterprise/mobile/contents/.openci/flutter-ci.yaml",
+        "ghes-token",
+        { queryParameters: { ref: newBranchName }, apiBaseUrl },
+      );
+      expect(mockGithubPut).toHaveBeenCalledWith(
+        "/repos/enterprise/mobile/contents/.openci/flutter-ci.yaml",
+        "ghes-token",
+        {
+          message: "Add workflow: flutter-ci.yaml",
+          content: Buffer.from("name: build", "utf8").toString("base64"),
+          branch: newBranchName,
+          sha: "existing-content-sha",
+        },
+        { apiBaseUrl },
+      );
+      expect(mockGithubPost).toHaveBeenNthCalledWith(
+        2,
+        "/repos/enterprise/mobile/pulls",
+        "ghes-token",
+        expect.objectContaining({
+          head: newBranchName,
+          base: "main",
+        }),
+        { apiBaseUrl },
+      );
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });

@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdtemp, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -20,6 +21,9 @@ import type { BuildJob } from "./types.js";
 const sshKeyPath = "/tmp/openci-ssh-key";
 const defaultLumeSshTimeoutSeconds = 10;
 const gitLumeSshTimeoutSeconds = 120;
+const baseVmPullStaleLockMs = 2 * 60 * 60 * 1000;
+const baseVmPullPeerWaitMs = 2 * 60 * 60 * 1000;
+const baseVmPullPollMs = 2_000;
 
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
@@ -201,15 +205,160 @@ async function getLumeVmStatus(vmName: string): Promise<string | undefined> {
   return vms.find((vm) => vm.name === vmName)?.status;
 }
 
-async function ensureBaseVm(): Promise<void> {
-  const vms = await listLumeVms();
-  if (vms.some((vm) => vm.name === baseVmName)) return;
+export interface EnsureBaseVmOptions {
+  listVms?: () => Promise<LumeVm[]>;
+  pullBaseVm?: () => Promise<void>;
+  lockPath?: string;
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  staleLockMs?: number;
+  peerWaitMs?: number;
+  peerPollMs?: number;
+}
 
+function baseVmPullLockPath(): string {
+  const lockName = baseVmName.replace(/[^a-zA-Z0-9_.-]/gu, "_");
+  return (
+    process.env.OPENCI_WORKER_VM_IMAGE_LOCK ??
+    join(tmpdir(), `openci-worker-vm-image-${lockName}.lock`)
+  );
+}
+
+async function pullBaseVm(): Promise<void> {
   await runSimple(
     "lume",
     ["pull", baseVmImage, "--organization", baseVmOrganization],
     `Failed to pull VM image ${baseVmImage}`,
   );
+}
+
+async function hasBaseVm(listVms: () => Promise<LumeVm[]>): Promise<boolean> {
+  const vms = await listVms();
+  return vms.some((vm) => vm.name === baseVmName);
+}
+
+interface BaseVmPullLock {
+  lockPath: string;
+  token: string;
+}
+
+async function acquireBaseVmPullLock(input: {
+  lockPath: string;
+  now: () => number;
+  staleLockMs: number;
+}): Promise<BaseVmPullLock | null> {
+  try {
+    const token = randomUUID();
+    const handle = await open(input.lockPath, "wx");
+    try {
+      await handle.writeFile(
+        JSON.stringify({
+          pid: process.pid,
+          image: baseVmImage,
+          token,
+          startedAt: new Date(input.now()).toISOString(),
+        }),
+      );
+    } finally {
+      await handle.close();
+    }
+    return { lockPath: input.lockPath, token };
+  } catch (error) {
+    const code =
+      error instanceof Error && "code" in error ? (error as NodeJS.ErrnoException).code : undefined;
+    if (code !== "EEXIST") throw error;
+
+    const current = await stat(input.lockPath).catch(() => null);
+    if (!current) return acquireBaseVmPullLock(input);
+
+    if (input.now() - current.mtimeMs > input.staleLockMs) {
+      try {
+        await unlink(input.lockPath);
+      } catch (unlinkError) {
+        const unlinkCode =
+          unlinkError instanceof Error && "code" in unlinkError
+            ? (unlinkError as NodeJS.ErrnoException).code
+            : undefined;
+        if (unlinkCode !== "ENOENT") {
+          throw new Error(`Failed to remove stale VM image pull lock ${input.lockPath}`);
+        }
+      }
+      return acquireBaseVmPullLock(input);
+    }
+
+    return null;
+  }
+}
+
+async function releaseBaseVmPullLock(lock: BaseVmPullLock): Promise<void> {
+  try {
+    const current = JSON.parse(await readFile(lock.lockPath, "utf8")) as { token?: unknown };
+    if (current.token !== lock.token) return;
+    await unlink(lock.lockPath);
+  } catch {
+    return;
+  }
+}
+
+async function waitForPeerBaseVmPull(input: {
+  lockPath: string;
+  listVms: () => Promise<LumeVm[]>;
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+  peerWaitMs: number;
+  peerPollMs: number;
+}): Promise<boolean> {
+  const deadline = input.now() + input.peerWaitMs;
+  while (input.now() < deadline) {
+    if (await hasBaseVm(input.listVms)) return true;
+
+    try {
+      await stat(input.lockPath);
+    } catch {
+      return false;
+    }
+    await input.sleep(input.peerPollMs);
+  }
+  throw new Error(`Timed out waiting for VM image ${baseVmImage} pull lock ${input.lockPath}`);
+}
+
+export async function ensureBaseVm(options: EnsureBaseVmOptions = {}): Promise<void> {
+  const listVms = options.listVms ?? listLumeVms;
+  const lockPath = options.lockPath ?? baseVmPullLockPath();
+  const now = options.now ?? (() => Date.now());
+  const sleep = options.sleep ?? delay;
+  const staleLockMs = options.staleLockMs ?? baseVmPullStaleLockMs;
+  const peerWaitMs = options.peerWaitMs ?? baseVmPullPeerWaitMs;
+  const peerPollMs = options.peerPollMs ?? baseVmPullPollMs;
+  const pull = options.pullBaseVm ?? pullBaseVm;
+
+  while (true) {
+    if (await hasBaseVm(listVms)) return;
+
+    const lock = await acquireBaseVmPullLock({ lockPath, now, staleLockMs });
+    if (lock) {
+      try {
+        if (await hasBaseVm(listVms)) return;
+        await pull();
+        return;
+      } finally {
+        await releaseBaseVmPullLock(lock);
+      }
+    }
+
+    if (
+      await waitForPeerBaseVmPull({
+        lockPath,
+        listVms,
+        now,
+        sleep,
+        peerWaitMs,
+        peerPollMs,
+      })
+    ) {
+      return;
+    }
+  }
 }
 
 function buildEventPayload(buildJob: BuildJob): string {
