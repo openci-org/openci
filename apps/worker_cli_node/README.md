@@ -67,8 +67,12 @@ lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
   xcodes install 26.5 --select
 lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
   sudo xcodebuild -license accept
+lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  "echo admin | sudo -S xcodebuild -runFirstLaunch"
 
 lume ssh tahoe-base_v1.2.1 --user admin --password admin -- xcodebuild -version
+lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  "/usr/bin/arch -arm64e xcrun xcodebuild -version"
 lume stop tahoe-base_v1.2.1
 lume push tahoe-base_v1.2.1 tahoe-base:v1.2.1 --organization openci-org --additional-tags latest
 ```
@@ -85,7 +89,11 @@ rsync -a --delete /Applications/Xcode.app admin@100.104.145.82:/Users/admin/open
   sudo xcode-select -s /Applications/Xcode-26.5.0.app/Contents/Developer
 /Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
   sudo xcodebuild -license accept
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  "echo admin | sudo -S xcodebuild -runFirstLaunch"
 /Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- xcodebuild -version
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  "/usr/bin/arch -arm64e xcrun xcodebuild -version"
 ```
 
 Lume push reads GitHub credentials from `GITHUB_USERNAME` and `GITHUB_TOKEN`.
