@@ -1372,7 +1372,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         (isCompactLayout ? BoardViewMode.overview : BoardViewMode.standard);
     final isConnected = _githubLogin != null && _githubLogin!.isNotEmpty;
     final canShowRecentBranches = isConnected && _enabledRepoCount > 0;
-    final onSignOut = FirebaseAuth.instance.signOut;
     void onRunsTap() => _selectCompactDestination(CompactBoardDestination.runs);
     void onWorkersTap() =>
         _selectCompactDestination(CompactBoardDestination.workers);
@@ -1715,11 +1714,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                 children: [
                   DesktopBoardNavigationRail(
                     selectedDestination: _compactDestination,
-                    workspaceName: widget.workspaceName,
                     extended:
                         constraints.maxWidth >= 960 && !_isDesktopRailCollapsed,
-                    onSwitchTeam: widget.onSwitchTeam,
-                    onSignOut: onSignOut,
                     onCollapsedChanged: (collapsed) =>
                         setState(() => _isDesktopRailCollapsed = collapsed),
                     onDestinationSelected: _selectCompactDestination,
