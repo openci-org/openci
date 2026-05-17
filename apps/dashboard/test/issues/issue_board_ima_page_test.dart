@@ -92,6 +92,39 @@ void main() {
       expect(issueIdText.style?.fontWeight, FontWeight.w700);
     });
 
+    testWidgets(
+      'hides the generated document id while ticket number is pending',
+      (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 320,
+                  child: IssueCard(
+                    issue: Issue(
+                      id: 'pending-document-id',
+                      repo: 'openci-org/openci',
+                      title: '番号確定前のカード',
+                      labels: [],
+                      comments: 0,
+                      priority: Priority.medium,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('pending-document-id'), findsNothing);
+        expect(find.text('作成中'), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      },
+    );
+
     testWidgets('uses the same neutral chip styling in review cards', (
       tester,
     ) async {
