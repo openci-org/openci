@@ -766,24 +766,15 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         ? DateTime.now().millisecondsSinceEpoch.toDouble()
         : targetColumn.issues.first.rank - 1000;
 
-    final docRef = _firestore
-        .collection('workspaces/$_workspaceId/issues')
-        .doc();
+    final workspaceRef = _firestore.doc('workspaces/$_workspaceId');
+    final docRef = workspaceRef.collection('issues').doc();
 
-    await docRef.set({
-      'title': draft.title,
-      'body': draft.body,
-      'repo': draft.repo,
-      'labels': draft.labels,
-      'comments': 0,
-      'priority': draft.priority.name,
-      'statusId': draft.columnId,
-      'rank': rank,
-      if (draft.githubUrl != null) 'githubIssue': {'url': draft.githubUrl},
-      if (draft.dueDate != null) 'dueDate': Timestamp.fromDate(draft.dueDate!),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    await _createIssueDocument(
+      workspaceRef: workspaceRef,
+      issueRef: docRef,
+      draft: draft,
+      rank: rank,
+    );
 
     if (draft.repo.isNotEmpty) {
       unawaited(
@@ -793,6 +784,53 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         }),
       );
     }
+  }
+
+  Future<void> _createIssueDocument({
+    required DocumentReference<Map<String, dynamic>> workspaceRef,
+    required DocumentReference<Map<String, dynamic>> issueRef,
+    required NewIssueDraft draft,
+    required double rank,
+  }) async {
+    final counterRef = workspaceRef.collection('counters').doc('issues');
+
+    await _firestore.runTransaction((transaction) async {
+      final workspaceSnapshot = await transaction.get(workspaceRef);
+      final counterSnapshot = await transaction.get(counterRef);
+      final prefix = normalizeIssueKeyPrefix(
+        asString(workspaceSnapshot.data()?['issueKeyPrefix'], 'IMA'),
+      );
+      final issueNumber = asInt(counterSnapshot.data()?['lastIssueNumber']) + 1;
+
+      transaction.set(counterRef, {
+        'issueKeyPrefix': prefix,
+        'lastIssueNumber': issueNumber,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      transaction.set(issueRef, {
+        'issueKeyPrefix': prefix,
+        'issueNumber': issueNumber,
+        'issueKey': '$prefix-$issueNumber',
+        'title': draft.title,
+        'body': draft.body,
+        'repo': draft.repo,
+        'labels': draft.labels,
+        'comments': 0,
+        'priority': draft.priority.name,
+        'statusId': draft.columnId,
+        'rank': rank,
+        if (draft.repo.isNotEmpty || draft.githubUrl != null)
+          'githubIssue': {
+            if (draft.repo.isNotEmpty) 'state': 'creating',
+            if (draft.githubUrl != null) 'url': draft.githubUrl,
+          },
+        if (draft.dueDate != null)
+          'dueDate': Timestamp.fromDate(draft.dueDate!),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    });
   }
 
   Future<void> _estimateIssueWeight(String issueId) async {

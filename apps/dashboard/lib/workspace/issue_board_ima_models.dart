@@ -391,6 +391,12 @@ class Issue {
   final List<IssueSubIssueReference> subIssues;
   final IssueParentIssue? parentIssue;
   final CursorAgentState? cursorAgent;
+
+  bool get isTicketNumberPending =>
+      issueKey == null &&
+      githubNumber <= 0 &&
+      repo.isNotEmpty &&
+      displayId == id;
 }
 
 class CursorAgentState {

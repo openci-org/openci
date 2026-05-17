@@ -508,7 +508,10 @@ class IssueCard extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   RepoBadge(repo: issue.repo),
-                  IssueIdMetaChip(issueId: issue.displayId),
+                  IssueIdMetaChip(
+                    issueId: issue.displayId,
+                    isPending: issue.isTicketNumberPending,
+                  ),
                   if (cardWeight != null)
                     WeightBadge(
                       value: cardWeight,
@@ -614,7 +617,9 @@ class ReviewGroupIssueCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IssueMetaChip(label: issue.displayId, maxWidth: 52),
+              issue.isTicketNumberPending
+                  ? const _IssueCreatingBadge()
+                  : IssueMetaChip(label: issue.displayId, maxWidth: 52),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
@@ -969,7 +974,7 @@ class SubIssueListRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isClosed = issue.statusId == closedStatusId;
-    final isCreating = issue.parentIssue != null && issue.issueKey == null;
+    final isCreating = issue.isTicketNumberPending;
     final iconColor = isClosed
         ? const Color(0xFF8250DF)
         : const Color(0xFF1F883D);
@@ -1005,7 +1010,7 @@ class SubIssueListRow extends StatelessWidget {
             ),
             const SizedBox(width: 7),
             isCreating
-                ? const _SubIssueCreatingBadge()
+                ? const _IssueCreatingBadge()
                 : Text(
                     issue.displayId,
                     style: const TextStyle(
@@ -1048,7 +1053,7 @@ class SubIssueReferenceRow extends StatelessWidget {
           final issueSnapshot = snapshot.data;
           if (issueSnapshot != null && issueSnapshot.exists) {
             final issue = Issue.fromDocument(issueSnapshot);
-            if (issue.issueKey == null) {
+            if (issue.isTicketNumberPending) {
               return _SubIssueReferenceContent(
                 title: issue.title,
                 isClosed: issue.statusId == closedStatusId,
@@ -1126,7 +1131,7 @@ class _SubIssueReferenceContent extends StatelessWidget {
             ),
             const SizedBox(width: 7),
             isCreating
-                ? const _SubIssueCreatingBadge()
+                ? const _IssueCreatingBadge()
                 : Text(
                     trailingLabel,
                     style: const TextStyle(
@@ -1142,8 +1147,8 @@ class _SubIssueReferenceContent extends StatelessWidget {
   }
 }
 
-class _SubIssueCreatingBadge extends StatelessWidget {
-  const _SubIssueCreatingBadge();
+class _IssueCreatingBadge extends StatelessWidget {
+  const _IssueCreatingBadge();
 
   @override
   Widget build(BuildContext context) {
@@ -1182,12 +1187,21 @@ class _SubIssueCreatingBadge extends StatelessWidget {
 }
 
 class IssueIdMetaChip extends StatelessWidget {
-  const IssueIdMetaChip({super.key, required this.issueId});
+  const IssueIdMetaChip({
+    super.key,
+    required this.issueId,
+    this.isPending = false,
+  });
 
   final String issueId;
+  final bool isPending;
 
   @override
   Widget build(BuildContext context) {
+    if (isPending) {
+      return const _IssueCreatingBadge();
+    }
+
     return IssueMetaChip(
       label: issueId,
       trailing: IssueIdCopyButton(issueId: issueId),

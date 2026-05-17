@@ -219,6 +219,16 @@ service cloud.firestore {
                 && getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerUid == request.auth.uid;
         }
 
+        function isValidIssueCounter(data) {
+            return data.keys().hasOnly(['issueKeyPrefix', 'lastIssueNumber', 'updatedAt'])
+                && data.issueKeyPrefix is string
+                && data.issueKeyPrefix.size() > 0
+                && data.issueKeyPrefix.size() <= 16
+                && data.lastIssueNumber is int
+                && data.lastIssueNumber > 0
+                && data.updatedAt is timestamp;
+        }
+
         function isValidIssueBoard(data, teamId) {
             return data.keys().hasOnly(['teamId', 'repository', 'updatedAt'])
                 && data.teamId == teamId
@@ -431,6 +441,19 @@ service cloud.firestore {
             match /statuses/{statusId} {
                 allow read, update: if isWorkspaceMember(workspaceId);
                 allow create: if isWorkspaceMember(workspaceId) || isWorkspaceMemberAfter(workspaceId);
+                allow delete: if false;
+            }
+
+            match /counters/{counterId} {
+                allow read: if isWorkspaceMember(workspaceId);
+                allow create: if counterId == 'issues'
+                    && isWorkspaceMember(workspaceId)
+                    && isValidIssueCounter(request.resource.data)
+                    && request.resource.data.lastIssueNumber == 1;
+                allow update: if counterId == 'issues'
+                    && isWorkspaceMember(workspaceId)
+                    && isValidIssueCounter(request.resource.data)
+                    && request.resource.data.lastIssueNumber == resource.data.lastIssueNumber + 1;
                 allow delete: if false;
             }
 

@@ -27,6 +27,14 @@ String? emptyToNull(String value) {
   return value.isEmpty ? null : value;
 }
 
+String normalizeIssueKeyPrefix(String value) {
+  final normalized = value.trim().toUpperCase().replaceAll(
+    RegExp(r'[^A-Z0-9]'),
+    '',
+  );
+  return normalized.isEmpty ? 'IMA' : normalized;
+}
+
 int asInt(Object? value, [int fallback = 0]) {
   if (value is int) {
     return value;
