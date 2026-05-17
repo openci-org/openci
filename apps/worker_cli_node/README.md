@@ -46,4 +46,47 @@ The dry run should only include `dist`, `README.md`, and `package.json`; it shou
 - A Firebase service account JSON with Firestore, Secret Manager, and FCM permissions
 - `act` available in the worker runtime
 - Linux workers: Docker and the `openci-ubuntu:latest` image
-- macOS workers: Lume and the `tahoe-base_v1.2.0` base VM
+- macOS workers: Lume and the `tahoe-base_v1.2.1` base VM
+
+## macOS VM image release
+
+The worker clones the local Lume VM named `tahoe-base_v1.2.1`. Base image
+updates are manual because they depend on a macOS host that can run Lume and
+install Xcode.
+
+```sh
+echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+lume clone tahoe-base_v1.2.0 tahoe-base_v1.2.1
+lume run tahoe-base_v1.2.1
+
+# Prefer keeping xcodes installed in the base VM so Xcode updates can happen
+# entirely inside the VM.
+lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  brew install robotsandpencils/made/xcodes
+lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  xcodes install 26.5 --select
+lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  sudo xcodebuild -license accept
+
+lume ssh tahoe-base_v1.2.1 --user admin --password admin -- xcodebuild -version
+lume stop tahoe-base_v1.2.1
+lume push tahoe-base_v1.2.1 tahoe-base:v1.2.1 --organization openci-org --additional-tags latest
+```
+
+If `xcodes` is not available in the VM yet, use a macOS host that already has
+the target Xcode installed as a fallback:
+
+```sh
+rsync -a --delete /Applications/Xcode.app admin@100.104.145.82:/Users/admin/openci-vm-assets/
+/Users/admin/.local/bin/lume run -n --shared-dir /Users/admin/openci-vm-assets:ro tahoe-base_v1.2.1
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  sudo ditto "/Volumes/My Shared Files/Xcode.app" /Applications/Xcode-26.5.0.app
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  sudo xcode-select -s /Applications/Xcode-26.5.0.app/Contents/Developer
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- \
+  sudo xcodebuild -license accept
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.1 --user admin --password admin -- xcodebuild -version
+```
+
+Lume push reads GitHub credentials from `GITHUB_USERNAME` and `GITHUB_TOKEN`.
+Docker's `ghcr.io` login alone is not enough for `lume push`.
