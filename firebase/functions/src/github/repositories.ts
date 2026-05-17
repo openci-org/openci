@@ -127,6 +127,10 @@ interface RepositoryRestResponse {
   default_branch?: unknown;
 }
 
+interface ContentRestResponse {
+  sha?: unknown;
+}
+
 interface TreeEntry {
   name?: unknown;
   type?: unknown;
@@ -192,6 +196,74 @@ function flattenTreeEntries(entries: TreeEntry[], prefix = ""): string[] {
     }
   }
   return directories;
+}
+
+function githubErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null || !("status" in error)) {
+    return undefined;
+  }
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : undefined;
+}
+
+async function resolveWritableBranch({
+  owner,
+  repo,
+  requestedBranch,
+  token,
+  apiBaseUrl,
+}: {
+  owner: string;
+  repo: string;
+  requestedBranch: string;
+  token: string;
+  apiBaseUrl: string;
+}): Promise<string> {
+  const branch = requestedBranch.trim();
+  if (branch.length === 0) {
+    throw new HttpsError("invalid-argument", "branch is required");
+  }
+  if (branch !== "HEAD") {
+    return branch;
+  }
+
+  const repository = await githubGet<RepositoryRestResponse>(`/repos/${owner}/${repo}`, token, {
+    apiBaseUrl,
+  });
+  return requireNonEmptyString(repository.default_branch, "defaultBranch");
+}
+
+async function getExistingContentSha({
+  owner,
+  repo,
+  filePath,
+  branch,
+  token,
+  apiBaseUrl,
+}: {
+  owner: string;
+  repo: string;
+  filePath: string;
+  branch: string;
+  token: string;
+  apiBaseUrl: string;
+}): Promise<string | undefined> {
+  try {
+    const content = await githubGet<ContentRestResponse>(
+      `/repos/${owner}/${repo}/contents/${filePath}`,
+      token,
+      {
+        queryParameters: { ref: branch },
+        apiBaseUrl,
+      },
+    );
+    return typeof content.sha === "string" && content.sha.length > 0 ? content.sha : undefined;
+  } catch (error) {
+    if (githubErrorStatus(error) === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 export const listRepositories = onCall<TeamIdRequest, Promise<ListRepositoriesResponse>>(
@@ -467,13 +539,21 @@ export const createWorkflowFile = onCall<
   const contentBase64 = Buffer.from(content, "utf8").toString("base64");
 
   try {
+    let workflowCreateError: unknown;
     for (const installationId of installationIds) {
       try {
         const { token } = await getInstallationToken(installationId, { apiBaseUrl });
+        const targetBranch = await resolveWritableBranch({
+          owner,
+          repo,
+          requestedBranch: branch,
+          token,
+          apiBaseUrl,
+        });
 
         if (commitMode === "direct") {
           const refData = await githubGet<{ object?: { sha?: string } }>(
-            `/repos/${owner}/${repo}/git/ref/heads/${branch}`,
+            `/repos/${owner}/${repo}/git/ref/heads/${targetBranch}`,
             token,
             { apiBaseUrl },
           );
@@ -510,19 +590,19 @@ export const createWorkflowFile = onCall<
           );
           const commitSha = requireNonEmptyString(newCommit.sha, "commitSha");
           await githubPatch(
-            `/repos/${owner}/${repo}/git/refs/heads/${branch}`,
+            `/repos/${owner}/${repo}/git/refs/heads/${targetBranch}`,
             token,
             { sha: commitSha },
             { apiBaseUrl },
           );
 
-          return { mode: "direct", commitSha, branch };
+          return { mode: "direct", commitSha, branch: targetBranch };
         }
 
         const branchSlug = fileName.replace(/\.(yaml|yml)$/u, "");
         const newBranchName = `openci/add-${branchSlug}-${Date.now()}`;
         const refData = await githubGet<{ object?: { sha?: string } }>(
-          `/repos/${owner}/${repo}/git/ref/heads/${branch}`,
+          `/repos/${owner}/${repo}/git/ref/heads/${targetBranch}`,
           token,
           { apiBaseUrl },
         );
@@ -532,10 +612,23 @@ export const createWorkflowFile = onCall<
           { ref: `refs/heads/${newBranchName}`, sha: refData.object?.sha },
           { apiBaseUrl },
         );
+        const existingContentSha = await getExistingContentSha({
+          owner,
+          repo,
+          filePath,
+          branch: newBranchName,
+          token,
+          apiBaseUrl,
+        });
         await githubPut(
           `/repos/${owner}/${repo}/contents/${filePath}`,
           token,
-          { message, content: contentBase64, branch: newBranchName },
+          {
+            message,
+            content: contentBase64,
+            branch: newBranchName,
+            ...(existingContentSha === undefined ? {} : { sha: existingContentSha }),
+          },
           { apiBaseUrl },
         );
         const pr = await githubPost<{ html_url?: string; number?: number }>(
@@ -544,7 +637,7 @@ export const createWorkflowFile = onCall<
           {
             title: message,
             head: newBranchName,
-            base: branch,
+            base: targetBranch,
             body: `This workflow file was created by OpenCI.\n\nFile: \`${filePath}\``,
           },
           { apiBaseUrl },
@@ -558,10 +651,24 @@ export const createWorkflowFile = onCall<
         };
       } catch (error) {
         if (error instanceof HttpsError) throw error;
+        workflowCreateError = error;
+        logger.warn("Failed to create workflow file with installation", {
+          teamId,
+          repository,
+          branch,
+          installationId,
+          error,
+        });
         continue;
       }
     }
 
+    logger.warn("Repository lookup failed for all installations while creating workflow file", {
+      teamId,
+      repository,
+      branch,
+      error: workflowCreateError,
+    });
     throw new HttpsError("not-found", "Repository not found in any installation");
   } catch (error) {
     if (error instanceof HttpsError) throw error;

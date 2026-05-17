@@ -306,7 +306,7 @@ _WorkflowTarget? _preferredWorkflowTarget(
     final repository = _matchingRepository(repositories, selectedRepository);
     return _WorkflowTarget(
       repository: repository?.fullName ?? selectedRepository,
-      branch: user.selectedBranch ?? repository?.defaultBranch,
+      branch: _effectiveWorkflowBranch(user.selectedBranch, repository),
     );
   }
 
@@ -315,7 +315,7 @@ _WorkflowTarget? _preferredWorkflowTarget(
   final repository = _matchingRepository(repositories, target.repository);
   return _WorkflowTarget(
     repository: repository?.fullName ?? target.repository,
-    branch: target.branch ?? repository?.defaultBranch,
+    branch: _effectiveWorkflowBranch(target.branch, repository),
   );
 }
 
@@ -330,7 +330,7 @@ List<_WorkflowTarget> _workflowTargetOptions(
     final repository = _matchingRepository(repositories, target.repository);
     final option = _WorkflowTarget(
       repository: repository?.fullName ?? target.repository,
-      branch: target.branch ?? repository?.defaultBranch ?? 'main',
+      branch: _effectiveWorkflowBranch(target.branch, repository) ?? 'main',
     );
     if (seen.add(option.repository)) {
       options.add(option);
@@ -351,6 +351,14 @@ List<_WorkflowTarget> _workflowTargetOptions(
 
   options.sort((a, b) => a.repository.compareTo(b.repository));
   return options;
+}
+
+String? _effectiveWorkflowBranch(String? branch, GitHubRepo? repository) {
+  final value = branch?.trim();
+  if (value == null || value.isEmpty || value == 'HEAD') {
+    return repository?.defaultBranch;
+  }
+  return value;
 }
 
 GitHubRepo? _matchingRepository(
