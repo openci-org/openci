@@ -41,7 +41,7 @@ jobs:
 
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
-        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
+        uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
         id: ios-build-fad
         with:
           platform: "ios"
@@ -91,7 +91,7 @@ jobs:
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
+        uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
         with:
           platform: "ios"
           working-directory: "apps/dashboard"
@@ -144,7 +144,7 @@ jobs:
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
       - id: build_macos
-        uses: openci-org/flutter-cd@ecdee3cceb2adedea8f72cb5e13295260d873411
+        uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
         with:
           platform: "macos"
           working-directory: "apps/dashboard"
@@ -159,6 +159,54 @@ jobs:
           macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
           macos-provisioning-profile: "true"
           artifact-name: "OpenCI-dashboard-macos"
+
+      - name: Verify Sparkle helper signatures
+        run: |
+          set -euo pipefail
+
+          artifact_path="${{ steps.build_macos.outputs['artifact-path'] }}"
+          verify_dir="$(mktemp -d)"
+          entitlements_path="$(mktemp)"
+          trap 'rm -rf "$verify_dir" "$entitlements_path"' EXIT
+
+          ditto -x -k "$artifact_path" "$verify_dir"
+          app_path="$(find "$verify_dir" -maxdepth 2 -type d -name "*.app" | head -n 1)"
+          if [ -z "$app_path" ]; then
+            echo "Could not find a macOS .app inside ${artifact_path}" >&2
+            exit 1
+          fi
+
+          sparkle_root="${app_path}/Contents/Frameworks/Sparkle.framework/Versions/Current"
+          if [ ! -e "$sparkle_root" ]; then
+            echo "Sparkle.framework was not found in ${app_path}" >&2
+            exit 1
+          fi
+
+          helpers=(
+            "${sparkle_root}/Autoupdate"
+            "${sparkle_root}/Updater.app"
+            "${sparkle_root}/XPCServices/Installer.xpc"
+            "${sparkle_root}/XPCServices/Downloader.xpc"
+          )
+
+          restricted_entitlement_pattern='<key>(com.apple.application-identifier|com.apple.developer.aps-environment|com.apple.developer.associated-domains|keychain-access-groups)</key>'
+          for helper in "${helpers[@]}"; do
+            if [ ! -e "$helper" ]; then
+              echo "Sparkle helper was not found: ${helper}" >&2
+              exit 1
+            fi
+
+            codesign --verify --strict --verbose=2 "$helper"
+            if codesign -d --entitlements :- "$helper" > "$entitlements_path" 2>/dev/null; then
+              if grep -Eq "$restricted_entitlement_pattern" "$entitlements_path"; then
+                echo "Sparkle helper has app/provisioning entitlements and will fail to launch: ${helper}" >&2
+                cat "$entitlements_path" >&2
+                exit 1
+              fi
+            fi
+          done
+
+          codesign --verify --deep --strict --verbose=2 "$app_path"
 
       - name: Upload macOS artifact to Firebase Storage
         env:
