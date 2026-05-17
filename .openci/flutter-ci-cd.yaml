@@ -89,7 +89,6 @@ jobs:
             --release-notes-file "$release_notes_file"
 
       - name: Enable Swift Package Manager
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         run: flutter config --enable-swift-package-manager
 
       - name: Build and upload iOS IPA to TestFlight
@@ -144,6 +143,9 @@ jobs:
             echo ""
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
+
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
 
       - id: build_macos
         uses: openci-org/flutter-cd@8bb965c86d6d5453cff95a40c708896fad6f80e7
