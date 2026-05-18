@@ -425,6 +425,11 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     if (confirmed != true) {
       return false;
     }
+    if (!mounted) {
+      return false;
+    }
+
+    showOverlaySnackBar(context, 'PR #${pullRequest.number}をマージ中です');
 
     try {
       final result = await firebaseFunctions
