@@ -451,9 +451,6 @@ class IssueCard extends StatelessWidget {
         builder: (context, constraints) {
           final isTight = constraints.maxWidth < 300;
           final body = issue.body.trim();
-          final visibleLabelLimit = isTight ? 3 : 5;
-          final visibleLabels = issue.labels.take(visibleLabelLimit).toList();
-          final hiddenLabelCount = issue.labels.length - visibleLabels.length;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,18 +519,6 @@ class IssueCard extends StatelessWidget {
                   summary: issue.subIssuesSummary,
                   subIssues: subIssues,
                   onIssueTap: onSubIssueTap,
-                ),
-              ],
-              if (visibleLabels.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
-                  children: [
-                    for (final label in visibleLabels) LabelPill(label: label),
-                    if (hiddenLabelCount > 0)
-                      LabelPill(label: '+$hiddenLabelCount'),
-                  ],
                 ),
               ],
               const SizedBox(height: 11),
@@ -1558,36 +1543,6 @@ class RepoBadge extends StatelessWidget {
         ),
         child: Text(
           repo,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFF475569),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class LabelPill extends StatelessWidget {
-  const LabelPill({super.key, required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 128),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFF475569),
