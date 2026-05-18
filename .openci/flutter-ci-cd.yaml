@@ -84,10 +84,11 @@ jobs:
             [ -n "${RELEASE_SHA:-}" ] && echo "Commit: $RELEASE_SHA"
           } > "$release_notes_file"
 
-          npx -y firebase-tools appdistribution:distribute "${{ steps.ios-build-fad.outputs.ipa-path }}" \
+          firebase appdistribution:distribute "${{ steps.ios-build-fad.outputs.ipa-path }}" \
             --app "$FIREBASE_IOS_APP_ID" \
             --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS" \
-            --release-notes-file "$release_notes_file"
+            --release-notes-file "$release_notes_file" \
+            --non-interactive
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
@@ -438,17 +439,68 @@ jobs:
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          entryPoint: apps/dashboard
-          channelId: live
+        working-directory: apps/dashboard
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+
+          service_account_file="$(mktemp)"
+          trap 'rm -f "$service_account_file"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
+          export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
+
+          firebase deploy \
+            --only hosting \
+            --project openci-b1b91 \
+            --non-interactive
 
       - name: Deploy to Firebase Hosting (preview)
         if: github.event_name == 'pull_request'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          entryPoint: apps/dashboard
-          expires: 3h
+        working-directory: apps/dashboard
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
+          RELEASE_HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          service_account_file="$(mktemp)"
+          trap 'rm -f "$service_account_file"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
+          export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
+
+          raw_channel_id="pr${RELEASE_PR_NUMBER:-${OPENCI_RUN_NUMBER:-preview}}-${RELEASE_HEAD_REF:-preview}"
+          channel_id="$(printf '%s' "$raw_channel_id" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//; s/-+/-/g' \
+            | cut -c 1-40 \
+            | sed -E 's/^-+//; s/-+$//')"
+          channel_id="${channel_id:-preview-${OPENCI_RUN_NUMBER:-local}}"
+
+          deploy_output="$(firebase hosting:channel:deploy "$channel_id" \
+            --expires 3h \
+            --project openci-b1b91 \
+            --json \
+            --non-interactive)"
+          printf '%s\n' "$deploy_output"
+
+          preview_urls="$(printf '%s' "$deploy_output" | python3 -c '
+          import json
+          import sys
+
+          data = json.load(sys.stdin)
+          result = data.get("result") or {}
+          urls = [
+              value.get("url")
+              for value in result.values()
+              if isinstance(value, dict) and value.get("url")
+          ]
+          print("\n".join(urls))
+          ')"
+          if [ -n "$preview_urls" ]; then
+            {
+              echo "Firebase Hosting preview:"
+              printf '%s\n' "$preview_urls"
+            } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          fi

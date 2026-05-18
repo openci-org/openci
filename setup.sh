@@ -8,6 +8,8 @@ SA_PATH=${2:-~/service-account.json}
 SESSION_NAME="openci-setup"
 REPO_BASE="https://raw.githubusercontent.com/openci-org/openci/develop"
 INSTALL_DIR="$HOME/.openci"
+BASE_VM_NAME="tahoe-base_v1.2.3"
+BASE_VM_IMAGE="tahoe-base:v1.2.3"
 
 # 0. Download scripts to ~/.openci (always fetch latest)
 mkdir -p "$INSTALL_DIR"
@@ -79,12 +81,20 @@ else
 fi
 
 # 6. VM image
-if lume ls 2>/dev/null | grep -q "tahoe-base_v1.2.2"; then
-  echo "✅ VM image tahoe-base:v1.2.2 already pulled"
+if lume ls 2>/dev/null | grep -q "$BASE_VM_NAME"; then
+  echo "✅ VM image $BASE_VM_IMAGE already pulled"
 else
-  echo "📦 Pulling VM image tahoe-base:v1.2.2 (this may take a while)..."
-  lume pull tahoe-base:v1.2.2 --organization openci-org
+  echo "📦 Pulling VM image $BASE_VM_IMAGE (this may take a while)..."
+  lume pull "$BASE_VM_IMAGE" --organization openci-org
 fi
+
+echo "🧹 Cleaning up older stopped Tahoe base VMs..."
+lume ls 2>/dev/null | awk -v current="$BASE_VM_NAME" '$1 ~ /^tahoe-base_v[0-9]+\.[0-9]+\.[0-9]+$/ && $1 != current && tolower($7) == "stopped" { print $1 }' | while read -r vm_name; do
+  if [ -n "$vm_name" ]; then
+    echo "Deleting old base VM: $vm_name"
+    lume delete "$vm_name" --force || true
+  fi
+done
 
 # 7. Worker CLI
 if ! command -v npm &> /dev/null; then
