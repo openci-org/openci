@@ -42,6 +42,7 @@ class AppStringsCommon {
   String get delete => '削除';
   String get add => '追加';
   String get edit => '編集';
+  String get close => '閉じる';
   String error({required Object error}) => 'エラー: ${error}';
   String get loading => '読み込み中...';
   String get invite => '招待';
@@ -73,7 +74,7 @@ class AppStringsNav {
 
   // Translations
   String get workflows => 'CI/CD設定';
-  String get variables => '変数';
+  String get variables => 'シークレット';
   String get logs => 'ログ';
   String get release => 'リリース';
   String get settings => '設定';
@@ -176,7 +177,7 @@ class AppStringsVariables {
   final AppStrings _root; // ignore: unused_field
 
   // Translations
-  String get title => '変数';
+  String get title => 'シークレット';
   String get envVarsTab => '環境変数';
   String get secretsTab => 'シークレット';
 }
@@ -210,6 +211,12 @@ class AppStringsSecrets {
   String fileSelected({required Object fileName}) => '${fileName} を選択中';
   String get orUploadFile => 'クリックしてファイルを選択';
   String get enterValueOrUpload => '値を入力するかファイルをアップロードしてください';
+  String get lastUpdated => '最終更新';
+  String get viewSecretValue => '値を表示';
+  String get secretValueTitle => 'シークレット値';
+  String get secretValueLoading => 'シークレット値を読み込み中';
+  String get copySecretValue => '値をコピー';
+  String get copiedSecretValue => 'シークレット値をコピーしました';
 }
 
 // Path: envVars

@@ -514,7 +514,7 @@ class BoardSidePanelDrawer extends StatelessWidget {
       ),
       BoardSidePanel.variables => _BoardSidePanelShell(
         icon: Icons.key_rounded,
-        title: '変数',
+        title: 'シークレット',
         onDismiss: onDismiss,
         child: const VariablesBody(),
       ),

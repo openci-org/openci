@@ -70,6 +70,7 @@ export {
   deleteSecretV1,
   generateCertificateKeyV1,
   generateDeveloperIdCsrV1,
+  readSecretV1,
   registerDeveloperIdCertificateV1,
   setupAscApiKeyV1,
   updateSecretV1,

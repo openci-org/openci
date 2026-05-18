@@ -48,7 +48,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.runs => 'CI/CDログ',
     CompactBoardDestination.workers => 'ワーカー',
     CompactBoardDestination.workflows => 'CI/CD設定',
-    CompactBoardDestination.variables => '変数',
+    CompactBoardDestination.variables => 'シークレット',
     CompactBoardDestination.storeRelease => 'ストアリリース',
     CompactBoardDestination.settings => '設定',
   };

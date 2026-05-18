@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
+import 'package:dashboard/utilities/breakpoint.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
@@ -19,6 +21,9 @@ class WorkflowsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final breakpoint = Breakpoint.fromWidth(MediaQuery.sizeOf(context).width);
+    final showDesktopCreateButton = breakpoint == Breakpoint.desktop;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('CI/CD設定'),
@@ -33,14 +38,57 @@ class WorkflowsPage extends ConsumerWidget {
             icon: const Icon(Icons.sync_rounded),
             onPressed: () => unawaited(_syncWorkflows(context, ref)),
           ),
+          if (showDesktopCreateButton) ...[
+            const SizedBox(width: 4),
+            _CreateWorkflowToolbarButton(
+              onPressed: () =>
+                  unawaited(_openWorkflowEditorWithTargetPicker(context, ref)),
+            ),
+            const SizedBox(width: 12),
+          ],
         ],
       ),
       body: const WorkflowsBody(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () =>
-            unawaited(_openWorkflowEditorWithTargetPicker(context, ref)),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('CI/CD設定を作成'),
+      floatingActionButton: showDesktopCreateButton
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () =>
+                  unawaited(_openWorkflowEditorWithTargetPicker(context, ref)),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('CI/CD設定を作成'),
+            ),
+    );
+  }
+}
+
+class _CreateWorkflowToolbarButton extends StatelessWidget {
+  const _CreateWorkflowToolbarButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add_rounded, size: 17),
+      label: const Text('CI/CD設定を作成'),
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.accent,
+        foregroundColor: colors.accentOnAccent,
+        minimumSize: const Size(0, 34),
+        padding: const EdgeInsets.only(left: 10, right: 12),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        textStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(9),
+        ),
       ),
     );
   }

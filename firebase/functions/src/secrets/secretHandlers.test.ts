@@ -59,6 +59,7 @@ const {
   createSecretV1,
   deleteSecretV1,
   generateDeveloperIdCsrV1,
+  readSecretV1,
   registerDeveloperIdCertificateV1,
   setupAscApiKeyV1,
   updateSecretV1,
@@ -158,6 +159,22 @@ describe("secret handlers", () => {
     expect(result).toEqual({ success: true });
     expect(mockDeleteSecretByPath).toHaveBeenCalledWith("projects/test/secrets/secret-id");
     expect(mockDeleteSecretMetadata).toHaveBeenCalledWith({ id: "doc-1" });
+  });
+
+  it("reads a secret value from Secret Manager", async () => {
+    mockAccessSecretByPath.mockResolvedValue("secret-value");
+    const wrapped = testEnv.wrap(readSecretV1) as (req: {
+      data: { teamId: string; documentId: string };
+      auth?: AuthData;
+    }) => Promise<{ success: true; value: string }>;
+
+    const result = await wrapped({
+      data: { teamId: "team-1", documentId: "doc-1" },
+      auth: makeAuth(),
+    });
+
+    expect(result).toEqual({ success: true, value: "secret-value" });
+    expect(mockAccessSecretByPath).toHaveBeenCalledWith("projects/test/secrets/secret-id");
   });
 
   it("adds a new Secret Manager version when updating a value", async () => {

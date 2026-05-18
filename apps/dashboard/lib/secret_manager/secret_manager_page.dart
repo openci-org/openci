@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/environment_variables/environment_variables_page.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
+import 'package:dashboard/utilities/adaptive_modal.dart';
+import 'package:dashboard/utilities/breakpoint.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
@@ -12,12 +15,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:intl/intl.dart';
 
 /// Extract secret names referenced in workflow YAML content.
 Set<String> _extractSecretNames(String content) {
   final regex = RegExp(r'secrets\.([A-Za-z_][A-Za-z0-9_]*)');
   return regex.allMatches(content).map((m) => m.group(1)!).toSet();
+}
+
+const _secretManagerContentMaxWidth = 540.0;
+
+String _formatSecretUpdatedAt(DateTime value) {
+  return DateFormat('yyyy/MM/dd HH:mm').format(value.toLocal());
 }
 
 /// Group secrets by workflow usage.
@@ -74,24 +83,22 @@ class SecretManagerTab extends HookConsumerWidget {
     final state = ref.watch(secretManagerProvider);
     final workflowFilesAsync = ref.watch(workflowFilesProvider);
     final secretsT = t.secrets;
+    final isDesktop =
+        Breakpoint.fromWidth(MediaQuery.sizeOf(context).width) ==
+        Breakpoint.desktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: colors.accent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        onPressed: () {
-          showModalBottomSheet(
-            showDragHandle: true,
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: colors.scaffold,
-            builder: (context) => const _AddSecretBottomSheet(),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isDesktop
+          ? null
+          : FloatingActionButton(
+              backgroundColor: colors.accent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              tooltip: secretsT.addSecret,
+              onPressed: () => _showAddSecretSheet(context),
+              child: const Icon(Icons.add),
+            ),
       body: state.when(
         data: (secrets) {
           final hasCertKey = secrets.any(
@@ -111,46 +118,61 @@ class SecretManagerTab extends HookConsumerWidget {
 
           if (secrets.isEmpty) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 40, 16, 88),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
+                  constraints: const BoxConstraints(
+                    maxWidth: _secretManagerContentMaxWidth,
+                  ),
                   child: Column(
                     children: [
-                      // Empty state illustration
                       Container(
-                        width: 64,
-                        height: 64,
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          color: colors.accent.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: colors.border),
                         ),
-                        child: Icon(
-                          Icons.key_off_outlined,
-                          size: 28,
-                          color: colors.accent,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: colors.accent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                              child: Icon(
+                                Icons.key_rounded,
+                                size: 24,
+                                color: colors.accent,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              secretsT.noSecrets,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: colors.textPrimary,
+                                letterSpacing: 0,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 18),
+                            FilledButton.icon(
+                              onPressed: () => _showAddSecretSheet(context),
+                              icon: const Icon(Icons.add_rounded),
+                              label: Text(secretsT.addSecret),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        secretsT.noSecrets,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Add secrets and API keys to use in your workflows',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: colors.textTertiary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 14),
                       ...setupCards,
+                      const EnvironmentVariablesInlineSection(topPadding: 22),
                     ],
                   ),
                 ),
@@ -159,7 +181,11 @@ class SecretManagerTab extends HookConsumerWidget {
           }
 
           return workflowFilesAsync.when(
-            loading: () => _SecretListSkeleton(setupCards: setupCards),
+            loading: () => _SecretListSkeleton(
+              setupCards: setupCards,
+              showAddAction: isDesktop,
+              onAddSecret: () => _showAddSecretSheet(context),
+            ),
             error: (error, stack) => Center(
               child: Text(
                 t.common.error(error: error.toString()),
@@ -172,11 +198,17 @@ class SecretManagerTab extends HookConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.only(top: 12, bottom: 80),
                 children: [
+                  if (isDesktop)
+                    _SecretManagerDesktopAction(
+                      onPressed: () => _showAddSecretSheet(context),
+                    ),
                   // Setup cards
                   ...setupCards.map(
                     (card) => Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
+                        constraints: const BoxConstraints(
+                          maxWidth: _secretManagerContentMaxWidth,
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -220,14 +252,13 @@ class SecretManagerTab extends HookConsumerWidget {
                       (secret) => _SecretListTile(secret: secret),
                     ),
                   ],
+                  const EnvironmentVariablesInlineSection(),
                 ],
               );
             },
           );
         },
-        loading: () => Center(
-          child: CircularProgressIndicator(color: colors.accent),
-        ),
+        loading: () => const _SecretManagerLoadingState(),
         error: (error, stack) => Center(
           child: Text(
             t.common.error(error: error.toString()),
@@ -237,71 +268,309 @@ class SecretManagerTab extends HookConsumerWidget {
       ),
     );
   }
+
+  void _showAddSecretSheet(BuildContext context) {
+    showAdaptiveFormModal(
+      context: context,
+      builder: (context) => const _AddSecretBottomSheet(),
+    );
+  }
 }
 
 class _SecretListSkeleton extends StatelessWidget {
-  const _SecretListSkeleton({required this.setupCards});
+  const _SecretListSkeleton({
+    required this.setupCards,
+    required this.showAddAction,
+    required this.onAddSecret,
+  });
 
   final List<Widget> setupCards;
-
-  static final _secrets = [
-    Secret(
-      id: 'skeleton-1',
-      name: 'OPENCI_GITHUB_TOKEN',
-      teamId: 'skeleton',
-      createdAt: DateTime(2026),
-      updatedAt: DateTime(2026),
-    ),
-    Secret(
-      id: 'skeleton-2',
-      name: 'OPENCI_ASC_KEY_ID',
-      teamId: 'skeleton',
-      createdAt: DateTime(2026),
-      updatedAt: DateTime(2026),
-    ),
-    Secret(
-      id: 'skeleton-3',
-      name: 'REVENUE_CAT_API_KEY',
-      teamId: 'skeleton',
-      createdAt: DateTime(2026),
-      updatedAt: DateTime(2026),
-    ),
-  ];
+  final bool showAddAction;
+  final VoidCallback onAddSecret;
 
   @override
   Widget build(BuildContext context) {
-    return Skeletonizer(
-      child: ListView(
-        padding: const EdgeInsets.only(top: 12, bottom: 80),
-        children: [
-          ...setupCards.map(
-            (card) => Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  child: card,
+    return ListView(
+      padding: const EdgeInsets.only(top: 12, bottom: 80),
+      children: [
+        if (showAddAction)
+          _SecretManagerDesktopAction(
+            onPressed: onAddSecret,
+          ),
+        ...setupCards.map(
+          (card) => Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: _secretManagerContentMaxWidth,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
                 ),
+                child: card,
               ),
             ),
           ),
-          const _SectionHeader(
-            icon: Icons.description_outlined,
-            title: 'flutter-ci-cd.yaml',
-            count: 2,
+        ),
+        const _SecretLoadingContent(
+          message: 'ワークフローでの利用状況を読み込み中',
+          topPadding: 12,
+        ),
+      ],
+    );
+  }
+}
+
+class _SecretManagerDesktopAction extends StatelessWidget {
+  const _SecretManagerDesktopAction({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final secretsT = t.secrets;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: _secretManagerContentMaxWidth,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FilledButton.icon(
+                onPressed: onPressed,
+                icon: const Icon(Icons.add_rounded, size: 17),
+                label: Text(secretsT.addSecret),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.accent,
+                  foregroundColor: colors.accentOnAccent,
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.only(left: 10, right: 12),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                ),
+              ),
+            ],
           ),
-          ..._secrets.take(2).map((secret) => _SecretListTile(secret: secret)),
-          _SectionHeader(
-            icon: Icons.warning_amber_rounded,
-            title: t.secrets.unusedSecrets,
-            count: 1,
-            isWarning: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _SecretManagerLoadingState extends StatelessWidget {
+  const _SecretManagerLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.only(top: 24, bottom: 80),
+      children: const [
+        _SecretLoadingContent(
+          message: 'シークレットを読み込み中',
+          topPadding: 0,
+        ),
+      ],
+    );
+  }
+}
+
+class _SecretLoadingContent extends StatelessWidget {
+  const _SecretLoadingContent({
+    required this.message,
+    required this.topPadding,
+  });
+
+  final String message;
+  final double topPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: _secretManagerContentMaxWidth,
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, topPadding, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _SecretLoadingNotice(message: message),
+              const SizedBox(height: 14),
+              const _SecretLoadingSectionHeader(),
+              const _SecretLoadingRow(widthFactor: 0.72),
+              const _SecretLoadingRow(widthFactor: 0.58),
+              const SizedBox(height: 12),
+              const _SecretLoadingSectionHeader(widthFactor: 0.44),
+              const _SecretLoadingRow(widthFactor: 0.64),
+            ],
           ),
-          _SecretListTile(secret: _secrets.last, isUnused: true),
+        ),
+      ),
+    );
+  }
+}
+
+class _SecretLoadingNotice extends StatelessWidget {
+  const _SecretLoadingNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: colors.accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _SecretLoadingSectionHeader extends StatelessWidget {
+  const _SecretLoadingSectionHeader({this.widthFactor = 0.52});
+
+  final double widthFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
+      child: Row(
+        children: [
+          const _SecretLoadingBlock(
+            width: 28,
+            height: 28,
+            borderRadius: BorderRadius.all(Radius.circular(7)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: widthFactor,
+              child: const _SecretLoadingBlock(height: 12),
+            ),
+          ),
+          const _SecretLoadingBlock(
+            width: 26,
+            height: 18,
+            borderRadius: BorderRadius.all(Radius.circular(999)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecretLoadingRow extends StatelessWidget {
+  const _SecretLoadingRow({required this.widthFactor});
+
+  final double widthFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colors.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            const _SecretLoadingBlock(
+              width: 32,
+              height: 32,
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: widthFactor,
+                child: const _SecretLoadingBlock(height: 12),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const _SecretLoadingBlock(
+              width: 32,
+              height: 32,
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecretLoadingBlock extends StatelessWidget {
+  const _SecretLoadingBlock({
+    this.width,
+    required this.height,
+    this.borderRadius,
+  });
+
+  final double? width;
+  final double height;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.shimmer,
+        borderRadius: borderRadius ?? BorderRadius.circular(999),
       ),
     );
   }
@@ -327,7 +596,9 @@ class _SectionHeader extends StatelessWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(
+          maxWidth: _secretManagerContentMaxWidth,
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
           child: Row(
@@ -349,7 +620,7 @@ class _SectionHeader extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: colors.textSecondary,
-                    letterSpacing: -0.2,
+                    letterSpacing: 0,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -396,7 +667,9 @@ class _SecretListTile extends ConsumerWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(
+          maxWidth: _secretManagerContentMaxWidth,
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Container(
@@ -433,7 +706,6 @@ class _SecretListTile extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Name + subtitle
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,33 +725,44 @@ class _SecretListTile extends ConsumerWidget {
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (isUnused) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            secretsT.notUsedInWorkflows,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colors.warning,
+                        const SizedBox(height: 7),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _SecretMetaChip(
+                              icon: Icons.update_rounded,
+                              label:
+                                  '${secretsT.lastUpdated} ${_formatSecretUpdatedAt(secret.updatedAt)}',
                             ),
-                          ),
-                        ],
+                            if (isUnused)
+                              _SecretMetaChip(
+                                icon: Icons.warning_amber_rounded,
+                                label: secretsT.notUsedInWorkflows,
+                                color: colors.warning,
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  // Actions
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _ActionIconButton(
+                        icon: Icons.visibility_outlined,
+                        color: colors.textTertiary,
+                        tooltip: secretsT.viewSecretValue,
+                        onPressed: () => _showSecretValueDialog(context, ref),
+                      ),
+                      const SizedBox(width: 4),
                       _ActionIconButton(
                         icon: Icons.edit_outlined,
                         color: colors.textTertiary,
                         tooltip: secretsT.editSecret,
                         onPressed: () {
-                          showModalBottomSheet(
-                            showDragHandle: true,
+                          showAdaptiveFormModal(
                             context: context,
-                            isScrollControlled: true,
-                            backgroundColor: colors.scaffold,
                             builder: (context) =>
                                 _EditSecretBottomSheet(secret: secret),
                           );
@@ -499,6 +782,21 @@ class _SecretListTile extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showSecretValueDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _SecretValueDialog(
+        secret: secret,
+        valueFuture: ref
+            .read(secretManagerProvider.notifier)
+            .readSecret(documentId: secret.id),
       ),
     );
   }
@@ -563,6 +861,286 @@ class _SecretListTile extends ConsumerWidget {
   }
 }
 
+class _SecretMetaChip extends StatelessWidget {
+  const _SecretMetaChip({
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final effectiveColor = color ?? colors.textTertiary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: effectiveColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: effectiveColor,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecretValueDialog extends StatelessWidget {
+  const _SecretValueDialog({
+    required this.secret,
+    required this.valueFuture,
+  });
+
+  final Secret secret;
+  final Future<String> valueFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final secretsT = t.secrets;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Material(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: colors.accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Icon(
+                        Icons.visibility_outlined,
+                        size: 17,
+                        color: colors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            secretsT.secretValueTitle,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            secret.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.textTertiary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: t.common.close,
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: colors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: colors.border),
+              Flexible(
+                child: FutureBuilder<String>(
+                  future: valueFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colors.accent,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              secretsT.secretValueLoading,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          t.common.error(error: snapshot.error.toString()),
+                          style: TextStyle(
+                            color: colors.error,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      );
+                    }
+
+                    final value = snapshot.data ?? '';
+
+                    return Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 280),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: colors.scaffold,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: colors.border),
+                              ),
+                              child: SingleChildScrollView(
+                                child: SelectableText(
+                                  value,
+                                  style: TextStyle(
+                                    color: colors.textPrimary,
+                                    fontSize: 12,
+                                    height: 1.45,
+                                    fontFamily: 'monospace',
+                                    letterSpacing: 0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: colors.textSecondary,
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: Text(t.common.close),
+                              ),
+                              const Spacer(),
+                              FilledButton.icon(
+                                onPressed: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: value),
+                                  );
+                                  if (!context.mounted) return;
+                                  context.showSnackBarMessage(
+                                    secretsT.copiedSecretValue,
+                                  );
+                                },
+                                icon: const Icon(Icons.copy_rounded, size: 16),
+                                label: Text(secretsT.copySecretValue),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: colors.accent,
+                                  foregroundColor: colors.accentOnAccent,
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.only(
+                                    left: 12,
+                                    right: 14,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Small icon button with hover effect for secret actions.
 class _ActionIconButton extends StatelessWidget {
   const _ActionIconButton({
@@ -600,6 +1178,94 @@ class _ActionIconButton extends StatelessWidget {
 
 enum _InputMode { text, file }
 
+class _SecretFormFrame extends StatelessWidget {
+  const _SecretFormFrame({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final isSheet = usesBottomSheetFormModal(context);
+    final maxHeight =
+        MediaQuery.sizeOf(context).height * (isSheet ? 0.82 : 0.9);
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Material(
+            color: colors.surface,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: colors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(
+                          Icons.key_rounded,
+                          size: 17,
+                          color: colors.accent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: t.common.cancel,
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: colors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: colors.border),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                    child: child,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddSecretBottomSheet extends HookConsumerWidget {
   const _AddSecretBottomSheet();
 
@@ -612,374 +1278,457 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
     final inputMode = useState(_InputMode.text);
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
+    final isSubmitting = useState(false);
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height * 0.4,
-          ),
-          child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return _SecretFormFrame(
+      title: secretsT.addSecret,
+      child: Form(
+        key: formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Secret Name ──
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.of(context).surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.of(context).border,
+                ),
+              ),
+              child: TextFormField(
+                controller: secretNameController,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.of(context).textPrimary,
+                  fontFamily: 'monospace',
+                ),
+                decoration: InputDecoration(
+                  hintText: secretsT.secretName,
+                  hintStyle: TextStyle(
+                    color: AppColors.of(context).textTertiary,
+                    fontSize: 14,
+                    fontFamily: 'monospace',
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: InputBorder.none,
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 8),
+                    child: Icon(
+                      Icons.key_outlined,
+                      size: 18,
+                      color: AppColors.of(context).textTertiary,
+                    ),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 0,
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return secretsT.enterSecretName;
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Input Mode Toggle ──
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.of(context).surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.of(context).border,
+                ),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
                 children: [
-                  // ── Title ──
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 20),
-                    child: Text(
-                      secretsT.addSecret,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.of(context).textPrimary,
-                      ),
-                    ),
-                  ),
-
-                  // ── Secret Name ──
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.of(context).surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.of(context).border,
-                      ),
-                    ),
-                    child: TextFormField(
-                      controller: secretNameController,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.of(context).textPrimary,
-                        fontFamily: 'monospace',
-                      ),
-                      decoration: InputDecoration(
-                        hintText: secretsT.secretName,
-                        hintStyle: TextStyle(
-                          color: AppColors.of(context).textTertiary,
-                          fontSize: 14,
-                          fontFamily: 'monospace',
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        border: InputBorder.none,
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 12, right: 8),
-                          child: Icon(
-                            Icons.key_outlined,
-                            size: 18,
-                            color: AppColors.of(context).textTertiary,
-                          ),
-                        ),
-                        prefixIconConstraints: const BoxConstraints(
-                          minWidth: 0,
-                          minHeight: 0,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return secretsT.enterSecretName;
-                        }
-                        return null;
+                  Expanded(
+                    child: _ModeTab(
+                      label: secretsT.inputModeText,
+                      icon: Icons.text_fields,
+                      isSelected: inputMode.value == _InputMode.text,
+                      onTap: () {
+                        inputMode.value = _InputMode.text;
+                        selectedFileName.value = null;
+                        fileContent.value = null;
                       },
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // ── Input Mode Toggle ──
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.of(context).surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.of(context).border,
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _ModeTab(
-                            label: secretsT.inputModeText,
-                            icon: Icons.text_fields,
-                            isSelected: inputMode.value == _InputMode.text,
-                            onTap: () {
-                              inputMode.value = _InputMode.text;
-                              selectedFileName.value = null;
-                              fileContent.value = null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: _ModeTab(
-                            label: secretsT.inputModeFile,
-                            icon: Icons.upload_file,
-                            isSelected: inputMode.value == _InputMode.file,
-                            onTap: () {
-                              inputMode.value = _InputMode.file;
-                              secretValueController.clear();
-                            },
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _ModeTab(
+                      label: secretsT.inputModeFile,
+                      icon: Icons.upload_file,
+                      isSelected: inputMode.value == _InputMode.file,
+                      onTap: () {
+                        inputMode.value = _InputMode.file;
+                        secretValueController.clear();
+                      },
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // ── Value Input (Text Mode) ──
-                  if (inputMode.value == _InputMode.text)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.of(context).surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.of(context).border,
-                        ),
-                      ),
-                      child: TextFormField(
-                        controller: secretValueController,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: secretsT.secretValue,
-                          hintStyle: TextStyle(
-                            color: AppColors.of(context).textTertiary,
-                            fontSize: 14,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          border: InputBorder.none,
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.only(left: 12, right: 8),
-                            child: Icon(
-                              Icons.lock_outline,
-                              size: 18,
-                              color: AppColors.of(context).textTertiary,
-                            ),
-                          ),
-                          prefixIconConstraints: const BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (inputMode.value == _InputMode.text &&
-                              (value == null || value.isEmpty)) {
-                            return secretsT.enterSecretValue;
-                          }
-                          return null;
-                        },
-                      ),
-                    )
-                  // ── File Upload (File Mode) ──
-                  else
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        final result = await FilePicker.pickFiles(
-                          withData: true,
-                        );
-                        if (result != null && result.files.isNotEmpty) {
-                          final file = result.files.first;
-                          if (file.bytes != null) {
-                            fileContent.value = utf8.decode(file.bytes!);
-                            selectedFileName.value = file.name;
-                          }
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 28,
-                          horizontal: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.of(context).surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedFileName.value != null
-                                ? AppColors.of(
-                                    context,
-                                  ).accent.withValues(alpha: 0.4)
-                                : AppColors.of(context).border,
-                            width: selectedFileName.value != null ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: selectedFileName.value != null
-                                    ? const Color(
-                                        0xFF3B82F6,
-                                      ).withValues(alpha: 0.15)
-                                    : AppColors.of(context).divider,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                selectedFileName.value != null
-                                    ? Icons.check_rounded
-                                    : Icons.cloud_upload_outlined,
-                                size: 20,
-                                color: selectedFileName.value != null
-                                    ? AppColors.of(context).accent
-                                    : AppColors.of(context).textTertiary,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            if (selectedFileName.value != null) ...[
-                              Text(
-                                selectedFileName.value!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.of(context).textPrimary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF3B82F6,
-                                  ).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'file loaded',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.of(context).accent,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ] else ...[
-                              Text(
-                                secretsT.uploadFile,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.of(context).textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                secretsT.orUploadFile,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.of(context).textTertiary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Submit Button ──
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.of(context).textPrimary,
-                        backgroundColor: AppColors.of(context).accent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () async {
-                        if (inputMode.value == _InputMode.file &&
-                            fileContent.value == null) {
-                          context.showSnackBarMessage(
-                            secretsT.enterValueOrUpload,
-                          );
-                          return;
-                        }
-                        if (!formKey.currentState!.validate()) return;
-
-                        final name = secretNameController.text.trim();
-                        final value = inputMode.value == _InputMode.file
-                            ? fileContent.value!
-                            : secretValueController.text;
-                        final secretManager = ref.read(
-                          secretManagerProvider.notifier,
-                        );
-                        final messenger = ScaffoldMessenger.of(context);
-
-                        Navigator.of(context).pop();
-                        showResponsiveSnackBar(
-                          messenger.context,
-                          content: Text(secretsT.adding),
-                          duration: const Duration(days: 1),
-                        );
-
-                        try {
-                          await secretManager.addSecret(name, value);
-                          if (!messenger.mounted) return;
-                          showResponsiveSnackBar(
-                            messenger.context,
-                            content: Text(secretsT.addedSuccess),
-                          );
-                        } on FirebaseFunctionsException catch (e, s) {
-                          final errorMessage =
-                              await FunctionErrorMessage.capture(
-                                e,
-                                stackTrace: s,
-                              );
-                          if (!messenger.mounted) return;
-                          showResponsiveSnackBar(
-                            messenger.context,
-                            content: Text(errorMessage.message),
-                          );
-                        } catch (e) {
-                          if (!messenger.mounted) return;
-                          showResponsiveSnackBar(
-                            messenger.context,
-                            content: Text('$e'),
-                          );
-                        }
-                      },
-                      child: Text(
-                        secretsT.addSecret,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
-          ),
+            const SizedBox(height: 12),
+
+            // ── Value Input (Text Mode) ──
+            if (inputMode.value == _InputMode.text)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.of(context).surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.of(context).border,
+                  ),
+                ),
+                child: TextFormField(
+                  controller: secretValueController,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.of(context).textPrimary,
+                  ),
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: secretsT.secretValue,
+                    hintStyle: TextStyle(
+                      color: AppColors.of(context).textTertiary,
+                      fontSize: 14,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: InputBorder.none,
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 12, right: 8),
+                      child: Icon(
+                        Icons.lock_outline,
+                        size: 18,
+                        color: AppColors.of(context).textTertiary,
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 0,
+                      minHeight: 0,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (inputMode.value == _InputMode.text &&
+                        (value == null || value.isEmpty)) {
+                      return secretsT.enterSecretValue;
+                    }
+                    return null;
+                  },
+                ),
+              )
+            // ── File Upload (File Mode) ──
+            else
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final result = await FilePicker.pickFiles(
+                    withData: true,
+                  );
+                  if (result != null && result.files.isNotEmpty) {
+                    final file = result.files.first;
+                    if (file.bytes != null) {
+                      fileContent.value = utf8.decode(file.bytes!);
+                      selectedFileName.value = file.name;
+                    }
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 28,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: selectedFileName.value != null
+                          ? AppColors.of(
+                              context,
+                            ).accent.withValues(alpha: 0.4)
+                          : AppColors.of(context).border,
+                      width: selectedFileName.value != null ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: selectedFileName.value != null
+                              ? const Color(
+                                  0xFF3B82F6,
+                                ).withValues(alpha: 0.15)
+                              : AppColors.of(context).divider,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          selectedFileName.value != null
+                              ? Icons.check_rounded
+                              : Icons.cloud_upload_outlined,
+                          size: 20,
+                          color: selectedFileName.value != null
+                              ? AppColors.of(context).accent
+                              : AppColors.of(context).textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (selectedFileName.value != null) ...[
+                        Text(
+                          selectedFileName.value!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.of(context).textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF3B82F6,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'file loaded',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.of(context).accent,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          secretsT.uploadFile,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.of(context).textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          secretsT.orUploadFile,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.of(context).textTertiary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 18),
+            _SecretFormActionBar(
+              isSubmitting: isSubmitting.value,
+              submitLabel: secretsT.addSecret,
+              submittingLabel: secretsT.adding,
+              submitIcon: Icons.add_rounded,
+              onCancel: () => Navigator.of(context).pop(),
+              onSubmit: isSubmitting.value
+                  ? null
+                  : () async {
+                      if (inputMode.value == _InputMode.file &&
+                          fileContent.value == null) {
+                        context.showSnackBarMessage(
+                          secretsT.enterValueOrUpload,
+                        );
+                        return;
+                      }
+                      if (!formKey.currentState!.validate()) return;
+
+                      final name = secretNameController.text.trim();
+                      final value = inputMode.value == _InputMode.file
+                          ? fileContent.value!
+                          : secretValueController.text;
+                      final secretManager = ref.read(
+                        secretManagerProvider.notifier,
+                      );
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      try {
+                        isSubmitting.value = true;
+                        await secretManager.addSecret(name, value);
+                        if (!context.mounted || !messenger.mounted) return;
+                        Navigator.of(context).pop();
+                        showResponsiveSnackBar(
+                          messenger.context,
+                          content: Text(secretsT.addedSuccess),
+                        );
+                      } on FirebaseFunctionsException catch (e, s) {
+                        final errorMessage = await FunctionErrorMessage.capture(
+                          e,
+                          stackTrace: s,
+                        );
+                        if (!messenger.mounted) return;
+                        isSubmitting.value = false;
+                        showResponsiveSnackBar(
+                          messenger.context,
+                          content: Text(errorMessage.message),
+                        );
+                      } catch (e) {
+                        if (!messenger.mounted) return;
+                        isSubmitting.value = false;
+                        showResponsiveSnackBar(
+                          messenger.context,
+                          content: Text('$e'),
+                        );
+                      }
+                    },
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecretFormActionBar extends StatelessWidget {
+  const _SecretFormActionBar({
+    required this.isSubmitting,
+    required this.submitLabel,
+    required this.submittingLabel,
+    required this.submitIcon,
+    required this.onCancel,
+    required this.onSubmit,
+  });
+
+  final bool isSubmitting;
+  final String submitLabel;
+  final String submittingLabel;
+  final IconData submitIcon;
+  final VoidCallback onCancel;
+  final VoidCallback? onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: colors.borderSubtle),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Row(
+          children: [
+            TextButton(
+              onPressed: isSubmitting ? null : onCancel,
+              style: TextButton.styleFrom(
+                foregroundColor: colors.textSecondary,
+                disabledForegroundColor: colors.textTertiary,
+                minimumSize: const Size(0, 44),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(t.common.cancel),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton(
+                onPressed: onSubmit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.accent,
+                  foregroundColor: colors.accentOnAccent,
+                  disabledBackgroundColor: colors.accent.withValues(
+                    alpha: 0.48,
+                  ),
+                  disabledForegroundColor: colors.accentOnAccent.withValues(
+                    alpha: 0.82,
+                  ),
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 160),
+                  child: isSubmitting
+                      ? Row(
+                          key: const ValueKey('submitting'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colors.accentOnAccent,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                submittingLabel,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          key: const ValueKey('ready'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(submitIcon, size: 17),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: Text(
+                                submitLabel,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1056,38 +1805,107 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height * 0.35,
-          ),
-          child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Title ──
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 20),
-                    child: Text(
-                      secretsT.editSecret,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: colors.textPrimary,
-                      ),
+    return _SecretFormFrame(
+      title: secretsT.editSecret,
+      child: Form(
+        key: formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Secret Name ──
+            Container(
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.border),
+              ),
+              child: TextFormField(
+                controller: nameController,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.textPrimary,
+                  fontFamily: 'monospace',
+                ),
+                decoration: InputDecoration(
+                  hintText: secretsT.secretName,
+                  hintStyle: TextStyle(
+                    color: colors.textTertiary,
+                    fontSize: 14,
+                    fontFamily: 'monospace',
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: InputBorder.none,
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 8),
+                    child: Icon(
+                      Icons.key_outlined,
+                      size: 18,
+                      color: colors.textTertiary,
                     ),
                   ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 0,
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return secretsT.enterSecretName;
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
 
-                  // ── Secret Name ──
+            // ── Input Mode Toggle ──
+            Container(
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: colors.border),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _ModeTab(
+                      label: secretsT.inputModeText,
+                      icon: Icons.text_fields,
+                      isSelected: inputMode.value == _InputMode.text,
+                      onTap: () {
+                        inputMode.value = _InputMode.text;
+                        selectedFileName.value = null;
+                        fileContent.value = null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _ModeTab(
+                      label: secretsT.inputModeFile,
+                      icon: Icons.upload_file,
+                      isSelected: inputMode.value == _InputMode.file,
+                      onTap: () {
+                        inputMode.value = _InputMode.file;
+                        valueController.clear();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Value Input (Text Mode) ──
+            if (inputMode.value == _InputMode.text)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Container(
                     decoration: BoxDecoration(
                       color: colors.surface,
@@ -1095,18 +1913,17 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                       border: Border.all(color: colors.border),
                     ),
                     child: TextFormField(
-                      controller: nameController,
+                      controller: valueController,
                       style: TextStyle(
                         fontSize: 14,
                         color: colors.textPrimary,
-                        fontFamily: 'monospace',
                       ),
+                      obscureText: true,
                       decoration: InputDecoration(
-                        hintText: secretsT.secretName,
+                        hintText: secretsT.newSecretValue,
                         hintStyle: TextStyle(
                           color: colors.textTertiary,
                           fontSize: 14,
-                          fontFamily: 'monospace',
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -1114,9 +1931,12 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                         ),
                         border: InputBorder.none,
                         prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 12, right: 8),
+                          padding: const EdgeInsets.only(
+                            left: 12,
+                            right: 8,
+                          ),
                           child: Icon(
-                            Icons.key_outlined,
+                            Icons.lock_outline,
                             size: 18,
                             color: colors.textTertiary,
                           ),
@@ -1126,308 +1946,211 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                           minHeight: 0,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return secretsT.enterSecretName;
-                        }
-                        return null;
-                      },
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // ── Input Mode Toggle ──
-                  Container(
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: colors.border),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _ModeTab(
-                            label: secretsT.inputModeText,
-                            icon: Icons.text_fields,
-                            isSelected: inputMode.value == _InputMode.text,
-                            onTap: () {
-                              inputMode.value = _InputMode.text;
-                              selectedFileName.value = null;
-                              fileContent.value = null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: _ModeTab(
-                            label: secretsT.inputModeFile,
-                            icon: Icons.upload_file,
-                            isSelected: inputMode.value == _InputMode.file,
-                            onTap: () {
-                              inputMode.value = _InputMode.file;
-                              valueController.clear();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Value Input (Text Mode) ──
-                  if (inputMode.value == _InputMode.text)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: colors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: colors.border),
-                          ),
-                          child: TextFormField(
-                            controller: valueController,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: colors.textPrimary,
-                            ),
-                            obscureText: true,
-                            decoration: InputDecoration(
-                              hintText: secretsT.newSecretValue,
-                              hintStyle: TextStyle(
-                                color: colors.textTertiary,
-                                fontSize: 14,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              border: InputBorder.none,
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 12,
-                                  right: 8,
-                                ),
-                                child: Icon(
-                                  Icons.lock_outline,
-                                  size: 18,
-                                  color: colors.textTertiary,
-                                ),
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 0,
-                                minHeight: 0,
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Hint ──
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4, top: 6),
-                          child: Text(
-                            'Leave value empty to keep current secret',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colors.textTertiary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  // ── File Upload (File Mode) ──
-                  else
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        final result = await FilePicker.pickFiles(
-                          withData: true,
-                        );
-                        if (result != null && result.files.isNotEmpty) {
-                          final file = result.files.first;
-                          if (file.bytes != null) {
-                            fileContent.value = utf8.decode(file.bytes!);
-                            selectedFileName.value = file.name;
-                          }
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 28,
-                          horizontal: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedFileName.value != null
-                                ? colors.accent.withValues(alpha: 0.4)
-                                : colors.border,
-                            width: selectedFileName.value != null ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: selectedFileName.value != null
-                                    ? const Color(
-                                        0xFF3B82F6,
-                                      ).withValues(alpha: 0.15)
-                                    : colors.divider,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                selectedFileName.value != null
-                                    ? Icons.check_rounded
-                                    : Icons.cloud_upload_outlined,
-                                size: 20,
-                                color: selectedFileName.value != null
-                                    ? colors.accent
-                                    : colors.textTertiary,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            if (selectedFileName.value != null) ...[
-                              Text(
-                                selectedFileName.value!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: colors.textPrimary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF3B82F6,
-                                  ).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'file loaded',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    color: colors.accent,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ] else ...[
-                              Text(
-                                secretsT.uploadFile,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: colors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                secretsT.orUploadFile,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: colors.textTertiary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ],
-                        ),
+                  // ── Hint ──
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, top: 6),
+                    child: Text(
+                      'Leave value empty to keep current secret',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.textTertiary,
                       ),
                     ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Submit Button ──
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: colors.accent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
+                  ),
+                ],
+              )
+            // ── File Upload (File Mode) ──
+            else
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final result = await FilePicker.pickFiles(
+                    withData: true,
+                  );
+                  if (result != null && result.files.isNotEmpty) {
+                    final file = result.files.first;
+                    if (file.bytes != null) {
+                      fileContent.value = utf8.decode(file.bytes!);
+                      selectedFileName.value = file.name;
+                    }
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 28,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: selectedFileName.value != null
+                          ? colors.accent.withValues(alpha: 0.4)
+                          : colors.border,
+                      width: selectedFileName.value != null ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: selectedFileName.value != null
+                              ? const Color(
+                                  0xFF3B82F6,
+                                ).withValues(alpha: 0.15)
+                              : colors.divider,
                           borderRadius: BorderRadius.circular(10),
                         ),
+                        child: Icon(
+                          selectedFileName.value != null
+                              ? Icons.check_rounded
+                              : Icons.cloud_upload_outlined,
+                          size: 20,
+                          color: selectedFileName.value != null
+                              ? colors.accent
+                              : colors.textTertiary,
+                        ),
                       ),
-                      onPressed: isLoading.value
-                          ? null
-                          : () async {
-                              if (!formKey.currentState!.validate()) return;
-                              final name = nameController.text.trim();
-
-                              String? value;
-                              if (inputMode.value == _InputMode.file) {
-                                value = fileContent.value;
-                              } else if (valueController.text.isNotEmpty) {
-                                value = valueController.text;
-                              }
-
-                              isLoading.value = true;
-                              try {
-                                await ref
-                                    .read(secretManagerProvider.notifier)
-                                    .updateSecret(
-                                      documentId: secret.id,
-                                      name: name,
-                                      value: value,
-                                    );
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage(
-                                  secretsT.updatedSuccess,
-                                );
-                                Navigator.of(context).pop();
-                              } on FirebaseFunctionsException catch (e, s) {
-                                final errorMessage =
-                                    await FunctionErrorMessage.capture(
-                                      e,
-                                      stackTrace: s,
-                                    );
-                                isLoading.value = false;
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage(
-                                  errorMessage.message,
-                                );
-                              } catch (e) {
-                                isLoading.value = false;
-                                if (!context.mounted) return;
-                                context.showSnackBarMessage('$e');
-                              }
-                            },
-                      child: isLoading.value
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              t.common.save,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      const SizedBox(height: 10),
+                      if (selectedFileName.value != null) ...[
+                        Text(
+                          selectedFileName.value!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: colors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF3B82F6,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'file loaded',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: colors.accent,
+                              fontFamily: 'monospace',
                             ),
-                    ),
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          secretsT.uploadFile,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          secretsT.orUploadFile,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colors.textTertiary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            // ── Submit Button ──
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: colors.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: isLoading.value
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        final name = nameController.text.trim();
+
+                        String? value;
+                        if (inputMode.value == _InputMode.file) {
+                          value = fileContent.value;
+                        } else if (valueController.text.isNotEmpty) {
+                          value = valueController.text;
+                        }
+
+                        isLoading.value = true;
+                        try {
+                          await ref
+                              .read(secretManagerProvider.notifier)
+                              .updateSecret(
+                                documentId: secret.id,
+                                name: name,
+                                value: value,
+                              );
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(
+                            secretsT.updatedSuccess,
+                          );
+                          Navigator.of(context).pop();
+                        } on FirebaseFunctionsException catch (e, s) {
+                          final errorMessage =
+                              await FunctionErrorMessage.capture(
+                                e,
+                                stackTrace: s,
+                              );
+                          isLoading.value = false;
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage(
+                            errorMessage.message,
+                          );
+                        } catch (e) {
+                          isLoading.value = false;
+                          if (!context.mounted) return;
+                          context.showSnackBarMessage('$e');
+                        }
+                      },
+                child: isLoading.value
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        t.common.save,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
-          ),
+            const SizedBox(height: 4),
+          ],
         ),
       ),
     );
