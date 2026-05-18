@@ -18,10 +18,9 @@ jobs:
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
-      - uses: openci-org/flutter-ci@v1
-        with:
-          test: "false"
-          working-directory: "apps/dashboard"
+      - name: Analyze
+        working-directory: apps/dashboard
+        run: flutter analyze
 
   deploy-ios:
     needs: [ci]
