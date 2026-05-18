@@ -702,6 +702,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
+    if (result is MergeIssuePullRequestDialogResult) {
+      _mergeIssuePullRequestInBackground(result);
+      return;
+    }
+
     if (result is! NewIssueDraft) {
       return;
     }
@@ -1042,6 +1047,44 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       body: '',
     );
     return pullRequest;
+  }
+
+  void _mergeIssuePullRequestInBackground(
+    MergeIssuePullRequestDialogResult request,
+  ) {
+    _showSavedSnackBar('PR #${request.pullRequest.number}をマージ中です');
+    unawaited(_runMergeIssuePullRequest(request));
+  }
+
+  Future<void> _runMergeIssuePullRequest(
+    MergeIssuePullRequestDialogResult request,
+  ) async {
+    final pullRequest = request.pullRequest;
+    try {
+      final result = await _functions
+          .httpsCallable(
+            mergeIssuePullRequestFunction,
+            options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
+          )
+          .call<Map<String, dynamic>>({
+            'workspaceId': _workspaceId,
+            'issueId': request.issueId,
+            'repository': request.repository,
+            'pullRequestNumber': pullRequest.number,
+            'mergeMethod': 'squash',
+          });
+      final data = asMap(result.data);
+      _showSavedSnackBar(
+        data['merged'] == true
+            ? 'PR #${pullRequest.number}をマージしました'
+            : asString(data['message'], 'PRのマージ結果を確認してください'),
+      );
+    } catch (error) {
+      final conflictMessage = _pullRequestMergeConflictMessage(error);
+      _showSavedSnackBar(
+        conflictMessage ?? friendlyError(error),
+      );
+    }
   }
 
   int _issueNumberFromDisplayId(String displayId) {
@@ -1767,6 +1810,19 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       ),
     );
   }
+}
+
+String? _pullRequestMergeConflictMessage(Object error) {
+  if (error is! FirebaseFunctionsException) {
+    return null;
+  }
+  final message = error.message ?? '';
+  final normalized = message.toLowerCase();
+  if (error.code != 'failed-precondition' ||
+      !normalized.contains('merge conflict')) {
+    return null;
+  }
+  return 'このPRはbase branchとconflictしています。GitHubでconflictを解消してから、もう一度マージしてください。';
 }
 
 class RecentRemoteBranchesMetric extends StatefulWidget {
