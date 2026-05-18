@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dashboard/issues/issue_board_ima_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -548,6 +550,7 @@ void main() {
     ) async {
       String? createdHead;
       String? openedIssueId;
+      final createCompleter = Completer<IssuePullRequest>();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -571,15 +574,9 @@ void main() {
                   ],
                 );
               },
-              onCreatePullRequest: (branch) async {
+              onCreatePullRequest: (branch) {
                 createdHead = branch.name;
-                return const IssuePullRequest(
-                  number: 1974,
-                  title: 'PRの作成もOpenCI上で行いたい。 IMA-1973',
-                  state: 'open',
-                  merged: false,
-                  branch: 'IMA-1973-create-pr',
-                );
+                return createCompleter.future;
               },
               onOpenIssue: (issueId) {
                 openedIssueId = issueId;
@@ -611,7 +608,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(createdHead, 'IMA-1973-create-pr');
-      expect(find.text('作成済み'), findsOneWidget);
+      expect(find.text('最近のブランチ'), findsNothing);
+      expect(find.text('PRを作成中です'), findsOneWidget);
+
+      await tester.runAsync(() async {
+        createCompleter.complete(
+          const IssuePullRequest(
+            number: 1974,
+            title: 'PRの作成もOpenCI上で行いたい。 IMA-1973',
+            state: 'open',
+            merged: false,
+            branch: 'IMA-1973-create-pr',
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+      });
     });
 
     testWidgets('refreshes recent branches after a load error', (tester) async {

@@ -1041,7 +1041,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       title: '',
       body: '',
     );
-    _showSavedSnackBar('PR #${pullRequest.number}を作成しました');
     return pullRequest;
   }
 
@@ -1818,12 +1817,50 @@ class _RecentRemoteBranchesMetricState
       builder: (dialogContext) => _RecentRemoteBranchesDialog(
         initialBranchesFuture: _branchesFuture,
         reloadBranches: _reloadBranches,
-        onCreatePullRequest: widget.onCreatePullRequest,
+        onCreatePullRequest: (branch) {
+          Navigator.of(dialogContext).maybePop();
+          _createPullRequestInBackground(branch);
+        },
         onOpenIssue: (issueId) {
           Navigator.of(dialogContext).maybePop();
           widget.onOpenIssue(issueId);
         },
       ),
+    );
+  }
+
+  void _createPullRequestInBackground(WorkspaceRecentBranch branch) {
+    showResponsiveSnackBar(
+      context,
+      content: const Text('PRを作成中です'),
+      duration: const Duration(milliseconds: 1800),
+    );
+    unawaited(_runCreatePullRequest(branch));
+  }
+
+  Future<void> _runCreatePullRequest(WorkspaceRecentBranch branch) async {
+    late final IssuePullRequest pullRequest;
+    try {
+      pullRequest = await widget.onCreatePullRequest(branch);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showResponsiveSnackBar(
+        context,
+        content: Text(friendlyError(error)),
+        duration: const Duration(milliseconds: 2200),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    showResponsiveSnackBar(
+      context,
+      content: Text('PR #${pullRequest.number}を作成しました'),
+      duration: const Duration(milliseconds: 2200),
     );
   }
 
@@ -1975,7 +2012,7 @@ class _RecentRemoteBranchesDialog extends StatefulWidget {
 
   final Future<WorkspaceRecentBranchList> initialBranchesFuture;
   final WorkspaceRecentBranchLoadCallback reloadBranches;
-  final WorkspaceRecentBranchCreatePullRequestCallback onCreatePullRequest;
+  final ValueChanged<WorkspaceRecentBranch> onCreatePullRequest;
   final ValueChanged<String> onOpenIssue;
 
   @override
@@ -1986,8 +2023,6 @@ class _RecentRemoteBranchesDialog extends StatefulWidget {
 class _RecentRemoteBranchesDialogState
     extends State<_RecentRemoteBranchesDialog> {
   late Future<WorkspaceRecentBranchList> _branchesFuture;
-  final Set<String> _createdBranchKeys = {};
-  var _creatingBranchKey = '';
 
   @override
   void initState() {
@@ -1999,35 +2034,14 @@ class _RecentRemoteBranchesDialogState
     final future = widget.reloadBranches();
     setState(() {
       _branchesFuture = future;
-      _createdBranchKeys.clear();
-      _creatingBranchKey = '';
     });
   }
 
-  Future<void> _createPullRequest(WorkspaceRecentBranch branch) async {
-    if (_creatingBranchKey.isNotEmpty || !branch.hasIssue) {
+  void _createPullRequest(WorkspaceRecentBranch branch) {
+    if (!branch.hasIssue) {
       return;
     }
-
-    setState(() => _creatingBranchKey = branch.key);
-    try {
-      await widget.onCreatePullRequest(branch);
-      if (mounted) {
-        setState(() => _createdBranchKeys.add(branch.key));
-      }
-    } catch (error) {
-      if (mounted) {
-        showResponsiveSnackBar(
-          context,
-          content: Text(friendlyError(error)),
-          duration: const Duration(milliseconds: 1800),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _creatingBranchKey = '');
-      }
-    }
+    widget.onCreatePullRequest(branch);
   }
 
   @override
@@ -2127,10 +2141,10 @@ class _RecentRemoteBranchesDialogState
                       final branch = branches[index];
                       return _RecentRemoteBranchDialogRow(
                         branch: branch,
-                        isCreating: _creatingBranchKey == branch.key,
-                        isCreated: _createdBranchKeys.contains(branch.key),
-                        isAnyCreating: _creatingBranchKey.isNotEmpty,
-                        onCreate: () => unawaited(_createPullRequest(branch)),
+                        isCreating: false,
+                        isCreated: false,
+                        isAnyCreating: false,
+                        onCreate: () => _createPullRequest(branch),
                         onOpenIssue: branch.hasIssue
                             ? () => widget.onOpenIssue(branch.issueId)
                             : null,
