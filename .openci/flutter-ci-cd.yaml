@@ -63,13 +63,6 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
 
-      - name: Save iOS Xcode compilation cache
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh save ios
-
       - name: Upload iOS IPA to Firebase App Distribution
         if: github.event_name == 'pull_request'
         env:
@@ -103,6 +96,13 @@ jobs:
             --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS" \
             --release-notes-file "$release_notes_file" \
             --non-interactive
+
+      - name: Save iOS Xcode compilation cache
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/xcode-compilation-cache.sh save ios
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
@@ -206,12 +206,6 @@ jobs:
           macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
           macos-provisioning-profile: "true"
           artifact-name: "OpenCI-dashboard-macos"
-
-      - name: Save macOS Xcode compilation cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh save macos
 
       - name: Report macOS Xcode compilation cache
         if: always()
@@ -474,6 +468,12 @@ jobs:
           fi
 
           rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
+
+      - name: Save macOS Xcode compilation cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/xcode-compilation-cache.sh save macos
 
   deploy-web:
     needs: [ci]

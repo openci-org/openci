@@ -1449,14 +1449,16 @@ class _LiveDurationBadge extends HookConsumerWidget {
       return timer.cancel;
     }, [isRunning]);
 
-    // While running: show elapsed from createdAt
+    // While running: show elapsed from when the worker picked up this job.
     if (isRunning) {
       // Suppress unused variable warning; tick.value read forces rebuild
       tick.value;
-      final elapsed = DateTime.now().toUtc().difference(buildJob.createdAt);
+      final elapsed = DateTime.now().toUtc().difference(buildJob.updatedAt);
       return _InfoBadge(
         icon: const Icon(Icons.timer_outlined, size: 10),
-        label: _formatDurationCompact(elapsed),
+        label: _formatDurationCompact(
+          elapsed.isNegative ? Duration.zero : elapsed,
+        ),
       );
     }
 

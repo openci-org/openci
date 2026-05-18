@@ -130,9 +130,50 @@ abstract class BuildJob with _$BuildJob {
 
 @riverpod
 Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
+  final runId = buildJob.latestRunId;
+  if (runId == null) {
+    return Stream.value(_durationFromBuildJob(buildJob));
+  }
+
+  return firestore
+      .collection(buildJobsCollection)
+      .doc(buildJob.id)
+      .collection('runs')
+      .doc(runId)
+      .snapshots()
+      .map((snapshot) {
+        final data = snapshot.data();
+        final runStartedAt = _nullableDateTimeFromFirestore(data?['createdAt']);
+        final runUpdatedAt = _nullableDateTimeFromFirestore(data?['updatedAt']);
+        final runCompleted =
+            data?['status'] == 'completed' || data?['conclusion'] != null;
+        final runCompletedAt = runCompleted ? runUpdatedAt : null;
+        final completedAt = runCompletedAt ?? buildJob.completedAt;
+        if (runStartedAt != null && completedAt != null) {
+          return _positiveDuration(runStartedAt, completedAt);
+        }
+        return _durationFromBuildJob(buildJob);
+      });
+}
+
+DateTime? _nullableDateTimeFromFirestore(Object? value) {
+  if (value == null) return null;
+  if (value is Timestamp) return value.toDate();
+  if (value is DateTime) return value;
+  if (value is String) return DateTime.tryParse(value);
+  return null;
+}
+
+Duration? _durationFromBuildJob(BuildJob buildJob) {
   final completedAt = buildJob.completedAt;
-  if (completedAt == null) return Stream.value(null);
-  return Stream.value(completedAt.difference(buildJob.createdAt));
+  if (completedAt == null) return null;
+  return _positiveDuration(buildJob.createdAt, completedAt);
+}
+
+Duration? _positiveDuration(DateTime startedAt, DateTime completedAt) {
+  final duration = completedAt.difference(startedAt);
+  if (duration.isNegative || duration.inSeconds == 0) return null;
+  return duration;
 }
 
 BuildJob? _buildJobFromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
