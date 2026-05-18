@@ -18,9 +18,20 @@ jobs:
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
       - name: Analyze
         working-directory: apps/dashboard
         run: flutter analyze
+      - name: Save Flutter pub cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh save
 
   deploy-ios:
     needs: [ci]
@@ -38,6 +49,12 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
+
       - name: Prepare stable iOS build workspace
         run: |
           set -euo pipefail
@@ -48,18 +65,10 @@ jobs:
           rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
           echo "Stable iOS build workspace: $stable_workspace"
 
-      - name: Restore iOS Xcode compilation cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh restore ios
-
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
         uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
         id: ios-build-fad
-        env:
-          FLUTTER_XCODE_COMPILATION_CACHE_ENABLE_CACHING: "YES"
         with:
           platform: "ios"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
@@ -107,18 +116,9 @@ jobs:
             --release-notes-file "$release_notes_file" \
             --non-interactive
 
-      - name: Save iOS Xcode compilation cache
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh save ios
-
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
-        env:
-          FLUTTER_XCODE_COMPILATION_CACHE_ENABLE_CACHING: "YES"
         with:
           platform: "ios"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
@@ -132,27 +132,16 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
 
-      - name: Save iOS Xcode compilation cache
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      - name: Save Flutter pub cache
+        if: always()
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh save ios
+        run: .openci/scripts/flutter-pub-cache.sh save
 
-      - name: Report iOS Xcode compilation cache
+      - name: Report Flutter pub cache
         if: always()
-        run: |
-          set -euo pipefail
-
-          cache_dir="${HOME}/Library/Developer/Xcode/DerivedData/CompilationCache.noindex"
-          if [ ! -d "$cache_dir" ]; then
-            echo "Xcode compilation cache not found: $cache_dir"
-            exit 0
-          fi
-
-          echo "Xcode compilation cache:"
-          du -sh "$cache_dir"
-          find "$cache_dir" -type f | wc -l | awk '{ print "File count: " $1 }'
+        run: .openci/scripts/flutter-pub-cache.sh report
 
   build-macos:
     needs: [ci]
@@ -169,6 +158,12 @@ jobs:
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
+
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
 
       - name: Configure Sparkle update settings
         env:
@@ -202,16 +197,8 @@ jobs:
           rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
           echo "Stable macOS build workspace: $stable_workspace"
 
-      - name: Restore macOS Xcode compilation cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh restore macos
-
       - id: build_macos
         uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
-        env:
-          FLUTTER_XCODE_COMPILATION_CACHE_ENABLE_CACHING: "YES"
         with:
           platform: "macos"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-macos/apps/dashboard"
@@ -226,21 +213,6 @@ jobs:
           macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
           macos-provisioning-profile: "true"
           artifact-name: "OpenCI-dashboard-macos"
-
-      - name: Report macOS Xcode compilation cache
-        if: always()
-        run: |
-          set -euo pipefail
-
-          cache_dir="${HOME}/Library/Developer/Xcode/DerivedData/CompilationCache.noindex"
-          if [ ! -d "$cache_dir" ]; then
-            echo "Xcode compilation cache not found: $cache_dir"
-            exit 0
-          fi
-
-          echo "Xcode compilation cache:"
-          du -sh "$cache_dir"
-          find "$cache_dir" -type f | wc -l | awk '{ print "File count: " $1 }'
 
       - name: Verify Sparkle helper signatures
         run: |
@@ -489,11 +461,16 @@ jobs:
 
           rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
 
-      - name: Save macOS Xcode compilation cache
+      - name: Save Flutter pub cache
+        if: always()
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/xcode-compilation-cache.sh save macos
+        run: .openci/scripts/flutter-pub-cache.sh save
+
+      - name: Report Flutter pub cache
+        if: always()
+        run: .openci/scripts/flutter-pub-cache.sh report
 
   deploy-web:
     needs: [ci]
@@ -505,6 +482,12 @@ jobs:
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
 
       - name: Build Flutter web
         working-directory: apps/dashboard
@@ -523,6 +506,13 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
             --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
             --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA"
+
+      - name: Save Flutter pub cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh save
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'

@@ -2,42 +2,28 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <restore|save> <ios|macos>" >&2
+  echo "Usage: $0 <restore|save|report>" >&2
 }
 
-if [ "$#" -ne 2 ]; then
+if [ "$#" -ne 1 ]; then
   usage
   exit 2
 fi
 
 action="$1"
-platform="$2"
 
 case "$action" in
-  restore|save) ;;
+  restore|save|report) ;;
   *)
     usage
     exit 2
     ;;
 esac
-
-case "$platform" in
-  ios|macos) ;;
-  *)
-    usage
-    exit 2
-    ;;
-esac
-
-if [ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
-  echo "FIREBASE_SERVICE_ACCOUNT is not set; skipping Xcode compilation cache ${action}"
-  exit 0
-fi
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-cache_dir="${HOME}/Library/Developer/Xcode/DerivedData/CompilationCache.noindex"
+cache_dir="${PUB_CACHE:-${HOME}/.pub-cache}"
 
 sanitize_component() {
   printf '%s' "$1" \
@@ -94,17 +80,30 @@ compression_content_type() {
 
 create_archive() {
   local archive_path="$1"
+  local cache_parent
+  local cache_name
+
+  cache_parent="$(dirname "$cache_dir")"
+  cache_name="$(basename "$cache_dir")"
 
   if command -v zstd >/dev/null 2>&1; then
-    tar -cf - -C "$(dirname "$cache_dir")" "$(basename "$cache_dir")" | zstd -T0 -1 -q -o "$archive_path"
+    tar -cf - \
+      --exclude "${cache_name}/_temp" \
+      --exclude "${cache_name}/log" \
+      -C "$cache_parent" "$cache_name" \
+      | zstd -T0 -1 -q -o "$archive_path"
   else
-    tar -czf "$archive_path" -C "$(dirname "$cache_dir")" "$(basename "$cache_dir")"
+    tar -czf "$archive_path" \
+      --exclude "${cache_name}/_temp" \
+      --exclude "${cache_name}/log" \
+      -C "$cache_parent" "$cache_name"
   fi
 }
 
 extract_archive() {
   local archive_path="$1"
 
+  mkdir -p "$(dirname "$cache_dir")"
   if [ "${archive_path##*.}" = "zst" ]; then
     zstd -dc "$archive_path" | tar -xf - -C "$(dirname "$cache_dir")"
   else
@@ -161,10 +160,12 @@ dependency_hash() {
   : > "$input_file"
 
   for file in \
-    "apps/dashboard/pubspec.lock" \
-    "apps/dashboard/${platform}/Podfile.lock" \
-    "apps/dashboard/${platform}/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
-    "apps/dashboard/${platform}/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"; do
+    "pubspec.yaml" \
+    "pubspec.lock" \
+    "apps/dashboard/pubspec.yaml" \
+    "packages/macos_updater/pubspec.yaml" \
+    "packages/macos_updater/example/pubspec.yaml" \
+    "packages/macos_updater/example/pubspec.lock"; do
     if [ -f "$file" ]; then
       printf '%s\n' "$file" >> "$input_file"
       shasum -a 256 "$file" >> "$input_file"
@@ -172,12 +173,6 @@ dependency_hash() {
   done
 
   shasum -a 256 "$input_file" | awk '{ print substr($1, 1, 20) }'
-}
-
-xcode_cache_key_component() {
-  local version
-  version="$(xcodebuild -version 2>/dev/null | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/[[:space:]]+$//')"
-  sanitize_component "${version:-unknown-xcode}"
 }
 
 flutter_cache_key_component() {
@@ -195,6 +190,7 @@ value = "-".join(
     for part in [
         data.get("frameworkVersion"),
         (data.get("frameworkRevision") or "")[:12],
+        data.get("dartSdkVersion"),
     ]
     if part
 )
@@ -205,26 +201,67 @@ PY
   fi
 }
 
+host_cache_key_component() {
+  sanitize_component "$(uname -s)-$(uname -m)"
+}
+
 cache_object_name() {
   local repo
-  local xcode_component
+  local host_component
   local flutter_component
   local deps_component
   local archive_extension
 
   repo="${GITHUB_REPOSITORY:-openci-org/openci}"
-  xcode_component="$(xcode_cache_key_component)"
+  host_component="$(host_cache_key_component)"
   flutter_component="$(flutter_cache_key_component)"
   deps_component="$(dependency_hash)"
   archive_extension="$(compression_extension)"
 
-  printf 'caches/xcode-compilation/%s/apps-dashboard/%s/%s/%s/deps-%s.%s' \
+  printf 'caches/flutter-pub/%s/apps-dashboard/%s/%s/deps-%s.%s' \
     "$repo" \
-    "$platform" \
-    "$xcode_component" \
+    "$host_component" \
     "$flutter_component" \
     "$deps_component" \
     "$archive_extension"
+}
+
+object_exists() {
+  local bucket="$1"
+  local token="$2"
+  local object_name="$3"
+  local encoded_object_name
+  local response_path="$tmp_dir/object-metadata.json"
+  local http_code
+
+  encoded_object_name="$(urlencode "$object_name")"
+  if ! http_code="$(curl -sS -w '%{http_code}' -o "$response_path" \
+    -H "Authorization: Bearer ${token}" \
+    "https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encoded_object_name}?fields=name,size,updated")"; then
+    echo "Failed to inspect Flutter pub cache object" >&2
+    cat "$response_path" >&2 || true
+    return 2
+  fi
+
+  if [ "$http_code" = "404" ]; then
+    return 1
+  fi
+
+  case "$http_code" in
+    ''|*[!0-9]*)
+      echo "Failed to inspect Flutter pub cache object (HTTP ${http_code:-unknown})" >&2
+      cat "$response_path" >&2 || true
+      return 2
+      ;;
+  esac
+
+  if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+    echo "Failed to inspect Flutter pub cache object (HTTP ${http_code})" >&2
+    cat "$response_path" >&2 || true
+    return 2
+  fi
+
+  return 0
 }
 
 restore_cache() {
@@ -235,33 +272,31 @@ restore_cache() {
   local archive_path
   local http_code
 
-  archive_path="$tmp_dir/xcode-compilation-cache.$(compression_extension)"
+  archive_path="$tmp_dir/flutter-pub-cache.$(compression_extension)"
   encoded_object_name="$(urlencode "$object_name")"
-  echo "Restoring Xcode compilation cache from gs://${bucket}/${object_name}"
+  echo "Restoring Flutter pub cache from gs://${bucket}/${object_name}"
 
   http_code="$(curl -sS -L -w '%{http_code}' -o "$archive_path" \
     -H "Authorization: Bearer ${token}" \
     "https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encoded_object_name}?alt=media")"
 
   if [ "$http_code" = "404" ]; then
-    echo "Xcode compilation cache miss"
+    echo "Flutter pub cache miss"
     return 0
   fi
 
   if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-    echo "Failed to download Xcode compilation cache (HTTP ${http_code})" >&2
+    echo "Failed to download Flutter pub cache (HTTP ${http_code})" >&2
     cat "$archive_path" >&2 || true
     return 1
   fi
 
-  echo "Downloaded Xcode compilation cache archive:"
+  echo "Downloaded Flutter pub cache archive:"
   du -sh "$archive_path"
 
-  rm -rf "$cache_dir"
-  mkdir -p "$(dirname "$cache_dir")"
   extract_archive "$archive_path"
 
-  echo "Restored Xcode compilation cache:"
+  echo "Restored Flutter pub cache:"
   du -sh "$cache_dir"
   find "$cache_dir" -type f | wc -l | awk '{ print "File count: " $1 }'
 }
@@ -275,21 +310,32 @@ save_cache() {
   local content_type
   local headers_file="$tmp_dir/upload-headers.txt"
   local upload_url
+  local exists_status
 
-  archive_path="$tmp_dir/xcode-compilation-cache.$(compression_extension)"
+  if object_exists "$bucket" "$token" "$object_name"; then
+    echo "Flutter pub cache already exists; skipping upload: gs://${bucket}/${object_name}"
+    return 0
+  else
+    exists_status="$?"
+    if [ "$exists_status" -ne 1 ]; then
+      return 1
+    fi
+  fi
+
+  archive_path="$tmp_dir/flutter-pub-cache.$(compression_extension)"
   if [ ! -d "$cache_dir" ]; then
-    echo "Xcode compilation cache not found; nothing to save: $cache_dir"
+    echo "Flutter pub cache not found; nothing to save: $cache_dir"
     return 0
   fi
 
-  echo "Creating Xcode compilation cache archive:"
+  echo "Creating Flutter pub cache archive:"
   du -sh "$cache_dir"
   create_archive "$archive_path"
   du -sh "$archive_path"
   archive_size="$(file_size "$archive_path")"
   content_type="$(compression_content_type)"
 
-  echo "Uploading Xcode compilation cache to gs://${bucket}/${object_name}"
+  echo "Uploading Flutter pub cache to gs://${bucket}/${object_name}"
   curl -fsS -X POST \
     -D "$headers_file" \
     -o /dev/null \
@@ -322,8 +368,34 @@ PY
     "$upload_url" \
     > /dev/null
 
-  echo "Uploaded Xcode compilation cache"
+  echo "Uploaded Flutter pub cache"
 }
+
+report_cache() {
+  local object_name="$1"
+
+  echo "Flutter pub cache key: ${object_name}"
+  if [ ! -d "$cache_dir" ]; then
+    echo "Flutter pub cache not found: $cache_dir"
+    return 0
+  fi
+
+  echo "Flutter pub cache:"
+  du -sh "$cache_dir"
+  find "$cache_dir" -type f | wc -l | awk '{ print "File count: " $1 }'
+}
+
+object_name="$(cache_object_name)"
+
+if [ "$action" = "report" ]; then
+  report_cache "$object_name"
+  exit 0
+fi
+
+if [ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
+  echo "FIREBASE_SERVICE_ACCOUNT is not set; skipping Flutter pub cache ${action}"
+  exit 0
+fi
 
 bucket="$(storage_bucket)"
 if [ -z "$bucket" ]; then
@@ -331,7 +403,6 @@ if [ -z "$bucket" ]; then
   exit 1
 fi
 
-object_name="$(cache_object_name)"
 token="$(access_token)"
 
 case "$action" in
