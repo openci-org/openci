@@ -176,95 +176,6 @@ class IssueCountBadge extends StatelessWidget {
   }
 }
 
-class EstimationAccuracyBadge extends StatelessWidget {
-  const EstimationAccuracyBadge({super.key, required this.closedIssues});
-
-  static const _validWeights = [1, 2, 4, 8, 16, 32];
-
-  static bool _isAdjacent(int a, int b) {
-    final idxA = _validWeights.indexOf(a);
-    final idxB = _validWeights.indexOf(b);
-    if (idxA < 0 || idxB < 0) return (a - b).abs() <= 1;
-    return (idxA - idxB).abs() <= 1;
-  }
-
-  final List<Issue> closedIssues;
-
-  @override
-  Widget build(BuildContext context) {
-    final pairs = closedIssues
-        .where(
-          (issue) =>
-              issue.resolution?.actualWeight != null &&
-              issue.weightEstimate?.value != null,
-        )
-        .toList();
-
-    if (pairs.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final adjacentCount = pairs
-        .where(
-          (issue) => _isAdjacent(
-            issue.weightEstimate!.value!,
-            issue.resolution!.actualWeight!,
-          ),
-        )
-        .length;
-    final within1Rate = (adjacentCount / pairs.length * 100).round();
-    final deltas = pairs
-        .map(
-          (issue) =>
-              issue.weightEstimate!.value! - issue.resolution!.actualWeight!,
-        )
-        .toList();
-    final sumAbsError = deltas.fold<int>(0, (s, d) => s + d.abs());
-    final mae = (sumAbsError / deltas.length * 10).round() / 10;
-    final sumDelta = deltas.fold<int>(0, (s, d) => s + d);
-    final bias = (sumDelta / deltas.length * 10).round() / 10;
-
-    final biasLabel = bias == 0
-        ? 'バイアスなし'
-        : bias > 0
-        ? '過大推定 +$bias'
-        : '過小推定 $bias';
-    final accuracyColor = within1Rate >= 70
-        ? const Color(0xFF15803D)
-        : within1Rate >= 50
-        ? const Color(0xFFA16207)
-        : const Color(0xFFDC2626);
-
-    return Tooltip(
-      message: 'MAE $mae / $biasLabel / ${pairs.length}件',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '$within1Rate%',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: accuracyColor,
-              ),
-            ),
-            const Text(
-              '推定精度 (隣接値)',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class BoardOverviewPanel extends StatelessWidget {
   const BoardOverviewPanel({
     super.key,
@@ -285,8 +196,6 @@ class BoardOverviewPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accuracy = EstimationAccuracySummary.fromIssues(closedIssues);
-
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
@@ -320,19 +229,6 @@ class BoardOverviewPanel extends StatelessWidget {
               value: '$openIssues',
               detail: 'issue',
             ),
-            if (accuracy != null) ...[
-              const _OverviewDivider(),
-              Tooltip(
-                message:
-                    'MAE ${accuracy.mae} / ${accuracy.biasLabel} / ${accuracy.sampleCount}件',
-                child: OverviewMetric(
-                  label: '精度',
-                  value: '${accuracy.within1Rate}%',
-                  valueColor: accuracy.color,
-                  detail: '±1',
-                ),
-              ),
-            ],
             const _OverviewDivider(),
             WorkerOverviewMetric(onTap: onWorkerOverviewTap),
             if (recentBranches != null) ...[
@@ -1299,71 +1195,6 @@ class _OverviewDivider extends StatelessWidget {
       thickness: 1,
       color: Color(0xFFE2E8F0),
     );
-  }
-}
-
-class EstimationAccuracySummary {
-  const EstimationAccuracySummary({
-    required this.within1Rate,
-    required this.mae,
-    required this.bias,
-    required this.sampleCount,
-  });
-
-  final int within1Rate;
-  final double mae;
-  final double bias;
-  final int sampleCount;
-
-  static EstimationAccuracySummary? fromIssues(List<Issue> closedIssues) {
-    final pairs = closedIssues
-        .where(
-          (issue) =>
-              issue.resolution?.actualWeight != null &&
-              issue.weightEstimate?.value != null,
-        )
-        .toList();
-
-    if (pairs.isEmpty) {
-      return null;
-    }
-
-    final deltas = pairs
-        .map(
-          (issue) =>
-              issue.weightEstimate!.value! - issue.resolution!.actualWeight!,
-        )
-        .toList();
-    final within1 = deltas.where((d) => d.abs() <= 1).length;
-    final sumAbsError = deltas.fold<int>(
-      0,
-      (total, delta) => total + delta.abs(),
-    );
-    final sumDelta = deltas.fold<int>(0, (total, delta) => total + delta);
-
-    return EstimationAccuracySummary(
-      within1Rate: (within1 / deltas.length * 100).round(),
-      mae: (sumAbsError / deltas.length * 10).round() / 10,
-      bias: (sumDelta / deltas.length * 10).round() / 10,
-      sampleCount: pairs.length,
-    );
-  }
-
-  String get biasLabel {
-    if (bias == 0) {
-      return 'バイアスなし';
-    }
-    return bias > 0 ? '過大推定 +$bias' : '過小推定 $bias';
-  }
-
-  Color get color {
-    if (within1Rate >= 70) {
-      return const Color(0xFF15803D);
-    }
-    if (within1Rate >= 50) {
-      return const Color(0xFFA16207);
-    }
-    return const Color(0xFFDC2626);
   }
 }
 
