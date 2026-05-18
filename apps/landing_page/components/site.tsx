@@ -595,7 +595,7 @@ function StudioAboutContent() {
         <div className={containerClass}>
           <h2 className="mb-6 text-lg font-semibold text-neutral-950">代表者</h2>
           <article className="max-w-[300px] overflow-hidden rounded-2xl border border-neutral-950/6">
-            <Image src="/images/team/masahiro-aoki.jpg" alt="Masahiro Aoki - OpenCI Studio 代表取締役" width={600} height={600} className="aspect-square w-full object-cover grayscale" />
+            <Image src="/images/team/masahiro-aoki.jpg" alt="Masahiro Aoki - OpenCI Studio 代表取締役" width={600} height={600} className="aspect-square w-full object-cover" />
             <div className="p-5">
               <h3 className="text-base font-semibold text-neutral-950">Masahiro Aoki (青木 正浩)</h3>
               <p className="mt-0.5 text-[0.8125rem] text-neutral-500">Founder / CEO</p>
