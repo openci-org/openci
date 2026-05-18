@@ -46,39 +46,65 @@ The dry run should only include `dist`, `README.md`, and `package.json`; it shou
 - A Firebase service account JSON with Firestore, Secret Manager, and FCM permissions
 - `act` available in the worker runtime
 - Linux workers: Docker and the `openci-ubuntu:latest` image
-- macOS workers: Lume and the `tahoe-base_v1.2.2` base VM
+- macOS workers: Lume and the `tahoe-base_v1.2.3` base VM
+
+## Linux Docker image release
+
+The Linux worker creates job containers from the local Docker image
+`openci-ubuntu:latest`. Keep this image aligned with the macOS base VM toolchain
+so workflow steps behave consistently across platforms.
+
+```sh
+docker tag openci-ubuntu:latest openci-ubuntu:backup-$(date -u +%Y%m%d%H%M%S)
+cat > /tmp/openci-ubuntu.Dockerfile <<'DOCKERFILE'
+FROM openci-ubuntu:latest
+
+RUN npm install -g firebase-tools@latest \
+  && firebase --version \
+  && npx -y firebase-tools@latest --version \
+  && npm cache clean --force
+DOCKERFILE
+
+docker build -t openci-ubuntu:latest-candidate -f /tmp/openci-ubuntu.Dockerfile /tmp
+docker run --rm openci-ubuntu:latest-candidate bash -lc \
+  'firebase --version && npx -y firebase-tools@latest --version && act --version && flutter --version | head -n 1'
+docker tag openci-ubuntu:latest-candidate openci-ubuntu:latest
+```
 
 ## macOS VM image release
 
-The worker clones the local Lume VM named `tahoe-base_v1.2.2`. Base image
+The worker clones the local Lume VM named `tahoe-base_v1.2.3`. Base image
 updates are manual because they depend on a macOS host that can run Lume and
 install Xcode.
 
 ```sh
 echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-lume clone tahoe-base_v1.2.1 tahoe-base_v1.2.2
-lume run tahoe-base_v1.2.2
+lume clone tahoe-base_v1.2.2 tahoe-base_v1.2.3
+lume run tahoe-base_v1.2.3
 
 # Prefer keeping xcodes installed in the base VM so Xcode updates can happen
 # entirely inside the VM.
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   brew install robotsandpencils/made/xcodes
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   xcodes install 26.5 --select
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   sudo xcodebuild -license accept
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   "echo admin | sudo -S xcodebuild -runFirstLaunch"
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   xcodebuild -downloadPlatform iOS
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
+  npm install -g firebase-tools@latest
 
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- xcodebuild -version
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- xcodebuild -version
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   "/usr/bin/arch -arm64e xcrun xcodebuild -version"
-lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   xcrun --sdk iphoneos --show-sdk-path
-lume stop tahoe-base_v1.2.2
-lume push tahoe-base_v1.2.2 tahoe-base:v1.2.2 --organization openci-org --additional-tags latest
+lume ssh tahoe-base_v1.2.3 --user admin --password admin -- firebase --version
+lume stop tahoe-base_v1.2.3
+lume push tahoe-base_v1.2.3 tahoe-base:v1.2.3 --organization openci-org --additional-tags latest
 ```
 
 If `xcodes` is not available in the VM yet, use a macOS host that already has
@@ -86,21 +112,21 @@ the target Xcode installed as a fallback:
 
 ```sh
 rsync -a --delete /Applications/Xcode.app admin@100.104.145.82:/Users/admin/openci-vm-assets/
-/Users/admin/.local/bin/lume run -n --shared-dir /Users/admin/openci-vm-assets:ro tahoe-base_v1.2.2
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume run -n --shared-dir /Users/admin/openci-vm-assets:ro tahoe-base_v1.2.3
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   sudo ditto "/Volumes/My Shared Files/Xcode.app" /Applications/Xcode-26.5.0.app
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   sudo xcode-select -s /Applications/Xcode-26.5.0.app/Contents/Developer
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   sudo xcodebuild -license accept
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   "echo admin | sudo -S xcodebuild -runFirstLaunch"
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   xcodebuild -downloadPlatform iOS
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- xcodebuild -version
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- xcodebuild -version
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   "/usr/bin/arch -arm64e xcrun xcodebuild -version"
-/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.2 --user admin --password admin -- \
+/Users/admin/.local/bin/lume ssh tahoe-base_v1.2.3 --user admin --password admin -- \
   xcrun --sdk iphoneos --show-sdk-path
 ```
 

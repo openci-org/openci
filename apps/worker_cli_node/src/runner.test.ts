@@ -10,6 +10,7 @@ import {
   parseLumeVmJsonList,
   parseLumeVmTextList,
   rewriteWorkflowForSingleOpenCiJob,
+  staleBaseVmNames,
   type LumeVm,
 } from "./runner.js";
 
@@ -226,5 +227,20 @@ describe("ensureBaseVm", () => {
     await Promise.all([first, second]);
 
     expect(pullCount).toBe(1);
+  });
+});
+
+describe("staleBaseVmNames", () => {
+  it("selects only stopped old VMs from the current base VM family", () => {
+    expect(
+      staleBaseVmNames([
+        { name: baseVmName, status: "stopped" },
+        { name: "tahoe-base_v1.2.2", status: "stopped" },
+        { name: "tahoe-base_v1.2.1", status: "running" },
+        { name: "tahoe-base_v1.2.0", status: "Stopped" },
+        { name: "openci-vm-worker-12345678", status: "stopped" },
+        { name: "sonoma-base_v1.2.2", status: "stopped" },
+      ]),
+    ).toEqual(["tahoe-base_v1.2.2", "tahoe-base_v1.2.0"]);
   });
 });

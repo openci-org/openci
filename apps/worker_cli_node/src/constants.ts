@@ -1,5 +1,5 @@
-export const baseVmName = "tahoe-base_v1.2.2";
-export const baseVmImage = "tahoe-base:v1.2.2";
+export const baseVmName = "tahoe-base_v1.2.3";
+export const baseVmImage = "tahoe-base:v1.2.3";
 export const baseVmOrganization = "openci-org";
 export const sshUser = "admin";
 export const sshPassword = "admin";

@@ -239,6 +239,30 @@ async function hasBaseVm(listVms: () => Promise<LumeVm[]>): Promise<boolean> {
   return vms.some((vm) => vm.name === baseVmName);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function baseVmFamilyPattern(): RegExp | null {
+  const match = /^(?<prefix>.+_v)\d+(?:\.\d+)*$/u.exec(baseVmName);
+  const prefix = match?.groups?.prefix;
+  return prefix ? new RegExp(`^${escapeRegExp(prefix)}\\d+(?:\\.\\d+)*$`, "u") : null;
+}
+
+function isStoppedVmStatus(status: string): boolean {
+  return status.trim().toLowerCase() === "stopped";
+}
+
+export function staleBaseVmNames(vms: readonly LumeVm[]): string[] {
+  const familyPattern = baseVmFamilyPattern();
+  if (!familyPattern) return [];
+  return vms
+    .filter((vm) => vm.name !== baseVmName)
+    .filter((vm) => familyPattern.test(vm.name))
+    .filter((vm) => isStoppedVmStatus(vm.status))
+    .map((vm) => vm.name);
+}
+
 interface BaseVmPullLock {
   lockPath: string;
   token: string;
@@ -360,6 +384,22 @@ export async function ensureBaseVm(options: EnsureBaseVmOptions = {}): Promise<v
     ) {
       return;
     }
+  }
+}
+
+async function cleanupOldBaseVms(warn: WarningLogger): Promise<void> {
+  const vms = await listLumeVms().catch(async (error: unknown) => {
+    await warn(`Error listing old base VMs: ${String(error)}`);
+    return [];
+  });
+  for (const vmName of staleBaseVmNames(vms)) {
+    await warn(`Deleting old stopped base VM ${vmName}`);
+    await runSimpleWithRetry(
+      "lume",
+      ["delete", vmName, "--force"],
+      `Failed to delete old base VM ${vmName}`,
+      3,
+    ).catch((error: unknown) => warn(`Error deleting old base VM ${vmName}: ${String(error)}`));
   }
 }
 
@@ -830,6 +870,7 @@ async function runMacVmBuild(input: {
     await cleanupWorkerVms(workerId, warn);
     await logInfo(buildJob.id, runId, `Ensuring VM image ${baseVmImage} is available...`);
     await ensureBaseVm();
+    await cleanupOldBaseVms(warn);
     await logInfo(buildJob.id, runId, `Cloning VM ${baseVmName} to ${vmName}...`);
     await runSimple("lume", ["clone", baseVmName, vmName], `Failed to clone VM ${vmName}`);
 
