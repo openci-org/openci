@@ -38,6 +38,10 @@ interface DeleteSecretRequest {
   teamId: string;
 }
 
+interface ReadSecretResponse extends SuccessResponse {
+  value: string;
+}
+
 interface UpdateSecretRequest extends DeleteSecretRequest {
   name: string;
   value?: string;
@@ -182,6 +186,26 @@ export const deleteSecretV1 = onCall<DeleteSecretRequest, Promise<SuccessRespons
       if (error instanceof HttpsError) throw error;
       logger.error("Failed to delete secret", { teamId, documentId, error });
       throw new HttpsError("internal", `Failed to delete secret: ${String(error)}`);
+    }
+  },
+);
+
+export const readSecretV1 = onCall<DeleteSecretRequest, Promise<ReadSecretResponse>>(
+  async (request) => {
+    const teamId = requireNonEmptyString(request.data?.teamId, "teamId");
+    const documentId = requireNonEmptyString(request.data?.documentId, "documentId");
+    await verifyTeamMembership(request.auth, teamId);
+    const { data } = await getSecretForTeam(documentId, teamId);
+
+    try {
+      const pathToSecret = requireNonEmptyString(data.pathToSecret, "pathToSecret");
+      const value = await accessSecretByPath(pathToSecret);
+      logger.info("Secret value read", { teamId, documentId, name: data.name });
+      return { success: true, value };
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      logger.error("Failed to read secret", { teamId, documentId, error });
+      throw new HttpsError("internal", `Failed to read secret: ${String(error)}`);
     }
   },
 );

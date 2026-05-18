@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 
 /// Extract secret names referenced in workflow YAML content.
 Set<String> _extractSecretNames(String content) {
@@ -23,6 +24,10 @@ Set<String> _extractSecretNames(String content) {
 }
 
 const _secretManagerContentMaxWidth = 540.0;
+
+String _formatSecretUpdatedAt(DateTime value) {
+  return DateFormat('yyyy/MM/dd HH:mm').format(value.toLocal());
+}
 
 /// Group secrets by workflow usage.
 /// Returns a map: workflow name -> list of secrets used in that workflow.
@@ -701,7 +706,6 @@ class _SecretListTile extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Name + subtitle
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,23 +725,37 @@ class _SecretListTile extends ConsumerWidget {
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (isUnused) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            secretsT.notUsedInWorkflows,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colors.warning,
+                        const SizedBox(height: 7),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _SecretMetaChip(
+                              icon: Icons.update_rounded,
+                              label:
+                                  '${secretsT.lastUpdated} ${_formatSecretUpdatedAt(secret.updatedAt)}',
                             ),
-                          ),
-                        ],
+                            if (isUnused)
+                              _SecretMetaChip(
+                                icon: Icons.warning_amber_rounded,
+                                label: secretsT.notUsedInWorkflows,
+                                color: colors.warning,
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  // Actions
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _ActionIconButton(
+                        icon: Icons.visibility_outlined,
+                        color: colors.textTertiary,
+                        tooltip: secretsT.viewSecretValue,
+                        onPressed: () => _showSecretValueDialog(context, ref),
+                      ),
+                      const SizedBox(width: 4),
                       _ActionIconButton(
                         icon: Icons.edit_outlined,
                         color: colors.textTertiary,
@@ -764,6 +782,21 @@ class _SecretListTile extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showSecretValueDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _SecretValueDialog(
+        secret: secret,
+        valueFuture: ref
+            .read(secretManagerProvider.notifier)
+            .readSecret(documentId: secret.id),
       ),
     );
   }
@@ -825,6 +858,286 @@ class _SecretListTile extends ConsumerWidget {
       if (!context.mounted) return;
       context.showSnackBarMessage('$e');
     }
+  }
+}
+
+class _SecretMetaChip extends StatelessWidget {
+  const _SecretMetaChip({
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final effectiveColor = color ?? colors.textTertiary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: effectiveColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: effectiveColor,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecretValueDialog extends StatelessWidget {
+  const _SecretValueDialog({
+    required this.secret,
+    required this.valueFuture,
+  });
+
+  final Secret secret;
+  final Future<String> valueFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final secretsT = t.secrets;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Material(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: colors.accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Icon(
+                        Icons.visibility_outlined,
+                        size: 17,
+                        color: colors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            secretsT.secretValueTitle,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            secret.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.textTertiary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: t.common.close,
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: colors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: colors.border),
+              Flexible(
+                child: FutureBuilder<String>(
+                  future: valueFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colors.accent,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              secretsT.secretValueLoading,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          t.common.error(error: snapshot.error.toString()),
+                          style: TextStyle(
+                            color: colors.error,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      );
+                    }
+
+                    final value = snapshot.data ?? '';
+
+                    return Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 280),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: colors.scaffold,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: colors.border),
+                              ),
+                              child: SingleChildScrollView(
+                                child: SelectableText(
+                                  value,
+                                  style: TextStyle(
+                                    color: colors.textPrimary,
+                                    fontSize: 12,
+                                    height: 1.45,
+                                    fontFamily: 'monospace',
+                                    letterSpacing: 0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: colors.textSecondary,
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: Text(t.common.close),
+                              ),
+                              const Spacer(),
+                              FilledButton.icon(
+                                onPressed: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: value),
+                                  );
+                                  if (!context.mounted) return;
+                                  context.showSnackBarMessage(
+                                    secretsT.copiedSecretValue,
+                                  );
+                                },
+                                icon: const Icon(Icons.copy_rounded, size: 16),
+                                label: Text(secretsT.copySecretValue),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: colors.accent,
+                                  foregroundColor: colors.accentOnAccent,
+                                  minimumSize: const Size(0, 40),
+                                  padding: const EdgeInsets.only(
+                                    left: 12,
+                                    right: 14,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

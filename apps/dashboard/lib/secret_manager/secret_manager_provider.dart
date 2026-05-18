@@ -64,6 +64,21 @@ class SecretManager extends _$SecretManager {
     });
   }
 
+  Future<String> readSecret({required String documentId}) async {
+    final functions = firebaseFunctions;
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+    final result = await functions.httpsCallable('readSecretV1').call({
+      'documentId': documentId,
+      'teamId': teamId,
+    });
+    final data = result.data;
+    if (data is Map) {
+      return data['value'] as String? ?? '';
+    }
+    return '';
+  }
+
   Future<void> deleteSecret({required String documentId}) async {
     final functions = firebaseFunctions;
     final teamId = ref.read(teamStateProvider).value?.id;
