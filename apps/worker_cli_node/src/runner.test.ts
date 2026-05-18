@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { baseVmName } from "./constants.js";
-import { ensureBaseVm, parseLumeVmJsonList, parseLumeVmTextList, type LumeVm } from "./runner.js";
+import {
+  ensureBaseVm,
+  parseLumeVmJsonList,
+  parseLumeVmTextList,
+  rewriteWorkflowForSingleOpenCiJob,
+  type LumeVm,
+} from "./runner.js";
 
 const tempDirs: string[] = [];
 
@@ -62,6 +68,88 @@ describe("parseLumeVmTextList", () => {
     expect(parseLumeVmTextList(output)).toEqual([
       { name: "openci-vm-admins-Mini-2-worker1-51ad7c53", status: "stopped" },
     ]);
+  });
+});
+
+describe("rewriteWorkflowForSingleOpenCiJob", () => {
+  it("removes needs only from the target job", () => {
+    const workflow = [
+      "name: CI",
+      "on: pull_request",
+      "jobs:",
+      "  ci:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: echo ci",
+      "  deploy-web:",
+      "    needs: [ci]",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: echo web",
+      "  build-macos:",
+      "    needs: [ci]",
+      "    runs-on: macos-latest",
+      "    steps:",
+      "      - run: echo mac",
+      "",
+    ].join("\n");
+
+    const result = rewriteWorkflowForSingleOpenCiJob(workflow, "deploy-web", ["ci"]);
+
+    expect(result.rewritten).toBe(true);
+    expect(result.content).toContain("deploy-web:");
+    expect(result.content).toContain("build-macos:\n    needs:");
+    expect(result.content).not.toContain("deploy-web:\n    needs:");
+  });
+
+  it("keeps the original workflow when the job reads needs context", () => {
+    const workflow = [
+      "name: CI",
+      "on: pull_request",
+      "jobs:",
+      "  ci:",
+      "    runs-on: ubuntu-latest",
+      "    outputs:",
+      "      artifact-name: ${{ steps.build.outputs.artifact-name }}",
+      "    steps:",
+      "      - id: build",
+      '        run: echo artifact-name=app >> "$GITHUB_OUTPUT"',
+      "  deploy-web:",
+      "    needs: [ci]",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: echo ${{ needs.ci.outputs.artifact-name }}",
+      "",
+    ].join("\n");
+
+    const result = rewriteWorkflowForSingleOpenCiJob(workflow, "deploy-web", ["ci"]);
+
+    expect(result).toEqual({
+      content: workflow,
+      rewritten: false,
+      reason: "needs-context",
+    });
+  });
+
+  it("does not rewrite jobs without OpenCI-resolved needs", () => {
+    const workflow = [
+      "name: CI",
+      "on: pull_request",
+      "jobs:",
+      "  ci:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: echo ci",
+      "",
+    ].join("\n");
+
+    const result = rewriteWorkflowForSingleOpenCiJob(workflow, "ci", []);
+
+    expect(result).toEqual({
+      content: workflow,
+      rewritten: false,
+      reason: "no-needs",
+    });
   });
 });
 

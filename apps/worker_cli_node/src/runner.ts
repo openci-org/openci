@@ -4,6 +4,9 @@ import { mkdtemp, open, readFile, rm, stat, unlink, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { isMap, parseDocument } from "yaml";
+
+import { getConfiguredGitHubBaseUrl } from "./build_job_services.js";
 import {
   baseVmImage,
   baseVmName,
@@ -15,7 +18,6 @@ import {
 import { envFileContent } from "./env.js";
 import { isJobCancelled } from "./firestore.js";
 import { logInfo, logWarning } from "./logger.js";
-import { getConfiguredGitHubBaseUrl } from "./build_job_services.js";
 import type { BuildJob } from "./types.js";
 
 const sshKeyPath = "/tmp/openci-ssh-key";
@@ -403,14 +405,102 @@ function githubHost(buildJob: BuildJob): string {
   return new URL(buildJob.githubBaseUrl ?? getConfiguredGitHubBaseUrl()).host;
 }
 
-function actScript(buildJob: BuildJob): string {
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function buildJobNeeds(buildJob: BuildJob): string[] {
+  return Array.isArray(buildJob.needs)
+    ? buildJob.needs.filter((need): need is string => typeof need === "string" && need.length > 0)
+    : [];
+}
+
+export interface RuntimeWorkflowRewriteResult {
+  content: string;
+  rewritten: boolean;
+  reason?: string;
+}
+
+export function rewriteWorkflowForSingleOpenCiJob(
+  workflowContent: string,
+  jobKey: string | null | undefined,
+  needs: readonly string[],
+): RuntimeWorkflowRewriteResult {
+  if (!jobKey) return { content: workflowContent, rewritten: false, reason: "missing-job-key" };
+  if (needs.length === 0) return { content: workflowContent, rewritten: false, reason: "no-needs" };
+
+  const document = parseDocument(workflowContent);
+  if (document.errors.length > 0) {
+    return { content: workflowContent, rewritten: false, reason: "parse-error" };
+  }
+
+  const jobs = document.get("jobs", true);
+  if (!isMap(jobs)) return { content: workflowContent, rewritten: false, reason: "jobs-not-map" };
+
+  const job = jobs.get(jobKey, true);
+  if (!job) return { content: workflowContent, rewritten: false, reason: "job-not-found" };
+  if (!isMap(job)) return { content: workflowContent, rewritten: false, reason: "job-not-map" };
+
+  if (!job.has("needs")) {
+    return { content: workflowContent, rewritten: false, reason: "job-has-no-needs" };
+  }
+
+  if (/\bneeds\s*(?:\.|\[)/u.test(String(job))) {
+    return { content: workflowContent, rewritten: false, reason: "needs-context" };
+  }
+
+  job.delete("needs");
+  return { content: String(document), rewritten: true };
+}
+
+async function prepareActWorkflow(input: {
+  buildJob: BuildJob;
+  runId: string;
+  readWorkflow: (path: string) => Promise<string>;
+  writeWorkflow: (path: string, content: string) => Promise<void>;
+}): Promise<string> {
+  const { buildJob, runId } = input;
+  const sourceWorkflowPath = `.openci/${buildJob.workflowFileName}`;
+  const needs = buildJobNeeds(buildJob);
+  if (!buildJob.jobKey || needs.length === 0) return sourceWorkflowPath;
+
+  const workflowContent = await input.readWorkflow(`${buildJob.repo}/${sourceWorkflowPath}`);
+  const result = rewriteWorkflowForSingleOpenCiJob(workflowContent, buildJob.jobKey, needs);
+  if (!result.rewritten) {
+    if (result.reason === "needs-context") {
+      await logWarning(
+        buildJob.id,
+        runId,
+        `Job ${buildJob.jobKey} references the needs context; running the original workflow so act can provide dependency outputs.`,
+      );
+    } else if (result.reason === "parse-error") {
+      await logWarning(
+        buildJob.id,
+        runId,
+        `Could not parse ${sourceWorkflowPath}; running the original workflow.`,
+      );
+    }
+    return sourceWorkflowPath;
+  }
+
+  const runtimeWorkflowPath = `/tmp/openci-runtime-${shortJobId(buildJob.id)}.yaml`;
+  await input.writeWorkflow(runtimeWorkflowPath, result.content);
+  await logInfo(
+    buildJob.id,
+    runId,
+    `Using runtime workflow ${runtimeWorkflowPath} with OpenCI-resolved needs removed for job ${buildJob.jobKey}.`,
+  );
+  return runtimeWorkflowPath;
+}
+
+function actScript(buildJob: BuildJob, workflowPath: string): string {
   const eventType = buildJob.pullRequestNumber ? "pull_request" : "push";
-  const jobFlag = buildJob.jobKey ? `-j ${buildJob.jobKey} ` : "";
+  const jobFlag = buildJob.jobKey ? `-j ${shellQuote(buildJob.jobKey)} ` : "";
   return [
     "set -e",
     'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:/opt/dart-sdk/bin:/opt/flutter/bin:$PATH"',
-    `cd ${buildJob.repo}`,
-    `act ${eventType} -W .openci/${buildJob.workflowFileName} ${jobFlag}` +
+    `cd ${shellQuote(buildJob.repo)}`,
+    `act ${eventType} -W ${shellQuote(workflowPath)} ${jobFlag}` +
       "-P macos-latest=-self-hosted " +
       "-P macos-14=-self-hosted " +
       "-P macos-15=-self-hosted " +
@@ -486,7 +576,14 @@ async function runDockerBuild(input: {
       }),
     );
 
-    await writeFileToContainer(name, "/tmp/openci-act.sh", actScript(buildJob));
+    const workflowPath = await prepareActWorkflow({
+      buildJob,
+      runId,
+      readWorkflow: (path) =>
+        runSimple("docker", ["exec", name, "cat", path], `Failed to read workflow ${path}`),
+      writeWorkflow: (path, content) => writeFileToContainer(name, path, content),
+    });
+    await writeFileToContainer(name, "/tmp/openci-act.sh", actScript(buildJob, workflowPath));
     await runProcess({
       command: "docker",
       args: ["exec", name, "chmod", "+x", "/tmp/openci-act.sh"],
@@ -795,7 +892,18 @@ async function runMacVmBuild(input: {
       }),
     );
 
-    await writeFileToVm(vmName, "/tmp/openci-act.sh", actScript(buildJob));
+    const workflowPath = await prepareActWorkflow({
+      buildJob,
+      runId,
+      readWorkflow: (path) =>
+        runSimple(
+          "lume",
+          lumeSshArgs(vmName, `cat ${shellQuote(path)}`, gitLumeSshTimeoutSeconds),
+          `Failed to read workflow ${path}`,
+        ),
+      writeWorkflow: (path, content) => writeFileToVm(vmName, path, content),
+    });
+    await writeFileToVm(vmName, "/tmp/openci-act.sh", actScript(buildJob, workflowPath));
     await runProcess({
       command: "lume",
       args: lumeSshArgs(vmName, "chmod +x /tmp/openci-act.sh"),

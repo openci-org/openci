@@ -429,6 +429,7 @@ jobs:
           BUILD_SHA="$(git rev-parse --short HEAD)"
 
           flutter build web \
+            --no-wasm-dry-run \
             --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
             --dart-define=REVENUE_CAT_WEB_API_KEY="$REVENUE_CAT_WEB_API_KEY" \
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
