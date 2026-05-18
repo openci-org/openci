@@ -73,7 +73,7 @@ class AppStringsNav {
 
   // Translations
   String get workflows => 'CI/CD設定';
-  String get variables => '変数';
+  String get variables => 'シークレット';
   String get logs => 'ログ';
   String get release => 'リリース';
   String get settings => '設定';
@@ -176,7 +176,7 @@ class AppStringsVariables {
   final AppStrings _root; // ignore: unused_field
 
   // Translations
-  String get title => '変数';
+  String get title => 'シークレット';
   String get envVarsTab => '環境変数';
   String get secretsTab => 'シークレット';
 }

@@ -668,7 +668,7 @@ class _EditorTab extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
-            // ── Variables shortcut ──
+            // ── Secrets shortcut ──
             InkWell(
               borderRadius: BorderRadius.circular(18),
               onTap: () {

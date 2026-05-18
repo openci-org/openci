@@ -81,7 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => _responsivePage(
               key: state.pageKey,
               child: const AuthenticatedScaffoldRoutePage(
-                title: 'Variables',
+                title: 'シークレット',
                 child: VariablesBody(),
               ),
             ),

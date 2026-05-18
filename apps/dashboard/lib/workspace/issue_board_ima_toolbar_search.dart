@@ -253,8 +253,8 @@ class BoardToolbar extends StatelessWidget {
                     ),
                     ToolbarChip(
                       icon: Icons.key_rounded,
-                      label: '変数',
-                      tooltip: '変数 / シークレットを開く',
+                      label: 'シークレット',
+                      tooltip: 'シークレット / 環境変数を開く',
                       onPressed: onVariablesTap,
                     ),
                     ToolbarChip(
@@ -551,7 +551,7 @@ class CompactBoardDrawer extends StatelessWidget {
             ),
             _CompactDrawerTile(
               icon: Icons.key_rounded,
-              label: '変数',
+              label: 'シークレット',
               selected:
                   selectedDestination == CompactBoardDestination.variables,
               onTap: () => runAfterClose(onVariablesTap),
