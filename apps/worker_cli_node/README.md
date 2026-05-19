@@ -50,21 +50,23 @@ The dry run should only include `dist`, `README.md`, and `package.json`; it shou
 
 ## macOS worker local caches
 
-macOS workers mount a host-local Xcode compilation cache archive directory into
-each cloned Lume VM. Workflow cache scripts use the mounted directory as an L1
-cache and fall back to Firebase Storage when the local archive is missing.
+macOS workers mount a host-local cache directory into each cloned Lume VM.
+Workflow cache scripts use the mounted directory as an L1 archive cache and fall
+back to Firebase Storage when a local archive is missing.
 
 By default, archives are stored under:
 
 ```sh
 ~/.openci-cache/xcode-compilation
+~/.openci-cache/flutter-pub
 ```
 
-Override the host path or LRU size limit with:
+Override the host root or LRU size limits with:
 
 ```sh
-OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR=/Users/admin/.openci-cache/xcode-compilation
+OPENCI_WORKER_LOCAL_CACHE_HOST_DIR=/Users/admin/.openci-cache
 OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES=21474836480
+OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES=10737418240
 ```
 
 ## Linux Docker image release
