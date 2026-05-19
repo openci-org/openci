@@ -73,6 +73,7 @@ jobs:
           platform: "ios"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
           swift-package-manager: "enabled"
+          patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "ad-hoc"
@@ -123,6 +124,7 @@ jobs:
           platform: "ios"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
           swift-package-manager: "enabled"
+          patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "app-store"
@@ -138,10 +140,6 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: .openci/scripts/flutter-pub-cache.sh save
-
-      - name: Report Flutter pub cache
-        if: always()
-        run: .openci/scripts/flutter-pub-cache.sh report
 
   build-macos:
     needs: [ci]
@@ -467,10 +465,6 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: .openci/scripts/flutter-pub-cache.sh save
-
-      - name: Report Flutter pub cache
-        if: always()
-        run: .openci/scripts/flutter-pub-cache.sh report
 
   deploy-web:
     needs: [ci]
