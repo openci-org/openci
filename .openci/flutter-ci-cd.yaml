@@ -21,7 +21,7 @@ jobs:
           path: "apps/dashboard/lib/firebase_options.dart"
 
       - name: Restore Flutter pub cache
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: restore
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -33,7 +33,7 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: save
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -56,7 +56,7 @@ jobs:
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
       - name: Restore Flutter pub cache
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: restore
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -158,7 +158,7 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: save
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -181,7 +181,7 @@ jobs:
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
       - name: Restore Flutter pub cache
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: restore
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -500,7 +500,7 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: save
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -518,7 +518,7 @@ jobs:
           path: "apps/dashboard/lib/firebase_options.dart"
 
       - name: Restore Flutter pub cache
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: restore
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -544,7 +544,7 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        uses: openci-org/flutter-pub-cache@e8a7f971748742eed45a35137efb0a56a6ef5703
+        uses: ./actions/flutter-pub-cache
         with:
           action: save
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
