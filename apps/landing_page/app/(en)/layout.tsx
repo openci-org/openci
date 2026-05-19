@@ -14,7 +14,7 @@ export default function EnglishRootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="antialiased">
+    <html lang="en" className="antialiased" data-scroll-behavior="smooth">
       <body className="isolate min-h-dvh bg-white text-neutral-950">{children}</body>
     </html>
   );

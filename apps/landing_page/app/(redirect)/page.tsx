@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import { createPageMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'OpenCI',
   description: 'CI/CD for everyone.',
-};
+  path: '/',
+  locale: 'en_US',
+});
 
 export default function HomeRedirectPage() {
   const redirectScript = `
