@@ -67,7 +67,7 @@ jobs:
 
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
-        uses: openci-org/flutter-cd@423b85c23d1fd370f67148b24f4428090f6489a7
+        uses: openci-org/flutter-cd@2545e136f86bce8ea290a6da50f4b4e806089277
         id: ios-build-fad
         with:
           platform: "ios"
@@ -119,7 +119,7 @@ jobs:
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: openci-org/flutter-cd@423b85c23d1fd370f67148b24f4428090f6489a7
+        uses: openci-org/flutter-cd@2545e136f86bce8ea290a6da50f4b4e806089277
         with:
           platform: "ios"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
@@ -196,7 +196,7 @@ jobs:
           echo "Stable macOS build workspace: $stable_workspace"
 
       - id: build_macos
-        uses: openci-org/flutter-cd@423b85c23d1fd370f67148b24f4428090f6489a7
+        uses: openci-org/flutter-cd@2545e136f86bce8ea290a6da50f4b4e806089277
         with:
           platform: "macos"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-macos/apps/dashboard"
