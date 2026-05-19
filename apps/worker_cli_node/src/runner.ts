@@ -890,7 +890,11 @@ async function runMacVmBuild(input: {
     await cleanupWorkerVms(workerId, warn);
     const hostXcodeCacheDir = xcodeCompilationCacheHostDir();
     await mkdir(hostXcodeCacheDir, { recursive: true });
-    await logInfo(buildJob.id, runId, `Xcode compilation cache host directory: ${hostXcodeCacheDir}`);
+    await logInfo(
+      buildJob.id,
+      runId,
+      `Xcode compilation cache host directory: ${hostXcodeCacheDir}`,
+    );
     await logInfo(buildJob.id, runId, `Ensuring VM image ${baseVmImage} is available...`);
     await ensureBaseVm();
     await cleanupOldBaseVms(warn);
@@ -900,14 +904,10 @@ async function runMacVmBuild(input: {
     const vmRunOutput: string[] = [];
     let vmReady = false;
     let vmProcessExit: ProcessExit | undefined;
-    vmProcess = spawn(
-      "lume",
-      ["run", vmName, "--no-display", "--shared-dir", hostXcodeCacheDir],
-      {
-        stdio: ["ignore", "pipe", "pipe"],
-        detached: true,
-      },
-    );
+    vmProcess = spawn("lume", ["run", vmName, "--no-display", "--shared-dir", hostXcodeCacheDir], {
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: true,
+    });
     const recordVmRunOutput = (chunk: Buffer) => {
       for (const line of chunk.toString("utf8").split(/\r?\n/u)) {
         if (line.length === 0) continue;
