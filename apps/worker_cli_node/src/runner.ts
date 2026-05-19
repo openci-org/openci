@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -26,8 +26,6 @@ const gitLumeSshTimeoutSeconds = 120;
 const baseVmPullStaleLockMs = 2 * 60 * 60 * 1000;
 const baseVmPullPeerWaitMs = 2 * 60 * 60 * 1000;
 const baseVmPullPollMs = 2_000;
-const workerLocalCacheVmMountPath = "/Volumes/My Shared Files";
-
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
   return message.split(token).join("***");
@@ -450,40 +448,6 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
-export function workerLocalCacheHostDir(): string {
-  return (
-    process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR ??
-    join(process.env.HOME ?? "/Users/admin", ".openci-cache")
-  );
-}
-
-export function xcodeCompilationCacheHostDir(): string {
-  return join(workerLocalCacheHostDir(), "xcode-compilation");
-}
-
-export function flutterPubCacheHostDir(): string {
-  return join(workerLocalCacheHostDir(), "flutter-pub");
-}
-
-export function xcodeCompilationCacheMaxBytes(): string {
-  return process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES ?? String(20 * 1024 * 1024 * 1024);
-}
-
-export function flutterPubCacheMaxBytes(): string {
-  return process.env.OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES ?? String(10 * 1024 * 1024 * 1024);
-}
-
-function actEnvironmentPrefix(): string {
-  const xcodeCacheVmPath = `${workerLocalCacheVmMountPath}/xcode-compilation`;
-  const flutterPubCacheVmPath = `${workerLocalCacheVmMountPath}/flutter-pub`;
-  return [
-    `export OPENCI_XCODE_LOCAL_CACHE_DIR=${shellQuote(xcodeCacheVmPath)}`,
-    `export OPENCI_XCODE_LOCAL_CACHE_MAX_BYTES=${shellQuote(xcodeCompilationCacheMaxBytes())}`,
-    `export OPENCI_FLUTTER_PUB_LOCAL_CACHE_DIR=${shellQuote(flutterPubCacheVmPath)}`,
-    `export OPENCI_FLUTTER_PUB_LOCAL_CACHE_MAX_BYTES=${shellQuote(flutterPubCacheMaxBytes())}`,
-  ].join("\n");
-}
-
 function buildJobNeeds(buildJob: BuildJob): string[] {
   return Array.isArray(buildJob.needs)
     ? buildJob.needs.filter((need): need is string => typeof need === "string" && need.length > 0)
@@ -574,7 +538,6 @@ function actScript(buildJob: BuildJob, workflowPath: string): string {
   return [
     "set -e",
     'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:/opt/dart-sdk/bin:/opt/flutter/bin:$PATH"',
-    actEnvironmentPrefix(),
     `cd ${shellQuote(buildJob.repo)}`,
     `act ${eventType} -W ${shellQuote(workflowPath)} ${jobFlag}` +
       "-P macos-latest=-self-hosted " +
@@ -904,12 +867,6 @@ async function runMacVmBuild(input: {
   const warn = (message: string) => logWarning(buildJob.id, runId, message);
   try {
     await cleanupWorkerVms(workerId, warn);
-    const hostLocalCacheDir = workerLocalCacheHostDir();
-    const hostXcodeCacheDir = xcodeCompilationCacheHostDir();
-    const hostFlutterPubCacheDir = flutterPubCacheHostDir();
-    await mkdir(hostXcodeCacheDir, { recursive: true });
-    await mkdir(hostFlutterPubCacheDir, { recursive: true });
-    await logInfo(buildJob.id, runId, `Worker local cache host directory: ${hostLocalCacheDir}`);
     await logInfo(buildJob.id, runId, `Ensuring VM image ${baseVmImage} is available...`);
     await ensureBaseVm();
     await cleanupOldBaseVms(warn);
@@ -919,7 +876,7 @@ async function runMacVmBuild(input: {
     const vmRunOutput: string[] = [];
     let vmReady = false;
     let vmProcessExit: ProcessExit | undefined;
-    vmProcess = spawn("lume", ["run", vmName, "--no-display", "--shared-dir", hostLocalCacheDir], {
+    vmProcess = spawn("lume", ["run", vmName, "--no-display"], {
       stdio: ["ignore", "pipe", "pipe"],
       detached: true,
     });

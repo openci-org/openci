@@ -7,24 +7,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import { baseVmName } from "./constants.js";
 import {
   ensureBaseVm,
-  flutterPubCacheHostDir,
-  flutterPubCacheMaxBytes,
   parseLumeVmJsonList,
   parseLumeVmTextList,
   rewriteWorkflowForSingleOpenCiJob,
   staleBaseVmNames,
   type LumeVm,
-  workerLocalCacheHostDir,
-  xcodeCompilationCacheHostDir,
-  xcodeCompilationCacheMaxBytes,
 } from "./runner.js";
 
 const tempDirs: string[] = [];
 const originalEnv = {
   HOME: process.env.HOME,
-  OPENCI_WORKER_LOCAL_CACHE_HOST_DIR: process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR,
-  OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES: process.env.OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES,
-  OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES: process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES,
 };
 
 function restoreEnvValue(name: string, value: string | undefined): void {
@@ -43,85 +35,7 @@ async function tempLockPath(): Promise<string> {
 
 afterEach(async () => {
   restoreEnvValue("HOME", originalEnv.HOME);
-  restoreEnvValue(
-    "OPENCI_WORKER_LOCAL_CACHE_HOST_DIR",
-    originalEnv.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR,
-  );
-  restoreEnvValue(
-    "OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES",
-    originalEnv.OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES,
-  );
-  restoreEnvValue(
-    "OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES",
-    originalEnv.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES,
-  );
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
-});
-
-describe("workerLocalCacheHostDir", () => {
-  it("defaults below HOME", () => {
-    delete process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR;
-    process.env.HOME = "/Users/admin";
-
-    expect(workerLocalCacheHostDir()).toBe("/Users/admin/.openci-cache");
-  });
-
-  it("uses an explicit host directory", () => {
-    process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR = "/Volumes/cache/openci";
-
-    expect(workerLocalCacheHostDir()).toBe("/Volumes/cache/openci");
-  });
-});
-
-describe("xcodeCompilationCacheHostDir", () => {
-  it("defaults below HOME", () => {
-    delete process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR;
-    process.env.HOME = "/Users/admin";
-
-    expect(xcodeCompilationCacheHostDir()).toBe("/Users/admin/.openci-cache/xcode-compilation");
-  });
-
-  it("defaults below the worker local cache host directory", () => {
-    process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR = "/Volumes/cache/openci";
-
-    expect(xcodeCompilationCacheHostDir()).toBe("/Volumes/cache/openci/xcode-compilation");
-  });
-});
-
-describe("flutterPubCacheHostDir", () => {
-  it("defaults below the worker local cache host directory", () => {
-    process.env.OPENCI_WORKER_LOCAL_CACHE_HOST_DIR = "/Volumes/cache/openci";
-
-    expect(flutterPubCacheHostDir()).toBe("/Volumes/cache/openci/flutter-pub");
-  });
-});
-
-describe("xcodeCompilationCacheMaxBytes", () => {
-  it("defaults to 20 GiB", () => {
-    delete process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES;
-
-    expect(xcodeCompilationCacheMaxBytes()).toBe(String(20 * 1024 * 1024 * 1024));
-  });
-
-  it("uses an explicit byte limit", () => {
-    process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES = "1073741824";
-
-    expect(xcodeCompilationCacheMaxBytes()).toBe("1073741824");
-  });
-});
-
-describe("flutterPubCacheMaxBytes", () => {
-  it("defaults to 10 GiB", () => {
-    delete process.env.OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES;
-
-    expect(flutterPubCacheMaxBytes()).toBe(String(10 * 1024 * 1024 * 1024));
-  });
-
-  it("uses an explicit byte limit", () => {
-    process.env.OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES = "1073741824";
-
-    expect(flutterPubCacheMaxBytes()).toBe("1073741824");
-  });
 });
 
 describe("parseLumeVmJsonList", () => {

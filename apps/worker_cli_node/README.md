@@ -48,27 +48,6 @@ The dry run should only include `dist`, `README.md`, and `package.json`; it shou
 - Linux workers: Docker and the `openci-ubuntu:latest` image
 - macOS workers: Lume and the `tahoe-base_v1.2.3` base VM
 
-## macOS worker local caches
-
-macOS workers mount a host-local cache directory into each cloned Lume VM.
-Workflow cache scripts use the mounted directory as an L1 archive cache and fall
-back to Firebase Storage when a local archive is missing.
-
-By default, archives are stored under:
-
-```sh
-~/.openci-cache/xcode-compilation
-~/.openci-cache/flutter-pub
-```
-
-Override the host root or LRU size limits with:
-
-```sh
-OPENCI_WORKER_LOCAL_CACHE_HOST_DIR=/Users/admin/.openci-cache
-OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES=21474836480
-OPENCI_FLUTTER_PUB_CACHE_MAX_BYTES=10737418240
-```
-
 ## Linux Docker image release
 
 The Linux worker creates job containers from the local Docker image
