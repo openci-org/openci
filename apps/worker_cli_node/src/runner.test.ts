@@ -12,9 +12,24 @@ import {
   rewriteWorkflowForSingleOpenCiJob,
   staleBaseVmNames,
   type LumeVm,
+  xcodeCompilationCacheHostDir,
+  xcodeCompilationCacheMaxBytes,
 } from "./runner.js";
 
 const tempDirs: string[] = [];
+const originalEnv = {
+  HOME: process.env.HOME,
+  OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR: process.env.OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR,
+  OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES: process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES,
+};
+
+function restoreEnvValue(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
 
 async function tempLockPath(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "openci-worker-runner-test-"));
@@ -23,7 +38,45 @@ async function tempLockPath(): Promise<string> {
 }
 
 afterEach(async () => {
+  restoreEnvValue("HOME", originalEnv.HOME);
+  restoreEnvValue(
+    "OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR",
+    originalEnv.OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR,
+  );
+  restoreEnvValue(
+    "OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES",
+    originalEnv.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES,
+  );
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
+
+describe("xcodeCompilationCacheHostDir", () => {
+  it("defaults below HOME", () => {
+    delete process.env.OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR;
+    process.env.HOME = "/Users/admin";
+
+    expect(xcodeCompilationCacheHostDir()).toBe("/Users/admin/.openci-cache/xcode-compilation");
+  });
+
+  it("uses an explicit host directory", () => {
+    process.env.OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR = "/Volumes/cache/xcode-compilation";
+
+    expect(xcodeCompilationCacheHostDir()).toBe("/Volumes/cache/xcode-compilation");
+  });
+});
+
+describe("xcodeCompilationCacheMaxBytes", () => {
+  it("defaults to 20 GiB", () => {
+    delete process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES;
+
+    expect(xcodeCompilationCacheMaxBytes()).toBe(String(20 * 1024 * 1024 * 1024));
+  });
+
+  it("uses an explicit byte limit", () => {
+    process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES = "1073741824";
+
+    expect(xcodeCompilationCacheMaxBytes()).toBe("1073741824");
+  });
 });
 
 describe("parseLumeVmJsonList", () => {

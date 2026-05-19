@@ -62,6 +62,15 @@ print(os.path.getsize(sys.argv[1]))
 PY
 }
 
+cache_key_hash() {
+  python3 - "$1" <<'PY'
+import hashlib
+import sys
+
+print(hashlib.sha256(sys.argv[1].encode()).hexdigest())
+PY
+}
+
 sha256_digest() {
   python3 - "$1" <<'PY'
 import hashlib
@@ -335,6 +344,214 @@ object_exists() {
   return 0
 }
 
+local_cache_root() {
+  if [ -z "${OPENCI_XCODE_LOCAL_CACHE_DIR:-}" ]; then
+    return 1
+  fi
+  if [ ! -d "$OPENCI_XCODE_LOCAL_CACHE_DIR" ]; then
+    return 1
+  fi
+  printf '%s' "$OPENCI_XCODE_LOCAL_CACHE_DIR"
+}
+
+local_cache_archive_path() {
+  local object_name="$1"
+  local root
+  local key_hash
+
+  root="$(local_cache_root)" || return 1
+  key_hash="$(cache_key_hash "$object_name")"
+  printf '%s/archives/%s.%s' "$root" "$key_hash" "$(compression_extension)"
+}
+
+local_cache_metadata_path() {
+  local object_name="$1"
+  local root
+  local key_hash
+
+  root="$(local_cache_root)" || return 1
+  key_hash="$(cache_key_hash "$object_name")"
+  printf '%s/metadata/%s.json' "$root" "$key_hash"
+}
+
+update_local_cache_metadata() {
+  local object_name="$1"
+  local archive_path="$2"
+  local event="$3"
+  local metadata_path
+
+  metadata_path="$(local_cache_metadata_path "$object_name")" || return 0
+  mkdir -p "$(dirname "$metadata_path")"
+  python3 - "$object_name" "$archive_path" "$metadata_path" "$event" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+object_name, archive_path, metadata_path, event = sys.argv[1:]
+now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+try:
+    with open(metadata_path, encoding="utf-8") as f:
+        metadata = json.load(f)
+except Exception:
+    metadata = {}
+
+metadata.setdefault("createdAt", now)
+metadata["objectName"] = object_name
+metadata["archivePath"] = archive_path
+metadata["size"] = os.path.getsize(archive_path)
+metadata["lastAccessedAt"] = now
+metadata["lastEvent"] = event
+metadata["hitCount"] = int(metadata.get("hitCount") or 0) + (1 if event == "restore-hit" else 0)
+
+tmp_path = f"{metadata_path}.tmp"
+with open(tmp_path, "w", encoding="utf-8") as f:
+    json.dump(metadata, f, separators=(",", ":"))
+os.replace(tmp_path, metadata_path)
+PY
+}
+
+prune_local_cache() {
+  local root
+  local max_bytes="${OPENCI_XCODE_LOCAL_CACHE_MAX_BYTES:-21474836480}"
+
+  root="$(local_cache_root)" || return 0
+  python3 - "$root" "$max_bytes" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime
+
+root, max_bytes_text = sys.argv[1:]
+try:
+    max_bytes = int(max_bytes_text)
+except ValueError:
+    max_bytes = 21474836480
+
+archives_dir = os.path.join(root, "archives")
+metadata_dir = os.path.join(root, "metadata")
+if max_bytes <= 0 or not os.path.isdir(archives_dir):
+    raise SystemExit(0)
+
+entries = []
+for name in os.listdir(archives_dir):
+    archive_path = os.path.join(archives_dir, name)
+    if not os.path.isfile(archive_path):
+        continue
+    key = name
+    for suffix in (".tar.zst", ".tar.gz"):
+        if key.endswith(suffix):
+            key = key[: -len(suffix)]
+            break
+    metadata_path = os.path.join(metadata_dir, f"{key}.json")
+    last_accessed = os.path.getmtime(archive_path)
+    if os.path.isfile(metadata_path):
+        try:
+            with open(metadata_path, encoding="utf-8") as f:
+                value = json.load(f).get("lastAccessedAt")
+            if isinstance(value, str):
+                last_accessed = datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+        except Exception:
+            pass
+    try:
+        size = os.path.getsize(archive_path)
+    except OSError:
+        continue
+    entries.append((last_accessed, archive_path, metadata_path, size))
+
+total = sum(entry[3] for entry in entries)
+for _, archive_path, metadata_path, size in sorted(entries):
+    if total <= max_bytes:
+        break
+    try:
+        os.remove(archive_path)
+        total -= size
+    except FileNotFoundError:
+        total -= size
+    except OSError:
+        continue
+    try:
+        os.remove(metadata_path)
+    except FileNotFoundError:
+        pass
+PY
+}
+
+store_local_archive() {
+  local object_name="$1"
+  local archive_path="$2"
+  local event="$3"
+  local local_archive_path
+  local tmp_archive_path
+
+  local_archive_path="$(local_cache_archive_path "$object_name")" || return 0
+  mkdir -p "$(dirname "$local_archive_path")"
+  if [ -f "$local_archive_path" ]; then
+    update_local_cache_metadata "$object_name" "$local_archive_path" "$event"
+    return 0
+  fi
+
+  tmp_archive_path="${local_archive_path}.tmp.$$"
+  cp "$archive_path" "$tmp_archive_path"
+  mv "$tmp_archive_path" "$local_archive_path"
+  update_local_cache_metadata "$object_name" "$local_archive_path" "$event"
+  prune_local_cache
+}
+
+restore_local_cache() {
+  local object_name="$1"
+  local local_archive_path
+  local local_metadata_path
+
+  local_archive_path="$(local_cache_archive_path "$object_name")" || return 1
+  if [ ! -f "$local_archive_path" ]; then
+    echo "Xcode compilation local cache miss"
+    return 1
+  fi
+
+  echo "Restoring Xcode compilation cache from local archive: $local_archive_path"
+  du -sh "$local_archive_path"
+  if ! extract_archive "$local_archive_path"; then
+    echo "Xcode compilation local cache restore failed; falling back to remote cache" >&2
+    local_metadata_path="$(local_cache_metadata_path "$object_name")" || local_metadata_path=""
+    rm -f "$local_archive_path"
+    if [ -n "$local_metadata_path" ]; then
+      rm -f "$local_metadata_path"
+    fi
+    return 1
+  fi
+  update_local_cache_metadata "$object_name" "$local_archive_path" "restore-hit"
+
+  echo "Restored Xcode compilation cache:"
+  du -sh "$cache_dir"
+  find "$cache_dir" -type f | wc -l | awk '{ print "File count: " $1 }'
+}
+
+save_local_cache() {
+  local object_name="$1"
+  local archive_path
+  local local_archive_path
+
+  local_archive_path="$(local_cache_archive_path "$object_name")" || return 0
+  if [ -f "$local_archive_path" ]; then
+    echo "Xcode compilation local cache already exists; skipping local save: $local_archive_path"
+    update_local_cache_metadata "$object_name" "$local_archive_path" "save-skip"
+    return 0
+  fi
+
+  if [ ! -d "$cache_dir" ]; then
+    echo "Xcode compilation cache not found; nothing to save locally: $cache_dir"
+    return 0
+  fi
+
+  archive_path="$tmp_dir/xcode-compilation-cache-local.$(compression_extension)"
+  echo "Creating Xcode compilation local cache archive:"
+  du -sh "$cache_dir"
+  create_archive "$archive_path"
+  du -sh "$archive_path"
+  store_local_archive "$object_name" "$archive_path" "save"
+}
+
 restore_cache() {
   local bucket="$1"
   local token="$2"
@@ -365,6 +582,10 @@ restore_cache() {
   echo "Downloaded Xcode compilation cache archive:"
   du -sh "$archive_path"
 
+  if ! store_local_archive "$object_name" "$archive_path" "remote-seed"; then
+    echo "Warning: failed to seed local Xcode compilation cache" >&2
+  fi
+
   extract_archive "$archive_path"
 
   echo "Restored Xcode compilation cache:"
@@ -382,15 +603,27 @@ save_cache() {
   local headers_file="$tmp_dir/upload-headers.txt"
   local upload_url
   local exists_status
+  local local_archive_path
+  local local_exists="false"
+  local remote_exists="false"
 
   if object_exists "$bucket" "$token" "$object_name"; then
-    echo "Xcode compilation cache already exists; skipping upload: gs://${bucket}/${object_name}"
-    return 0
+    remote_exists="true"
   else
     exists_status="$?"
     if [ "$exists_status" -ne 1 ]; then
       return 1
     fi
+  fi
+
+  if local_archive_path="$(local_cache_archive_path "$object_name")" && [ -f "$local_archive_path" ]; then
+    local_exists="true"
+  fi
+
+  if [ "$remote_exists" = "true" ] && [ "$local_exists" = "true" ]; then
+    echo "Xcode compilation cache already exists locally and remotely; skipping save"
+    update_local_cache_metadata "$object_name" "$local_archive_path" "save-skip"
+    return 0
   fi
 
   archive_path="$tmp_dir/xcode-compilation-cache.$(compression_extension)"
@@ -405,6 +638,17 @@ save_cache() {
   du -sh "$archive_path"
   archive_size="$(file_size "$archive_path")"
   content_type="$(compression_content_type)"
+
+  if [ "$local_exists" = "false" ]; then
+    store_local_archive "$object_name" "$archive_path" "save"
+  else
+    echo "Xcode compilation local cache already exists; skipping local save: $local_archive_path"
+  fi
+
+  if [ "$remote_exists" = "true" ]; then
+    echo "Xcode compilation cache already exists; skipping upload: gs://${bucket}/${object_name}"
+    return 0
+  fi
 
   echo "Uploading Xcode compilation cache to gs://${bucket}/${object_name}"
   curl -fsS -X POST \
@@ -463,8 +707,16 @@ if [ "$action" = "report" ]; then
   exit 0
 fi
 
+if [ "$action" = "restore" ] && restore_local_cache "$object_name"; then
+  exit 0
+fi
+
 if [ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
-  echo "FIREBASE_SERVICE_ACCOUNT is not set; skipping Xcode compilation cache ${action}"
+  if [ "$action" = "save" ]; then
+    save_local_cache "$object_name"
+    exit 0
+  fi
+  echo "FIREBASE_SERVICE_ACCOUNT is not set; skipping remote Xcode compilation cache ${action}"
   exit 0
 fi
 

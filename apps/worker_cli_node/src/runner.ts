@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -26,6 +26,7 @@ const gitLumeSshTimeoutSeconds = 120;
 const baseVmPullStaleLockMs = 2 * 60 * 60 * 1000;
 const baseVmPullPeerWaitMs = 2 * 60 * 60 * 1000;
 const baseVmPullPollMs = 2_000;
+const xcodeCompilationCacheVmMountPath = "/Volumes/My Shared Files";
 
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
@@ -449,6 +450,24 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
+export function xcodeCompilationCacheHostDir(): string {
+  return (
+    process.env.OPENCI_XCODE_COMPILATION_CACHE_HOST_DIR ??
+    join(process.env.HOME ?? "/Users/admin", ".openci-cache", "xcode-compilation")
+  );
+}
+
+export function xcodeCompilationCacheMaxBytes(): string {
+  return process.env.OPENCI_XCODE_COMPILATION_CACHE_MAX_BYTES ?? String(20 * 1024 * 1024 * 1024);
+}
+
+function actEnvironmentPrefix(): string {
+  return [
+    `export OPENCI_XCODE_LOCAL_CACHE_DIR=${shellQuote(xcodeCompilationCacheVmMountPath)}`,
+    `export OPENCI_XCODE_LOCAL_CACHE_MAX_BYTES=${shellQuote(xcodeCompilationCacheMaxBytes())}`,
+  ].join("\n");
+}
+
 function buildJobNeeds(buildJob: BuildJob): string[] {
   return Array.isArray(buildJob.needs)
     ? buildJob.needs.filter((need): need is string => typeof need === "string" && need.length > 0)
@@ -539,6 +558,7 @@ function actScript(buildJob: BuildJob, workflowPath: string): string {
   return [
     "set -e",
     'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:/opt/dart-sdk/bin:/opt/flutter/bin:$PATH"',
+    actEnvironmentPrefix(),
     `cd ${shellQuote(buildJob.repo)}`,
     `act ${eventType} -W ${shellQuote(workflowPath)} ${jobFlag}` +
       "-P macos-latest=-self-hosted " +
@@ -868,6 +888,9 @@ async function runMacVmBuild(input: {
   const warn = (message: string) => logWarning(buildJob.id, runId, message);
   try {
     await cleanupWorkerVms(workerId, warn);
+    const hostXcodeCacheDir = xcodeCompilationCacheHostDir();
+    await mkdir(hostXcodeCacheDir, { recursive: true });
+    await logInfo(buildJob.id, runId, `Xcode compilation cache host directory: ${hostXcodeCacheDir}`);
     await logInfo(buildJob.id, runId, `Ensuring VM image ${baseVmImage} is available...`);
     await ensureBaseVm();
     await cleanupOldBaseVms(warn);
@@ -877,10 +900,14 @@ async function runMacVmBuild(input: {
     const vmRunOutput: string[] = [];
     let vmReady = false;
     let vmProcessExit: ProcessExit | undefined;
-    vmProcess = spawn("lume", ["run", vmName, "--no-display"], {
-      stdio: ["ignore", "pipe", "pipe"],
-      detached: true,
-    });
+    vmProcess = spawn(
+      "lume",
+      ["run", vmName, "--no-display", "--shared-dir", hostXcodeCacheDir],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: true,
+      },
+    );
     const recordVmRunOutput = (chunk: Buffer) => {
       for (const line of chunk.toString("utf8").split(/\r?\n/u)) {
         if (line.length === 0) continue;
