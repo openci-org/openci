@@ -2,29 +2,23 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <restore|save|report|verify> [package-directory]" >&2
+  echo "Usage: $0 <restore|save|report>" >&2
 }
 
-if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+if [ "$#" -ne 1 ]; then
   usage
   exit 2
 fi
 
 action="$1"
-package_dir="${2:-apps/dashboard}"
 
 case "$action" in
-  restore|save|report|verify) ;;
+  restore|save|report) ;;
   *)
     usage
     exit 2
     ;;
 esac
-
-if [ "$action" != "verify" ] && [ "$#" -ne 1 ]; then
-  usage
-  exit 2
-fi
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -65,6 +59,19 @@ import os
 import sys
 
 print(os.path.getsize(sys.argv[1]))
+PY
+}
+
+sha256_digest() {
+  python3 - "$1" <<'PY'
+import hashlib
+import sys
+
+digest = hashlib.sha256()
+with open(sys.argv[1], "rb") as f:
+    for chunk in iter(lambda: f.read(1024 * 1024), b""):
+        digest.update(chunk)
+print(digest.hexdigest())
 PY
 }
 
@@ -174,11 +181,11 @@ dependency_hash() {
     "packages/macos_updater/example/pubspec.lock"; do
     if [ -f "$file" ]; then
       printf '%s\n' "$file" >> "$input_file"
-      shasum -a 256 "$file" >> "$input_file"
+      printf '%s  %s\n' "$(sha256_digest "$file")" "$file" >> "$input_file"
     fi
   done
 
-  shasum -a 256 "$input_file" | awk '{ print substr($1, 1, 20) }'
+  sha256_digest "$input_file" | cut -c 1-20
 }
 
 flutter_cache_key_component() {
@@ -391,55 +398,10 @@ report_cache() {
   find "$cache_dir" -type f | wc -l | awk '{ print "File count: " $1 }'
 }
 
-verify_cache() {
-  local object_name="$1"
-  local target_dir="$2"
-  local log_file="$tmp_dir/flutter-pub-get-offline-verbose.log"
-  local status=0
-  local http_count
-  local download_count
-
-  echo "Flutter pub cache key: ${object_name}"
-  echo "Verifying Flutter pub cache with offline verbose pub get in ${target_dir}"
-
-  if [ ! -d "$target_dir" ]; then
-    echo "Package directory not found: ${target_dir}" >&2
-    return 1
-  fi
-
-  if (cd "$target_dir" && flutter pub get --offline --verbose > "$log_file" 2>&1); then
-    status=0
-  else
-    status="$?"
-  fi
-
-  http_count="$(grep -Eci 'HTTP (GET|POST|PUT|HEAD)|https://pub\.dev' "$log_file" || true)"
-  download_count="$(grep -Eci 'Downloading packages|Downloading |Downloaded ' "$log_file" || true)"
-
-  if [ "$status" -eq 0 ]; then
-    echo "Offline verbose pub get succeeded; restored pub cache is sufficient."
-  else
-    echo "Offline verbose pub get failed; restored pub cache is incomplete or stale."
-  fi
-
-  echo "HTTP/pub.dev verbose line count: ${http_count}"
-  echo "Download-related verbose line count: ${download_count}"
-  echo "Relevant verbose lines:"
-  grep -Ei 'Downloading packages|Downloading |Downloaded |HTTP |https://pub\.dev|offline|Got dependencies|not found|could not find|version solving|Finding versions .*/\.pub-cache/' "$log_file" \
-    | tail -n 120 || true
-
-  return "$status"
-}
-
 object_name="$(cache_object_name)"
 
 if [ "$action" = "report" ]; then
   report_cache "$object_name"
-  exit 0
-fi
-
-if [ "$action" = "verify" ]; then
-  verify_cache "$object_name" "$package_dir"
   exit 0
 fi
 
