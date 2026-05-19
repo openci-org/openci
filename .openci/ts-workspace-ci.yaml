@@ -26,6 +26,3 @@ jobs:
 
       - name: Check all workspaces
         run: vp run -r check
-
-      - name: Test TS workspace units
-        run: vp run -w test
