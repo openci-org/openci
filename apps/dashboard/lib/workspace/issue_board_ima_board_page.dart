@@ -27,7 +27,7 @@ class IssueBoardPage extends StatefulWidget {
   const IssueBoardPage({
     super.key,
     this.workspaceId = '',
-    this.workspaceName = '個人ワークスペース',
+    this.workspaceName = '個人カンバン',
     this.onSwitchTeam,
   });
 

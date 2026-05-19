@@ -28,7 +28,7 @@ class WorkflowsPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('CI/CD設定'),
         leading: IconButton(
-          tooltip: 'ワークスペースに戻る',
+          tooltip: 'カンバンに戻る',
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.go('/workspace'),
         ),

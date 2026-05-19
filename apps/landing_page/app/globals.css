@@ -6,7 +6,15 @@
   --foreground: #0a0a0a;
 }
 
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
 html {
+  max-width: 100%;
+  overflow-x: clip;
   scroll-behavior: smooth;
 }
 
@@ -16,6 +24,8 @@ body {
   font-family: InterVariable, Inter, ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   font-optical-sizing: auto;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 ::selection {

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">OpenCI</title>
+  <desc id="desc">OpenCI. 正しいツールで、正しい仕事を。</desc>
+  <rect width="1200" height="630" fill="#ffffff"/>
+  <text x="118" y="288" fill="#0a0a0a" font-family="Helvetica Neue, Arial, sans-serif" font-size="96" font-weight="500" letter-spacing="-2">OpenCI</text>
+  <text x="122" y="366" fill="#404040" font-family="Hiragino Sans, Hiragino Kaku Gothic ProN, Yu Gothic, sans-serif" font-size="40" font-weight="400">正しいツールで、正しい仕事を。</text>
+  <rect x="122" y="438" width="148" height="4" rx="2" fill="#2563eb"/>
+</svg>

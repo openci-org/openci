@@ -110,8 +110,6 @@ class _DesktopRailHeader extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _OpenCiMark(),
-            const SizedBox(height: 12),
             IconButton.filledTonal(
               tooltip: 'ナビゲーションを展開',
               onPressed: () => onCollapsedChanged(false),
@@ -126,8 +124,6 @@ class _DesktopRailHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
       child: Row(
         children: [
-          const _OpenCiMark(),
-          const SizedBox(width: 12),
           const Expanded(
             child: Text(
               'OpenCI',
@@ -167,33 +163,6 @@ class _RailIcon extends StatelessWidget {
       message: tooltip,
       waitDuration: const Duration(milliseconds: 500),
       child: Icon(icon),
-    );
-  }
-}
-
-class _OpenCiMark extends StatelessWidget {
-  const _OpenCiMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
-      ),
-      child: const Text(
-        'OC',
-        style: TextStyle(
-          color: Color(0xFF1D4ED8),
-          fontSize: 14,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0,
-        ),
-      ),
     );
   }
 }

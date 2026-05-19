@@ -14,7 +14,7 @@ export default function JapaneseRootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className="antialiased">
+    <html lang="ja" className="antialiased" data-scroll-behavior="smooth">
       <body className="isolate min-h-dvh bg-white text-neutral-950">{children}</body>
     </html>
   );
