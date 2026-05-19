@@ -258,7 +258,7 @@ class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
           appBar: AppBar(
             title: Text(title),
             leading: IconButton(
-              tooltip: 'ワークスペースに戻る',
+              tooltip: 'カンバンに戻る',
               icon: const Icon(Icons.arrow_back_rounded),
               onPressed: () => context.go('/workspace'),
             ),
@@ -297,7 +297,7 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
             appBar: AppBar(
               title: const Text('CI/CDログ'),
               leading: IconButton(
-                tooltip: 'ワークスペースに戻る',
+                tooltip: 'カンバンに戻る',
                 icon: const Icon(Icons.arrow_back_rounded),
                 onPressed: () => context.go('/workspace'),
               ),

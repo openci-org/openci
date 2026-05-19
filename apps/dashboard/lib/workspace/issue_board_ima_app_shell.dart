@@ -44,7 +44,7 @@ const boardNavigationDestinations = [
 
 extension CompactBoardDestinationLabel on CompactBoardDestination {
   String get label => switch (this) {
-    CompactBoardDestination.issueBoard => 'ワークスペース',
+    CompactBoardDestination.issueBoard => 'カンバン',
     CompactBoardDestination.runs => 'CI/CDログ',
     CompactBoardDestination.workers => 'ワーカー',
     CompactBoardDestination.workflows => 'CI/CD設定',

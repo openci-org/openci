@@ -525,7 +525,7 @@ class CompactBoardDrawer extends StatelessWidget {
             const _CompactDrawerSectionLabel('ナビゲーション'),
             _CompactDrawerTile(
               icon: Icons.view_kanban_outlined,
-              label: 'ワークスペース',
+              label: 'カンバン',
               selected:
                   selectedDestination == CompactBoardDestination.issueBoard,
               onTap: () => runAfterClose(onIssueBoardTap),

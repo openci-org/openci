@@ -115,7 +115,7 @@ class SettingsPage extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const _SectionHeader(label: 'ワークスペース'),
+                  const _SectionHeader(label: 'カンバン'),
                   _SettingsGroup(
                     children: [
                       _TeamSettingsTile(onSwitchTeam: onSwitchTeam),
