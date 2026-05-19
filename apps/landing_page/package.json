@@ -28,5 +28,8 @@
   },
   "overrides": {
     "postcss": "^8.5.12"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.4"
   }
 }
