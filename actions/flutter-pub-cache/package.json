@@ -21,6 +21,5 @@
     "typescript": "^5.9.3",
     "vite-plus": "^0.1.21",
     "vitest": "^4.1.6"
-  },
-  "packageManager": "npm@11.14.1"
+  }
 }

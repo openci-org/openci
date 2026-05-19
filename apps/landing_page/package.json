@@ -1,10 +1,13 @@
 {
   "name": "landing-page",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "check": "vp run lint && tsc --noEmit",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check",
     "lint": "eslint ."
   },
   "dependencies": {

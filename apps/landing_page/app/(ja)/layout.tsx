@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
-import '../globals.css';
+import type { Metadata } from "next";
+import "../globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://openci.org'),
+  metadataBase: new URL("https://openci.org"),
   icons: {
-    icon: '/favicon.png',
+    icon: "/favicon.png",
   },
 };
 

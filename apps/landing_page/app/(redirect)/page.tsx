@@ -1,11 +1,11 @@
-import type { Metadata } from 'next';
-import { createPageMetadata } from '../../lib/seo';
+import type { Metadata } from "next";
+import { createPageMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'OpenCI',
-  description: 'CI/CD for everyone.',
-  path: '/',
-  locale: 'en_US',
+  title: "OpenCI",
+  description: "CI/CD for everyone.",
+  path: "/",
+  locale: "en_US",
 });
 
 export default function HomeRedirectPage() {
@@ -25,11 +25,17 @@ export default function HomeRedirectPage() {
       <script dangerouslySetInnerHTML={{ __html: redirectScript }} />
       <noscript>
         <p className="text-base text-neutral-600">
-          <a href="/en/" className="border-b border-neutral-950/25 text-neutral-950 transition-colors hover:border-neutral-950">
+          <a
+            href="/en/"
+            className="border-b border-neutral-950/25 text-neutral-950 transition-colors hover:border-neutral-950"
+          >
             English
           </a>
-          {' | '}
-          <a href="/ja/" className="border-b border-neutral-950/25 text-neutral-950 transition-colors hover:border-neutral-950">
+          {" | "}
+          <a
+            href="/ja/"
+            className="border-b border-neutral-950/25 text-neutral-950 transition-colors hover:border-neutral-950"
+          >
             日本語
           </a>
         </p>

@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { ReleaseDetailPage } from '../../../../../components/releases';
-import { findReleaseNote, releaseNotes } from '../../../../../lib/releases';
-import { createPageMetadata } from '../../../../../lib/seo';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { ReleaseDetailPage } from "../../../../../components/releases";
+import { findReleaseNote, releaseNotes } from "../../../../../lib/releases";
+import { createPageMetadata } from "../../../../../lib/seo";
 
 type Props = {
   params: Promise<{
@@ -22,9 +22,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!release) {
     return createPageMetadata({
-      title: '更新情報 — OpenCI',
-      description: 'OpenCIのプロダクト改善、ランナー更新、ダッシュボード変更を毎週金曜日にまとめてお届けします。',
-      path: '/ja/releases/',
+      title: "更新情報 — OpenCI",
+      description:
+        "OpenCIのプロダクト改善、ランナー更新、ダッシュボード変更を毎週金曜日にまとめてお届けします。",
+      path: "/ja/releases/",
     });
   }
 
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: release.summary,
     path: `/ja/releases/${release.slug}/`,
     image: release.image,
-    type: 'article',
+    type: "article",
     publishedTime: `${release.date}T00:00:00+09:00`,
   });
 }

@@ -26,9 +26,7 @@ jobs:
           run-install: false
 
       - name: Install dependencies
-        run: |
-          vp i
-          git restore package.json package-lock.json
+        run: vp i --frozen-lockfile
 
       - name: Check
         run: vp check
@@ -43,4 +41,4 @@ jobs:
         run: vp test
 
       - name: Build
-        run: npm run build
+        run: vp run build

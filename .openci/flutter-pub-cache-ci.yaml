@@ -26,7 +26,7 @@ jobs:
           run-install: false
 
       - name: Install dependencies
-        run: vp i
+        run: vp i --frozen-lockfile
 
       - name: Check
         run: vp check

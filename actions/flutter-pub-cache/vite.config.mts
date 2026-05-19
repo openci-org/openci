@@ -1,6 +1,4 @@
-import { defineConfig } from "vite-plus";
-
-export default defineConfig({
+export default {
   fmt: {
     ignorePatterns: ["dist/**"],
   },
@@ -14,4 +12,4 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
   },
-});
+};
