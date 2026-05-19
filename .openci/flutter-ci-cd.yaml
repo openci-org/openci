@@ -55,6 +55,13 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: .openci/scripts/flutter-pub-cache.sh restore
 
+      - name: Restore Xcode compilation cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: ios
+        run: .openci/scripts/xcode-compilation-cache.sh restore
+
       - name: Prepare stable iOS build workspace
         run: |
           set -euo pipefail
@@ -134,6 +141,14 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
 
+      - name: Save Xcode compilation cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: ios
+        run: .openci/scripts/xcode-compilation-cache.sh save
+
       - name: Save Flutter pub cache
         if: always()
         continue-on-error: true
@@ -162,6 +177,13 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: .openci/scripts/flutter-pub-cache.sh restore
+
+      - name: Restore Xcode compilation cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: macos
+        run: .openci/scripts/xcode-compilation-cache.sh restore
 
       - name: Configure Sparkle update settings
         env:
@@ -458,6 +480,14 @@ jobs:
           fi
 
           rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
+
+      - name: Save Xcode compilation cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: macos
+        run: .openci/scripts/xcode-compilation-cache.sh save
 
       - name: Save Flutter pub cache
         if: always()
