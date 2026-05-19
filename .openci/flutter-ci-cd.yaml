@@ -23,6 +23,9 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: .openci/scripts/flutter-pub-cache.sh restore
+      - name: Verify Flutter pub cache offline
+        continue-on-error: true
+        run: .openci/scripts/flutter-pub-cache.sh verify apps/dashboard
       - name: Analyze
         working-directory: apps/dashboard
         run: flutter analyze
@@ -54,6 +57,10 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: .openci/scripts/flutter-pub-cache.sh restore
+
+      - name: Verify Flutter pub cache offline
+        continue-on-error: true
+        run: .openci/scripts/flutter-pub-cache.sh verify apps/dashboard
 
       - name: Prepare stable iOS build workspace
         run: |
