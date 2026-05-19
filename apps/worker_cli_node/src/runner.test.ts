@@ -15,6 +15,17 @@ import {
 } from "./runner.js";
 
 const tempDirs: string[] = [];
+const originalEnv = {
+  HOME: process.env.HOME,
+};
+
+function restoreEnvValue(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
 
 async function tempLockPath(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "openci-worker-runner-test-"));
@@ -23,6 +34,7 @@ async function tempLockPath(): Promise<string> {
 }
 
 afterEach(async () => {
+  restoreEnvValue("HOME", originalEnv.HOME);
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 

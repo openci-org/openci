@@ -545,6 +545,81 @@ void main() {
       expect(detailsButton, findsOneWidget);
     });
 
+    testWidgets('closes the issue editor when merge is confirmed', (
+      tester,
+    ) async {
+      const issue = Issue(
+        id: 'issue-1',
+        displayId: 'IMA-391',
+        repo: 'openci-org/openci',
+        title: 'Review PR in OpenCI',
+        labels: [],
+        comments: 0,
+        priority: Priority.medium,
+        pullRequests: [
+          IssuePullRequest(
+            number: 1956,
+            title: 'Close editor after merge starts',
+            state: 'open',
+            merged: false,
+            branch: 'IMA-391',
+          ),
+        ],
+      );
+      Object? dialogResult;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () async {
+                  dialogResult = await showDialog<Object?>(
+                    context: context,
+                    builder: (context) => const AddIssueDialog(
+                      columns: [
+                        BoardColumn(
+                          id: 'review',
+                          title: 'レビュー',
+                          description: 'Review',
+                          color: Colors.blue,
+                          issues: [issue],
+                        ),
+                      ],
+                      repositoryOptions: ['openci-org/openci'],
+                      initialIssue: issue,
+                      initialColumnId: 'review',
+                    ),
+                  );
+                },
+                child: const Text('open editor'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open editor'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AddIssueDialog), findsOneWidget);
+
+      final mergeButton = find.widgetWithText(OutlinedButton, 'マージ');
+      await tester.ensureVisible(mergeButton);
+      await tester.tap(mergeButton);
+      await tester.pumpAndSettle();
+      expect(find.text('PR #1956をマージしますか？'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'マージする'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddIssueDialog), findsNothing);
+      expect(dialogResult, isA<MergeIssuePullRequestDialogResult>());
+      final mergeResult = dialogResult as MergeIssuePullRequestDialogResult;
+      expect(mergeResult.issueId, 'issue-1');
+      expect(mergeResult.repository, 'openci-org/openci');
+      expect(mergeResult.pullRequest.number, 1956);
+    });
+
     testWidgets('creates a pull request from the recent branch dialog', (
       tester,
     ) async {

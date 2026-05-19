@@ -18,9 +18,20 @@ jobs:
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
       - name: Analyze
         working-directory: apps/dashboard
         run: flutter analyze
+      - name: Save Flutter pub cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh save
 
   deploy-ios:
     needs: [ci]
@@ -38,14 +49,38 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
+
+      - name: Restore Xcode compilation cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: ios
+        run: .openci/scripts/xcode-compilation-cache.sh restore
+
+      - name: Prepare stable iOS build workspace
+        run: |
+          set -euo pipefail
+
+          stable_workspace="${HOME}/openci-workspaces/openci-org-openci-ios"
+          rm -rf "$stable_workspace"
+          mkdir -p "$(dirname "$stable_workspace")"
+          rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
+          echo "Stable iOS build workspace: $stable_workspace"
+
       - name: Build iOS IPA for Firebase App Distribution
         if: github.event_name == 'pull_request'
-        uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
+        uses: openci-org/flutter-cd@2545e136f86bce8ea290a6da50f4b4e806089277
         id: ios-build-fad
         with:
           platform: "ios"
-          working-directory: "apps/dashboard"
+          working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
           swift-package-manager: "enabled"
+          patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "ad-hoc"
@@ -91,11 +126,12 @@ jobs:
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
+        uses: openci-org/flutter-cd@2545e136f86bce8ea290a6da50f4b4e806089277
         with:
           platform: "ios"
-          working-directory: "apps/dashboard"
+          working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
           swift-package-manager: "enabled"
+          patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
           distribution-method: "app-store"
@@ -104,6 +140,21 @@ jobs:
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+
+      - name: Save Xcode compilation cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: ios
+        run: .openci/scripts/xcode-compilation-cache.sh save
+
+      - name: Save Flutter pub cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh save
 
   build-macos:
     needs: [ci]
@@ -120,6 +171,19 @@ jobs:
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
+
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
+
+      - name: Restore Xcode compilation cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: macos
+        run: .openci/scripts/xcode-compilation-cache.sh restore
 
       - name: Configure Sparkle update settings
         env:
@@ -143,11 +207,21 @@ jobs:
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
+      - name: Prepare stable macOS build workspace
+        run: |
+          set -euo pipefail
+
+          stable_workspace="${HOME}/openci-workspaces/openci-org-openci-macos"
+          rm -rf "$stable_workspace"
+          mkdir -p "$(dirname "$stable_workspace")"
+          rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
+          echo "Stable macOS build workspace: $stable_workspace"
+
       - id: build_macos
-        uses: openci-org/flutter-cd@0888e2e278dcec6b5b3ed055e911fa01fe46c8b4
+        uses: openci-org/flutter-cd@2545e136f86bce8ea290a6da50f4b4e806089277
         with:
           platform: "macos"
-          working-directory: "apps/dashboard"
+          working-directory: "/Users/admin/openci-workspaces/openci-org-openci-macos/apps/dashboard"
           swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
@@ -407,6 +481,21 @@ jobs:
 
           rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
 
+      - name: Save Xcode compilation cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OPENCI_XCODE_CACHE_PLATFORM: macos
+        run: .openci/scripts/xcode-compilation-cache.sh save
+
+      - name: Save Flutter pub cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh save
+
   deploy-web:
     needs: [ci]
     runs-on: ubuntu-latest
@@ -417,6 +506,12 @@ jobs:
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+
+      - name: Restore Flutter pub cache
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh restore
 
       - name: Build Flutter web
         working-directory: apps/dashboard
@@ -435,6 +530,13 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
             --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
             --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA"
+
+      - name: Save Flutter pub cache
+        if: always()
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: .openci/scripts/flutter-pub-cache.sh save
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'

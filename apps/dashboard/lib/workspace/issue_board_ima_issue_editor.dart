@@ -416,11 +416,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     required Issue issue,
     required IssuePullRequest pullRequest,
   }) async {
-    final workspaceId = widget.workspaceId;
-    if (workspaceId == null || workspaceId.isEmpty) {
-      showFloatingSnackBar(context, 'workspaceId is required');
-      return false;
-    }
     final confirmed = await _confirmPullRequestMerge(pullRequest);
     if (confirmed != true) {
       return false;
@@ -429,59 +424,14 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
       return false;
     }
 
-    showOverlaySnackBar(context, 'PR #${pullRequest.number}をマージ中です');
-
-    try {
-      final result = await firebaseFunctions
-          .httpsCallable(
-            mergeIssuePullRequestFunction,
-            options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
-          )
-          .call<Map<String, dynamic>>({
-            'workspaceId': workspaceId,
-            'issueId': issue.id,
-            'repository': issue.repo,
-            'pullRequestNumber': pullRequest.number,
-            'mergeMethod': 'squash',
-          });
-      final data = asMap(result.data);
-      final merged = data['merged'] == true;
-      if (!mounted) {
-        return merged;
-      }
-      setState(() {
-        _mergeConflictMessagesByPullRequest.remove(
-          _pullRequestMergeConflictKey(issue.repo, pullRequest.number),
-        );
-      });
-      showOverlaySnackBar(
-        context,
-        merged
-            ? 'PR #${pullRequest.number}をマージしました'
-            : asString(data['message'], 'PRのマージ結果を確認してください'),
-      );
-      return merged;
-    } catch (error) {
-      if (mounted) {
-        final conflictMessage = _pullRequestMergeConflictMessage(error);
-        if (conflictMessage == null) {
-          showFloatingSnackBar(context, friendlyError(error));
-        } else {
-          setState(() {
-            _mergeConflictMessagesByPullRequest[_pullRequestMergeConflictKey(
-                  issue.repo,
-                  pullRequest.number,
-                )] =
-                conflictMessage;
-          });
-          showOverlaySnackBar(
-            context,
-            'PR #${pullRequest.number}にconflictがあります',
-          );
-        }
-      }
-      return false;
-    }
+    Navigator.of(context).pop(
+      MergeIssuePullRequestDialogResult(
+        issueId: issue.id,
+        repository: issue.repo,
+        pullRequest: pullRequest,
+      ),
+    );
+    return true;
   }
 
   Future<bool?> _confirmPullRequestMerge(IssuePullRequest pullRequest) {
@@ -3508,19 +3458,6 @@ String? diffLanguageForFilename(String filename) {
 
 String _pullRequestMergeConflictKey(String repository, int number) {
   return '$repository#$number';
-}
-
-String? _pullRequestMergeConflictMessage(Object error) {
-  if (error is! FirebaseFunctionsException) {
-    return null;
-  }
-  final message = error.message ?? '';
-  final normalized = message.toLowerCase();
-  if (error.code != 'failed-precondition' ||
-      !normalized.contains('merge conflict')) {
-    return null;
-  }
-  return 'このPRはbase branchとconflictしています。GitHubでconflictを解消してから、もう一度マージしてください。';
 }
 
 String? _pullRequestMergeConflictMessageFromDiff(IssuePullRequestDiff? diff) {

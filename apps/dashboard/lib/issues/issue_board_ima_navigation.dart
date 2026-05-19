@@ -58,11 +58,11 @@ class DesktopBoardNavigationRail extends StatelessWidget {
       child: NavigationRail(
         backgroundColor: const Color(0xFFF8FAFC),
         extended: extended,
-        minWidth: 80,
+        minWidth: extended ? 80 : 72,
         minExtendedWidth: 216,
         groupAlignment: -1,
         selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-        labelType: extended ? null : NavigationRailLabelType.all,
+        labelType: extended ? null : NavigationRailLabelType.none,
         leading: _DesktopRailHeader(
           extended: extended,
           onCollapsedChanged: onCollapsedChanged,
@@ -70,9 +70,19 @@ class DesktopBoardNavigationRail extends StatelessWidget {
         destinations: [
           for (final destination in boardNavigationDestinations)
             NavigationRailDestination(
-              icon: Icon(destination.icon),
-              selectedIcon: Icon(destination.selectedIcon),
-              label: Text(destination.label),
+              icon: _RailIcon(
+                icon: destination.icon,
+                tooltip: destination.label,
+              ),
+              selectedIcon: _RailIcon(
+                icon: destination.selectedIcon,
+                tooltip: destination.label,
+              ),
+              label: Text(
+                destination.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
         ],
         onDestinationSelected: (index) {
@@ -138,6 +148,25 @@ class _DesktopRailHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RailIcon extends StatelessWidget {
+  const _RailIcon({
+    required this.icon,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 500),
+      child: Icon(icon),
     );
   }
 }

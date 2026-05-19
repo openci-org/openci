@@ -63,6 +63,18 @@ class EditIssueDialogResult {
   final NewIssueDraft draft;
 }
 
+class MergeIssuePullRequestDialogResult {
+  const MergeIssuePullRequestDialogResult({
+    required this.issueId,
+    required this.repository,
+    required this.pullRequest,
+  });
+
+  final String issueId;
+  final String repository;
+  final IssuePullRequest pullRequest;
+}
+
 class IssueWeightOverrideDraft {
   const IssueWeightOverrideDraft({
     required this.estimateWeight,

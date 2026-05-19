@@ -26,7 +26,6 @@ const gitLumeSshTimeoutSeconds = 120;
 const baseVmPullStaleLockMs = 2 * 60 * 60 * 1000;
 const baseVmPullPeerWaitMs = 2 * 60 * 60 * 1000;
 const baseVmPullPollMs = 2_000;
-
 function maskToken(message: string, token?: string | null): string {
   if (!token) return message;
   return message.split(token).join("***");
