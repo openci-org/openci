@@ -90,6 +90,13 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
 
+      - name: Report iOS Xcode archive metrics
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        env:
+          OPENCI_XCODE_BUILD_LOG_PLATFORM: ios
+        run: .openci/scripts/xcode-build-log-summary.sh
+
       - name: Upload iOS IPA to Firebase App Distribution
         if: github.event_name == 'pull_request'
         env:
@@ -140,6 +147,13 @@ jobs:
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+
+      - name: Report iOS Xcode archive metrics
+        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+        continue-on-error: true
+        env:
+          OPENCI_XCODE_BUILD_LOG_PLATFORM: ios
+        run: .openci/scripts/xcode-build-log-summary.sh
 
       - name: Save Xcode compilation cache
         if: always()
@@ -233,6 +247,13 @@ jobs:
           macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
           macos-provisioning-profile: "true"
           artifact-name: "OpenCI-dashboard-macos"
+
+      - name: Report macOS Xcode archive metrics
+        if: always()
+        continue-on-error: true
+        env:
+          OPENCI_XCODE_BUILD_LOG_PLATFORM: macos
+        run: .openci/scripts/xcode-build-log-summary.sh
 
       - name: Verify Sparkle helper signatures
         run: |
