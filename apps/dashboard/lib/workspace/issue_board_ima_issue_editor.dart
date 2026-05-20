@@ -54,8 +54,6 @@ class AddIssueDialog extends StatefulWidget {
     this.isEstimatingWeight = false,
     this.onEstimateIssueWeight,
     this.onOverrideIssueWeight,
-    this.isStartingCursorAgent = false,
-    this.onStartCursorAgent,
     this.onCreateGitHubSubIssue,
     this.isBottomSheet = false,
     this.workspaceId,
@@ -70,8 +68,6 @@ class AddIssueDialog extends StatefulWidget {
   final bool isEstimatingWeight;
   final Future<void> Function(String issueId)? onEstimateIssueWeight;
   final IssueWeightOverrideCallback? onOverrideIssueWeight;
-  final bool isStartingCursorAgent;
-  final Future<void> Function(String issueId)? onStartCursorAgent;
   final Future<Map<String, dynamic>> Function({
     required String parentIssueId,
     required String title,
@@ -100,7 +96,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
   DateTime? _dueDate;
   var _isEstimatingWeight = false;
   var _isOverridingWeight = false;
-  var _isStartingCursorAgent = false;
   var _isCreatingSubIssue = false;
   final List<Issue> _issueStack = [];
   final Map<String, String> _mergeConflictMessagesByPullRequest = {};
@@ -266,23 +261,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     } finally {
       if (mounted) {
         setState(() => _isOverridingWeight = false);
-      }
-    }
-  }
-
-  Future<void> _startCursorAgent() async {
-    final issue = _currentIssue;
-    final onStart = widget.onStartCursorAgent;
-    if (issue == null || onStart == null || _isStartingCursorAgent) {
-      return;
-    }
-
-    setState(() => _isStartingCursorAgent = true);
-    try {
-      await onStart(issue.id);
-    } finally {
-      if (mounted) {
-        setState(() => _isStartingCursorAgent = false);
       }
     }
   }
@@ -628,15 +606,6 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
               onOverride: widget.onOverrideIssueWeight == null
                   ? null
                   : _overrideIssueWeight,
-            ),
-            const SizedBox(height: 14),
-            CursorAgentPanel(
-              issue: currentIssue,
-              isStarting:
-                  widget.isStartingCursorAgent || _isStartingCursorAgent,
-              onStart: widget.onStartCursorAgent == null
-                  ? null
-                  : _startCursorAgent,
             ),
             SizedBox(height: 14),
           ],

@@ -63,7 +63,6 @@ import {
   timestampFromValue,
 } from "./shared.js";
 import type {
-  BackfillCursorAgentPullRequestsResponse,
   BackfillIssueKeysResponse,
   BranchLogEntry,
   CompleteGitHubDeviceFlowRequest,
@@ -105,8 +104,6 @@ import type {
   PullRequestCiSummary,
   StartGitHubDeviceFlowRequest,
   StartGitHubDeviceFlowResponse,
-  StartIssueCursorAgentRequest,
-  StartIssueCursorAgentResponse,
   SyncGitHubIssuesResponse,
   WorkspaceRecentBranch,
   WorkspaceRecentBranchIssue,
@@ -119,7 +116,6 @@ if (getApps().length === 0) {
 
 const db = getFirestore();
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
-const cursorApiKey = defineSecret("CURSOR_API_KEY");
 const githubAppSecrets = [githubAppId, githubPrivateKey];
 
 async function verifyWorkspaceMember(
@@ -871,11 +867,10 @@ async function fetchPullRequestCiSummary({
   });
 }
 
-function isActiveCursorAgentStatus(status: string): boolean {
-  return status === "starting" || status === "running";
-}
-
-async function resolveIssueCursorStartingRef(repoFullName: string, token: string): Promise<string> {
+async function resolveRepositoryDefaultBranch(
+  repoFullName: string,
+  token: string,
+): Promise<string> {
   const [owner, repo] = repoFullName.split("/");
   if (!owner || !repo) {
     return "main";
@@ -888,68 +883,12 @@ async function resolveIssueCursorStartingRef(repoFullName: string, token: string
     });
     return asString(repository.default_branch, "main");
   } catch (error) {
-    logger.warn("resolveIssueCursorStartingRef: failed to fetch repository", {
+    logger.warn("resolveRepositoryDefaultBranch: failed to fetch repository", {
       repoFullName,
       message: error instanceof Error ? error.message : String(error),
     });
     return "main";
   }
-}
-
-function buildCursorAgentPrompt(input: {
-  issueId: string;
-  issue: Record<string, unknown>;
-  githubIssue: Record<string, unknown>;
-  repoFullName: string;
-}): string {
-  const labels = asStringList(input.issue.labels);
-  const issueUrl = asString(input.githubIssue.url);
-  const issueKeyValue = asString(input.issue.issueKey);
-  const displayId =
-    issueKeyValue.length > 0 ? issueKeyValue : `#${asNumber(input.githubIssue.number)}`;
-
-  return [
-    `Please work on this GitHub issue and open a pull request when finished.`,
-    ``,
-    `Repository: ${input.repoFullName}`,
-    `Issue: ${displayId}`,
-    issueUrl.length > 0 ? `Issue URL: ${issueUrl}` : undefined,
-    labels.length > 0 ? `Labels: ${labels.join(", ")}` : undefined,
-    ``,
-    `Title:`,
-    asString(input.issue.title, "Untitled issue"),
-    ``,
-    `Body:`,
-    asString(input.issue.body, "(no body)"),
-    ``,
-    `Instructions:`,
-    `- Understand the existing codebase before editing.`,
-    `- Implement the issue with the smallest reasonable change.`,
-    `- Add or update tests when the change is behaviorally meaningful.`,
-    `- Run relevant checks if available.`,
-    `- Open a pull request that links back to ${issueUrl.length > 0 ? issueUrl : input.issueId}. The pull request must NOT be a draft; create it as a regular open PR.`,
-    issueKeyValue.length > 0
-      ? `- Include "${issueKeyValue}" in the pull request title (e.g. "feat: description ${issueKeyValue}") for tracking.`
-      : undefined,
-  ]
-    .filter((line): line is string => typeof line === "string")
-    .join("\n");
-}
-
-function cursorAgentStartComment(input: {
-  issueKey: string;
-  agentId: string;
-  runId: string;
-}): string {
-  return [
-    `Cursor agent started from IMA.`,
-    ``,
-    `- Issue: ${input.issueKey}`,
-    `- Agent ID: \`${input.agentId}\``,
-    `- Run ID: \`${input.runId}\``,
-    ``,
-    `The agent will work on the issue and create a pull request if it completes successfully.`,
-  ].join("\n");
 }
 
 function pullRequestSummary({
@@ -2451,7 +2390,7 @@ export const createIssuePullRequest = onCall<
     const base =
       requestedBase.length > 0
         ? requestedBase
-        : await resolveIssueCursorStartingRef(repository, token);
+        : await resolveRepositoryDefaultBranch(repository, token);
     if (head === base) {
       throw new HttpsError("invalid-argument", "head and base must be different branches");
     }
@@ -2972,194 +2911,6 @@ export const createGitHubSubIssue = onCall<
   }
 });
 
-export const startIssueCursorAgent = onCall<
-  StartIssueCursorAgentRequest,
-  Promise<StartIssueCursorAgentResponse>
->({ timeoutSeconds: 120, secrets: [cursorApiKey, ...githubAppSecrets] }, async (request) => {
-  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
-  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
-  const { token: githubToken } = await getWorkspaceGitHubToken(workspaceId);
-  const apiKey = cursorApiKey.value();
-  if (apiKey.length === 0) {
-    throw new HttpsError("failed-precondition", "CURSOR_API_KEY is not configured");
-  }
-
-  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-  const issueDoc = await issueRef.get();
-  const issue = issueDoc.data();
-  if (!issue) {
-    throw new HttpsError("not-found", "Issue was not found");
-  }
-
-  const cursorAgent = issue.cursorAgent as Record<string, unknown> | undefined;
-  const existingStatus = asString(cursorAgent?.status);
-  if (isActiveCursorAgentStatus(existingStatus)) {
-    throw new HttpsError("failed-precondition", "Cursor agent is already running for this issue");
-  }
-
-  const repoFullName = requireNonEmptyString(issue.repo, "repo");
-  const [owner, repo] = repoFullName.split("/");
-  if (!owner || !repo) {
-    throw new HttpsError("failed-precondition", "Issue repository must be owner/repo");
-  }
-
-  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
-  if (!githubIssue) {
-    throw new HttpsError("failed-precondition", "Issue must be linked to GitHub");
-  }
-  const issueNumber = asNumber(githubIssue.number);
-  if (issueNumber <= 0) {
-    throw new HttpsError("failed-precondition", "GitHub issue number is missing");
-  }
-
-  const runRef = issueRef.collection("cursorAgentRuns").doc();
-  const startingRef = await resolveIssueCursorStartingRef(repoFullName, githubToken);
-  const repositoryUrl = `${getConfiguredGitHubBaseUrl()}/${repoFullName}`;
-  const prompt = buildCursorAgentPrompt({
-    issueId,
-    issue,
-    githubIssue,
-    repoFullName,
-  });
-  const now = FieldValue.serverTimestamp();
-  const currentStatusId = asString(issue.statusId, "triage");
-  const shouldMoveToDoing =
-    currentStatusId !== closedStatusId && !inProgressStatusIds.has(currentStatusId);
-
-  await issueRef.set(
-    {
-      cursorAgent: {
-        status: "starting",
-        requestedBy: uid,
-        startingRef,
-        repositoryUrl,
-        updatedAt: now,
-        startedAt: now,
-        errorMessage: FieldValue.delete(),
-      },
-      ...(shouldMoveToDoing ? { statusId: "doing" } : {}),
-      updatedAt: now,
-    },
-    { merge: true },
-  );
-  await runRef.set({
-    status: "starting",
-    requestedBy: uid,
-    startingRef,
-    repositoryUrl,
-    prompt,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-  });
-
-  const { Agent } = await import("@cursor/sdk");
-  let agent: Awaited<ReturnType<typeof Agent.create>> | undefined;
-  try {
-    agent = await Agent.create({
-      apiKey,
-      cloud: {
-        repos: [{ url: repositoryUrl, startingRef }],
-        autoCreatePR: true,
-      },
-    });
-    const run = await agent.send(prompt);
-    const agentId = run.agentId;
-    const runId = run.id;
-
-    await Promise.all([
-      issueRef.set(
-        {
-          cursorAgent: {
-            status: "running",
-            agentId,
-            runId,
-            runDocumentId: runRef.id,
-            requestedBy: uid,
-            startingRef,
-            repositoryUrl,
-            updatedAt: FieldValue.serverTimestamp(),
-            startedAt: FieldValue.serverTimestamp(),
-            errorMessage: FieldValue.delete(),
-          },
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      ),
-      runRef.set(
-        {
-          status: "running",
-          agentId,
-          runId,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      ),
-    ]);
-
-    try {
-      await githubRequest({
-        path: `/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
-        token: githubToken,
-        method: "POST",
-        body: {
-          body: cursorAgentStartComment({
-            issueKey: asString(issue.issueKey, `#${issueNumber}`),
-            agentId,
-            runId,
-          }),
-        },
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn("Failed to post Cursor agent start comment", {
-        workspaceId,
-        issueId,
-        repoFullName,
-        issueNumber,
-        message,
-      });
-    }
-
-    return { issueId, agentId, runId, status: "running" };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    await Promise.all([
-      issueRef.set(
-        {
-          cursorAgent: {
-            status: "failed",
-            requestedBy: uid,
-            startingRef,
-            repositoryUrl,
-            errorMessage: message,
-            updatedAt: FieldValue.serverTimestamp(),
-          },
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      ),
-      runRef.set(
-        {
-          status: "failed",
-          errorMessage: message,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      ),
-    ]);
-    logger.error("Failed to start Cursor agent", {
-      workspaceId,
-      issueId,
-      repoFullName,
-      message,
-    });
-    throw new HttpsError("internal", `Failed to start Cursor agent: ${message}`);
-  } finally {
-    await agent?.[Symbol.asyncDispose]?.();
-  }
-});
-
 export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueKeysResponse>>(
   async (request) => {
     const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
@@ -3185,135 +2936,6 @@ export const backfillIssueKeys = onCall<WorkspaceRequest, Promise<BackfillIssueK
     return { updated };
   },
 );
-
-async function completeCursorAgentFromExistingPullRequest({
-  workspaceId,
-  issueId,
-  cursorAgent,
-  pullRequest,
-}: {
-  workspaceId: string;
-  issueId: string;
-  cursorAgent: Record<string, unknown> | undefined;
-  pullRequest: Record<string, unknown>;
-}): Promise<void> {
-  const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-  const runDocumentId = asString(cursorAgent?.runDocumentId);
-  const update = {
-    status: "done",
-    pullRequest,
-    completedAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-    errorMessage: FieldValue.delete(),
-  };
-  await Promise.all([
-    issueRef.set(
-      {
-        cursorAgent: update,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    ),
-    ...(runDocumentId.length > 0
-      ? [
-          issueRef.collection("cursorAgentRuns").doc(runDocumentId).set(
-            {
-              status: "done",
-              pullRequest,
-              completedAt: FieldValue.serverTimestamp(),
-              updatedAt: FieldValue.serverTimestamp(),
-            },
-            { merge: true },
-          ),
-        ]
-      : []),
-  ]);
-}
-
-export const backfillCursorAgentPullRequests = onCall<
-  WorkspaceRequest,
-  Promise<BackfillCursorAgentPullRequestsResponse>
->(async (request) => {
-  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  const { token } = await getWorkspaceGitHubToken(workspaceId);
-  const issues = await db.collection(`workspaces/${workspaceId}/issues`).limit(500).get();
-  const pullRequestsByRepo = new Map<string, GitHubPullRequestResponseItem[]>();
-  let inspected = 0;
-  let linked = 0;
-
-  for (const issueDoc of issues.docs) {
-    const issue = issueDoc.data();
-    const cursorAgent = issue.cursorAgent as Record<string, unknown> | undefined;
-    if (!isActiveCursorAgentStatus(asString(cursorAgent?.status))) {
-      continue;
-    }
-    inspected += 1;
-
-    const existingPullRequests = recordList(issue.pullRequests);
-    const existingPullRequest = existingPullRequests[0];
-    if (existingPullRequest !== undefined) {
-      await completeCursorAgentFromExistingPullRequest({
-        workspaceId,
-        issueId: issueDoc.id,
-        cursorAgent,
-        pullRequest: existingPullRequest,
-      });
-      linked += 1;
-      continue;
-    }
-
-    const repoFullName = asString(issue.repo);
-    const [owner, repo] = repoFullName.split("/");
-    if (!owner || !repo) {
-      continue;
-    }
-
-    let pullRequests = pullRequestsByRepo.get(repoFullName);
-    if (pullRequests === undefined) {
-      pullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
-        path: `/repos/${owner}/${repo}/pulls`,
-        token,
-        queryParameters: {
-          state: "all",
-          sort: "updated",
-          direction: "desc",
-          per_page: 100,
-        },
-      });
-      pullRequestsByRepo.set(repoFullName, pullRequests);
-    }
-
-    const pullRequest = pullRequests.find((item) => pullRequestMatchesIssue(item, issue));
-    if (pullRequest === undefined) {
-      continue;
-    }
-
-    const pullRequestNumber = asNumber(pullRequest.number);
-    const linkedIssues =
-      pullRequestNumber > 0
-        ? await fetchPullRequestLinkedIssuesSafely({
-            owner,
-            repo,
-            number: pullRequestNumber,
-            token,
-            workspaceId,
-          })
-        : [];
-
-    await upsertPullRequestLink({
-      workspaceId,
-      issueId: issueDoc.id,
-      action: asString(pullRequest.state, "open") === "closed" ? "closed" : "opened",
-      pullRequest,
-      repoFullName,
-      branch: asString(pullRequest.head?.ref),
-      linkedIssues,
-    });
-    linked += 1;
-  }
-
-  return { inspected, linked };
-});
 
 async function syncWorkspacePullRequestLinks({
   workspaceId,
@@ -3594,41 +3216,15 @@ async function upsertPullRequestLink({
       linkedAt: timestampFromValue(existingLink?.linkedAt) ?? now,
       updatedAt: now,
     });
-    const cursorAgent = issue.get("cursorAgent") as Record<string, unknown> | undefined;
-    const shouldCompleteCursorAgent = isActiveCursorAgentStatus(asString(cursorAgent?.status));
-    const runDocumentId = asString(cursorAgent?.runDocumentId);
     transaction.set(
       issueRef,
       {
         pullRequests: nextPullRequests,
         ...(nextStatusId === null ? {} : { statusId: nextStatusId }),
-        ...(shouldCompleteCursorAgent
-          ? {
-              cursorAgent: {
-                status: "done",
-                pullRequest: linkedPullRequest,
-                completedAt: FieldValue.serverTimestamp(),
-                updatedAt: FieldValue.serverTimestamp(),
-                errorMessage: FieldValue.delete(),
-              },
-            }
-          : {}),
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
-    if (shouldCompleteCursorAgent && runDocumentId.length > 0) {
-      transaction.set(
-        issueRef.collection("cursorAgentRuns").doc(runDocumentId),
-        {
-          status: "done",
-          pullRequest: linkedPullRequest,
-          completedAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
-    }
   });
 }
 
@@ -4022,16 +3618,12 @@ async function processBranchLogFromPush(payload: GitHubPushWebhookPayload): Prom
         continue;
       }
 
-      const cursorAgent = issueDoc.get("cursorAgent") as Record<string, unknown> | undefined;
-      const cursorStartedAt = timestampFromValue(cursorAgent?.startedAt);
-      const workStartedAt = cursorStartedAt ?? branchCreatedAt;
-
       await issueDoc.ref.set(
         {
           ...(existingBranchCreatedAt === null
             ? {
                 branchCreatedAt,
-                workStartedAt,
+                workStartedAt: branchCreatedAt,
               }
             : {}),
           ...(existingWorkBranch.length === 0 ? { workBranch: branchName } : {}),
@@ -4229,12 +3821,9 @@ export const issueLifecycleEventLogger = onDocumentWritten(
       const createdAt =
         timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
       const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
-      const cursorAgent = after.cursorAgent as Record<string, unknown> | undefined;
-      const cursorStartedAt = timestampFromValue(cursorAgent?.startedAt);
       const branchCreatedAt = timestampFromValue(after.branchCreatedAt);
-      const workStartedAt = cursorStartedAt ?? branchCreatedAt ?? firstInProgressAt;
-      const workStartSource =
-        cursorStartedAt !== null ? "cursorAgent" : branchCreatedAt !== null ? "branch" : "status";
+      const workStartedAt = branchCreatedAt ?? firstInProgressAt;
+      const workStartSource = branchCreatedAt !== null ? "branch" : "status";
       const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
       const cycleTimeMs = workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
       const weightEstimate = issueWeightEstimateMap(after);

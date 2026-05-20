@@ -23,7 +23,6 @@
     "test:watch": "firebase emulators:exec --only functions,firestore,auth \"vitest\""
   },
   "dependencies": {
-    "@cursor/sdk": "^1.0.12",
     "@google-cloud/secret-manager": "^6.1.1",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/graphql": "^9.0.3",

@@ -35,10 +35,6 @@ export { githubWebhook } from "./github/webhook.js";
 export { acceptInvitation } from "./invitation/acceptInvitation.js";
 export { acceptInvitations } from "./invitation/acceptInvitations.js";
 export {
-  backfillCursorAgentPullRequests,
-  startIssueCursorAgent,
-} from "./issues/cursorAgentHandlers.js";
-export {
   completeGitHubDeviceFlow,
   connectGitHub,
   listGitHubRepositories,
