@@ -9,6 +9,12 @@ export interface BuildJob {
   workflowFileName?: string | null;
   workflowName?: string | null;
   jobKey?: string | null;
+  workflowJobKey?: string | null;
+  matrix?: Record<string, string | number | boolean> | null;
+  matrixLabel?: string | null;
+  matrixIndex?: number | null;
+  matrixGroupKey?: string | null;
+  matrixFailFast?: boolean | null;
   workflowRunId?: string | null;
   needs?: string[] | null;
   resolvedNeeds?: unknown | null;

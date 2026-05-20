@@ -12,13 +12,18 @@ const BuildJobStatus = {
   QUEUED: "QUEUED",
 } as const;
 
-function buildJobSpecFields(spec: Record<string, unknown>, jobDocumentIds: Record<string, string>) {
+function buildJobSpecFields(
+  spec: Record<string, unknown>,
+  jobDocumentIds: Record<string, string>,
+  jobInstanceKeysBySourceKey: Record<string, string[]>,
+) {
   const rawNeeds = spec.needs;
-  const needs = Array.isArray(rawNeeds)
+  const rawNeedKeys = Array.isArray(rawNeeds)
     ? rawNeeds.map(String)
     : typeof rawNeeds === "string"
       ? [rawNeeds]
       : [];
+  const needs = rawNeedKeys.flatMap((need) => jobInstanceKeysBySourceKey[need] ?? [need]);
   const hasNeeds = needs.length > 0;
   const resolvedNeeds = hasNeeds
     ? Object.fromEntries(
@@ -72,18 +77,30 @@ export async function saveBuildJobsToFirestore(
   const batch = params.db.batch();
   const workflowRunIds = new Map<string, string>();
   const jobDocumentIdsByWorkflow = new Map<string, Record<string, string>>();
+  const jobInstanceKeysBySourceKeyByWorkflow = new Map<string, Record<string, string[]>>();
   for (const job of params.jobs) {
     getOrCreateWorkflowRunId(workflowRunIds, job.workflowFileName);
 
     const jobDocumentIds = jobDocumentIdsByWorkflow.get(job.workflowFileName) ?? {};
     jobDocumentIds[job.jobId] = job.documentId;
     jobDocumentIdsByWorkflow.set(job.workflowFileName, jobDocumentIds);
+
+    const sourceKey = job.workflowJobKey ?? job.jobId;
+    const jobInstanceKeysBySourceKey =
+      jobInstanceKeysBySourceKeyByWorkflow.get(job.workflowFileName) ?? {};
+    jobInstanceKeysBySourceKey[sourceKey] = [
+      ...(jobInstanceKeysBySourceKey[sourceKey] ?? []),
+      job.jobId,
+    ];
+    jobInstanceKeysBySourceKeyByWorkflow.set(job.workflowFileName, jobInstanceKeysBySourceKey);
   }
 
   for (const job of params.jobs) {
     const workflowRunId = getOrCreateWorkflowRunId(workflowRunIds, job.workflowFileName);
     const jobDocumentIds = jobDocumentIdsByWorkflow.get(job.workflowFileName) ?? {};
-    const specFields = buildJobSpecFields(job.spec, jobDocumentIds);
+    const jobInstanceKeysBySourceKey =
+      jobInstanceKeysBySourceKeyByWorkflow.get(job.workflowFileName) ?? {};
+    const specFields = buildJobSpecFields(job.spec, jobDocumentIds, jobInstanceKeysBySourceKey);
     const buildJobRef = params.db
       .collection(firestoreCollectionPaths.buildJobs)
       .doc(job.documentId);
@@ -98,6 +115,12 @@ export async function saveBuildJobsToFirestore(
       workflowFileName: job.workflowFileName,
       workflowName: job.workflowName,
       jobKey: job.jobId,
+      workflowJobKey: job.workflowJobKey ?? null,
+      matrix: job.matrix ?? null,
+      matrixLabel: job.matrixLabel ?? null,
+      matrixIndex: job.matrixIndex ?? null,
+      matrixGroupKey: job.matrixGroupKey ?? null,
+      matrixFailFast: job.matrixFailFast ?? null,
       workflowRunId,
       needs: specFields.needs,
       resolvedNeeds: specFields.resolvedNeeds,

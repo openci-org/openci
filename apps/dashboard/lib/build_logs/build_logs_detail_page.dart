@@ -38,6 +38,11 @@ class BuildLogsDetailPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workflowName = buildJob.workflowName;
+    final workflowJobKey = buildJob.workflowJobKey;
+    final jobKey = (workflowJobKey != null && workflowJobKey.isNotEmpty)
+        ? workflowJobKey
+        : buildJob.jobKey;
+    final matrixLabel = buildJob.matrixLabel;
     final detailT = t.buildLogs.detail;
     final retryState = useState(_ActionState.idle);
 
@@ -97,14 +102,37 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 )
               : null,
           titleSpacing: showBackButton ? null : 16,
-          title: Text(
-            workflowName,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: AppColors.of(context).textPrimary,
-              letterSpacing: -0.3,
-            ),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                workflowName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: AppColors.of(context).textPrimary,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              if ((jobKey?.isNotEmpty ?? false) ||
+                  (matrixLabel?.isNotEmpty ?? false))
+                Text(
+                  [
+                    if (jobKey?.isNotEmpty ?? false) jobKey!,
+                    if (matrixLabel?.isNotEmpty ?? false) matrixLabel!,
+                  ].join(' / '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    color: AppColors.of(context).textSecondary,
+                  ),
+                ),
+            ],
           ),
           actions: [
             if (canCancel)

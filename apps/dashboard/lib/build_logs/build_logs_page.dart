@@ -1215,6 +1215,22 @@ class _NeedsBadge extends StatelessWidget {
 }
 
 /// ジョブをneeds依存関係に基づいてツリー構造で表示するウィジェット
+String _buildJobDisplayKey(BuildJob job) {
+  final workflowJobKey = job.workflowJobKey;
+  if (workflowJobKey != null && workflowJobKey.isNotEmpty) {
+    return workflowJobKey;
+  }
+  final jobKey = job.jobKey;
+  if (jobKey != null && jobKey.isNotEmpty) return jobKey;
+  return 'Unnamed Job';
+}
+
+String? _buildJobMatrixLabel(BuildJob job) {
+  final label = job.matrixLabel;
+  if (label == null || label.isEmpty) return null;
+  return label;
+}
+
 class _JobTree extends ConsumerWidget {
   const _JobTree({
     required this.jobs,
@@ -1373,13 +1389,26 @@ class _JobTreeRow extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      job.jobKey ?? 'Unnamed Job',
+                      _buildJobDisplayKey(job),
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
                         color: AppColors.of(context).textPrimary,
                       ),
                     ),
+                    if (_buildJobMatrixLabel(job) case final matrixLabel?) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        matrixLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          color: AppColors.of(context).textSecondary,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Row(
                       children: [

@@ -22,6 +22,9 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   tagName: json['tagName'] as String?,
   branch: json['branch'] as String?,
   jobKey: json['jobKey'] as String?,
+  workflowJobKey: json['workflowJobKey'] as String?,
+  matrix: json['matrix'] as Map<String, dynamic>?,
+  matrixLabel: json['matrixLabel'] as String?,
   workflowRunId: json['workflowRunId'] as String?,
   needs: (json['needs'] as List<dynamic>?)?.map((e) => e as String).toList(),
   failureSummary: json['failureSummary'] as String?,
@@ -52,6 +55,9 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'tagName': instance.tagName,
   'branch': instance.branch,
   'jobKey': instance.jobKey,
+  'workflowJobKey': instance.workflowJobKey,
+  'matrix': instance.matrix,
+  'matrixLabel': instance.matrixLabel,
   'workflowRunId': instance.workflowRunId,
   'needs': instance.needs,
   'failureSummary': instance.failureSummary,
@@ -118,7 +124,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'41ab84a96878f5b5b999b750837c79eb1c06b154';
+String _$buildJobsHash() => r'1a7f9c827fb11b721c7a96e4d1622e1a3e9f7501';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
@@ -258,7 +264,7 @@ final class RunDurationProvider
   }
 }
 
-String _$runDurationHash() => r'23723096ca7c2054b11f75794f67269463db89d0';
+String _$runDurationHash() => r'1fe2804ef7376e6eec2a3a4ef20d17d6251c8af0';
 
 final class RunDurationFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Duration?>, BuildJob> {

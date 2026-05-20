@@ -30,6 +30,12 @@ export type JobWithCheckRun = ExtractedJob & {
   checkRunId: number;
 };
 
+function checkRunJobName(job: ExtractedJob): string {
+  const jobKey = job.workflowJobKey ?? job.jobId;
+  const suffix = job.matrixLabel ? ` (${job.matrixLabel})` : "";
+  return `${job.workflowName} / ${jobKey}${suffix}`;
+}
+
 async function postCheckRun(params: PostCheckRunParams): Promise<number> {
   const res = await request("POST /repos/{owner}/{repo}/check-runs", {
     baseUrl: params.apiBaseUrl,
@@ -66,9 +72,7 @@ export async function createCheckRun(params: CreateCheckRunParams): Promise<JobW
     params.jobs.map(async (job) => {
       const documentId = randomUUID();
       const checkRunName =
-        (jobCountsByWorkflow[job.workflowName] ?? 0) > 1
-          ? `${job.workflowName} / ${job.jobId}`
-          : job.workflowName;
+        (jobCountsByWorkflow[job.workflowName] ?? 0) > 1 ? checkRunJobName(job) : job.workflowName;
       const checkRunId = await postCheckRun({
         token: params.token,
         owner: params.owner,
