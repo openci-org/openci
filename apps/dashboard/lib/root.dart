@@ -17,7 +17,7 @@ class Root extends ConsumerWidget {
     ref.watch(deepLinkListenerProvider);
 
     return MaterialApp.router(
-      debugShowCheckedModeBanner: kDebugMode,
+      debugShowCheckedModeBanner: false,
       locale: const Locale('ja', 'JP'),
       supportedLocales: const [Locale('ja', 'JP')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -28,7 +28,12 @@ class Root extends ConsumerWidget {
           visible: false,
           child: child ?? const SizedBox.shrink(),
         );
-        return app;
+        if (!kDebugMode) return app;
+        return Banner(
+          message: 'DEBUG',
+          location: BannerLocation.topStart,
+          child: app,
+        );
       },
     );
   }
