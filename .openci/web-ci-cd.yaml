@@ -25,6 +25,11 @@ jobs:
           node-version: "22"
           working-directory: apps/landing_page
           cache: true
+          run-install: false
+
+      - name: Install dependencies
+        working-directory: apps/landing_page
+        run: vp i --frozen-lockfile
 
       - name: Lint
         working-directory: apps/landing_page

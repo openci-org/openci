@@ -1,5 +1,7 @@
 .idea/
+node_modules/
 **/.dart_tool/
+*.tsbuildinfo
 .DS_Store
 
 .vercel

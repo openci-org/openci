@@ -14,24 +14,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: openci-org/save-secret-file@v1
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
+
       - name: Restore Flutter pub cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh restore
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: restore
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
+
       - name: Analyze
         working-directory: apps/dashboard
         run: flutter analyze
+
       - name: Save Flutter pub cache
         if: always()
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh save
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: save
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
   deploy-ios:
     needs: [ci]
@@ -50,10 +56,11 @@ jobs:
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
       - name: Restore Flutter pub cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh restore
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: restore
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
       - name: Restore Xcode compilation cache
         continue-on-error: true
@@ -151,10 +158,11 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh save
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: save
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
   build-macos:
     needs: [ci]
@@ -173,10 +181,11 @@ jobs:
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
 
       - name: Restore Flutter pub cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh restore
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: restore
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
       - name: Restore Xcode compilation cache
         continue-on-error: true
@@ -491,10 +500,11 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh save
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: save
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
   deploy-web:
     needs: [ci]
@@ -508,10 +518,11 @@ jobs:
           path: "apps/dashboard/lib/firebase_options.dart"
 
       - name: Restore Flutter pub cache
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh restore
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: restore
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
       - name: Build Flutter web
         working-directory: apps/dashboard
@@ -533,10 +544,11 @@ jobs:
 
       - name: Save Flutter pub cache
         if: always()
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: .openci/scripts/flutter-pub-cache.sh save
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: save
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'

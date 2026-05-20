@@ -1,0 +1,22 @@
+{
+  "name": "openci",
+  "private": true,
+  "workspaces": [
+    "actions/flutter-pub-cache",
+    "apps/landing_page",
+    "apps/worker_cli_node",
+    "firebase/functions"
+  ],
+  "scripts": {
+    "build": "vp run -r build",
+    "check": "vp run -r check",
+    "fmt": "vp run -r fmt",
+    "fmt:check": "vp run -r fmt:check",
+    "test": "vp run --filter ./actions/flutter-pub-cache test && vp run --filter ./apps/worker_cli_node test && vp run --filter ./firebase/functions test:unit",
+    "test:all": "vp run -r --filter '!landing-page' test"
+  },
+  "devDependencies": {
+    "vite-plus": "^0.1.21"
+  },
+  "packageManager": "npm@11.14.1"
+}

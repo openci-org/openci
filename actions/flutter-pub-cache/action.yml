@@ -1,0 +1,56 @@
+name: Flutter Pub Cache
+description: Restore or save Flutter pub cache archives in Firebase Storage or Google Cloud Storage.
+author: OpenCI
+
+inputs:
+  action:
+    description: Cache operation to run.
+    required: true
+  service-account:
+    description: Google service account JSON with permission to read and write the storage bucket. Falls back to FIREBASE_SERVICE_ACCOUNT.
+    required: false
+    default: ""
+  storage-bucket:
+    description: Storage bucket name. If omitted, the action reads storageBucket from firebase-options-path.
+    required: false
+    default: ""
+  firebase-options-path:
+    description: Path to a Firebase options file containing storageBucket.
+    required: false
+    default: "lib/firebase_options.dart"
+  cache-path:
+    description: Pub cache directory to archive.
+    required: false
+    default: "~/.pub-cache"
+  key-prefix:
+    description: Storage object prefix for cache archives.
+    required: false
+    default: "caches/flutter-pub"
+  dependency-paths:
+    description: Optional newline-delimited file or glob patterns used to compute the dependency hash. Defaults to auto-detecting pubspec.yaml and pubspec.lock files.
+    required: false
+    default: ""
+  working-directory:
+    description: Directory where dependency paths and firebase-options-path are resolved.
+    required: false
+    default: "."
+  repository:
+    description: Repository component for the cache object name.
+    required: false
+    default: ""
+  fail-on-error:
+    description: Fail the workflow when restore or save fails. Usage errors still fail regardless of this setting.
+    required: false
+    default: "false"
+
+outputs:
+  cache-hit:
+    description: true when restore downloaded an archive, false on miss or save.
+  cache-saved:
+    description: true when save uploaded a new archive, false otherwise.
+  object-name:
+    description: Google Cloud Storage object name used for the cache archive.
+
+runs:
+  using: node24
+  main: dist/index.js

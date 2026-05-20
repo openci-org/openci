@@ -25,16 +25,13 @@ jobs:
           run-install: false
 
       - name: Install dependencies
-        run: vp install
+        run: vp install --frozen-lockfile
 
-      - name: Format check
-        run: vp fmt --check
-
-      - name: Type check
-        run: npx tsc --noEmit
+      - name: Check
+        run: vp check
 
       - name: Build
-        run: npm run build
+        run: vp run build
 
       - name: Test
         run: vp test

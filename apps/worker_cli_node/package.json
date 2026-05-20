@@ -51,6 +51,5 @@
   },
   "engines": {
     "node": "22"
-  },
-  "packageManager": "npm@11.13.0"
+  }
 }

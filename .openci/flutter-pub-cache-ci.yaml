@@ -1,4 +1,4 @@
-name: Worker CLI CI
+name: Flutter Pub Cache Action CI
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 defaults:
   run:
-    working-directory: apps/worker_cli_node
+    working-directory: actions/flutter-pub-cache
 
 jobs:
   ci:
@@ -21,8 +21,8 @@ jobs:
 
       - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "22"
-          working-directory: apps/worker_cli_node
+          node-version: "24"
+          working-directory: actions/flutter-pub-cache
           run-install: false
 
       - name: Install dependencies
@@ -30,9 +30,6 @@ jobs:
 
       - name: Check
         run: vp check
-
-      - name: Lint
-        run: vp lint
 
       - name: Format check
         run: vp fmt --check
@@ -42,3 +39,6 @@ jobs:
 
       - name: Build
         run: vp run build
+
+      - name: Verify generated dist is committed
+        run: git diff --exit-code -- dist/index.js dist/licenses.txt
