@@ -293,7 +293,6 @@ class Issue {
     this.subIssuesSummary,
     this.subIssues = const [],
     this.parentIssue,
-    this.cursorAgent,
   }) : displayId = displayId ?? issueKey ?? id;
 
   factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -342,7 +341,6 @@ class Issue {
           .whereType<IssueSubIssueReference>()
           .toList(),
       parentIssue: IssueParentIssue.fromMap(asMap(githubIssue['parentIssue'])),
-      cursorAgent: CursorAgentState.fromMap(asMap(data['cursorAgent'])),
     );
   }
 
@@ -376,7 +374,6 @@ class Issue {
       subIssuesSummary: subIssuesSummary,
       subIssues: subIssues,
       parentIssue: parentIssue,
-      cursorAgent: cursorAgent,
     );
   }
 
@@ -402,50 +399,12 @@ class Issue {
   final IssueSubIssuesSummary? subIssuesSummary;
   final List<IssueSubIssueReference> subIssues;
   final IssueParentIssue? parentIssue;
-  final CursorAgentState? cursorAgent;
 
   bool get isTicketNumberPending =>
       issueKey == null &&
       githubNumber <= 0 &&
       repo.isNotEmpty &&
       displayId == id;
-}
-
-class CursorAgentState {
-  const CursorAgentState({
-    required this.status,
-    this.agentId = '',
-    this.runId = '',
-    this.errorMessage = '',
-  });
-
-  static CursorAgentState? fromMap(Map<String, dynamic> data) {
-    final status = asString(data['status']);
-    if (status.isEmpty) {
-      return null;
-    }
-
-    return CursorAgentState(
-      status: status,
-      agentId: asString(data['agentId']),
-      runId: asString(data['runId']),
-      errorMessage: asString(data['errorMessage']),
-    );
-  }
-
-  bool get isActive => status == 'starting' || status == 'running';
-
-  String get shortRunId {
-    if (runId.length <= 8) {
-      return runId;
-    }
-    return runId.substring(0, 8);
-  }
-
-  final String status;
-  final String agentId;
-  final String runId;
-  final String errorMessage;
 }
 
 class IssuePullRequest {

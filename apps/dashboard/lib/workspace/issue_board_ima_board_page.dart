@@ -69,7 +69,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   Set<String> _enabledRepoFullNames = {};
   final Set<String> _closingIssueIds = {};
   final Set<String> _estimatingIssueIds = {};
-  final Set<String> _startingCursorAgentIssueIds = {};
   Map<String, CardBuildStatus> _buildStatusesByPullRequest = {};
   final List<BoardColumn> _columns = [
     BoardColumn(
@@ -675,8 +674,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         isEstimatingWeight: _estimatingIssueIds.contains(issueId),
         onEstimateIssueWeight: _estimateIssueWeight,
         onOverrideIssueWeight: _overrideIssueWeight,
-        isStartingCursorAgent: _startingCursorAgentIssueIds.contains(issueId),
-        onStartCursorAgent: _startCursorAgent,
         onCreateGitHubSubIssue: _createGitHubSubIssue,
         isBottomSheet: useBottomSheet,
         workspaceId: _workspaceId,
@@ -905,27 +902,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         .doc('workspaces/$_workspaceId/issues/$issueId')
         .update(data);
     _showSavedSnackBar('Weightを上書きしました');
-  }
-
-  Future<void> _startCursorAgent(String issueId) async {
-    if (_startingCursorAgentIssueIds.contains(issueId)) {
-      return;
-    }
-
-    setState(() => _startingCursorAgentIssueIds.add(issueId));
-    try {
-      await _callFunction('startIssueCursorAgent', {
-        'workspaceId': _workspaceId,
-        'issueId': issueId,
-      });
-      _showSavedSnackBar('Cursor agentを開始しました');
-    } catch (error) {
-      _showSavedSnackBar(friendlyError(error));
-    } finally {
-      if (mounted) {
-        setState(() => _startingCursorAgentIssueIds.remove(issueId));
-      }
-    }
   }
 
   Future<Map<String, dynamic>> _createGitHubSubIssue({
@@ -1707,8 +1683,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                             buildStatusesByIssueIdMap,
                                         issuesByRepositoryNumber:
                                             issuesByRepositoryNumberMap,
-                                        startingCursorAgentIssueIds:
-                                            _startingCursorAgentIssueIds,
                                         requiresLongPressDrag: true,
                                         onIssueDropped: _moveIssue,
                                         onIssueLinkedToPullRequest:
@@ -1719,7 +1693,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                           ),
                                         ),
                                         onIssueTapped: _openEditIssueDialog,
-                                        onStartCursorAgent: _startCursorAgent,
                                       );
                                     },
                                   );
@@ -1753,8 +1726,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                                   buildStatusesByIssueIdMap,
                                               issuesByRepositoryNumber:
                                                   issuesByRepositoryNumberMap,
-                                              startingCursorAgentIssueIds:
-                                                  _startingCursorAgentIssueIds,
                                               requiresLongPressDrag: false,
                                               onIssueDropped: _moveIssue,
                                               onIssueLinkedToPullRequest:
@@ -1767,8 +1738,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                                                   ),
                                               onIssueTapped:
                                                   _openEditIssueDialog,
-                                              onStartCursorAgent:
-                                                  _startCursorAgent,
                                             ),
                                             if (column != _columns.last)
                                               const SizedBox(

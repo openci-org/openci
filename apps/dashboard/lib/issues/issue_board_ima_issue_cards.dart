@@ -18,11 +18,9 @@ class IssueCardDropTarget extends StatefulWidget {
     this.isReviewGroupCard = false,
     required this.sourceColumnId,
     required this.index,
-    required this.isStartingCursorAgent,
     required this.requiresLongPressDrag,
     required this.onTap,
     this.onSubIssueTap,
-    this.onStartCursorAgent,
     required this.onIssueDropped,
   });
 
@@ -32,11 +30,9 @@ class IssueCardDropTarget extends StatefulWidget {
   final bool isReviewGroupCard;
   final String sourceColumnId;
   final int index;
-  final bool isStartingCursorAgent;
   final bool requiresLongPressDrag;
   final VoidCallback onTap;
   final ValueChanged<String>? onSubIssueTap;
-  final VoidCallback? onStartCursorAgent;
   final IssueDropCallback onIssueDropped;
 
   @override
@@ -105,11 +101,9 @@ class _IssueCardDropTargetState extends State<IssueCardDropTarget> {
                 buildStatus: widget.buildStatus,
                 isReviewGroupCard: widget.isReviewGroupCard,
                 sourceColumnId: widget.sourceColumnId,
-                isStartingCursorAgent: widget.isStartingCursorAgent,
                 requiresLongPressDrag: widget.requiresLongPressDrag,
                 onTap: widget.onTap,
                 onSubIssueTap: widget.onSubIssueTap,
-                onStartCursorAgent: widget.onStartCursorAgent,
               ),
             ),
             if (_isHovering)
@@ -156,11 +150,9 @@ class IssueCardDraggable extends StatefulWidget {
     this.buildStatus,
     this.isReviewGroupCard = false,
     required this.sourceColumnId,
-    required this.isStartingCursorAgent,
     required this.requiresLongPressDrag,
     required this.onTap,
     this.onSubIssueTap,
-    this.onStartCursorAgent,
   });
 
   final Issue issue;
@@ -168,11 +160,9 @@ class IssueCardDraggable extends StatefulWidget {
   final CardBuildStatus? buildStatus;
   final bool isReviewGroupCard;
   final String sourceColumnId;
-  final bool isStartingCursorAgent;
   final bool requiresLongPressDrag;
   final VoidCallback onTap;
   final ValueChanged<String>? onSubIssueTap;
-  final VoidCallback? onStartCursorAgent;
 
   @override
   State<IssueCardDraggable> createState() => _IssueCardDraggableState();
@@ -281,7 +271,6 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
     Widget buildCard({
       bool isDragging = false,
       bool isDragPlaceholder = false,
-      bool includeActions = true,
     }) {
       if (widget.isReviewGroupCard) {
         return ReviewGroupIssueCard(
@@ -298,8 +287,6 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
         onSubIssueTap: widget.onSubIssueTap,
         isDragging: isDragging,
         isDragPlaceholder: isDragPlaceholder,
-        isStartingCursorAgent: includeActions && widget.isStartingCursorAgent,
-        onStartCursorAgent: includeActions ? widget.onStartCursorAgent : null,
       );
     }
 
@@ -315,7 +302,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
               angle: -0.035,
               child: Transform.scale(
                 scale: 1.04,
-                child: buildCard(isDragging: true, includeActions: false),
+                child: buildCard(isDragging: true),
               ),
             ),
           ),
@@ -326,7 +313,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
       scale: 0.98,
       child: Opacity(
         opacity: 0.28,
-        child: buildCard(isDragPlaceholder: true, includeActions: false),
+        child: buildCard(isDragPlaceholder: true),
       ),
     );
     final child = GestureDetector(
@@ -397,8 +384,6 @@ class IssueCard extends StatelessWidget {
     this.onSubIssueTap,
     this.isDragging = false,
     this.isDragPlaceholder = false,
-    this.isStartingCursorAgent = false,
-    this.onStartCursorAgent,
   });
 
   final Issue issue;
@@ -407,8 +392,6 @@ class IssueCard extends StatelessWidget {
   final ValueChanged<String>? onSubIssueTap;
   final bool isDragging;
   final bool isDragPlaceholder;
-  final bool isStartingCursorAgent;
-  final VoidCallback? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
@@ -472,12 +455,7 @@ class IssueCard extends StatelessWidget {
                   ),
                   if (githubUrl != null) ...[
                     const SizedBox(width: 6),
-                    _IssueCardActions(
-                      githubUrl: githubUrl,
-                      issue: issue,
-                      isStartingCursorAgent: isStartingCursorAgent,
-                      onStartCursorAgent: onStartCursorAgent,
-                    ),
+                    _IssueCardActions(githubUrl: githubUrl),
                   ],
                 ],
               ),
@@ -540,15 +518,9 @@ class IssueCard extends StatelessWidget {
 class _IssueCardActions extends StatelessWidget {
   const _IssueCardActions({
     required this.githubUrl,
-    required this.issue,
-    required this.isStartingCursorAgent,
-    this.onStartCursorAgent,
   });
 
   final String githubUrl;
-  final Issue issue;
-  final bool isStartingCursorAgent;
-  final VoidCallback? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
@@ -557,11 +529,6 @@ class _IssueCardActions extends StatelessWidget {
       runSpacing: 3,
       children: [
         GitHubLinkCopyButton(url: githubUrl),
-        CursorAgentCardButton(
-          issue: issue,
-          isStarting: isStartingCursorAgent,
-          onStart: onStartCursorAgent,
-        ),
       ],
     );
   }
@@ -1492,41 +1459,6 @@ class _CopyFeedbackIconButtonState extends State<_CopyFeedbackIconButton> {
   }
 }
 
-class CursorAgentCardButton extends StatelessWidget {
-  const CursorAgentCardButton({
-    super.key,
-    required this.issue,
-    required this.isStarting,
-    this.onStart,
-  });
-
-  final Issue issue;
-  final bool isStarting;
-  final VoidCallback? onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPullRequest = issue.pullRequests.isNotEmpty;
-    final isRunning = issue.cursorAgent?.isActive == true && !hasPullRequest;
-    final isBusy = isStarting || isRunning;
-    return SizedBox.square(
-      dimension: 24,
-      child: IconButton(
-        tooltip: isRunning ? 'Cursor agentを実行中' : 'Cursor agentを開始',
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        onPressed: isBusy ? null : onStart,
-        icon: isBusy
-            ? const SizedBox.square(
-                dimension: 13,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.smart_toy_outlined, size: 15),
-      ),
-    );
-  }
-}
-
 class RepoBadge extends StatelessWidget {
   const RepoBadge({super.key, required this.repo});
 
@@ -1948,94 +1880,6 @@ class _ActualWeightRow extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class CursorAgentPanel extends StatelessWidget {
-  const CursorAgentPanel({
-    super.key,
-    required this.issue,
-    required this.isStarting,
-    this.onStart,
-  });
-
-  final Issue issue;
-  final bool isStarting;
-  final Future<void> Function()? onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasGitHubIssue = issue.githubUrl != null;
-    final hasPullRequest = issue.pullRequests.isNotEmpty;
-    final agent = issue.cursorAgent;
-    final isRunning = agent?.isActive == true && !hasPullRequest;
-    final isBusy = isStarting || isRunning;
-    final subtitle = switch (agent?.status) {
-      'running' when !hasPullRequest =>
-        'Cursor agentを実行中です。Run ID: ${agent!.shortRunId}',
-      'starting' when !hasPullRequest => 'Cursor agentを開始中...',
-      'done' || 'running' || 'starting' => 'Cursor agentがpull requestを作成しました。',
-      'failed' => agent?.errorMessage ?? 'Cursor agentの開始に失敗しました。',
-      _ when hasGitHubIssue => 'Cursor Cloud Agentを開始して、このissueの対応PRを作成します。',
-      _ => 'agentを開始する前に、このissueをGitHubに接続してください。',
-    };
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: isBusy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(
-                    Icons.smart_toy_outlined,
-                    color: Color(0xFF2563EB),
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Cursor agent',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          OutlinedButton.icon(
-            onPressed: hasGitHubIssue && !isBusy ? onStart : null,
-            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-            label: Text(isRunning ? '実行中' : '開始'),
-          ),
         ],
       ),
     );

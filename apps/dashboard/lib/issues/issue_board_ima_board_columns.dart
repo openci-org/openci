@@ -14,26 +14,22 @@ class BoardColumnView extends StatelessWidget {
     this.subIssuesByParentId = const {},
     this.buildStatusesByIssueId = const {},
     this.issuesByRepositoryNumber = const {},
-    this.startingCursorAgentIssueIds = const {},
     required this.requiresLongPressDrag,
     required this.onIssueDropped,
     this.onIssueLinkedToPullRequest,
     required this.onAddIssue,
     required this.onIssueTapped,
-    this.onStartCursorAgent,
   });
 
   final BoardColumn column;
   final Map<String, List<Issue>> subIssuesByParentId;
   final Map<String, CardBuildStatus> buildStatusesByIssueId;
   final Map<String, Issue> issuesByRepositoryNumber;
-  final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
   final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
-  final ValueChanged<String>? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
@@ -102,12 +98,9 @@ class BoardColumnView extends StatelessWidget {
                           buildStatusesByIssueId: buildStatusesByIssueId,
                           issuesByRepositoryNumber: issuesByRepositoryNumber,
                           rankIndicesByIssueId: rankIndicesByIssueId,
-                          startingCursorAgentIssueIds:
-                              startingCursorAgentIssueIds,
                           requiresLongPressDrag: requiresLongPressDrag,
                           onIssueTapped: onIssueTapped,
                           onSubIssueTap: onIssueTapped,
-                          onStartCursorAgent: onStartCursorAgent,
                           onIssueDropped: onIssueDropped,
                           onIssueLinkedToPullRequest:
                               onIssueLinkedToPullRequest,
@@ -134,14 +127,9 @@ class BoardColumnView extends StatelessWidget {
                               buildStatus: buildStatusesByIssueId[issue.id],
                               sourceColumnId: column.id,
                               index: rankIndex ?? index,
-                              isStartingCursorAgent: startingCursorAgentIssueIds
-                                  .contains(issue.id),
                               requiresLongPressDrag: requiresLongPressDrag,
                               onTap: () => onIssueTapped(issue.id),
                               onSubIssueTap: onIssueTapped,
-                              onStartCursorAgent: onStartCursorAgent == null
-                                  ? null
-                                  : () => onStartCursorAgent!(issue.id),
                               onIssueDropped: onIssueDropped,
                             );
                           },
@@ -172,26 +160,22 @@ class CompactBoardColumnView extends StatefulWidget {
     this.subIssuesByParentId = const {},
     this.buildStatusesByIssueId = const {},
     this.issuesByRepositoryNumber = const {},
-    this.startingCursorAgentIssueIds = const {},
     required this.requiresLongPressDrag,
     required this.onIssueDropped,
     this.onIssueLinkedToPullRequest,
     required this.onAddIssue,
     required this.onIssueTapped,
-    this.onStartCursorAgent,
   });
 
   final BoardColumn column;
   final Map<String, List<Issue>> subIssuesByParentId;
   final Map<String, CardBuildStatus> buildStatusesByIssueId;
   final Map<String, Issue> issuesByRepositoryNumber;
-  final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final IssueDropCallback onIssueDropped;
   final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
   final ValueChanged<String> onAddIssue;
   final ValueChanged<String> onIssueTapped;
-  final ValueChanged<String>? onStartCursorAgent;
 
   @override
   State<CompactBoardColumnView> createState() => _CompactBoardColumnViewState();
@@ -268,12 +252,9 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                     buildStatusesByIssueId: widget.buildStatusesByIssueId,
                     issuesByRepositoryNumber: widget.issuesByRepositoryNumber,
                     rankIndicesByIssueId: rankIndicesByIssueId,
-                    startingCursorAgentIssueIds:
-                        widget.startingCursorAgentIssueIds,
                     requiresLongPressDrag: widget.requiresLongPressDrag,
                     onIssueTapped: widget.onIssueTapped,
                     onSubIssueTap: widget.onIssueTapped,
-                    onStartCursorAgent: widget.onStartCursorAgent,
                     onIssueDropped: widget.onIssueDropped,
                     onIssueLinkedToPullRequest:
                         widget.onIssueLinkedToPullRequest,
@@ -300,15 +281,9 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                         buildStatus: widget.buildStatusesByIssueId[issue.id],
                         sourceColumnId: widget.column.id,
                         index: rankIndex ?? index,
-                        isStartingCursorAgent: widget
-                            .startingCursorAgentIssueIds
-                            .contains(issue.id),
                         requiresLongPressDrag: widget.requiresLongPressDrag,
                         onTap: () => widget.onIssueTapped(issue.id),
                         onSubIssueTap: widget.onIssueTapped,
-                        onStartCursorAgent: widget.onStartCursorAgent == null
-                            ? null
-                            : () => widget.onStartCursorAgent!(issue.id),
                         onIssueDropped: widget.onIssueDropped,
                       );
                     },
@@ -487,13 +462,11 @@ class ReviewPullRequestGroupView extends StatelessWidget {
     required this.buildStatusesByIssueId,
     required this.issuesByRepositoryNumber,
     required this.rankIndicesByIssueId,
-    required this.startingCursorAgentIssueIds,
     required this.requiresLongPressDrag,
     required this.onIssueTapped,
     required this.onSubIssueTap,
     required this.onIssueDropped,
     this.onIssueLinkedToPullRequest,
-    this.onStartCursorAgent,
   });
 
   final ReviewPullRequestGroup group;
@@ -502,13 +475,11 @@ class ReviewPullRequestGroupView extends StatelessWidget {
   final Map<String, CardBuildStatus> buildStatusesByIssueId;
   final Map<String, Issue> issuesByRepositoryNumber;
   final Map<String, int> rankIndicesByIssueId;
-  final Set<String> startingCursorAgentIssueIds;
   final bool requiresLongPressDrag;
   final ValueChanged<String> onIssueTapped;
   final ValueChanged<String> onSubIssueTap;
   final IssueDropCallback onIssueDropped;
   final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
-  final ValueChanged<String>? onStartCursorAgent;
 
   @override
   Widget build(BuildContext context) {
@@ -764,16 +735,9 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                       isReviewGroupCard: true,
                       sourceColumnId: column.id,
                       index: rankIndex ?? entry.$1,
-                      isStartingCursorAgent: startingCursorAgentIssueIds
-                          .contains(
-                            issue.id,
-                          ),
                       requiresLongPressDrag: requiresLongPressDrag,
                       onTap: () => onIssueTapped(issue.id),
                       onSubIssueTap: onSubIssueTap,
-                      onStartCursorAgent: onStartCursorAgent == null
-                          ? null
-                          : () => onStartCursorAgent!(issue.id),
                       onIssueDropped: handleIssueDropped,
                     );
                   },

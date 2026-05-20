@@ -19,13 +19,12 @@ jobs:
         include:
           - name: Flutter CD
             working_directory: actions/flutter-cd
-            run_typecheck: true
             dist_files: dist/index.js
-            
+
           - name: Flutter Pub Cache
             working_directory: actions/flutter-pub-cache
-            run_typecheck: false
             dist_files: dist/index.js dist/licenses.txt
+
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +51,6 @@ jobs:
         run: vp test
 
       - name: Typecheck
-        if: ${{ matrix.run_typecheck }}
         working-directory: ${{ matrix.working_directory }}
         run: vp run typecheck
 

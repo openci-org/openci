@@ -64,11 +64,6 @@ export interface BackfillIssueKeysResponse {
   updated: number;
 }
 
-export interface BackfillCursorAgentPullRequestsResponse {
-  inspected: number;
-  linked: number;
-}
-
 export interface GetIssuePullRequestDiffRequest extends WorkspaceRequest {
   issueId: string;
   repository: string;
@@ -207,17 +202,6 @@ export interface CreateGitHubSubIssueResponse extends CreateGitHubIssueResponse 
 export interface EstimateIssueWeightRequest extends WorkspaceRequest {
   issueId: string;
   force?: boolean;
-}
-
-export interface StartIssueCursorAgentRequest extends WorkspaceRequest {
-  issueId: string;
-}
-
-export interface StartIssueCursorAgentResponse {
-  issueId: string;
-  agentId: string;
-  runId: string;
-  status: "running";
 }
 
 export interface IssueWeightEstimateResponse {
