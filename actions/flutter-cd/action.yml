@@ -1,0 +1,105 @@
+name: Flutter CD
+description: Build and deploy a Flutter application
+
+inputs:
+  platform:
+    description: Target platform (web, ios, macos)
+    required: true
+  working-directory:
+    description: Flutter project directory
+    required: false
+    default: "."
+  build-args:
+    description: Additional arguments for flutter build
+    required: false
+    default: ""
+  swift-package-manager:
+    description: "Flutter Swift Package Manager mode for Apple builds: inherit, enabled, or disabled. inherit leaves the current Flutter setting unchanged. (ios, macos)"
+    required: false
+    default: "inherit"
+  patch-flutter-ios-distribution-signing:
+    description: "Patch Flutter issue #176636 so iOS builds can use Apple Distribution certificates when Flutter falls back to identity discovery. (ios)"
+    required: false
+    default: "true"
+  firebase-service-account:
+    description: GCP service account JSON for Firebase deploy (web)
+    required: false
+    default: ""
+  preview:
+    description: "Deploy to a Firebase Hosting preview channel (web)"
+    required: false
+    default: "false"
+  certificate-private-key:
+    description: "RSA private key PEM for code signing. Used to create or reuse Apple Distribution certificates (ios) or Developer ID Application certificates (macos)."
+    required: false
+    default: ""
+  asc-key-id:
+    description: "App Store Connect API Key ID (ios)"
+    required: false
+    default: ""
+  asc-issuer-id:
+    description: "App Store Connect API Issuer ID (ios)"
+    required: false
+    default: ""
+  asc-private-key:
+    description: "App Store Connect API Private Key, .p8 PEM content (ios, macos)"
+    required: false
+    default: ""
+  developer-id-certificate-p12:
+    description: "Base64-encoded Developer ID Application .p12 certificate to import directly. Avoids creating certificates via App Store Connect. (macos)"
+    required: false
+    default: ""
+  developer-id-certificate-password:
+    description: "Password for developer-id-certificate-p12. (macos)"
+    required: false
+    default: ""
+  scheme:
+    description: "Xcode scheme name (ios)"
+    required: false
+    default: "Runner"
+  build-number:
+    description: "Override the build number from pubspec.yaml. Useful for auto-incrementing with CI run numbers (e.g. OPENCI_RUN_NUMBER)."
+    required: false
+    default: ""
+  distribution-method:
+    description: "iOS export distribution method: app-store or ad-hoc. Use ad-hoc for Firebase App Distribution."
+    required: false
+    default: "app-store"
+  upload-to-app-store-connect:
+    description: "Whether to upload the generated iOS IPA to App Store Connect. Defaults to true for app-store distribution and false otherwise."
+    required: false
+    default: ""
+  macos-app-path:
+    description: "Path to the built .app bundle, relative to working-directory. Auto-detected from build/macos/Build/Products/Release when omitted. (macos)"
+    required: false
+    default: ""
+  macos-entitlements-path:
+    description: "Path to the macOS entitlements plist, relative to working-directory. (macos)"
+    required: false
+    default: "macos/Runner/Release.entitlements"
+  macos-provisioning-profile:
+    description: "Create and embed a MAC_APP_DIRECT provisioning profile, then sign with profile-derived entitlements. Required for Developer ID apps that use capabilities such as Keychain Sharing. (macos)"
+    required: false
+    default: "false"
+  artifact-name:
+    description: "Base name for the packaged artifact zip. Defaults to the .app name plus -macos. (macos)"
+    required: false
+    default: ""
+  output-directory:
+    description: "Directory for packaged artifacts, relative to working-directory. (macos)"
+    required: false
+    default: "build/openci-artifacts"
+
+outputs:
+  ipa-path:
+    description: "Path to the generated iOS IPA. (ios)"
+  artifact-directory:
+    description: "Directory containing generated build artifacts. For iOS this contains the IPA. (ios)"
+  distribution-method:
+    description: "The iOS distribution method used to export the IPA. (ios)"
+  artifact-path:
+    description: "Path to the generated macOS artifact zip. (macos)"
+
+runs:
+  using: node20
+  main: dist/index.js

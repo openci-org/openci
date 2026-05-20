@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { baseVmName } from "./constants.js";
 import {
+  actScript,
   ensureBaseVm,
   parseLumeVmJsonList,
   parseLumeVmTextList,
@@ -144,6 +145,65 @@ describe("rewriteWorkflowForSingleOpenCiJob", () => {
     });
   });
 
+  it("pins matrix jobs to a single matrix include", () => {
+    const workflow = [
+      "name: CI",
+      "on: pull_request",
+      "jobs:",
+      "  build:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      fail-fast: false",
+      "      matrix:",
+      "        os: [ubuntu-latest, macos-latest]",
+      "        node: [24]",
+      "    steps:",
+      "      - run: echo build",
+      "",
+    ].join("\n");
+
+    const result = rewriteWorkflowForSingleOpenCiJob(workflow, "build", [], {
+      os: "ubuntu-latest",
+      node: 24,
+    });
+
+    expect(result.rewritten).toBe(true);
+    expect(result.content).toContain("matrix:");
+    expect(result.content).toContain("include:");
+    expect(result.content).toContain("os: ubuntu-latest");
+    expect(result.content).toContain("node: 24");
+    expect(result.content).not.toContain("os: [ubuntu-latest, macos-latest]");
+  });
+
+  it("pins matrix jobs and removes OpenCI-resolved needs together", () => {
+    const workflow = [
+      "name: CI",
+      "on: pull_request",
+      "jobs:",
+      "  setup:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: echo setup",
+      "  build:",
+      "    needs: [setup]",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest, macos-latest]",
+      "    steps:",
+      "      - run: echo build",
+      "",
+    ].join("\n");
+
+    const result = rewriteWorkflowForSingleOpenCiJob(workflow, "build", ["setup"], {
+      os: "macos-latest",
+    });
+
+    expect(result.rewritten).toBe(true);
+    expect(result.content).not.toContain("build:\n    needs:");
+    expect(result.content).toContain("os: macos-latest");
+  });
+
   it("does not rewrite jobs without OpenCI-resolved needs", () => {
     const workflow = [
       "name: CI",
@@ -163,6 +223,25 @@ describe("rewriteWorkflowForSingleOpenCiJob", () => {
       rewritten: false,
       reason: "no-needs",
     });
+  });
+});
+
+describe("actScript", () => {
+  it("uses workflowJobKey for matrix job execution", () => {
+    const script = actScript(
+      {
+        id: "job-1",
+        status: "QUEUED",
+        owner: "openci-org",
+        repo: "/tmp/openci",
+        jobKey: "build[node=24,os=ubuntu-latest]",
+        workflowJobKey: "build",
+      },
+      ".openci/ci.yaml",
+    );
+
+    expect(script).toContain("act push -W '.openci/ci.yaml' -j 'build'");
+    expect(script).not.toContain("build[node=24");
   });
 });
 

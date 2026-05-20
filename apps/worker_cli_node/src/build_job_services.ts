@@ -31,6 +31,12 @@ export interface BuildJob {
   workflowFileName?: string | null;
   workflowName?: string | null;
   jobKey?: string | null;
+  workflowJobKey?: string | null;
+  matrix?: Record<string, unknown> | null;
+  matrixLabel?: string | null;
+  matrixIndex?: number | null;
+  matrixGroupKey?: string | null;
+  matrixFailFast?: boolean | null;
   workflowRunId?: string | null;
   needs?: string[] | null;
   resolvedNeeds?: unknown | null;
@@ -480,6 +486,41 @@ async function resolveDependencies(
   }
 }
 
+async function cancelFailFastMatrixSiblings(
+  completedJob: BuildJob,
+  completedStatus: BuildJobStatusValue,
+): Promise<void> {
+  if (completedStatus !== BuildJobStatus.FAILURE) return;
+  if (completedJob.matrixFailFast === false) return;
+  if (!completedJob.workflowRunId || !completedJob.matrixGroupKey) return;
+
+  const candidates = await db()
+    .collection(collections.buildJobs)
+    .where("workflowRunId", "==", completedJob.workflowRunId)
+    .where("matrixGroupKey", "==", completedJob.matrixGroupKey)
+    .get();
+  const cancellableStatuses = new Set([
+    BuildJobStatus.WAITING,
+    BuildJobStatus.QUEUED,
+    BuildJobStatus.IN_PROGRESS,
+  ]);
+  const batch = db().batch();
+  let cancelledCount = 0;
+  for (const doc of candidates.docs) {
+    if (doc.id === completedJob.id) continue;
+    if (!cancellableStatuses.has(doc.data().status)) continue;
+    batch.update(doc.ref, {
+      status: BuildJobStatus.CANCELLED,
+      completedAt: now(),
+      updatedAt: now(),
+    });
+    cancelledCount++;
+  }
+  if (cancelledCount > 0) {
+    await batch.commit();
+  }
+}
+
 async function failureLogLine(buildJobId: string, latestRunId?: string | null): Promise<string> {
   if (!latestRunId) return "Unknown error";
   const logs = await listLatestBuildLogs({ buildJobId, runId: latestRunId, limit: 2 });
@@ -566,6 +607,7 @@ export async function handleBuildJobStatusChange(
     BuildJobStatus.SKIPPED,
   ];
   if (terminalStatuses.includes(status as TerminalBuildJobStatus)) {
+    await cancelFailFastMatrixSiblings(buildJob, status);
     await resolveDependencies(buildJob, status);
   }
   if (status === BuildJobStatus.SUCCESS || status === BuildJobStatus.FAILURE) {

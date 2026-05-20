@@ -115,6 +115,72 @@ describe("extractJobs", () => {
     ]);
   });
 
+  it("expands matrix jobs into OpenCI job instances", () => {
+    const workflows: WorkflowWithJobs[] = [
+      {
+        workflowFileName: "ci.yaml",
+        workflowName: "CI",
+        jobs: {
+          build: {
+            "runs-on": "${{ matrix.os }}",
+            strategy: {
+              "fail-fast": false,
+              matrix: {
+                os: ["ubuntu-latest", "macos-latest"],
+                node: [24],
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    expect(extractJobs(workflows)).toEqual([
+      {
+        workflowFileName: "ci.yaml",
+        workflowName: "CI",
+        jobId: "build[node=24,os=ubuntu-latest]",
+        workflowJobKey: "build",
+        spec: {
+          "runs-on": "ubuntu-latest",
+          strategy: {
+            "fail-fast": false,
+            matrix: {
+              os: ["ubuntu-latest", "macos-latest"],
+              node: [24],
+            },
+          },
+        },
+        matrix: { os: "ubuntu-latest", node: 24 },
+        matrixLabel: "node=24,os=ubuntu-latest",
+        matrixIndex: 0,
+        matrixGroupKey: "ci.yaml:build",
+        matrixFailFast: false,
+      },
+      {
+        workflowFileName: "ci.yaml",
+        workflowName: "CI",
+        jobId: "build[node=24,os=macos-latest]",
+        workflowJobKey: "build",
+        spec: {
+          "runs-on": "macos-latest",
+          strategy: {
+            "fail-fast": false,
+            matrix: {
+              os: ["ubuntu-latest", "macos-latest"],
+              node: [24],
+            },
+          },
+        },
+        matrix: { os: "macos-latest", node: 24 },
+        matrixLabel: "node=24,os=macos-latest",
+        matrixIndex: 1,
+        matrixGroupKey: "ci.yaml:build",
+        matrixFailFast: false,
+      },
+    ]);
+  });
+
   it("skips individual job whose value is not an object", () => {
     const workflows: WorkflowWithJobs[] = [
       {

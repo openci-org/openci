@@ -454,6 +454,21 @@ function buildJobNeeds(buildJob: BuildJob): string[] {
     : [];
 }
 
+function buildJobMatrix(buildJob: BuildJob): Record<string, string | number | boolean> | null {
+  if (!buildJob.matrix || typeof buildJob.matrix !== "object" || Array.isArray(buildJob.matrix)) {
+    return null;
+  }
+  return Object.fromEntries(
+    Object.entries(buildJob.matrix).filter((entry): entry is [string, string | number | boolean] =>
+      ["string", "number", "boolean"].includes(typeof entry[1]),
+    ),
+  );
+}
+
+function workflowJobKey(buildJob: BuildJob): string | null | undefined {
+  return buildJob.workflowJobKey ?? buildJob.jobKey;
+}
+
 export interface RuntimeWorkflowRewriteResult {
   content: string;
   rewritten: boolean;
@@ -464,9 +479,13 @@ export function rewriteWorkflowForSingleOpenCiJob(
   workflowContent: string,
   jobKey: string | null | undefined,
   needs: readonly string[],
+  matrix?: Record<string, string | number | boolean> | null,
 ): RuntimeWorkflowRewriteResult {
   if (!jobKey) return { content: workflowContent, rewritten: false, reason: "missing-job-key" };
-  if (needs.length === 0) return { content: workflowContent, rewritten: false, reason: "no-needs" };
+  const hasMatrix = matrix !== null && matrix !== undefined && Object.keys(matrix).length > 0;
+  if (needs.length === 0 && !hasMatrix) {
+    return { content: workflowContent, rewritten: false, reason: "no-needs" };
+  }
 
   const document = parseDocument(workflowContent);
   if (document.errors.length > 0) {
@@ -480,16 +499,39 @@ export function rewriteWorkflowForSingleOpenCiJob(
   if (!job) return { content: workflowContent, rewritten: false, reason: "job-not-found" };
   if (!isMap(job)) return { content: workflowContent, rewritten: false, reason: "job-not-map" };
 
+  let rewritten = false;
+  let reason: string | undefined;
+
+  if (hasMatrix) {
+    const strategy = job.get("strategy", true);
+    if (isMap(strategy)) {
+      strategy.set("matrix", { include: [matrix] });
+    } else {
+      job.set("strategy", { matrix: { include: [matrix] } });
+    }
+    rewritten = true;
+  }
+
+  if (needs.length === 0) {
+    return rewritten
+      ? { content: String(document), rewritten, reason }
+      : { content: workflowContent, rewritten };
+  }
+
   if (!job.has("needs")) {
     return { content: workflowContent, rewritten: false, reason: "job-has-no-needs" };
   }
 
   if (/\bneeds\s*(?:\.|\[)/u.test(String(job))) {
-    return { content: workflowContent, rewritten: false, reason: "needs-context" };
+    reason = "needs-context";
+    return rewritten
+      ? { content: String(document), rewritten, reason }
+      : { content: workflowContent, rewritten: false, reason };
   }
 
   job.delete("needs");
-  return { content: String(document), rewritten: true };
+  rewritten = true;
+  return { content: String(document), rewritten, reason };
 }
 
 async function prepareActWorkflow(input: {
@@ -501,16 +543,18 @@ async function prepareActWorkflow(input: {
   const { buildJob, runId } = input;
   const sourceWorkflowPath = `.openci/${buildJob.workflowFileName}`;
   const needs = buildJobNeeds(buildJob);
-  if (!buildJob.jobKey || needs.length === 0) return sourceWorkflowPath;
+  const jobKey = workflowJobKey(buildJob);
+  const matrix = buildJobMatrix(buildJob);
+  if (!jobKey || (needs.length === 0 && !matrix)) return sourceWorkflowPath;
 
   const workflowContent = await input.readWorkflow(`${buildJob.repo}/${sourceWorkflowPath}`);
-  const result = rewriteWorkflowForSingleOpenCiJob(workflowContent, buildJob.jobKey, needs);
+  const result = rewriteWorkflowForSingleOpenCiJob(workflowContent, jobKey, needs, matrix);
   if (!result.rewritten) {
     if (result.reason === "needs-context") {
       await logWarning(
         buildJob.id,
         runId,
-        `Job ${buildJob.jobKey} references the needs context; running the original workflow so act can provide dependency outputs.`,
+        `Job ${jobKey} references the needs context; running the original workflow so act can provide dependency outputs.`,
       );
     } else if (result.reason === "parse-error") {
       await logWarning(
@@ -527,14 +571,15 @@ async function prepareActWorkflow(input: {
   await logInfo(
     buildJob.id,
     runId,
-    `Using runtime workflow ${runtimeWorkflowPath} with OpenCI-resolved needs removed for job ${buildJob.jobKey}.`,
+    `Using runtime workflow ${runtimeWorkflowPath} for OpenCI job ${jobKey}.`,
   );
   return runtimeWorkflowPath;
 }
 
-function actScript(buildJob: BuildJob, workflowPath: string): string {
+export function actScript(buildJob: BuildJob, workflowPath: string): string {
   const eventType = buildJob.pullRequestNumber ? "pull_request" : "push";
-  const jobFlag = buildJob.jobKey ? `-j ${shellQuote(buildJob.jobKey)} ` : "";
+  const jobKey = workflowJobKey(buildJob);
+  const jobFlag = jobKey ? `-j ${shellQuote(jobKey)} ` : "";
   return [
     "set -e",
     'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:/opt/dart-sdk/bin:/opt/flutter/bin:$PATH"',

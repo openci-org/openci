@@ -422,6 +422,42 @@ async function listWaitingBuildJobs(...args) {
   return { data: { buildJobs } };
 }
 
+async function cancelMatrixSiblingBuildJobs(...args) {
+  const vars = varsFromArgs(...args);
+  const workflowRunId = vars.workflowRunId;
+  const matrixGroupKey = vars.matrixGroupKey;
+  const excludingBuildJobId = vars.excludingBuildJobId;
+  if (!workflowRunId || !matrixGroupKey) return { data: { cancelledBuildJobIds: [] } };
+
+  const candidates = await db()
+    .collection(firestoreCollectionPaths.buildJobs)
+    .where("workflowRunId", "==", workflowRunId)
+    .where("matrixGroupKey", "==", matrixGroupKey)
+    .get();
+  const cancellableStatuses = new Set([
+    BuildJobStatus.WAITING,
+    BuildJobStatus.QUEUED,
+    BuildJobStatus.IN_PROGRESS,
+  ]);
+  const batch = db().batch();
+  const cancelledBuildJobIds = [];
+  for (const doc of candidates.docs) {
+    if (doc.id === excludingBuildJobId) continue;
+    const status = doc.data().status;
+    if (!cancellableStatuses.has(status)) continue;
+    batch.update(doc.ref, {
+      status: BuildJobStatus.CANCELLED,
+      completedAt: now(),
+      updatedAt: now(),
+    });
+    cancelledBuildJobIds.push(doc.id);
+  }
+  if (cancelledBuildJobIds.length > 0) {
+    await batch.commit();
+  }
+  return { data: { cancelledBuildJobIds } };
+}
+
 async function tryMarkCiNotificationSent(...args) {
   const vars = varsFromArgs(...args);
   const id = vars.id;
@@ -695,6 +731,7 @@ export {
   acceptInvitationAndJoinTeam,
   addTeamMember,
   appendBuildLogForWorker,
+  cancelMatrixSiblingBuildJobs,
   claimQueuedBuildJob,
   completeBuildJobForWorker,
   createBuildJob,

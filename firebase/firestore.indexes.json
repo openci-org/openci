@@ -43,6 +43,20 @@
       ]
     },
     {
+      "collectionGroup": "build_jobs_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "workflowRunId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "environment_variables_v0",
       "queryScope": "COLLECTION",
       "fields": [

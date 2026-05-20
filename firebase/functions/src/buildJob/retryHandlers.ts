@@ -49,6 +49,12 @@ function copyRetryJobFields(
     workflowFileName: originalJob.workflowFileName,
     workflowName: originalJob.workflowName,
     jobKey: originalJob.jobKey,
+    workflowJobKey: originalJob.workflowJobKey,
+    matrix: originalJob.matrix,
+    matrixLabel: originalJob.matrixLabel,
+    matrixIndex: originalJob.matrixIndex,
+    matrixGroupKey: originalJob.matrixGroupKey,
+    matrixFailFast: originalJob.matrixFailFast,
     installationId: originalJob.installationId,
     installationToken: originalJob.installationToken,
     tokenExpiresAt: originalJob.tokenExpiresAt,
@@ -79,6 +85,16 @@ function numberFromInt64Value(value: unknown): number | undefined {
 
 function stringFromUnknown(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function checkRunNameForJob(job: FirebaseFirestore.DocumentData): string {
+  const workflowName = requireNonEmptyString(job.workflowName, "workflowName");
+  const workflowJobKey = stringFromUnknown(job.workflowJobKey);
+  const jobKey = stringFromUnknown(job.jobKey);
+  const matrixLabel = stringFromUnknown(job.matrixLabel);
+  if (!workflowJobKey && !jobKey) return workflowName;
+  const suffix = matrixLabel ? ` (${matrixLabel})` : "";
+  return `${workflowName} / ${workflowJobKey ?? jobKey}${suffix}`;
 }
 
 function isInstallationTokenValid(expiresAt: unknown): boolean {
@@ -125,13 +141,12 @@ export const retryBuildJob = onCall<
     }
   }
   if (installationToken && typeof originalJob.commitSha === "string") {
-    const workflowName = requireNonEmptyString(originalJob.workflowName, "workflowName");
     checkRunId =
       (await createCheckRun({
         token: installationToken,
         owner: requireNonEmptyString(originalJob.owner, "owner"),
         repo: requireNonEmptyString(originalJob.repo, "repo"),
-        name: workflowName,
+        name: checkRunNameForJob(originalJob),
         headSha: originalJob.commitSha,
         status: "in_progress",
         detailsUrl: buildDashboardRunUrl(newDocumentId),
@@ -237,7 +252,7 @@ export const retryWorkflowRun = onCall<
         typeof originalJob.workflowName === "string" ? originalJob.workflowName : undefined;
       if (workflowName) {
         const checkRunName =
-          originalJobs.length > 1 && jobKey ? `${workflowName} / ${jobKey}` : workflowName;
+          originalJobs.length > 1 ? checkRunNameForJob(originalJob) : workflowName;
         checkRunId =
           (await createCheckRun({
             token: installationToken,
