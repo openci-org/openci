@@ -21,7 +21,8 @@ export {
   generateFailureSummary,
   generateFailureSummaryOnBuildJobFailure,
 } from "./buildJob/generateFailureSummary.js";
-export { retryBuildJob, retryWorkflowRun } from "./buildJob/retryHandlers.js";
+export { retryBuildJob } from "./buildJob/retryBuildJob/retryBuildJob.js";
+export { retryWorkflowRun } from "./buildJob/retryWorkflowRun/retryWorkflowRun.js";
 export { searchGitHubActions } from "./github/actions.js";
 export {
   createWorkflowFile,
