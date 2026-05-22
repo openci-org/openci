@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/save-secret-file@v1
+      - uses: ./actions/save-secret-file
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
@@ -45,12 +45,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/save-secret-file@v1
+      - uses: ./actions/save-secret-file
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
-      - uses: openci-org/save-secret-file@v1
+      - uses: ./actions/save-secret-file
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
@@ -170,12 +170,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/save-secret-file@v1
+      - uses: ./actions/save-secret-file
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
-      - uses: openci-org/save-secret-file@v1
+      - uses: ./actions/save-secret-file
         with:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
           path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
@@ -512,7 +512,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: openci-org/save-secret-file@v1
+      - uses: ./actions/save-secret-file
         with:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"

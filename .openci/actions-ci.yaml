@@ -10,6 +10,31 @@ on:
       - develop
 
 jobs:
+  save-secret-file:
+    name: Save Secret File
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Save base64 secret
+        uses: ./actions/save-secret-file
+        with:
+          secret: aGVsbG8=
+          path: /tmp/openci-action-test/base64.txt
+
+      - name: Save raw secret
+        uses: ./actions/save-secret-file
+        with:
+          secret: '{"ok":true}'
+          path: /tmp/openci-action-test/raw.json
+          encoding: raw
+
+      - name: Verify saved files
+        run: |
+          set -euo pipefail
+          test "$(cat /tmp/openci-action-test/base64.txt)" = "hello"
+          test "$(cat /tmp/openci-action-test/raw.json)" = '{"ok":true}'
+
   ci:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
