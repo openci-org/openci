@@ -164,7 +164,7 @@ jobs:
           service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: openci-b1b91.firebasestorage.app
 
-  build-macos:
+  deploy-macos:
     needs: [ci]
     runs-on: macos-latest
     steps:
