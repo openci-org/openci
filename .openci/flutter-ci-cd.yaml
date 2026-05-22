@@ -175,11 +175,6 @@ jobs:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
-      - uses: ./actions/save-secret-file
-        with:
-          secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_MACOS }}
-          path: "apps/dashboard/macos/Runner/GoogleService-Info.plist"
-
       - name: Restore Flutter pub cache
         uses: ./actions/flutter-pub-cache
         with:
