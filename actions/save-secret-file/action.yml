@@ -17,30 +17,5 @@ inputs:
     default: base64
 
 runs:
-  using: composite
-  steps:
-    - name: Save secret file
-      shell: bash
-      run: |
-        set -euo pipefail
-        mkdir -p "$(dirname "$FILE_PATH")"
-        case "$ENCODING" in
-          base64)
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-              printf '%s' "$SECRET_CONTENT" | base64 -D > "$FILE_PATH"
-            else
-              printf '%s' "$SECRET_CONTENT" | base64 -d > "$FILE_PATH"
-            fi
-            ;;
-          raw)
-            printf '%s' "$SECRET_CONTENT" > "$FILE_PATH"
-            ;;
-          *)
-            echo "Unsupported encoding: '$ENCODING' (must be 'base64' or 'raw')" >&2
-            exit 1
-            ;;
-        esac
-      env:
-        SECRET_CONTENT: ${{ inputs.secret }}
-        FILE_PATH: ${{ inputs.path }}
-        ENCODING: ${{ inputs.encoding }}
+  using: "node24"
+  main: "dist/index.js"

@@ -36,11 +36,11 @@ From another public repository, use the subdirectory action path and pin an Open
 
 ## Inputs
 
-| Input      | Default  | Description                                                                  |
-| ---------- | -------- | ---------------------------------------------------------------------------- |
-| `secret`   | required | Secret content. Base64-encoded by default, or raw when `encoding` is `raw`.   |
-| `path`     | required | File path to save the content to.                                             |
-| `encoding` | `base64` | `base64` decodes the secret before writing. `raw` writes the value as-is.     |
+| Input      | Default  | Description                                                                 |
+| ---------- | -------- | --------------------------------------------------------------------------- |
+| `secret`   | required | Secret content. Base64-encoded by default, or raw when `encoding` is `raw`. |
+| `path`     | required | File path to save the content to.                                           |
+| `encoding` | `base64` | `base64` decodes the secret before writing. `raw` writes the value as-is.   |
 
 ## Behavior
 
