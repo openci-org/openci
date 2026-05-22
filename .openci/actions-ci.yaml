@@ -25,6 +25,10 @@ jobs:
             working_directory: actions/flutter-pub-cache
             dist_files: dist/index.js dist/licenses.txt
 
+          - name: Save Secret File
+            working_directory: actions/save-secret-file
+            dist_files: dist/index.js dist/licenses.txt
+
     steps:
       - uses: actions/checkout@v4
 
