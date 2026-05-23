@@ -1259,9 +1259,7 @@ class _InlineLiveDuration extends HookConsumerWidget {
       tick.value;
       final elapsed = DateTime.now().toUtc().difference(buildJob.updatedAt);
       return Text(
-        _formatDurationCompact(
-          elapsed.isNegative ? Duration.zero : elapsed,
-        ),
+        ' · ${_formatDurationCompact(elapsed.isNegative ? Duration.zero : elapsed)}',
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
@@ -1273,9 +1271,11 @@ class _InlineLiveDuration extends HookConsumerWidget {
       final durationAsync = ref.watch(runDurationProvider(buildJob));
       return durationAsync.when(
         data: (duration) {
-          if (duration == null) return const SizedBox.shrink();
+          if (duration == null || duration.isNegative || duration.inSeconds == 0) {
+            return const SizedBox.shrink();
+          }
           return Text(
-            _formatDurationCompact(duration),
+            ' · ${_formatDurationCompact(duration)}',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -1301,7 +1301,7 @@ class _InlineWorkflowDuration extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isRunning = _isRunningStatus(overallStatus);
+    final isRunning = overallStatus == BuildJobStatus.IN_PROGRESS;
     final isTerminal = _isTerminalStatus(overallStatus);
 
     final tick = useState(0);
@@ -1321,7 +1321,7 @@ class _InlineWorkflowDuration extends HookWidget {
       tick.value;
       final elapsed = DateTime.now().toUtc().difference(earliestCreatedAt);
       return Text(
-        _formatDurationCompact(elapsed),
+        ' · ${_formatDurationCompact(elapsed)}',
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
@@ -1338,7 +1338,7 @@ class _InlineWorkflowDuration extends HookWidget {
         return const SizedBox.shrink();
       }
       return Text(
-        _formatDurationCompact(duration),
+        ' · ${_formatDurationCompact(duration)}',
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,

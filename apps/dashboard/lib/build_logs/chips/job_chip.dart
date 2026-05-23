@@ -16,6 +16,7 @@ class JobChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final duration = durationWidget;
     return BaseChip(
       backgroundColor: status.backgroundColor,
       borderColor: status.borderColor,
@@ -26,12 +27,7 @@ class JobChip extends StatelessWidget {
           StatusIcon(status: status),
           const SizedBox(width: 5),
           Text(label),
-          if (durationWidget != null) ...[
-            const SizedBox(width: 5),
-            const Text('·', style: TextStyle(fontWeight: FontWeight.w300)),
-            const SizedBox(width: 5),
-            durationWidget!,
-          ],
+          if (duration != null) duration,
         ],
       ),
     );
