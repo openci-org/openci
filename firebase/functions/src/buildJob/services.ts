@@ -1,7 +1,9 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import { getFirestore } from "firebase-admin/firestore";
 import {
   BuildJobStatus,
   cancelMatrixSiblingBuildJobs,
+  firestoreCollectionPaths,
   getBuildJob,
   getTeamById,
   listLatestBuildLogs,
@@ -112,7 +114,7 @@ export async function getBuildJobOrThrow(buildJobId: string): Promise<BuildJob> 
 export async function updateCheckRun(
   buildJob: BuildJob,
   runStatus: "in_progress" | "completed",
-  conclusion?: "success" | "failure",
+  conclusion?: "success" | "failure" | "skipped" | "cancelled" | "timed_out" | "neutral",
 ): Promise<void> {
   if (buildJob.checkRunId === null || buildJob.checkRunId === undefined) return;
   if (!buildJob.installationToken) return;
@@ -147,7 +149,7 @@ export async function updateCheckRun(
 export async function updateCheckRunById(
   buildJobId: string,
   runStatus: "in_progress" | "completed",
-  conclusion?: "success" | "failure",
+  conclusion?: "success" | "failure" | "skipped" | "cancelled" | "timed_out" | "neutral",
 ): Promise<void> {
   await updateCheckRun(await getBuildJobOrThrow(buildJobId), runStatus, conclusion);
 }
@@ -168,6 +170,7 @@ async function resolveDependencies(
 
     if (!isSuccess) {
       await updateBuildJobStatus({ id: job.id, status: BuildJobStatus.SKIPPED });
+      await updateCheckRun(job as BuildJob, "completed", "skipped");
       await resolveDependencies(job as BuildJob, BuildJobStatus.SKIPPED);
       continue;
     }
@@ -199,11 +202,44 @@ async function cancelFailFastMatrixSiblings(
   if (completedStatus !== BuildJobStatus.FAILURE) return;
   if (completedJob.matrixFailFast === false) return;
   if (!completedJob.workflowRunId || !completedJob.matrixGroupKey) return;
-  await cancelMatrixSiblingBuildJobs({
-    workflowRunId: completedJob.workflowRunId,
-    matrixGroupKey: completedJob.matrixGroupKey,
-    excludingBuildJobId: completedJob.id,
-  });
+
+  const db = getFirestore();
+  const candidates = await db
+    .collection(firestoreCollectionPaths.buildJobs)
+    .where("workflowRunId", "==", completedJob.workflowRunId)
+    .where("matrixGroupKey", "==", completedJob.matrixGroupKey)
+    .get();
+
+  const cancellableStatuses = new Set([
+    BuildJobStatus.WAITING,
+    BuildJobStatus.QUEUED,
+    BuildJobStatus.IN_PROGRESS,
+  ]);
+
+  const batch = db.batch();
+  let cancelledCount = 0;
+  const cancelledJobs: BuildJob[] = [];
+
+  for (const doc of candidates.docs) {
+    if (doc.id === completedJob.id) continue;
+    const data = doc.data();
+    if (!cancellableStatuses.has(data.status)) continue;
+
+    batch.update(doc.ref, {
+      status: BuildJobStatus.CANCELLED,
+      completedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    cancelledCount++;
+    cancelledJobs.push({ id: doc.id, ...data } as BuildJob);
+  }
+
+  if (cancelledCount > 0) {
+    await batch.commit();
+    for (const job of cancelledJobs) {
+      await updateCheckRun(job, "completed", "cancelled");
+    }
+  }
 }
 
 async function failureLogLine(buildJobId: string, latestRunId?: string | null): Promise<string> {

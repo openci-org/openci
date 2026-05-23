@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:flutter/material.dart';
 
 class JobCard extends StatefulWidget {
@@ -5,10 +6,12 @@ class JobCard extends StatefulWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.status = BuildJobStatus.SUCCESS,
   });
 
   final Widget child;
   final VoidCallback? onTap;
+  final BuildJobStatus status;
 
   @override
   State<JobCard> createState() => _JobCardState();
@@ -17,24 +20,48 @@ class JobCard extends StatefulWidget {
 class _JobCardState extends State<JobCard> {
   bool _isHovered = false;
 
+  bool get _isError =>
+      widget.status == BuildJobStatus.FAILURE ||
+      widget.status == BuildJobStatus.TIMED_OUT;
+
   @override
   Widget build(BuildContext context) {
+    final Color backgroundColor;
+    final Color borderColor;
+    final Color shadowColor;
+    final Color hoverShadowColor;
+    final Color splashColor;
+
+    if (_isError) {
+      backgroundColor = _isHovered
+          ? const Color(0xFFFFF0F0)
+          : const Color(0xFFFFF8F8);
+      borderColor = _isHovered
+          ? const Color(0xFFEF4444)
+          : const Color(0xFFFCA5A5);
+      shadowColor = const Color(0x1FDC2626);
+      hoverShadowColor = const Color(0x28DC2626);
+      splashColor = const Color(0xFFEF4444).withValues(alpha: 0.04);
+    } else {
+      backgroundColor = _isHovered ? const Color(0xFFFAFBFC) : Colors.white;
+      borderColor = _isHovered
+          ? const Color(0xFF5856D6).withValues(alpha: 0.25)
+          : const Color(0xFFE5E7EB);
+      shadowColor = const Color(0x0F101828);
+      hoverShadowColor = const Color(0x14101828);
+      splashColor = const Color(0xFF5856D6).withValues(alpha: 0.04);
+    }
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color: _isHovered ? const Color(0xFFFAFBFC) : Colors.white,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: _isHovered
-              ? const Color(0xFF5856D6).withValues(alpha: 0.25)
-              : const Color(0xFFE5E7EB),
-        ),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: _isHovered
-                ? const Color(0x14101828)
-                : const Color(0x0F101828),
+            color: _isHovered ? hoverShadowColor : shadowColor,
             blurRadius: _isHovered ? 20 : 16,
             offset: Offset(0, _isHovered ? 10 : 8),
           ),
@@ -54,7 +81,7 @@ class _JobCardState extends State<JobCard> {
             }
           },
           hoverColor: Colors.transparent,
-          splashColor: const Color(0xFF5856D6).withValues(alpha: 0.04),
+          splashColor: splashColor,
           highlightColor: Colors.transparent,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),

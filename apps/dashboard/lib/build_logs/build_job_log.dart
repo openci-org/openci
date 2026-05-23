@@ -8,7 +8,6 @@ class BuildJobLog extends StatelessWidget {
     required this.buildJob,
     this.child,
     this.jobs,
-    this.expandedChild,
     this.isExpanded = false,
     this.dependencies,
     this.needs,
@@ -22,13 +21,15 @@ class BuildJobLog extends StatelessWidget {
     this.maxTriggerWidth = 360,
     this.durationWidget,
     this.title,
-  });
+  }) : assert(
+         child != null || jobs != null || needs != null,
+         'Either child, jobs, or needs must be provided',
+       );
 
   final BuildJob buildJob;
   final String? title;
   final Widget? child;
   final List<Widget>? jobs;
-  final Widget? expandedChild;
   final bool isExpanded;
   final List<Widget>? dependencies;
   final List<Widget>? needs;
@@ -117,21 +118,6 @@ class BuildJobLog extends StatelessWidget {
       if (child != null) {
         children.add(child!);
       }
-      if (expandedChild != null) {
-        children.add(
-          AnimatedSize(
-            alignment: Alignment.topCenter,
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            child: isExpanded
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: expandedChild!,
-                  )
-                : const SizedBox(width: double.infinity, height: 0),
-          ),
-        );
-      }
 
       if (children.length > 1) {
         mainContent = Column(
@@ -143,7 +129,7 @@ class BuildJobLog extends StatelessWidget {
         mainContent = wrap;
       }
     } else if (needs != null) {
-      mainContent = SingleChildScrollView(
+      final needsContent = SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,6 +163,21 @@ class BuildJobLog extends StatelessWidget {
           ],
         ),
       );
+
+      final List<Widget> children = [needsContent];
+      if (child != null) {
+        children.add(child!);
+      }
+
+      if (children.length > 1) {
+        mainContent = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        );
+      } else {
+        mainContent = needsContent;
+      }
     } else {
       mainContent = child ?? const SizedBox.shrink();
     }

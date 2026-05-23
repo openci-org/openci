@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/branch_job_row.dart';
+import 'package:dashboard/build_logs/branch_matrix_variant_row.dart';
 import 'package:dashboard/build_logs/build_job_log.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
@@ -720,71 +721,52 @@ class WorkflowRunCard extends HookConsumerWidget {
     final overallStatus = _overallBuildStatus(jobs);
     final isExpanded = useState(false);
 
+    // workflowJobKey (フォールバックとして jobKey) でグループ化
+    final Map<String, List<BuildJob>> groups = {};
+    for (final job in jobs) {
+      final key = (job.workflowJobKey != null && job.workflowJobKey!.isNotEmpty)
+          ? job.workflowJobKey!
+          : (job.jobKey ?? 'unknown');
+      groups.putIfAbsent(key, () => []).add(job);
+    }
+    final hasMatrix = groups.values.any((g) => g.length > 1);
+
     // 依存関係（needs）を持つジョブが1つでもあるか
     final hasNeeds = jobs.any(
       (job) => job.needs != null && job.needs!.isNotEmpty,
     );
 
-    if (!hasNeeds) {
-      // ── パターンA: 直線型（マトリックスなど） ───────────────────────
-      // jobKeyでグループ化
-      final Map<String, List<BuildJob>> groups = {};
-      for (final job in jobs) {
-        final key = job.jobKey ?? 'unknown';
-        groups.putIfAbsent(key, () => []).add(job);
-      }
+    final usePatternB = hasNeeds || hasMatrix;
 
+    if (!usePatternB) {
+      // ── パターンA: 直線型（マトリックスなどはない単純直列） ───────────────────────
       final jobChips = <Widget>[];
       final groupKeys = groups.keys.toList();
 
       for (var i = 0; i < groupKeys.length; i++) {
         final key = groupKeys[i];
         final groupJobs = groups[key]!;
-
-        if (groupJobs.length > 1) {
-          // マトリックスジョブ
-          jobChips.add(
-            MatrixJobChip(
-              label: key,
-              count: groupJobs.length,
-              status: _toChipStatus(overallStatus),
-              isExpanded: isExpanded.value,
-              onTap: () {
-                isExpanded.value = !isExpanded.value;
-              },
+        final job = groupJobs.first;
+        jobChips.add(
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => onOpenBuildJob?.call(job),
+            child: JobChip(
+              label: _buildJobDisplayKey(job),
+              status: _toChipStatus(job.status),
             ),
-          );
-        } else {
-          // 通常の単一ジョブ
-          final job = groupJobs.first;
-          jobChips.add(
-            InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: () => onOpenBuildJob?.call(job),
-              child: JobChip(
-                label: _buildJobDisplayKey(job),
-                status: _toChipStatus(job.status),
-              ),
-            ),
-          );
-        }
+          ),
+        );
 
         if (i < groupKeys.length - 1) {
           jobChips.add(const ArrowRightIcon());
         }
       }
 
-      // アコーディオン展開用の子要素（VariantChips）
-      final matrixGroup = groups.values.firstWhere(
-        (g) => g.length > 1,
-        orElse: () => [],
-      );
-
       return JobCard(
+        status: overallStatus,
         onTap: () {
-          onOpenBuildJob?.call(
-            matrixGroup.isNotEmpty ? matrixGroup.first : mainJob,
-          );
+          onOpenBuildJob?.call(mainJob);
         },
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,12 +781,6 @@ class WorkflowRunCard extends HookConsumerWidget {
                 ),
                 isExpanded: isExpanded.value,
                 jobs: jobChips,
-                expandedChild: matrixGroup.isNotEmpty
-                    ? _DynamicVariantChips(
-                        jobs: matrixGroup,
-                        onOpenBuildJob: onOpenBuildJob,
-                      )
-                    : null,
               ),
             ),
             const SizedBox(width: 8),
@@ -818,7 +794,7 @@ class WorkflowRunCard extends HookConsumerWidget {
       );
     } else {
       // ── パターンB: needs依存関係による並列分岐 ───────────────────
-      final jobsMap = {for (final job in jobs) job.jobKey: job};
+      final jobsMap = {for (final entry in groups.entries) entry.key: entry.value.first};
       final requiredBy = <String>{};
       for (final job in jobs) {
         if (job.needs != null) {
@@ -826,70 +802,136 @@ class WorkflowRunCard extends HookConsumerWidget {
         }
       }
 
-      final leafJobs = jobs.where((job) {
-        final key = job.jobKey;
-        if (key == null) return true;
-        return !requiredBy.contains(key);
-      }).toList();
-
-      final effectiveLeafJobs = leafJobs.isEmpty ? jobs : leafJobs;
+      final leafJobKeys = groups.keys.where((key) => !requiredBy.contains(key)).toList();
+      final effectiveLeafKeys = leafJobKeys.isEmpty ? groups.keys.toList() : leafJobKeys;
 
       // トポロジカルソート
-      final depJobs = <BuildJob>[];
+      final depJobKeys = <String>[];
       final visited = <String>{};
 
-      void visit(BuildJob job) {
-        final key = job.jobKey;
-        if (key == null || visited.contains(key)) return;
+      void visit(String key) {
+        if (visited.contains(key)) return;
+        final job = jobsMap[key];
+        if (job == null) return;
 
         if (job.needs != null) {
           for (final reqKey in job.needs!) {
-            final reqJob = jobsMap[reqKey];
-            if (reqJob != null) {
-              visit(reqJob);
-            }
+            visit(reqKey);
           }
         }
 
-        if (!effectiveLeafJobs.contains(job)) {
+        if (!effectiveLeafKeys.contains(key)) {
           visited.add(key);
-          depJobs.add(job);
+          depJobKeys.add(key);
         }
       }
 
-      for (final job in jobs) {
-        visit(job);
+      for (final key in groups.keys) {
+        visit(key);
       }
 
-      final dependencyWidgets = depJobs.map((job) {
-        return InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: () => onOpenBuildJob?.call(job),
-          child: JobChip(
-            label: _buildJobDisplayKey(job),
-            status: _toChipStatus(job.status),
-          ),
-        );
-      }).toList();
+      final dependencyWidgets = <Widget>[];
+      for (final key in depJobKeys) {
+        final groupJobs = groups[key]!;
+        if (groupJobs.length > 1) {
+          dependencyWidgets.add(
+            MatrixJobChip(
+              label: key,
+              count: groupJobs.length,
+              status: _toChipStatus(overallStatus),
+              isExpanded: isExpanded.value,
+              onTap: () {
+                isExpanded.value = !isExpanded.value;
+              },
+            ),
+          );
+        } else {
+          final job = groupJobs.first;
+          dependencyWidgets.add(
+            InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () => onOpenBuildJob?.call(job),
+              child: JobChip(
+                label: _buildJobDisplayKey(job),
+                status: _toChipStatus(job.status),
+              ),
+            ),
+          );
+        }
+      }
 
       final needWidgets = <Widget>[];
-      final total = effectiveLeafJobs.length;
+      final total = effectiveLeafKeys.length;
+      final showConnection = !(dependencyWidgets.isEmpty && total == 1);
       for (var i = 0; i < total; i++) {
-        final job = effectiveLeafJobs[i];
-        needWidgets.add(
-          BranchJobRow(
-            label: _buildJobDisplayKey(job),
-            status: _toChipStatus(job.status),
-            index: i,
-            total: total,
-            onTap: () => onOpenBuildJob?.call(job),
-          ),
-        );
+        final key = effectiveLeafKeys[i];
+        final groupJobs = groups[key]!;
+
+        if (groupJobs.length > 1) {
+          needWidgets.add(
+            BranchJobRow(
+              label: key,
+              status: _toChipStatus(overallStatus),
+              index: i,
+              total: total,
+              showConnection: showConnection,
+              child: MatrixJobChip(
+                label: key,
+                count: groupJobs.length,
+                status: _toChipStatus(overallStatus),
+                isExpanded: isExpanded.value,
+                onTap: () {
+                  isExpanded.value = !isExpanded.value;
+                },
+              ),
+            ),
+          );
+          needWidgets.add(
+            _AnimatedHeightVisibility(
+              visible: isExpanded.value,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var variantIndex = 0;
+                      variantIndex < groupJobs.length;
+                      variantIndex++)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () => onOpenBuildJob?.call(groupJobs[variantIndex]),
+                      child: BranchMatrixVariantRow(
+                        variantLabel: groupJobs[variantIndex].displayMatrixLabel ??
+                            _buildJobDisplayKey(groupJobs[variantIndex]),
+                        status: _toChipStatus(groupJobs[variantIndex].status),
+                        parentIndex: i,
+                        parentTotal: total,
+                        variantIndex: variantIndex,
+                        variantTotal: groupJobs.length,
+                        showConnection: showConnection,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          final job = groupJobs.first;
+          needWidgets.add(
+            BranchJobRow(
+              label: _buildJobDisplayKey(job),
+              status: _toChipStatus(job.status),
+              index: i,
+              total: total,
+              showConnection: showConnection,
+              onTap: () => onOpenBuildJob?.call(job),
+            ),
+          );
+        }
       }
 
-      final representativeJob = effectiveLeafJobs.firstOrNull ?? mainJob;
+      final representativeJob = jobsMap[effectiveLeafKeys.firstOrNull ?? 'unknown'] ?? mainJob;
 
       return JobCard(
+        status: overallStatus,
         onTap: () {
           onOpenBuildJob?.call(representativeJob);
         },
@@ -904,6 +946,7 @@ class WorkflowRunCard extends HookConsumerWidget {
                   jobs: jobs,
                   overallStatus: overallStatus,
                 ),
+                isExpanded: isExpanded.value,
                 dependencies: dependencyWidgets,
                 needs: needWidgets,
               ),
@@ -1010,43 +1053,7 @@ String _buildJobDisplayKey(BuildJob job) {
   return 'Unnamed Job';
 }
 
-class _DynamicVariantChips extends StatelessWidget {
-  const _DynamicVariantChips({
-    required this.jobs,
-    this.onOpenBuildJob,
-  });
 
-  final List<BuildJob> jobs;
-  final ValueChanged<BuildJob>? onOpenBuildJob;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.of(context).divider),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: jobs.map((job) {
-          final label = job.matrixLabel ?? _buildJobDisplayKey(job);
-          return InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: () => onOpenBuildJob?.call(job),
-            child: VariantChip(
-              label: label,
-              status: _toChipStatus(job.status),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
 
 class _LiveDurationBadge extends HookConsumerWidget {
   const _LiveDurationBadge({required this.buildJob});
@@ -1350,6 +1357,74 @@ class _MoreMenuButton extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _AnimatedHeightVisibility extends StatefulWidget {
+  const _AnimatedHeightVisibility({
+    required this.visible,
+    required this.child,
+  });
+
+  final bool visible;
+  final Widget child;
+
+  @override
+  State<_AnimatedHeightVisibility> createState() =>
+      _AnimatedHeightVisibilityState();
+}
+
+class _AnimatedHeightVisibilityState extends State<_AnimatedHeightVisibility>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    if (widget.visible) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedHeightVisibility oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.visible != oldWidget.visible) {
+      if (widget.visible) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        if (_controller.isDismissed && !widget.visible) {
+          return const SizedBox.shrink();
+        }
+        return SizeTransition(
+          axis: Axis.vertical,
+          sizeFactor: _animation,
+          child: widget.child,
+        );
+      },
     );
   }
 }

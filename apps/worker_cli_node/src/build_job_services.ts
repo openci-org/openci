@@ -414,8 +414,8 @@ export async function getBuildJobOrThrow(buildJobId: string): Promise<BuildJob> 
 export async function updateCheckRun(
   buildJob: BuildJob,
   runStatus: "in_progress" | "completed",
-  conclusion?: "success" | "failure",
-): Promise<void> {
+  conclusion?: "success" | "failure" | "skipped" | "cancelled" | "timed_out" | "neutral",
+) {
   if (buildJob.checkRunId === null || buildJob.checkRunId === undefined) return;
   if (!buildJob.installationToken) return;
 
@@ -462,6 +462,7 @@ async function resolveDependencies(
 
     if (!isSuccess) {
       await updateBuildJobStatus({ id: job.id, status: BuildJobStatus.SKIPPED });
+      await updateCheckRun(job as BuildJob, "completed", "skipped");
       await resolveDependencies(job as BuildJob, BuildJobStatus.SKIPPED);
       continue;
     }
@@ -506,18 +507,25 @@ async function cancelFailFastMatrixSiblings(
   ]);
   const batch = db().batch();
   let cancelledCount = 0;
+  const cancelledJobs: BuildJob[] = [];
+
   for (const doc of candidates.docs) {
     if (doc.id === completedJob.id) continue;
-    if (!cancellableStatuses.has(doc.data().status)) continue;
+    const data = doc.data();
+    if (!cancellableStatuses.has(data.status)) continue;
     batch.update(doc.ref, {
       status: BuildJobStatus.CANCELLED,
       completedAt: now(),
       updatedAt: now(),
     });
     cancelledCount++;
+    cancelledJobs.push({ id: doc.id, ...data } as BuildJob);
   }
   if (cancelledCount > 0) {
     await batch.commit();
+    for (const job of cancelledJobs) {
+      await updateCheckRun(job, "completed", "cancelled");
+    }
   }
 }
 

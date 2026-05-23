@@ -4,13 +4,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ArrowRightIcon extends StatelessWidget {
-  const ArrowRightIcon({super.key});
+  const ArrowRightIcon({super.key, this.height = 24});
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 24,
-      child: Icon(
+    return SizedBox(
+      width: 24,
+      height: height,
+      child: const Icon(
         CupertinoIcons.arrow_right,
         size: 10,
         color: Color(0xFFB8C0CC),
@@ -79,6 +81,12 @@ class BranchLinePainter extends CustomPainter {
       path.lineTo(size.width, halfHeight);
     }
 
+    // Draw an arrowhead at the right end of the horizontal line
+    const double arrowSize = 3.0;
+    path.moveTo(size.width - arrowSize, halfHeight - arrowSize);
+    path.lineTo(size.width, halfHeight);
+    path.lineTo(size.width - arrowSize, halfHeight + arrowSize);
+
     canvas.drawPath(path, paint);
   }
 
@@ -95,6 +103,8 @@ class BranchJobRow extends StatelessWidget {
     required this.index,
     required this.total,
     this.onTap,
+    this.child,
+    this.showConnection = true,
   });
 
   final String label;
@@ -102,20 +112,29 @@ class BranchJobRow extends StatelessWidget {
   final int index;
   final int total;
   final VoidCallback? onTap;
+  final Widget? child;
+  final bool showConnection;
 
   @override
   Widget build(BuildContext context) {
+    final isSingle = total <= 1;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        BranchLine(index: index, total: total),
-        const SizedBox(width: 4),
-        InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: onTap,
-          child: JobChip(label: label, status: status),
-        ),
+        if (showConnection) ...[
+          if (isSingle)
+            const ArrowRightIcon(height: 32)
+          else
+            BranchLine(index: index, total: total),
+          SizedBox(width: isSingle ? 4 : 11),
+        ],
+        child ??
+            InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: onTap,
+              child: JobChip(label: label, status: status),
+            ),
       ],
     );
   }
