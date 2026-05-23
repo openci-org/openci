@@ -2,7 +2,8 @@ import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { verifyTeamMembership } from "../team/teamAuth.js";
-import { getInstallationToken, githubGet } from "./githubApp.js";
+import { getInstallationToken } from "./githubApp.js";
+import { githubGet } from "./githubRequests.js";
 import { getApiBaseUrlFromTeamData } from "./githubUrls.js";
 
 interface SearchGitHubActionsRequest {

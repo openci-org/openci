@@ -8,14 +8,8 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import OpenAI from "openai";
 
 import { BuildJobStatus, firestoreCollectionPaths, listLatestBuildLogs } from "../firestoreData.js";
-import {
-  getInstallationToken,
-  githubAppId,
-  githubGet,
-  githubPost,
-  githubPrivateKey,
-  githubPut,
-} from "../github/githubApp.js";
+import { getInstallationToken, githubAppId, githubPrivateKey } from "../github/githubApp.js";
+import { githubGet, githubPost, githubPut } from "../github/githubRequests.js";
 import { getApiBaseUrlFromTeamData } from "../github/githubUrls.js";
 import { verifyTeamMembership } from "../team/teamAuth.js";
 

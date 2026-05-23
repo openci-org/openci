@@ -11,12 +11,8 @@ import { logger } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { firestoreCollectionPaths, getTeamById } from "../firestoreData.js";
-import {
-  getInstallationToken,
-  githubAppId,
-  githubGraphql,
-  githubPrivateKey,
-} from "../github/githubApp.js";
+import { getInstallationToken, githubAppId, githubPrivateKey } from "../github/githubApp.js";
+import { githubGraphql } from "../github/githubRequests.js";
 import {
   getApiBaseUrlFromTeamData,
   getConfiguredGitHubApiBaseUrl,

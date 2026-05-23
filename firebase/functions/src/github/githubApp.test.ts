@@ -1,21 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createCheckRun,
-  getInstallationToken,
-  GitHubGraphqlError,
-  githubGet,
-  githubGraphql,
-  githubPost,
-} from "./githubApp.js";
+import { createCheckRun, getInstallationToken } from "./githubApp.js";
 
-const { mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest, mockFetch } = vi.hoisted(
-  () => ({
-    mockCreateAppAuth: vi.fn(),
-    mockRequestDefaults: vi.fn(),
-    mockOctokitRequest: vi.fn(),
-    mockFetch: vi.fn(),
-  }),
-);
+const { mockCreateAppAuth, mockRequestDefaults, mockOctokitRequest } = vi.hoisted(() => ({
+  mockCreateAppAuth: vi.fn(),
+  mockRequestDefaults: vi.fn(),
+  mockOctokitRequest: vi.fn(),
+}));
 
 vi.mock("firebase-functions/params", () => ({
   defineSecret: (name: string) => ({
@@ -43,10 +33,14 @@ vi.mock("@octokit/rest", () => ({
   },
 }));
 
-describe("GitHub API helpers", () => {
+// mock githubPost from githubRequests to avoid real network call in createCheckRun
+vi.mock("./githubRequests.js", () => ({
+  githubPost: (...args: unknown[]) => mockOctokitRequest(...args),
+}));
+
+describe("GitHub App Helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("fetch", mockFetch);
     mockRequestDefaults.mockReturnValue("request-with-base-url");
     mockCreateAppAuth.mockReturnValue(
       vi.fn().mockResolvedValue({
@@ -55,12 +49,6 @@ describe("GitHub API helpers", () => {
       }),
     );
     mockOctokitRequest.mockResolvedValue({ data: { ok: true } });
-    mockFetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      json: () => Promise.resolve({ data: {} }),
-    });
   });
 
   it("requests an installation token using GitHub App credentials", async () => {
@@ -79,73 +67,6 @@ describe("GitHub API helpers", () => {
         timeDifference: 30,
         request: "request-with-base-url",
       }),
-    );
-  });
-
-  it("sends GET requests with query parameters", async () => {
-    mockOctokitRequest.mockResolvedValue({ data: { ok: true } });
-
-    await githubGet("/repos/openci/openci", "token-123", {
-      queryParameters: { per_page: 100 },
-    });
-
-    expect(mockOctokitRequest).toHaveBeenCalledWith(
-      "GET /repos/openci/openci",
-      expect.objectContaining({
-        per_page: 100,
-      }),
-    );
-  });
-
-  it("sends POST request bodies", async () => {
-    mockOctokitRequest.mockResolvedValue({ data: { id: 1 } });
-
-    await githubPost("/repos/openci/openci/issues", "token-123", { title: "hello" });
-
-    expect(mockOctokitRequest).toHaveBeenCalledWith(
-      "POST /repos/openci/openci/issues",
-      expect.objectContaining({
-        title: "hello",
-      }),
-    );
-  });
-
-  it("sends GraphQL requests to the derived endpoint", async () => {
-    await githubGraphql("query { viewer { login } }", "token-123", {
-      apiBaseUrl: "https://github.example.com/api/v3",
-      variables: { owner: "openci" },
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://github.example.com/api/graphql",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({ authorization: "bearer token-123" }),
-        body: JSON.stringify({
-          query: "query { viewer { login } }",
-          variables: { owner: "openci" },
-        }),
-      }),
-    );
-  });
-
-  it("throws GraphQL errors with the response details", async () => {
-    const errors = [{ message: "Resource not accessible by integration" }];
-    mockFetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      json: () => Promise.resolve({ data: null, errors }),
-    });
-
-    await expect(githubGraphql("query { viewer { login } }", "token-123")).rejects.toMatchObject({
-      name: "GitHubGraphqlError",
-      status: 200,
-      statusText: "OK",
-      errors,
-    });
-    await expect(githubGraphql("query { viewer { login } }", "token-123")).rejects.toBeInstanceOf(
-      GitHubGraphqlError,
     );
   });
 

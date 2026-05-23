@@ -2,14 +2,8 @@ import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { verifyTeamMembership } from "../team/teamAuth.js";
-import {
-  getInstallationToken,
-  githubGet,
-  githubGraphql,
-  githubPatch,
-  githubPost,
-  githubPut,
-} from "./githubApp.js";
+import { getInstallationToken } from "./githubApp.js";
+import { githubGet, githubGraphql, githubPatch, githubPost, githubPut } from "./githubRequests.js";
 import { getApiBaseUrlFromTeamData } from "./githubUrls.js";
 
 function buildDirectoryTreeFragment(depth: number): string {

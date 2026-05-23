@@ -17,6 +17,9 @@ vi.mock("../team/teamAuth", () => ({
 
 vi.mock("./githubApp", () => ({
   getInstallationToken: (...args: unknown[]) => mockGetInstallationToken(...args),
+}));
+
+vi.mock("./githubRequests", () => ({
   githubGet: (...args: unknown[]) => mockGithubGet(...args),
 }));
 

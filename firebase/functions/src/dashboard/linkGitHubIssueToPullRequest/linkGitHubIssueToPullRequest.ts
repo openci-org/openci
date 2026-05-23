@@ -7,7 +7,8 @@ import {
 import { logger } from "firebase-functions/v2";
 
 import { firestoreCollectionPaths, getTeamById } from "../../firestoreData.js";
-import { getInstallationToken, githubPatch } from "../../github/githubApp.js";
+import { getInstallationToken } from "../../github/githubApp.js";
+import { githubPatch } from "../../github/githubRequests.js";
 import { getApiBaseUrlFromTeamData } from "../../github/githubUrls.js";
 import { upsertLinkedIssueBlocks } from "../../issues/issueLinkingHelpers.js";
 import { asString } from "../dashboardPayloadHelpers.js";

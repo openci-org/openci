@@ -7,7 +7,8 @@ import {
   tryMarkCiNotificationSent,
   updateUserFcmTokens,
 } from "../firestoreData.js";
-import { getInstallationToken, githubGraphql } from "./githubApp.js";
+import { getInstallationToken } from "./githubApp.js";
+import { githubGraphql } from "./githubRequests.js";
 import { getApiBaseUrlFromTeamData } from "./githubUrls.js";
 
 interface PullRequestCiNotificationInput {

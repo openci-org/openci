@@ -1,7 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app";
 import { request } from "@octokit/request";
 
-import type { InstallationToken } from "../../github/githubApp.js";
+import type { InstallationToken } from "../../github/githubRequests.js";
 
 export async function getInstallationToken(
   installationId: number,

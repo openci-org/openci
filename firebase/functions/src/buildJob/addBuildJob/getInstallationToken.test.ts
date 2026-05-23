@@ -34,7 +34,7 @@ describe("getInstallationToken in addBuildJob", () => {
       123,
       "https://api.github.com",
       "app-id",
-      "private-key"
+      "private-key",
     );
 
     expect(result).toEqual({
