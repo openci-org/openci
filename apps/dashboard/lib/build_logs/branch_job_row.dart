@@ -105,6 +105,7 @@ class BranchJobRow extends StatelessWidget {
     this.onTap,
     this.child,
     this.showConnection = true,
+    this.durationWidget,
   });
 
   final String label;
@@ -114,6 +115,7 @@ class BranchJobRow extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? child;
   final bool showConnection;
+  final Widget? durationWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +135,11 @@ class BranchJobRow extends StatelessWidget {
             InkWell(
               borderRadius: BorderRadius.circular(6),
               onTap: onTap,
-              child: JobChip(label: label, status: status),
+              child: JobChip(
+                label: label,
+                status: status,
+                durationWidget: durationWidget,
+              ),
             ),
       ],
     );

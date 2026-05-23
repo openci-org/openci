@@ -13,6 +13,7 @@ class BranchMatrixVariantRow extends StatelessWidget {
     required this.variantIndex,
     required this.variantTotal,
     this.showConnection = true,
+    this.durationWidget,
   });
 
   final String variantLabel;
@@ -22,6 +23,7 @@ class BranchMatrixVariantRow extends StatelessWidget {
   final int variantIndex;
   final int variantTotal;
   final bool showConnection;
+  final Widget? durationWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,11 @@ class BranchMatrixVariantRow extends StatelessWidget {
           showConnection: showConnection,
         ),
         const SizedBox(width: 11),
-        VariantChip(label: variantLabel, status: status),
+        VariantChip(
+          label: variantLabel,
+          status: status,
+          durationWidget: durationWidget,
+        ),
       ],
     );
   }

@@ -541,6 +541,7 @@ class BuildJobCard extends HookConsumerWidget {
                 JobChip(
                   label: _buildJobDisplayKey(buildJob),
                   status: _toChipStatus(buildJob.status),
+                  durationWidget: _InlineLiveDuration(buildJob: buildJob),
                 ),
               ],
             ),
@@ -754,6 +755,7 @@ class WorkflowRunCard extends HookConsumerWidget {
             child: JobChip(
               label: _buildJobDisplayKey(job),
               status: _toChipStatus(job.status),
+              durationWidget: _InlineLiveDuration(buildJob: job),
             ),
           ),
         );
@@ -833,16 +835,21 @@ class WorkflowRunCard extends HookConsumerWidget {
       final dependencyWidgets = <Widget>[];
       for (final key in depJobKeys) {
         final groupJobs = groups[key]!;
+        final groupOverallStatus = _overallBuildStatus(groupJobs);
         if (groupJobs.length > 1) {
           dependencyWidgets.add(
             MatrixJobChip(
               label: key,
               count: groupJobs.length,
-              status: _toChipStatus(overallStatus),
+              status: _toChipStatus(groupOverallStatus),
               isExpanded: isExpanded.value,
               onTap: () {
                 isExpanded.value = !isExpanded.value;
               },
+              durationWidget: _InlineWorkflowDuration(
+                jobs: groupJobs,
+                overallStatus: groupOverallStatus,
+              ),
             ),
           );
         } else {
@@ -854,6 +861,7 @@ class WorkflowRunCard extends HookConsumerWidget {
               child: JobChip(
                 label: _buildJobDisplayKey(job),
                 status: _toChipStatus(job.status),
+                durationWidget: _InlineLiveDuration(buildJob: job),
               ),
             ),
           );
@@ -866,19 +874,24 @@ class WorkflowRunCard extends HookConsumerWidget {
       for (var i = 0; i < total; i++) {
         final key = effectiveLeafKeys[i];
         final groupJobs = groups[key]!;
+        final groupOverallStatus = _overallBuildStatus(groupJobs);
 
         if (groupJobs.length > 1) {
           needWidgets.add(
             BranchJobRow(
               label: key,
-              status: _toChipStatus(overallStatus),
+              status: _toChipStatus(groupOverallStatus),
               index: i,
               total: total,
               showConnection: showConnection,
+              durationWidget: _InlineWorkflowDuration(
+                jobs: groupJobs,
+                overallStatus: groupOverallStatus,
+              ),
               child: MatrixJobChip(
                 label: key,
                 count: groupJobs.length,
-                status: _toChipStatus(overallStatus),
+                status: _toChipStatus(groupOverallStatus),
                 isExpanded: isExpanded.value,
                 onTap: () {
                   isExpanded.value = !isExpanded.value;
@@ -907,6 +920,9 @@ class WorkflowRunCard extends HookConsumerWidget {
                         variantIndex: variantIndex,
                         variantTotal: groupJobs.length,
                         showConnection: showConnection,
+                        durationWidget: _InlineLiveDuration(
+                          buildJob: groupJobs[variantIndex],
+                        ),
                       ),
                     ),
                 ],
@@ -923,6 +939,7 @@ class WorkflowRunCard extends HookConsumerWidget {
               total: total,
               showConnection: showConnection,
               onTap: () => onOpenBuildJob?.call(job),
+              durationWidget: _InlineLiveDuration(buildJob: job),
             ),
           );
         }
@@ -1213,6 +1230,119 @@ class _WorkflowDurationBadge extends HookWidget {
             ),
           ),
         ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+class _InlineLiveDuration extends HookConsumerWidget {
+  const _InlineLiveDuration({required this.buildJob});
+  final BuildJob buildJob;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isRunning = buildJob.status == BuildJobStatus.IN_PROGRESS;
+    final isTerminal = _isTerminalStatus(buildJob.status);
+
+    final tick = useState(0);
+    useEffect(() {
+      if (!isRunning) return null;
+      final timer = Stream.periodic(const Duration(seconds: 1)).listen((_) {
+        tick.value++;
+      });
+      return timer.cancel;
+    }, [isRunning]);
+
+    if (isRunning) {
+      tick.value;
+      final elapsed = DateTime.now().toUtc().difference(buildJob.updatedAt);
+      return Text(
+        _formatDurationCompact(
+          elapsed.isNegative ? Duration.zero : elapsed,
+        ),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+
+    if (isTerminal) {
+      final durationAsync = ref.watch(runDurationProvider(buildJob));
+      return durationAsync.when(
+        data: (duration) {
+          if (duration == null) return const SizedBox.shrink();
+          return Text(
+            _formatDurationCompact(duration),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          );
+        },
+        loading: () => const SizedBox.shrink(),
+        error: (_, _) => const SizedBox.shrink(),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+class _InlineWorkflowDuration extends HookWidget {
+  const _InlineWorkflowDuration({
+    required this.jobs,
+    required this.overallStatus,
+  });
+  final List<BuildJob> jobs;
+  final BuildJobStatus overallStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRunning = _isRunningStatus(overallStatus);
+    final isTerminal = _isTerminalStatus(overallStatus);
+
+    final tick = useState(0);
+    useEffect(() {
+      if (!isRunning) return null;
+      final timer = Stream.periodic(const Duration(seconds: 1)).listen((_) {
+        tick.value++;
+      });
+      return timer.cancel;
+    }, [isRunning]);
+
+    final earliestCreatedAt = jobs
+        .map((j) => j.createdAt)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+
+    if (isRunning) {
+      tick.value;
+      final elapsed = DateTime.now().toUtc().difference(earliestCreatedAt);
+      return Text(
+        _formatDurationCompact(elapsed),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+
+    if (isTerminal) {
+      final latestUpdatedAt = jobs
+          .map((j) => j.completedAt ?? j.updatedAt)
+          .reduce((a, b) => a.isAfter(b) ? a : b);
+      final duration = latestUpdatedAt.difference(earliestCreatedAt);
+      if (duration.isNegative || duration.inSeconds == 0) {
+        return const SizedBox.shrink();
+      }
+      return Text(
+        _formatDurationCompact(duration),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
       );
     }
 

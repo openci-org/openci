@@ -10,6 +10,7 @@ class MatrixJobChip extends StatelessWidget {
     required this.status,
     required this.isExpanded,
     required this.onTap,
+    this.durationWidget,
   });
 
   final String label;
@@ -17,6 +18,7 @@ class MatrixJobChip extends StatelessWidget {
   final ChipStatus status;
   final bool isExpanded;
   final VoidCallback onTap;
+  final Widget? durationWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,12 @@ class MatrixJobChip extends StatelessWidget {
           const Icon(CupertinoIcons.square_grid_2x2, size: 10),
           const SizedBox(width: 5),
           Text('$label · $count'),
+          if (durationWidget != null) ...[
+            const SizedBox(width: 5),
+            const Text('·', style: TextStyle(fontWeight: FontWeight.w300)),
+            const SizedBox(width: 5),
+            durationWidget!,
+          ],
           const SizedBox(width: 5),
           Icon(
             isExpanded
@@ -76,10 +84,16 @@ class VariantChips extends StatelessWidget {
 }
 
 class VariantChip extends StatelessWidget {
-  const VariantChip({super.key, required this.label, required this.status});
+  const VariantChip({
+    super.key,
+    required this.label,
+    required this.status,
+    this.durationWidget,
+  });
 
   final String label;
   final ChipStatus status;
+  final Widget? durationWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +107,12 @@ class VariantChip extends StatelessWidget {
           StatusIcon(status: status),
           const SizedBox(width: 5),
           Text(label),
+          if (durationWidget != null) ...[
+            const SizedBox(width: 5),
+            const Text('·', style: TextStyle(fontWeight: FontWeight.w300)),
+            const SizedBox(width: 5),
+            durationWidget!,
+          ],
         ],
       ),
     );
