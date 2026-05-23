@@ -240,8 +240,8 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.workflowName,
 /// @nodoc
 @JsonSerializable()
 
-class _BuildJob with DiagnosticableTreeMixin implements BuildJob {
-  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, required this.workflowName, this.teamId, this.workflowId, this.workflowFileName, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, this.tagName, this.branch, this.jobKey, this.workflowJobKey, final  Map<String, Object?>? matrix, this.matrixLabel, this.workflowRunId, final  List<String>? needs, this.failureSummary, this.failureSummaryModel, this.failureSummaryStatus, this.failureSummaryDurationMs, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt, @DateTimeConverter() this.completedAt}): _matrix = matrix,_needs = needs;
+class _BuildJob extends BuildJob with DiagnosticableTreeMixin {
+  const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, required this.workflowName, this.teamId, this.workflowId, this.workflowFileName, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, this.tagName, this.branch, this.jobKey, this.workflowJobKey, final  Map<String, Object?>? matrix, this.matrixLabel, this.workflowRunId, final  List<String>? needs, this.failureSummary, this.failureSummaryModel, this.failureSummaryStatus, this.failureSummaryDurationMs, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt, @DateTimeConverter() this.completedAt}): _matrix = matrix,_needs = needs,super._();
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
 @override final  String id;

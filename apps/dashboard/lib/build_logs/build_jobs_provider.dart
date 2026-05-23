@@ -97,6 +97,8 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
 
 @freezed
 abstract class BuildJob with _$BuildJob {
+  const BuildJob._();
+
   const factory BuildJob({
     required String id,
     required BuildJobStatus status,
@@ -129,6 +131,19 @@ abstract class BuildJob with _$BuildJob {
 
   factory BuildJob.fromJson(Map<String, Object?> json) =>
       _$BuildJobFromJson(json);
+
+  String? get displayMatrixLabel {
+    if (matrixLabel != null && matrixLabel!.isNotEmpty) {
+      return matrixLabel;
+    }
+    if (matrix == null || matrix!.isEmpty) {
+      return null;
+    }
+    if (matrix!.containsKey('name') && matrix!['name'] is String) {
+      return matrix!['name'] as String;
+    }
+    return matrix!.values.map((v) => v.toString()).join(' / ');
+  }
 }
 
 @riverpod
