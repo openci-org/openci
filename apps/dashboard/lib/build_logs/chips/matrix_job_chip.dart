@@ -22,7 +22,6 @@ class MatrixJobChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final duration = durationWidget;
     return BaseChip(
       backgroundColor: status.backgroundColor,
       borderColor: status.borderColor,
@@ -36,7 +35,7 @@ class MatrixJobChip extends StatelessWidget {
           const Icon(CupertinoIcons.square_grid_2x2, size: 10),
           const SizedBox(width: 5),
           Text('$label · $count'),
-          if (duration != null) duration,
+          ?durationWidget,
           const SizedBox(width: 5),
           Icon(
             isExpanded
@@ -93,7 +92,6 @@ class VariantChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final duration = durationWidget;
     return BaseChip(
       backgroundColor: status.backgroundColor,
       borderColor: status.borderColor,
@@ -104,7 +102,7 @@ class VariantChip extends StatelessWidget {
           StatusIcon(status: status),
           const SizedBox(width: 5),
           Text(label),
-          if (duration != null) duration,
+          ?durationWidget,
         ],
       ),
     );
