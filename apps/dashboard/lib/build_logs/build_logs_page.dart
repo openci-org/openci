@@ -28,8 +28,8 @@ ChipStatus _toChipStatus(BuildJobStatus status) => switch (status) {
   BuildJobStatus.SUCCESS => ChipStatus.success,
   BuildJobStatus.FAILURE || BuildJobStatus.TIMED_OUT => ChipStatus.fail,
   BuildJobStatus.IN_PROGRESS => ChipStatus.inProgress,
-  BuildJobStatus.QUEUED => ChipStatus.queued,
-  BuildJobStatus.CANCELLED || BuildJobStatus.WAITING => ChipStatus.cancelled,
+  BuildJobStatus.QUEUED || BuildJobStatus.WAITING => ChipStatus.queued,
+  BuildJobStatus.CANCELLED => ChipStatus.cancelled,
   BuildJobStatus.SKIPPED => ChipStatus.skipped,
 };
 
