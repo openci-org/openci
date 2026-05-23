@@ -76,6 +76,7 @@ describe("GitHub API helpers", () => {
         appId: "12345",
         privateKey: "private-key",
         installationId: 123,
+        timeDifference: 30,
         request: "request-with-base-url",
       }),
     );

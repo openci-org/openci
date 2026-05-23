@@ -13,6 +13,7 @@ export async function getInstallationToken(
     appId,
     privateKey,
     installationId,
+    timeDifference: 30,
     request: request.defaults({ baseUrl: apiBaseUrl }),
   });
   const data = await auth({ type: "installation" });

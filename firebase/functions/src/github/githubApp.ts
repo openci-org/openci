@@ -103,6 +103,7 @@ export async function getInstallationToken(
     appId,
     privateKey,
     installationId,
+    timeDifference: 30,
     request: request.defaults({ baseUrl: apiBaseUrl ?? getConfiguredGitHubApiBaseUrl() }),
   });
   const data = await auth({ type: "installation" });
