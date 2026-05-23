@@ -1,54 +1,35 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/build_logs/branch_job_row.dart';
+import 'package:dashboard/build_logs/build_job_log.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
+import 'package:dashboard/build_logs/chips/job_chip.dart';
+import 'package:dashboard/build_logs/chips/job_status.dart';
+import 'package:dashboard/build_logs/chips/matrix_job_chip.dart';
+import 'package:dashboard/build_logs/job_card.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
-import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 const _recentBuildLogWindow = Duration(hours: 24);
 const buildLogsSplitViewBreakpoint = 1040.0;
 
-Color _statusColor(BuildJobStatus status) => switch (status) {
-  BuildJobStatus.SUCCESS => const Color(0xFF2DA44E),
-  BuildJobStatus.FAILURE => const Color(0xFFCF222E),
-  BuildJobStatus.IN_PROGRESS => const Color(0xFF1F6FEB),
-  BuildJobStatus.QUEUED => const Color(0xFF6E40C9),
-  BuildJobStatus.CANCELLED => const Color(0xFFBF8700),
-  BuildJobStatus.WAITING => const Color(0xFFBF8700),
-  BuildJobStatus.SKIPPED => const Color(0xFFA1A1AA),
-  BuildJobStatus.TIMED_OUT => const Color(0xFFCF222E),
-};
-
-IconData _statusIcon(BuildJobStatus status) => switch (status) {
-  BuildJobStatus.SUCCESS => Icons.check_circle_rounded,
-  BuildJobStatus.FAILURE => Icons.cancel_rounded,
-  BuildJobStatus.IN_PROGRESS => Icons.help_outline_rounded,
-  BuildJobStatus.QUEUED => Icons.schedule_rounded,
-  BuildJobStatus.CANCELLED => Icons.block_rounded,
-  BuildJobStatus.WAITING => Icons.adjust_rounded,
-  BuildJobStatus.SKIPPED => Icons.skip_next_rounded,
-  BuildJobStatus.TIMED_OUT => Icons.timer_off_rounded,
-};
-
-String _statusLabel(BuildJobStatus status) => switch (status) {
-  BuildJobStatus.SUCCESS => t.buildLogs.status.success,
-  BuildJobStatus.FAILURE => t.buildLogs.status.failed,
-  BuildJobStatus.IN_PROGRESS => t.buildLogs.status.inProgress,
-  BuildJobStatus.QUEUED => t.buildLogs.status.queued,
-  BuildJobStatus.CANCELLED => t.buildLogs.status.cancelled,
-  BuildJobStatus.WAITING => 'Waiting',
-  BuildJobStatus.SKIPPED => 'Skipped',
-  BuildJobStatus.TIMED_OUT => 'Timed out',
+ChipStatus _toChipStatus(BuildJobStatus status) => switch (status) {
+  BuildJobStatus.SUCCESS => ChipStatus.success,
+  BuildJobStatus.FAILURE || BuildJobStatus.TIMED_OUT => ChipStatus.fail,
+  BuildJobStatus.IN_PROGRESS => ChipStatus.inProgress,
+  BuildJobStatus.QUEUED => ChipStatus.queued,
+  BuildJobStatus.CANCELLED || BuildJobStatus.WAITING => ChipStatus.cancelled,
+  BuildJobStatus.SKIPPED => ChipStatus.skipped,
 };
 
 bool _isRunningStatus(BuildJobStatus status) =>
@@ -500,18 +481,24 @@ class _BuildRunCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget card;
     if (jobs.length == 1) {
       final buildJob = jobs.first;
-      return BuildJobCard(
+      card = BuildJobCard(
         buildJob: buildJob,
         selected: selectedBuildJobId == buildJob.id,
         onOpenBuildJob: onOpenBuildJob,
       );
+    } else {
+      card = WorkflowRunCard(
+        jobs: jobs,
+        selectedBuildJobId: selectedBuildJobId,
+        onOpenBuildJob: onOpenBuildJob,
+      );
     }
-    return WorkflowRunCard(
-      jobs: jobs,
-      selectedBuildJobId: selectedBuildJobId,
-      onOpenBuildJob: onOpenBuildJob,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: card,
     );
   }
 }
@@ -530,266 +517,184 @@ class BuildJobCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = _statusColor(buildJob.status);
-    final statusLabel = _statusLabel(buildJob.status);
     final isRunning = _isRunningStatus(buildJob.status);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppColors.of(context).accentSubtle.withValues(alpha: 0.35)
-            : AppColors.of(context).surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected
-              ? AppColors.of(context).borderFocused
-              : AppColors.of(context).border,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            final onOpen = onOpenBuildJob;
-            if (onOpen == null) {
-              context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
-              return;
-            }
-            onOpen(buildJob);
-          },
-          borderRadius: BorderRadius.circular(12),
-          hoverColor: AppColors.of(context).borderSubtle,
-          splashColor: AppColors.of(context).borderSubtle,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              buildJob.jobKey != null
-                                  ? '${buildJob.workflowName} (${buildJob.jobKey})'
-                                  : buildJob.workflowName,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.of(context).textPrimary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            buildJob.createdAt.toTimeAgo(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.of(context).textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          _StatusBadge(
-                            status: buildJob.status,
-                            color: color,
-                            label: statusLabel,
-                          ),
-                          _LiveDurationBadge(buildJob: buildJob),
-                          if (buildJob.needs != null &&
-                              buildJob.needs!.isNotEmpty)
-                            _NeedsBadge(needs: buildJob.needs!),
-                          if (buildJob.pullRequestNumber != null)
-                            _InfoBadge(
-                              icon: FaIcon(
-                                FontAwesomeIcons.codePullRequest,
-                                size: 10,
-                              ),
-                              label: '#${buildJob.pullRequestNumber}',
-                            ),
-                          if (buildJob.tagName != null)
-                            _InfoBadge(
-                              icon: FaIcon(FontAwesomeIcons.tag, size: 10),
-                              label: buildJob.tagName!,
-                            ),
-                          if (buildJob.commitSha != null)
-                            _InfoBadge(
-                              icon: FaIcon(
-                                FontAwesomeIcons.codeCommit,
-                                size: 10,
-                              ),
-                              label: buildJob.commitSha!.substring(0, 7),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 4),
-                _MoreMenuButton(
-                  onSelected: (value) async {
-                    switch (value) {
-                      case 'details':
-                        final onOpen = onOpenBuildJob;
-                        if (onOpen == null) {
-                          await context.push(
-                            '/runs/${Uri.encodeComponent(buildJob.id)}',
-                          );
-                          return;
-                        }
-                        onOpen(buildJob);
-                      case 'retry':
-                        try {
-                          await ref
-                              .read(buildJobsProvider.notifier)
-                              .retryBuildJob(buildJob.id);
-                          if (context.mounted) {
-                            _showMaterialDefaultSnackBar(
-                              context,
-                              t.buildLogs.detail.retrySuccess,
-                            );
-                          }
-                        } on FirebaseFunctionsException catch (e, s) {
-                          final errorMessage =
-                              await FunctionErrorMessage.capture(
-                                e,
-                                stackTrace: s,
-                              );
-                          if (context.mounted) {
-                            _showMaterialDefaultSnackBar(
-                              context,
-                              errorMessage.message,
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            debugPrint('failed to retry: $e');
-                            _showMaterialDefaultSnackBar(
-                              context,
-                              t.buildLogs.detail.failedToRetry(
-                                error: e.toString(),
-                              ),
-                            );
-                          }
-                        }
-                      case 'cancel':
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            backgroundColor: AppColors.of(context).surfaceHover,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: AppColors.of(context).border,
-                              ),
-                            ),
-                            title: Text(
-                              t.buildLogs.detail.cancelBuild,
-                              style: TextStyle(
-                                color: AppColors.of(context).textPrimary,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            content: Text(
-                              t.buildLogs.detail.cancelConfirm,
-                              style: TextStyle(
-                                color: AppColors.of(context).textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(
-                                  t.buildLogs.detail.cancelNo,
-                                  style: TextStyle(
-                                    color: AppColors.of(context).textSecondary,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFFEF4444),
-                                ),
-                                child: Text(t.buildLogs.detail.cancelBuild),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirmed != true) return;
-                        try {
-                          await ref
-                              .read(buildJobsProvider.notifier)
-                              .cancelBuildJob(buildJob.id);
-                          if (context.mounted) {
-                            showResponsiveSnackBar(
-                              context,
-                              content: Text(
-                                t.buildLogs.detail.buildCancelled,
-                              ),
-                            );
-                          }
-                        } on FirebaseFunctionsException catch (e, s) {
-                          final errorMessage =
-                              await FunctionErrorMessage.capture(
-                                e,
-                                stackTrace: s,
-                              );
-                          if (context.mounted) {
-                            showResponsiveSnackBar(
-                              context,
-                              content: Text(errorMessage.message),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            showResponsiveSnackBar(
-                              context,
-                              content: Text(
-                                t.buildLogs.detail.failedToCancel(
-                                  error: e.toString(),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                    }
-                  },
-                  items: [
-                    _MenuItemData(
-                      value: 'details',
-                      icon: Icons.arrow_outward_rounded,
-                      label: t.buildLogs.detail.viewDetails,
-                    ),
-                    _MenuItemData(
-                      value: 'retry',
-                      icon: Icons.refresh_rounded,
-                      label: t.buildLogs.detail.retry,
-                    ),
-                    if (isRunning)
-                      _MenuItemData(
-                        value: 'cancel',
-                        icon: Icons.stop_circle_outlined,
-                        label: t.common.cancel,
-                        isDestructive: true,
-                      ),
-                  ],
+    return JobCard(
+      onTap: () {
+        final onOpen = onOpenBuildJob;
+        if (onOpen == null) {
+          context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
+          return;
+        }
+        onOpen(buildJob);
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: BuildJobLog(
+              buildJob: buildJob,
+              title: buildJob.workflowName,
+              durationWidget: _LiveDurationBadge(buildJob: buildJob),
+              jobs: [
+                JobChip(
+                  label: _buildJobDisplayKey(buildJob),
+                  status: _toChipStatus(buildJob.status),
                 ),
               ],
             ),
           ),
-        ),
+          const SizedBox(width: 8),
+          _MoreMenuButton(
+            onSelected: (value) async {
+              switch (value) {
+                case 'details':
+                  final onOpen = onOpenBuildJob;
+                  if (onOpen == null) {
+                    await context.push(
+                      '/runs/${Uri.encodeComponent(buildJob.id)}',
+                    );
+                    return;
+                  }
+                  onOpen(buildJob);
+                case 'retry':
+                  try {
+                    await ref
+                        .read(buildJobsProvider.notifier)
+                        .retryBuildJob(buildJob.id);
+                    if (context.mounted) {
+                      _showMaterialDefaultSnackBar(
+                        context,
+                        t.buildLogs.detail.retrySuccess,
+                      );
+                    }
+                  } on FirebaseFunctionsException catch (e, s) {
+                    final errorMessage = await FunctionErrorMessage.capture(
+                      e,
+                      stackTrace: s,
+                    );
+                    if (context.mounted) {
+                      _showMaterialDefaultSnackBar(
+                        context,
+                        errorMessage.message,
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      debugPrint('failed to retry: $e');
+                      _showMaterialDefaultSnackBar(
+                        context,
+                        t.buildLogs.detail.failedToRetry(
+                          error: e.toString(),
+                        ),
+                      );
+                    }
+                  }
+                case 'cancel':
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      backgroundColor: AppColors.of(context).surfaceHover,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: AppColors.of(context).border,
+                        ),
+                      ),
+                      title: Text(
+                        t.buildLogs.detail.cancelBuild,
+                        style: TextStyle(
+                          color: AppColors.of(context).textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      content: Text(
+                        t.buildLogs.detail.cancelConfirm,
+                        style: TextStyle(
+                          color: AppColors.of(context).textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text(
+                            t.buildLogs.detail.cancelNo,
+                            style: TextStyle(
+                              color: AppColors.of(context).textSecondary,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                          ),
+                          child: Text(t.buildLogs.detail.cancelBuild),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
+                  try {
+                    await ref
+                        .read(buildJobsProvider.notifier)
+                        .cancelBuildJob(buildJob.id);
+                    if (context.mounted) {
+                      showResponsiveSnackBar(
+                        context,
+                        content: Text(
+                          t.buildLogs.detail.buildCancelled,
+                        ),
+                      );
+                    }
+                  } on FirebaseFunctionsException catch (e, s) {
+                    final errorMessage = await FunctionErrorMessage.capture(
+                      e,
+                      stackTrace: s,
+                    );
+                    if (context.mounted) {
+                      showResponsiveSnackBar(
+                        context,
+                        content: Text(errorMessage.message),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      showResponsiveSnackBar(
+                        context,
+                        content: Text(
+                          t.buildLogs.detail.failedToCancel(
+                            error: e.toString(),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+              }
+            },
+            items: [
+              _MenuItemData(
+                value: 'details',
+                icon: Icons.arrow_outward_rounded,
+                label: t.buildLogs.detail.viewDetails,
+              ),
+              _MenuItemData(
+                value: 'retry',
+                icon: Icons.refresh_rounded,
+                label: t.buildLogs.detail.retry,
+              ),
+              if (isRunning)
+                _MenuItemData(
+                  value: 'cancel',
+                  icon: Icons.stop_circle_outlined,
+                  label: t.common.cancel,
+                  isDestructive: true,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -807,411 +712,291 @@ class WorkflowRunCard extends HookConsumerWidget {
   final String? selectedBuildJobId;
   final ValueChanged<BuildJob>? onOpenBuildJob;
 
-  List<BuildJob> get _sortedJobs {
-    final sorted = <BuildJob>[];
-    final visited = <String>{};
-    final itemsByKey = {for (final job in jobs) job.jobKey: job};
-
-    void visit(BuildJob job) {
-      if (job.jobKey != null && visited.contains(job.jobKey!)) return;
-
-      if (job.needs != null) {
-        for (final req in job.needs!) {
-          final reqJob = itemsByKey[req];
-          if (reqJob != null) {
-            visit(reqJob);
-          }
-        }
-      }
-
-      if (job.jobKey != null) {
-        visited.add(job.jobKey!);
-      }
-      if (!sorted.contains(job)) {
-        sorted.add(job);
-      }
-    }
-
-    // Process from the items that are mostly roots first (those without needs)
-    final rootJobs = jobs
-        .where((j) => j.needs == null || j.needs!.isEmpty)
-        .toList();
-    final dependentJobs = jobs
-        .where((j) => j.needs != null && j.needs!.isNotEmpty)
-        .toList();
-
-    for (final job in [...rootJobs, ...dependentJobs]) {
-      if (!sorted.contains(job)) {
-        visit(job);
-      }
-    }
-
-    return sorted;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (jobs.isEmpty) return const SizedBox.shrink();
 
     final mainJob = jobs.first;
-
     final overallStatus = _overallBuildStatus(jobs);
-    final color = _statusColor(overallStatus);
-    final statusLabel = _statusLabel(overallStatus);
-    final selected = jobs.any((job) => job.id == selectedBuildJobId);
+    final isExpanded = useState(false);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppColors.of(context).accentSubtle.withValues(alpha: 0.28)
-            : AppColors.of(context).surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected
-              ? AppColors.of(context).borderFocused
-              : AppColors.of(context).border,
+    // 依存関係（needs）を持つジョブが1つでもあるか
+    final hasNeeds = jobs.any(
+      (job) => job.needs != null && job.needs!.isNotEmpty,
+    );
+
+    if (!hasNeeds) {
+      // ── パターンA: 直線型（マトリックスなど） ───────────────────────
+      // jobKeyでグループ化
+      final Map<String, List<BuildJob>> groups = {};
+      for (final job in jobs) {
+        final key = job.jobKey ?? 'unknown';
+        groups.putIfAbsent(key, () => []).add(job);
+      }
+
+      final jobChips = <Widget>[];
+      final groupKeys = groups.keys.toList();
+
+      for (var i = 0; i < groupKeys.length; i++) {
+        final key = groupKeys[i];
+        final groupJobs = groups[key]!;
+
+        if (groupJobs.length > 1) {
+          // マトリックスジョブ
+          jobChips.add(
+            MatrixJobChip(
+              label: key,
+              count: groupJobs.length,
+              status: _toChipStatus(overallStatus),
+              isExpanded: isExpanded.value,
+              onTap: () {
+                isExpanded.value = !isExpanded.value;
+              },
+            ),
+          );
+        } else {
+          // 通常の単一ジョブ
+          final job = groupJobs.first;
+          jobChips.add(
+            InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () => onOpenBuildJob?.call(job),
+              child: JobChip(
+                label: _buildJobDisplayKey(job),
+                status: _toChipStatus(job.status),
+              ),
+            ),
+          );
+        }
+
+        if (i < groupKeys.length - 1) {
+          jobChips.add(const ArrowRightIcon());
+        }
+      }
+
+      // アコーディオン展開用の子要素（VariantChips）
+      final matrixGroup = groups.values.firstWhere(
+        (g) => g.length > 1,
+        orElse: () => [],
+      );
+
+      return JobCard(
+        onTap: () {
+          onOpenBuildJob?.call(
+            matrixGroup.isNotEmpty ? matrixGroup.first : mainJob,
+          );
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: BuildJobLog(
+                buildJob: mainJob,
+                title: mainJob.workflowName,
+                durationWidget: _WorkflowDurationBadge(
+                  jobs: jobs,
+                  overallStatus: overallStatus,
+                ),
+                isExpanded: isExpanded.value,
+                jobs: jobChips,
+                expandedChild: matrixGroup.isNotEmpty
+                    ? _DynamicVariantChips(
+                        jobs: matrixGroup,
+                        onOpenBuildJob: onOpenBuildJob,
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _WorkflowMoreMenu(
+              mainJob: mainJob,
+              overallStatus: overallStatus,
+              ref: ref,
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Header ───────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        mainJob.workflowName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      mainJob.createdAt.toTimeAgo(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.of(context).textTertiary,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    _MoreMenuButton(
-                      onSelected: (value) async {
-                        if (value == 'retry_all') {
-                          try {
-                            await ref
-                                .read(buildJobsProvider.notifier)
-                                .retryWorkflowRun(
-                                  mainJob.workflowRunId!,
-                                  workflowFileName: mainJob.workflowFileName,
-                                );
-                            if (context.mounted) {
-                              _showMaterialDefaultSnackBar(
-                                context,
-                                t.buildLogs.detail.retrySuccess,
-                              );
-                            }
-                          } on FirebaseFunctionsException catch (e, s) {
-                            final errorMessage =
-                                await FunctionErrorMessage.capture(
-                                  e,
-                                  stackTrace: s,
-                                );
-                            if (context.mounted) {
-                              _showMaterialDefaultSnackBar(
-                                context,
-                                errorMessage.message,
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              _showMaterialDefaultSnackBar(
-                                context,
-                                t.buildLogs.detail.failedToRetry(
-                                  error: e.toString(),
-                                ),
-                              );
-                            }
-                          }
-                        }
-                      },
-                      items: [
-                        _MenuItemData(
-                          value: 'retry_all',
-                          icon: Icons.refresh_rounded,
-                          label: t.buildLogs.detail.retry,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    _StatusBadge(
-                      status: overallStatus,
-                      color: color,
-                      label: statusLabel,
-                    ),
-                    _WorkflowDurationBadge(
-                      jobs: jobs,
-                      overallStatus: overallStatus,
-                    ),
-                    if (mainJob.pullRequestNumber != null)
-                      _InfoBadge(
-                        icon: const FaIcon(
-                          FontAwesomeIcons.codePullRequest,
-                          size: 10,
-                        ),
-                        label: '#${mainJob.pullRequestNumber}',
-                      ),
-                    if (mainJob.tagName != null)
-                      _InfoBadge(
-                        icon: const FaIcon(FontAwesomeIcons.tag, size: 10),
-                        label: mainJob.tagName!,
-                      ),
-                    if (mainJob.commitSha != null)
-                      _InfoBadge(
-                        icon: const FaIcon(
-                          FontAwesomeIcons.codeCommit,
-                          size: 10,
-                        ),
-                        label: mainJob.commitSha!.substring(0, 7),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+      );
+    } else {
+      // ── パターンB: needs依存関係による並列分岐 ───────────────────
+      final jobsMap = {for (final job in jobs) job.jobKey: job};
+      final requiredBy = <String>{};
+      for (final job in jobs) {
+        if (job.needs != null) {
+          requiredBy.addAll(job.needs!);
+        }
+      }
+
+      final leafJobs = jobs.where((job) {
+        final key = job.jobKey;
+        if (key == null) return true;
+        return !requiredBy.contains(key);
+      }).toList();
+
+      final effectiveLeafJobs = leafJobs.isEmpty ? jobs : leafJobs;
+
+      // トポロジカルソート
+      final depJobs = <BuildJob>[];
+      final visited = <String>{};
+
+      void visit(BuildJob job) {
+        final key = job.jobKey;
+        if (key == null || visited.contains(key)) return;
+
+        if (job.needs != null) {
+          for (final reqKey in job.needs!) {
+            final reqJob = jobsMap[reqKey];
+            if (reqJob != null) {
+              visit(reqJob);
+            }
+          }
+        }
+
+        if (!effectiveLeafJobs.contains(job)) {
+          visited.add(key);
+          depJobs.add(job);
+        }
+      }
+
+      for (final job in jobs) {
+        visit(job);
+      }
+
+      final dependencyWidgets = depJobs.map((job) {
+        return InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => onOpenBuildJob?.call(job),
+          child: JobChip(
+            label: _buildJobDisplayKey(job),
+            status: _toChipStatus(job.status),
           ),
-          // ── Jobs tree ────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.of(context).borderSubtle,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.of(context).divider,
+        );
+      }).toList();
+
+      final needWidgets = <Widget>[];
+      final total = effectiveLeafJobs.length;
+      for (var i = 0; i < total; i++) {
+        final job = effectiveLeafJobs[i];
+        needWidgets.add(
+          BranchJobRow(
+            label: _buildJobDisplayKey(job),
+            status: _toChipStatus(job.status),
+            index: i,
+            total: total,
+            onTap: () => onOpenBuildJob?.call(job),
+          ),
+        );
+      }
+
+      final representativeJob = effectiveLeafJobs.firstOrNull ?? mainJob;
+
+      return JobCard(
+        onTap: () {
+          onOpenBuildJob?.call(representativeJob);
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: BuildJobLog(
+                buildJob: representativeJob,
+                title: representativeJob.workflowName,
+                durationWidget: _WorkflowDurationBadge(
+                  jobs: jobs,
+                  overallStatus: overallStatus,
                 ),
-              ),
-              child: _JobTree(
-                jobs: _sortedJobs,
-                selectedBuildJobId: selectedBuildJobId,
-                onOpenBuildJob: onOpenBuildJob,
+                dependencies: dependencyWidgets,
+                needs: needWidgets,
               ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 8),
+            _WorkflowMoreMenu(
+              mainJob: mainJob,
+              overallStatus: overallStatus,
+              ref: ref,
+            ),
+          ],
+        ),
+      );
+    }
+  }
+}
+
+class _WorkflowMoreMenu extends StatelessWidget {
+  const _WorkflowMoreMenu({
+    required this.mainJob,
+    required this.overallStatus,
+    required this.ref,
+  });
+
+  final BuildJob mainJob;
+  final BuildJobStatus overallStatus;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MoreMenuButton(
+      onSelected: (value) async {
+        if (value == 'retry_all') {
+          try {
+            await ref
+                .read(buildJobsProvider.notifier)
+                .retryWorkflowRun(
+                  mainJob.workflowRunId!,
+                  workflowFileName: mainJob.workflowFileName,
+                );
+            if (context.mounted) {
+              _showMaterialDefaultSnackBar(
+                context,
+                t.buildLogs.detail.retrySuccess,
+              );
+            }
+          } on FirebaseFunctionsException catch (e, s) {
+            final errorMessage = await FunctionErrorMessage.capture(
+              e,
+              stackTrace: s,
+            );
+            if (context.mounted) {
+              _showMaterialDefaultSnackBar(
+                context,
+                errorMessage.message,
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              _showMaterialDefaultSnackBar(
+                context,
+                t.buildLogs.detail.failedToRetry(
+                  error: e.toString(),
+                ),
+              );
+            }
+          }
+        }
+      },
+      items: [
+        _MenuItemData(
+          value: 'retry_all',
+          icon: Icons.refresh_rounded,
+          label: t.buildLogs.detail.retry,
+        ),
+      ],
     );
   }
 }
 
 // ── Status pill badge ────────────────────────────────────────────────────────
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({
-    required this.status,
-    required this.color,
-    required this.label,
-  });
-
-  final BuildJobStatus status;
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (status == BuildJobStatus.IN_PROGRESS)
-            SyncedSpinner(color: color, size: 10)
-          else
-            Icon(_statusIcon(status), color: color, size: 12),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Status indicator (for tree rows) ────────────────────────────────────────
-
-class _StatusIndicator extends StatelessWidget {
-  const _StatusIndicator({
-    required this.status,
-    required this.color,
-    required this.tooltip,
-    this.size = 18,
-  });
-
-  final BuildJobStatus status;
-  final Color color;
-  final String tooltip;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    if (status == BuildJobStatus.IN_PROGRESS) {
-      return Tooltip(
-        message: tooltip,
-        child: SyncedSpinner(
-          color: color,
-          size: size - 4,
-        ),
-      );
-    }
-
-    return Tooltip(
-      message: tooltip,
-      child: Icon(
-        _statusIcon(status),
-        color: color,
-        size: size,
-      ),
-    );
-  }
-}
-
 // ── Shared utility widgets ──────────────────────────────────────────────────
 
 String _formatDurationCompact(Duration duration) {
   final totalSeconds = duration.inSeconds;
-  if (totalSeconds < 60) return '${totalSeconds}s';
+  if (totalSeconds < 60) return '$totalSeconds秒';
   final minutes = totalSeconds ~/ 60;
   final seconds = totalSeconds % 60;
-  final ss = seconds.toString().padLeft(2, '0');
-  if (minutes < 60) return '${minutes}m ${ss}s';
+  if (minutes < 60) return '$minutes分$seconds秒';
   final hours = minutes ~/ 60;
-  final mm = (minutes % 60).toString().padLeft(2, '0');
-  return '${hours}h ${mm}m';
-}
-
-class _InfoBadge extends StatelessWidget {
-  const _InfoBadge({
-    required this.icon,
-    required this.label,
-  });
-
-  final Widget icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.of(context).borderSubtle,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: AppColors.of(context).border,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon is! SizedBox) ...[
-            IconTheme(
-              data: IconThemeData(
-                size: 10,
-                color: AppColors.of(context).textTertiary,
-              ),
-              child: icon,
-            ),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              fontFamily: 'monospace',
-              color: AppColors.of(context).textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NeedsBadge extends StatelessWidget {
-  const _NeedsBadge({required this.needs});
-
-  final List<String> needs;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.of(context).borderSubtle,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: AppColors.of(context).border,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.account_tree_outlined,
-            size: 11,
-            color: AppColors.of(context).textTertiary,
-          ),
-          const SizedBox(width: 4),
-          for (int i = 0; i < needs.length; i++) ...[
-            Text(
-              needs[i],
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                fontFamily: 'monospace',
-                color: AppColors.of(context).textSecondary,
-              ),
-            ),
-            if (i < needs.length - 1)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Icon(
-                  Icons.add,
-                  size: 9,
-                  color: AppColors.of(context).textTertiary,
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
+  final remainingMinutes = minutes % 60;
+  return '$hours時間$remainingMinutes分';
 }
 
 /// ジョブをneeds依存関係に基づいてツリー構造で表示するウィジェット
@@ -1225,235 +1010,39 @@ String _buildJobDisplayKey(BuildJob job) {
   return 'Unnamed Job';
 }
 
-String? _buildJobMatrixLabel(BuildJob job) {
-  final label = job.matrixLabel;
-  if (label == null || label.isEmpty) return null;
-  return label;
-}
-
-class _JobTree extends ConsumerWidget {
-  const _JobTree({
+class _DynamicVariantChips extends StatelessWidget {
+  const _DynamicVariantChips({
     required this.jobs,
-    required this.selectedBuildJobId,
-    required this.onOpenBuildJob,
+    this.onOpenBuildJob,
   });
 
   final List<BuildJob> jobs;
-  final String? selectedBuildJobId;
   final ValueChanged<BuildJob>? onOpenBuildJob;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // jobKeyからジョブへのマップ
-    final byKey = <String, BuildJob>{};
-    for (final job in jobs) {
-      if (job.jobKey != null) {
-        byKey[job.jobKey!] = job;
-      }
-    }
-
-    // 親→子のマップを構築
-    final children = <String, List<BuildJob>>{};
-    final hasParent = <String>{};
-
-    for (final job in jobs) {
-      if (job.needs != null && job.needs!.isNotEmpty && job.jobKey != null) {
-        for (final parentKey in job.needs!) {
-          children.putIfAbsent(parentKey, () => []).add(job);
-          hasParent.add(job.jobKey!);
-        }
-      }
-    }
-
-    // ルートジョブ = 親を持たないジョブ
-    final rootJobs = jobs
-        .where((j) => j.jobKey == null || !hasParent.contains(j.jobKey!))
-        .toList();
-
-    final widgets = <Widget>[];
-    var globalIndex = 0;
-    final totalCount = jobs.length;
-
-    void buildTree(BuildJob job, int depth, bool isLastInParent) {
-      final currentIndex = globalIndex++;
-      final isFirst = currentIndex == 0;
-      final isLast = globalIndex == totalCount;
-
-      widgets.add(
-        _JobTreeRow(
-          job: job,
-          depth: depth,
-          isFirst: isFirst,
-          isLast: isLast,
-          selected: job.id == selectedBuildJobId,
-          onOpenBuildJob: onOpenBuildJob,
-        ),
-      );
-
-      if (!isLast) {
-        widgets.add(
-          Divider(
-            height: 1,
-            indent: 16 + (depth * 24.0) + 32,
-            color: AppColors.of(context).borderSubtle,
-          ),
-        );
-      }
-
-      final childJobs = job.jobKey != null
-          ? children[job.jobKey!] ?? []
-          : <BuildJob>[];
-      for (var i = 0; i < childJobs.length; i++) {
-        buildTree(childJobs[i], depth + 1, i == childJobs.length - 1);
-      }
-    }
-
-    for (var i = 0; i < rootJobs.length; i++) {
-      buildTree(rootJobs[i], 0, i == rootJobs.length - 1);
-    }
-
-    return Column(children: widgets);
-  }
-}
-
-class _JobTreeRow extends ConsumerWidget {
-  const _JobTreeRow({
-    required this.job,
-    required this.depth,
-    required this.isFirst,
-    required this.isLast,
-    required this.selected,
-    required this.onOpenBuildJob,
-  });
-
-  final BuildJob job;
-  final int depth;
-  final bool isFirst;
-  final bool isLast;
-  final bool selected;
-  final ValueChanged<BuildJob>? onOpenBuildJob;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final jobColor = _statusColor(job.status);
-    final jobLabel = _statusLabel(job.status);
-    final isRunning = _isRunningStatus(job.status);
-
-    return InkWell(
-      borderRadius: isFirst
-          ? const BorderRadius.vertical(top: Radius.circular(10))
-          : (isLast
-                ? const BorderRadius.vertical(bottom: Radius.circular(10))
-                : BorderRadius.zero),
-      hoverColor: AppColors.of(context).borderSubtle,
-      splashColor: AppColors.of(context).borderSubtle,
-      onTap: () {
-        final onOpen = onOpenBuildJob;
-        if (onOpen == null) {
-          context.push('/runs/${Uri.encodeComponent(job.id)}');
-          return;
-        }
-        onOpen(job);
-      },
-      child: ColoredBox(
-        color: selected
-            ? AppColors.of(context).accentSubtle.withValues(alpha: 0.55)
-            : Colors.transparent,
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 16 + (depth * 24.0),
-            right: 8,
-            top: 10,
-            bottom: 10,
-          ),
-          child: Row(
-            children: [
-              // 依存関係の視覚的コネクター
-              if (depth > 0) ...[
-                Icon(
-                  Icons.subdirectory_arrow_right_rounded,
-                  size: 14,
-                  color: AppColors.of(context).border,
-                ),
-                const SizedBox(width: 8),
-              ],
-              _StatusIndicator(
-                status: job.status,
-                color: jobColor,
-                tooltip: jobLabel,
-                size: 16,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _buildJobDisplayKey(job),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                        color: AppColors.of(context).textPrimary,
-                      ),
-                    ),
-                    if (_buildJobMatrixLabel(job) case final matrixLabel?) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        matrixLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 11,
-                          color: AppColors.of(context).textSecondary,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        _LiveDurationBadge(buildJob: job),
-                        if (job.status == BuildJobStatus.FAILURE &&
-                            job.failureSummaryStatus == 'generating') ...[
-                          const SizedBox(width: 8),
-                          _AiGeneratingBadge(),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              _MoreMenuButton(
-                size: 18,
-                onSelected: (value) async {
-                  if (value == 'retry') {
-                    await ref
-                        .read(buildJobsProvider.notifier)
-                        .retryBuildJob(job.id);
-                  } else if (value == 'cancel') {
-                    await ref
-                        .read(buildJobsProvider.notifier)
-                        .cancelBuildJob(job.id);
-                  }
-                },
-                items: [
-                  _MenuItemData(
-                    value: 'retry',
-                    icon: Icons.refresh_rounded,
-                    label: t.buildLogs.detail.retry,
-                  ),
-                  if (isRunning)
-                    _MenuItemData(
-                      value: 'cancel',
-                      icon: Icons.stop_circle_outlined,
-                      label: t.common.cancel,
-                      isDestructive: true,
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.of(context).divider),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: jobs.map((job) {
+          final label = job.matrixLabel ?? _buildJobDisplayKey(job);
+          return InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => onOpenBuildJob?.call(job),
+            child: VariantChip(
+              label: label,
+              status: _toChipStatus(job.status),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -1480,14 +1069,28 @@ class _LiveDurationBadge extends HookConsumerWidget {
 
     // While running: show elapsed from when the worker picked up this job.
     if (isRunning) {
-      // Suppress unused variable warning; tick.value read forces rebuild
       tick.value;
       final elapsed = DateTime.now().toUtc().difference(buildJob.updatedAt);
-      return _InfoBadge(
-        icon: const Icon(Icons.timer_outlined, size: 10),
-        label: _formatDurationCompact(
-          elapsed.isNegative ? Duration.zero : elapsed,
-        ),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            size: 12,
+            color: Color(0xFF98A2B3),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _formatDurationCompact(
+              elapsed.isNegative ? Duration.zero : elapsed,
+            ),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF667085),
+            ),
+          ),
+        ],
       );
     }
 
@@ -1497,9 +1100,24 @@ class _LiveDurationBadge extends HookConsumerWidget {
       return durationAsync.when(
         data: (duration) {
           if (duration == null) return const SizedBox.shrink();
-          return _InfoBadge(
-            icon: const Icon(Icons.timer_outlined, size: 10),
-            label: _formatDurationCompact(duration),
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.timer_outlined,
+                size: 12,
+                color: Color(0xFF98A2B3),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _formatDurationCompact(duration),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF667085),
+                ),
+              ),
+            ],
           );
         },
         loading: () => const SizedBox.shrink(),
@@ -1541,9 +1159,24 @@ class _WorkflowDurationBadge extends HookWidget {
     if (isRunning) {
       tick.value;
       final elapsed = DateTime.now().toUtc().difference(earliestCreatedAt);
-      return _InfoBadge(
-        icon: const Icon(Icons.timer_outlined, size: 10),
-        label: _formatDurationCompact(elapsed),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            size: 12,
+            color: Color(0xFF98A2B3),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _formatDurationCompact(elapsed),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF667085),
+            ),
+          ),
+        ],
       );
     }
 
@@ -1555,9 +1188,24 @@ class _WorkflowDurationBadge extends HookWidget {
       if (duration.isNegative || duration.inSeconds == 0) {
         return const SizedBox.shrink();
       }
-      return _InfoBadge(
-        icon: const Icon(Icons.timer_outlined, size: 10),
-        label: _formatDurationCompact(duration),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            size: 12,
+            color: Color(0xFF98A2B3),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _formatDurationCompact(duration),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF667085),
+            ),
+          ),
+        ],
       );
     }
 
@@ -1651,19 +1299,17 @@ class _MoreMenuButton extends StatelessWidget {
   const _MoreMenuButton({
     required this.onSelected,
     required this.items,
-    this.size = 20,
   });
 
   final ValueChanged<String> onSelected;
   final List<_MenuItemData> items;
-  final double size;
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.more_horiz_rounded,
-        size: size,
+        size: 20,
         color: AppColors.of(context).textTertiary,
       ),
       padding: EdgeInsets.zero,
