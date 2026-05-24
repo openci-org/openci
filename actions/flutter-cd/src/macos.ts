@@ -43,6 +43,7 @@ export async function buildSignAndNotarizeMacos(): Promise<void> {
     core.getInput("macos-provisioning-profile") || "false",
     "macos-provisioning-profile",
   );
+  const sentryAuthToken = core.getInput("sentry-auth-token") || "";
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-macos-"));
   const apiKeyDest = path.join(os.homedir(), "private_keys", `AuthKey_${ascKeyId}.p8`);
@@ -125,6 +126,18 @@ export async function buildSignAndNotarizeMacos(): Promise<void> {
       ? path.resolve(workingDirectory, appPathInput)
       : path.resolve(findBuiltAppPath(workingDirectory));
     console.log(`  App built: ${appPath}`);
+
+    if (sentryAuthToken) {
+      console.log("  Uploading debug symbols to Sentry...");
+      try {
+        process.env.SENTRY_AUTH_TOKEN = sentryAuthToken;
+        await exec("dart run sentry_dart_plugin", { cwd: workingDirectory });
+        console.log("  ✅ Sentry upload complete");
+      } catch (error) {
+        console.log(`  ⚠️ Sentry upload failed: ${error}`);
+      }
+    }
+
     core.endGroup();
 
     core.startGroup("Step 4: Code signing app");

@@ -96,6 +96,7 @@ jobs:
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Upload iOS IPA to Firebase App Distribution
         if: github.event_name == 'pull_request'
@@ -147,6 +148,7 @@ jobs:
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
+          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Save Xcode compilation cache
         if: always()
@@ -237,6 +239,7 @@ jobs:
           macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
           macos-provisioning-profile: "true"
           artifact-name: "OpenCI-dashboard-macos"
+          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Verify Sparkle helper signatures
         run: |
