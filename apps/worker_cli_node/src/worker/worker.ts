@@ -16,8 +16,8 @@ import {
   updateWorkerHeartbeat,
 } from "../firestore.js";
 import { buildEnvVars, buildSecretVars } from "../env.js";
-import { withInstallationToken } from "../github.js";
-import { flushLogs, logError, logInfo } from "../logger.js";
+import { withInstallationToken, fetchWorkflowContent } from "../github.js";
+import { flushLogs, logError, logInfo, logWarning } from "../logger.js";
 import { runBuildJob } from "../runner.js";
 import type { WorkerConfig, WorkerStatus } from "../types.js";
 import { version } from "../version.js";
@@ -82,17 +82,33 @@ export async function processOneJob(
   try {
     buildJob = await withInstallationToken(claimedJob, config.projectId);
     await updateCheckRun(buildJob, "in_progress");
+    let workflowContent: string | null = null;
+    if (buildJob.workflowFileName) {
+      try {
+        workflowContent = await fetchWorkflowContent(buildJob, config.projectId);
+      } catch (error) {
+        await logWarning(
+          buildJob.id,
+          runId,
+          `Failed to pre-fetch workflow content: ${String(error)}`,
+        );
+      }
+    }
+
     const envVars = await buildEnvVars({
       buildJob,
       projectId: config.projectId,
       buildJobId: buildJob.id,
       runId,
+      workflowContent,
     });
     const secretVars = await buildSecretVars({
       buildJob,
+      projectId: config.projectId,
       serviceAccountPath: config.serviceAccountPath,
       buildJobId: buildJob.id,
       runId,
+      workflowContent,
     });
     await logInfo(buildJob.id, runId, "Environment variables written");
 

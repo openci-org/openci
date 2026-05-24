@@ -93,3 +93,38 @@ export async function withInstallationToken(
     installationToken: await resolveInstallationToken(buildJob, projectId),
   };
 }
+
+export async function fetchWorkflowContent(buildJob: BuildJob, projectId: string): Promise<string> {
+  const token = await resolveInstallationToken(buildJob, projectId);
+  const apiBase = normalizeGitHubApiBaseUrl(buildJob.githubApiBaseUrl);
+  const ref = buildJob.commitSha || buildJob.branch || undefined;
+  const query = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+  const url = `${apiBase}/repos/${buildJob.owner}/${buildJob.repo}/contents/.openci/${buildJob.workflowFileName}${query}`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch workflow content from GitHub: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = (await response.json()) as { content?: string; encoding?: string };
+  if (!data.content) {
+    throw new Error("No content in GitHub response");
+  }
+
+  const encoding = data.encoding || "base64";
+  if (encoding === "base64") {
+    const cleaned = data.content.replace(/\s/g, "");
+    return Buffer.from(cleaned, "base64").toString("utf8");
+  }
+
+  return data.content;
+}
