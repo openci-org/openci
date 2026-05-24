@@ -2957,10 +2957,15 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
       const issueData = issueDoc.data() ?? {};
       const currentStatusId = asString(issueData.statusId, "triage");
       const existingGitHubIssue = issueData.githubIssue as Record<string, unknown> | undefined;
-      const existingStateReason = asString(existingGitHubIssue?.stateReason ?? existingGitHubIssue?.state_reason);
+      const existingStateReason = asString(
+        existingGitHubIssue?.stateReason ?? existingGitHubIssue?.state_reason,
+      );
       const nextStateReason = asString(ghIssue.state_reason);
 
-      if (action === "closed" && (currentStatusId !== closedStatusId || existingStateReason !== nextStateReason)) {
+      if (
+        action === "closed" &&
+        (currentStatusId !== closedStatusId || existingStateReason !== nextStateReason)
+      ) {
         await issueRef.set(
           {
             statusId: closedStatusId,
@@ -2971,7 +2976,10 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
           { merge: true },
         );
         updated += 1;
-      } else if (action === "reopened" && (currentStatusId === closedStatusId || existingStateReason !== "")) {
+      } else if (
+        action === "reopened" &&
+        (currentStatusId === closedStatusId || existingStateReason !== "")
+      ) {
         await issueRef.set(
           {
             statusId: "triage",
@@ -3356,7 +3364,9 @@ export const issueLifecycleEventLogger = onDocumentWritten(
 
     if (beforeStatus !== afterStatus && afterStatus === closedStatusId) {
       const githubIssue = after.githubIssue as Record<string, unknown> | undefined;
-      const githubIssueStateReason = asString(githubIssue?.stateReason ?? githubIssue?.state_reason);
+      const githubIssueStateReason = asString(
+        githubIssue?.stateReason ?? githubIssue?.state_reason,
+      );
 
       if (githubIssueStateReason === "not_planned") {
         updates.closedAt = now;
@@ -3387,7 +3397,8 @@ export const issueLifecycleEventLogger = onDocumentWritten(
         const workStartedAt = branchCreatedAt ?? firstInProgressAt;
         const workStartSource = branchCreatedAt !== null ? "branch" : "status";
         const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
-        const cycleTimeMs = workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
+        const cycleTimeMs =
+          workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
         const weightEstimate = issueWeightEstimateMap(after);
         const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
 
@@ -3614,7 +3625,9 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
     const statusChanged = after.statusId !== before?.statusId;
     const beforeGitHubIssue = before?.githubIssue as Record<string, unknown> | undefined;
     const stateReason = asString(githubIssue.stateReason ?? githubIssue.state_reason);
-    const beforeStateReason = asString(beforeGitHubIssue?.stateReason ?? beforeGitHubIssue?.state_reason);
+    const beforeStateReason = asString(
+      beforeGitHubIssue?.stateReason ?? beforeGitHubIssue?.state_reason,
+    );
     const stateReasonChanged = stateReason !== beforeStateReason;
 
     if (!titleChanged && !bodyChanged && !labelsChanged && !statusChanged && !stateReasonChanged) {
@@ -3650,7 +3663,9 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
         ...(titleChanged ? { title: after.title } : {}),
         ...(bodyChanged ? { body: after.body } : {}),
         ...(statusChanged ? { statusId: after.statusId } : {}),
-        ...(statusChanged || stateReasonChanged ? { stateReason: after.statusId === closedStatusId ? stateReason : undefined } : {}),
+        ...(statusChanged || stateReasonChanged
+          ? { stateReason: after.statusId === closedStatusId ? stateReason : undefined }
+          : {}),
       });
       if (labelsChanged) {
         await patchGitHubIssueLabelsSafely({
