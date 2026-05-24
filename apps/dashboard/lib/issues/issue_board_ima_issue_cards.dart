@@ -1435,6 +1435,7 @@ class _CopyFeedbackIconButtonState extends State<_CopyFeedbackIconButton> {
     return SizedBox.square(
       dimension: widget.dimension,
       child: IconButton(
+        mouseCursor: SystemMouseCursors.click,
         tooltip: _copied ? widget.copiedTooltip : widget.tooltip,
         padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
