@@ -34,7 +34,10 @@ export const retryBuildJob = onCall<
     await verifyTeamMembership(auth, teamId);
   }
 
-  const newDocumentId = randomUUID();
+  const newDocumentId =
+    typeof request.data?.newBuildJobId === "string" && request.data.newBuildJobId.length > 0
+      ? request.data.newBuildJobId
+      : randomUUID();
   const installationId = numberFromInt64Value(originalJob.installationId);
   const apiBaseUrl = stringFromUnknown(originalJob.githubApiBaseUrl);
   let installationToken = stringFromUnknown(originalJob.installationToken);

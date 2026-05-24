@@ -4,11 +4,14 @@ import { getBuildJob as getBuildJobOperation } from "../../firestoreData.js";
 
 export interface RetryBuildJobRequest {
   buildJobId: string;
+  newBuildJobId?: string;
 }
 
 export interface RetryWorkflowRunRequest {
   workflowRunId: string;
   workflowFileName?: string;
+  newWorkflowRunId?: string;
+  newJobDocIds?: Record<string, string>;
 }
 
 export function requireNonEmptyString(value: unknown, field: string): string {

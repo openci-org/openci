@@ -223,6 +223,12 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   : () async {
                       retryState.value = _ActionState.loading;
                       try {
+                        if (context.mounted) {
+                          _showMaterialDefaultSnackBar(
+                            context,
+                            detailT.retrySuccess,
+                          );
+                        }
                         await ref
                             .read(buildJobsProvider.notifier)
                             .retryBuildJob(buildJob.id);
@@ -232,12 +238,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                             retryState.value = _ActionState.idle;
                           }
                         });
-                        if (context.mounted) {
-                          _showMaterialDefaultSnackBar(
-                            context,
-                            detailT.retrySuccess,
-                          );
-                        }
                       } on FirebaseFunctionsException catch (e, s) {
                         final errorMessage = await FunctionErrorMessage.capture(
                           e,

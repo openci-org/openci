@@ -561,15 +561,15 @@ class BuildJobCard extends HookConsumerWidget {
                   onOpen(buildJob);
                 case 'retry':
                   try {
-                    await ref
-                        .read(buildJobsProvider.notifier)
-                        .retryBuildJob(buildJob.id);
                     if (context.mounted) {
                       _showMaterialDefaultSnackBar(
                         context,
                         t.buildLogs.detail.retrySuccess,
                       );
                     }
+                    await ref
+                        .read(buildJobsProvider.notifier)
+                        .retryBuildJob(buildJob.id);
                   } on FirebaseFunctionsException catch (e, s) {
                     final errorMessage = await FunctionErrorMessage.capture(
                       e,
@@ -998,18 +998,18 @@ class _WorkflowMoreMenu extends StatelessWidget {
       onSelected: (value) async {
         if (value == 'retry_all') {
           try {
-            await ref
-                .read(buildJobsProvider.notifier)
-                .retryWorkflowRun(
-                  mainJob.workflowRunId!,
-                  workflowFileName: mainJob.workflowFileName,
-                );
             if (context.mounted) {
               _showMaterialDefaultSnackBar(
                 context,
                 t.buildLogs.detail.retrySuccess,
               );
             }
+            await ref
+                .read(buildJobsProvider.notifier)
+                .retryWorkflowRun(
+                  mainJob.workflowRunId!,
+                  workflowFileName: mainJob.workflowFileName,
+                );
           } on FirebaseFunctionsException catch (e, s) {
             final errorMessage = await FunctionErrorMessage.capture(
               e,

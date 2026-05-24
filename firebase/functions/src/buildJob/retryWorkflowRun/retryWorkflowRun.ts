@@ -64,11 +64,19 @@ export const retryWorkflowRun = onCall<
     }
   }
 
-  const newWorkflowRunId = randomUUID();
+  const newWorkflowRunId =
+    typeof request.data?.newWorkflowRunId === "string" && request.data.newWorkflowRunId.length > 0
+      ? request.data.newWorkflowRunId
+      : randomUUID();
+  const clientJobDocIds = request.data?.newJobDocIds;
   const newJobDocIds = new Map<string, string>();
   for (const job of originalJobs) {
     if (typeof job.jobKey === "string") {
-      newJobDocIds.set(job.jobKey, randomUUID());
+      const clientVal = clientJobDocIds ? clientJobDocIds[job.jobKey] : undefined;
+      newJobDocIds.set(
+        job.jobKey,
+        typeof clientVal === "string" && clientVal.length > 0 ? clientVal : randomUUID(),
+      );
     }
   }
 
