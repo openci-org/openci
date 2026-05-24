@@ -198,13 +198,19 @@ async function handleBranchCreate(
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(repoRef);
       if (doc.exists) {
-        logger.info("Updating branches array with new branch (union)", { teamId: teamDoc.id, branch });
+        logger.info("Updating branches array with new branch (union)", {
+          teamId: teamDoc.id,
+          branch,
+        });
         transaction.update(repoRef, {
           branches: FieldValue.arrayUnion(branch),
           updatedAt: new Date().toISOString(),
         });
       } else {
-        logger.info("Skipped branch creation sync: repo cache document does not exist", { teamId: teamDoc.id, repositoryId });
+        logger.info("Skipped branch creation sync: repo cache document does not exist", {
+          teamId: teamDoc.id,
+          repositoryId,
+        });
       }
     });
   }
@@ -241,7 +247,10 @@ async function handleBranchDelete(
           updatedAt: new Date().toISOString(),
         });
       } else {
-        logger.info("Skipped branch deletion sync: repo cache document does not exist", { teamId: teamDoc.id, repositoryId });
+        logger.info("Skipped branch deletion sync: repo cache document does not exist", {
+          teamId: teamDoc.id,
+          repositoryId,
+        });
       }
     });
   }

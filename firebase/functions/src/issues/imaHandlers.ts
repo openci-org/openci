@@ -69,8 +69,6 @@ import type {
   CompleteGitHubDeviceFlowRequest,
   CreateGitHubIssueRequest,
   CreateGitHubIssueResponse,
-  CreateIssuePullRequestRequest,
-  CreateIssuePullRequestResponse,
   CreateGitHubSubIssueRequest,
   CreateGitHubSubIssueResponse,
   EstimateIssueWeightRequest,
@@ -98,16 +96,12 @@ import type {
   IssuePullRequestComment,
   IssueWeightEstimateResponse,
   ListGitHubRepositoriesResponse,
-  ListWorkspaceRecentBranchesRequest,
-  ListWorkspaceRecentBranchesResponse,
   MergeIssuePullRequestRequest,
   MergeIssuePullRequestResponse,
   PullRequestCiSummary,
   StartGitHubDeviceFlowRequest,
   StartGitHubDeviceFlowResponse,
   SyncGitHubIssuesResponse,
-  WorkspaceRecentBranch,
-  WorkspaceRecentBranchIssue,
   WorkspaceRequest,
 } from "./types.js";
 
@@ -522,84 +516,6 @@ const pullRequestStatusCheckRollupQuery = `
     }
   }
 `;
-
-interface IssuePullRequestBranchRefNode {
-  name?: unknown;
-  target?: {
-    oid?: unknown;
-    committedDate?: unknown;
-  } | null;
-  associatedPullRequests?: {
-    nodes?: Array<{
-      number?: unknown;
-      title?: unknown;
-      url?: unknown;
-      state?: unknown;
-    } | null>;
-  } | null;
-}
-
-interface IssuePullRequestBranchRefsResponse {
-  data?: {
-    repository?: {
-      defaultBranchRef?: {
-        name?: unknown;
-      } | null;
-      refs?: {
-        nodes?: Array<IssuePullRequestBranchRefNode | null>;
-        pageInfo?: {
-          hasNextPage?: boolean;
-        };
-      } | null;
-    } | null;
-  };
-}
-
-interface IssuePullRequestBranchCandidate {
-  name: string;
-  sha: string;
-  pushedAt: string;
-  isDefault: boolean;
-  matchesIssue: boolean;
-  hasPullRequest: boolean;
-}
-
-const issuePullRequestBranchRefsQuery = `
-  query IssuePullRequestBranchRefs($owner: String!, $repo: String!, $first: Int!) {
-    repository(owner: $owner, name: $repo) {
-      defaultBranchRef {
-        name
-      }
-      refs(
-        refPrefix: "refs/heads/"
-        first: $first
-        orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
-      ) {
-        nodes {
-          name
-          target {
-            oid
-            ... on Commit {
-              committedDate
-            }
-          }
-          associatedPullRequests(first: 5, states: [OPEN]) {
-            nodes {
-              number
-              title
-              url
-              state
-            }
-          }
-        }
-        pageInfo {
-          hasNextPage
-        }
-      }
-    }
-  }
-`;
-
 const emptyPullRequestCiSummary: PullRequestCiSummary = {
   status: "none",
   total: 0,
@@ -655,210 +571,6 @@ function pullRequestCiSummaryFromContexts({
             : "success";
   return summary;
 }
-
-function issueBranchSearchTerms(issueId: string, issue: Record<string, unknown>): string[] {
-  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
-  const githubIssueNumber = asNumber(githubIssue?.number);
-  const values = [
-    asString(issue.issueKey),
-    asString(issue.displayId),
-    asString(issue.workBranch),
-    githubIssueNumber > 0 ? String(githubIssueNumber) : "",
-    issueId,
-  ];
-  const normalized = new Set<string>();
-
-  for (const value of values) {
-    const term = value.trim().toLowerCase();
-    if (term.length >= 2) {
-      normalized.add(term);
-    }
-  }
-
-  return [...normalized];
-}
-
-function branchMatchesIssue({
-  name,
-  issue,
-  issueId,
-}: {
-  name: string;
-  issue: Record<string, unknown>;
-  issueId: string;
-}): boolean {
-  const workBranch = asString(issue.workBranch).trim();
-  if (workBranch.length > 0 && name === workBranch) {
-    return true;
-  }
-
-  const normalizedName = name.toLowerCase();
-  return issueBranchSearchTerms(issueId, issue).some((term) => normalizedName.includes(term));
-}
-
-async function fetchIssuePullRequestBranchCandidates({
-  owner,
-  repo,
-  token,
-  apiBaseUrl,
-  issueId,
-  issue,
-}: {
-  owner: string;
-  repo: string;
-  token: string;
-  apiBaseUrl: string;
-  issueId: string;
-  issue: Record<string, unknown>;
-}): Promise<{
-  base: string;
-  branches: IssuePullRequestBranchCandidate[];
-}> {
-  const response = await githubGraphql<IssuePullRequestBranchRefsResponse>(
-    issuePullRequestBranchRefsQuery,
-    token,
-    {
-      variables: { owner, repo, first: 100 },
-      apiBaseUrl,
-    },
-  );
-  const repository = response.data?.repository;
-  if (!repository) {
-    throw new HttpsError("not-found", "Repository was not found");
-  }
-
-  const base = asString(repository.defaultBranchRef?.name, "main");
-  const seen = new Set<string>();
-  const branches: IssuePullRequestBranchCandidate[] = [];
-
-  for (const node of repository.refs?.nodes ?? []) {
-    const name = asString(node?.name);
-    if (name.length === 0 || seen.has(name)) {
-      continue;
-    }
-    seen.add(name);
-
-    const isDefault = name === base;
-    if (isDefault) {
-      continue;
-    }
-
-    const sha = asString(node?.target?.oid);
-    const pushedAt = asString(node?.target?.committedDate);
-    const hasPullRequest =
-      node?.associatedPullRequests?.nodes !== undefined &&
-      node.associatedPullRequests.nodes.some((pr) => pr !== null && asNumber(pr.number) > 0);
-
-    branches.push({
-      name,
-      sha,
-      pushedAt,
-      isDefault,
-      matchesIssue: branchMatchesIssue({ name, issue, issueId }),
-      hasPullRequest,
-    });
-  }
-
-  branches.sort((a, b) => {
-    if (a.matchesIssue !== b.matchesIssue) {
-      return a.matchesIssue ? -1 : 1;
-    }
-
-    const aTime = Date.parse(a.pushedAt);
-    const bTime = Date.parse(b.pushedAt);
-    if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
-      return bTime - aTime;
-    }
-    if (Number.isFinite(aTime) !== Number.isFinite(bTime)) {
-      return Number.isFinite(aTime) ? -1 : 1;
-    }
-    return a.name.localeCompare(b.name);
-  });
-
-  return { base, branches: branches.slice(0, 30) };
-}
-
-interface WorkspaceIssueForBranchMatch {
-  id: string;
-  data: Record<string, unknown>;
-}
-
-function workspaceIssueSummary(issue: WorkspaceIssueForBranchMatch): WorkspaceRecentBranchIssue {
-  const githubIssue = issue.data.githubIssue as Record<string, unknown> | undefined;
-  const githubIssueNumber = asNumber(githubIssue?.number);
-  const issueKeyValue = asString(issue.data.issueKey);
-  const displayId =
-    issueKeyValue.length > 0
-      ? issueKeyValue
-      : githubIssueNumber > 0
-        ? `#${githubIssueNumber}`
-        : issue.id;
-
-  return {
-    id: issue.id,
-    displayId,
-    issueKey: issueKeyValue,
-    title: asString(issue.data.title, displayId),
-    statusId: asString(issue.data.statusId),
-  };
-}
-
-function branchIssueMatchScore(branchName: string, issue: Record<string, unknown>): number {
-  const normalizedName = branchName.toLowerCase();
-  const workBranch = asString(issue.workBranch).trim();
-  if (workBranch.length > 0 && branchName === workBranch) {
-    return 1000 + workBranch.length;
-  }
-
-  const issueKeyValue = asString(issue.issueKey).trim().toLowerCase();
-  if (issueKeyValue.length > 0 && normalizedName.includes(issueKeyValue)) {
-    return 800 + issueKeyValue.length;
-  }
-
-  const displayId = asString(issue.displayId).trim().toLowerCase();
-  if (displayId.length > 1 && normalizedName.includes(displayId)) {
-    return 600 + displayId.length;
-  }
-
-  const githubIssue = issue.githubIssue as Record<string, unknown> | undefined;
-  const githubIssueNumber = asNumber(githubIssue?.number);
-  if (githubIssueNumber > 0 && normalizedName.includes(String(githubIssueNumber))) {
-    return 200;
-  }
-
-  return 0;
-}
-
-function matchingIssueForRecentBranch({
-  repository,
-  branchName,
-  issues,
-}: {
-  repository: string;
-  branchName: string;
-  issues: WorkspaceIssueForBranchMatch[];
-}): WorkspaceRecentBranchIssue | undefined {
-  let bestIssue: WorkspaceIssueForBranchMatch | undefined;
-  let bestScore = 0;
-
-  for (const issue of issues) {
-    if (asString(issue.data.repo) !== repository) {
-      continue;
-    }
-    if (asString(issue.data.statusId) === closedStatusId) {
-      continue;
-    }
-
-    const score = branchIssueMatchScore(branchName, issue.data);
-    if (score > bestScore) {
-      bestIssue = issue;
-      bestScore = score;
-    }
-  }
-
-  return bestIssue === undefined || bestScore <= 0 ? undefined : workspaceIssueSummary(bestIssue);
-}
-
 async function fetchPullRequestCiSummary({
   owner,
   repo,
@@ -4034,7 +3746,11 @@ export async function autoCreatePullRequest({
 
     const issueDoc = issueDocs.docs[0];
     if (issueDoc === undefined) {
-      logger.info("autoCreatePullRequest: Issue not found in workspace", { workspaceId, issueKey, repoFullName });
+      logger.info("autoCreatePullRequest: Issue not found in workspace", {
+        workspaceId,
+        issueKey,
+        repoFullName,
+      });
       continue;
     }
 
@@ -4121,4 +3837,3 @@ export async function autoCreatePullRequest({
     });
   }
 }
-

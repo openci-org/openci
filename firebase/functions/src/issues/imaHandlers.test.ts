@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getFirestore } from "firebase-admin/firestore";
 
 // mock functions
 const mockGet = vi.fn();
@@ -70,7 +69,7 @@ describe("autoCreatePullRequest", () => {
       },
     });
     mockGetInstallationToken.mockResolvedValue({ token: "mock-token" });
-    
+
     // reset collection mock structure
     mockCollection.mockImplementation(() => ({
       where: mockWhere,
@@ -126,7 +125,10 @@ describe("autoCreatePullRequest", () => {
       } as any)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ number: 100, html_url: "https://github.com/openci-org/openci/pull/100" }),
+        json: async () => ({
+          number: 100,
+          html_url: "https://github.com/openci-org/openci/pull/100",
+        }),
       } as any);
 
     // mock runTransaction for upsertPullRequestLink
@@ -152,7 +154,11 @@ describe("autoCreatePullRequest", () => {
 
     // Verify workspace query was run
     expect(mockCollection).toHaveBeenCalledWith("workspaces");
-    expect(mockWhere).toHaveBeenCalledWith("syncedGitHubRepoFullNames", "array-contains", "openci-org/openci");
+    expect(mockWhere).toHaveBeenCalledWith(
+      "syncedGitHubRepoFullNames",
+      "array-contains",
+      "openci-org/openci",
+    );
 
     // Verify issue query was run
     expect(mockCollection).toHaveBeenCalledWith("issues");
