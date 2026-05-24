@@ -58,7 +58,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
   String? _githubLogin;
   String? _loadError;
   int _enabledRepoCount = 0;
-  int _dailyWeightTarget = defaultDailyWeightTarget;
   BoardViewMode? _boardViewMode;
   final BoardSidePanel _sidePanel = BoardSidePanel.workers;
   CompactBoardDestination _compactDestination =
@@ -245,15 +244,11 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       return;
     }
 
-    final storedDailyWeightTarget = data['dailyWeightTarget'];
     final repoFullNames = asList(
       data['syncedGitHubRepoFullNames'],
     ).map(asString).where((repo) => repo.isNotEmpty).toList();
 
     setState(() {
-      if (storedDailyWeightTarget is int && storedDailyWeightTarget > 0) {
-        _dailyWeightTarget = storedDailyWeightTarget;
-      }
       _enabledRepoCount = repoFullNames.length;
       _enabledRepoFullNames = repoFullNames.toSet();
     });
@@ -1276,118 +1271,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return asMap(result.data);
   }
 
-  DailyProgressStats _dailyProgressStats(List<Issue> closedIssues) {
-    final now = DateTime.now();
-    final today = dateOnly(now);
-    final tomorrow = today.add(const Duration(days: 1));
-    final recentStart = today.subtract(const Duration(days: 29));
-    final paceBuckets = <DateTime, DailyPaceBucket>{};
-
-    for (final issue in closedIssues) {
-      final closedAt = issue.closedAt;
-      if (closedAt == null) {
-        continue;
-      }
-      final closedDate = dateOnly(closedAt);
-      final weight = issueProgressWeight(issue);
-
-      if (!closedDate.isBefore(recentStart) && closedDate.isBefore(tomorrow)) {
-        final bucket = paceBuckets.putIfAbsent(
-          closedDate,
-          DailyPaceBucket.new,
-        );
-        bucket.add(closedAt: closedAt, weight: weight, now: now);
-      }
-    }
-
-    final history = [
-      for (var index = 0; index < 30; index++)
-        DailyProgressHistoryDay(
-          date: today.subtract(Duration(days: index)),
-          completedWeight:
-              paceBuckets[today.subtract(Duration(days: index))]?.totalWeight ??
-              0,
-          completedCount:
-              paceBuckets[today.subtract(Duration(days: index))]
-                  ?.completedCount ??
-              0,
-          morningWeight:
-              paceBuckets[today.subtract(Duration(days: index))]
-                  ?.morningWeight ??
-              0,
-          afternoonWeight:
-              paceBuckets[today.subtract(Duration(days: index))]
-                  ?.afternoonWeight ??
-              0,
-        ),
-    ];
-    final todayBucket = paceBuckets[today] ?? DailyPaceBucket();
-    final historicalBuckets = [
-      for (final entry in paceBuckets.entries)
-        if (entry.key != today) entry.value,
-    ];
-    final recentWeight = history.fold<int>(
-      0,
-      (total, day) => total + day.completedWeight,
-    );
-    final prediction = buildDailyProgressPrediction(
-      targetWeight: _dailyWeightTarget,
-      todayBucket: todayBucket,
-      historicalBuckets: historicalBuckets,
-      now: now,
-    );
-
-    return DailyProgressStats(
-      targetWeight: _dailyWeightTarget,
-      completedWeight: todayBucket.totalWeight,
-      completedCount: todayBucket.completedCount,
-      recentAverageWeight: recentWeight / 30,
-      history: history,
-      prediction: prediction,
-    );
-  }
-
-  Future<void> _recomputeResolutionWeights() async {
-    try {
-      final result = await _callFunction('recomputeResolutionWeights', {
-        'workspaceId': _workspaceId,
-      });
-      if (mounted) {
-        _showSavedSnackBar(
-          'Weight再計算: ${result['updated']}件更新, ${result['skipped']}件スキップ',
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        _showSavedSnackBar(friendlyError(error));
-      }
-    }
-  }
-
-  Future<void> _openDailyWeightTargetDialog(DailyProgressStats stats) async {
-    final nextTarget = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DailyProgressSheet(
-        currentTarget: _dailyWeightTarget,
-        stats: stats,
-        onRecomputeWeights: _recomputeResolutionWeights,
-      ),
-    );
-
-    if (nextTarget == null || !mounted) {
-      return;
-    }
-
-    setState(() => _dailyWeightTarget = nextTarget);
-    unawaited(
-      _firestore.doc('workspaces/$_workspaceId').update({
-        'dailyWeightTarget': nextTarget,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }),
-    );
-  }
 
   @override
   void dispose() {
@@ -1402,16 +1285,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final openIssues = _columns.fold<int>(
-      0,
-      (total, column) =>
-          column.id == closedStatusId ? total : total + column.issues.length,
-    );
-    final closedIssues = _columns
-        .where((col) => col.id == closedStatusId)
-        .expand((col) => col.issues)
-        .toList();
-    final dailyProgressStats = _dailyProgressStats(closedIssues);
     final isCompactLayout =
         MediaQuery.sizeOf(context).width < compactBoardBreakpoint;
     final boardViewMode =
@@ -1536,29 +1409,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                     : Column(
                         children: [
                           if (!isCompactLayout)
-                            BoardHeader(
-                              openIssues: openIssues,
-                              closedIssues: closedIssues,
-                              dailyProgressStats: dailyProgressStats,
-                              onChangeDailyWeightTarget: () => unawaited(
-                                _openDailyWeightTargetDialog(
-                                  dailyProgressStats,
-                                ),
-                              ),
-                              onWorkerOverviewTap: onWorkersTap,
-
-                            ),
+                            const BoardHeader(),
                           if (_isBootstrapping) const LinearProgressIndicator(),
-                          if (isCompactLayout)
-                            DailyProgressStrip(
-                              stats: dailyProgressStats,
-                              isCompact: true,
-                              onTap: () => unawaited(
-                                _openDailyWeightTargetDialog(
-                                  dailyProgressStats,
-                                ),
-                              ),
-                            ),
                           BoardToolbar(
                             onConnectGitHub: _connectGitHub,
                             onSelectRepositories: _selectRepositories,
