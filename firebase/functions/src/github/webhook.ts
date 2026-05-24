@@ -178,11 +178,14 @@ async function handleBranchCreate(
   repository: string,
   branch: string,
 ): Promise<void> {
+  logger.info("handleBranchCreate started", { installationId, repository, branch });
   const repositoryId = repository.replace("/", ":");
   const teamsSnapshot = await db
     .collection("teams_v0")
     .where("installationIds", "array-contains", installationId)
     .get();
+
+  logger.info("Found teams matching installation", { count: teamsSnapshot.size });
 
   for (const teamDoc of teamsSnapshot.docs) {
     const repoRef = db
@@ -194,10 +197,13 @@ async function handleBranchCreate(
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(repoRef);
       if (doc.exists) {
+        logger.info("Updating branches array with new branch (union)", { teamId: teamDoc.id, branch });
         transaction.update(repoRef, {
           branches: FieldValue.arrayUnion(branch),
           updatedAt: new Date().toISOString(),
         });
+      } else {
+        logger.info("Skipped branch creation sync: repo cache document does not exist", { teamId: teamDoc.id, repositoryId });
       }
     });
   }
@@ -209,11 +215,14 @@ async function handleBranchDelete(
   repository: string,
   branch: string,
 ): Promise<void> {
+  logger.info("handleBranchDelete started", { installationId, repository, branch });
   const repositoryId = repository.replace("/", ":");
   const teamsSnapshot = await db
     .collection("teams_v0")
     .where("installationIds", "array-contains", installationId)
     .get();
+
+  logger.info("Found teams matching installation", { count: teamsSnapshot.size });
 
   for (const teamDoc of teamsSnapshot.docs) {
     const repoRef = db
@@ -225,10 +234,13 @@ async function handleBranchDelete(
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(repoRef);
       if (doc.exists) {
+        logger.info("Updating branches array by removing branch", { teamId: teamDoc.id, branch });
         transaction.update(repoRef, {
           branches: FieldValue.arrayRemove(branch),
           updatedAt: new Date().toISOString(),
         });
+      } else {
+        logger.info("Skipped branch deletion sync: repo cache document does not exist", { teamId: teamDoc.id, repositoryId });
       }
     });
   }
