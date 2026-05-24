@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_issue_cards.dart';
 import 'issue_board_ima_models.dart';
-import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_overview.dart';
 import 'issue_board_ima_utils.dart';
 
@@ -627,12 +629,13 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                                   Container(
                                     width: 30,
                                     height: 30,
+                                    alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFEFF6FF),
                                       borderRadius: BorderRadius.circular(11),
                                     ),
-                                    child: const Icon(
-                                      Icons.alt_route_rounded,
+                                    child: const FaIcon(
+                                      FontAwesomeIcons.codePullRequest,
                                       size: 17,
                                       color: Color(0xFF2563EB),
                                     ),

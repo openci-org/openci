@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'issue_board_ima_utils.dart';
 import 'issue_board_ima_board_columns.dart';
@@ -1339,8 +1340,8 @@ class PullRequestBadge extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.alt_route_rounded,
+              const FaIcon(
+                FontAwesomeIcons.codePullRequest,
                 size: 14,
                 color: Color(0xFF0EA5E9),
               ),
