@@ -29,10 +29,14 @@ export const retryBuildJob = onCall<
 
   const buildJobId = requireNonEmptyString(request.data?.buildJobId, "buildJobId");
   const originalJob = await getBuildJobData(buildJobId);
-  const teamId = typeof originalJob.teamId === "string" ? originalJob.teamId : undefined;
-  if (teamId) {
-    await verifyTeamMembership(auth, teamId);
+  const teamId =
+    typeof originalJob.teamId === "string" && originalJob.teamId.length > 0
+      ? originalJob.teamId
+      : undefined;
+  if (!teamId) {
+    throw new HttpsError("failed-precondition", "Build job is not associated with a team");
   }
+  await verifyTeamMembership(auth, teamId);
 
   const newDocumentId = randomUUID();
   const installationId = numberFromInt64Value(originalJob.installationId);

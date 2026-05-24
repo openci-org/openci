@@ -38,10 +38,14 @@ export const retryWorkflowRun = onCall<
     throw new HttpsError("not-found", "No jobs found for this workflow run");
   }
 
-  const teamId = typeof originalJobs[0]?.teamId === "string" ? originalJobs[0].teamId : undefined;
-  if (teamId) {
-    await verifyTeamMembership(auth, teamId);
+  const teamId =
+    typeof originalJobs[0]?.teamId === "string" && originalJobs[0].teamId.length > 0
+      ? originalJobs[0].teamId
+      : undefined;
+  if (!teamId) {
+    throw new HttpsError("failed-precondition", "Workflow run is not associated with a team");
   }
+  await verifyTeamMembership(auth, teamId);
 
   const installationId = numberFromInt64Value(originalJobs[0]?.installationId);
   const apiBaseUrl = stringFromUnknown(originalJobs[0]?.githubApiBaseUrl);

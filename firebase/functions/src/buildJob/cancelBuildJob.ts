@@ -37,10 +37,12 @@ export const cancelBuildJob = onCall<CancelBuildJobRequest, Promise<{ success: t
       );
     }
 
-    const teamId = typeof jobData.teamId === "string" ? jobData.teamId : undefined;
-    if (teamId) {
-      await verifyTeamMembership(auth, teamId);
+    const teamId =
+      typeof jobData.teamId === "string" && jobData.teamId.length > 0 ? jobData.teamId : undefined;
+    if (!teamId) {
+      throw new HttpsError("failed-precondition", "Build job is not associated with a team");
     }
+    await verifyTeamMembership(auth, teamId);
 
     await updateBuildJobStatus({ id: buildJobId, status: BuildJobStatus.CANCELLED });
     logger.info("Build job cancelled", {
