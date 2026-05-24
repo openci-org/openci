@@ -1,3 +1,4 @@
+import { findIssueKeyFromBranchName } from "../dashboard/findIssueKeyFromBranchName.js";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -2287,219 +2288,6 @@ export const getIssuePullRequestDiff = onCall<
   }
 });
 
-export const listWorkspaceRecentBranches = onCall<
-  ListWorkspaceRecentBranchesRequest,
-  Promise<ListWorkspaceRecentBranchesResponse>
->({ secrets: githubAppSecrets }, async (request) => {
-  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
-  const requestedLimit = Math.trunc(asNumber(request.data?.limit, 40));
-  const limit = Math.min(Math.max(requestedLimit, 1), 80);
-  const { token, apiBaseUrl } = await getWorkspaceGitHubToken(workspaceId);
-  const repositories = await selectedRepositories(workspaceId);
-
-  try {
-    if (repositories.length === 0) {
-      return { branches: [], repositories: 0 };
-    }
-
-    const issueSnapshot = await db.collection(`workspaces/${workspaceId}/issues`).get();
-    const issues = issueSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      data: doc.data(),
-    }));
-    const branches: WorkspaceRecentBranch[] = [];
-
-    await Promise.all(
-      repositories.slice(0, 12).map(async (repository) => {
-        const { owner, repo } = repositoryParts(repository.fullName);
-        try {
-          const result = await fetchIssuePullRequestBranchCandidates({
-            owner,
-            repo,
-            token,
-            apiBaseUrl,
-            issueId: "",
-            issue: {},
-          });
-
-          for (const branch of result.branches) {
-            const issue = matchingIssueForRecentBranch({
-              repository: repository.fullName,
-              branchName: branch.name,
-              issues,
-            });
-            branches.push({
-              repository: repository.fullName,
-              name: branch.name,
-              sha: branch.sha,
-              base: result.base,
-              pushedAt: branch.pushedAt,
-              hasPullRequest: branch.hasPullRequest,
-              ...(issue === undefined ? {} : { issue }),
-            });
-          }
-        } catch (error) {
-          logger.warn("Skipping recent branches for repository", {
-            workspaceId,
-            repository: repository.fullName,
-            message: errorMessage(error),
-          });
-        }
-      }),
-    );
-
-    branches.sort((a, b) => {
-      if ((a.issue !== undefined) !== (b.issue !== undefined)) {
-        return a.issue !== undefined ? -1 : 1;
-      }
-      const aTime = Date.parse(a.pushedAt);
-      const bTime = Date.parse(b.pushedAt);
-      if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
-        return bTime - aTime;
-      }
-      if (Number.isFinite(aTime) !== Number.isFinite(bTime)) {
-        return Number.isFinite(aTime) ? -1 : 1;
-      }
-      return `${a.repository}:${a.name}`.localeCompare(`${b.repository}:${b.name}`);
-    });
-
-    return {
-      branches: branches.slice(0, limit),
-      repositories: repositories.length,
-    };
-  } catch (error) {
-    if (error instanceof HttpsError) {
-      throw error;
-    }
-    logger.error("Failed to list workspace recent branches", {
-      workspaceId,
-      uid,
-      repositories: repositories.length,
-      message: errorMessage(error),
-      stack: errorStack(error),
-    });
-    throw new HttpsError("internal", "Failed to list recent branches");
-  }
-});
-
-export const createIssuePullRequest = onCall<
-  CreateIssuePullRequestRequest,
-  Promise<CreateIssuePullRequestResponse>
->({ secrets: githubAppSecrets }, async (request) => {
-  const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
-  const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
-  const repository = requireNonEmptyString(request.data?.repository, "repository");
-  const head = requireNonEmptyString(request.data?.head, "head");
-  const requestedBase = asString(request.data?.base).trim();
-  const requestedTitle = asString(request.data?.title).trim();
-  const requestedBody = asString(request.data?.body).trim();
-  const draft = asBoolean(request.data?.draft);
-  const uid = await verifyWorkspaceMember(request.auth, workspaceId);
-  const { token } = await getWorkspaceGitHubToken(workspaceId);
-  const { owner, repo } = repositoryParts(repository);
-
-  try {
-    const issueRef = db.doc(`workspaces/${workspaceId}/issues/${issueId}`);
-    const issueDoc = await issueRef.get();
-    if (!issueDoc.exists) {
-      throw new HttpsError("not-found", "Issue was not found");
-    }
-    if (asString(issueDoc.get("repo")) !== repository) {
-      throw new HttpsError("failed-precondition", "Pull request repository does not match issue");
-    }
-
-    const issue = issueDoc.data() ?? {};
-    const base =
-      requestedBase.length > 0
-        ? requestedBase
-        : await resolveRepositoryDefaultBranch(repository, token);
-    if (head === base) {
-      throw new HttpsError("invalid-argument", "head and base must be different branches");
-    }
-
-    const linkedIssues = linkedIssueSummaryFromIssue(issue);
-    const title =
-      requestedTitle.length > 0 ? requestedTitle : issuePullRequestTitle(issue, "OpenCI update");
-    const body = issuePullRequestBody({
-      body: requestedBody,
-      issueId,
-      issue,
-    });
-    const headForQuery = head.includes(":") ? head : `${owner}:${head}`;
-    const existingPullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
-      path: `/repos/${owner}/${repo}/pulls`,
-      token,
-      queryParameters: {
-        state: "open",
-        head: headForQuery,
-        base,
-        per_page: 1,
-      },
-    });
-    const pullRequest =
-      existingPullRequests[0] ??
-      (await githubRequest<GitHubPullRequestResponseItem>({
-        path: `/repos/${owner}/${repo}/pulls`,
-        token,
-        method: "POST",
-        body: {
-          title,
-          head,
-          base,
-          body,
-          draft,
-        },
-      }));
-    const number = asNumber(pullRequest.number);
-    if (number <= 0) {
-      throw new HttpsError("internal", "GitHub did not return a pull request number");
-    }
-    const branch = asString(
-      pullRequest.head?.ref,
-      head.includes(":") ? (head.split(":").pop() ?? head) : head,
-    );
-
-    await upsertPullRequestLink({
-      workspaceId,
-      issueId,
-      action: "opened",
-      pullRequest,
-      repoFullName: repository,
-      branch,
-      linkedIssues,
-    });
-
-    return {
-      pullRequest: {
-        number,
-        title: asString(pullRequest.title, title),
-        url: asString(pullRequest.html_url),
-        state: asString(pullRequest.state, "open"),
-        merged: asBoolean(pullRequest.merged),
-        branch,
-        createdAt: asString(pullRequest.created_at),
-        linkedIssues,
-      },
-    };
-  } catch (error) {
-    if (error instanceof HttpsError) {
-      throw error;
-    }
-    logger.error("Failed to create issue pull request", {
-      workspaceId,
-      uid,
-      issueId,
-      repository,
-      head,
-      requestedBase,
-      message: errorMessage(error),
-      stack: errorStack(error),
-    });
-    throw new HttpsError("internal", "Failed to create pull request");
-  }
-});
-
 export const mergeIssuePullRequest = onCall<
   MergeIssuePullRequestRequest,
   Promise<MergeIssuePullRequestResponse>
@@ -4210,3 +3998,127 @@ export const syncIssuePullRequestLinksToGitHubOnIssueWrite = onDocumentWritten(
     }
   },
 );
+
+export async function autoCreatePullRequest({
+  repository,
+  branch,
+}: {
+  repository: string;
+  branch: string;
+}): Promise<void> {
+  const issueKey = findIssueKeyFromBranchName(branch);
+  if (issueKey === null) {
+    logger.info("autoCreatePullRequest: No issue key found in branch name", { branch });
+    return;
+  }
+
+  const { owner, repo } = repositoryParts(repository);
+  const repoFullName = repository;
+
+  // 同期対象になっている workspace を検索
+  const workspacesQuerySnapshot = await db
+    .collection(firestoreCollectionPaths.workspaces)
+    .where("syncedGitHubRepoFullNames", "array-contains", repoFullName)
+    .get();
+
+  for (const workspaceDoc of workspacesQuerySnapshot.docs) {
+    const workspaceId = workspaceDoc.id;
+
+    // 該当 issueKey の Issue を検索
+    const issueDocs = await workspaceDoc.ref
+      .collection("issues")
+      .where("issueKey", "==", issueKey)
+      .where("repo", "==", repoFullName)
+      .limit(1)
+      .get();
+
+    const issueDoc = issueDocs.docs[0];
+    if (issueDoc === undefined) {
+      logger.info("autoCreatePullRequest: Issue not found in workspace", { workspaceId, issueKey, repoFullName });
+      continue;
+    }
+
+    const issue = issueDoc.data() ?? {};
+    const issueId = issueDoc.id;
+
+    // GitHubトークンを取得
+    const { token } = await getWorkspaceGitHubToken(workspaceId);
+
+    // ベースブランチの解決
+    const base = await resolveRepositoryDefaultBranch(repoFullName, token);
+    if (branch === base) {
+      logger.info("autoCreatePullRequest: Branch and base branch are the same", { branch, base });
+      continue;
+    }
+
+    // 重複PRチェック
+    const headForQuery = branch.includes(":") ? branch : `${owner}:${branch}`;
+    const existingPullRequests = await githubRequest<GitHubPullRequestResponseItem[]>({
+      path: `/repos/${owner}/${repo}/pulls`,
+      token,
+      queryParameters: {
+        state: "open",
+        head: headForQuery,
+        base,
+        per_page: 1,
+      },
+    });
+
+    if (existingPullRequests.length > 0) {
+      logger.info("autoCreatePullRequest: Open pull request already exists", {
+        workspaceId,
+        issueId,
+        prNumber: existingPullRequests[0]?.number,
+      });
+      continue;
+    }
+
+    // PRタイトルとBodyの構築
+    const linkedIssues = linkedIssueSummaryFromIssue(issue);
+    const title = issuePullRequestTitle(issue, "OpenCI update");
+    const body = issuePullRequestBody({
+      body: "",
+      issueId,
+      issue,
+    });
+
+    // PR作成
+    logger.info("autoCreatePullRequest: Creating pull request", {
+      workspaceId,
+      issueId,
+      repoFullName,
+      branch,
+      base,
+    });
+    const pullRequest = await githubRequest<GitHubPullRequestResponseItem>({
+      path: `/repos/${owner}/${repo}/pulls`,
+      token,
+      method: "POST",
+      body: {
+        title,
+        head: branch,
+        base,
+        body,
+        draft: false,
+      },
+    });
+
+    // PRリンクの同期（チケット更新）
+    await upsertPullRequestLink({
+      workspaceId,
+      issueId,
+      action: "opened",
+      pullRequest,
+      repoFullName,
+      branch,
+      linkedIssues,
+    });
+
+    logger.info("autoCreatePullRequest: Pull request created and linked successfully", {
+      workspaceId,
+      issueId,
+      prNumber: pullRequest.number,
+    });
+  }
+}
+

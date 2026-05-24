@@ -8,6 +8,7 @@ import { addBuildJob } from "../buildJob/addBuildJob/addBuildJob.js";
 import { linkGitHubIssueToPullRequest } from "../dashboard/linkGitHubIssueToPullRequest/linkGitHubIssueToPullRequest.js";
 import { syncGitHubPullRequestStatusToDashboardIssueStatus } from "../dashboard/syncGitHubPullRequestStatusToDashboardIssueStatus/syncGitHubPullRequestStatusToDashboardIssueStatus.js";
 import { processImaGitHubAppWebhook } from "../issues/githubWebhookHandlers.js";
+import { autoCreatePullRequest } from "../issues/imaHandlers.js";
 import { githubAppId, githubPrivateKey } from "./githubApp.js";
 import { notifyPullRequestCiPassedIfReady } from "./pullRequestCiNotifications.js";
 import { branchFromRef, ownerFromFullName, parseWebhookRequest } from "./webhookPayloadHelpers.js";
@@ -357,6 +358,21 @@ export const githubWebhook = onRequest(
               appId: githubAppId.value(),
               privateKey: githubPrivateKey.value(),
               triggerType: "push",
+            });
+          }
+        },
+      });
+      await runWebhookHandler({
+        handlerName: "autoCreatePullRequest",
+        deliveryId: webhookRequest.deliveryId,
+        eventType: name,
+        payload,
+        handler: async () => {
+          if (!payload.deleted) {
+            const branch = branchFromRef(payload.ref);
+            await autoCreatePullRequest({
+              repository: payload.repository.full_name,
+              branch,
             });
           }
         },
