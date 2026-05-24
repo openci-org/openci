@@ -714,23 +714,26 @@ function lumeSshArgs(
 
 async function writeFileToVm(vmName: string, remotePath: string, content: string): Promise<void> {
   const encoded = Buffer.from(content, "utf8").toString("base64");
-  await runSimple(
+  await runSimpleWithRetry(
     "lume",
     lumeSshArgs(vmName, `rm -f ${remotePath} ${remotePath}.b64`),
     `Failed to reset ${remotePath}`,
+    3,
   );
   for (let i = 0; i < encoded.length; i += 4096) {
     const chunk = encoded.slice(i, i + 4096);
-    await runSimple(
+    await runSimpleWithRetry(
       "lume",
       lumeSshArgs(vmName, `printf %s '${chunk}' >> ${remotePath}.b64`),
       `Failed to write ${remotePath}`,
+      3,
     );
   }
-  await runSimple(
+  await runSimpleWithRetry(
     "lume",
     lumeSshArgs(vmName, `base64 -D < ${remotePath}.b64 > ${remotePath} && rm ${remotePath}.b64`),
     `Failed to decode ${remotePath}`,
+    3,
   );
 }
 
