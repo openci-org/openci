@@ -31,6 +31,13 @@
 
   <title>OpenCI</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Preload core Flutter assets to minimize initial loading time -->
+  <link rel="preload" href="flutter_bootstrap.js" as="script">
+  <link rel="preload" href="main.dart.js" as="script">
+  <link rel="preload" href="canvaskit/canvaskit.js" as="script">
+  <link rel="preload" href="canvaskit/canvaskit.wasm" as="fetch" crossorigin="anonymous">
+
   <style>
     :root {
       color-scheme: light;
