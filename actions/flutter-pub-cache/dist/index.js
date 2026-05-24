@@ -7180,7 +7180,7 @@ module.exports = Duplexify
 "use strict";
 
 
-var Buffer = (__nccwpck_require__(3823).Buffer);
+var Buffer = (__nccwpck_require__(5950).Buffer);
 
 var getParamBytesForAlg = __nccwpck_require__(2441);
 
@@ -21584,7 +21584,7 @@ var JSON = module.exports;
 /***/ 63:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var Buffer = (__nccwpck_require__(3823).Buffer);
+var Buffer = (__nccwpck_require__(5950).Buffer);
 var crypto = __nccwpck_require__(6982);
 var formatEcdsa = __nccwpck_require__(6960);
 var util = __nccwpck_require__(9023);
@@ -21887,7 +21887,7 @@ exports.createVerify = function createVerify(opts) {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 /*global module, process*/
-var Buffer = (__nccwpck_require__(3823).Buffer);
+var Buffer = (__nccwpck_require__(5950).Buffer);
 var Stream = __nccwpck_require__(2203);
 var util = __nccwpck_require__(9023);
 
@@ -21949,7 +21949,7 @@ module.exports = DataStream;
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 /*global module*/
-var Buffer = (__nccwpck_require__(3823).Buffer);
+var Buffer = (__nccwpck_require__(5950).Buffer);
 var DataStream = __nccwpck_require__(7934);
 var jwa = __nccwpck_require__(63);
 var Stream = __nccwpck_require__(2203);
@@ -22056,7 +22056,7 @@ module.exports = function toString(obj) {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 /*global module*/
-var Buffer = (__nccwpck_require__(3823).Buffer);
+var Buffer = (__nccwpck_require__(5950).Buffer);
 var DataStream = __nccwpck_require__(7934);
 var jwa = __nccwpck_require__(63);
 var Stream = __nccwpck_require__(2203);
@@ -31130,78 +31130,6 @@ function runParallel (tasks, cb) {
 
 /***/ }),
 
-/***/ 3823:
-/***/ ((module, exports, __nccwpck_require__) => {
-
-/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
-/* eslint-disable node/no-deprecated-api */
-var buffer = __nccwpck_require__(181)
-var Buffer = buffer.Buffer
-
-// alternative to using Object.keys for old browsers
-function copyProps (src, dst) {
-  for (var key in src) {
-    dst[key] = src[key]
-  }
-}
-if (Buffer.from && Buffer.alloc && Buffer.allocUnsafe && Buffer.allocUnsafeSlow) {
-  module.exports = buffer
-} else {
-  // Copy properties from require('buffer')
-  copyProps(buffer, exports)
-  exports.Buffer = SafeBuffer
-}
-
-function SafeBuffer (arg, encodingOrOffset, length) {
-  return Buffer(arg, encodingOrOffset, length)
-}
-
-SafeBuffer.prototype = Object.create(Buffer.prototype)
-
-// Copy static methods from Buffer
-copyProps(Buffer, SafeBuffer)
-
-SafeBuffer.from = function (arg, encodingOrOffset, length) {
-  if (typeof arg === 'number') {
-    throw new TypeError('Argument must not be a number')
-  }
-  return Buffer(arg, encodingOrOffset, length)
-}
-
-SafeBuffer.alloc = function (size, fill, encoding) {
-  if (typeof size !== 'number') {
-    throw new TypeError('Argument must be a number')
-  }
-  var buf = Buffer(size)
-  if (fill !== undefined) {
-    if (typeof encoding === 'string') {
-      buf.fill(fill, encoding)
-    } else {
-      buf.fill(fill)
-    }
-  } else {
-    buf.fill(0)
-  }
-  return buf
-}
-
-SafeBuffer.allocUnsafe = function (size) {
-  if (typeof size !== 'number') {
-    throw new TypeError('Argument must be a number')
-  }
-  return Buffer(size)
-}
-
-SafeBuffer.allocUnsafeSlow = function (size) {
-  if (typeof size !== 'number') {
-    throw new TypeError('Argument must be a number')
-  }
-  return buffer.SlowBuffer(size)
-}
-
-
-/***/ }),
-
 /***/ 3879:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -31297,7 +31225,7 @@ function getStateLength (state) {
 
 /*<replacement>*/
 
-var Buffer = (__nccwpck_require__(3823).Buffer);
+var Buffer = (__nccwpck_require__(5950).Buffer);
 /*</replacement>*/
 
 var isEncoding = Buffer.isEncoding || function (encoding) {
@@ -36555,6 +36483,78 @@ class Queue {
 }
 
 module.exports = Queue;
+
+
+/***/ }),
+
+/***/ 5950:
+/***/ ((module, exports, __nccwpck_require__) => {
+
+/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+/* eslint-disable node/no-deprecated-api */
+var buffer = __nccwpck_require__(181)
+var Buffer = buffer.Buffer
+
+// alternative to using Object.keys for old browsers
+function copyProps (src, dst) {
+  for (var key in src) {
+    dst[key] = src[key]
+  }
+}
+if (Buffer.from && Buffer.alloc && Buffer.allocUnsafe && Buffer.allocUnsafeSlow) {
+  module.exports = buffer
+} else {
+  // Copy properties from require('buffer')
+  copyProps(buffer, exports)
+  exports.Buffer = SafeBuffer
+}
+
+function SafeBuffer (arg, encodingOrOffset, length) {
+  return Buffer(arg, encodingOrOffset, length)
+}
+
+SafeBuffer.prototype = Object.create(Buffer.prototype)
+
+// Copy static methods from Buffer
+copyProps(Buffer, SafeBuffer)
+
+SafeBuffer.from = function (arg, encodingOrOffset, length) {
+  if (typeof arg === 'number') {
+    throw new TypeError('Argument must not be a number')
+  }
+  return Buffer(arg, encodingOrOffset, length)
+}
+
+SafeBuffer.alloc = function (size, fill, encoding) {
+  if (typeof size !== 'number') {
+    throw new TypeError('Argument must be a number')
+  }
+  var buf = Buffer(size)
+  if (fill !== undefined) {
+    if (typeof encoding === 'string') {
+      buf.fill(fill, encoding)
+    } else {
+      buf.fill(fill)
+    }
+  } else {
+    buf.fill(0)
+  }
+  return buf
+}
+
+SafeBuffer.allocUnsafe = function (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('Argument must be a number')
+  }
+  return Buffer(size)
+}
+
+SafeBuffer.allocUnsafeSlow = function (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('Argument must be a number')
+  }
+  return buffer.SlowBuffer(size)
+}
 
 
 /***/ }),

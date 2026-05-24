@@ -1,9 +1,10 @@
-name: Functions CI
+name: Firestore Rules CI
 
 on:
   push:
     branches:
       - develop
+
   pull_request:
     branches:
       - develop
@@ -13,7 +14,7 @@ defaults:
     working-directory: firebase/functions
 
 jobs:
-  ci:
+  rules-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,11 +28,5 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
-      - name: Check
-        run: vp check
-
-      - name: Build
-        run: vp run build
-
-      - name: Test
-        run: vp test --exclude "src/firestore.rules.test.ts"
+      - name: Test Firestore Rules
+        run: firebase emulators:exec --only firestore "npx vitest run src/firestore.rules.test.ts"
