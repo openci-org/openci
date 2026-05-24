@@ -1044,7 +1044,7 @@ async function patchGitHubIssueCore(input: {
   }
   if (input.statusId !== undefined) {
     update.state = asString(input.statusId) === closedStatusId ? "closed" : "open";
-    if (update.state === "closed" && input.stateReason !== undefined) {
+    if (update.state === "closed" && input.stateReason) {
       update.state_reason = input.stateReason;
     } else if (update.state === "open") {
       update.state_reason = null;
