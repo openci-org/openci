@@ -281,7 +281,14 @@ service cloud.firestore {
 
         match /build_jobs_v0/{buildJobId} {
             allow read: if isTeamMember(resource.data.teamId);
-            allow write: if false;
+            allow create: if isAuthenticated()
+                && request.resource.data.id == buildJobId
+                && isTeamMember(request.resource.data.teamId)
+                && request.resource.data.status in ['QUEUED', 'WAITING'];
+            allow delete: if isAuthenticated()
+                && isTeamMember(resource.data.teamId)
+                && resource.data.status in ['QUEUED', 'WAITING'];
+            allow update: if false;
 
             match /runs/{runId} {
                 allow read: if isAuthenticated() 
