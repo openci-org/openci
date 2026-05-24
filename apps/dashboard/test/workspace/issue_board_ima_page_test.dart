@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:dashboard/workspace/issue_board_ima_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,24 +6,18 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('shouldSpinCardBuildStatus', () {
     test('does not spin when any current CI job failed', () {
-      expect(
-        shouldSpinCardBuildStatus(failed: 1, active: 1, queuedOnly: false),
-        isFalse,
-      );
+      check(shouldSpinCardBuildStatus(failed: 1, active: 1, queuedOnly: false))
+          .isFalse();
     });
 
     test('spins while non-queued jobs are still running', () {
-      expect(
-        shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: false),
-        isTrue,
-      );
+      check(shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: false))
+          .isTrue();
     });
 
     test('does not spin for queued-only jobs', () {
-      expect(
-        shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: true),
-        isFalse,
-      );
+      check(shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: true))
+          .isFalse();
     });
   });
 
@@ -117,22 +112,20 @@ void main() {
         ],
       });
 
-      expect(diff.repository, 'openci-org/openci');
-      expect(diff.pullRequestNumber, 1956);
-      expect(diff.mergeable, isFalse);
-      expect(diff.mergeableState, 'dirty');
-      expect(diff.filesTruncated, isTrue);
-      expect(diff.files.single.patchTruncated, isTrue);
-      expect(diff.files.single.additions, 12);
-      expect(diff.ci.allPassed, isTrue);
-      expect(diff.ci.passed, 4);
-      expect(diff.comments.single.author, 'coderabbitai');
-      expect(diff.comments.single.kind, IssuePullRequestCommentKind.review);
-      expect(
-        diff.comments.single.path,
-        'lib/workspace/issue_board_ima_issue_editor.dart',
-      );
-      expect(diff.comments.single.line, 42);
+      check(diff.repository).equals('openci-org/openci');
+      check(diff.pullRequestNumber).equals(1956);
+      check(diff.mergeable).equals(false);
+      check(diff.mergeableState).equals('dirty');
+      check(diff.filesTruncated).isTrue();
+      check(diff.files.single.patchTruncated).isTrue();
+      check(diff.files.single.additions).equals(12);
+      check(diff.ci.allPassed).isTrue();
+      check(diff.ci.passed).equals(4);
+      check(diff.comments.single.author).equals('coderabbitai');
+      check(diff.comments.single.kind).equals(IssuePullRequestCommentKind.review);
+      check(diff.comments.single.path)
+          .equals('lib/workspace/issue_board_ima_issue_editor.dart');
+      check(diff.comments.single.line).equals(42);
     });
 
     test('defaults missing CI summary to no checks', () {
@@ -150,9 +143,9 @@ void main() {
         'files': [],
       });
 
-      expect(diff.ci.status, PullRequestCiStatus.none);
-      expect(diff.ci.total, 0);
-      expect(diff.ci.allPassed, isFalse);
+      check(diff.ci.status).equals(PullRequestCiStatus.none);
+      check(diff.ci.total).equals(0);
+      check(diff.ci.allPassed).isFalse();
     });
 
     test('expands small textual diffs by default', () {
@@ -168,20 +161,16 @@ void main() {
         rawUrl: '',
       );
 
-      expect(diffFileInitiallyExpanded(file), isTrue);
+      check(diffFileInitiallyExpanded(file)).isTrue();
     });
 
     test('detects syntax language from diff file names', () {
-      expect(
-        diffLanguageForFilename('lib/workspace/issue_board_ima_page.dart'),
-        'dart',
-      );
-      expect(diffLanguageForFilename('.openci/functions-ci.yaml'), 'yaml');
-      expect(
-        diffLanguageForFilename('firebase/functions/src/index.ts'),
-        'typescript',
-      );
-      expect(diffLanguageForFilename('Dockerfile'), 'dockerfile');
+      check(diffLanguageForFilename('lib/workspace/issue_board_ima_page.dart'))
+          .equals('dart');
+      check(diffLanguageForFilename('.openci/functions-ci.yaml')).equals('yaml');
+      check(diffLanguageForFilename('firebase/functions/src/index.ts'))
+          .equals('typescript');
+      check(diffLanguageForFilename('Dockerfile')).equals('dockerfile');
     });
 
     test('parses patch line kinds and line numbers', () {
@@ -194,18 +183,18 @@ void main() {
         r'\ No newline at end of file',
       );
 
-      expect(lines[0].kind, DiffPatchLineKind.hunk);
-      expect(lines[1].kind, DiffPatchLineKind.context);
-      expect(lines[1].oldLineNumber, 10);
-      expect(lines[1].newLineNumber, 10);
-      expect(lines[2].kind, DiffPatchLineKind.removed);
-      expect(lines[2].oldLineNumber, 11);
-      expect(lines[2].newLineNumber, isNull);
-      expect(lines[3].kind, DiffPatchLineKind.added);
-      expect(lines[3].oldLineNumber, isNull);
-      expect(lines[3].newLineNumber, 11);
-      expect(lines[4].newLineNumber, 12);
-      expect(lines[5].kind, DiffPatchLineKind.meta);
+      check(lines[0].kind).equals(DiffPatchLineKind.hunk);
+      check(lines[1].kind).equals(DiffPatchLineKind.context);
+      check(lines[1].oldLineNumber).equals(10);
+      check(lines[1].newLineNumber).equals(10);
+      check(lines[2].kind).equals(DiffPatchLineKind.removed);
+      check(lines[2].oldLineNumber).equals(11);
+      check(lines[2].newLineNumber).isNull();
+      check(lines[3].kind).equals(DiffPatchLineKind.added);
+      check(lines[3].oldLineNumber).isNull();
+      check(lines[3].newLineNumber).equals(11);
+      check(lines[4].newLineNumber).equals(12);
+      check(lines[5].kind).equals(DiffPatchLineKind.meta);
     });
 
     testWidgets('retry keeps async diff loading outside setState', (
@@ -254,8 +243,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1));
       await tester.pump();
 
-      expect(attempts, 2);
-      expect(tester.takeException(), isNull);
+      check(attempts).equals(2);
+      check(tester.takeException()).isNull();
     });
 
     testWidgets('shows merge conflict status in pull request details', (
@@ -317,7 +306,7 @@ void main() {
 
       expect(find.text('Conflictがあります'), findsOneWidget);
       expect(find.textContaining('GitHubでconflictを解消'), findsOneWidget);
-      expect(tester.takeException(), isNull);
+      check(tester.takeException()).isNull();
     });
 
     testWidgets('shows conflict before merge when GitHub marks PR dirty', (
@@ -380,11 +369,9 @@ void main() {
       expect(find.text('Conflictがあります'), findsOneWidget);
       expect(find.text('Conflictあり'), findsOneWidget);
       expect(find.text('CI pass・マージ'), findsNothing);
-      expect(
-        tester.widget<FilledButton>(find.byType(FilledButton).last).onPressed,
-        isNull,
-      );
-      expect(tester.takeException(), isNull);
+      check(tester.widget<FilledButton>(find.byType(FilledButton).last).onPressed)
+          .isNull();
+      check(tester.takeException()).isNull();
     });
 
     testWidgets('opens pull request details inside the issue editor', (
@@ -515,11 +502,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AddIssueDialog), findsNothing);
-      expect(dialogResult, isA<MergeIssuePullRequestDialogResult>());
+      check(dialogResult).isA<MergeIssuePullRequestDialogResult>();
       final mergeResult = dialogResult as MergeIssuePullRequestDialogResult;
-      expect(mergeResult.issueId, 'issue-1');
-      expect(mergeResult.repository, 'openci-org/openci');
-      expect(mergeResult.pullRequest.number, 1956);
+      check(mergeResult.issueId).equals('issue-1');
+      check(mergeResult.repository).equals('openci-org/openci');
+      check(mergeResult.pullRequest.number).equals(1956);
     });
   });
 }
