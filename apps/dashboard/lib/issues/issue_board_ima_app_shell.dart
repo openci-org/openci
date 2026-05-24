@@ -14,7 +14,6 @@ const boardColumnGap = 12.0;
 const compactBoardBreakpoint = 640.0;
 const compactColumnCollapsedLimit = 0;
 const mobileDragStartDelay = Duration(milliseconds: 420);
-const defaultDailyWeightTarget = 20;
 const validIssueWeights = [0, 1, 2, 4, 8, 16, 32];
 const openCiRepositoryUrl = 'https://github.com/openci-org/openci';
 
