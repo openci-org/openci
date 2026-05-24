@@ -26550,6 +26550,7 @@ async function buildAndSignIos() {
     const uploadToAppStoreConnect = uploadToAppStoreConnectInput
         ? uploadToAppStoreConnectInput === "true"
         : distributionMethod === "app-store";
+    const sentryAuthToken = core.getInput("sentry-auth-token") || "";
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
     try {
         console.log("🚀 OpenCI iOS Sign & Build");
@@ -26659,6 +26660,17 @@ async function buildAndSignIos() {
             throw new Error("IPA file was not created. The export step may have failed.");
         }
         console.log("  ✅ IPA built and exported");
+        if (sentryAuthToken) {
+            console.log("  Uploading debug symbols to Sentry...");
+            try {
+                process.env.SENTRY_AUTH_TOKEN = sentryAuthToken;
+                await (0, helpers_1.exec)("dart run sentry_dart_plugin", { cwd: workingDirectory });
+                console.log("  ✅ Sentry upload complete");
+            }
+            catch (error) {
+                console.log(`  ⚠️ Sentry upload failed: ${error}`);
+            }
+        }
         core.endGroup();
         const ipaPath = path.resolve(ipaDir, ipaFiles[0]);
         core.setOutput("ipa-path", ipaPath);
@@ -26956,6 +26968,7 @@ async function buildSignAndNotarizeMacos() {
     const outputDirectory = core.getInput("output-directory") || "build/openci-artifacts";
     const buildNumberInput = core.getInput("build-number") || "";
     const useProvisioningProfile = parseBooleanInput(core.getInput("macos-provisioning-profile") || "false", "macos-provisioning-profile");
+    const sentryAuthToken = core.getInput("sentry-auth-token") || "";
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-macos-"));
     const apiKeyDest = path.join(os.homedir(), "private_keys", `AuthKey_${ascKeyId}.p8`);
     let developerIdCertificateId = "";
@@ -27010,6 +27023,17 @@ async function buildSignAndNotarizeMacos() {
             ? path.resolve(workingDirectory, appPathInput)
             : path.resolve(findBuiltAppPath(workingDirectory));
         console.log(`  App built: ${appPath}`);
+        if (sentryAuthToken) {
+            console.log("  Uploading debug symbols to Sentry...");
+            try {
+                process.env.SENTRY_AUTH_TOKEN = sentryAuthToken;
+                await (0, helpers_1.exec)("dart run sentry_dart_plugin", { cwd: workingDirectory });
+                console.log("  ✅ Sentry upload complete");
+            }
+            catch (error) {
+                console.log(`  ⚠️ Sentry upload failed: ${error}`);
+            }
+        }
         core.endGroup();
         core.startGroup("Step 4: Code signing app");
         let resolvedEntitlementsPath = path.resolve(workingDirectory, entitlementsPath);

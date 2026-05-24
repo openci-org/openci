@@ -1570,33 +1570,32 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                       final secretManager = ref.read(
                         secretManagerProvider.notifier,
                       );
-                      final messenger = ScaffoldMessenger.of(context);
 
                       try {
                         isSubmitting.value = true;
                         await secretManager.addSecret(name, value);
-                        if (!context.mounted || !messenger.mounted) return;
-                        Navigator.of(context).pop();
+                        if (!context.mounted) return;
                         showResponsiveSnackBar(
-                          messenger.context,
+                          context,
                           content: Text(secretsT.addedSuccess),
                         );
+                        Navigator.of(context).pop();
                       } on FirebaseFunctionsException catch (e, s) {
                         final errorMessage = await FunctionErrorMessage.capture(
                           e,
                           stackTrace: s,
                         );
-                        if (!messenger.mounted) return;
+                        if (!context.mounted) return;
                         isSubmitting.value = false;
                         showResponsiveSnackBar(
-                          messenger.context,
+                          context,
                           content: Text(errorMessage.message),
                         );
                       } catch (e) {
-                        if (!messenger.mounted) return;
+                        if (!context.mounted) return;
                         isSubmitting.value = false;
                         showResponsiveSnackBar(
-                          messenger.context,
+                          context,
                           content: Text('$e'),
                         );
                       }

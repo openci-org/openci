@@ -89,6 +89,10 @@ inputs:
     description: "Directory for packaged artifacts, relative to working-directory. (macos)"
     required: false
     default: "build/openci-artifacts"
+  sentry-auth-token:
+    description: "Sentry Auth Token for uploading debug symbols and source maps. (ios, macos)"
+    required: false
+    default: ""
 
 outputs:
   ipa-path:

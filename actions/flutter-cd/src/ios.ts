@@ -77,6 +77,7 @@ export async function buildAndSignIos(): Promise<void> {
   const uploadToAppStoreConnect = uploadToAppStoreConnectInput
     ? uploadToAppStoreConnectInput === "true"
     : distributionMethod === "app-store";
+  const sentryAuthToken = core.getInput("sentry-auth-token") || "";
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
 
@@ -221,6 +222,18 @@ export async function buildAndSignIos(): Promise<void> {
       throw new Error("IPA file was not created. The export step may have failed.");
     }
     console.log("  ✅ IPA built and exported");
+
+    if (sentryAuthToken) {
+      console.log("  Uploading debug symbols to Sentry...");
+      try {
+        process.env.SENTRY_AUTH_TOKEN = sentryAuthToken;
+        await exec("dart run sentry_dart_plugin", { cwd: workingDirectory });
+        console.log("  ✅ Sentry upload complete");
+      } catch (error) {
+        console.log(`  ⚠️ Sentry upload failed: ${error}`);
+      }
+    }
+
     core.endGroup();
 
     const ipaPath = path.resolve(ipaDir, ipaFiles[0]);
