@@ -45,10 +45,8 @@ export {
   backfillIssueKeys,
   createGitHubIssue,
   createGitHubSubIssue,
-  createIssuePullRequest,
   getIssuePullRequestDiff,
   importGitHubIssues,
-  listWorkspaceRecentBranches,
   mergeIssuePullRequest,
   syncGitHubIssues,
 } from "./issues/githubIssueHandlers.js";

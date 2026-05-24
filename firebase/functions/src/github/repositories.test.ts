@@ -18,6 +18,7 @@ const {
   mockGithubPost,
   mockGithubPatch,
   mockGithubPut,
+  mockFirestoreSet,
 } = vi.hoisted(() => ({
   mockVerifyTeamMembership: vi.fn(),
   mockGetInstallationToken: vi.fn(),
@@ -26,6 +27,21 @@ const {
   mockGithubPost: vi.fn(),
   mockGithubPatch: vi.fn(),
   mockGithubPut: vi.fn(),
+  mockFirestoreSet: vi.fn(),
+}));
+
+vi.mock("firebase-admin/firestore", () => ({
+  getFirestore: () => ({
+    collection: () => ({
+      doc: () => ({
+        collection: () => ({
+          doc: () => ({
+            set: mockFirestoreSet,
+          }),
+        }),
+      }),
+    }),
+  }),
 }));
 
 vi.mock("../team/teamAuth", () => ({

@@ -393,6 +393,11 @@ service cloud.firestore {
                     allow delete: if isTeamMember(teamId);
                 }
             }
+
+            match /repositories_v0/{repoId} {
+                allow read: if isTeamMember(teamId);
+                allow write: if false;
+            }
         }
 
         match /users_v0/{userId} {

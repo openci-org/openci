@@ -99,6 +99,7 @@ export interface WorkspaceRecentBranch {
   base: string;
   pushedAt: string;
   issue?: WorkspaceRecentBranchIssue;
+  hasPullRequest?: boolean;
 }
 
 export interface ListWorkspaceRecentBranchesResponse {

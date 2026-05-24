@@ -1,3 +1,4 @@
+import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
@@ -374,6 +375,24 @@ export const listBranches = onCall<RepoRequest, Promise<ListBranchesResponse>>(a
           if (b === defaultBranchName) return 1;
           return a.localeCompare(b);
         });
+
+        const db = getFirestore();
+        const repositoryId = repository.replace("/", ":");
+        const repoRef = db
+          .collection("teams_v0")
+          .doc(teamId)
+          .collection("repositories_v0")
+          .doc(repositoryId);
+
+        await repoRef.set(
+          {
+            repository,
+            defaultBranch: defaultBranchName ?? "main",
+            branches,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true },
+        );
 
         return {
           branches,

@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -41,20 +42,36 @@ Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
 }
 
 @riverpod
-Future<List<String>> gitHubBranches(Ref ref, String repoFullName) async {
+Stream<List<String>> gitHubBranches(Ref ref, String repoFullName) {
   final team = ref.watch(teamStateProvider).value;
-  if (team == null) return [];
-  final functions = firebaseFunctions;
+  if (team == null) return Stream.value(const []);
 
-  final result = await functions.httpsCallable('listBranches').call({
-    'teamId': team.id,
-    'repository': repoFullName,
+  final repositoryId = repoFullName.replaceAll('/', ':');
+  final docRef = firestore
+      .collection(teamsCollection)
+      .doc(team.id)
+      .collection('repositories_v0')
+      .doc(repositoryId);
+
+  return docRef.snapshots().asyncMap((snapshot) async {
+    if (!snapshot.exists) {
+      final functions = firebaseFunctions;
+      try {
+        await functions.httpsCallable('listBranches').call({
+          'teamId': team.id,
+          'repository': repoFullName,
+        });
+      } catch (_) {
+        // Ignore initialization error since it will be retried or shown as error
+      }
+      return const [];
+    }
+
+    final data = snapshot.data();
+    if (data == null) return const [];
+    final branches = (data['branches'] as List<dynamic>?)
+        ?.map((e) => e.toString())
+        .toList();
+    return branches ?? const [];
   });
-
-  final data = result.data as Map<String, dynamic>;
-  final branches = (data['branches'] as List<dynamic>)
-      .map((e) => e.toString())
-      .toList();
-
-  return branches;
 }

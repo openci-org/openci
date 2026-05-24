@@ -78,9 +78,9 @@ final class GitHubBranchesProvider
         $FunctionalProvider<
           AsyncValue<List<String>>,
           List<String>,
-          FutureOr<List<String>>
+          Stream<List<String>>
         >
-    with $FutureModifier<List<String>>, $FutureProvider<List<String>> {
+    with $FutureModifier<List<String>>, $StreamProvider<List<String>> {
   GitHubBranchesProvider._({
     required GitHubBranchesFamily super.from,
     required String super.argument,
@@ -104,12 +104,12 @@ final class GitHubBranchesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<String>> $createElement(
+  $StreamProviderElement<List<String>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<String>> create(Ref ref) {
+  Stream<List<String>> create(Ref ref) {
     final argument = this.argument as String;
     return gitHubBranches(ref, argument);
   }
@@ -125,10 +125,10 @@ final class GitHubBranchesProvider
   }
 }
 
-String _$gitHubBranchesHash() => r'd556b48f60aa59be69c2bc0d9f12451030795c52';
+String _$gitHubBranchesHash() => r'791cc84409e0f7abfc230f9702ed230626fa3940';
 
 final class GitHubBranchesFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<String>>, String> {
+    with $FunctionalFamilyOverride<Stream<List<String>>, String> {
   GitHubBranchesFamily._()
     : super(
         retry: null,
