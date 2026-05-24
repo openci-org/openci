@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'issue_board_ima_utils.dart';
 import 'issue_board_ima_board_columns.dart';
@@ -1339,14 +1340,17 @@ class PullRequestBadge extends StatelessWidget {
         : '${pullRequests.length} PRs';
     final prUrl = latest.url;
     return IssueMetaChip(
-      icon: Icons.alt_route_rounded,
+      leading: const FaIcon(
+        FontAwesomeIcons.codePullRequest,
+        size: 11,
+        color: Color(0xFF0EA5E9),
+      ),
       label: label,
       tooltip: prUrl ?? 'Linked pull request',
       onTap: prUrl == null ? null : () => unawaited(launchUrlExternal(prUrl)),
       backgroundColor: const Color(0xFFEFF6FF),
       borderColor: const Color(0xFFBFDBFE),
       foregroundColor: const Color(0xFF0369A1),
-      iconColor: const Color(0xFF0EA5E9),
       maxWidth: 58,
     );
   }

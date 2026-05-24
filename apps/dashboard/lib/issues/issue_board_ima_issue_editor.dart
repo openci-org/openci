@@ -7,6 +7,7 @@ import 'package:dashboard/firebase/callable_function_names.dart';
 import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:dashboard/firebase/functions.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:re_highlight/languages/bash.dart';
@@ -1527,8 +1528,8 @@ class PullRequestReviewPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.alt_route_rounded,
+              const FaIcon(
+                FontAwesomeIcons.codePullRequest,
                 size: 18,
                 color: Color(0xFF2563EB),
               ),
@@ -1638,8 +1639,8 @@ class PullRequestReviewTile extends StatelessWidget {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.fork_right_rounded,
+                          const FaIcon(
+                            FontAwesomeIcons.codeBranch,
                             size: 14,
                             color: Color(0xFF64748B),
                           ),
@@ -2666,23 +2667,23 @@ class _PullRequestDiffStats extends StatelessWidget {
       runSpacing: 8,
       children: [
         _PullRequestDiffStatPill(
-          icon: Icons.description_outlined,
+          icon: const Icon(Icons.description_outlined),
           label: '${diff.changedFiles} files',
           color: const Color(0xFF2563EB),
         ),
         _PullRequestDiffStatPill(
-          icon: Icons.add_rounded,
+          icon: const Icon(Icons.add_rounded),
           label: '+${diff.additions}',
           color: const Color(0xFF15803D),
         ),
         _PullRequestDiffStatPill(
-          icon: Icons.remove_rounded,
+          icon: const Icon(Icons.remove_rounded),
           label: '-${diff.deletions}',
           color: const Color(0xFFB91C1C),
         ),
         if (diff.branch.isNotEmpty)
           _PullRequestDiffStatPill(
-            icon: Icons.fork_right_rounded,
+            icon: const FaIcon(FontAwesomeIcons.codeBranch),
             label: diff.branch,
             color: const Color(0xFF64748B),
           ),
@@ -2698,7 +2699,7 @@ class _PullRequestDiffStatPill extends StatelessWidget {
     required this.color,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final Color color;
 
@@ -2714,7 +2715,10 @@ class _PullRequestDiffStatPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
+          IconTheme(
+            data: IconThemeData(size: 14, color: color),
+            child: icon,
+          ),
           const SizedBox(width: 5),
           Text(
             label,
