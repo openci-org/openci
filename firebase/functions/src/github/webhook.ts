@@ -1,5 +1,5 @@
 import { Webhooks } from "@octokit/webhooks";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onRequest } from "firebase-functions/v2/https";
@@ -172,6 +172,68 @@ async function runWebhookHandler({
   }
 }
 
+async function handleBranchCreate(
+  db: FirebaseFirestore.Firestore,
+  installationId: number,
+  repository: string,
+  branch: string,
+): Promise<void> {
+  const repositoryId = repository.replace("/", ":");
+  const teamsSnapshot = await db
+    .collection("teams_v0")
+    .where("installationIds", "array-contains", installationId)
+    .get();
+
+  for (const teamDoc of teamsSnapshot.docs) {
+    const repoRef = db
+      .collection("teams_v0")
+      .doc(teamDoc.id)
+      .collection("repositories_v0")
+      .doc(repositoryId);
+
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(repoRef);
+      if (doc.exists) {
+        transaction.update(repoRef, {
+          branches: FieldValue.arrayUnion(branch),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
+  }
+}
+
+async function handleBranchDelete(
+  db: FirebaseFirestore.Firestore,
+  installationId: number,
+  repository: string,
+  branch: string,
+): Promise<void> {
+  const repositoryId = repository.replace("/", ":");
+  const teamsSnapshot = await db
+    .collection("teams_v0")
+    .where("installationIds", "array-contains", installationId)
+    .get();
+
+  for (const teamDoc of teamsSnapshot.docs) {
+    const repoRef = db
+      .collection("teams_v0")
+      .doc(teamDoc.id)
+      .collection("repositories_v0")
+      .doc(repositoryId);
+
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(repoRef);
+      if (doc.exists) {
+        transaction.update(repoRef, {
+          branches: FieldValue.arrayRemove(branch),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
+  }
+}
+
 export const githubWebhook = onRequest(
   { secrets: [githubWebhookSecret, githubAppId, githubPrivateKey] },
   async (request, response) => {
@@ -314,6 +376,38 @@ export const githubWebhook = onRequest(
         });
       },
     );
+
+    webhooks.on("create", async ({ name, payload }) => {
+      await runWebhookHandler({
+        handlerName: "syncGitHubBranchCreate",
+        deliveryId: webhookRequest.deliveryId,
+        eventType: name,
+        payload,
+        handler: async () => {
+          if (payload.ref_type !== "branch") return;
+          const installationId = requireWebhookInstallationId(payload.installation);
+          const repository = payload.repository.full_name;
+          const branch = payload.ref;
+          await handleBranchCreate(db, installationId, repository, branch);
+        },
+      });
+    });
+
+    webhooks.on("delete", async ({ name, payload }) => {
+      await runWebhookHandler({
+        handlerName: "syncGitHubBranchDelete",
+        deliveryId: webhookRequest.deliveryId,
+        eventType: name,
+        payload,
+        handler: async () => {
+          if (payload.ref_type !== "branch") return;
+          const installationId = requireWebhookInstallationId(payload.installation);
+          const repository = payload.repository.full_name;
+          const branch = payload.ref;
+          await handleBranchDelete(db, installationId, repository, branch);
+        },
+      });
+    });
 
     try {
       await webhooks.verifyAndReceive({
