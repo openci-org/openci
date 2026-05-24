@@ -2166,7 +2166,7 @@ class _RecentRemoteBranchesDialogState
                       return _RecentRemoteBranchDialogRow(
                         branch: branch,
                         isCreating: false,
-                        isCreated: false,
+                        isCreated: branch.hasPullRequest,
                         isAnyCreating: false,
                         onCreate: () => _createPullRequest(branch),
                         onOpenIssue: branch.hasIssue

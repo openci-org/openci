@@ -528,6 +528,14 @@ interface IssuePullRequestBranchRefNode {
     oid?: unknown;
     committedDate?: unknown;
   } | null;
+  associatedPullRequests?: {
+    nodes?: Array<{
+      number?: unknown;
+      title?: unknown;
+      url?: unknown;
+      state?: unknown;
+    } | null>;
+  } | null;
 }
 
 interface IssuePullRequestBranchRefsResponse {
@@ -552,6 +560,7 @@ interface IssuePullRequestBranchCandidate {
   pushedAt: string;
   isDefault: boolean;
   matchesIssue: boolean;
+  hasPullRequest: boolean;
 }
 
 const issuePullRequestBranchRefsQuery = `
@@ -571,6 +580,14 @@ const issuePullRequestBranchRefsQuery = `
             oid
             ... on Commit {
               committedDate
+            }
+          }
+          associatedPullRequests(first: 5, states: [OPEN]) {
+            nodes {
+              number
+              title
+              url
+              state
             }
           }
         }
@@ -727,12 +744,17 @@ async function fetchIssuePullRequestBranchCandidates({
 
     const sha = asString(node?.target?.oid);
     const pushedAt = asString(node?.target?.committedDate);
+    const hasPullRequest =
+      node?.associatedPullRequests?.nodes !== undefined &&
+      node.associatedPullRequests.nodes.some((pr) => pr !== null && asNumber(pr.number) > 0);
+
     branches.push({
       name,
       sha,
       pushedAt,
       isDefault,
       matchesIssue: branchMatchesIssue({ name, issue, issueId }),
+      hasPullRequest,
     });
   }
 
@@ -2313,6 +2335,7 @@ export const listWorkspaceRecentBranches = onCall<
               sha: branch.sha,
               base: result.base,
               pushedAt: branch.pushedAt,
+              hasPullRequest: branch.hasPullRequest,
               ...(issue === undefined ? {} : { issue }),
             });
           }

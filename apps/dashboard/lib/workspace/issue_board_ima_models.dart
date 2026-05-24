@@ -511,6 +511,7 @@ class WorkspaceRecentBranch {
     this.issueKey = '',
     this.issueTitle = '',
     this.issueStatusId = '',
+    this.hasPullRequest = false,
   });
 
   factory WorkspaceRecentBranch.fromMap(Map<String, dynamic> data) {
@@ -525,6 +526,7 @@ class WorkspaceRecentBranch {
       issueKey: asString(issue['issueKey'], asString(issue['displayId'])),
       issueTitle: asString(issue['title']),
       issueStatusId: asString(issue['statusId']),
+      hasPullRequest: data['hasPullRequest'] == true,
     );
   }
 
@@ -541,6 +543,7 @@ class WorkspaceRecentBranch {
   final String issueKey;
   final String issueTitle;
   final String issueStatusId;
+  final bool hasPullRequest;
 }
 
 class IssuePullRequestLinkedIssue {
