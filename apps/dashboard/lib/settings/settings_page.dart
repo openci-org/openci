@@ -85,7 +85,7 @@ class SettingsPage extends HookConsumerWidget {
                       if (isMacosUpdaterSupportedPlatform) ...[
                         const _GroupDivider(),
                         _SettingsItem(
-                          icon: Symbols.system_update_alt_rounded,
+                          icon: Icons.system_update_alt_rounded,
                           title: settingsT.checkForUpdates,
                           subtitle: settingsT.checkForUpdatesDescription,
                           trailingIcon: null,

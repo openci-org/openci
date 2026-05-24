@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:macos_updater/macos_updater.dart';
 
 void main() {
@@ -16,43 +13,53 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _macosUpdaterPlugin = MacosUpdater();
+  final _macosUpdater = MacosUpdater();
+  String _status = 'Idle';
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
+    _macosUpdater.checkResults.listen((result) {
+      setState(() {
+        _status = 'Result: ${result.type.name} - ${result.message}';
+      });
+    });
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await _macosUpdaterPlugin.getPlatformVersion() ?? 'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
+  Future<void> _checkUpdates() async {
     setState(() {
-      _platformVersion = platformVersion;
+      _status = 'Checking...';
     });
+    try {
+      await _macosUpdater.setFeedUrl(
+        'https://raw.githubusercontent.com/openci-org/openci/develop/apps/dashboard/macos/appcast.xml',
+      );
+      await _macosUpdater.checkForUpdates();
+    } catch (e) {
+      setState(() {
+        _status = 'Error: $e';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('Plugin example app')),
-        body: Center(child: Text('Running on: $_platformVersion\n')),
+        appBar: AppBar(title: const Text('Sparkle Updater Example')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Status: $_status'),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _checkUpdates,
+                child: const Text('Check for Updates'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
