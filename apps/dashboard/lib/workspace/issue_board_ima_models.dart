@@ -51,9 +51,10 @@ class IssueDragData {
 }
 
 class CloseIssueDialogResult {
-  const CloseIssueDialogResult(this.issueId);
+  const CloseIssueDialogResult(this.issueId, {this.stateReason});
 
   final String issueId;
+  final String? stateReason;
 }
 
 class EditIssueDialogResult {
@@ -293,6 +294,7 @@ class Issue {
     this.subIssuesSummary,
     this.subIssues = const [],
     this.parentIssue,
+    this.githubStateReason,
   }) : displayId = displayId ?? issueKey ?? id;
 
   factory Issue.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -301,6 +303,7 @@ class Issue {
     final number = asInt(githubIssue['number']);
     final repo = asString(data['repo']);
     final issueKey = asString(data['issueKey']);
+    final stateReason = asString(githubIssue['stateReason'] ?? githubIssue['state_reason']);
 
     return Issue(
       id: doc.id,
@@ -341,6 +344,7 @@ class Issue {
           .whereType<IssueSubIssueReference>()
           .toList(),
       parentIssue: IssueParentIssue.fromMap(asMap(githubIssue['parentIssue'])),
+      githubStateReason: stateReason.isEmpty ? null : stateReason,
     );
   }
 
@@ -350,6 +354,8 @@ class Issue {
     DateTime? closedAt,
     bool clearClosedAt = false,
     List<IssuePullRequest>? pullRequests,
+    String? githubStateReason,
+    bool clearGithubStateReason = false,
   }) {
     return Issue(
       id: id,
@@ -374,6 +380,7 @@ class Issue {
       subIssuesSummary: subIssuesSummary,
       subIssues: subIssues,
       parentIssue: parentIssue,
+      githubStateReason: clearGithubStateReason ? null : githubStateReason ?? this.githubStateReason,
     );
   }
 
@@ -399,6 +406,7 @@ class Issue {
   final IssueSubIssuesSummary? subIssuesSummary;
   final List<IssueSubIssueReference> subIssues;
   final IssueParentIssue? parentIssue;
+  final String? githubStateReason;
 
   bool get isTicketNumberPending =>
       issueKey == null &&

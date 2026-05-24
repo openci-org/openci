@@ -264,6 +264,7 @@ export interface GitHubIssueResponseItem {
   updated_at?: unknown;
   created_at?: unknown;
   pull_request?: unknown;
+  state_reason?: unknown;
   sub_issues_summary?: {
     total?: unknown;
     completed?: unknown;

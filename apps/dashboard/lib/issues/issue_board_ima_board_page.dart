@@ -413,6 +413,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     required String targetColumnId,
     required int targetIndex,
     bool clearPullRequests = false,
+    String? stateReason,
   }) async {
     final sourceColumn = _columns.firstWhere(
       (column) => column.issues.any((issue) => issue.id == issueId),
@@ -431,6 +432,20 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     final movingIssue = sourceColumn.issues[sourceIndex];
+
+    String? finalStateReason = stateReason;
+    if (targetColumnId == closedStatusId && finalStateReason == null) {
+      finalStateReason = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _CloseIssueConfirmDialog(title: movingIssue.title),
+      );
+      if (finalStateReason == null) {
+        setState(() {});
+        return;
+      }
+    }
+
     final targetIssues = [
       for (final issue in targetColumn.issues)
         if (issue.id != issueId) issue,
@@ -457,6 +472,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         pullRequests: shouldUnlinkPullRequests
             ? const <IssuePullRequest>[]
             : null,
+        githubStateReason: targetColumnId == closedStatusId ? finalStateReason : null,
+        clearGithubStateReason: targetColumnId != closedStatusId,
       ),
     );
 
@@ -467,6 +484,12 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
           'rank': nextRankValue,
           if (targetColumnId != closedStatusId) 'closedAt': FieldValue.delete(),
           if (shouldUnlinkPullRequests) 'pullRequests': FieldValue.delete(),
+          if (targetColumnId == closedStatusId && finalStateReason != null)
+            'githubIssue.stateReason': finalStateReason,
+          if (targetColumnId == closedStatusId)
+            'githubIssue.state': 'closed'
+          else
+            'githubIssue.stateReason': FieldValue.delete(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
   }
@@ -563,7 +586,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
   }
 
-  Future<void> _closeIssue(String issueId) async {
+  Future<void> _closeIssue(String issueId, {String? stateReason}) async {
     if (_closingIssueIds.contains(issueId)) {
       return;
     }
@@ -577,6 +600,18 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     if (issue.statusId == closedStatusId) {
       _showSavedSnackBar('すでに完了しています');
       return;
+    }
+
+    String? finalStateReason = stateReason;
+    if (finalStateReason == null) {
+      finalStateReason = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _CloseIssueConfirmDialog(title: issue.title),
+      );
+      if (finalStateReason == null) {
+        return;
+      }
     }
 
     final allIssues = _columns.expand((column) => column.issues).toList();
@@ -595,6 +630,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         issueId: issueId,
         targetColumnId: closedStatusId,
         targetIndex: 0,
+        stateReason: finalStateReason,
       );
       if (subIssuesToClose.isNotEmpty) {
         final batch = _firestore.batch();
@@ -606,6 +642,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
             {
               'statusId': closedStatusId,
               'rank': nowRank + index + 1,
+              'githubIssue.state': 'closed',
+              'githubIssue.stateReason': finalStateReason,
               'updatedAt': FieldValue.serverTimestamp(),
             },
           );
@@ -683,7 +721,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     }
 
     if (result is CloseIssueDialogResult) {
-      await _closeIssue(result.issueId);
+      await _closeIssue(result.issueId, stateReason: result.stateReason);
       return;
     }
 
@@ -1777,5 +1815,54 @@ class _IssueBoardShortcuts extends StatelessWidget {
   bool _hasTextInputFocus() {
     final context = FocusManager.instance.primaryFocus?.context;
     return context?.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+}
+
+class _CloseIssueConfirmDialog extends StatefulWidget {
+  const _CloseIssueConfirmDialog({required this.title});
+  final String title;
+
+  @override
+  State<_CloseIssueConfirmDialog> createState() => _CloseIssueConfirmDialogState();
+}
+
+class _CloseIssueConfirmDialogState extends State<_CloseIssueConfirmDialog> {
+  String _stateReason = 'completed';
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Issueをクローズ'),
+      content: RadioGroup<String>(
+        groupValue: _stateReason,
+        onChanged: (value) => setState(() => _stateReason = value!),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('「${widget.title}」をクローズします。クローズの理由を選択してください。'),
+            const SizedBox(height: 12),
+            const RadioListTile<String>(
+              title: Text('完了'),
+              value: 'completed',
+            ),
+            const RadioListTile<String>(
+              title: Text('対応なし'),
+              value: 'not_planned',
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_stateReason),
+          child: const Text('クローズする'),
+        ),
+      ],
+    );
   }
 }
