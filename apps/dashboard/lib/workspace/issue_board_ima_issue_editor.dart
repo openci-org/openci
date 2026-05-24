@@ -1425,7 +1425,7 @@ class _TitleField extends StatelessWidget {
   }
 }
 
-class _GitHubLinkField extends StatelessWidget {
+class _GitHubLinkField extends StatefulWidget {
   const _GitHubLinkField({
     required this.controller,
     required this.decoration,
@@ -1439,18 +1439,36 @@ class _GitHubLinkField extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
+  State<_GitHubLinkField> createState() => _GitHubLinkFieldState();
+}
+
+class _GitHubLinkFieldState extends State<_GitHubLinkField> {
+  bool _copied = false;
+  int _copyVersion = 0;
+
+  void _handleCopy() {
+    widget.onCopy();
+    final version = ++_copyVersion;
+    setState(() => _copied = true);
+    Future<void>.delayed(const Duration(milliseconds: 1500)).then((_) {
+      if (!mounted || version != _copyVersion) return;
+      setState(() => _copied = false);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final field = TextFormField(
-          controller: controller,
+          controller: widget.controller,
           keyboardType: TextInputType.url,
           textInputAction: TextInputAction.next,
-          decoration: decoration,
+          decoration: widget.decoration,
           validator: validateOptionalHttpUrl,
         );
         final actions = ValueListenableBuilder<TextEditingValue>(
-          valueListenable: controller,
+          valueListenable: widget.controller,
           builder: (context, value, _) {
             final hasUrl = value.text.trim().isNotEmpty;
             final actionButtonStyle = OutlinedButton.styleFrom(
@@ -1462,13 +1480,32 @@ class _GitHubLinkField extends StatelessWidget {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: hasUrl ? onCopy : null,
-                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  onPressed: hasUrl ? _handleCopy : null,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOutBack,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: _copied
+                        ? const Icon(
+                            Icons.check_rounded,
+                            key: ValueKey('copied'),
+                            size: 18,
+                            color: Color(0xFF22C55E),
+                          )
+                        : const Icon(
+                            Icons.copy_rounded,
+                            key: ValueKey('copy'),
+                            size: 18,
+                          ),
+                  ),
                   label: const Text('コピー'),
                   style: actionButtonStyle,
                 ),
                 OutlinedButton.icon(
-                  onPressed: hasUrl ? onOpen : null,
+                  onPressed: hasUrl ? widget.onOpen : null,
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('開く'),
                   style: actionButtonStyle,
