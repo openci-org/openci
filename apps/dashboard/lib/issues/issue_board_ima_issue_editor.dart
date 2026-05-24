@@ -215,12 +215,12 @@ class _AddIssueDialogState extends State<AddIssueDialog> {
     );
   }
 
-  void _closeIssue() {
+  void _closeIssue(String stateReason) {
     final issue = _currentIssue;
     if (issue == null) {
       return;
     }
-    Navigator.of(context).pop(CloseIssueDialogResult(issue.id));
+    Navigator.of(context).pop(CloseIssueDialogResult(issue.id, stateReason: stateReason));
   }
 
   Future<void> _estimateIssueWeight() async {
@@ -833,7 +833,7 @@ class _DialogActions extends StatelessWidget {
   final bool isEditing;
   final bool canCloseIssue;
   final VoidCallback onCancel;
-  final VoidCallback onCloseIssue;
+  final ValueChanged<String> onCloseIssue;
   final VoidCallback onSaveIssue;
 
   @override
@@ -848,9 +848,23 @@ class _DialogActions extends StatelessWidget {
       ),
       child: const Text('キャンセル'),
     );
-    final closeButton = _IssueEditorCompleteButton(
-      onPressed: onCloseIssue,
-      minWidth: 136,
+    final closeCompletedButton = _IssueEditorCloseButton(
+      onPressed: canCloseIssue ? () => onCloseIssue('completed') : null,
+      minWidth: 120,
+      label: '完了',
+      icon: Icons.check_rounded,
+      backgroundColor: const Color(0xFFECFDF5),
+      foregroundColor: const Color(0xFF047857),
+      borderColor: const Color(0xFFA7F3D0),
+    );
+    final closeNotPlannedButton = _IssueEditorCloseButton(
+      onPressed: canCloseIssue ? () => onCloseIssue('not_planned') : null,
+      minWidth: 120,
+      label: '対応なし',
+      icon: Icons.do_not_disturb_on_outlined,
+      backgroundColor: const Color(0xFFF1F5F9),
+      foregroundColor: const Color(0xFF475569),
+      borderColor: const Color(0xFFCBD5E1),
     );
     final saveButton = _IssueEditorPrimaryButton(
       onPressed: onSaveIssue,
@@ -861,13 +875,18 @@ class _DialogActions extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 560) {
+        if (constraints.maxWidth < 620) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Align(alignment: Alignment.centerLeft, child: cancelButton),
               const SizedBox(height: 10),
-              if (canCloseIssue) ...[closeButton, const SizedBox(height: 10)],
+              if (canCloseIssue) ...[
+                closeCompletedButton,
+                const SizedBox(height: 10),
+                closeNotPlannedButton,
+                const SizedBox(height: 10),
+              ],
               saveButton,
             ],
           );
@@ -877,7 +896,12 @@ class _DialogActions extends StatelessWidget {
           children: [
             cancelButton,
             const Spacer(),
-            if (canCloseIssue) ...[closeButton, const SizedBox(width: 12)],
+            if (canCloseIssue) ...[
+              closeCompletedButton,
+              const SizedBox(width: 8),
+              closeNotPlannedButton,
+              const SizedBox(width: 12),
+            ],
             saveButton,
           ],
         );
@@ -924,34 +948,44 @@ class _IssueEditorPrimaryButton extends StatelessWidget {
   }
 }
 
-class _IssueEditorCompleteButton extends StatelessWidget {
-  const _IssueEditorCompleteButton({
+class _IssueEditorCloseButton extends StatelessWidget {
+  const _IssueEditorCloseButton({
     required this.onPressed,
     required this.minWidth,
+    required this.label,
+    required this.icon,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.borderColor,
   });
 
   final VoidCallback? onPressed;
   final double minWidth;
+  final String label;
+  final IconData icon;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
     return FilledButton.icon(
       onPressed: onPressed,
-      icon: const Icon(Icons.check_rounded, size: 18),
-      label: const Text(
-        'issueを完了',
+      icon: Icon(icon, size: 18),
+      label: Text(
+        label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
       style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFFECFDF5),
-        foregroundColor: const Color(0xFF047857),
+        backgroundColor: backgroundColor,
+        foregroundColor: foregroundColor,
         disabledBackgroundColor: const Color(0xFFE2E8F0),
         disabledForegroundColor: const Color(0xFF64748B),
         elevation: 0,
         minimumSize: Size(minWidth, 48),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        side: const BorderSide(color: Color(0xFFA7F3D0)),
+        side: BorderSide(color: borderColor),
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w900,
@@ -1032,14 +1066,28 @@ class _BottomSheetActions extends StatelessWidget {
 
   final bool isEditing;
   final bool canCloseIssue;
-  final VoidCallback onCloseIssue;
+  final ValueChanged<String> onCloseIssue;
   final VoidCallback onSaveIssue;
 
   @override
   Widget build(BuildContext context) {
-    final closeButton = _IssueEditorCompleteButton(
-      onPressed: onCloseIssue,
+    final closeCompletedButton = _IssueEditorCloseButton(
+      onPressed: canCloseIssue ? () => onCloseIssue('completed') : null,
       minWidth: 0,
+      label: '完了',
+      icon: Icons.check_rounded,
+      backgroundColor: const Color(0xFFECFDF5),
+      foregroundColor: const Color(0xFF047857),
+      borderColor: const Color(0xFFA7F3D0),
+    );
+    final closeNotPlannedButton = _IssueEditorCloseButton(
+      onPressed: canCloseIssue ? () => onCloseIssue('not_planned') : null,
+      minWidth: 0,
+      label: '対応なし',
+      icon: Icons.do_not_disturb_on_outlined,
+      backgroundColor: const Color(0xFFF1F5F9),
+      foregroundColor: const Color(0xFF475569),
+      borderColor: const Color(0xFFCBD5E1),
     );
     final saveButton = _IssueEditorPrimaryButton(
       onPressed: onSaveIssue,
@@ -1056,13 +1104,21 @@ class _BottomSheetActions extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (canCloseIssue) ...[
-              Expanded(child: closeButton),
-              const SizedBox(width: 10),
+              Row(
+                children: [
+                  Expanded(child: closeCompletedButton),
+                  const SizedBox(width: 10),
+                  Expanded(child: closeNotPlannedButton),
+                ],
+              ),
+              const SizedBox(height: 10),
             ],
-            Expanded(child: saveButton),
+            saveButton,
           ],
         ),
       ),

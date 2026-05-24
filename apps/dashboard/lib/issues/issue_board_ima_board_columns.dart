@@ -6,6 +6,7 @@ import 'issue_board_ima_issue_cards.dart';
 import 'issue_board_ima_models.dart';
 import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_overview.dart';
+import 'issue_board_ima_utils.dart';
 
 class BoardColumnView extends StatelessWidget {
   const BoardColumnView({
@@ -891,11 +892,7 @@ class OverviewList extends StatelessWidget {
     ];
     final totalWeight = allIssues.fold<int>(
       0,
-      (total, issue) =>
-          total +
-          (issue.statusId == closedStatusId
-              ? issue.resolution?.actualWeight ?? 0
-              : issue.weightEstimate?.value ?? 0),
+      (total, issue) => total + issueProgressWeight(issue),
     );
     final summary = OverviewSummaryCard(
       issueCount: allIssues.length,
@@ -1037,11 +1034,7 @@ class OverviewSectionHeader extends StatelessWidget {
     final visibleIssues = visibleIssuesForColumn(column);
     final totalWeight = visibleIssues.fold<int>(
       0,
-      (total, issue) =>
-          total +
-          (issue.statusId == closedStatusId
-              ? issue.resolution?.actualWeight ?? 0
-              : issue.weightEstimate?.value ?? 0),
+      (total, issue) => total + issueProgressWeight(issue),
     );
 
     return Material(
@@ -1259,11 +1252,7 @@ class _OverviewSectionState extends State<OverviewSection> {
     final showDropSlot = !widget.isCompact || !_isShrunk;
     final totalWeight = visibleIssues.fold<int>(
       0,
-      (total, issue) =>
-          total +
-          (issue.statusId == closedStatusId
-              ? issue.resolution?.actualWeight ?? 0
-              : issue.weightEstimate?.value ?? 0),
+      (total, issue) => total + issueProgressWeight(issue),
     );
 
     return DragTarget<IssueDragData>(

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_models.dart';
 import 'issue_board_ima_overview.dart';
 
@@ -68,7 +69,12 @@ String pullRequestLinkId(String repository, int number) {
 }
 
 int issueProgressWeight(Issue issue) {
-  return issue.resolution?.actualWeight ?? issue.weightEstimate?.value ?? 0;
+  if (issue.githubStateReason == 'not_planned') {
+    return 0;
+  }
+  return issue.statusId == closedStatusId
+      ? issue.resolution?.actualWeight ?? 0
+      : issue.weightEstimate?.value ?? 0;
 }
 
 DailyProgressPrediction buildDailyProgressPrediction({

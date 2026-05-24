@@ -1033,6 +1033,7 @@ async function patchGitHubIssueCore(input: {
   title?: unknown;
   body?: unknown;
   statusId?: unknown;
+  stateReason?: string;
 }): Promise<void> {
   const update: Record<string, unknown> = {};
   if (input.title !== undefined) {
@@ -1043,6 +1044,11 @@ async function patchGitHubIssueCore(input: {
   }
   if (input.statusId !== undefined) {
     update.state = asString(input.statusId) === closedStatusId ? "closed" : "open";
+    if (update.state === "closed" && input.stateReason !== undefined) {
+      update.state_reason = input.stateReason;
+    } else if (update.state === "open") {
+      update.state_reason = null;
+    }
   }
   if (Object.keys(update).length === 0) {
     return;
@@ -1210,6 +1216,7 @@ function githubIssueFirestoreFields(
     number: asNumber(issue.number),
     url: asString(issue.html_url),
     state: asString(issue.state, "open"),
+    stateReason: asString(issue.state_reason) || null,
   };
   if (subIssuesSummary !== null) {
     fields.subIssuesSummary = subIssuesSummary;
@@ -2949,22 +2956,35 @@ async function syncGitHubIssueFromWebhook(payload: GitHubIssueWebhookPayload): P
 
       const issueData = issueDoc.data() ?? {};
       const currentStatusId = asString(issueData.statusId, "triage");
+      const existingGitHubIssue = issueData.githubIssue as Record<string, unknown> | undefined;
+      const existingStateReason = asString(
+        existingGitHubIssue?.stateReason ?? existingGitHubIssue?.state_reason,
+      );
+      const nextStateReason = asString(ghIssue.state_reason);
 
-      if (action === "closed" && currentStatusId !== closedStatusId) {
+      if (
+        action === "closed" &&
+        (currentStatusId !== closedStatusId || existingStateReason !== nextStateReason)
+      ) {
         await issueRef.set(
           {
             statusId: closedStatusId,
             "githubIssue.state": "closed",
+            "githubIssue.stateReason": nextStateReason || null,
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true },
         );
         updated += 1;
-      } else if (action === "reopened" && currentStatusId === closedStatusId) {
+      } else if (
+        action === "reopened" &&
+        (currentStatusId === closedStatusId || existingStateReason !== "")
+      ) {
         await issueRef.set(
           {
             statusId: "triage",
             "githubIssue.state": "open",
+            "githubIssue.stateReason": null,
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true },
@@ -3192,6 +3212,7 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
         const owner = requireNonEmptyString(githubIssue.owner, "githubIssue.owner");
         const repo = requireNonEmptyString(githubIssue.repo, "githubIssue.repo");
         const number = asNumber(githubIssue.number);
+        const stateReason = asString(githubIssue.stateReason ?? githubIssue.state_reason);
         await patchGitHubIssueCore({
           owner,
           repo,
@@ -3200,6 +3221,7 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
           title: issue.title,
           body: issue.body,
           statusId: issue.statusId,
+          stateReason: issue.statusId === closedStatusId ? stateReason : undefined,
         });
         await patchGitHubIssueLabelsSafely({
           workspaceId,
@@ -3341,48 +3363,59 @@ export const issueLifecycleEventLogger = onDocumentWritten(
     }
 
     if (beforeStatus !== afterStatus && afterStatus === closedStatusId) {
-      const createdAt =
-        timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
-      const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
-      const branchCreatedAt = timestampFromValue(after.branchCreatedAt);
-      const workStartedAt = branchCreatedAt ?? firstInProgressAt;
-      const workStartSource = branchCreatedAt !== null ? "branch" : "status";
-      const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
-      const cycleTimeMs = workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
-      const weightEstimate = issueWeightEstimateMap(after);
-      const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
+      const githubIssue = after.githubIssue as Record<string, unknown> | undefined;
+      const githubIssueStateReason = asString(
+        githubIssue?.stateReason ?? githubIssue?.state_reason,
+      );
 
-      let actualWeight: number | null = null;
-      let weightDelta: number | null = null;
-      const timeForWeight = cycleTimeMs ?? leadTimeMs;
-      if (timeForWeight !== null) {
-        const resolutionStats = await collectResolutionStats(workspaceId);
-        actualWeight = deriveActualWeight(timeForWeight, resolutionStats.byWeight);
-        if (weightValue !== null) {
-          weightDelta = weightValue - actualWeight;
+      if (githubIssueStateReason === "not_planned") {
+        updates.closedAt = now;
+        updates.resolution = FieldValue.delete();
+        await writeIssueEvent({
+          workspaceId,
+          issueId,
+          type: "closed",
+          eventId,
+          data: {
+            title: asString(after.title),
+            repo: asString(after.repo),
+            labels: asStringList(after.labels),
+            closedAt: now,
+            leadTimeMs: null,
+            cycleTimeMs: null,
+            weightValue: null,
+            actualWeight: null,
+            weightDelta: null,
+            workStartSource: null,
+          },
+        });
+      } else {
+        const createdAt =
+          timestampFromValue(after.githubCreatedAt) ?? timestampFromValue(after.createdAt);
+        const firstInProgressAt = timestampFromValue(after.firstInProgressAt);
+        const branchCreatedAt = timestampFromValue(after.branchCreatedAt);
+        const workStartedAt = branchCreatedAt ?? firstInProgressAt;
+        const workStartSource = branchCreatedAt !== null ? "branch" : "status";
+        const leadTimeMs = createdAt === null ? null : now.toMillis() - createdAt.toMillis();
+        const cycleTimeMs =
+          workStartedAt === null ? null : now.toMillis() - workStartedAt.toMillis();
+        const weightEstimate = issueWeightEstimateMap(after);
+        const weightValue = typeof weightEstimate.value === "number" ? weightEstimate.value : null;
+
+        let actualWeight: number | null = null;
+        let weightDelta: number | null = null;
+        const timeForWeight = cycleTimeMs ?? leadTimeMs;
+        if (timeForWeight !== null) {
+          const resolutionStats = await collectResolutionStats(workspaceId);
+          actualWeight = deriveActualWeight(timeForWeight, resolutionStats.byWeight);
+          if (weightValue !== null) {
+            weightDelta = weightValue - actualWeight;
+          }
         }
-      }
 
-      updates.closedAt = now;
-      updates.workStartedAt = workStartedAt ?? null;
-      updates.resolution = {
-        closedAt: now,
-        leadTimeMs,
-        cycleTimeMs,
-        weightValue,
-        actualWeight,
-        weightDelta,
-        workStartSource,
-      };
-      await writeIssueEvent({
-        workspaceId,
-        issueId,
-        type: "closed",
-        eventId,
-        data: {
-          title: asString(after.title),
-          repo: asString(after.repo),
-          labels: asStringList(after.labels),
+        updates.closedAt = now;
+        updates.workStartedAt = workStartedAt ?? null;
+        updates.resolution = {
           closedAt: now,
           leadTimeMs,
           cycleTimeMs,
@@ -3390,8 +3423,26 @@ export const issueLifecycleEventLogger = onDocumentWritten(
           actualWeight,
           weightDelta,
           workStartSource,
-        },
-      });
+        };
+        await writeIssueEvent({
+          workspaceId,
+          issueId,
+          type: "closed",
+          eventId,
+          data: {
+            title: asString(after.title),
+            repo: asString(after.repo),
+            labels: asStringList(after.labels),
+            closedAt: now,
+            leadTimeMs,
+            cycleTimeMs,
+            weightValue,
+            actualWeight,
+            weightDelta,
+            workStartSource,
+          },
+        });
+      }
 
       const closedSubIssues = await closeDescendantSubIssues({
         workspaceId,
@@ -3572,8 +3623,14 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
     const bodyChanged = after.body !== before?.body;
     const labelsChanged = JSON.stringify(after.labels) !== JSON.stringify(before?.labels);
     const statusChanged = after.statusId !== before?.statusId;
+    const beforeGitHubIssue = before?.githubIssue as Record<string, unknown> | undefined;
+    const stateReason = asString(githubIssue.stateReason ?? githubIssue.state_reason);
+    const beforeStateReason = asString(
+      beforeGitHubIssue?.stateReason ?? beforeGitHubIssue?.state_reason,
+    );
+    const stateReasonChanged = stateReason !== beforeStateReason;
 
-    if (!titleChanged && !bodyChanged && !labelsChanged && !statusChanged) {
+    if (!titleChanged && !bodyChanged && !labelsChanged && !statusChanged && !stateReasonChanged) {
       return;
     }
 
@@ -3606,6 +3663,9 @@ export const autoSyncIssueToGitHubOnIssueWrite = onDocumentWritten(
         ...(titleChanged ? { title: after.title } : {}),
         ...(bodyChanged ? { body: after.body } : {}),
         ...(statusChanged ? { statusId: after.statusId } : {}),
+        ...(statusChanged || stateReasonChanged
+          ? { stateReason: after.statusId === closedStatusId ? stateReason : undefined }
+          : {}),
       });
       if (labelsChanged) {
         await patchGitHubIssueLabelsSafely({
