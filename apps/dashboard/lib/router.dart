@@ -5,6 +5,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/settings/settings_page.dart';
@@ -93,6 +94,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: const AuthenticatedScaffoldRoutePage(
                 title: 'Store Release',
                 child: StoreReleaseBody(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: 'distributions',
+            pageBuilder: (context, state) => _responsivePage(
+              key: state.pageKey,
+              child: const AuthenticatedScaffoldRoutePage(
+                title: 'アプリ配信',
+                child: AppDistributionsBody(),
               ),
             ),
           ),

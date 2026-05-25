@@ -359,6 +359,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
                       const Spacer(),
                       Text(
                         '${buildJob.owner}/${buildJob.repo}',

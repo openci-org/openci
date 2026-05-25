@@ -61,6 +61,9 @@ service cloud.firestore {
                 'selectedBranch',
                 'notificationPreference',
                 'fcmTokens',
+                'udid',
+                'deviceProduct',
+                'deviceOsVersion',
                 'createdAt',
                 'updatedAt'
             ]);
@@ -77,6 +80,9 @@ service cloud.firestore {
                 'selectedBranch',
                 'notificationPreference',
                 'fcmTokens',
+                'udid',
+                'deviceProduct',
+                'deviceOsVersion',
                 'updatedAt'
             ]);
         }
@@ -114,6 +120,9 @@ service cloud.firestore {
                 && isOptionalString(data.photoUrl, 2000)
                 && isOptionalString(data.selectedRepository, 500)
                 && isOptionalString(data.selectedBranch, 500)
+                && (!('udid' in data) || isOptionalString(data.udid, 100))
+                && (!('deviceProduct' in data) || isOptionalString(data.deviceProduct, 100))
+                && (!('deviceOsVersion' in data) || isOptionalString(data.deviceOsVersion, 100))
                 && (!('notificationPreference' in data)
                     || data.notificationPreference in ['all', 'successOnly', 'failureOnly', 'none'])
                 && (!('fcmTokens' in data)
@@ -135,6 +144,12 @@ service cloud.firestore {
                     || isOptionalString(request.resource.data.selectedRepository, 500))
                 && (!changedUserFields().hasAny(['selectedBranch'])
                     || isOptionalString(request.resource.data.selectedBranch, 500))
+                && (!changedUserFields().hasAny(['udid'])
+                    || isOptionalString(request.resource.data.udid, 100))
+                && (!changedUserFields().hasAny(['deviceProduct'])
+                    || isOptionalString(request.resource.data.deviceProduct, 100))
+                && (!changedUserFields().hasAny(['deviceOsVersion'])
+                    || isOptionalString(request.resource.data.deviceOsVersion, 100))
                 && (!changedUserFields().hasAny(['notificationPreference'])
                     || request.resource.data.notificationPreference in ['all', 'successOnly', 'failureOnly', 'none'])
                 && (!changedUserFields().hasAny(['fcmTokens'])
@@ -306,6 +321,38 @@ service cloud.firestore {
         match /ci_cd_fix_requests_v0/{requestId} {
             allow read: if isTeamMember(resource.data.teamId);
             allow write: if false;
+        }
+
+        function isValidUdidRequest(data) {
+            return data.keys().hasOnly(['id', 'userId', 'udid', 'deviceProduct', 'deviceOsVersion', 'teamId', 'buildJobId', 'createdAt', 'status'])
+                && data.keys().hasAll(['id', 'userId', 'udid', 'teamId', 'buildJobId', 'createdAt', 'status'])
+                && data.id is string
+                && data.userId is string
+                && data.udid is string
+                && data.udid.size() > 0
+                && data.udid.size() <= 100
+                && isOptionalString(data.deviceProduct, 100)
+                && isOptionalString(data.deviceOsVersion, 100)
+                && data.teamId is string
+                && data.buildJobId is string
+                && data.createdAt is string
+                && data.createdAt.size() <= 50
+                && data.status in ['pending', 'approved', 'rejected'];
+        }
+
+        match /udid_requests_v0/{requestId} {
+            allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isTeamMember(resource.data.teamId));
+            allow create: if isAuthenticated()
+                && request.resource.data.id == requestId
+                && request.resource.data.userId == request.auth.uid
+                && isTeamMember(request.resource.data.teamId)
+                && isValidUdidRequest(request.resource.data);
+            allow update: if isAuthenticated()
+                && isTeamMember(resource.data.teamId)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                && request.resource.data.status in ['approved', 'rejected'];
+            allow delete: if isAuthenticated()
+                && (resource.data.userId == request.auth.uid || isTeamMember(resource.data.teamId));
         }
 
         match /worker_instances_v0/{workerId} {

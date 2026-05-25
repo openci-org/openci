@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OpenCIUser {
 
- String get id; String get selectedTeamId; NotificationPreference get notificationPreference; List<String> get fcmTokens; String? get selectedRepository; String? get selectedBranch;
+ String get id; String get selectedTeamId; NotificationPreference get notificationPreference; List<String> get fcmTokens; String? get selectedRepository; String? get selectedBranch; String? get udid;
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $OpenCIUserCopyWith<OpenCIUser> get copyWith => _$OpenCIUserCopyWithImpl<OpenCIU
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OpenCIUser&&(identical(other.id, id) || other.id == id)&&(identical(other.selectedTeamId, selectedTeamId) || other.selectedTeamId == selectedTeamId)&&(identical(other.notificationPreference, notificationPreference) || other.notificationPreference == notificationPreference)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedBranch, selectedBranch) || other.selectedBranch == selectedBranch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OpenCIUser&&(identical(other.id, id) || other.id == id)&&(identical(other.selectedTeamId, selectedTeamId) || other.selectedTeamId == selectedTeamId)&&(identical(other.notificationPreference, notificationPreference) || other.notificationPreference == notificationPreference)&&const DeepCollectionEquality().equals(other.fcmTokens, fcmTokens)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedBranch, selectedBranch) || other.selectedBranch == selectedBranch)&&(identical(other.udid, udid) || other.udid == udid));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,selectedTeamId,notificationPreference,const DeepCollectionEquality().hash(fcmTokens),selectedRepository,selectedBranch);
+int get hashCode => Object.hash(runtimeType,id,selectedTeamId,notificationPreference,const DeepCollectionEquality().hash(fcmTokens),selectedRepository,selectedBranch,udid);
 
 @override
 String toString() {
-  return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens, selectedRepository: $selectedRepository, selectedBranch: $selectedBranch)';
+  return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens, selectedRepository: $selectedRepository, selectedBranch: $selectedBranch, udid: $udid)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $OpenCIUserCopyWith<$Res>  {
   factory $OpenCIUserCopyWith(OpenCIUser value, $Res Function(OpenCIUser) _then) = _$OpenCIUserCopyWithImpl;
 @useResult
 $Res call({
- String id, String selectedTeamId, NotificationPreference notificationPreference, List<String> fcmTokens, String? selectedRepository, String? selectedBranch
+ String id, String selectedTeamId, NotificationPreference notificationPreference, List<String> fcmTokens, String? selectedRepository, String? selectedBranch, String? udid
 });
 
 
@@ -65,7 +65,7 @@ class _$OpenCIUserCopyWithImpl<$Res>
 
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? selectedTeamId = null,Object? notificationPreference = null,Object? fcmTokens = null,Object? selectedRepository = freezed,Object? selectedBranch = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? selectedTeamId = null,Object? notificationPreference = null,Object? fcmTokens = null,Object? selectedRepository = freezed,Object? selectedBranch = freezed,Object? udid = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,selectedTeamId: null == selectedTeamId ? _self.selectedTeamId : selectedTeamId // ignore: cast_nullable_to_non_nullable
@@ -73,6 +73,7 @@ as String,notificationPreference: null == notificationPreference ? _self.notific
 as NotificationPreference,fcmTokens: null == fcmTokens ? _self.fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
 as List<String>,selectedRepository: freezed == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
 as String?,selectedBranch: freezed == selectedBranch ? _self.selectedBranch : selectedBranch // ignore: cast_nullable_to_non_nullable
+as String?,udid: freezed == udid ? _self.udid : udid // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens,  String? selectedRepository,  String? selectedBranch)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens,  String? selectedRepository,  String? selectedBranch,  String? udid)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OpenCIUser() when $default != null:
-return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens,_that.selectedRepository,_that.selectedBranch);case _:
+return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens,_that.selectedRepository,_that.selectedBranch,_that.udid);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens,  String? selectedRepository,  String? selectedBranch)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens,  String? selectedRepository,  String? selectedBranch,  String? udid)  $default,) {final _that = this;
 switch (_that) {
 case _OpenCIUser():
-return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens,_that.selectedRepository,_that.selectedBranch);case _:
+return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens,_that.selectedRepository,_that.selectedBranch,_that.udid);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens,  String? selectedRepository,  String? selectedBranch)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String selectedTeamId,  NotificationPreference notificationPreference,  List<String> fcmTokens,  String? selectedRepository,  String? selectedBranch,  String? udid)?  $default,) {final _that = this;
 switch (_that) {
 case _OpenCIUser() when $default != null:
-return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens,_that.selectedRepository,_that.selectedBranch);case _:
+return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that.fcmTokens,_that.selectedRepository,_that.selectedBranch,_that.udid);case _:
   return null;
 
 }
@@ -214,7 +215,7 @@ return $default(_that.id,_that.selectedTeamId,_that.notificationPreference,_that
 @JsonSerializable()
 
 class _OpenCIUser implements OpenCIUser {
-  const _OpenCIUser({required this.id, required this.selectedTeamId, this.notificationPreference = NotificationPreference.all, final  List<String> fcmTokens = const [], this.selectedRepository, this.selectedBranch}): _fcmTokens = fcmTokens;
+  const _OpenCIUser({required this.id, required this.selectedTeamId, this.notificationPreference = NotificationPreference.all, final  List<String> fcmTokens = const [], this.selectedRepository, this.selectedBranch, this.udid}): _fcmTokens = fcmTokens;
   factory _OpenCIUser.fromJson(Map<String, dynamic> json) => _$OpenCIUserFromJson(json);
 
 @override final  String id;
@@ -229,6 +230,7 @@ class _OpenCIUser implements OpenCIUser {
 
 @override final  String? selectedRepository;
 @override final  String? selectedBranch;
+@override final  String? udid;
 
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
@@ -243,16 +245,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OpenCIUser&&(identical(other.id, id) || other.id == id)&&(identical(other.selectedTeamId, selectedTeamId) || other.selectedTeamId == selectedTeamId)&&(identical(other.notificationPreference, notificationPreference) || other.notificationPreference == notificationPreference)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedBranch, selectedBranch) || other.selectedBranch == selectedBranch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OpenCIUser&&(identical(other.id, id) || other.id == id)&&(identical(other.selectedTeamId, selectedTeamId) || other.selectedTeamId == selectedTeamId)&&(identical(other.notificationPreference, notificationPreference) || other.notificationPreference == notificationPreference)&&const DeepCollectionEquality().equals(other._fcmTokens, _fcmTokens)&&(identical(other.selectedRepository, selectedRepository) || other.selectedRepository == selectedRepository)&&(identical(other.selectedBranch, selectedBranch) || other.selectedBranch == selectedBranch)&&(identical(other.udid, udid) || other.udid == udid));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,selectedTeamId,notificationPreference,const DeepCollectionEquality().hash(_fcmTokens),selectedRepository,selectedBranch);
+int get hashCode => Object.hash(runtimeType,id,selectedTeamId,notificationPreference,const DeepCollectionEquality().hash(_fcmTokens),selectedRepository,selectedBranch,udid);
 
 @override
 String toString() {
-  return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens, selectedRepository: $selectedRepository, selectedBranch: $selectedBranch)';
+  return 'OpenCIUser(id: $id, selectedTeamId: $selectedTeamId, notificationPreference: $notificationPreference, fcmTokens: $fcmTokens, selectedRepository: $selectedRepository, selectedBranch: $selectedBranch, udid: $udid)';
 }
 
 
@@ -263,7 +265,7 @@ abstract mixin class _$OpenCIUserCopyWith<$Res> implements $OpenCIUserCopyWith<$
   factory _$OpenCIUserCopyWith(_OpenCIUser value, $Res Function(_OpenCIUser) _then) = __$OpenCIUserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String selectedTeamId, NotificationPreference notificationPreference, List<String> fcmTokens, String? selectedRepository, String? selectedBranch
+ String id, String selectedTeamId, NotificationPreference notificationPreference, List<String> fcmTokens, String? selectedRepository, String? selectedBranch, String? udid
 });
 
 
@@ -280,7 +282,7 @@ class __$OpenCIUserCopyWithImpl<$Res>
 
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? selectedTeamId = null,Object? notificationPreference = null,Object? fcmTokens = null,Object? selectedRepository = freezed,Object? selectedBranch = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? selectedTeamId = null,Object? notificationPreference = null,Object? fcmTokens = null,Object? selectedRepository = freezed,Object? selectedBranch = freezed,Object? udid = freezed,}) {
   return _then(_OpenCIUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,selectedTeamId: null == selectedTeamId ? _self.selectedTeamId : selectedTeamId // ignore: cast_nullable_to_non_nullable
@@ -288,6 +290,7 @@ as String,notificationPreference: null == notificationPreference ? _self.notific
 as NotificationPreference,fcmTokens: null == fcmTokens ? _self._fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
 as List<String>,selectedRepository: freezed == selectedRepository ? _self.selectedRepository : selectedRepository // ignore: cast_nullable_to_non_nullable
 as String?,selectedBranch: freezed == selectedBranch ? _self.selectedBranch : selectedBranch // ignore: cast_nullable_to_non_nullable
+as String?,udid: freezed == udid ? _self.udid : udid // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

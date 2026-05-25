@@ -1,0 +1,6 @@
+# Normalize line endings to Unix-style LF for all text files
+* text=auto eol=lf
+
+# Explicitly ensure compiled build artifacts use LF line endings
+**/dist/**/*.js text eol=lf
+**/dist/**/*.txt text eol=lf

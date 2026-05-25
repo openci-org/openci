@@ -2,6 +2,9 @@ import * as core from "@actions/core";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import * as admin from "firebase-admin";
+import AdmZip from "adm-zip";
+import * as plist from "plist";
 import { exec, execAndCapture } from "./helpers";
 import {
   buildNoPubArg,
@@ -263,6 +266,9 @@ export async function buildAndSignIos(): Promise<void> {
     fs.rmSync(apiKeyDest, { force: true });
     console.log("  ✅ Temporary keychain and API key removed");
     core.endGroup();
+
+    // ── OTA Distribution ────────────────────────────────────
+    await handleOtaDistribution(ipaPath);
 
     console.log("");
     console.log("🎉 iOS Sign & Build complete!");
@@ -551,4 +557,164 @@ function parseVersion(workingDirectory: string): { version: string; buildNumber:
   const raw = match[1];
   const [version, buildNumber] = raw.includes("+") ? raw.split("+") : [raw, "1"];
   return { version, buildNumber };
+}
+
+// ══════════════════════════════════════════════════════════════
+// OTA Distribution
+// ══════════════════════════════════════════════════════════════
+
+async function parsePlistBuffer(buffer: Buffer): Promise<any> {
+  const tempFile = path.join(
+    os.tmpdir(),
+    `temp-${Date.now()}-${Math.random().toString(36).substring(7)}.plist`,
+  );
+  try {
+    fs.writeFileSync(tempFile, buffer);
+    // Convert binary plist to xml1 format (in place conversion)
+    await exec(`plutil -convert xml1 "${tempFile}"`, { silent: true });
+    const convertedContent = fs.readFileSync(tempFile, "utf8");
+    return plist.parse(convertedContent);
+  } catch (error) {
+    console.log(`  (Fallback) plutil failed, trying direct plist parse: ${error}`);
+    return plist.parse(buffer.toString("utf8"));
+  } finally {
+    try {
+      if (fs.existsSync(tempFile)) {
+        fs.unlinkSync(tempFile);
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
+async function handleOtaDistribution(ipaPath: string): Promise<void> {
+  const otaEnabled = core.getInput("ota-distribution") === "true";
+  if (!otaEnabled) {
+    console.log("  Skipping iOS OTA distribution (ota-distribution is not true)");
+    return;
+  }
+
+  const buildJobId = process.env.OPENCI_BUILD_JOB_ID;
+  if (!buildJobId) {
+    console.log("  ⚠️ Skipping OTA distribution: OPENCI_BUILD_JOB_ID is not set.");
+    return;
+  }
+
+  const serviceAccountJson = core.getInput("firebase-service-account");
+  if (!serviceAccountJson) {
+    console.log("  ⚠️ Skipping OTA distribution: firebase-service-account is not set.");
+    return;
+  }
+
+  core.startGroup("iOS OTA Distribution (Firebase Upload & Registration)");
+  console.log(`  Extracting metadata from IPA: ${ipaPath}`);
+
+  let appName = "App";
+  let bundleId = "";
+  let ipaVersion = "1.0.0";
+  let provisionedUdids: string[] = [];
+
+  try {
+    const zip = new AdmZip(ipaPath);
+    const zipEntries = zip.getEntries();
+
+    // 1. Info.plist の探索と抽出
+    const infoPlistEntry = zipEntries.find((entry) =>
+      entry.entryName.match(/^Payload\/[^/]+\.app\/Info\.plist$/),
+    );
+    if (infoPlistEntry) {
+      const plistBuffer = zip.readFile(infoPlistEntry);
+      if (plistBuffer) {
+        const parsed = (await parsePlistBuffer(plistBuffer)) as any;
+        appName = parsed.CFBundleName || parsed.CFBundleDisplayName || appName;
+        bundleId = parsed.CFBundleIdentifier || bundleId;
+        ipaVersion = parsed.CFBundleShortVersionString || parsed.CFBundleVersion || ipaVersion;
+      }
+    }
+
+    // 2. embedded.mobileprovision の探索と抽出
+    const provisionEntry = zipEntries.find((entry) =>
+      entry.entryName.match(/^Payload\/[^/]+\.app\/embedded\.mobileprovision$/),
+    );
+    if (provisionEntry) {
+      const provisionBuffer = zip.readFile(provisionEntry);
+      if (provisionBuffer) {
+        const contentStr = provisionBuffer.toString("latin1");
+        const plistMatch = contentStr.match(/<plist[^>]*>[\s\S]*?<\/plist>/);
+        if (plistMatch) {
+          const parsedProvision = plist.parse(plistMatch[0]) as any;
+          if (
+            parsedProvision.ProvisionedDevices &&
+            Array.isArray(parsedProvision.ProvisionedDevices)
+          ) {
+            provisionedUdids = parsedProvision.ProvisionedDevices;
+            console.log(
+              `  Found ${provisionedUdids.length} provisioned device UDID(s) in profile.`,
+            );
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`  ⚠️ Failed to parse IPA metadata: ${error}`);
+  }
+
+  console.log(`  App Name: ${appName}`);
+  console.log(`  Bundle ID: ${bundleId}`);
+  console.log(`  Version: ${ipaVersion}`);
+
+  // Firebase の初期化
+  const serviceAccount = JSON.parse(serviceAccountJson);
+  const projectId = serviceAccount.project_id;
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  }
+
+  // バケット名を project_id から生成 (デフォルト/新/旧両方のドメインに対応)
+  let bucket;
+  try {
+    bucket = admin.storage().bucket(`${projectId}.firebasestorage.app`);
+    // バケット存在確認（またはダミーアクション）で接続チェック
+    await bucket.exists();
+  } catch {
+    bucket = admin.storage().bucket(`${projectId}.appspot.com`);
+  }
+
+  const destinationPath = `artifacts/buildJobs/${buildJobId}/${buildJobId}.ipa`;
+
+  console.log(`  Uploading IPA to Firebase Storage: gs://${bucket.name}/${destinationPath}`);
+  await bucket.upload(ipaPath, {
+    destination: destinationPath,
+    metadata: {
+      contentType: "application/octet-stream",
+    },
+  });
+
+  const file = bucket.file(destinationPath);
+  await file.makePublic().catch(() => {
+    console.log("  (Optional) makePublic failed. Ensure storage rules allow public access.");
+  });
+
+  const ipaUrl = `https://storage.googleapis.com/${bucket.name}/${destinationPath}`;
+  console.log(`  Uploaded successfully. Public URL: ${ipaUrl}`);
+
+  // Firestore の更新
+  const db = admin.firestore();
+  const buildJobRef = db.collection("build_jobs_v0").doc(buildJobId);
+  console.log(`  Updating Firestore build job document: ${buildJobRef.path}`);
+  await buildJobRef.update({
+    ipaUrl,
+    bundleId,
+    ipaVersion,
+    appName,
+    provisionedUdids,
+    updatedAt: new Date().toISOString(),
+  });
+
+  console.log("  ✅ iOS OTA distribution setup completed successfully.");
+  core.endGroup();
 }

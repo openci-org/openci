@@ -22,6 +22,7 @@ export async function buildEnvVars(input: {
   const envVars: Record<string, string> = {
     LANG: "en_US.UTF-8",
     OPENCI_PROJECT_ID: projectId,
+    OPENCI_BUILD_JOB_ID: buildJobId,
     ...(tagName ? { OPENCI_TAG: tagName, OPENCI_TAG_VERSION: tagVersion ?? tagName } : {}),
     ...(buildJob.teamId ? { OPENCI_TEAM_ID: buildJob.teamId } : {}),
   };

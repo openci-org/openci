@@ -39,11 +39,11 @@ jobs:
         working-directory: apps/landing_page
         run: vp run build
 
-      - name: Sync build output to firebase/public
+      - name: Sync build output to firebase/public_landing
         run: |
-          rm -rf firebase/public
-          mkdir -p firebase/public
-          cp -R apps/landing_page/out/. firebase/public/
+          rm -rf firebase/public_landing
+          mkdir -p firebase/public_landing
+          cp -R apps/landing_page/out/. firebase/public_landing/
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
@@ -59,7 +59,7 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
 
           firebase deploy \
-            --only hosting \
+            --only hosting:openci-b1b91 \
             --project openci-b1b91 \
             --non-interactive
 
@@ -87,6 +87,7 @@ jobs:
           channel_id="${channel_id:-preview-${OPENCI_RUN_NUMBER:-local}}"
 
           deploy_output="$(firebase hosting:channel:deploy "$channel_id" \
+            --only openci-b1b91 \
             --expires 3h \
             --project openci-b1b91 \
             --json \

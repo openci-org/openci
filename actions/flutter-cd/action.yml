@@ -89,6 +89,10 @@ inputs:
     description: "Directory for packaged artifacts, relative to working-directory. (macos)"
     required: false
     default: "build/openci-artifacts"
+  ota-distribution:
+    description: "Enable iOS OTA distribution by uploading IPA to Firebase Storage and registering metadata to Firestore (ios)"
+    required: false
+    default: "false"
   sentry-auth-token:
     description: "Sentry Auth Token for uploading debug symbols and source maps. (ios, macos)"
     required: false

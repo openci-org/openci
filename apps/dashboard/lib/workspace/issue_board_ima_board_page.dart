@@ -1301,6 +1301,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         _selectCompactDestination(CompactBoardDestination.variables);
     void onStoreReleaseTap() =>
         _selectCompactDestination(CompactBoardDestination.storeRelease);
+    void onDistributionsTap() =>
+        _selectCompactDestination(CompactBoardDestination.distributions);
     void onSettingsTap() =>
         _selectCompactDestination(CompactBoardDestination.settings);
 
@@ -1386,6 +1388,7 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                   onWorkflowsTap: onWorkflowsTap,
                   onVariablesTap: onVariablesTap,
                   onStoreReleaseTap: onStoreReleaseTap,
+                  onDistributionsTap: onDistributionsTap,
                   onSettingsTap: onSettingsTap,
                 )
               : null,

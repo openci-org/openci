@@ -1,3 +1,4 @@
+import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
@@ -26,6 +27,7 @@ class CompactDestinationBody extends StatelessWidget {
       CompactBoardDestination.workflows => const WorkflowsBody(),
       CompactBoardDestination.variables => const VariablesBody(),
       CompactBoardDestination.storeRelease => const StoreReleaseBody(),
+      CompactBoardDestination.distributions => const AppDistributionsBody(),
       CompactBoardDestination.settings => SettingsPage(
         onSwitchTeam: onSwitchTeam,
       ),
