@@ -81,9 +81,14 @@ class BoardColumnView extends StatelessWidget {
                 onAddIssue: () => onAddIssue(column.id),
               ),
               const SizedBox(height: 10),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFE2E8F0),
+              ),
               Expanded(
                 child: ListView(
-                  padding: EdgeInsets.zero,
+                  padding: EdgeInsets.only(top: 10),
                   children: [
                     if (visibleIssues.isEmpty) ...[
                       EmptyColumnIssueCreator(
@@ -147,6 +152,11 @@ class BoardColumnView extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFE2E8F0),
               ),
             ],
           ),
@@ -238,6 +248,12 @@ class _CompactBoardColumnViewState extends State<CompactBoardColumnView> {
                 isCompact: true,
                 onAddIssue: () => widget.onAddIssue(widget.column.id),
               ),
+              const SizedBox(height: 10),
+              // const Divider(
+              //   height: 1,
+              //   thickness: 1,
+              //   color: Color(0xFFE2E8F0),
+              // ),
               const SizedBox(height: 10),
               if (visibleIssues.isEmpty) ...[
                 EmptyColumnIssueCreator(
