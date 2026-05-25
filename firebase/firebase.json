@@ -101,6 +101,20 @@
           }
         ]
       }
+    ],
+    "rewrites": [
+      {
+        "source": "/iosManifest",
+        "function": "iosManifest"
+      },
+      {
+        "source": "/enroll-udid",
+        "function": "getMobileconfig"
+      },
+      {
+        "source": "/register-device",
+        "function": "registerDevice"
+      }
     ]
   }
 }

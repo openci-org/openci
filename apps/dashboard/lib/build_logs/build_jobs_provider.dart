@@ -249,6 +249,11 @@ abstract class BuildJob with _$BuildJob {
     String? failureSummaryModel,
     String? failureSummaryStatus,
     int? failureSummaryDurationMs,
+    List<String>? provisionedUdids,
+    String? ipaUrl,
+    String? bundleId,
+    String? ipaVersion,
+    String? appName,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
     @DateTimeConverter() DateTime? completedAt,
@@ -351,6 +356,13 @@ BuildJob _buildJobFromData(String id, Map<String, dynamic> job) {
     failureSummaryModel: job['failureSummaryModel'] as String?,
     failureSummaryStatus: job['failureSummaryStatus'] as String?,
     failureSummaryDurationMs: job['failureSummaryDurationMs'] as int?,
+    provisionedUdids: (job['provisionedUdids'] as List?)
+        ?.whereType<String>()
+        .toList(),
+    ipaUrl: job['ipaUrl'] as String?,
+    bundleId: job['bundleId'] as String?,
+    ipaVersion: job['ipaVersion'] as String?,
+    appName: job['appName'] as String?,
     createdAt: dateTimeFromFirestore(job['createdAt']),
     updatedAt: dateTimeFromFirestore(job['updatedAt']),
     completedAt: job['completedAt'] == null

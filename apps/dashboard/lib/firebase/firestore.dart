@@ -24,6 +24,7 @@ const workflowsCollection = 'workflows_v1';
 const workflowFilesCollection = 'workflow_files_v0';
 const secretsCollection = 'secrets_v0';
 const environmentVariablesCollection = 'environment_variables_v0';
+const udidRequestsCollection = 'udid_requests_v0';
 
 DateTime dateTimeFromFirestore(Object? value) {
   if (value is Timestamp) return value.toDate();

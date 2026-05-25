@@ -21,8 +21,10 @@ export {
   generateFailureSummary,
   generateFailureSummaryOnBuildJobFailure,
 } from "./buildJob/generateFailureSummary.js";
+export { iosManifest } from "./buildJob/iosManifest.js";
 export { retryBuildJob } from "./buildJob/retryBuildJob/retryBuildJob.js";
 export { retryWorkflowRun } from "./buildJob/retryWorkflowRun/retryWorkflowRun.js";
+export { getMobileconfig, registerDevice } from "./device/udidEnrollment.js";
 export { searchGitHubActions } from "./github/actions.js";
 export {
   createWorkflowFile,

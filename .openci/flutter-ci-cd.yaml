@@ -79,7 +79,7 @@ jobs:
           rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
           echo "Stable iOS build workspace: $stable_workspace"
 
-      - name: Build iOS IPA for Firebase App Distribution
+      - name: Build iOS IPA for Firebase App Distribution & OpenCI OTA
         if: github.event_name == 'pull_request'
         uses: ./actions/flutter-cd
         id: ios-build-fad
@@ -97,6 +97,8 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          ota-distribution: "true"
+          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
       - name: Upload iOS IPA to Firebase App Distribution
         if: github.event_name == 'pull_request'

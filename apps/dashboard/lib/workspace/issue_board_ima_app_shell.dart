@@ -28,6 +28,7 @@ enum CompactBoardDestination {
   workflows,
   variables,
   storeRelease,
+  distributions,
   settings,
 }
 
@@ -38,6 +39,7 @@ const boardNavigationDestinations = [
   CompactBoardDestination.workflows,
   CompactBoardDestination.variables,
   CompactBoardDestination.storeRelease,
+  CompactBoardDestination.distributions,
   CompactBoardDestination.settings,
 ];
 
@@ -49,6 +51,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.workflows => 'CI/CD設定',
     CompactBoardDestination.variables => 'シークレット',
     CompactBoardDestination.storeRelease => 'ストアリリース',
+    CompactBoardDestination.distributions => 'アプリ配信',
     CompactBoardDestination.settings => '設定',
   };
 
@@ -59,6 +62,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.workflows => Icons.schema_rounded,
     CompactBoardDestination.variables => Icons.key_rounded,
     CompactBoardDestination.storeRelease => Icons.rocket_launch_outlined,
+    CompactBoardDestination.distributions => Icons.install_mobile_rounded,
     CompactBoardDestination.settings => Icons.settings_outlined,
   };
 
@@ -69,6 +73,7 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
     CompactBoardDestination.workflows => Icons.schema_rounded,
     CompactBoardDestination.variables => Icons.key_rounded,
     CompactBoardDestination.storeRelease => Icons.rocket_launch_rounded,
+    CompactBoardDestination.distributions => Icons.install_mobile_rounded,
     CompactBoardDestination.settings => Icons.settings_rounded,
   };
 }

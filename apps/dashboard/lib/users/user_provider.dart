@@ -28,6 +28,7 @@ abstract class OpenCIUser with _$OpenCIUser {
     @Default([]) List<String> fcmTokens,
     String? selectedRepository,
     String? selectedBranch,
+    String? udid,
   }) = _OpenCIUser;
   factory OpenCIUser.fromJson(Map<String, Object?> json) =>
       _$OpenCIUserFromJson(json);
@@ -179,5 +180,6 @@ OpenCIUser _openCIUserFromSnapshot(
       _ => null,
     },
     selectedBranch: data['selectedBranch'] as String?,
+    udid: data['udid'] as String?,
   );
 }

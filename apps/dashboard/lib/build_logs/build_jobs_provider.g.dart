@@ -31,6 +31,13 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   failureSummaryModel: json['failureSummaryModel'] as String?,
   failureSummaryStatus: json['failureSummaryStatus'] as String?,
   failureSummaryDurationMs: (json['failureSummaryDurationMs'] as num?)?.toInt(),
+  provisionedUdids: (json['provisionedUdids'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  ipaUrl: json['ipaUrl'] as String?,
+  bundleId: json['bundleId'] as String?,
+  ipaVersion: json['ipaVersion'] as String?,
+  appName: json['appName'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
   completedAt: _$JsonConverterFromJson<Object, DateTime>(
@@ -64,6 +71,11 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'failureSummaryModel': instance.failureSummaryModel,
   'failureSummaryStatus': instance.failureSummaryStatus,
   'failureSummaryDurationMs': instance.failureSummaryDurationMs,
+  'provisionedUdids': instance.provisionedUdids,
+  'ipaUrl': instance.ipaUrl,
+  'bundleId': instance.bundleId,
+  'ipaVersion': instance.ipaVersion,
+  'appName': instance.appName,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
   'completedAt': _$JsonConverterToJson<Object, DateTime>(
@@ -124,7 +136,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'1a7f9c827fb11b721c7a96e4d1622e1a3e9f7501';
+String _$buildJobsHash() => r'2fd36cfc4f0c8845693b36da6ce1b055020e2acf';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
