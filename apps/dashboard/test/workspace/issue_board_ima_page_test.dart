@@ -22,6 +22,102 @@ void main() {
   });
 
   group('IssuePullRequestDiff', () {
+    testWidgets('does not display issue labels on workspace cards', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 320,
+                child: IssueCard(
+                  issue: Issue(
+                    id: 'issue-1992',
+                    displayId: 'IMA-1992',
+                    repo: 'openci-org/openci',
+                    title: 'Workspaceにラベル表示不要',
+                    labels: ['Feature', 'mobile'],
+                    comments: 0,
+                    priority: Priority.medium,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Workspaceにラベル表示不要'), findsOneWidget);
+      expect(find.text('Feature'), findsNothing);
+      expect(find.text('mobile'), findsNothing);
+    });
+
+    testWidgets('renders the issue id chip with matching text styling', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 320,
+                child: IssueCard(
+                  issue: Issue(
+                    id: 'issue-407',
+                    displayId: 'IMA-407',
+                    repo: 'openci-org/openci',
+                    title: 'Chipの見た目を揃える',
+                    labels: [],
+                    comments: 0,
+                    priority: Priority.medium,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('IMA-407'), findsOneWidget);
+      expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+
+      final issueIdText = tester.widget<Text>(find.text('IMA-407'));
+      check(issueIdText.style?.color).equals(const Color(0xFF64748B));
+      check(issueIdText.style?.fontWeight).equals(FontWeight.w800);
+    });
+
+    testWidgets('uses the same neutral chip styling in review cards', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 320,
+                child: ReviewGroupIssueCard(
+                  issue: Issue(
+                    id: 'issue-407',
+                    displayId: 'IMA-407',
+                    repo: 'openci-org/openci',
+                    title: 'レビュー側のChipも揃える',
+                    labels: [],
+                    comments: 0,
+                    priority: Priority.medium,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final issueIdText = tester.widget<Text>(find.text('IMA-407'));
+      check(issueIdText.style?.color).equals(const Color(0xFF64748B));
+      check(issueIdText.style?.fontWeight).equals(FontWeight.w900);
+    });
+
     testWidgets(
       'hides the generated document id while ticket number is pending',
       (
