@@ -3,21 +3,26 @@ import 'package:dashboard/workspace/issue_board_ima_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../finder_checks.dart';
+
 void main() {
   group('shouldSpinCardBuildStatus', () {
     test('does not spin when any current CI job failed', () {
-      check(shouldSpinCardBuildStatus(failed: 1, active: 1, queuedOnly: false))
-          .isFalse();
+      check(
+        shouldSpinCardBuildStatus(failed: 1, active: 1, queuedOnly: false),
+      ).isFalse();
     });
 
     test('spins while non-queued jobs are still running', () {
-      check(shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: false))
-          .isTrue();
+      check(
+        shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: false),
+      ).isTrue();
     });
 
     test('does not spin for queued-only jobs', () {
-      check(shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: true))
-          .isFalse();
+      check(
+        shouldSpinCardBuildStatus(failed: 0, active: 1, queuedOnly: true),
+      ).isFalse();
     });
   });
 
@@ -48,9 +53,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Workspaceにラベル表示不要'), findsOneWidget);
-      expect(find.text('Feature'), findsNothing);
-      expect(find.text('mobile'), findsNothing);
+      check(find.text('Workspaceにラベル表示不要')).findsOneWidget();
+      check(find.text('Feature')).findsNothing();
+      check(find.text('mobile')).findsNothing();
     });
 
     testWidgets('renders the issue id chip with matching text styling', (
@@ -79,8 +84,8 @@ void main() {
         ),
       );
 
-      expect(find.text('IMA-407'), findsOneWidget);
-      expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+      check(find.text('IMA-407')).findsOneWidget();
+      check(find.byIcon(Icons.copy_rounded)).findsOneWidget();
 
       final issueIdText = tester.widget<Text>(find.text('IMA-407'));
       check(issueIdText.style?.color).equals(const Color(0xFF64748B));
@@ -145,9 +150,9 @@ void main() {
           ),
         );
 
-        expect(find.text('pending-document-id'), findsNothing);
-        expect(find.text('作成中'), findsOneWidget);
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        check(find.text('pending-document-id')).findsNothing();
+        check(find.text('作成中')).findsOneWidget();
+        check(find.byType(CircularProgressIndicator)).findsOneWidget();
       },
     );
 
@@ -218,9 +223,12 @@ void main() {
       check(diff.ci.allPassed).isTrue();
       check(diff.ci.passed).equals(4);
       check(diff.comments.single.author).equals('coderabbitai');
-      check(diff.comments.single.kind).equals(IssuePullRequestCommentKind.review);
-      check(diff.comments.single.path)
-          .equals('lib/workspace/issue_board_ima_issue_editor.dart');
+      check(
+        diff.comments.single.kind,
+      ).equals(IssuePullRequestCommentKind.review);
+      check(
+        diff.comments.single.path,
+      ).equals('lib/workspace/issue_board_ima_issue_editor.dart');
       check(diff.comments.single.line).equals(42);
     });
 
@@ -261,11 +269,15 @@ void main() {
     });
 
     test('detects syntax language from diff file names', () {
-      check(diffLanguageForFilename('lib/workspace/issue_board_ima_page.dart'))
-          .equals('dart');
-      check(diffLanguageForFilename('.openci/functions-ci.yaml')).equals('yaml');
-      check(diffLanguageForFilename('firebase/functions/src/index.ts'))
-          .equals('typescript');
+      check(
+        diffLanguageForFilename('lib/workspace/issue_board_ima_page.dart'),
+      ).equals('dart');
+      check(
+        diffLanguageForFilename('.openci/functions-ci.yaml'),
+      ).equals('yaml');
+      check(
+        diffLanguageForFilename('firebase/functions/src/index.ts'),
+      ).equals('typescript');
       check(diffLanguageForFilename('Dockerfile')).equals('dockerfile');
     });
 
@@ -333,7 +345,7 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 1));
       await tester.pump();
-      expect(find.text('再読み込み'), findsOneWidget);
+      check(find.text('再読み込み')).findsOneWidget();
 
       await tester.tap(find.text('再読み込み'));
       await tester.pump(const Duration(milliseconds: 1));
@@ -400,8 +412,8 @@ void main() {
 
       await tester.pump();
 
-      expect(find.text('Conflictがあります'), findsOneWidget);
-      expect(find.textContaining('GitHubでconflictを解消'), findsOneWidget);
+      check(find.text('Conflictがあります')).findsOneWidget();
+      check(find.textContaining('GitHubでconflictを解消')).findsOneWidget();
       check(tester.takeException()).isNull();
     });
 
@@ -462,11 +474,12 @@ void main() {
 
       await tester.pump();
 
-      expect(find.text('Conflictがあります'), findsOneWidget);
-      expect(find.text('Conflictあり'), findsOneWidget);
-      expect(find.text('CI pass・マージ'), findsNothing);
-      check(tester.widget<FilledButton>(find.byType(FilledButton).last).onPressed)
-          .isNull();
+      check(find.text('Conflictがあります')).findsOneWidget();
+      check(find.text('Conflictあり')).findsOneWidget();
+      check(find.text('CI pass・マージ')).findsNothing();
+      check(
+        tester.widget<FilledButton>(find.byType(FilledButton).last).onPressed,
+      ).isNull();
       check(tester.takeException()).isNull();
     });
 
@@ -519,15 +532,15 @@ void main() {
       await tester.tap(detailsButton);
       await tester.pump();
 
-      expect(find.byType(PullRequestDiffView), findsOneWidget);
-      expect(find.byType(PullRequestDiffSheet), findsNothing);
-      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      check(find.byType(PullRequestDiffView)).findsOneWidget();
+      check(find.byType(PullRequestDiffSheet)).findsNothing();
+      check(find.byIcon(Icons.arrow_back_rounded)).findsOneWidget();
 
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await tester.pump();
 
-      expect(find.byType(PullRequestDiffView), findsNothing);
-      expect(detailsButton, findsOneWidget);
+      check(find.byType(PullRequestDiffView)).findsNothing();
+      check(detailsButton).findsOneWidget();
     });
 
     testWidgets('closes the issue editor when merge is confirmed', (
@@ -586,18 +599,18 @@ void main() {
 
       await tester.tap(find.text('open editor'));
       await tester.pumpAndSettle();
-      expect(find.byType(AddIssueDialog), findsOneWidget);
+      check(find.byType(AddIssueDialog)).findsOneWidget();
 
       final mergeButton = find.widgetWithText(OutlinedButton, 'マージ');
       await tester.ensureVisible(mergeButton);
       await tester.tap(mergeButton);
       await tester.pumpAndSettle();
-      expect(find.text('PR #1956をマージしますか？'), findsOneWidget);
+      check(find.text('PR #1956をマージしますか？')).findsOneWidget();
 
       await tester.tap(find.widgetWithText(FilledButton, 'マージする'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AddIssueDialog), findsNothing);
+      check(find.byType(AddIssueDialog)).findsNothing();
       check(dialogResult).isA<MergeIssuePullRequestDialogResult>();
       final mergeResult = dialogResult as MergeIssuePullRequestDialogResult;
       check(mergeResult.issueId).equals('issue-1');

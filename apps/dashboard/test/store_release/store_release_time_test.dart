@@ -5,25 +5,30 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('formatAscTimestampJst', () {
     test('formats UTC timestamps as JST', () {
-      check(formatAscTimestampJst('2026-05-15T12:04:30Z'))
-          .equals('5/15 21:04 JST');
+      check(
+        formatAscTimestampJst('2026-05-15T12:04:30Z'),
+      ).equals('5/15 21:04 JST');
     });
 
     test('formats offset timestamps as JST', () {
-      check(formatAscTimestampJst('2026-05-15T04:04:30-07:00'))
-          .equals('5/15 20:04 JST');
+      check(
+        formatAscTimestampJst('2026-05-15T04:04:30-07:00'),
+      ).equals('5/15 20:04 JST');
     });
 
     test('can include the year for submitted build details', () {
-      check(formatAscTimestampJst(
-        '2026-05-15T12:04:30Z',
-        includeYear: true,
-      )).equals('2026/5/15 21:04 JST');
+      check(
+        formatAscTimestampJst(
+          '2026-05-15T12:04:30Z',
+          includeYear: true,
+        ),
+      ).equals('2026/5/15 21:04 JST');
     });
 
     test('treats timestamps without explicit timezone as UTC', () {
-      check(formatAscTimestampJst('2026-05-15T12:04:30'))
-          .equals('5/15 21:04 JST');
+      check(
+        formatAscTimestampJst('2026-05-15T12:04:30'),
+      ).equals('5/15 21:04 JST');
     });
 
     test('returns null for missing or invalid timestamps', () {
