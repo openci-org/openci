@@ -259,12 +259,12 @@ class _DeviceEnrollmentHeader extends StatelessWidget {
                 ),
               ),
               onPressed: () async {
-                final origin = kIsWeb ? Uri.base.origin : 'https://openci.org';
+                final origin = kIsWeb ? Uri.base.origin : 'https://dashboard.openci.org';
                 final enrollUrl = '$origin/enroll-udid?userId=${user.id}';
                 final uri = Uri.parse(enrollUrl);
-                if (await canLaunchUrl(uri)) {
+                try {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
+                } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('登録ページを開けませんでした。')),
@@ -884,7 +884,7 @@ class _IosDistributionQrDialog extends HookWidget {
     final colors = AppColors.of(context);
     final isCopied = useState(false);
 
-    final origin = kIsWeb ? Uri.base.origin : 'https://openci.org';
+    final origin = kIsWeb ? Uri.base.origin : 'https://dashboard.openci.org';
     final manifestUrl = '$origin/iosManifest?buildJobId=${buildJob.id}';
     final installUrl =
         'itms-services://?action=download-manifest&url=${Uri.encodeComponent(manifestUrl)}';
@@ -1012,9 +1012,9 @@ class _IosDistributionQrDialog extends HookWidget {
                 ),
                 onPressed: () async {
                   final uri = Uri.parse(installUrl);
-                  if (await canLaunchUrl(uri)) {
+                  try {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
+                  } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('リンクを開けませんでした。')),

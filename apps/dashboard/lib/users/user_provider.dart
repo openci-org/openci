@@ -39,7 +39,7 @@ class User extends _$User {
   @override
   Stream<OpenCIUser> build() async* {
     yield await fetchUser().timeout(
-      const Duration(seconds: 8),
+      const Duration(seconds: 20),
       onTimeout: () => throw TimeoutException(
         'Timed out while loading user from Firestore',
       ),
@@ -58,7 +58,9 @@ class User extends _$User {
         .collection(usersCollection)
         .doc(currentUser.uid)
         .get();
-    if (!snapshot.exists) {
+    final data = snapshot.data();
+    final selectedTeamId = data?['selectedTeamId'] as String?;
+    if (!snapshot.exists || selectedTeamId == null || selectedTeamId.isEmpty) {
       await _ensureDefaultUserProfile();
       snapshot = await firestore
           .collection(usersCollection)

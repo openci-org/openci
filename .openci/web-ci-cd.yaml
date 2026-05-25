@@ -39,11 +39,11 @@ jobs:
         working-directory: apps/landing_page
         run: vp run build
 
-      - name: Sync build output to firebase/public
+      - name: Sync build output to firebase/public_landing
         run: |
-          rm -rf firebase/public
-          mkdir -p firebase/public
-          cp -R apps/landing_page/out/. firebase/public/
+          rm -rf firebase/public_landing
+          mkdir -p firebase/public_landing
+          cp -R apps/landing_page/out/. firebase/public_landing/
 
       - name: Deploy to Firebase Hosting (production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'

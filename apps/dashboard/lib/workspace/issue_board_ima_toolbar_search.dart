@@ -321,6 +321,7 @@ class CompactBoardDrawer extends StatelessWidget {
     required this.onWorkflowsTap,
     required this.onVariablesTap,
     required this.onStoreReleaseTap,
+    required this.onDistributionsTap,
     required this.onSettingsTap,
   });
 
@@ -340,6 +341,7 @@ class CompactBoardDrawer extends StatelessWidget {
   final VoidCallback onWorkflowsTap;
   final VoidCallback onVariablesTap;
   final VoidCallback onStoreReleaseTap;
+  final VoidCallback onDistributionsTap;
   final VoidCallback onSettingsTap;
 
   @override
@@ -432,6 +434,13 @@ class CompactBoardDrawer extends StatelessWidget {
               selected:
                   selectedDestination == CompactBoardDestination.storeRelease,
               onTap: () => runAfterClose(onStoreReleaseTap),
+            ),
+            _CompactDrawerTile(
+              icon: Icons.install_mobile_rounded,
+              label: 'アプリ配信',
+              selected:
+                  selectedDestination == CompactBoardDestination.distributions,
+              onTap: () => runAfterClose(onDistributionsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.settings_outlined,
