@@ -1,7 +1,10 @@
+import 'package:checks/checks.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../finder_checks.dart';
 
 void main() {
   Future<void> pumpModalHost(WidgetTester tester, Size size) async {
@@ -49,9 +52,9 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(Dialog), findsOneWidget);
-    expect(find.byType(BottomSheet), findsNothing);
-    expect(find.text('modal content'), findsOneWidget);
+    check(find.byType(Dialog)).findsOneWidget();
+    check(find.byType(BottomSheet)).findsNothing();
+    check(find.text('modal content')).findsOneWidget();
   });
 
   testWidgets('uses a bottom sheet on mobile width', (tester) async {
@@ -60,8 +63,8 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(Dialog), findsNothing);
-    expect(find.byType(BottomSheet), findsOneWidget);
-    expect(find.text('modal content'), findsOneWidget);
+    check(find.byType(Dialog)).findsNothing();
+    check(find.byType(BottomSheet)).findsOneWidget();
+    check(find.text('modal content')).findsOneWidget();
   });
 }
