@@ -200737,6 +200737,30 @@ function parseVersion(workingDirectory) {
 // ══════════════════════════════════════════════════════════════
 // OTA Distribution
 // ══════════════════════════════════════════════════════════════
+async function parsePlistBuffer(buffer) {
+    const tempFile = path.join(os.tmpdir(), `temp-${Date.now()}-${Math.random().toString(36).substring(7)}.plist`);
+    try {
+        fs.writeFileSync(tempFile, buffer);
+        // Convert binary plist to xml1 format (in place conversion)
+        await (0, helpers_1.exec)(`plutil -convert xml1 "${tempFile}"`, { silent: true });
+        const convertedContent = fs.readFileSync(tempFile, "utf8");
+        return plist.parse(convertedContent);
+    }
+    catch (error) {
+        console.log(`  (Fallback) plutil failed, trying direct plist parse: ${error}`);
+        return plist.parse(buffer.toString("utf8"));
+    }
+    finally {
+        try {
+            if (fs.existsSync(tempFile)) {
+                fs.unlinkSync(tempFile);
+            }
+        }
+        catch {
+            // ignore
+        }
+    }
+}
 async function handleOtaDistribution(ipaPath) {
     const otaEnabled = core.getInput("ota-distribution") === "true";
     if (!otaEnabled) {
@@ -200767,7 +200791,7 @@ async function handleOtaDistribution(ipaPath) {
         if (infoPlistEntry) {
             const plistBuffer = zip.readFile(infoPlistEntry);
             if (plistBuffer) {
-                const parsed = plist.parse(plistBuffer.toString("utf8"));
+                const parsed = (await parsePlistBuffer(plistBuffer));
                 appName = parsed.CFBundleName || parsed.CFBundleDisplayName || appName;
                 bundleId = parsed.CFBundleIdentifier || bundleId;
                 ipaVersion = parsed.CFBundleShortVersionString || parsed.CFBundleVersion || ipaVersion;
