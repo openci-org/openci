@@ -259,7 +259,9 @@ class _DeviceEnrollmentHeader extends StatelessWidget {
                 ),
               ),
               onPressed: () async {
-                final origin = kIsWeb ? Uri.base.origin : 'https://dashboard.openci.org';
+                final origin = kIsWeb
+                    ? Uri.base.origin
+                    : 'https://dashboard.openci.org';
                 final enrollUrl = '$origin/enroll-udid?userId=${user.id}';
                 final uri = Uri.parse(enrollUrl);
                 try {
@@ -855,11 +857,20 @@ class QrCodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final QrImage qrImage;
-    try {
-      final qrCode = QrCode(6, QrErrorCorrectLevel.M)..addData(data);
-      qrImage = QrImage(qrCode);
-    } catch (e) {
+    QrImage? qrImage;
+    for (var version = 1; version <= 40; version++) {
+      try {
+        final qrCode = QrCode(version, QrErrorCorrectLevel.M)..addData(data);
+        qrImage = QrImage(qrCode);
+        break;
+      } catch (_) {
+        if (version == 40) {
+          // If we reach 40 and still fail, qrImage remains null
+        }
+      }
+    }
+
+    if (qrImage == null) {
       return SizedBox(
         width: size,
         height: size,
@@ -888,6 +899,7 @@ class _IosDistributionQrDialog extends HookWidget {
     final manifestUrl = '$origin/iosManifest?buildJobId=${buildJob.id}';
     final installUrl =
         'itms-services://?action=download-manifest&url=${Uri.encodeComponent(manifestUrl)}';
+    final installPageUrl = '$origin/install-ota?buildJobId=${buildJob.id}';
 
     return AlertDialog(
       backgroundColor: colors.surfaceHover,
@@ -935,97 +947,151 @@ class _IosDistributionQrDialog extends HookWidget {
                   border: Border.all(color: colors.border),
                 ),
                 child: QrCodeWidget(
-                  data: installUrl,
+                  data: installPageUrl,
                   size: 160,
                   color: Colors.black,
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              'マニフェストURL:',
-              style: TextStyle(
-                color: colors.textTertiary,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+            if (defaultTargetPlatform != TargetPlatform.iOS) ...[
+              const SizedBox(height: 14),
+              Text(
+                'インストール用URL:',
+                style: TextStyle(
+                  color: colors.textTertiary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.scaffold,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Text(
-                      manifestUrl,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 10,
-                        color: colors.textSecondary,
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.scaffold,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Text(
+                        installPageUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: colors.textSecondary,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(
-                    isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
-                    size: 16,
-                    color: isCopied.value
-                        ? colors.success
-                        : colors.textSecondary,
+                  const SizedBox(width: 6),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
+                      size: 16,
+                      color: isCopied.value
+                          ? colors.success
+                          : colors.textSecondary,
+                    ),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: installPageUrl));
+                      isCopied.value = true;
+                      Future.delayed(const Duration(seconds: 2), () {
+                        isCopied.value = false;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.textPrimary,
+                    side: BorderSide(color: colors.border),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: installUrl));
+                    Clipboard.setData(ClipboardData(text: installPageUrl));
                     isCopied.value = true;
                     Future.delayed(const Duration(seconds: 2), () {
                       isCopied.value = false;
                     });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('URLをコピーしました。Safariに貼り付けて開いてください。'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
                   },
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            // Direct install button for mobile testing
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.success,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  icon: Icon(
+                    isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
+                    size: 14,
+                    color: isCopied.value ? colors.success : colors.textPrimary,
+                  ),
+                  label: Text(
+                    isCopied.value ? 'コピー完了！Safariに貼り付け' : 'Safari用にURLをコピー',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                onPressed: () async {
-                  final uri = Uri.parse(installUrl);
-                  try {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('リンクを開けませんでした。')),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.download_rounded, size: 16),
-                label: const Text('このデバイスに直接インストール'),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                '※ BraveやChromeなどのサードパーティ製ブラウザや、LINE/Slack等のアプリ内ブラウザをお使いの場合は、上のボタンでURLをコピーしてSafariに貼り付けて開いてください。',
+                style: TextStyle(
+                  color: colors.textTertiary,
+                  fontSize: 10,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Direct install button for mobile testing
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final uri = Uri.parse(installUrl);
+                    try {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('リンクを開けませんでした。')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('このデバイスに直接インストール'),
+                ),
+              ),
+            ],
           ],
         ),
       ),

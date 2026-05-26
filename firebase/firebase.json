@@ -116,6 +116,10 @@
           "function": "iosManifest"
         },
         {
+          "source": "/install-ota",
+          "function": "installOta"
+        },
+        {
           "source": "/enroll-udid",
           "function": "getMobileconfig"
         },
