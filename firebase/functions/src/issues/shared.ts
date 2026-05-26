@@ -4,7 +4,7 @@ import { HttpsError, type CallableRequest } from "firebase-functions/v2/https";
 export const closedStatusId = "done";
 export const reviewStatusId = "review";
 export const inProgressStatusIds = new Set(["doing", "review"]);
-export const issueWeightModel = "claude-opus-4-6";
+export const issueWeightModel = "gemini-3.5-flash";
 export const branchLogPathPrefix = ".openci/branch-log/";
 export function requireNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {

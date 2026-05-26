@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
+    "@google/genai": "^2.6.0",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/graphql": "^9.0.3",
     "@octokit/request": "^10.0.8",
@@ -31,7 +32,6 @@
     "@octokit/webhooks": "^14.2.0",
     "firebase-admin": "^13.8.0",
     "firebase-functions": "^7.2.5",
-    "openai": "^6.37.0",
     "yaml": "^2.8.3"
   },
   "devDependencies": {

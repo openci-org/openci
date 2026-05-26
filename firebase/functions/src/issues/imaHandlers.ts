@@ -1,4 +1,3 @@
-import { findIssueKeyFromBranchName } from "../dashboard/findIssueKeyFromBranchName.js";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -11,6 +10,8 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
+import { generateGeminiContent } from "../ai/gemini.js";
+import { findIssueKeyFromBranchName } from "../dashboard/findIssueKeyFromBranchName.js";
 import { firestoreCollectionPaths, getTeamById } from "../firestoreData.js";
 import {
   getInstallationToken,
@@ -110,7 +111,7 @@ if (getApps().length === 0) {
 }
 
 const db = getFirestore();
-const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const githubAppSecrets = [githubAppId, githubPrivateKey];
 
 async function verifyWorkspaceMember(
@@ -1521,36 +1522,17 @@ async function collectResolutionStats(workspaceId: string): Promise<ResolutionSt
   };
 }
 
-async function createAnthropicMessage(system: string, content: string): Promise<string> {
-  const apiKey = anthropicApiKey.value();
+async function createGeminiMessage(system: string, content: string): Promise<string> {
+  const apiKey = geminiApiKey.value();
   if (apiKey.length === 0) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
+    throw new Error("GEMINI_API_KEY is not configured");
   }
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: issueWeightModel,
-      max_tokens: 700,
-      system,
-      messages: [{ role: "user", content }],
-    }),
+  return generateGeminiContent({
+    apiKey,
+    prompt: content,
+    systemInstruction: system,
+    model: issueWeightModel,
   });
-  const data = (await response.json()) as {
-    content?: Array<{ type?: string; text?: string }>;
-    error?: { message?: string };
-  };
-  if (!response.ok) {
-    throw new Error(data.error?.message ?? `Anthropic API error: ${response.status}`);
-  }
-  return (data.content ?? [])
-    .filter((block) => block.type === "text" && typeof block.text === "string")
-    .map((block) => block.text)
-    .join("");
 }
 
 async function estimateIssueWeightWithLlm(
@@ -1574,7 +1556,7 @@ async function estimateIssueWeightWithLlm(
     null,
     2,
   );
-  return parseWeightEstimateResponse(await createAnthropicMessage(system, content));
+  return parseWeightEstimateResponse(await createGeminiMessage(system, content));
 }
 
 async function estimateAndSaveIssueWeight({
@@ -3275,7 +3257,7 @@ export const syncGitHubIssues = onCall<WorkspaceRequest, Promise<SyncGitHubIssue
 export const estimateIssueWeight = onCall<
   EstimateIssueWeightRequest,
   Promise<{ issueId: string; weightEstimate: IssueWeightEstimateResponse }>
->({ timeoutSeconds: 120, secrets: [anthropicApiKey] }, async (request) => {
+>({ timeoutSeconds: 120, secrets: [geminiApiKey] }, async (request) => {
   const workspaceId = requireNonEmptyString(request.data?.workspaceId, "workspaceId");
   const issueId = requireNonEmptyString(request.data?.issueId, "issueId");
   const uid = await verifyWorkspaceMember(request.auth, workspaceId);
@@ -3545,7 +3527,7 @@ export const autoEstimateIssueWeightOnIssueWrite = onDocumentWritten(
   {
     document: "workspaces/{workspaceId}/issues/{issueId}",
     timeoutSeconds: 120,
-    secrets: [anthropicApiKey],
+    secrets: [geminiApiKey],
   },
   async (event) => {
     const after = event.data?.after?.data();
