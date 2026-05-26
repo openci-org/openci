@@ -79,10 +79,10 @@ jobs:
           rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
           echo "Stable iOS build workspace: $stable_workspace"
 
-      - name: Build iOS IPA for Firebase App Distribution & OpenCI OTA
+      - name: Build iOS IPA for OpenCI OTA
         if: github.event_name == 'pull_request'
         uses: ./actions/flutter-cd
-        id: ios-build-fad
+        id: ios-build-ota
         with:
           platform: "ios"
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
@@ -99,40 +99,6 @@ jobs:
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           ota-distribution: "true"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-
-      - name: Upload iOS IPA to Firebase App Distribution
-        if: github.event_name == 'pull_request'
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
-          FIREBASE_APP_DISTRIBUTION_GROUPS: ${{ secrets.FIREBASE_APP_DISTRIBUTION_GROUPS }}
-          RELEASE_EVENT_NAME: ${{ github.event_name }}
-          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
-          RELEASE_HEAD_REF: ${{ github.head_ref }}
-          RELEASE_BASE_REF: ${{ github.base_ref }}
-          RELEASE_SHA: ${{ github.sha }}
-        run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-service-account.json
-          release_notes_file="$(mktemp)"
-          trap 'rm -f /tmp/firebase-service-account.json "$release_notes_file"' EXIT
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-service-account.json
-
-          {
-            echo "OpenCI build"
-            echo "Trigger: ${RELEASE_EVENT_NAME:-unknown}"
-
-            echo "Pull Request: #${RELEASE_PR_NUMBER:-unknown}"
-            [ -n "${RELEASE_HEAD_REF:-}" ] && echo "Head branch: $RELEASE_HEAD_REF"
-            [ -n "${RELEASE_BASE_REF:-}" ] && echo "Base branch: $RELEASE_BASE_REF"
-
-            [ -n "${RELEASE_SHA:-}" ] && echo "Commit: $RELEASE_SHA"
-          } > "$release_notes_file"
-
-          firebase appdistribution:distribute "${{ steps.ios-build-fad.outputs.ipa-path }}" \
-            --app "$FIREBASE_IOS_APP_ID" \
-            --groups "$FIREBASE_APP_DISTRIBUTION_GROUPS" \
-            --release-notes-file "$release_notes_file" \
-            --non-interactive
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
