@@ -1,8 +1,8 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { getFirestore } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import {
   BuildJobStatus,
-  cancelMatrixSiblingBuildJobs,
   firestoreCollectionPaths,
   getBuildJob,
   getTeamById,
@@ -13,7 +13,6 @@ import {
   updateBuildJobStatus,
   updateUserFcmTokens,
 } from "../firestoreData.js";
-import { getMessaging } from "firebase-admin/messaging";
 import { defaultGitHubBaseUrl, getConfiguredGitHubApiBaseUrl } from "../github/githubUrls.js";
 
 type BuildJobStatusValue = (typeof BuildJobStatus)[keyof typeof BuildJobStatus];
@@ -59,7 +58,7 @@ export interface BuildJob {
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
-const failureSummaryModel = "claude-opus-4-6";
+export const failureSummaryModel = "claude-opus-4-6";
 
 function asBuildJob(value: unknown): BuildJob | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -357,9 +356,9 @@ async function accessProjectSecret(
   return Buffer.from(data).toString("utf8");
 }
 
-async function createAnthropicMessage(
+export async function createAnthropicMessage(
   projectId: string | undefined,
-  logLines: string,
+  prompt: string,
 ): Promise<string> {
   const apiKey = await accessProjectSecret(projectId, "ANTHROPIC_API_KEY");
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -375,16 +374,7 @@ async function createAnthropicMessage(
       messages: [
         {
           role: "user",
-          content: `あなたはCI/CDの専門家です。以下のビルドログを分析し、ビルドが失敗した原因を簡潔に要約してください。
-
-判断ルール:
-- 最後に失敗したステップと、その直前の明示的なエラー行を最優先してください。
-- "error:", "❌ Failure", "exit status", "Job failed", "Formatting issues found" などを強い根拠として扱ってください。
-- setup や環境表示の "Not found" は、その後のステップが成功している場合は失敗原因として扱わないでください。
-- 根本原因と修正方法を3文以内で日本語で回答してください。
-
-ビルドログ:
-${logLines}`,
+          content: prompt,
         },
       ],
     }),
@@ -445,7 +435,18 @@ export async function generateFailureSummary(
       .reverse()
       .map((log: { message?: string }) => log.message)
       .join("\n");
-    const summary = await createAnthropicMessage(projectId, logLines);
+    const prompt = `あなたはCI/CDの専門家です。以下のビルドログを分析し、ビルドが失敗した原因を簡潔に要約してください。
+
+判断ルール:
+- 最後に失敗したステップと、その直前の明示的なエラー行を最優先してください。
+- "error:", "❌ Failure", "exit status", "Job failed", "Formatting issues found" などを強い根拠として扱ってください。
+- setup や環境表示の "Not found" は、その後のステップが成功している場合は失敗原因として扱わないでください。
+- 根本原因と修正方法を3文以内で日本語で回答してください。
+
+ビルドログ:
+${logLines}`;
+
+    const summary = await createAnthropicMessage(projectId, prompt);
     await updateBuildJobFailureSummary({
       id: buildJob.id,
       failureSummaryStatus: "done",
