@@ -39,6 +39,26 @@
     ],
     "rewrites": [
       {
+        "source": "/iosManifest",
+        "function": "iosManifest",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/install-ota",
+        "function": "installOta",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/enroll-udid",
+        "function": "getMobileconfig",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/register-device",
+        "function": "registerDevice",
+        "region": "asia-northeast1"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
