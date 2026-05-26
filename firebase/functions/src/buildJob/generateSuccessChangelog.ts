@@ -11,7 +11,7 @@ import {
 } from "./retryBuildJob/retryBuildJobHelpers.js";
 import {
   type BuildJob,
-  createAnthropicMessage,
+  createGeminiMessage,
   failureSummaryModel,
   normalizeGitHubApiBaseUrl,
 } from "./services.js";
@@ -189,7 +189,7 @@ export const generateChangelogOnBuildJobSuccess = onDocumentUpdated(
 ${commitListText}`;
 
       const projectId = process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT;
-      const summary = await createAnthropicMessage(projectId, prompt);
+      const summary = await createGeminiMessage(projectId, prompt);
 
       // 4. Save to Firestore
       await updateBuildJobFailureSummary({

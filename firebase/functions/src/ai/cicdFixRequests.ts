@@ -5,7 +5,7 @@ import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import OpenAI from "openai";
+import { generateGeminiContent } from "./gemini.js";
 
 import { BuildJobStatus, firestoreCollectionPaths, listLatestBuildLogs } from "../firestoreData.js";
 import {
@@ -19,10 +19,10 @@ import {
 import { getApiBaseUrlFromTeamData } from "../github/githubUrls.js";
 import { verifyTeamMembership } from "../team/teamAuth.js";
 
-export const openAiApiKey = defineSecret("OPENAI_API_KEY");
+export const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const ciCdFixRequestsCollection = "ci_cd_fix_requests_v0";
-const ciCdFixModel = "gpt-5.5";
+const ciCdFixModel = "gemini-3.5-flash";
 const maxLogCharacters = 80_000;
 const maxWorkflowCharacters = 120_000;
 
@@ -222,20 +222,15 @@ function parseSuggestion(
   };
 }
 
-async function createOpenAiResponse(input: string): Promise<string> {
-  const openai = new OpenAI({ apiKey: openAiApiKey.value() });
-  const response = await openai.responses.create({
-    model: ciCdFixModel,
-    max_output_tokens: 8192,
-    instructions:
+async function createGeminiResponse(input: string): Promise<string> {
+  const apiKey = geminiApiKey.value();
+  return generateGeminiContent({
+    apiKey,
+    prompt: input,
+    systemInstruction:
       "You are an expert CI/CD engineer for OpenCI. Return strict JSON only. Never include markdown outside JSON.",
-    input,
+    model: ciCdFixModel,
   });
-  const text = response.output_text;
-  if (text.length === 0) {
-    throw new Error("OpenAI response did not contain text");
-  }
-  return text;
 }
 
 function buildPrompt({
@@ -370,7 +365,7 @@ async function processCiCdFixRequest(requestId: string): Promise<void> {
     .join("\n");
 
   await ref.set({ status: "generating_fix", updatedAt: new Date() }, { merge: true });
-  const responseText = await createOpenAiResponse(
+  const responseText = await createGeminiResponse(
     buildPrompt({
       buildJob,
       workflowPath,
@@ -586,7 +581,7 @@ export const generateCiCdFixOnRequest = onDocumentCreated(
     document: `${ciCdFixRequestsCollection}/{requestId}`,
     timeoutSeconds: 300,
     memory: "1GiB",
-    secrets: [githubAppId, githubPrivateKey, openAiApiKey],
+    secrets: [githubAppId, githubPrivateKey, geminiApiKey],
   },
   async (event) => {
     const requestId = event.params.requestId;

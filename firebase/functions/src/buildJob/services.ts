@@ -1,6 +1,7 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { generateGeminiContent } from "../ai/gemini.js";
 import {
   BuildJobStatus,
   firestoreCollectionPaths,
@@ -58,7 +59,7 @@ export interface BuildJob {
 
 export const defaultGitHubApiBaseUrl = "https://api.github.com";
 const dashboardBaseUrl = "https://dashboard.openci.org";
-export const failureSummaryModel = "claude-opus-4-6";
+export const failureSummaryModel = "gemini-3.5-flash";
 
 function asBuildJob(value: unknown): BuildJob | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -356,40 +357,16 @@ async function accessProjectSecret(
   return Buffer.from(data).toString("utf8");
 }
 
-export async function createAnthropicMessage(
+export async function createGeminiMessage(
   projectId: string | undefined,
   prompt: string,
 ): Promise<string> {
-  const apiKey = await accessProjectSecret(projectId, "ANTHROPIC_API_KEY");
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: failureSummaryModel,
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    }),
+  const apiKey = await accessProjectSecret(projectId, "GEMINI_API_KEY");
+  return generateGeminiContent({
+    apiKey,
+    prompt,
+    model: failureSummaryModel,
   });
-  const data = (await response.json()) as {
-    content?: Array<{ type?: string; text?: string }>;
-    error?: { message?: string };
-  };
-  if (!response.ok) {
-    throw new Error(data.error?.message ?? `Anthropic API error: ${response.status}`);
-  }
-  return (data.content ?? [])
-    .filter((block) => block.type === "text" && typeof block.text === "string")
-    .map((block) => block.text)
-    .join("");
 }
 
 export async function generateFailureSummary(
@@ -446,7 +423,7 @@ export async function generateFailureSummary(
 ビルドログ:
 ${logLines}`;
 
-    const summary = await createAnthropicMessage(projectId, prompt);
+    const summary = await createGeminiMessage(projectId, prompt);
     await updateBuildJobFailureSummary({
       id: buildJob.id,
       failureSummaryStatus: "done",

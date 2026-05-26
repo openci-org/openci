@@ -389,6 +389,11 @@ class _BuildListItem extends HookWidget {
         buildJob.provisionedUdids != null &&
         buildJob.provisionedUdids!.contains(userUdid);
 
+    final isDesktopOrWeb = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+
     final udidStatus = userUdid == null
         ? _UdidStatus.unregistered
         : (isUdidProvisioned
@@ -451,11 +456,11 @@ class _BuildListItem extends HookWidget {
                 height: 28,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: isUdidProvisioned
+                    foregroundColor: (isUdidProvisioned || isDesktopOrWeb)
                         ? const Color(0xFF3FB950)
                         : colors.textTertiary,
                     side: BorderSide(
-                      color: isUdidProvisioned
+                      color: (isUdidProvisioned || isDesktopOrWeb)
                           ? const Color(0xFF3FB950)
                           : colors.border,
                       width: 1.5,
@@ -465,7 +470,7 @@ class _BuildListItem extends HookWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
-                  onPressed: isUdidProvisioned
+                  onPressed: (isUdidProvisioned || isDesktopOrWeb)
                       ? () {
                           showDialog<void>(
                             context: context,
@@ -473,10 +478,12 @@ class _BuildListItem extends HookWidget {
                                 _IosDistributionQrDialog(buildJob: buildJob),
                           );
                         }
-                      : null, // 未登録の場合はボタンを無効化
+                      : null,
                   icon: const Icon(Icons.install_mobile_rounded, size: 12),
                   label: Text(
-                    isUdidProvisioned ? 'インストール' : 'インストール不可',
+                    isUdidProvisioned
+                        ? 'インストール'
+                        : (isDesktopOrWeb ? 'インストール (QR)' : 'インストール不可'),
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
