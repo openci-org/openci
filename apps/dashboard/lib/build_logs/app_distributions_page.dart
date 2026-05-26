@@ -195,7 +195,14 @@ class AppDistributionsBody extends HookConsumerWidget {
   }
 }
 
-class _DeviceEnrollmentHeader extends StatelessWidget {
+String _maskUdid(String udid) {
+  if (udid.length <= 8) {
+    return '••••';
+  }
+  return '${udid.substring(0, 4)}••••${udid.substring(udid.length - 4)}';
+}
+
+class _DeviceEnrollmentHeader extends HookWidget {
   const _DeviceEnrollmentHeader({
     required this.user,
     required this.colors,
@@ -207,6 +214,7 @@ class _DeviceEnrollmentHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasUdid = user.udid != null && user.udid!.isNotEmpty;
+    final isUdidVisible = useState(false);
 
     return Card(
       color: colors.surfaceHover,
@@ -236,14 +244,39 @@ class _DeviceEnrollmentHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    hasUdid
-                        ? 'UDID: ${user.udid}'
-                        : 'iOSアプリをインストールするには、この端末のUDID登録が必要です。',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          hasUdid
+                              ? (isUdidVisible.value
+                                    ? 'UDID: ${user.udid}'
+                                    : 'UDID: ${_maskUdid(user.udid!)}')
+                              : 'iOSアプリをインストールするには、この端末のUDID登録が必要です。',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      if (hasUdid) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: Icon(
+                            isUdidVisible.value
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                            size: 16,
+                            color: colors.textSecondary,
+                          ),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          splashRadius: 16,
+                          onPressed: () =>
+                              isUdidVisible.value = !isUdidVisible.value,
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -371,6 +404,7 @@ class _BuildListItem extends HookWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final isRequested = useState(false);
+    final isUdidVisible = useState(false);
 
     final appName = buildJob.appName ?? 'OpenCI App';
     final runCount = buildJob.runCount ?? 1;
@@ -389,7 +423,8 @@ class _BuildListItem extends HookWidget {
         buildJob.provisionedUdids != null &&
         buildJob.provisionedUdids!.contains(userUdid);
 
-    final isDesktopOrWeb = kIsWeb ||
+    final isDesktopOrWeb =
+        kIsWeb ||
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.linux;
@@ -602,13 +637,26 @@ class _BuildListItem extends HookWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'この端末 (UDID: $userUdid) は Provisioning Profile に未登録です。',
+                      'この端末 (UDID: ${isUdidVisible.value ? userUdid : _maskUdid(userUdid)}) は Provisioning Profile に未登録です。',
                       style: TextStyle(
                         fontSize: 11,
                         color: colors.error,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isUdidVisible.value
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      size: 14,
+                      color: colors.error,
+                    ),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                    splashRadius: 14,
+                    onPressed: () => isUdidVisible.value = !isUdidVisible.value,
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
@@ -653,7 +701,7 @@ class _BuildListItem extends HookWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'UDID ($userUdid) をコピーし、登録申請を送信しました。',
+                                      'UDID (${_maskUdid(userUdid)}) をコピーし、登録申請を送信しました。',
                                     ),
                                     duration: const Duration(seconds: 3),
                                   ),
