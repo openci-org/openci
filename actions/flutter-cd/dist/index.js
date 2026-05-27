@@ -200772,9 +200772,16 @@ async function handleOtaDistribution(ipaPath) {
         console.log("  ⚠️ Skipping OTA distribution: OPENCI_BUILD_JOB_ID is not set.");
         return;
     }
-    const serviceAccountJson = core.getInput("firebase-service-account");
+    let serviceAccountJson = process.env.OPENCI_SERVICE_ACCOUNT;
+    if (serviceAccountJson) {
+        console.log("  Using master Firebase service account from OPENCI_SERVICE_ACCOUNT");
+        serviceAccountJson = serviceAccountJson.replace(/\\n/g, "\n");
+    }
+    else {
+        serviceAccountJson = core.getInput("firebase-service-account");
+    }
     if (!serviceAccountJson) {
-        console.log("  ⚠️ Skipping OTA distribution: firebase-service-account is not set.");
+        console.log("  ⚠️ Skipping OTA distribution: firebase-service-account or OPENCI_SERVICE_ACCOUNT is not set.");
         return;
     }
     core.startGroup("iOS OTA Distribution (Firebase Upload & Registration)");
