@@ -106,7 +106,7 @@ export async function processOneJob(
 
     try {
       const serviceAccountJson = readFileSync(config.serviceAccountPath, "utf8");
-      envVars["OPENCI_SERVICE_ACCOUNT"] = serviceAccountJson;
+      envVars["OPENCI_SERVICE_ACCOUNT"] = Buffer.from(serviceAccountJson).toString("base64");
     } catch (error) {
       await logWarning(
         buildJob.id,

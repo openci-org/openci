@@ -1,25 +1,25 @@
 import * as core from "@actions/core";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import * as admin from "firebase-admin";
 import AdmZip from "adm-zip";
+import * as admin from "firebase-admin";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import * as plist from "plist";
-import { exec, execAndCapture } from "./helpers";
+import {
+  createProvisioningProfile,
+  generateAscJwt,
+  getOrCreateCertificate,
+  listEnabledDeviceIds,
+  preflightCheck,
+  type ProfileResult,
+} from "./asc";
 import {
   buildNoPubArg,
   configureSwiftPackageManager,
-  patchFlutterIosDistributionSigning,
   parseSwiftPackageManagerMode,
+  patchFlutterIosDistributionSigning,
 } from "./flutter";
-import {
-  generateAscJwt,
-  preflightCheck,
-  getOrCreateCertificate,
-  createProvisioningProfile,
-  listEnabledDeviceIds,
-  type ProfileResult,
-} from "./asc";
+import { exec, execAndCapture } from "./helpers";
 import { prepareXcodeCompilationCacheXcconfig, reportXcodeCompilationCache } from "./xcode";
 
 const KEYCHAIN_NAME = "openci-build.keychain";
@@ -604,7 +604,13 @@ async function handleOtaDistribution(ipaPath: string): Promise<void> {
   let serviceAccountJson = process.env.OPENCI_SERVICE_ACCOUNT;
   if (serviceAccountJson) {
     console.log("  Using master Firebase service account from OPENCI_SERVICE_ACCOUNT");
-    serviceAccountJson = serviceAccountJson.replace(/\\n/g, "\n");
+    try {
+      const decoded = Buffer.from(serviceAccountJson, "base64").toString("utf8");
+      JSON.parse(decoded);
+      serviceAccountJson = decoded;
+    } catch {
+      serviceAccountJson = serviceAccountJson.replace(/\\n/g, "\n");
+    }
   } else {
     serviceAccountJson = core.getInput("firebase-service-account");
   }
