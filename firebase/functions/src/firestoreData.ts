@@ -176,9 +176,14 @@ async function listTeamMembers(...args) {
   const vars = varsFromArgs(...args);
   const team = (await getDoc(firestoreCollectionPaths.teams, vars.teamId)) ?? {};
   const members = Array.isArray(team.members) ? team.members : [];
-  const users = await Promise.all(
-    members.map((uid) => getDoc(firestoreCollectionPaths.users, uid)),
-  );
+
+  let users = [];
+  if (members.length > 0) {
+    const userRefs = members.map((uid) => db().collection(firestoreCollectionPaths.users).doc(uid));
+    const userSnaps = await db().getAll(...userRefs);
+    users = userSnaps.map(docData);
+  }
+
   return {
     data: {
       teamMembers: members.map((uid, index) => ({
