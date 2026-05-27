@@ -16,6 +16,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -147,231 +148,237 @@ class AuthPage extends HookConsumerWidget {
                                 color: AppColors.of(context).border,
                               ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // ── Email field ──
-                                TextFormField(
-                                  controller: emailController,
-                                  decoration: InputDecoration(
-                                    labelText: authT.email,
-                                    prefixIcon: Icon(
-                                      Icons.email_outlined,
-                                      size: 18,
-                                      color: AppColors.of(context).textTertiary,
-                                    ),
-                                  ),
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return authT.enterEmail;
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 14),
-                                // ── Password field ──
-                                TextFormField(
-                                  controller: passwordController,
-                                  decoration: InputDecoration(
-                                    labelText: authT.password,
-                                    prefixIcon: Icon(
-                                      Icons.lock_outline,
-                                      size: 18,
-                                      color: AppColors.of(context).textTertiary,
-                                    ),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        obscurePassword.value
-                                            ? Icons.visibility_off_outlined
-                                            : Icons.visibility_outlined,
+                            child: AutofillGroup(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  // ── Email field ──
+                                  TextFormField(
+                                    controller: emailController,
+                                    autofillHints: const [AutofillHints.email],
+                                    decoration: InputDecoration(
+                                      labelText: authT.email,
+                                      prefixIcon: Icon(
+                                        Icons.email_outlined,
                                         size: 18,
-                                        color: AppColors.of(
-                                          context,
-                                        ).textPrimary.withValues(alpha: 0.4),
+                                        color: AppColors.of(context).textTertiary,
                                       ),
-                                      onPressed: () {
-                                        obscurePassword.value =
-                                            !obscurePassword.value;
-                                      },
                                     ),
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return authT.enterEmail;
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  obscureText: obscurePassword.value,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return authT.enterPassword;
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 20),
-
-                                // ── Terms checkbox ──
-                                Row(
-                                  children: [
-                                    Checkbox(
-                                      value: isAgreed.value,
-                                      onChanged: (value) {
-                                        isAgreed.value = value!;
-                                      },
-                                      visualDensity: VisualDensity.compact,
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
+                                  const SizedBox(height: 14),
+                                  // ── Password field ──
+                                  TextFormField(
+                                    controller: passwordController,
+                                    autofillHints: const [AutofillHints.password],
+                                    decoration: InputDecoration(
+                                      labelText: authT.password,
+                                      prefixIcon: Icon(
+                                        Icons.lock_outline,
+                                        size: 18,
+                                        color: AppColors.of(context).textTertiary,
+                                      ),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          obscurePassword.value
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          size: 18,
+                                          color: AppColors.of(
+                                            context,
+                                          ).textPrimary.withValues(alpha: 0.4),
+                                        ),
+                                        onPressed: () {
+                                          obscurePassword.value =
+                                              !obscurePassword.value;
+                                        },
+                                      ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text.rich(
-                                        TextSpan(
-                                          text: authT.agreePrefix,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: AppColors.of(context)
-                                                    .textPrimary
-                                                    .withValues(alpha: 0.5),
+                                    obscureText: obscurePassword.value,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return authT.enterPassword;
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // ── Terms checkbox ──
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: isAgreed.value,
+                                        onChanged: (value) {
+                                          isAgreed.value = value!;
+                                        },
+                                        visualDensity: VisualDensity.compact,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text.rich(
+                                          TextSpan(
+                                            text: authT.agreePrefix,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: AppColors.of(context)
+                                                      .textPrimary
+                                                      .withValues(alpha: 0.5),
+                                                ),
+                                            children: [
+                                              TextSpan(
+                                                text: authT.termsOfService,
+                                                style: TextStyle(
+                                                  color: colorScheme.primary,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  decorationColor: colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.4),
+                                                ),
+                                                recognizer: tapGestureRecognizer
+                                                  ..onTap = () {
+                                                    launchUrl(
+                                                      Uri.parse(
+                                                        'https://openci.org/terms-of-service',
+                                                      ),
+                                                    );
+                                                  },
                                               ),
-                                          children: [
-                                            TextSpan(
-                                              text: authT.termsOfService,
-                                              style: TextStyle(
-                                                color: colorScheme.primary,
-                                                decoration:
-                                                    TextDecoration.underline,
-                                                decorationColor: colorScheme
-                                                    .primary
-                                                    .withValues(alpha: 0.4),
-                                              ),
-                                              recognizer: tapGestureRecognizer
-                                                ..onTap = () {
-                                                  launchUrl(
-                                                    Uri.parse(
-                                                      'https://openci.org/terms-of-service',
-                                                    ),
-                                                  );
-                                                },
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 24),
 
-                                // ── Primary action: Login ──
-                                FilledButton(
-                                  onPressed:
-                                      (isAgreed.value && !isLoading.value)
-                                      ? () async {
-                                          if (formKey.currentState!
-                                              .validate()) {
-                                            isLoading.value = true;
-                                            try {
-                                              await FirebaseAuth.instance
-                                                  .signInWithEmailAndPassword(
-                                                    email: emailController.text,
-                                                    password:
-                                                        passwordController.text,
-                                                  );
-                                              ref.invalidate(authProvider);
-                                              // Process pending invitations (fire-and-forget)
-                                              _processInvitations();
-                                            } catch (e) {
-                                              if (!context.mounted) {
-                                                return;
-                                              }
-                                              debugPrint(e.toString());
-                                              context.showSnackBarMessage(
-                                                t.common.error(
-                                                  error: e.toString(),
-                                                ),
-                                              );
-                                            } finally {
-                                              isLoading.value = false;
-                                            }
-                                          }
-                                        }
-                                      : null,
-                                  child: Text(authT.login),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // ── Secondary action: Create Account ──
-                                OutlinedButton(
-                                  onPressed:
-                                      (isAgreed.value && !isLoading.value)
-                                      ? () async {
-                                          if (formKey.currentState!
-                                              .validate()) {
-                                            isLoading.value = true;
-                                            try {
-                                              final credential = await FirebaseAuth
-                                                  .instance
-                                                  .createUserWithEmailAndPassword(
-                                                    email: emailController.text,
-                                                    password:
-                                                        passwordController.text,
-                                                  );
-                                              final userId =
-                                                  credential.user!.uid;
-                                              final teamId = userId;
-                                              final timestamp = FieldValue
-                                                  .serverTimestamp();
-                                              final batch = firestore.batch();
-                                              batch.set(
-                                                firestore
-                                                    .collection(teamsCollection)
-                                                    .doc(teamId),
-                                                {
-                                                  'id': teamId,
-                                                  'name': teamId,
-                                                  'members': [userId],
-                                                  'installationIds': <int>[],
-                                                  'aiEnabled': true,
-                                                  'createdAt': timestamp,
-                                                  'updatedAt': timestamp,
-                                                },
-                                              );
-                                              batch.set(
-                                                firestore
-                                                    .collection(usersCollection)
-                                                    .doc(userId),
-                                                {
-                                                  'id': userId,
-                                                  'email':
-                                                      credential.user!.email ??
-                                                          emailController.text,
-                                                  'selectedTeamId': teamId,
-                                                  'createdAt': timestamp,
-                                                  'updatedAt': timestamp,
-                                                },
-                                                SetOptions(merge: true),
-                                              );
-                                              await batch.commit();
-                                              ref.invalidate(authProvider);
-                                              _processInvitations();
-                                            } catch (e) {
-                                              if (!context.mounted) {
-                                                return;
-                                              }
-                                              debugPrint(e.toString());
-                                              context.showSnackBarMessage(
-                                                t.common.error(
-                                                  error: e.toString(),
-                                                ),
-                                              );
-                                            } finally {
-                                              if (context.mounted) {
+                                  // ── Primary action: Login ──
+                                  FilledButton(
+                                    onPressed:
+                                        (isAgreed.value && !isLoading.value)
+                                        ? () async {
+                                            if (formKey.currentState!
+                                                .validate()) {
+                                              isLoading.value = true;
+                                              try {
+                                                await FirebaseAuth.instance
+                                                    .signInWithEmailAndPassword(
+                                                      email: emailController.text,
+                                                      password:
+                                                          passwordController.text,
+                                                    );
+                                                TextInput.finishAutofillContext();
+                                                ref.invalidate(authProvider);
+                                                // Process pending invitations (fire-and-forget)
+                                                _processInvitations();
+                                              } catch (e) {
+                                                if (!context.mounted) {
+                                                  return;
+                                                }
+                                                debugPrint(e.toString());
+                                                context.showSnackBarMessage(
+                                                  t.common.error(
+                                                    error: e.toString(),
+                                                  ),
+                                                );
+                                              } finally {
                                                 isLoading.value = false;
                                               }
                                             }
                                           }
-                                        }
-                                      : null,
-                                  child: Text(authT.createAccount),
-                                ),
-                              ],
+                                        : null,
+                                    child: Text(authT.login),
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // ── Secondary action: Create Account ──
+                                  OutlinedButton(
+                                    onPressed:
+                                        (isAgreed.value && !isLoading.value)
+                                        ? () async {
+                                            if (formKey.currentState!
+                                                .validate()) {
+                                              isLoading.value = true;
+                                              try {
+                                                final credential = await FirebaseAuth
+                                                    .instance
+                                                    .createUserWithEmailAndPassword(
+                                                      email: emailController.text,
+                                                      password:
+                                                          passwordController.text,
+                                                    );
+                                                TextInput.finishAutofillContext();
+                                                final userId =
+                                                    credential.user!.uid;
+                                                final teamId = userId;
+                                                final timestamp = FieldValue
+                                                    .serverTimestamp();
+                                                final batch = firestore.batch();
+                                                batch.set(
+                                                  firestore
+                                                      .collection(teamsCollection)
+                                                      .doc(teamId),
+                                                  {
+                                                    'id': teamId,
+                                                    'name': teamId,
+                                                    'members': [userId],
+                                                    'installationIds': <int>[],
+                                                    'aiEnabled': true,
+                                                    'createdAt': timestamp,
+                                                    'updatedAt': timestamp,
+                                                  },
+                                                );
+                                                batch.set(
+                                                  firestore
+                                                      .collection(usersCollection)
+                                                      .doc(userId),
+                                                  {
+                                                    'id': userId,
+                                                    'email':
+                                                        credential.user!.email ??
+                                                            emailController.text,
+                                                    'selectedTeamId': teamId,
+                                                    'createdAt': timestamp,
+                                                    'updatedAt': timestamp,
+                                                  },
+                                                  SetOptions(merge: true),
+                                                );
+                                                await batch.commit();
+                                                ref.invalidate(authProvider);
+                                                _processInvitations();
+                                              } catch (e) {
+                                                if (!context.mounted) {
+                                                  return;
+                                                }
+                                                debugPrint(e.toString());
+                                                context.showSnackBarMessage(
+                                                  t.common.error(
+                                                    error: e.toString(),
+                                                  ),
+                                                );
+                                              } finally {
+                                                if (context.mounted) {
+                                                  isLoading.value = false;
+                                                }
+                                              }
+                                            }
+                                          }
+                                        : null,
+                                    child: Text(authT.createAccount),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
