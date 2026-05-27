@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import { setTimeout } from "node:timers/promises";
@@ -102,6 +103,18 @@ export async function processOneJob(
       runId,
       workflowContent,
     });
+
+    try {
+      const serviceAccountJson = readFileSync(config.serviceAccountPath, "utf8");
+      envVars["OPENCI_SERVICE_ACCOUNT"] = Buffer.from(serviceAccountJson).toString("base64");
+    } catch (error) {
+      await logWarning(
+        buildJob.id,
+        runId,
+        `Failed to read and inject master service account: ${String(error)}`,
+      );
+    }
+
     const secretVars = await buildSecretVars({
       buildJob,
       projectId: config.projectId,

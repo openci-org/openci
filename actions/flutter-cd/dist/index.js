@@ -200329,15 +200329,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.buildAndSignIos = buildAndSignIos;
 const core = __importStar(__nccwpck_require__(7184));
-const fs = __importStar(__nccwpck_require__(79896));
-const path = __importStar(__nccwpck_require__(16928));
-const os = __importStar(__nccwpck_require__(70857));
-const admin = __importStar(__nccwpck_require__(87319));
 const adm_zip_1 = __importDefault(__nccwpck_require__(14160));
+const admin = __importStar(__nccwpck_require__(87319));
+const fs = __importStar(__nccwpck_require__(79896));
+const os = __importStar(__nccwpck_require__(70857));
+const path = __importStar(__nccwpck_require__(16928));
 const plist = __importStar(__nccwpck_require__(36656));
-const helpers_1 = __nccwpck_require__(21979);
-const flutter_1 = __nccwpck_require__(97192);
 const asc_1 = __nccwpck_require__(91851);
+const flutter_1 = __nccwpck_require__(97192);
+const helpers_1 = __nccwpck_require__(21979);
 const xcode_1 = __nccwpck_require__(68807);
 const KEYCHAIN_NAME = "openci-build.keychain";
 const KEYCHAIN_PASSWORD = "openci_temp_password";
@@ -200772,9 +200772,23 @@ async function handleOtaDistribution(ipaPath) {
         console.log("  ⚠️ Skipping OTA distribution: OPENCI_BUILD_JOB_ID is not set.");
         return;
     }
-    const serviceAccountJson = core.getInput("firebase-service-account");
+    let serviceAccountJson = process.env.OPENCI_SERVICE_ACCOUNT;
+    if (serviceAccountJson) {
+        console.log("  Using master Firebase service account from OPENCI_SERVICE_ACCOUNT");
+        try {
+            const decoded = Buffer.from(serviceAccountJson, "base64").toString("utf8");
+            JSON.parse(decoded);
+            serviceAccountJson = decoded;
+        }
+        catch {
+            serviceAccountJson = serviceAccountJson.replace(/\\n/g, "\n");
+        }
+    }
+    else {
+        serviceAccountJson = core.getInput("firebase-service-account");
+    }
     if (!serviceAccountJson) {
-        console.log("  ⚠️ Skipping OTA distribution: firebase-service-account is not set.");
+        console.log("  ⚠️ Skipping OTA distribution: firebase-service-account or OPENCI_SERVICE_ACCOUNT is not set.");
         return;
     }
     core.startGroup("iOS OTA Distribution (Firebase Upload & Registration)");
