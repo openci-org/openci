@@ -33,6 +33,24 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "hasIpa",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "build_jobs_v0",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "workflowRunId",
           "order": "ASCENDING"
         },

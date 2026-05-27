@@ -203,6 +203,40 @@ class BuildJobs extends _$BuildJobs {
 }
 
 @riverpod
+class OtaBuildJobs extends _$OtaBuildJobs {
+  @override
+  Stream<List<BuildJob>> build() async* {
+    final teamId = ref.watch(userProvider).value?.selectedTeamId;
+    if (teamId == null) {
+      yield const [];
+      return;
+    }
+
+    final query = firestore
+        .collection(buildJobsCollection)
+        .where('teamId', isEqualTo: teamId)
+        .where('hasIpa', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(100);
+
+    final initialResult = await query.get();
+    final initialJobs = _sortedBuildJobs(
+      initialResult.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
+    );
+    yield initialJobs;
+
+    yield* query.snapshots().map(
+      (result) {
+        final jobs = _sortedBuildJobs(
+          result.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
+        );
+        return jobs;
+      },
+    );
+  }
+}
+
+@riverpod
 Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
   final teamId = ref.watch(userProvider).value?.selectedTeamId;
   if (teamId == null) {
@@ -251,6 +285,7 @@ abstract class BuildJob with _$BuildJob {
     int? failureSummaryDurationMs,
     List<String>? provisionedUdids,
     String? ipaUrl,
+    bool? hasIpa,
     String? bundleId,
     String? ipaVersion,
     String? appName,
@@ -360,6 +395,7 @@ BuildJob _buildJobFromData(String id, Map<String, dynamic> job) {
         ?.whereType<String>()
         .toList(),
     ipaUrl: job['ipaUrl'] as String?,
+    hasIpa: job['hasIpa'] as bool?,
     bundleId: job['bundleId'] as String?,
     ipaVersion: job['ipaVersion'] as String?,
     appName: job['appName'] as String?,

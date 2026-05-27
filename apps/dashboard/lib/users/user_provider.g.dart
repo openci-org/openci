@@ -72,7 +72,7 @@ final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   User create() => User();
 }
 
-String _$userHash() => r'35d528b9755593c84ac8feeaad6556bc553e3a82';
+String _$userHash() => r'c888a5b62980f8f18455b1882ecd5277b7df5371';
 
 abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();

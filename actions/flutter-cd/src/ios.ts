@@ -727,6 +727,7 @@ async function handleOtaDistribution(ipaPath: string): Promise<void> {
     ipaVersion,
     appName,
     provisionedUdids,
+    hasIpa: true,
     updatedAt: new Date().toISOString(),
   });
 
