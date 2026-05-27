@@ -1,37 +1,39 @@
 {{flutter_js}}
 {{flutter_build_config}}
 
-const loader = document.getElementById('app-loader');
-const loaderMessage = document.getElementById('app-loader-message');
-let loaderHidden = false;
+(() => {
+  const loader = document.getElementById("app-loader");
+  const loaderMessage = document.getElementById("app-loader-message");
+  let loaderHidden = false;
 
-function updateLoaderMessage(message) {
-  if (loaderMessage) {
-    loaderMessage.textContent = message;
-  }
-}
-
-function hideLoader() {
-  if (!loader || loaderHidden) {
-    return;
+  function updateLoaderMessage(message) {
+    if (loaderMessage) {
+      loaderMessage.textContent = message;
+    }
   }
 
-  loaderHidden = true;
-  loader.classList.add('is-hidden');
-  window.setTimeout(() => {
-    loader.remove();
-  }, 220);
-}
+  function hideLoader() {
+    if (!loader || loaderHidden) {
+      return;
+    }
 
-window.addEventListener('flutter-first-frame', hideLoader, { once: true });
+    loaderHidden = true;
+    loader.classList.add("is-hidden");
+    window.setTimeout(() => {
+      loader.remove();
+    }, 220);
+  }
 
-_flutter.loader.load({
-  onEntrypointLoaded: async function(engineInitializer) {
-    updateLoaderMessage('アプリを初期化中...');
-    const appRunner = await engineInitializer.initializeEngine();
+  window.addEventListener("flutter-first-frame", hideLoader, { once: true });
 
-    updateLoaderMessage('アプリを起動中...');
-    await appRunner.runApp();
-    window.setTimeout(hideLoader, 1500);
-  },
-});
+  _flutter.loader.load({
+    onEntrypointLoaded: async function (engineInitializer) {
+      updateLoaderMessage("アプリを初期化中...");
+      const appRunner = await engineInitializer.initializeEngine();
+
+      updateLoaderMessage("アプリを起動中...");
+      await appRunner.runApp();
+      window.setTimeout(hideLoader, 1500);
+    },
+  });
+})();

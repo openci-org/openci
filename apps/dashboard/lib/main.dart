@@ -24,62 +24,85 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  if (kIsWeb) {
-    usePathUrlStrategy();
-  }
-
-  final selfHosted = await loadSelfHostedConfig();
-
   try {
-    if (selfHosted != null) {
-      debugPrint(
-        '[OpenCI] Using self-hosted Firebase: ${selfHosted.projectId}',
-      );
-      await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
-    } else {
-      debugPrint('[OpenCI] Using default Firebase config');
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+    WidgetsFlutterBinding.ensureInitialized();
+    if (kIsWeb) {
+      usePathUrlStrategy();
     }
-  } on FirebaseException catch (e) {
-    if (e.code != 'duplicate-app') rethrow;
-    debugPrint('[OpenCI] Firebase already initialized (hot restart)');
-  }
 
-  if (selfHosted == null) {
-    await initializeRevenueCat();
-  }
+    final selfHosted = await loadSelfHostedConfig();
 
-  await initializeMacosUpdater();
+    try {
+      if (selfHosted != null) {
+        debugPrint(
+          '[OpenCI] Using self-hosted Firebase: ${selfHosted.projectId}',
+        );
+        await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
+      } else {
+        debugPrint('[OpenCI] Using default Firebase config');
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+    } on FirebaseException catch (e) {
+      if (e.code != 'duplicate-app') rethrow;
+      debugPrint('[OpenCI] Firebase already initialized (hot restart)');
+    }
 
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  final app = ProviderScope(child: Root());
+    if (selfHosted == null) {
+      await initializeRevenueCat();
+    }
 
-  if (kDebugMode) {
-    runApp(app);
-    return;
-  }
+    await initializeMacosUpdater();
 
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = const String.fromEnvironment('SENTRY_DSN');
-      options.sendDefaultPii = true;
-      options.enableLogs = true;
-      options.tracesSampleRate = 1.0;
-      // ignore: experimental_member_use
-      options.profilesSampleRate = 1.0;
-      options.replay.sessionSampleRate = 1.0;
-      options.replay.onErrorSampleRate = 1.0;
-      options.attachScreenshot = true;
-      options.privacy.maskAllText = false;
-      options.privacy.maskAllImages = false;
-    },
-    appRunner: () => runApp(
-      SentryWidget(
-        child: app,
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    final app = ProviderScope(child: Root());
+
+    if (kDebugMode) {
+      runApp(app);
+      return;
+    }
+
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = const String.fromEnvironment('SENTRY_DSN');
+        options.sendDefaultPii = true;
+        options.enableLogs = true;
+        options.tracesSampleRate = 1.0;
+        // ignore: experimental_member_use
+        options.profilesSampleRate = 1.0;
+        options.replay.sessionSampleRate = 1.0;
+        options.replay.onErrorSampleRate = 1.0;
+        options.attachScreenshot = true;
+        options.privacy.maskAllText = false;
+        options.privacy.maskAllImages = false;
+      },
+      appRunner: () => runApp(
+        SentryWidget(
+          child: app,
+        ),
       ),
-    ),
-  );
+    );
+  } catch (e, s) {
+    debugPrint('[OpenCI] CRITICAL INITIALIZATION ERROR: $e');
+    debugPrintStack(stackTrace: s);
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: SelectableText(
+                'Initialization failed:\n$e\n\n$s',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
