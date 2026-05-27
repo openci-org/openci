@@ -18,7 +18,7 @@ class AppDistributionsBody extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
-    final buildJobsAsync = ref.watch(buildJobsProvider);
+    final buildJobsAsync = ref.watch(otaBuildJobsProvider);
     final userAsync = ref.watch(userProvider);
 
     return userAsync.when(

@@ -200877,6 +200877,7 @@ async function handleOtaDistribution(ipaPath) {
         ipaVersion,
         appName,
         provisionedUdids,
+        hasIpa: true,
         updatedAt: new Date().toISOString(),
     });
     console.log("  ✅ iOS OTA distribution setup completed successfully.");

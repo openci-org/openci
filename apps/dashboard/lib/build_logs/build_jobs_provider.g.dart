@@ -35,6 +35,7 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
       ?.map((e) => e as String)
       .toList(),
   ipaUrl: json['ipaUrl'] as String?,
+  hasIpa: json['hasIpa'] as bool?,
   bundleId: json['bundleId'] as String?,
   ipaVersion: json['ipaVersion'] as String?,
   appName: json['appName'] as String?,
@@ -73,6 +74,7 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'failureSummaryDurationMs': instance.failureSummaryDurationMs,
   'provisionedUdids': instance.provisionedUdids,
   'ipaUrl': instance.ipaUrl,
+  'hasIpa': instance.hasIpa,
   'bundleId': instance.bundleId,
   'ipaVersion': instance.ipaVersion,
   'appName': instance.appName,
@@ -139,6 +141,50 @@ final class BuildJobsProvider
 String _$buildJobsHash() => r'2fd36cfc4f0c8845693b36da6ce1b055020e2acf';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
+  Stream<List<BuildJob>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<List<BuildJob>>, List<BuildJob>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<BuildJob>>, List<BuildJob>>,
+              AsyncValue<List<BuildJob>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(OtaBuildJobs)
+final otaBuildJobsProvider = OtaBuildJobsProvider._();
+
+final class OtaBuildJobsProvider
+    extends $StreamNotifierProvider<OtaBuildJobs, List<BuildJob>> {
+  OtaBuildJobsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'otaBuildJobsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$otaBuildJobsHash();
+
+  @$internal
+  @override
+  OtaBuildJobs create() => OtaBuildJobs();
+}
+
+String _$otaBuildJobsHash() => r'a4b96a45c137b4616ceb764e3c0ade5590f93b76';
+
+abstract class _$OtaBuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
   @$mustCallSuper
   @override
