@@ -1,16 +1,12 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/functions.dart';
-import 'package:dashboard/theme/app_colors.dart';
-
-import 'package:dashboard/app_strings.dart';
-
 import 'package:dashboard/team/team_provider.dart';
-
+import 'package:dashboard/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 part 'team_members_bottom_sheet.g.dart';
 
@@ -39,6 +35,7 @@ class TeamMember {
 
 @riverpod
 Future<List<TeamMember>> teamMembers(Ref ref) async {
+  ref.keepAlive();
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
 
@@ -64,248 +61,277 @@ class TeamMembersBottomSheet extends ConsumerWidget {
     final currentUid = ref.watch(authProvider).value?.uid;
     final teamT = t.team;
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.6,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Column(
-          children: [
-            // ── Header ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: AppColors.of(context).divider,
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.group_outlined,
-                        size: 18,
-                        color: AppColors.of(context).textSecondary,
+    return membersAsync.when(
+      loading: () => Skeletonizer(
+        enabled: true,
+        child: ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          itemCount: 3,
+          separatorBuilder: (_, index) =>
+              index == 0 ? const SizedBox.shrink() : const SizedBox(height: 2),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    teamT.members,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.of(context).textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  membersAsync.whenOrNull(
-                        data: (members) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.of(context).divider,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.of(context).border,
-                            ),
-                          ),
-                          child: Text(
-                            teamT.membersCount(count: members.length),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.of(context).textSecondary,
-                            ),
-                          ),
+                      decoration: BoxDecoration(
+                        color: AppColors.of(context).divider,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.of(context).border,
                         ),
-                      ) ??
-                      const SizedBox.shrink(),
-                ],
-              ),
-            ),
-            Divider(
-              height: 1,
-              color: AppColors.of(context).divider,
-            ),
-            // ── List ──
-            Expanded(
-              child: membersAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator.adaptive()),
-                error: (e, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      e.toString(),
-                      style: TextStyle(
-                        color: Colors.red.withValues(alpha: 0.8),
-                        fontSize: 13,
                       ),
-                      textAlign: TextAlign.center,
+                      child: const Text('3 members'),
                     ),
-                  ),
+                  ],
                 ),
-                data: (members) {
-                  final sorted = [...members]
-                    ..sort((a, b) {
-                      if (a.uid == currentUid) return -1;
-                      if (b.uid == currentUid) return 1;
-                      return 0;
-                    });
+              );
+            }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+            return Container(
+              decoration: BoxDecoration(
+                color: AppColors.of(context).surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.of(context).divider,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.of(context).surfaceTertiary,
+                      ),
                     ),
-                    itemCount: sorted.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 2),
-                    itemBuilder: (context, index) {
-                      final member = sorted[index];
-                      final isCurrentUser = member.uid == currentUid;
-                      final displayName = member.displayName;
-                      final email = member.email ?? teamT.noEmail;
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.of(context).surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.of(context).divider,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          child: Row(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              // Avatar
                               Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: AppColors.of(context).surfaceTertiary,
-                                  image: member.photoURL != null
-                                      ? DecorationImage(
-                                          image: NetworkImage(member.photoURL!),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : null,
-                                ),
-                                child: member.photoURL == null
-                                    ? Center(
-                                        child: Text(
-                                          _getInitials(
-                                            displayName ?? email,
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.of(context)
-                                                .textPrimary
-                                                .withValues(
-                                                  alpha: 0.7,
-                                                ),
-                                          ),
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              // Info
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            displayName ?? email,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: AppColors.of(
-                                                context,
-                                              ).textPrimary,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isCurrentUser) ...[
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.of(
-                                                context,
-                                              ).accent.withValues(alpha: 0.15),
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                              border: Border.all(
-                                                color: AppColors.of(context)
-                                                    .accent
-                                                    .withValues(
-                                                      alpha: 0.3,
-                                                    ),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              teamT.you,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.of(
-                                                  context,
-                                                ).accent,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    if (displayName != null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        email,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.of(context)
-                                              .textPrimary
-                                              .withValues(
-                                                alpha: 0.4,
-                                              ),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                                width: 120,
+                                height: 14,
+                                color: Colors.grey,
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 180,
+                            height: 12,
+                            color: Colors.grey,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text(
+            e.toString(),
+            style: TextStyle(
+              color: Colors.red.withValues(alpha: 0.8),
+              fontSize: 13,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+      data: (members) {
+        final sorted = [...members]
+          ..sort((a, b) {
+            if (a.uid == currentUid) return -1;
+            if (b.uid == currentUid) return 1;
+            return 0;
+          });
+
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          itemCount: sorted.length + 1,
+          separatorBuilder: (_, index) =>
+              index == 0 ? const SizedBox.shrink() : const SizedBox(height: 2),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.of(context).divider,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.of(context).border,
+                        ),
+                      ),
+                      child: Text(
+                        teamT.membersCount(count: members.length),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.of(context).textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final member = sorted[index - 1];
+            final isCurrentUser = member.uid == currentUid;
+            final displayName = member.displayName;
+            final email = member.email ?? teamT.noEmail;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: AppColors.of(context).surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.of(context).divider,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.of(context).surfaceTertiary,
+                        image: member.photoURL != null
+                            ? DecorationImage(
+                                image: NetworkImage(member.photoURL!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: member.photoURL == null
+                          ? Center(
+                              child: Text(
+                                _getInitials(displayName ?? email),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.of(
+                                    context,
+                                  ).textPrimary.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName ?? email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.of(context).textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isCurrentUser) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.of(
+                                      context,
+                                    ).accent.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: AppColors.of(
+                                        context,
+                                      ).accent.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    teamT.you,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.of(context).accent,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (displayName != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              email,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.of(
+                                  context,
+                                ).textPrimary.withValues(alpha: 0.4),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
