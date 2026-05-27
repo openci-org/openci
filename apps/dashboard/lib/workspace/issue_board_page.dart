@@ -1,5 +1,5 @@
-import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
@@ -31,10 +31,6 @@ class IssueBoardBody extends ConsumerWidget {
   }
 
   Future<void> _showSwitchTeamBottomSheet(BuildContext context) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => const SwitchTeamBottomSheet(),
-    );
+    return showTeamFlowModal(context);
   }
 }
