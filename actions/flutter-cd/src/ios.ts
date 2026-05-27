@@ -610,7 +610,9 @@ async function handleOtaDistribution(ipaPath: string): Promise<void> {
   }
 
   if (!serviceAccountJson) {
-    console.log("  ⚠️ Skipping OTA distribution: firebase-service-account or OPENCI_SERVICE_ACCOUNT is not set.");
+    console.log(
+      "  ⚠️ Skipping OTA distribution: firebase-service-account or OPENCI_SERVICE_ACCOUNT is not set.",
+    );
     return;
   }
 
