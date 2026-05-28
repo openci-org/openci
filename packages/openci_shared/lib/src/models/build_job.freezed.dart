@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'build_jobs_provider.dart';
+part of 'build_job.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -13,7 +13,7 @@ part of 'build_jobs_provider.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$BuildJob implements DiagnosticableTreeMixin {
+mixin _$BuildJob {
 
  String get id; BuildJobStatus get status; String get owner; String get repo; String get workflowName; String? get teamId; String? get workflowId; String? get workflowFileName; String? get commitSha; int? get pullRequestNumber; int? get runCount; String? get latestRunId; String? get tagName; String? get branch; String? get jobKey; String? get workflowJobKey; Map<String, Object?>? get matrix; String? get matrixLabel; String? get workflowRunId; List<String>? get needs; String? get failureSummary; String? get failureSummaryModel; String? get failureSummaryStatus; int? get failureSummaryDurationMs; List<String>? get provisionedUdids; String? get ipaUrl; bool? get hasIpa; String? get bundleId; String? get ipaVersion; String? get appName;@DateTimeConverter() DateTime get createdAt;@DateTimeConverter() DateTime get updatedAt;@DateTimeConverter() DateTime? get completedAt;
 /// Create a copy of BuildJob
@@ -25,12 +25,6 @@ $BuildJobCopyWith<BuildJob> get copyWith => _$BuildJobCopyWithImpl<BuildJob>(thi
   /// Serializes this BuildJob to a JSON map.
   Map<String, dynamic> toJson();
 
-@override
-void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-  properties
-    ..add(DiagnosticsProperty('type', 'BuildJob'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('owner', owner))..add(DiagnosticsProperty('repo', repo))..add(DiagnosticsProperty('workflowName', workflowName))..add(DiagnosticsProperty('teamId', teamId))..add(DiagnosticsProperty('workflowId', workflowId))..add(DiagnosticsProperty('workflowFileName', workflowFileName))..add(DiagnosticsProperty('commitSha', commitSha))..add(DiagnosticsProperty('pullRequestNumber', pullRequestNumber))..add(DiagnosticsProperty('runCount', runCount))..add(DiagnosticsProperty('latestRunId', latestRunId))..add(DiagnosticsProperty('tagName', tagName))..add(DiagnosticsProperty('branch', branch))..add(DiagnosticsProperty('jobKey', jobKey))..add(DiagnosticsProperty('workflowJobKey', workflowJobKey))..add(DiagnosticsProperty('matrix', matrix))..add(DiagnosticsProperty('matrixLabel', matrixLabel))..add(DiagnosticsProperty('workflowRunId', workflowRunId))..add(DiagnosticsProperty('needs', needs))..add(DiagnosticsProperty('failureSummary', failureSummary))..add(DiagnosticsProperty('failureSummaryModel', failureSummaryModel))..add(DiagnosticsProperty('failureSummaryStatus', failureSummaryStatus))..add(DiagnosticsProperty('failureSummaryDurationMs', failureSummaryDurationMs))..add(DiagnosticsProperty('provisionedUdids', provisionedUdids))..add(DiagnosticsProperty('ipaUrl', ipaUrl))..add(DiagnosticsProperty('hasIpa', hasIpa))..add(DiagnosticsProperty('bundleId', bundleId))..add(DiagnosticsProperty('ipaVersion', ipaVersion))..add(DiagnosticsProperty('appName', appName))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('completedAt', completedAt));
-}
 
 @override
 bool operator ==(Object other) {
@@ -42,7 +36,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,workflowName,teamId,workflowId,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowJobKey,const DeepCollectionEquality().hash(matrix),matrixLabel,workflowRunId,const DeepCollectionEquality().hash(needs),failureSummary,failureSummaryModel,failureSummaryStatus,failureSummaryDurationMs,const DeepCollectionEquality().hash(provisionedUdids),ipaUrl,hasIpa,bundleId,ipaVersion,appName,createdAt,updatedAt,completedAt]);
 
 @override
-String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+String toString() {
   return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, workflowName: $workflowName, teamId: $teamId, workflowId: $workflowId, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowJobKey: $workflowJobKey, matrix: $matrix, matrixLabel: $matrixLabel, workflowRunId: $workflowRunId, needs: $needs, failureSummary: $failureSummary, failureSummaryModel: $failureSummaryModel, failureSummaryStatus: $failureSummaryStatus, failureSummaryDurationMs: $failureSummaryDurationMs, provisionedUdids: $provisionedUdids, ipaUrl: $ipaUrl, hasIpa: $hasIpa, bundleId: $bundleId, ipaVersion: $ipaVersion, appName: $appName, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
 }
 
@@ -246,7 +240,7 @@ return $default(_that.id,_that.status,_that.owner,_that.repo,_that.workflowName,
 /// @nodoc
 @JsonSerializable()
 
-class _BuildJob extends BuildJob with DiagnosticableTreeMixin {
+class _BuildJob extends BuildJob {
   const _BuildJob({required this.id, required this.status, required this.owner, required this.repo, required this.workflowName, this.teamId, this.workflowId, this.workflowFileName, this.commitSha, this.pullRequestNumber, this.runCount, this.latestRunId, this.tagName, this.branch, this.jobKey, this.workflowJobKey, final  Map<String, Object?>? matrix, this.matrixLabel, this.workflowRunId, final  List<String>? needs, this.failureSummary, this.failureSummaryModel, this.failureSummaryStatus, this.failureSummaryDurationMs, final  List<String>? provisionedUdids, this.ipaUrl, this.hasIpa, this.bundleId, this.ipaVersion, this.appName, @DateTimeConverter() required this.createdAt, @DateTimeConverter() required this.updatedAt, @DateTimeConverter() this.completedAt}): _matrix = matrix,_needs = needs,_provisionedUdids = provisionedUdids,super._();
   factory _BuildJob.fromJson(Map<String, dynamic> json) => _$BuildJobFromJson(json);
 
@@ -318,12 +312,6 @@ _$BuildJobCopyWith<_BuildJob> get copyWith => __$BuildJobCopyWithImpl<_BuildJob>
 Map<String, dynamic> toJson() {
   return _$BuildJobToJson(this, );
 }
-@override
-void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-  properties
-    ..add(DiagnosticsProperty('type', 'BuildJob'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('owner', owner))..add(DiagnosticsProperty('repo', repo))..add(DiagnosticsProperty('workflowName', workflowName))..add(DiagnosticsProperty('teamId', teamId))..add(DiagnosticsProperty('workflowId', workflowId))..add(DiagnosticsProperty('workflowFileName', workflowFileName))..add(DiagnosticsProperty('commitSha', commitSha))..add(DiagnosticsProperty('pullRequestNumber', pullRequestNumber))..add(DiagnosticsProperty('runCount', runCount))..add(DiagnosticsProperty('latestRunId', latestRunId))..add(DiagnosticsProperty('tagName', tagName))..add(DiagnosticsProperty('branch', branch))..add(DiagnosticsProperty('jobKey', jobKey))..add(DiagnosticsProperty('workflowJobKey', workflowJobKey))..add(DiagnosticsProperty('matrix', matrix))..add(DiagnosticsProperty('matrixLabel', matrixLabel))..add(DiagnosticsProperty('workflowRunId', workflowRunId))..add(DiagnosticsProperty('needs', needs))..add(DiagnosticsProperty('failureSummary', failureSummary))..add(DiagnosticsProperty('failureSummaryModel', failureSummaryModel))..add(DiagnosticsProperty('failureSummaryStatus', failureSummaryStatus))..add(DiagnosticsProperty('failureSummaryDurationMs', failureSummaryDurationMs))..add(DiagnosticsProperty('provisionedUdids', provisionedUdids))..add(DiagnosticsProperty('ipaUrl', ipaUrl))..add(DiagnosticsProperty('hasIpa', hasIpa))..add(DiagnosticsProperty('bundleId', bundleId))..add(DiagnosticsProperty('ipaVersion', ipaVersion))..add(DiagnosticsProperty('appName', appName))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('completedAt', completedAt));
-}
 
 @override
 bool operator ==(Object other) {
@@ -335,7 +323,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hashAll([runtimeType,id,status,owner,repo,workflowName,teamId,workflowId,workflowFileName,commitSha,pullRequestNumber,runCount,latestRunId,tagName,branch,jobKey,workflowJobKey,const DeepCollectionEquality().hash(_matrix),matrixLabel,workflowRunId,const DeepCollectionEquality().hash(_needs),failureSummary,failureSummaryModel,failureSummaryStatus,failureSummaryDurationMs,const DeepCollectionEquality().hash(_provisionedUdids),ipaUrl,hasIpa,bundleId,ipaVersion,appName,createdAt,updatedAt,completedAt]);
 
 @override
-String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+String toString() {
   return 'BuildJob(id: $id, status: $status, owner: $owner, repo: $repo, workflowName: $workflowName, teamId: $teamId, workflowId: $workflowId, workflowFileName: $workflowFileName, commitSha: $commitSha, pullRequestNumber: $pullRequestNumber, runCount: $runCount, latestRunId: $latestRunId, tagName: $tagName, branch: $branch, jobKey: $jobKey, workflowJobKey: $workflowJobKey, matrix: $matrix, matrixLabel: $matrixLabel, workflowRunId: $workflowRunId, needs: $needs, failureSummary: $failureSummary, failureSummaryModel: $failureSummaryModel, failureSummaryStatus: $failureSummaryStatus, failureSummaryDurationMs: $failureSummaryDurationMs, provisionedUdids: $provisionedUdids, ipaUrl: $ipaUrl, hasIpa: $hasIpa, bundleId: $bundleId, ipaVersion: $ipaVersion, appName: $appName, createdAt: $createdAt, updatedAt: $updatedAt, completedAt: $completedAt)';
 }
 
