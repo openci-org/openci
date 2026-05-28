@@ -1,0 +1,43 @@
+name: Functions Dart CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+defaults:
+  run:
+    working-directory: firebase/functions_dart
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Dart pub cache
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: restore
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
+          working-directory: firebase/functions_dart
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Save Dart pub cache
+        if: always()
+        uses: ./actions/flutter-pub-cache
+        with:
+          action: save
+          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: openci-b1b91.firebasestorage.app
+          working-directory: firebase/functions_dart
