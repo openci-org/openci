@@ -539,8 +539,9 @@ async function prepareActWorkflow(input: {
   runId: string;
   readWorkflow: (path: string) => Promise<string>;
   writeWorkflow: (path: string, content: string) => Promise<void>;
+  tmpDir?: string;
 }): Promise<string> {
-  const { buildJob, runId } = input;
+  const { buildJob, runId, tmpDir = "/tmp" } = input;
   const sourceWorkflowPath = `.openci/${buildJob.workflowFileName}`;
   const needs = buildJobNeeds(buildJob);
   const jobKey = workflowJobKey(buildJob);
@@ -566,7 +567,7 @@ async function prepareActWorkflow(input: {
     return sourceWorkflowPath;
   }
 
-  const runtimeWorkflowPath = `/tmp/openci-runtime-${shortJobId(buildJob.id)}.yaml`;
+  const runtimeWorkflowPath = `${tmpDir}/openci-runtime-${shortJobId(buildJob.id)}.yaml`;
   await input.writeWorkflow(runtimeWorkflowPath, result.content);
   await logInfo(
     buildJob.id,
@@ -576,7 +577,7 @@ async function prepareActWorkflow(input: {
   return runtimeWorkflowPath;
 }
 
-export function actScript(buildJob: BuildJob, workflowPath: string): string {
+export function actScript(buildJob: BuildJob, workflowPath: string, tmpDir = "/tmp"): string {
   const eventType = buildJob.pullRequestNumber ? "pull_request" : "push";
   const jobKey = workflowJobKey(buildJob);
   const jobFlag = jobKey ? `-j ${shellQuote(jobKey)} ` : "";
@@ -589,9 +590,9 @@ export function actScript(buildJob: BuildJob, workflowPath: string): string {
       "-P macos-14=-self-hosted " +
       "-P macos-15=-self-hosted " +
       "-P ubuntu-latest=-self-hosted " +
-      "-e /tmp/openci-event.json " +
-      "--env-file /tmp/openci-env " +
-      "--secret-file /tmp/openci-secrets",
+      ` -e ${shellQuote(tmpDir + "/openci-event.json")} ` +
+      `--env-file ${shellQuote(tmpDir + "/openci-env")} ` +
+      `--secret-file ${shellQuote(tmpDir + "/openci-secrets")}`,
   ].join("\n");
 }
 
@@ -952,9 +953,17 @@ async function runMacVmBuild(input: {
     const vmIp = await getVmIp(vmName);
     await logInfo(buildJob.id, runId, "VM is ready!");
 
-    await writeFileToVm(vmName, "/tmp/openci-env", envFileContent(envVars));
-    await writeFileToVm(vmName, "/tmp/openci-secrets", envFileContent(secretVars));
-    await writeFileToVm(vmName, "/tmp/openci-event.json", buildEventPayload(buildJob));
+    const vmTmpDir = "/Users/admin/.openci-tmp";
+    await runSimpleWithRetry(
+      "lume",
+      lumeSshArgs(vmName, `mkdir -p ${vmTmpDir}`),
+      `Failed to create VM temp directory ${vmTmpDir}`,
+      3,
+    );
+
+    await writeFileToVm(vmName, `${vmTmpDir}/openci-env`, envFileContent(envVars));
+    await writeFileToVm(vmName, `${vmTmpDir}/openci-secrets`, envFileContent(secretVars));
+    await writeFileToVm(vmName, `${vmTmpDir}/openci-event.json`, buildEventPayload(buildJob));
 
     await logInfo(buildJob.id, runId, `Cloning repository ${buildJob.owner}/${buildJob.repo}...`);
     const cloneUrl = `https://x-access-token:${buildJob.installationToken}@${githubHost(buildJob)}/${buildJob.owner}/${buildJob.repo}.git`;
@@ -990,11 +999,16 @@ async function runMacVmBuild(input: {
           `Failed to read workflow ${path}`,
         ),
       writeWorkflow: (path, content) => writeFileToVm(vmName, path, content),
+      tmpDir: vmTmpDir,
     });
-    await writeFileToVm(vmName, "/tmp/openci-act.sh", actScript(buildJob, workflowPath));
+    await writeFileToVm(
+      vmName,
+      `${vmTmpDir}/openci-act.sh`,
+      actScript(buildJob, workflowPath, vmTmpDir),
+    );
     await runProcess({
       command: "lume",
-      args: lumeSshArgs(vmName, "chmod +x /tmp/openci-act.sh"),
+      args: lumeSshArgs(vmName, `chmod +x ${vmTmpDir}/openci-act.sh`),
       buildJob,
       runId,
       logOutput: true,
@@ -1002,7 +1016,7 @@ async function runMacVmBuild(input: {
     await runCancellableAct(buildJob, runId, (signal) =>
       runProcess({
         command: "ssh",
-        args: directSshArgs(vmIp, ["/bin/zsh", "-l", "/tmp/openci-act.sh"]),
+        args: directSshArgs(vmIp, ["/bin/zsh", "-l", `${vmTmpDir}/openci-act.sh`]),
         buildJob,
         runId,
         logOutput: true,
