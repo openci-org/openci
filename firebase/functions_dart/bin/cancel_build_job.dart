@@ -39,10 +39,7 @@ Future<Map<String, dynamic>> cancelBuildJob(
   }
 
   final jobData = jobDoc.data()!;
-  final job = BuildJob.fromJson({
-    ...jobData,
-    'id': buildJobId,
-  });
+  final job = BuildJob.fromJson(jobData);
 
   if (job.status != BuildJobStatus.QUEUED &&
       job.status != BuildJobStatus.IN_PROGRESS) {
@@ -65,8 +62,8 @@ Future<Map<String, dynamic>> cancelBuildJob(
   }
 
   final teamData = teamDoc.data()!;
-  final List<dynamic> members = teamData['members'] as List<dynamic>? ?? [];
-  if (!members.contains(auth.uid)) {
+  final team = Team.fromJson(teamData);
+  if (!team.members.contains(auth.uid)) {
     throw PermissionDeniedError(
       'You are not a member of this team',
     );
