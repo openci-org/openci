@@ -5,5 +5,12 @@ environment:
   sdk: 3.11.5
 
 workspace:
-  - packages/macos_updater
   - apps/dashboard
+  - firebase/functions_dart
+  - packages/macos_updater
+  - packages/openci_shared
+
+
+dependency_overrides:
+  analyzer: 9.0.0
+

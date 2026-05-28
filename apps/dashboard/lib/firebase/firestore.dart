@@ -1,30 +1,15 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:openci_shared/openci_shared.dart';
+export 'package:openci_shared/openci_shared.dart';
+
+
 
 FirebaseFirestore get firestore => FirebaseFirestore.instance;
 
-enum BuildJobStatus {
-  WAITING,
-  QUEUED,
-  IN_PROGRESS,
-  SUCCESS,
-  FAILURE,
-  CANCELLED,
-  SKIPPED,
-  TIMED_OUT,
-}
 
-const teamsCollection = 'teams_v0';
-const usersCollection = 'users_v0';
-const buildJobsCollection = 'build_jobs_v0';
-const ciCdFixRequestsCollection = 'ci_cd_fix_requests_v0';
-const workerInstancesCollection = 'worker_instances_v0';
-const workflowsCollection = 'workflows_v1';
-const workflowFilesCollection = 'workflow_files_v0';
-const secretsCollection = 'secrets_v0';
-const environmentVariablesCollection = 'environment_variables_v0';
-const udidRequestsCollection = 'udid_requests_v0';
+
 
 DateTime dateTimeFromFirestore(Object? value) {
   if (value is Timestamp) return value.toDate();

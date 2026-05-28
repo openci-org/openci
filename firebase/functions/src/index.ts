@@ -15,7 +15,6 @@ export {
   ascSubmitToTestFlight,
 } from "./asc/ascHandlers.js";
 export { buildJobStatusChange } from "./buildJob/buildJobStatusChange.js";
-export { cancelBuildJob } from "./buildJob/cancelBuildJob.js";
 export { checkRunUpdate } from "./buildJob/checkRunUpdate.js";
 export {
   generateFailureSummary,

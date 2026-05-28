@@ -2,14 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/users/user_provider.dart';
-import 'package:dashboard/utilities/date_time_converter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
+export 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-part 'build_jobs_provider.freezed.dart';
 part 'build_jobs_provider.g.dart';
+
 
 const _buildJobsHistoryLimit = 100;
 
@@ -101,8 +100,7 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
-    final functions = firebaseFunctions;
-    await functions.httpsCallable('cancelBuildJob').call({
+    await getCancelBuildJobCallable().call({
       'buildJobId': buildJobId,
     });
     ref.invalidateSelf();
@@ -254,62 +252,8 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
       });
 }
 
-@freezed
-abstract class BuildJob with _$BuildJob {
-  const BuildJob._();
 
-  const factory BuildJob({
-    required String id,
-    required BuildJobStatus status,
-    required String owner,
-    required String repo,
-    required String workflowName,
-    String? teamId,
-    String? workflowId,
-    String? workflowFileName,
-    String? commitSha,
-    int? pullRequestNumber,
-    int? runCount,
-    String? latestRunId,
-    String? tagName,
-    String? branch,
-    String? jobKey,
-    String? workflowJobKey,
-    Map<String, Object?>? matrix,
-    String? matrixLabel,
-    String? workflowRunId,
-    List<String>? needs,
-    String? failureSummary,
-    String? failureSummaryModel,
-    String? failureSummaryStatus,
-    int? failureSummaryDurationMs,
-    List<String>? provisionedUdids,
-    String? ipaUrl,
-    bool? hasIpa,
-    String? bundleId,
-    String? ipaVersion,
-    String? appName,
-    @DateTimeConverter() required DateTime createdAt,
-    @DateTimeConverter() required DateTime updatedAt,
-    @DateTimeConverter() DateTime? completedAt,
-  }) = _BuildJob;
 
-  factory BuildJob.fromJson(Map<String, Object?> json) =>
-      _$BuildJobFromJson(json);
-
-  String? get displayMatrixLabel {
-    if (matrixLabel != null && matrixLabel!.isNotEmpty) {
-      return matrixLabel;
-    }
-    if (matrix == null || matrix!.isEmpty) {
-      return null;
-    }
-    if (matrix!.containsKey('name') && matrix!['name'] is String) {
-      return matrix!['name'] as String;
-    }
-    return matrix!.values.map((v) => v.toString()).join(' / ');
-  }
-}
 
 @riverpod
 Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {

@@ -4,7 +4,6 @@ import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/build_logs/cicd_fix_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
-import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/function_error_message.dart';

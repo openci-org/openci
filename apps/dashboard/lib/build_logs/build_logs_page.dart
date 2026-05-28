@@ -11,7 +11,6 @@ import 'package:dashboard/build_logs/chips/matrix_job_chip.dart';
 import 'package:dashboard/build_logs/job_card.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
-import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
@@ -796,7 +795,9 @@ class WorkflowRunCard extends HookConsumerWidget {
       );
     } else {
       // ── パターンB: needs依存関係による並列分岐 ───────────────────
-      final jobsMap = {for (final entry in groups.entries) entry.key: entry.value.first};
+      final jobsMap = {
+        for (final entry in groups.entries) entry.key: entry.value.first,
+      };
       final requiredBy = <String>{};
       for (final job in jobs) {
         if (job.needs != null) {
@@ -804,8 +805,12 @@ class WorkflowRunCard extends HookConsumerWidget {
         }
       }
 
-      final leafJobKeys = groups.keys.where((key) => !requiredBy.contains(key)).toList();
-      final effectiveLeafKeys = leafJobKeys.isEmpty ? groups.keys.toList() : leafJobKeys;
+      final leafJobKeys = groups.keys
+          .where((key) => !requiredBy.contains(key))
+          .toList();
+      final effectiveLeafKeys = leafJobKeys.isEmpty
+          ? groups.keys.toList()
+          : leafJobKeys;
 
       // トポロジカルソート
       final depJobKeys = <String>[];
@@ -905,14 +910,18 @@ class WorkflowRunCard extends HookConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (var variantIndex = 0;
-                      variantIndex < groupJobs.length;
-                      variantIndex++)
+                  for (
+                    var variantIndex = 0;
+                    variantIndex < groupJobs.length;
+                    variantIndex++
+                  )
                     InkWell(
                       borderRadius: BorderRadius.circular(6),
-                      onTap: () => onOpenBuildJob?.call(groupJobs[variantIndex]),
+                      onTap: () =>
+                          onOpenBuildJob?.call(groupJobs[variantIndex]),
                       child: BranchMatrixVariantRow(
-                        variantLabel: groupJobs[variantIndex].displayMatrixLabel ??
+                        variantLabel:
+                            groupJobs[variantIndex].displayMatrixLabel ??
                             _buildJobDisplayKey(groupJobs[variantIndex]),
                         status: _toChipStatus(groupJobs[variantIndex].status),
                         parentIndex: i,
@@ -945,7 +954,8 @@ class WorkflowRunCard extends HookConsumerWidget {
         }
       }
 
-      final representativeJob = jobsMap[effectiveLeafKeys.firstOrNull ?? 'unknown'] ?? mainJob;
+      final representativeJob =
+          jobsMap[effectiveLeafKeys.firstOrNull ?? 'unknown'] ?? mainJob;
 
       return JobCard(
         status: overallStatus,
@@ -1069,8 +1079,6 @@ String _buildJobDisplayKey(BuildJob job) {
   if (jobKey != null && jobKey.isNotEmpty) return jobKey;
   return 'Unnamed Job';
 }
-
-
 
 class _LiveDurationBadge extends HookConsumerWidget {
   const _LiveDurationBadge({required this.buildJob});
@@ -1271,7 +1279,9 @@ class _InlineLiveDuration extends HookConsumerWidget {
       final durationAsync = ref.watch(runDurationProvider(buildJob));
       return durationAsync.when(
         data: (duration) {
-          if (duration == null || duration.isNegative || duration.inSeconds == 0) {
+          if (duration == null ||
+              duration.isNegative ||
+              duration.inSeconds == 0) {
             return const SizedBox.shrink();
           }
           return Text(

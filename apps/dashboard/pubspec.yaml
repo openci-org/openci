@@ -41,6 +41,9 @@ dependencies:
   material_symbols_icons: ^4.2928.1
   macos_updater:
     path: ../../packages/macos_updater
+  openci_shared:
+    path: ../../packages/openci_shared
+
   package_info_plus: ^10.1.0
   purchases_flutter: ^10.0.2
   re_editor: ^0.8.0

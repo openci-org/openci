@@ -4,31 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/users/user_provider.dart';
-import 'package:dashboard/utilities/date_time_converter.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-part 'team_provider.freezed.dart';
+export 'package:openci_shared/openci_shared.dart' show Team;
+
 part 'team_provider.g.dart';
-
-@freezed
-abstract class Team with _$Team {
-  const factory Team({
-    required String id,
-    required String name,
-    required List<String> members,
-    @Default([]) List<int> installationIds,
-    @Default(1) int runNumber,
-    @Default(true) bool aiEnabled,
-    String? githubBaseUrl,
-    String? githubApiBaseUrl,
-    @DateTimeConverter() required DateTime createdAt,
-    @DateTimeConverter() required DateTime updatedAt,
-  }) = _Team;
-
-  factory Team.fromJson(Map<String, Object?> json) => _$TeamFromJson(json);
-}
 
 final teamList = [
   Team(

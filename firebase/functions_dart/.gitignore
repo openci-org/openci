@@ -1,0 +1,6 @@
+# Dart workspaces / package settings
+.dart_tool/
+.packages
+
+# Compiled executable binaries
+bin/server
