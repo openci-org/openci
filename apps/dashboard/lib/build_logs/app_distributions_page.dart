@@ -1,3 +1,5 @@
+import 'dart:io' as io;
+
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
@@ -1130,10 +1132,16 @@ class _IosDistributionQrDialog extends HookWidget {
                   onPressed: () async {
                     final uri = Uri.parse(installUrl);
                     try {
-                      await launchUrl(
+                      final success = await launchUrl(
                         uri,
                         mode: LaunchMode.externalApplication,
                       );
+                      if (success && !kIsWeb) {
+                        await Future<void>.delayed(
+                          const Duration(milliseconds: 500),
+                        );
+                        io.exit(0);
+                      }
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
