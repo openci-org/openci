@@ -89,7 +89,7 @@ jobs:
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
-          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} --dart-define=FUNCTIONS_PROJECT_NUMBER=${{ secrets.FUNCTIONS_PROJECT_NUMBER }}"
           distribution-method: "ad-hoc"
           upload-to-app-store-connect: "false"
           certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
@@ -109,7 +109,7 @@ jobs:
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
-          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} --dart-define=FUNCTIONS_PROJECT_NUMBER=${{ secrets.FUNCTIONS_PROJECT_NUMBER }}"
           distribution-method: "app-store"
           upload-to-app-store-connect: "true"
           certificate-private-key: ${{ secrets.OPENCI_CERTIFICATE_PRIVATE_KEY }}
@@ -198,7 +198,7 @@ jobs:
           working-directory: "/Users/admin/openci-workspaces/openci-org-openci-macos/apps/dashboard"
           swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
-          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}"
+          build-args: "--dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }} --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} --dart-define=FUNCTIONS_PROJECT_NUMBER=${{ secrets.FUNCTIONS_PROJECT_NUMBER }}"
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
@@ -496,6 +496,7 @@ jobs:
           REVENUE_CAT_API_KEY: ${{ secrets.REVENUE_CAT_API_KEY }}
           REVENUE_CAT_WEB_API_KEY: ${{ secrets.REVENUE_CAT_WEB_API_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          FUNCTIONS_PROJECT_NUMBER: ${{ secrets.FUNCTIONS_PROJECT_NUMBER }}
         run: |
           BUILD_UPDATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           BUILD_SHA="$(git rev-parse --short HEAD)"
@@ -505,6 +506,7 @@ jobs:
             --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
             --dart-define=REVENUE_CAT_WEB_API_KEY="$REVENUE_CAT_WEB_API_KEY" \
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=FUNCTIONS_PROJECT_NUMBER="$FUNCTIONS_PROJECT_NUMBER" \
             --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
             --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA"
 

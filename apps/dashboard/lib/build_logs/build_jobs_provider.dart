@@ -101,8 +101,7 @@ class BuildJobs extends _$BuildJobs {
   }
 
   Future<void> cancelBuildJob(String buildJobId) async {
-    final functions = firebaseFunctions;
-    await functions.httpsCallable('cancelBuildJob').call({
+    await getCancelBuildJobCallable().call({
       'buildJobId': buildJobId,
     });
     ref.invalidateSelf();
