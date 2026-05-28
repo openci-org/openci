@@ -1,0 +1,8 @@
+name: openci_shared
+description: Shared constants and utility models for OpenCI organization.
+version: 1.0.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: "3.11.5"
