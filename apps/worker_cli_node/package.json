@@ -24,7 +24,6 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && node scripts/build.mjs",
     "check": "tsc --noEmit",
-    "dev": "tsx src/index.ts",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
     "lint": "vp lint",
