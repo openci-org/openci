@@ -39,6 +39,10 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   bundleId: json['bundleId'] as String?,
   ipaVersion: json['ipaVersion'] as String?,
   appName: json['appName'] as String?,
+  otaDownloadedAt: _$JsonConverterFromJson<Object, DateTime>(
+    json['otaDownloadedAt'],
+    const DateTimeConverter().fromJson,
+  ),
   createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
   completedAt: _$JsonConverterFromJson<Object, DateTime>(
@@ -78,6 +82,10 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'bundleId': instance.bundleId,
   'ipaVersion': instance.ipaVersion,
   'appName': instance.appName,
+  'otaDownloadedAt': _$JsonConverterToJson<Object, DateTime>(
+    instance.otaDownloadedAt,
+    const DateTimeConverter().toJson,
+  ),
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
   'completedAt': _$JsonConverterToJson<Object, DateTime>(

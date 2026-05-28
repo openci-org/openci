@@ -121,7 +121,7 @@
       "rewrites": [
         {
           "source": "/iosManifest",
-          "function": "iosManifest",
+          "function": "ios-manifest",
           "region": "asia-northeast1"
         },
         {

@@ -59,6 +59,7 @@ abstract class BuildJob with _$BuildJob {
     String? bundleId,
     String? ipaVersion,
     String? appName,
+    @DateTimeConverter() DateTime? otaDownloadedAt,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
     @DateTimeConverter() DateTime? completedAt,

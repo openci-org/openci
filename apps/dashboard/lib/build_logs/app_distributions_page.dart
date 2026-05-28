@@ -1154,12 +1154,9 @@ class _IosDistributionQrDialog extends HookWidget {
                             final data = snapshot.data();
                             if (data == null) return;
 
-                            final otaDownloadedAtStr =
-                                data['otaDownloadedAt'] as String?;
-                            if (otaDownloadedAtStr != null) {
-                              final otaDownloadedAt = DateTime.parse(
-                                otaDownloadedAtStr,
-                              );
+                            final job = BuildJob.fromJson(data);
+                            final otaDownloadedAt = job.otaDownloadedAt;
+                            if (otaDownloadedAt != null) {
                               if (otaDownloadedAt.isAfter(
                                 requestTime.subtract(
                                   const Duration(seconds: 2),

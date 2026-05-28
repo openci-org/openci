@@ -1,6 +1,7 @@
 import 'package:firebase_functions/firebase_functions.dart';
 
 import 'cancel_build_job.dart';
+import 'ios_manifest.dart';
 
 void main(List<String> args) {
   runFunctions((firebase) {
@@ -12,6 +13,15 @@ void main(List<String> args) {
         cors: Option(['*']),
       ),
       (request, response) => cancelBuildJob(request, firebase),
+    );
+
+    firebase.https.onRequest(
+      name: 'iosManifest',
+      options: const HttpsOptions(
+        region: Region(SupportedRegion.asiaNortheast1),
+        cors: Option(['*']),
+      ),
+      (request) => iosManifest(request, firebase),
     );
   });
 }
