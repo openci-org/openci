@@ -31,7 +31,8 @@ export const iosManifest = onRequest(async (request, response) => {
 
   try {
     const db = getFirestore();
-    const doc = await db.collection("build_jobs_v0").doc(buildJobId).get();
+    const docRef = db.collection("build_jobs_v0").doc(buildJobId);
+    const doc = await docRef.get();
 
     if (!doc.exists) {
       logger.warn(`iosManifest: Build job ${buildJobId} not found`);
@@ -45,6 +46,10 @@ export const iosManifest = onRequest(async (request, response) => {
       response.status(404).send("Build job data is empty");
       return;
     }
+
+    await docRef.update({
+      otaDownloadedAt: new Date().toISOString(),
+    });
 
     const ipaUrl = data.ipaUrl;
     const bundleId = data.bundleId || "org.openci.dashboard";

@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io' as io;
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
@@ -1129,17 +1133,64 @@ class _IosDistributionQrDialog extends HookWidget {
                   ),
                   onPressed: () async {
                     final uri = Uri.parse(installUrl);
+
+                    final requestTime = DateTime.now().toUtc();
+                    StreamSubscription<DocumentSnapshot>? subscription;
+                    Timer? timeoutTimer;
+
+                    void cleanup() {
+                      subscription?.cancel();
+                      timeoutTimer?.cancel();
+                    }
+
+                    if (defaultTargetPlatform == TargetPlatform.iOS ||
+                        defaultTargetPlatform == TargetPlatform.android) {
+                      subscription = firestore
+                          .collection(buildJobsCollection)
+                          .doc(buildJob.id)
+                          .snapshots()
+                          .listen((snapshot) {
+                            if (!snapshot.exists) return;
+                            final data = snapshot.data();
+                            if (data == null) return;
+
+                            final otaDownloadedAtStr =
+                                data['otaDownloadedAt'] as String?;
+                            if (otaDownloadedAtStr != null) {
+                              final otaDownloadedAt = DateTime.parse(
+                                otaDownloadedAtStr,
+                              );
+                              if (otaDownloadedAt.isAfter(
+                                requestTime.subtract(
+                                  const Duration(seconds: 2),
+                                ),
+                              )) {
+                                cleanup();
+                                io.exit(0);
+                              }
+                            }
+                          });
+
+                      timeoutTimer = Timer(const Duration(seconds: 60), () {
+                        cleanup();
+                      });
+                    }
+
                     try {
                       final success = await launchUrl(
                         uri,
                         mode: LaunchMode.externalApplication,
                       );
-                      if (!success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('リンクを開けませんでした。')),
-                        );
+                      if (!success) {
+                        cleanup();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('リンクを開けませんでした。')),
+                          );
+                        }
                       }
                     } catch (e) {
+                      cleanup();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('リンクを開けませんでした。')),
