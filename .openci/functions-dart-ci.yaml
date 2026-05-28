@@ -28,10 +28,10 @@ jobs:
           working-directory: firebase/functions_dart
 
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
 
       - name: Analyze
-        run: dart analyze
+        run: flutter analyze
 
       - name: Save Dart pub cache
         if: always()
