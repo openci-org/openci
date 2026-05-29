@@ -9,6 +9,8 @@ workspace:
   - firebase/functions_dart
   - packages/macos_updater
   - packages/openci_shared
+  - packages/app_minimizer_plus
+
 
 dependency_overrides:
   analyzer: 9.0.0

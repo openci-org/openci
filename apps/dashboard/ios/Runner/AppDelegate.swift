@@ -12,19 +12,5 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-
-    let messenger = engineBridge.applicationRegistrar.messenger()
-    let channel = FlutterMethodChannel(name: "org.openci.dashboard/app_control",
-                                      binaryMessenger: messenger)
-    channel.setMethodCallHandler({
-      (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-      if call.method == "sendToBackground" {
-        let selector = NSSelectorFromString("suspend")
-        UIControl().sendAction(selector, to: UIApplication.shared, for: nil)
-        result(true)
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    })
   }
 }
