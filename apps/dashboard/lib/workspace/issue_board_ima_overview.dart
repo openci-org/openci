@@ -13,35 +13,11 @@ import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'issue_board_ima_utils.dart';
+
+import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_issue_editor.dart';
 import 'issue_board_ima_models.dart';
-import 'issue_board_ima_app_shell.dart';
-
-class BoardHeader extends StatelessWidget {
-  const BoardHeader({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'OpenCI',
-            style: textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+import 'issue_board_ima_utils.dart';
 
 class TeamSwitcherButton extends StatelessWidget {
   const TeamSwitcherButton({
