@@ -1,4 +1,3 @@
-import 'dart:io' as io;
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
@@ -1132,38 +1131,54 @@ class _IosDistributionQrDialog extends HookWidget {
                     ),
                   ),
                   onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: colors.surfaceHover,
+                        surfaceTintColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: colors.border),
+                        ),
+                        title: const Text('インストールの開始'),
+                        content: const Text(
+                          'アプリをホーム画面に戻し、上書きインストールの準備を開始します。よろしいですか？\n\n'
+                          '※ホーム画面に戻った後、iOSシステムから「インストールしますか？」というダイアログが表示されます。',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'キャンセル',
+                              style: TextStyle(color: colors.textSecondary),
+                            ),
+                          ),
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colors.success,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('開始する'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm != true) return;
+
                     try {
+                      final uri = Uri.parse(installUrl);
+                      await launchUrl(uri);
                       if (!kIsWeb) {
-                        final success = await _appControlChannel
-                            .invokeMethod<bool>(
-                              'installAndMinimize',
-                              {'url': installUrl},
-                            );
-                        if (success == false) {
-                          final uri = Uri.parse(installUrl);
-                          await launchUrl(uri);
-                          io.exit(0);
-                        }
-                      } else {
-                        final uri = Uri.parse(installUrl);
-                        await launchUrl(uri);
+                        await _appControlChannel.invokeMethod<void>('sendToBackground');
                       }
                     } catch (e) {
-                      try {
-                        final uri = Uri.parse(installUrl);
-                        await launchUrl(uri);
-                        if (!kIsWeb) {
-                          await Future<void>.delayed(
-                            const Duration(milliseconds: 500),
-                          );
-                          io.exit(0);
-                        }
-                      } catch (innerError) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('リンクを開けませんでした。')),
-                          );
-                        }
+                      debugPrint('Error calling sendToBackground: $e');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('リンクを開けませんでした。')),
+                        );
                       }
                     }
                   },
