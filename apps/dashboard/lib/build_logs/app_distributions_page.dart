@@ -942,6 +942,8 @@ class QrCodeWidget extends StatelessWidget {
   }
 }
 
+const _appControlChannel = MethodChannel('org.openci.dashboard/app_control');
+
 class _IosDistributionQrDialog extends HookWidget {
   const _IosDistributionQrDialog({required this.buildJob});
 
@@ -1130,23 +1132,38 @@ class _IosDistributionQrDialog extends HookWidget {
                     ),
                   ),
                   onPressed: () async {
-                    final uri = Uri.parse(installUrl);
                     try {
-                      final success = await launchUrl(
-                        uri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                      if (success && !kIsWeb) {
-                        await Future<void>.delayed(
-                          const Duration(milliseconds: 500),
-                        );
-                        io.exit(0);
+                      if (!kIsWeb) {
+                        final success = await _appControlChannel
+                            .invokeMethod<bool>(
+                              'installAndMinimize',
+                              {'url': installUrl},
+                            );
+                        if (success == false) {
+                          final uri = Uri.parse(installUrl);
+                          await launchUrl(uri);
+                          io.exit(0);
+                        }
+                      } else {
+                        final uri = Uri.parse(installUrl);
+                        await launchUrl(uri);
                       }
                     } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('リンクを開けませんでした。')),
-                        );
+                      try {
+                        final uri = Uri.parse(installUrl);
+                        await launchUrl(uri);
+                        if (!kIsWeb) {
+                          await Future<void>.delayed(
+                            const Duration(milliseconds: 500),
+                          );
+                          io.exit(0);
+                        }
+                      } catch (innerError) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('リンクを開けませんでした。')),
+                          );
+                        }
                       }
                     }
                   },
