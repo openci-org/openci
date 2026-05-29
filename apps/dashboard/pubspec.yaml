@@ -43,6 +43,8 @@ dependencies:
     path: ../../packages/macos_updater
   openci_shared:
     path: ../../packages/openci_shared
+  app_minimizer_plus:
+    path: ../../packages/app_minimizer_plus
 
   package_info_plus: ^10.1.0
   purchases_flutter: ^10.0.2

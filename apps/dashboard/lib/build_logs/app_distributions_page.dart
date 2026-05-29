@@ -1,4 +1,5 @@
 
+import 'package:app_minimizer_plus/app_minimizer_plus.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
@@ -941,7 +942,6 @@ class QrCodeWidget extends StatelessWidget {
   }
 }
 
-const _appControlChannel = MethodChannel('org.openci.dashboard/app_control');
 
 class _IosDistributionQrDialog extends HookWidget {
   const _IosDistributionQrDialog({required this.buildJob});
@@ -1171,7 +1171,7 @@ class _IosDistributionQrDialog extends HookWidget {
                       final uri = Uri.parse(installUrl);
                       await launchUrl(uri);
                       if (!kIsWeb) {
-                        await _appControlChannel.invokeMethod<void>('sendToBackground');
+                        await AppMinimizer.minimize();
                       }
                     } catch (e) {
                       debugPrint('Error calling sendToBackground: $e');
