@@ -12,14 +12,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'issue_board_ima_utils.dart';
-import 'issue_board_ima_toolbar_search.dart';
-import 'issue_board_ima_issue_editor.dart';
-import 'issue_board_ima_navigation.dart';
-import 'issue_board_ima_board_columns.dart';
-import 'issue_board_ima_models.dart';
+
 import 'issue_board_ima_app_shell.dart';
+import 'issue_board_ima_board_columns.dart';
+import 'issue_board_ima_issue_editor.dart';
+import 'issue_board_ima_models.dart';
+import 'issue_board_ima_navigation.dart';
 import 'issue_board_ima_overview.dart';
+import 'issue_board_ima_toolbar_search.dart';
+import 'issue_board_ima_utils.dart';
 
 class IssueBoardPage extends StatefulWidget {
   const IssueBoardPage({
@@ -433,7 +434,8 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
       finalStateReason = await showDialog<String>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => _CloseIssueConfirmDialog(title: movingIssue.title),
+        builder: (context) =>
+            _CloseIssueConfirmDialog(title: movingIssue.title),
       );
       if (finalStateReason == null) {
         setState(() {});
@@ -467,7 +469,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
         pullRequests: shouldUnlinkPullRequests
             ? const <IssuePullRequest>[]
             : null,
-        githubStateReason: targetColumnId == closedStatusId ? finalStateReason : null,
+        githubStateReason: targetColumnId == closedStatusId
+            ? finalStateReason
+            : null,
         clearGithubStateReason: targetColumnId != closedStatusId,
       ),
     );
@@ -1009,8 +1013,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return {'issueId': subIssueRef.id, 'number': 0, 'url': ''};
   }
 
-
-
   void _mergeIssuePullRequestInBackground(
     MergeIssuePullRequestDialogResult request,
   ) {
@@ -1271,7 +1273,6 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
     return asMap(result.data);
   }
 
-
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleIssueBoardKeyEvent);
@@ -1411,8 +1412,9 @@ class _IssueBoardPageState extends State<IssueBoardPage> {
                       )
                     : Column(
                         children: [
-                          if (!isCompactLayout)
-                            const BoardHeader(),
+                          SizedBox(
+                            height: 20,
+                          ),
                           if (_isBootstrapping) const LinearProgressIndicator(),
                           BoardToolbar(
                             onConnectGitHub: _connectGitHub,
@@ -1681,7 +1683,8 @@ class _CloseIssueConfirmDialog extends StatefulWidget {
   final String title;
 
   @override
-  State<_CloseIssueConfirmDialog> createState() => _CloseIssueConfirmDialogState();
+  State<_CloseIssueConfirmDialog> createState() =>
+      _CloseIssueConfirmDialogState();
 }
 
 class _CloseIssueConfirmDialogState extends State<_CloseIssueConfirmDialog> {
