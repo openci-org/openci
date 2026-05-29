@@ -1,4 +1,3 @@
-import 'dart:io' as io;
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
@@ -942,6 +941,8 @@ class QrCodeWidget extends StatelessWidget {
   }
 }
 
+const _appControlChannel = MethodChannel('org.openci.dashboard/app_control');
+
 class _IosDistributionQrDialog extends HookWidget {
   const _IosDistributionQrDialog({required this.buildJob});
 
@@ -1130,19 +1131,50 @@ class _IosDistributionQrDialog extends HookWidget {
                     ),
                   ),
                   onPressed: () async {
-                    final uri = Uri.parse(installUrl);
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: colors.surfaceHover,
+                        surfaceTintColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: colors.border),
+                        ),
+                        title: const Text('インストールの開始'),
+                        content: const Text(
+                          'アプリをホーム画面に戻し、上書きインストールの準備を開始します。よろしいですか？\n\n'
+                          '※ホーム画面に戻った後、iOSシステムから「インストールしますか？」というダイアログが表示されます。',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'キャンセル',
+                              style: TextStyle(color: colors.textSecondary),
+                            ),
+                          ),
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colors.success,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('開始する'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm != true) return;
+
                     try {
-                      final success = await launchUrl(
-                        uri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                      if (success && !kIsWeb) {
-                        await Future<void>.delayed(
-                          const Duration(milliseconds: 500),
-                        );
-                        io.exit(0);
+                      final uri = Uri.parse(installUrl);
+                      await launchUrl(uri);
+                      if (!kIsWeb) {
+                        await _appControlChannel.invokeMethod<void>('sendToBackground');
                       }
                     } catch (e) {
+                      debugPrint('Error calling sendToBackground: $e');
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('リンクを開けませんでした。')),
