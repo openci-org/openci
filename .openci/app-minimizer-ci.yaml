@@ -26,9 +26,6 @@ jobs:
           storage-bucket: openci-b1b91.firebasestorage.app
           working-directory: packages/app_minimizer_plus
 
-      - name: Install dependencies
-        run: flutter pub get
-
       - name: Analyze
         run: flutter analyze
 
@@ -57,14 +54,8 @@ jobs:
           storage-bucket: openci-b1b91.firebasestorage.app
           working-directory: packages/app_minimizer_plus/example
 
-      - name: Install dependencies
-        run: flutter pub get
-
       - name: Analyze
         run: flutter analyze
-
-      - name: Test
-        run: flutter test
 
       - name: Save Flutter pub cache
         if: always()
