@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { marked } from 'marked';
 
 type FrontMatterValue = string | string[];
 
@@ -23,8 +24,8 @@ export type ReleaseNote = {
 
 export type ReleaseContentBlock =
   | {
-      type: 'paragraph';
-      text: string;
+      type: 'html';
+      html: string;
     }
   | {
       type: 'image';
@@ -304,8 +305,8 @@ function parseContentBlock(block: string): ReleaseContentBlock | undefined {
   }
 
   return {
-    type: 'paragraph',
-    text: block.replace(/\n/g, ' ').trim(),
+    type: 'html',
+    html: marked.parse(block, { async: false }) as string,
   };
 }
 
