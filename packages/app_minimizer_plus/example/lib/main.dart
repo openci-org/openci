@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:app_minimizer_plus/app_minimizer_plus.dart';
+import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
@@ -80,7 +80,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       Text(
                         'Status',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
                       ),
@@ -96,8 +97,8 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 40),
               ElevatedButton.icon(
+                key: const Key('minimizeButton'),
                 onPressed: _minimizeApp,
-                icon: const Icon(Icons.minimize),
                 label: const Text('Minimize App'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
