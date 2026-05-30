@@ -1,13 +1,5 @@
-{
-  {
-    flutter_js;
-  }
-}
-{
-  {
-    flutter_build_config;
-  }
-}
+{{flutter_js}}
+{{flutter_build_config}}
 
 (() => {
   const loader = document.getElementById("app-loader");
@@ -35,6 +27,9 @@
   window.addEventListener("flutter-first-frame", hideLoader, { once: true });
 
   _flutter.loader.load({
+    serviceWorkerSettings: {
+      serviceWorkerVersion: null,
+    },
     onEntrypointLoaded: async function (engineInitializer) {
       updateLoaderMessage("アプリを初期化中...");
       const appRunner = await engineInitializer.initializeEngine();
