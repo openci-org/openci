@@ -10,6 +10,7 @@ workspace:
   - packages/macos_updater
   - packages/openci_shared
   - packages/app_minimizer_plus
+  - packages/app_minimizer_plus/example
 
 
 dependency_overrides:
