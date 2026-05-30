@@ -223,11 +223,9 @@
 			buildConfigurationList = CECD5F06DE951131D78295D4 /* Build configuration list for PBXNativeTarget "RunnerUITests" */;
 			buildPhases = (
 				E447124CCD575820883DE683 /* [CP] Check Pods Manifest.lock */,
-				D7C7DEE629C7AE5348F66724 /* xcode_backend build */,
 				2B713A8137ADD389B9108C01 /* Sources */,
 				08797E0114A98288D19E3CEB /* Frameworks */,
 				1EFBDA85DA558A41B6DEA155 /* Resources */,
-				72A7780D034669800AA6972B /* xcode_backend embed_and_thin */,
 				9E21F56A614C2018E2A1EA7F /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
@@ -375,24 +373,6 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
-		72A7780D034669800AA6972B /* xcode_backend embed_and_thin */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "xcode_backend embed_and_thin";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
-		};
 		8729BDBC9A228AB323325CF5 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -485,24 +465,6 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
-		};
-		D7C7DEE629C7AE5348F66724 /* xcode_backend build */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "xcode_backend build";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
 		};
 		E447124CCD575820883DE683 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
