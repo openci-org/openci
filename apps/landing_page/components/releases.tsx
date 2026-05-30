@@ -176,7 +176,16 @@ function ReleaseContent({ block }: { block: ReleaseContentBlock }) {
     );
   }
 
-  return <p className="text-pretty text-base/8 text-neutral-700">{block.text}</p>;
+  if (block.type === "html") {
+    return (
+      <div
+        className="text-pretty text-base/8 text-neutral-700 space-y-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-4 [&_li]:mt-2 [&_strong]:font-semibold [&_strong]:text-neutral-950 [&_code]:rounded [&_code]:bg-neutral-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.875em] [&_code]:text-neutral-900 [&_a]:text-neutral-950 [&_a]:underline [&_a]:underline-offset-4"
+        dangerouslySetInnerHTML={{ __html: block.html }}
+      />
+    );
+  }
+
+  return null;
 }
 
 function ReleaseShell({ children }: { children: ReactNode }) {
