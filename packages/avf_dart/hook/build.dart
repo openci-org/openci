@@ -24,6 +24,8 @@ void main(List<String> args) async {
       'Foundation',
       '-framework',
       'Virtualization',
+      '-framework',
+      'AppKit',
       '-fobjc-arc',
       helperSource,
       '-o',

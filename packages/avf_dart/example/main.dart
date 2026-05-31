@@ -10,11 +10,11 @@ void main() async {
   final vm = await VirtualMachine.boot(name: vmName);
 
   // 3. Let it run for a few seconds and stop the VM
-  await Future<void>.delayed(const Duration(seconds: 3));
+  await Future<void>.delayed(const Duration(seconds: 10));
 
   // 4. Stop the VM
   await vm.stop();
 
-  // 5. Delete the cloned VM
+  // 4. Delete the cloned VM
   await VirtualMachine.delete(vmName);
 }
