@@ -1,0 +1,102 @@
+name: AppleVirtualization
+description: Bindings to Apple Virtualization.framework.
+output: lib/src/virtualization_bindings.dart
+language: objc
+exclude-all-by-default: true
+preamble: |
+  import 'dummy_types.dart';
+
+headers:
+  entry-points:
+    - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Virtualization.framework/Headers/Virtualization.h"
+objc-interfaces:
+  include:
+    - "VZVirtualMachine"
+    - "VZVirtualMachineConfiguration"
+    - "VZBootLoader"
+    - "VZMacOSBootLoader"
+    - "VZLinuxBootLoader"
+    - "VZPlatformConfiguration"
+    - "VZMacPlatformConfiguration"
+    - "VZMacHardwareModel"
+    - "VZMacAuxiliaryStorage"
+    - "VZStorageDeviceAttachment"
+    - "VZDiskImageStorageDeviceAttachment"
+    - "VZVirtioBlockDeviceConfiguration"
+    - "VZNetworkDeviceAttachment"
+    - "VZNATNetworkDeviceAttachment"
+    - "VZVirtioNetworkDeviceConfiguration"
+    - "VZGraphicsDeviceConfiguration"
+    - "VZMacGraphicsDeviceConfiguration"
+    - "VZMacGraphicsDisplayConfiguration"
+    - "VZKeyboardConfiguration"
+    - "VZVirtioKeyboardConfiguration"
+    - "VZPointingDeviceConfiguration"
+    - "VZVirtioPointingDeviceConfiguration"
+    - "VZEntropyDeviceConfiguration"
+    - "VZVirtioEntropyDeviceConfiguration"
+    - "VZSoundDeviceConfiguration"
+    - "VZVirtioSoundDeviceConfiguration"
+    - "VZVirtioSoundDeviceInputStreamConfiguration"
+    - "VZVirtioSoundDeviceOutputStreamConfiguration"
+    - "VZSerialPortAttachment"
+    - "VZFileHandleSerialPortAttachment"
+    - "VZFileSerialPortAttachment"
+    - "VZSerialPortConfiguration"
+    - "VZVirtioConsoleDeviceSerialPortConfiguration"
+    - "VZDirectorySharingDeviceConfiguration"
+    - "VZVirtioDirectorySharingDeviceConfiguration"
+    - "VZDirectoryShare"
+    - "VZSingleDirectoryShare"
+    - "VZMultipleDirectoryShare"
+    - "VZMacOSConfigurationRequirements"
+    - "VZMacOSRestoreImage"
+    - "VZMacOSInstaller"
+    - "VZMacOSVirtualMachineStartOptions"
+    - "NSFileHandle"
+    - "NSURL"
+
+  exclude:
+    - "NSColor"
+    - "NSColorSpace"
+    - "NSBezierPath"
+    - "NSGraphicsContext"
+    - "NSBitmapImageRep"
+    - "CIImage"
+    - "CIContext"
+    - "NSCell"
+    - "NSImage"
+    - "NSOpenGLContext"
+    - "NSOpenGLPixelFormat"
+    - "NSOpenGLPixelBuffer"
+    - "NSWindow"
+    - "NSView"
+    - "NSControl"
+    - "NSButton"
+    - "NSTextField"
+    - "NSText"
+    - "NSTextView"
+    - "NSSound"
+  member-filter:
+    "NSObject":
+      exclude:
+        - "observationInfo"
+    "NSCell":
+      exclude:
+        - "selectedCell"
+    "NSMatrix":
+      exclude:
+        - "selectedCell"
+    "NSBrowser":
+      exclude:
+        - "selectedCell"
+    "NSString":
+      exclude:
+        - "title"
+    "NSImage":
+      exclude:
+        - "image"
+compiler-opts:
+  - "-isysroot"
+  - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+  - "-F/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
