@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:avf_dart/avf_dart.dart';
 
 void main(List<String> args) async {
@@ -8,6 +9,9 @@ void main(List<String> args) async {
     print('  dart run example/main.dart fetch-ipsw');
     print('  dart run example/main.dart download [<save-path>]');
     print('  dart run example/main.dart install <ipsw-path> [<vm-name>]');
+    print('  dart run example/main.dart list');
+    print('  dart run example/main.dart push <vm-name> <bucket-name>');
+    print('  dart run example/main.dart pull <vm-name> <bucket-name>');
     print('\nDefaulting to booting "tahoe-base" if available...');
     await _boot('tahoe-base');
     return;
@@ -33,71 +37,39 @@ void main(List<String> args) async {
       break;
 
     case 'download':
+      final hasForce = args.contains('--force') || args.contains('-f');
+      final cleanArgs = args.where((arg) => arg != '--force' && arg != '-f').toList();
+
       print('Fetching latest supported macOS IPSW URL from Apple...');
       try {
         final url = await AppleVirtualization.fetchLatestIpswUrl();
-        final savePath = args.length > 1
-            ? args[1]
+        final savePath = cleanArgs.length > 1
+            ? cleanArgs[1]
             : '${VirtualMachine.defaultVmsDir}/../downloads/${url.pathSegments.last}';
 
         print('Downloading IPSW to $savePath...');
-        final stopwatch = Stopwatch()..start();
-        
         final metadataFile = File('$savePath.download');
         if (metadataFile.existsSync()) {
           print('Resuming download from previous state...');
         }
 
-        int lastTime = stopwatch.elapsedMilliseconds;
-        int lastDownloaded = 0;
-        double speedMb = 0.0;
-        int etaSeconds = 0;
-
         await VirtualMachine.downloadIpsw(
           uri: url,
           savePath: savePath,
           concurrency: 8,
-          onProgress: (downloaded, total) {
-            final now = stopwatch.elapsedMilliseconds;
-            final percent = ((downloaded / total) * 100.0).toStringAsFixed(2);
-            
-            if (now - lastTime >= 500) {
-              final diff = downloaded - lastDownloaded;
-              final sec = (now - lastTime) / 1000.0;
-              final speedBytesPerSec = diff / sec;
-              speedMb = speedBytesPerSec / (1024.0 * 1024.0);
-
-              final remainingBytes = total - downloaded;
-              etaSeconds = speedBytesPerSec > 0 ? (remainingBytes / speedBytesPerSec).round() : 0;
-
-              lastDownloaded = downloaded;
-              lastTime = now;
-            }
-
-            final elapsedMinutes = stopwatch.elapsed.inMinutes;
-            final elapsedSeconds = stopwatch.elapsed.inSeconds % 60;
-            final speedStr = speedMb >= 0 ? '${speedMb.toStringAsFixed(1)} MB/s' : '-- MB/s';
-            
-            String etaStr;
-            if (etaSeconds <= 0) {
-              etaStr = '--';
-            } else if (etaSeconds < 60) {
-              etaStr = '${etaSeconds}s';
-            } else if (etaSeconds < 3600) {
-              etaStr = '${etaSeconds ~/ 60}m ${etaSeconds % 60}s';
-            } else {
-              final hours = etaSeconds ~/ 3600;
-              final minutes = (etaSeconds % 3600) ~/ 60;
-              final seconds = etaSeconds % 60;
-              etaStr = '${hours}h ${minutes}m ${seconds}s';
-            }
-            
+          force: hasForce,
+          onProgress: (progress) {
             stdout.write(
-                '\rDownloading... $percent% ($speedStr) [Elapsed: ${elapsedMinutes}m ${elapsedSeconds}s, ETA: $etaStr]');
+                '\rDownloading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]');
           },
         );
         print('\nSuccess: IPSW downloaded successfully to $savePath');
       } catch (e) {
+        if (e is StateError && e.message == 'The file is already fully downloaded.') {
+          print('\n[Skip] IPSW is already fully downloaded.');
+          print('If you want to re-download, please delete the file or run with --force / -f flag.');
+          return;
+        }
         print('\nError downloading IPSW: $e');
       }
       break;
@@ -129,6 +101,81 @@ void main(List<String> args) async {
       }
       break;
 
+    case 'list':
+      print('Local Virtual Machines:');
+      try {
+        final list = await VirtualMachine.list();
+        if (list.isEmpty) {
+          print('  No local VMs found.');
+        } else {
+          print(
+              '  ${"Name".padRight(20)} ${"Disk Size".padRight(12)} ${"Created"}');
+          print('  ${"-" * 60}');
+          for (final vm in list) {
+            final sizeGb =
+                (vm.diskSizeBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
+            final sizeStr = '$sizeGb GB';
+            print(
+                '  ${vm.name.padRight(20)} ${sizeStr.padRight(12)} ${vm.created.toLocal()}');
+          }
+        }
+      } catch (e) {
+        print('Error listing VMs: $e');
+      }
+      break;
+
+    case 'push':
+      if (args.length < 3) {
+        print('Error: Missing arguments.');
+        print('Usage: dart run example/main.dart push <vm-name> <bucket-name>');
+        exit(1);
+      }
+      final vmName = args[1];
+      final bucket = args[2];
+      try {
+        final token = await _getGcloudAccessToken();
+        await VirtualMachine.push(
+          name: vmName,
+          bucket: bucket,
+          accessToken: token,
+          onLog: (msg) => print(msg),
+          onProgress: (progress) {
+            stdout.write(
+                '\rUploading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]');
+          },
+        );
+        print('\nSuccess: VM pushed successfully.');
+      } catch (e) {
+        print('Error pushing VM: $e');
+      }
+      break;
+
+    case 'pull':
+      if (args.length < 3) {
+        print('Error: Missing arguments.');
+        print('Usage: dart run example/main.dart pull <vm-name> <bucket-name>');
+        exit(1);
+      }
+      final vmName = args[1];
+      final bucket = args[2];
+      try {
+        final token = await _getGcloudAccessToken();
+        await VirtualMachine.pull(
+          name: vmName,
+          bucket: bucket,
+          accessToken: token,
+          onLog: (msg) => print(msg),
+          onProgress: (progress) {
+            stdout.write(
+                '\rDownloading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]');
+          },
+        );
+        print('\nSuccess: VM pulled successfully.');
+      } catch (e) {
+        print('Error pulling VM: $e');
+      }
+      break;
+
     default:
       print('Unknown command: $command');
       exit(1);
@@ -143,4 +190,13 @@ Future<void> _boot(String name) async {
   } catch (e) {
     print('Failed to boot VM: $e');
   }
+}
+
+Future<String> _getGcloudAccessToken() async {
+  final result = await Process.run('gcloud', ['auth', 'print-access-token']);
+  if (result.exitCode != 0) {
+    throw StateError(
+        'Failed to retrieve gcloud access token: ${result.stderr}');
+  }
+  return result.stdout.toString().trim();
 }
