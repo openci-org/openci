@@ -104,8 +104,8 @@ int main(int argc, const char * argv[]) {
 
         VZLinuxBootLoader *bootLoader = [[VZLinuxBootLoader alloc] initWithKernelURL:[NSURL fileURLWithPath:kernelPath]];
         bootLoader.initialRamdiskURL = [NSURL fileURLWithPath:initramfsPath];
-        // console=tty0 outputs boot screen graphics
-        bootLoader.commandLine = @"console=hvc0 console=tty0";
+        // console=tty0 outputs boot screen graphics, console=hvc0 as primary interactive console
+        bootLoader.commandLine = @"console=tty0 console=hvc0";
         config.bootLoader = bootLoader;
 
         // Entropy device
