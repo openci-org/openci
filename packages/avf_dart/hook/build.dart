@@ -6,9 +6,9 @@ void main(List<String> args) async {
   await build(args, (input, output) async {
     final packageRoot = input.packageRoot;
     final helperSource =
-        packageRoot.resolve('example/avf_helper.m').toFilePath();
+        packageRoot.resolve('hook/avf_helper.m').toFilePath();
     final entitlements =
-        packageRoot.resolve('example/entitlements.plist').toFilePath();
+        packageRoot.resolve('hook/entitlements.plist').toFilePath();
 
     // Determine cache output directory
     final outputDir =

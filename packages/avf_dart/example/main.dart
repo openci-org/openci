@@ -33,7 +33,8 @@ void main() async {
     final gzipMagic = [0x1f, 0x8b];
     int gzipIdx = -1;
     for (int i = 0; i < kernelBytes.length - 1; i++) {
-      if (kernelBytes[i] == gzipMagic[0] && kernelBytes[i+1] == gzipMagic[1]) {
+      if (kernelBytes[i] == gzipMagic[0] &&
+          kernelBytes[i + 1] == gzipMagic[1]) {
         gzipIdx = i;
         break;
       }
@@ -54,7 +55,8 @@ void main() async {
       }
       print('Extracted and decompressed raw ARM64 kernel image successfully.');
     } else {
-      print('Kernel is already a raw image or uncompressed. Copying directly...');
+      print(
+          'Kernel is already a raw image or uncompressed. Copying directly...');
       File(kernelPath).copySync(tmpKernelPath);
     }
 
@@ -73,13 +75,15 @@ void main() async {
 
   if (!File(helperBinary).existsSync()) {
     print('Error: avf_helper binary not found at $helperBinary.');
-    print('Please ensure build hooks have run by running "dart pub get" or "dart test".');
+    print(
+        'Please ensure build hooks have run by running "dart pub get" or "dart test".');
     return;
   }
 
   // 3. avf_helper プロセスを起動する
   print('\nLaunching VM...');
-  final process = await Process.start(helperBinary, [tmpKernelPath, tmpInitramfsPath]);
+  final process =
+      await Process.start(helperBinary, [tmpKernelPath, tmpInitramfsPath]);
 
   // プロセスの Stdout/Stderr を標準出力に転送
   process.stdout.transform(utf8.decoder).listen((data) {
