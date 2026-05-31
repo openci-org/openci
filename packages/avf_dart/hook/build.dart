@@ -27,6 +27,7 @@ void main(List<String> args) async {
       '-framework',
       'AppKit',
       '-fobjc-arc',
+      '-mmacosx-version-min=13.0',
       helperSource,
       '-o',
       helperBinary,

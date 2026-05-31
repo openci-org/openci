@@ -1,17 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
 class AppleVirtualization {
-  /// Launches the virtualization helper binary with the given kernel and initramfs paths.
-  ///
-  /// Under the hood, this handles:
-  /// 1. Copying the files to `/tmp` (to bypass macOS Sandbox/TCC permissions).
-  /// 2. Decompressing the kernel if it is a PE32+ EFI stub containing a gzip payload.
-  /// 3. Applying appropriate execution permissions.
-  /// 4. Automatically cleaning up the temporary files in `/tmp` once the process exits.
+  /// Launches the virtualization helper binary with the given macOS configuration.
   static Future<Process> boot({
-    required String kernelPath,
-    required String initramfsPath,
+    required String diskImgPath,
+    required String nvramPath,
+    required String hardwareModelB64,
+    required String machineIdentifierB64,
   }) async {
     // 1. Resolve packages/avf_dart to locate helper
     final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
@@ -20,7 +17,6 @@ class AppleVirtualization {
       throw StateError('Could not resolve package:avf_dart URI. Ensure the package is properly imported and resolved.');
     }
 
-    // resolvedUri points to 'package:avf_dart/lib/avf_dart.dart'
     // We get the directory containing avf_dart.dart, which is packages/avf_dart/lib
     final libDir = File(resolvedUri.toFilePath()).parent;
     final packageRoot = libDir.parent;
@@ -33,115 +29,127 @@ class AppleVirtualization {
       );
     }
 
-    // 2. Prepare temporary assets in /tmp
-    final tmpKernelPath = '/tmp/avf_vmlinuz';
-    final tmpInitramfsPath = '/tmp/avf_initramfs';
-
-    try {
-      if (File(tmpKernelPath).existsSync()) {
-        File(tmpKernelPath).deleteSync();
-      }
-      if (File(tmpInitramfsPath).existsSync()) {
-        File(tmpInitramfsPath).deleteSync();
-      }
-
-      // Process kernel (Check for PE32+ EFI stub containing gzip payload)
-      final kernelBytes = File(kernelPath).readAsBytesSync();
-      final gzipMagic = [0x1f, 0x8b];
-      int gzipIdx = -1;
-      for (int i = 0; i < kernelBytes.length - 1; i++) {
-        if (kernelBytes[i] == gzipMagic[0] &&
-            kernelBytes[i + 1] == gzipMagic[1]) {
-          gzipIdx = i;
-          break;
-        }
-      }
-
-      if (gzipIdx != -1 && gzipIdx > 0) {
-        final compressedBytes = kernelBytes.sublist(gzipIdx);
-        final tmpGzPath = '$tmpKernelPath.gz';
-        File(tmpGzPath).writeAsBytesSync(compressedBytes);
-
-        // Decompress gzip payload using gunzip process
-        final gunzipResult = Process.runSync('gunzip', ['-f', tmpGzPath]);
-        if (gunzipResult.exitCode != 0 && !File(tmpKernelPath).existsSync()) {
-          throw ProcessException('gunzip', [], 'Failed to decompress kernel payload: ${gunzipResult.stderr}');
-        }
-      } else {
-        File(kernelPath).copySync(tmpKernelPath);
-      }
-
-      // Copy initramfs directly
-      File(initramfsPath).copySync(tmpInitramfsPath);
-
-      // Apply permissions
-      final chmodResult = Process.runSync('chmod', ['644', tmpKernelPath, tmpInitramfsPath]);
-      if (chmodResult.exitCode != 0) {
-        throw ProcessException('chmod', ['644', tmpKernelPath, tmpInitramfsPath], 'Failed to set permissions: ${chmodResult.stderr}');
-      }
-    } catch (e) {
-      throw StateError('Failed to prepare assets in /tmp: $e');
-    }
-
-    // 3. Start VM process using the helper binary
+    // 2. Start VM process using the helper binary with macOS arguments
     final Process process;
     try {
-      process = await Process.start(helperBinary, [tmpKernelPath, tmpInitramfsPath]);
+      process = await Process.start(helperBinary, [
+        'boot',
+        diskImgPath,
+        nvramPath,
+        hardwareModelB64,
+        machineIdentifierB64,
+      ]);
     } catch (e) {
-      // Clean up on failure to start
-      try {
-        if (File(tmpKernelPath).existsSync()) File(tmpKernelPath).deleteSync();
-        if (File(tmpInitramfsPath).existsSync()) File(tmpInitramfsPath).deleteSync();
-      } catch (_) {}
       rethrow;
     }
-
-    // 4. Automatically clean up temporary files in /tmp when process exits
-    process.exitCode.then((_) {
-      try {
-        if (File(tmpKernelPath).existsSync()) {
-          File(tmpKernelPath).deleteSync();
-        }
-        if (File(tmpInitramfsPath).existsSync()) {
-          File(tmpInitramfsPath).deleteSync();
-        }
-      } catch (_) {
-        // Suppress errors during cleanup
-      }
-    });
 
     return process;
   }
 
-  /// Searches for `vmlinuz` and `initramfs` inside the given [directoryPath],
-  /// verifies their existence, and boots the VM.
+  /// Searches for config.json, disk.img, and nvram.bin inside the given [directoryPath],
+  /// parses macOS machine metadata, and boots the macOS VM.
   static Future<Process> bootFromDirectory(String directoryPath) async {
-    final kernelPath = '$directoryPath/vmlinuz';
-    final initramfsPath = '$directoryPath/initramfs';
-
-    if (!File(kernelPath).existsSync()) {
-      throw FileSystemException('Kernel image not found', kernelPath);
-    }
-    if (!File(initramfsPath).existsSync()) {
-      throw FileSystemException('Initramfs image not found', initramfsPath);
+    final configFile = File('$directoryPath/config.json');
+    if (!configFile.existsSync()) {
+      throw FileSystemException('config.json not found in VM directory', configFile.path);
     }
 
-    return boot(kernelPath: kernelPath, initramfsPath: initramfsPath);
+    final configData = jsonDecode(configFile.readAsStringSync());
+    if (configData['os'] != 'macOS') {
+      throw StateError('Only macOS VMs are supported. Found OS: ${configData['os']}');
+    }
+
+    final diskImgPath = '$directoryPath/disk.img';
+    final nvramPath = '$directoryPath/nvram.bin';
+    final hardwareModelB64 = configData['hardwareModel'] as String?;
+    final machineIdentifierB64 = configData['machineIdentifier'] as String?;
+
+    if (hardwareModelB64 == null || machineIdentifierB64 == null) {
+      throw StateError('hardwareModel or machineIdentifier missing in config.json');
+    }
+
+    if (!File(diskImgPath).existsSync()) {
+      throw FileSystemException('Disk image not found', diskImgPath);
+    }
+    if (!File(nvramPath).existsSync()) {
+      throw FileSystemException('NVRAM file not found', nvramPath);
+    }
+
+    return boot(
+      diskImgPath: diskImgPath,
+      nvramPath: nvramPath,
+      hardwareModelB64: hardwareModelB64,
+      machineIdentifierB64: machineIdentifierB64,
+    );
   }
 
-  /// Automatically resolves the example assets directory within the `avf_dart` package
-  /// and boots the VM using those assets.
-  static Future<Process> bootExample() async {
+  /// Contacts Apple's servers using the Virtualization framework API to retrieve
+  /// the URL for the latest supported macOS restore image (IPSW).
+  static Future<Uri> fetchLatestIpswUrl() async {
     final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
     final resolvedUri = await Isolate.resolvePackageUri(packageUri);
     if (resolvedUri == null) {
-      throw StateError('Could not resolve package:avf_dart URI. Ensure the package is properly resolved.');
+      throw StateError('Could not resolve package:avf_dart URI.');
     }
-
     final libDir = File(resolvedUri.toFilePath()).parent;
     final packageRoot = libDir.parent;
-    final assetsDir = '${packageRoot.path}/example/assets';
+    final helperBinary = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
 
-    return bootFromDirectory(assetsDir);
+    if (!File(helperBinary).existsSync()) {
+      throw StateError('avf_helper binary not found at $helperBinary.');
+    }
+
+    final tmpFile = File('${Directory.systemTemp.path}/avf_ipsw_url.txt');
+    if (tmpFile.existsSync()) {
+      tmpFile.deleteSync();
+    }
+
+    final processResult = await Process.run(helperBinary, ['fetch-ipsw-url', tmpFile.path]);
+    if (processResult.exitCode != 0) {
+      throw StateError('Failed to fetch IPSW URL: ${processResult.stderr}');
+    }
+
+    if (!tmpFile.existsSync()) {
+      throw StateError('IPSW URL file was not created by helper.');
+    }
+
+    final urlStr = tmpFile.readAsStringSync().trim();
+    try {
+      tmpFile.deleteSync();
+    } catch (_) {}
+
+    return Uri.parse(urlStr);
+  }
+
+  /// Starts the macOS installation process onto a blank virtual disk.
+  /// Standard output of the returned process can be parsed for progress updates.
+  static Future<Process> install({
+    required String ipswPath,
+    required String diskImgPath,
+    required String nvramPath,
+    required String configJsonPath,
+  }) async {
+    final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
+    final resolvedUri = await Isolate.resolvePackageUri(packageUri);
+    if (resolvedUri == null) {
+      throw StateError('Could not resolve package:avf_dart URI.');
+    }
+    final libDir = File(resolvedUri.toFilePath()).parent;
+    final packageRoot = libDir.parent;
+    final helperBinary = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
+
+    if (!File(helperBinary).existsSync()) {
+      throw StateError('avf_helper binary not found at $helperBinary.');
+    }
+
+    final process = await Process.start(helperBinary, [
+      'install',
+      ipswPath,
+      diskImgPath,
+      nvramPath,
+      configJsonPath,
+    ]);
+
+    return process;
   }
 }
