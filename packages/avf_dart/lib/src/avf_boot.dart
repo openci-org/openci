@@ -112,4 +112,36 @@ class AppleVirtualization {
 
     return process;
   }
+
+  /// Searches for `vmlinuz` and `initramfs` inside the given [directoryPath],
+  /// verifies their existence, and boots the VM.
+  static Future<Process> bootFromDirectory(String directoryPath) async {
+    final kernelPath = '$directoryPath/vmlinuz';
+    final initramfsPath = '$directoryPath/initramfs';
+
+    if (!File(kernelPath).existsSync()) {
+      throw FileSystemException('Kernel image not found', kernelPath);
+    }
+    if (!File(initramfsPath).existsSync()) {
+      throw FileSystemException('Initramfs image not found', initramfsPath);
+    }
+
+    return boot(kernelPath: kernelPath, initramfsPath: initramfsPath);
+  }
+
+  /// Automatically resolves the example assets directory within the `avf_dart` package
+  /// and boots the VM using those assets.
+  static Future<Process> bootExample() async {
+    final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
+    final resolvedUri = await Isolate.resolvePackageUri(packageUri);
+    if (resolvedUri == null) {
+      throw StateError('Could not resolve package:avf_dart URI. Ensure the package is properly resolved.');
+    }
+
+    final libDir = File(resolvedUri.toFilePath()).parent;
+    final packageRoot = libDir.parent;
+    final assetsDir = '${packageRoot.path}/example/assets';
+
+    return bootFromDirectory(assetsDir);
+  }
 }

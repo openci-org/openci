@@ -1,57 +1,20 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:avf_dart/avf_dart.dart';
 
 void main() async {
-  print('=== Apple Virtualization Framework Linux Boot PoC (Wrapper) ===');
+  const vmName = 'my-alpine-vm';
 
-  // Resolve assets relative to this script's directory (works regardless of CWD)
-  final scriptUri = Platform.script;
-  final String scriptDir;
-  if (scriptUri.scheme == 'file') {
-    scriptDir = File(scriptUri.toFilePath()).parent.path;
-  } else {
-    // Fallback if run in a context where script is not a file URI
-    final currentDir = Directory.current.absolute.path;
-    scriptDir =
-        currentDir.endsWith('/example') ? currentDir : '$currentDir/example';
-  }
+  // 1. Clone the VM from the 'example' template
+  await VirtualMachine.clone(sourceName: 'example', targetName: vmName);
 
-  final kernelPath = '$scriptDir/assets/vmlinuz';
-  final initramfsPath = '$scriptDir/assets/initramfs';
+  // 2. Boot the VM using the cloned VM name
+  final vm = await VirtualMachine.boot(name: vmName);
 
-  print('Kernel path: $kernelPath');
-  print('Initramfs path: $initramfsPath');
+  // 3. Let it run for a few seconds and stop the VM
+  await Future<void>.delayed(const Duration(seconds: 3));
 
-  if (!File(kernelPath).existsSync() || !File(initramfsPath).existsSync()) {
-    print('Error: Alpine Linux assets are missing. Download them first.');
-    return;
-  }
+  // 4. Stop the VM
+  await vm.stop();
 
-  // 3. avf_helper プロセスを起動する
-  print('\nLaunching VM...');
-  final Process process;
-  try {
-    process = await AppleVirtualization.boot(
-      kernelPath: kernelPath,
-      initramfsPath: initramfsPath,
-    );
-  } catch (e) {
-    print('Failed to launch VM: $e');
-    return;
-  }
-
-  // プロセスの Stdout/Stderr を標準出力に転送
-  process.stdout.transform(utf8.decoder).listen((data) {
-    stdout.write(data);
-  });
-
-  process.stderr.transform(utf8.decoder).listen((data) {
-    stderr.write(data);
-  });
-
-  // プロセスの終了を待つ
-  final exitCode = await process.exitCode;
-  print('\nHelper process exited with code $exitCode');
+  // 5. Delete the cloned VM
+  await VirtualMachine.delete(vmName);
 }

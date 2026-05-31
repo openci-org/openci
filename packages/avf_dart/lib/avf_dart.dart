@@ -5,3 +5,5 @@ export 'dart:ffi' show DynamicLibrary;
 
 export 'src/virtualization_bindings.dart';
 export 'src/avf_boot.dart';
+export 'src/virtual_machine.dart';
+
