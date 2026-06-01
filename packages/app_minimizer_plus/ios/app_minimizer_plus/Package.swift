@@ -8,7 +8,7 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "app_minimizer_plus",
+            name: "app-minimizer-plus",
             targets: ["app_minimizer_plus"]),
     ],
     dependencies: [],
@@ -16,7 +16,7 @@ let package = Package(
         .target(
             name: "app_minimizer_plus",
             dependencies: [],
-            path: "Classes",
+            path: "Sources/app_minimizer_plus",
             resources: []
         )
     ]

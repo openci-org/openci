@@ -9,7 +9,7 @@ A Flutter plugin to minimize the iOS application using Pigeon.
   s.license          = { :type => 'BSD', :file => '../LICENSE' }
   s.author           = { 'OpenCI' => 'contact@open-ci.io' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'app_minimizer_plus/Sources/app_minimizer_plus/**/*'
   s.dependency 'Flutter'
   s.platform = :ios, '13.0'
 

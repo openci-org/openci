@@ -4,11 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'issue_board_ima_utils.dart';
+
+import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_board_columns.dart';
 import 'issue_board_ima_models.dart';
-import 'issue_board_ima_app_shell.dart';
 import 'issue_board_ima_overview.dart';
+import 'issue_board_ima_utils.dart';
 
 class IssueCardDropTarget extends StatefulWidget {
   const IssueCardDropTarget({
@@ -376,7 +377,7 @@ class _IssueCardDraggableState extends State<IssueCardDraggable> {
   }
 }
 
-class IssueCard extends StatelessWidget {
+class IssueCard extends StatefulWidget {
   const IssueCard({
     super.key,
     required this.issue,
@@ -395,134 +396,187 @@ class IssueCard extends StatelessWidget {
   final bool isDragPlaceholder;
 
   @override
+  State<IssueCard> createState() => _IssueCardState();
+}
+
+class _IssueCardState extends State<IssueCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final githubUrl = issue.githubUrl;
-    final weightEstimate = issue.weightEstimate;
-    final cardWeight = issue.statusId == closedStatusId
-        ? issue.resolution?.actualWeight
+    final githubUrl = widget.issue.githubUrl;
+    final weightEstimate = widget.issue.weightEstimate;
+    final cardWeight = widget.issue.statusId == closedStatusId
+        ? widget.issue.resolution?.actualWeight
         : weightEstimate?.value;
-    final cardWeightTooltip = issue.statusId == closedStatusId
+    final cardWeightTooltip = widget.issue.statusId == closedStatusId
         ? '実績weight $cardWeight'
         : 'Weight $cardWeight / 信頼度 ${((weightEstimate?.confidence ?? 0) * 100).round()}%';
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.fromLTRB(11, 11, 11, 10),
-      decoration: BoxDecoration(
-        color: isDragPlaceholder ? const Color(0xFFF8FAFC) : Colors.white,
-        border: Border.all(
-          color: isDragging || isDragPlaceholder
-              ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
-              : const Color(0xFFDDE7F0),
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDragging
-                  ? 0.22
-                  : isDragPlaceholder
-                  ? 0
-                  : 0.035,
-            ),
-            blurRadius: isDragging ? 30 : 14,
-            offset: Offset(0, isDragging ? 18 : 6),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: widget.isDragPlaceholder
+              ? const Color(0xFFF8FAFC)
+              : (_isHovered ? const Color(0xFFF8FAFC) : Colors.white),
+          border: Border.all(
+            color: widget.isDragging || widget.isDragPlaceholder
+                ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
+                : (_isHovered
+                      ? const Color(0xFFCBD5E1)
+                      : const Color(0xFFDDE7F0)),
           ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isTight = constraints.maxWidth < 300;
-          final body = issue.body.trim();
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: widget.isDragging
+                    ? 0.18
+                    : widget.isDragPlaceholder
+                    ? 0
+                    : (_isHovered ? 0.045 : 0.02),
+              ),
+              blurRadius: widget.isDragging ? 24 : (_isHovered ? 16 : 10),
+              offset: Offset(
+                0,
+                widget.isDragging ? 12 : (_isHovered ? 6 : 4),
+              ),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isTight = constraints.maxWidth < 300;
+            final body = widget.issue.body.trim();
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        RepoBadge(repo: issue.repo),
-                        if (cardWeight != null)
-                          WeightBadge(
-                            value: cardWeight,
-                            tooltip: cardWeightTooltip,
-                            isActual: issue.statusId == closedStatusId,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            widget.issue.repo,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                      ],
+                          const Text(
+                            '•',
+                            style: TextStyle(
+                              color: Color(0xFFCBD5E1),
+                              fontSize: 11,
+                            ),
+                          ),
+                          Text(
+                            widget.issue.displayId,
+                            style: const TextStyle(
+                              color: Color(0xFF475569),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (!widget.issue.isTicketNumberPending)
+                            IssueIdCopyButton(issueId: widget.issue.displayId),
+                          if (widget.issue.isTicketNumberPending)
+                            const SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: Color(0xFFD97706),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (githubUrl != null) ...[
-                    const SizedBox(width: 6),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        GitHubLinkCopyButton(url: githubUrl),
-                      ],
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (cardWeight != null)
+                            WeightBadge(
+                              value: cardWeight,
+                              tooltip: cardWeightTooltip,
+                              isActual: widget.issue.statusId == closedStatusId,
+                            ),
+                          if (githubUrl != null) ...[
+                            const SizedBox(width: 6),
+                            GitHubLinkCopyButton(url: githubUrl),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                issue.title,
-                maxLines: isTight ? 2 : 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF0F172A),
-                  fontWeight: FontWeight.w700,
-                  height: 1.28,
                 ),
-              ),
-              if (body.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
-                  body,
+                  widget.issue.title,
                   maxLines: isTight ? 2 : 3,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF64748B),
-                    height: 1.35,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: const Color(0xFF0F172A),
+                    fontWeight: FontWeight.w700,
+                    height: 1.28,
                   ),
                 ),
-              ],
-              if (issue.subIssuesSummary != null || subIssues.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                IssueCardSubIssuesSection(
-                  summary: issue.subIssuesSummary,
-                  subIssues: subIssues,
-                  onIssueTap: onSubIssueTap,
-                ),
-              ],
-              const SizedBox(height: 11),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  IssueIdMetaChip(
-                    issueId: issue.displayId,
-                    isPending: issue.isTicketNumberPending,
+                if (body.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    body,
+                    maxLines: isTight ? 2 : 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF64748B),
+                      height: 1.35,
+                    ),
                   ),
-                  if (issue.dueDate != null)
-                    DueDatePill(dueDate: issue.dueDate!),
-                  if (issue.parentIssue != null)
-                    ParentIssueMetaChip(parentIssue: issue.parentIssue!),
-                  if (issue.pullRequests.isNotEmpty)
-                    PullRequestBadge(pullRequests: issue.pullRequests),
-                  BuildStatusBadge(status: buildStatus),
-                  CommentMetaChip(comments: issue.comments),
                 ],
-              ),
-            ],
-          );
-        },
+                if (widget.issue.subIssuesSummary != null ||
+                    widget.subIssues.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  IssueCardSubIssuesSection(
+                    summary: widget.issue.subIssuesSummary,
+                    subIssues: widget.subIssues,
+                    onIssueTap: widget.onSubIssueTap,
+                  ),
+                ],
+                const SizedBox(height: 11),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (widget.issue.dueDate != null)
+                      DueDatePill(dueDate: widget.issue.dueDate!),
+                    if (widget.issue.parentIssue != null)
+                      ParentIssueMetaChip(
+                        parentIssue: widget.issue.parentIssue!,
+                      ),
+                    if (widget.issue.pullRequests.isNotEmpty)
+                      PullRequestBadge(pullRequests: widget.issue.pullRequests),
+                    BuildStatusBadge(status: widget.buildStatus),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -548,7 +602,7 @@ class ReviewGroupIssueCard extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
         color: isDragPlaceholder ? const Color(0xFFF8FAFC) : Colors.white,
         border: Border.all(
@@ -556,7 +610,7 @@ class ReviewGroupIssueCard extends StatelessWidget {
               ? const Color(0xFF38BDF8).withValues(alpha: 0.48)
               : const Color(0xFFE2E8F0),
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -566,8 +620,8 @@ class ReviewGroupIssueCard extends StatelessWidget {
                   ? 0
                   : 0.02,
             ),
-            blurRadius: isDragging ? 24 : 8,
-            offset: Offset(0, isDragging ? 14 : 3),
+            blurRadius: isDragging ? 24 : 10,
+            offset: Offset(0, isDragging ? 12 : 3),
           ),
         ],
       ),
@@ -587,7 +641,7 @@ class ReviewGroupIssueCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         issue.displayId,
@@ -596,11 +650,11 @@ class ReviewGroupIssueCard extends StatelessWidget {
                         style: const TextStyle(
                           color: Color(0xFF64748B),
                           fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   issue.title,
@@ -609,7 +663,7 @@ class ReviewGroupIssueCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     height: 1.25,
                   ),
                 ),
@@ -656,11 +710,11 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
           ? null
           : () => unawaited(launchUrlExternal(reference.url!)),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -675,7 +729,7 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '#${reference.number}',
@@ -684,11 +738,11 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFF64748B),
                       fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     reference.title,
@@ -697,7 +751,7 @@ class ReviewLinkedIssueReferenceCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFF0F172A),
                       fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       height: 1.25,
                     ),
                   ),
@@ -730,11 +784,11 @@ class SubIssuesProgressMeter extends StatelessWidget {
         ? const Color(0xFF16A34A)
         : Theme.of(context).colorScheme.primary;
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -751,7 +805,7 @@ class SubIssuesProgressMeter extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF475569),
                     fontSize: 12,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -761,7 +815,7 @@ class SubIssuesProgressMeter extends StatelessWidget {
                 style: TextStyle(
                   color: color,
                   fontSize: 12,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -805,68 +859,52 @@ class IssueCardSubIssuesSection extends StatelessWidget {
         ? const Color(0xFF16A34A)
         : Theme.of(context).colorScheme.primary;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(14),
-      ),
+    if (total == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.account_tree_outlined, size: 14, color: color),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Sub-issues $completed/$total',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF475569),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$percentCompleted%',
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    minHeight: 5,
-                    value: progress,
-                    backgroundColor: const Color(0xFFE2E8F0),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
+          Row(
+            children: [
+              Icon(Icons.account_tree_outlined, size: 13, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Sub-issues $completed/$total',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$percentCompleted%',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 4,
+              value: progress,
+              backgroundColor: const Color(0xFFE2E8F0),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
-          if (subIssues.isNotEmpty) ...[
-            const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            SubIssuesList(
-              subIssues: subIssues,
-              onIssueTap: onIssueTap,
-              isEmbedded: true,
-            ),
-          ],
         ],
       ),
     );
@@ -917,7 +955,7 @@ class SubIssuesList extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: list,
     );
@@ -942,7 +980,7 @@ class SubIssueReferenceList extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
@@ -1012,7 +1050,7 @@ class SubIssueListRow extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFF94A3B8),
                       fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
           ],
@@ -1133,7 +1171,7 @@ class _SubIssueReferenceContent extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFF94A3B8),
                       fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
           ],
@@ -1220,20 +1258,6 @@ class ParentIssueMetaChip extends StatelessWidget {
   }
 }
 
-class CommentMetaChip extends StatelessWidget {
-  const CommentMetaChip({super.key, required this.comments});
-
-  final int comments;
-
-  @override
-  Widget build(BuildContext context) {
-    return IssueMetaChip(
-      icon: Icons.chat_bubble_outline_rounded,
-      label: '$comments',
-    );
-  }
-}
-
 class IssueMetaChip extends StatelessWidget {
   const IssueMetaChip({
     super.key,
@@ -1252,15 +1276,15 @@ class IssueMetaChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        leading == null && icon == null ? 8 : 5,
-        3,
-        6,
-        3,
+        leading == null && icon == null ? 8 : 6,
+        4,
+        8,
+        4,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFF1F5F9),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1269,22 +1293,22 @@ class IssueMetaChip extends StatelessWidget {
             leading!,
             const SizedBox(width: 5),
           ] else if (icon != null) ...[
-            Icon(icon, size: 13, color: const Color(0xFF94A3B8)),
+            Icon(icon, size: 14, color: const Color(0xFF64748B)),
             const SizedBox(width: 4),
           ],
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 96),
+            constraints: const BoxConstraints(maxWidth: 100),
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+                color: Color(0xFF475569),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          if (trailing != null) ...[const SizedBox(width: 1), trailing!],
+          if (trailing != null) ...[const SizedBox(width: 2), trailing!],
         ],
       ),
     );
@@ -1331,27 +1355,27 @@ class PullRequestBadge extends StatelessWidget {
       child: GestureDetector(
         onTap: prUrl != null ? () => unawaited(launchUrlExternal(prUrl)) : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: const Color(0xFFEFF6FF),
             border: Border.all(color: const Color(0xFFBFDBFE)),
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const FaIcon(
                 FontAwesomeIcons.codePullRequest,
-                size: 14,
-                color: Color(0xFF0EA5E9),
+                size: 13,
+                color: Color(0xFF2563EB),
               ),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: const TextStyle(
-                  color: Color(0xFF0369A1),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1D4ED8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1528,22 +1552,22 @@ class DueDatePill extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: colors.background,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.event_outlined, size: 12, color: colors.foreground),
-          const SizedBox(width: 3),
+          Icon(Icons.event_outlined, size: 13, color: colors.foreground),
+          const SizedBox(width: 4),
           Text(
             dueDateLabel(dueDate),
             style: TextStyle(
               color: colors.foreground,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1569,20 +1593,20 @@ class WeightBadge extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: isActual ? const Color(0xFFF0FDF4) : const Color(0xFFEEF2FF),
           border: Border.all(
             color: isActual ? const Color(0xFFBBF7D0) : const Color(0xFFC7D2FE),
           ),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           'W$value',
           style: TextStyle(
             color: isActual ? const Color(0xFF15803D) : const Color(0xFF4338CA),
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),

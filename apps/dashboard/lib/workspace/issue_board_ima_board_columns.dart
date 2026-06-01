@@ -792,7 +792,7 @@ class ReviewGroupPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
         border: Border.all(color: color.withValues(alpha: 0.22)),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -805,8 +805,8 @@ class ReviewGroupPill extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
