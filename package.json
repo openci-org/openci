@@ -20,5 +20,8 @@
   "devDependencies": {
     "vite-plus": "^0.1.21"
   },
-  "packageManager": "npm@11.14.1"
+  "packageManager": "npm@11.14.1",
+  "dependencies": {
+    "firebase-admin": "^13.10.0"
+  }
 }

@@ -1,66 +1,77 @@
 import 'dart:async';
-
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:openci_worker_cli/logger.dart';
-import 'package:openci_worker_cli/run_manager.dart';
+import 'package:uuid/uuid.dart';
+
+const _uuid = Uuid();
 
 /// Processes a build job inside a Docker container on Linux.
 /// Mirrors the flow in [processJob] (job_executor.dart) but uses
 /// Docker instead of Lume VMs. No SSH, no VM boot wait, no IP lookup.
 Future<bool> processDockerJob(
-  Firestore firestore,
-  String projectId,
-  String serviceAccountPath,
+  ApiClient apiClient,
   String workerId, {
   void Function()? onJobFound,
 }) async {
-  final buildJob = await claimBuildJob(firestore);
+  final buildJob = await apiClient.claimNextJob(null);
   if (buildJob == null) return false;
 
   onJobFound?.call();
 
   final buildJobId = buildJob.id;
-  final token = buildJob.installationToken!;
-  final owner = buildJob.owner;
-  final repo = buildJob.repo;
-  final commitSha = buildJob.commitSha!;
+  final runId = _uuid.v4();
 
-  final runId = await initializeRun(firestore, buildJobId);
-  final name = containerName(workerId: workerId, buildJobId: buildJobId);
+  // Initialize Logger
+  setLoggerApiClient(apiClient);
+
+  await apiClient.createRun(buildJobId, runId);
+  await apiClient.updateCheckRun(buildJob, 'in_progress');
 
   await logInfo(
-    firestore,
     buildJobId,
     runId,
-    'Processing job: $buildJobId for $owner/$repo (Docker) [v$version]',
+    'Processing job: $buildJobId for ${buildJob.owner}/${buildJob.repo} (Docker) [v$version]',
   );
 
-  await createContainer(name);
-  await startContainer(name);
+  // Resolve Installation Token
+  String token;
+  try {
+    final tokenResp = await apiClient.resolveInstallationToken(buildJobId);
+    token = tokenResp['token'] as String;
+  } catch (e) {
+    await logError(buildJobId, runId, 'Failed to resolve GitHub App Installation Token: $e');
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
+      conclusion: 'failure',
+    );
+    await apiClient.completeJob(buildJobId, 'FAILURE');
+    await apiClient.updateCheckRun(buildJob, 'completed', conclusion: 'failure');
+    await apiClient.handleBuildJobStatusChange(buildJob, 'FAILURE');
+    return true;
+  }
+
+  final owner = buildJob.owner;
+  final repo = buildJob.repo;
+  final commitSha = buildJob.commitSha ?? '';
+  final name = containerName(workerId: workerId, buildJobId: buildJobId);
 
   Future<void> exec(String command) => execInContainer(
-    name: name,
-    command: command,
-    firestore: firestore,
-    buildJobId: buildJobId,
-    runId: runId,
-    token: token,
-  );
+        name: name,
+        command: command,
+        buildJobId: buildJobId,
+        runId: runId,
+        token: token,
+      );
 
   Future<bool> isCancelled() async {
     try {
-      final doc = await firestore
-          .collection(buildJobsCollection)
-          .doc(buildJobId)
-          .get();
-      if (!doc.exists) return false;
-      final data = doc.data();
-      return data?['status'] == 'cancelled';
+      return await apiClient.isJobCancelled(buildJobId);
     } catch (_) {
       return false;
     }
@@ -69,20 +80,16 @@ Future<bool> processDockerJob(
   try {
     final workflowFileName = buildJob.workflowFileName;
     if (workflowFileName == null || workflowFileName.isEmpty) {
-      await logError(
-        firestore,
-        buildJobId,
-        runId,
-        'workflowFileName is missing in build job data',
-      );
       throw Exception('workflowFileName is missing');
     }
 
-    await logInfo(firestore, buildJobId, runId, 'Workflow: $workflowFileName');
+    await logInfo(buildJobId, runId, 'Workflow: $workflowFileName');
+
+    await createContainer(name);
+    await startContainer(name);
 
     // ── Clone repository ──
     await logInfo(
-      firestore,
       buildJobId,
       runId,
       'Cloning repository $owner/$repo...',
@@ -90,15 +97,13 @@ Future<bool> processDockerJob(
     final githubHost = buildJob.githubBaseUrl != null
         ? Uri.parse(buildJob.githubBaseUrl!).host
         : 'github.com';
-    final cloneUrl =
-        'https://x-access-token:$token@$githubHost/$owner/$repo.git';
+    final cloneUrl = 'https://x-access-token:$token@$githubHost/$owner/$repo.git';
 
     await exec('git clone --depth 1 --no-checkout $cloneUrl');
 
     final pullRequestNumber = buildJob.pullRequestNumber;
 
     await logInfo(
-      firestore,
       buildJobId,
       runId,
       'Fetching commit $commitSha...',
@@ -108,7 +113,6 @@ Future<bool> processDockerJob(
     } catch (_) {
       if (pullRequestNumber != null) {
         await logInfo(
-          firestore,
           buildJobId,
           runId,
           'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
@@ -122,36 +126,29 @@ Future<bool> processDockerJob(
     }
 
     await logInfo(
-      firestore,
       buildJobId,
       runId,
       'Checking out commit $commitSha...',
     );
     await exec('git -C $repo checkout $commitSha');
+    await logInfo(buildJobId, runId, 'Repository cloned successfully');
 
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Repository cloned successfully',
-    );
-
-    // ── Environment variables & secrets ──
+    // Build Environment variables
     final envVars = await buildEnvVars(
-      firestore: firestore,
+      apiClient: apiClient,
       buildJob: buildJob,
-      projectId: projectId,
+      projectId: apiClient.projectId,
       buildJobId: buildJobId,
       runId: runId,
     );
 
+    // Build Secrets (filtered by workflow references)
     final secretVars = await buildSecretVars(
-      firestore: firestore,
-      serviceAccountPath: serviceAccountPath,
+      apiClient: apiClient,
       token: token,
       buildJobId: buildJobId,
       runId: runId,
-      teamId: buildJob.teamId,
+      buildJob: buildJob,
     );
 
     final envFileLines = <String>[];
@@ -181,19 +178,13 @@ Future<bool> processDockerJob(
       '/tmp/openci-event.json',
       buildEventPayload(buildJob),
     );
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Environment variables written',
-    );
+    await logInfo(buildJobId, runId, 'Environment variables written');
 
     // ── Run act ──
-    await logInfo(firestore, buildJobId, runId, 'Running workflow with act...');
+    await logInfo(buildJobId, runId, 'Running workflow with act...');
 
     final eventType = pullRequestNumber != null ? 'pull_request' : 'push';
-
-    final jobKey = buildJob.jobKey;
+    final jobKey = buildJob.workflowJobKey ?? buildJob.jobKey;
     final jobFlag = jobKey != null ? '-j $jobKey ' : '';
 
     final actScript = [
@@ -217,7 +208,6 @@ Future<bool> processDockerJob(
     await execStreamingInContainer(
       name,
       ['/bin/bash', '-l', '/tmp/openci-act.sh'],
-      firestore,
       buildJobId,
       runId,
       token,
@@ -226,52 +216,44 @@ Future<bool> processDockerJob(
 
     await Future.delayed(const Duration(seconds: 5));
 
-    await logInfo(firestore, buildJobId, runId, 'Build completed successfully');
-    await updateRunStatus(
-      firestore,
-      buildJobId,
-      runId,
-      'completed',
+    await logInfo(buildJobId, runId, 'Build completed successfully');
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
       conclusion: 'success',
     );
-
-    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'status': 'success',
-      'completedAt': DateTime.now().toUtc().toIso8601String(),
-    });
-
-    // Notify cloud functions (replaces Firestore triggers)
-    unawaited(
-      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'),
+    await apiClient.completeJob(buildJobId, 'SUCCESS');
+    
+    final completedJob = buildJob.copyWith(
+      status: BuildJobStatus.SUCCESS,
+      latestRunId: runId,
+      completedAt: DateTime.now(),
     );
-    unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
+    await apiClient.updateCheckRun(completedJob, 'completed', conclusion: 'success');
+    await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
   } catch (e, s) {
     await logError(
-      firestore,
       buildJobId,
       runId,
       'Job failed: $e',
       stackTrace: s.toString(),
     );
-    await updateRunStatus(
-      firestore,
-      buildJobId,
-      runId,
-      'completed',
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
       conclusion: 'failure',
     );
+    await apiClient.completeJob(buildJobId, 'FAILURE');
 
-    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'status': 'failure',
-      'completedAt': DateTime.now().toUtc().toIso8601String(),
-    });
-
-    // Notify cloud functions (replaces Firestore triggers)
-    unawaited(
-      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'),
+    final failedJob = buildJob.copyWith(
+      status: BuildJobStatus.FAILURE,
+      latestRunId: runId,
+      completedAt: DateTime.now(),
     );
-    unawaited(notifyBuildJobStatusChange(buildJobId, 'failure'));
-    unawaited(requestFailureSummary(buildJobId));
+    await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+    await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
     await flushRemainingLogs();
@@ -279,7 +261,6 @@ Future<bool> processDockerJob(
       await stopAndRemoveContainer(name);
     } catch (e) {
       await logWarning(
-        firestore,
         buildJobId,
         runId,
         'Error removing container: $e',
@@ -287,7 +268,6 @@ Future<bool> processDockerJob(
     }
     await flushRemainingLogs();
     await pruneStaleContainers(
-      firestore,
       buildJobId,
       runId,
       workerId: workerId,

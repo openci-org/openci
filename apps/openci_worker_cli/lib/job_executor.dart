@@ -2,144 +2,218 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
-import 'package:googleapis/secretmanager/v1.dart';
-import 'package:googleapis_auth/auth_io.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
-import 'package:openci_worker_cli/run_manager.dart';
 import 'package:openci_worker_cli/vm.dart';
+import 'package:avf_dart/avf_dart.dart';
+import 'package:uuid/uuid.dart';
+import 'package:yaml/yaml.dart';
+import 'package:yaml_edit/yaml_edit.dart';
 
-Future<BuildJob?> claimBuildJob(Firestore firestore) async {
-  final querySnapshot = await firestore
-      .collection(buildJobsCollection)
-      .where('status', WhereFilter.equal, 'queued')
-      .orderBy('createdAt')
-      .limit(10)
-      .get();
+const _uuid = Uuid();
 
-  if (querySnapshot.docs.isEmpty) return null;
+class RuntimeWorkflowRewriteResult {
+  final String content;
+  final bool rewritten;
+  final String? reason;
+  RuntimeWorkflowRewriteResult({required this.content, required this.rewritten, this.reason});
+}
 
-  // Clean up invalid jobs that have no runsOn field set.
-  // These jobs can never be claimed by any worker and would otherwise
-  // block the queue (poison queue) since we query oldest-first with a limit.
-  final invalidJobs = querySnapshot.docs.where((doc) {
-    final runsOn = doc.data()['runsOn'] as String?;
-    return runsOn == null || runsOn.isEmpty;
-  }).toList();
-
-  for (final doc in invalidJobs) {
-    try {
-      await firestore.collection(buildJobsCollection).doc(doc.id).update({
-        'status': 'failure',
-        'completedAt': DateTime.now().toUtc().toIso8601String(),
-        'failureReason': 'Invalid job: runsOn is not set',
-      });
-      // Notify cloud functions about the failure
-      unawaited(notifyCheckRunUpdate(doc.id, 'completed', conclusion: 'failure'));
-      unawaited(notifyBuildJobStatusChange(doc.id, 'failure'));
-    } catch (_) {
-      // Best-effort cleanup; another worker may have already handled it.
-    }
+RuntimeWorkflowRewriteResult rewriteWorkflowForSingleOpenCiJob(
+  String workflowContent,
+  String? jobKey,
+  List<String> needs,
+  Map<String, dynamic>? matrix,
+) {
+  if (jobKey == null || jobKey.isEmpty) {
+    return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'missing-job-key');
+  }
+  final hasMatrix = matrix != null && matrix.isNotEmpty;
+  if (needs.isEmpty && !hasMatrix) {
+    return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'no-needs-and-no-matrix');
   }
 
-  // Filter by platform: macOS claims macos-* jobs,
-  // Linux claims ubuntu-* jobs.
-  final isLinux = Platform.isLinux;
-  final candidates = querySnapshot.docs.where((doc) {
-    final runsOn = doc.data()['runsOn'] as String?;
-    if (runsOn == null || runsOn.isEmpty) return false;
-    if (isLinux) {
-      return runsOn.contains('ubuntu');
-    } else {
-      return runsOn.contains('macos');
+  try {
+    final doc = loadYaml(workflowContent);
+    if (doc is! YamlMap) {
+      return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'parse-error');
     }
-  }).toList();
+    
+    final jobs = doc['jobs'];
+    if (jobs is! YamlMap) {
+      return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'jobs-not-map');
+    }
+    
+    final job = jobs[jobKey];
+    if (job is! YamlMap) {
+      return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'job-not-found');
+    }
 
-  if (candidates.isEmpty) return null;
+    final editor = YamlEditor(workflowContent);
+    var rewritten = false;
 
-  final buildJobId = candidates.first.id;
-  final jobRef = firestore.collection(buildJobsCollection).doc(buildJobId);
+    if (hasMatrix) {
+      final strategy = job['strategy'];
+      if (strategy is YamlMap) {
+        editor.update(['jobs', jobKey, 'strategy', 'matrix'], {'include': [matrix]});
+      } else {
+        editor.update(['jobs', jobKey, 'strategy'], {
+          'matrix': {
+            'include': [matrix]
+          }
+        });
+      }
+      rewritten = true;
+    }
 
-  final claimedData = await firestore.runTransaction((transaction) async {
-    final snapshot = await transaction.get(jobRef);
-    if (!snapshot.exists) return null;
+    if (needs.isNotEmpty) {
+      if (job.containsKey('needs')) {
+        editor.remove(['jobs', jobKey, 'needs']);
+        rewritten = true;
+      }
+    }
 
-    final data = snapshot.data();
-    if (data == null || data['status'] != 'queued') return null;
+    return RuntimeWorkflowRewriteResult(
+      content: editor.toString(),
+      rewritten: rewritten,
+    );
+  } catch (e) {
+    return RuntimeWorkflowRewriteResult(
+      content: workflowContent,
+      rewritten: false,
+      reason: 'exception: $e',
+    );
+  }
+}
 
-    transaction.update(jobRef, {'status': 'in_progress'});
-    return data;
-  });
+Future<String> fetchWorkflowContent({
+  required String owner,
+  required String repo,
+  required String workflowFileName,
+  required String token,
+  String? githubApiBaseUrl,
+  String? commitSha,
+  String? branch,
+}) async {
+  final apiBase = githubApiBaseUrl != null && githubApiBaseUrl.isNotEmpty
+      ? githubApiBaseUrl.replaceAll(RegExp(r'/+$'), '')
+      : 'https://api.github.com';
+      
+  final ref = commitSha ?? branch;
+  final query = ref != null && ref.isNotEmpty ? '?ref=${Uri.encodeComponent(ref)}' : '';
+  final url = '$apiBase/repos/$owner/$repo/contents/.openci/$workflowFileName$query';
 
-  if (claimedData == null) return null;
+  final response = await http.get(
+    Uri.parse(url),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'OpenCI-Worker',
+    },
+  );
 
-  final buildJob = BuildJob.fromJson({...claimedData, 'id': buildJobId});
-
-  if (buildJob.commitSha == null || buildJob.commitSha!.isEmpty) {
-    throw Exception('commitSha is missing in build job data');
+  if (response.statusCode != 200) {
+    throw HttpException('Failed to fetch workflow content: ${response.statusCode} ${response.body}');
   }
 
-  return buildJob;
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  final content = data['content'] as String?;
+  if (content == null) {
+    throw StateError('No content in GitHub response');
+  }
+
+  final encoding = data['encoding'] as String? ?? 'base64';
+  if (encoding == 'base64') {
+    final cleaned = content.replaceAll(RegExp(r'\s+'), '');
+    return utf8.decode(base64.decode(cleaned));
+  }
+
+  return content;
+}
+
+Set<String> extractSecretNames(String content) {
+  final secretNames = <String>{};
+  final regex = RegExp(
+    r'secrets(?:\.([a-zA-Z0-9_-]+)|\[\s*(?:"([^"]+)"|' "'" '([^' "'" ']+)' "'" ')\s*\])',
+    caseSensitive: false,
+  );
+  
+  for (final match in regex.allMatches(content)) {
+    final name = match.group(1) ?? match.group(2) ?? match.group(3);
+    if (name != null && name.isNotEmpty) {
+      secretNames.add(name);
+    }
+  }
+  return secretNames;
 }
 
 Future<bool> processJob(
-  Firestore firestore,
-  String projectId,
-  String serviceAccountPath,
+  ApiClient apiClient,
   String workerId, {
   void Function()? onJobFound,
 }) async {
-  final buildJob = await claimBuildJob(firestore);
+  final buildJob = await apiClient.claimNextJob(null);
   if (buildJob == null) return false;
 
   onJobFound?.call();
 
   final buildJobId = buildJob.id;
-  final token = buildJob.installationToken!;
-  final owner = buildJob.owner;
-  final repo = buildJob.repo;
-  final commitSha = buildJob.commitSha!;
+  final runId = _uuid.v4();
 
-  final runId = await initializeRun(firestore, buildJobId);
+  // Initialize Logger
+  setLoggerApiClient(apiClient);
 
-  final vmName = currentVmName(workerId: workerId, buildJobId: buildJobId);
+  await apiClient.createRun(buildJobId, runId);
+  await apiClient.updateCheckRun(buildJob, 'in_progress');
 
   await logInfo(
-    firestore,
     buildJobId,
     runId,
-    'Processing job: $buildJobId for $owner/$repo [v$version]',
+    'Processing job: $buildJobId for ${buildJob.owner}/${buildJob.repo} [v$version]',
   );
 
-  await cloneVm(
-    baseVmName: baseVmName,
-    vmName: vmName,
-    buildJobId: buildJobId,
-    runId: runId,
-    firestore: firestore,
-  );
+  // Resolve Installation Token
+  String token;
+  try {
+    final tokenResp = await apiClient.resolveInstallationToken(buildJobId);
+    token = tokenResp['token'] as String;
+  } catch (e) {
+    await logError(buildJobId, runId, 'Failed to resolve GitHub App Installation Token: $e');
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
+      conclusion: 'failure',
+    );
+    await apiClient.completeJob(buildJobId, 'FAILURE');
+    await apiClient.updateCheckRun(buildJob, 'completed', conclusion: 'failure');
+    await apiClient.handleBuildJobStatusChange(buildJob, 'FAILURE');
+    return true;
+  }
+
+  final owner = buildJob.owner;
+  final repo = buildJob.repo;
+  final commitSha = buildJob.commitSha ?? '';
+
+  final vmName = currentVmName(workerId: workerId, buildJobId: buildJobId);
+  VirtualMachine? vm;
 
   Future<void> execCommand(String command) => execVmCommand(
-    vmName: vmName,
-    command: command,
-    firestore: firestore,
-    buildJobId: buildJobId,
-    runId: runId,
-    token: token,
-  );
+        vmName: vmName,
+        command: command,
+        buildJobId: buildJobId,
+        runId: runId,
+        token: token,
+        ipAddress: vm?.ipAddress,
+      );
 
   Future<bool> isCancelled() async {
     try {
-      final doc = await firestore
-          .collection(buildJobsCollection)
-          .doc(buildJobId)
-          .get();
-      if (!doc.exists) return false;
-      final data = doc.data();
-      return data?['status'] == 'cancelled';
+      return await apiClient.isJobCancelled(buildJobId);
     } catch (_) {
       return false;
     }
@@ -148,63 +222,42 @@ Future<bool> processJob(
   try {
     final workflowFileName = buildJob.workflowFileName;
     if (workflowFileName == null || workflowFileName.isEmpty) {
-      await logError(
-        firestore,
-        buildJobId,
-        runId,
-        'workflowFileName is missing in build job data',
-      );
       throw Exception('workflowFileName is missing');
     }
 
-    await logInfo(firestore, buildJobId, runId, 'Workflow: $workflowFileName');
+    await logInfo(buildJobId, runId, 'Workflow: $workflowFileName');
 
-    Object? vmStartError;
-    unawaited(
-      runVm(vmName).catchError((e) {
-        vmStartError = e;
-      }),
+    await cloneVm(
+      baseVmName: baseVmName,
+      vmName: vmName,
+      buildJobId: buildJobId,
+      runId: runId,
     );
 
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Waiting for VM to be ready...',
-    );
-    await waitForVmReady(vmName, vmStartError: () => vmStartError);
-    await setupDirectSsh(vmName);
-    final vmIp = await getVmIp(vmName);
-    await logInfo(firestore, buildJobId, runId, 'VM is ready!');
+    await logInfo(buildJobId, runId, 'Booting macOS VM via avf_dart...');
+    vm = await runVm(vmName);
+    await logInfo(buildJobId, runId, 'VM booted successfully!');
 
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Cloning repository $owner/$repo...',
-    );
+    await setupDirectSsh(vm);
+    final vmIp = vm.ipAddress;
+    await logInfo(buildJobId, runId, 'VM IP: $vmIp. VM is ready!');
+
+    await logInfo(buildJobId, runId, 'Cloning repository $owner/$repo...');
     final githubHost = buildJob.githubBaseUrl != null
         ? Uri.parse(buildJob.githubBaseUrl!).host
         : 'github.com';
-    final cloneUrl =
-        'https://x-access-token:$token@$githubHost/$owner/$repo.git';
+    final cloneUrl = 'https://x-access-token:$token@$githubHost/$owner/$repo.git';
 
     await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
 
     final pullRequestNumber = buildJob.pullRequestNumber;
 
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Fetching commit $commitSha...',
-    );
+    await logInfo(buildJobId, runId, 'Fetching commit $commitSha...');
     try {
       await execCommand('git -C $repo fetch --depth 1 origin $commitSha');
     } catch (_) {
       if (pullRequestNumber != null) {
         await logInfo(
-          firestore,
           buildJobId,
           runId,
           'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
@@ -217,36 +270,26 @@ Future<bool> processJob(
       }
     }
 
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Checking out commit $commitSha...',
-    );
+    await logInfo(buildJobId, runId, 'Checking out commit $commitSha...');
     await execCommand('git -C $repo checkout $commitSha');
+    await logInfo(buildJobId, runId, 'Repository cloned successfully');
 
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Repository cloned successfully',
-    );
-
+    // Build Environment variables
     final envVars = await buildEnvVars(
-      firestore: firestore,
+      apiClient: apiClient,
       buildJob: buildJob,
-      projectId: projectId,
+      projectId: apiClient.projectId,
       buildJobId: buildJobId,
       runId: runId,
     );
 
+    // Build Secrets (filtered by workflow references)
     final secretVars = await buildSecretVars(
-      firestore: firestore,
-      serviceAccountPath: serviceAccountPath,
+      apiClient: apiClient,
       token: token,
       buildJobId: buildJobId,
       runId: runId,
-      teamId: buildJob.teamId,
+      buildJob: buildJob,
     );
 
     final envFileLines = <String>[];
@@ -264,25 +307,19 @@ Future<bool> processJob(
     final envFileContent = envFileLines.join('\n');
     final secretFileContent = secretFileLines.join('\n');
 
-    await writeFileToVm(vmName, '/tmp/openci-env', envFileContent);
-    await writeFileToVm(vmName, '/tmp/openci-secrets', secretFileContent);
+    await writeFileToVm(vmIp, '/tmp/openci-env', envFileContent);
+    await writeFileToVm(vmIp, '/tmp/openci-secrets', secretFileContent);
     await writeFileToVm(
-      vmName,
+      vmIp,
       '/tmp/openci-event.json',
       buildEventPayload(buildJob),
     );
-    await logInfo(
-      firestore,
-      buildJobId,
-      runId,
-      'Environment variables written',
-    );
+    await logInfo(buildJobId, runId, 'Environment variables written');
 
-    await logInfo(firestore, buildJobId, runId, 'Running workflow with act...');
+    await logInfo(buildJobId, runId, 'Running workflow with act...');
 
     final eventType = pullRequestNumber != null ? 'pull_request' : 'push';
-
-    final jobKey = buildJob.jobKey;
+    final jobKey = buildJob.workflowJobKey ?? buildJob.jobKey;
     final jobFlag = jobKey != null ? '-j $jobKey ' : '';
 
     final actScript = [
@@ -300,13 +337,12 @@ Future<bool> processJob(
           '--secret-file /tmp/openci-secrets',
     ].join('\n');
 
-    await writeFileToVm(vmName, '/tmp/openci-act.sh', actScript);
+    await writeFileToVm(vmIp, '/tmp/openci-act.sh', actScript);
     await execCommand('chmod +x /tmp/openci-act.sh');
 
     await execCommandStreaming(
       ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
       vmIp,
-      firestore,
       buildJobId,
       runId,
       token,
@@ -315,75 +351,58 @@ Future<bool> processJob(
 
     await Future.delayed(const Duration(seconds: 5));
 
-    await logInfo(firestore, buildJobId, runId, 'Build completed successfully');
-    await updateRunStatus(
-      firestore,
-      buildJobId,
-      runId,
-      'completed',
+    await logInfo(buildJobId, runId, 'Build completed successfully');
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
       conclusion: 'success',
     );
-
-    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'status': 'success',
-      'completedAt': DateTime.now().toUtc().toIso8601String(),
-    });
-
-    // Notify cloud functions (replaces Firestore triggers)
-    unawaited(
-      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'success'),
+    await apiClient.completeJob(buildJobId, 'SUCCESS');
+    
+    final completedJob = buildJob.copyWith(
+      status: BuildJobStatus.SUCCESS,
+      latestRunId: runId,
+      completedAt: DateTime.now(),
     );
-    unawaited(notifyBuildJobStatusChange(buildJobId, 'success'));
+    await apiClient.updateCheckRun(completedJob, 'completed', conclusion: 'success');
+    await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
   } catch (e, s) {
     await logError(
-      firestore,
       buildJobId,
       runId,
       'Job failed: $e',
       stackTrace: s.toString(),
     );
-    await updateRunStatus(
-      firestore,
-      buildJobId,
-      runId,
-      'completed',
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
       conclusion: 'failure',
     );
+    await apiClient.completeJob(buildJobId, 'FAILURE');
 
-    await firestore.collection(buildJobsCollection).doc(buildJobId).update({
-      'status': 'failure',
-      'completedAt': DateTime.now().toUtc().toIso8601String(),
-    });
-
-    // Notify cloud functions (replaces Firestore triggers)
-    // Must await these before rethrow, otherwise the futures are dropped.
-    await Future.wait([
-      notifyCheckRunUpdate(buildJobId, 'completed', conclusion: 'failure'),
-      notifyBuildJobStatusChange(buildJobId, 'failure'),
-      requestFailureSummary(buildJobId),
-    ]);
+    final failedJob = buildJob.copyWith(
+      status: BuildJobStatus.FAILURE,
+      latestRunId: runId,
+      completedAt: DateTime.now(),
+    );
+    await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+    await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
     await flushRemainingLogs();
-    try {
-      await stopVm(vmName);
-    } catch (e) {
-      await logWarning(firestore, buildJobId, runId, 'Error stopping VM: $e');
-    }
-    try {
-      await deleteVm(vmName);
-    } catch (e) {
-      await logWarning(firestore, buildJobId, runId, 'Error deleting VM: $e');
-    }
+    await stopVm(vm);
+    await deleteVm(vmName);
     await flushRemainingLogs();
-    await pruneStaleVms(firestore, buildJobId, runId, workerId: workerId);
+    await pruneStaleVms(buildJobId, runId, workerId: workerId);
   }
 
   return true;
 }
 
 Future<Map<String, String>> buildEnvVars({
-  required Firestore firestore,
+  required ApiClient apiClient,
   required BuildJob buildJob,
   required String projectId,
   required String buildJobId,
@@ -392,8 +411,8 @@ Future<Map<String, String>> buildEnvVars({
   final tagName = buildJob.tagName;
   final tagVersion = tagName != null && tagName.isNotEmpty
       ? (tagName.startsWith('v') || tagName.startsWith('V')
-            ? tagName.substring(1)
-            : tagName)
+          ? tagName.substring(1)
+          : tagName)
       : null;
 
   final teamId = buildJob.teamId;
@@ -402,59 +421,46 @@ Future<Map<String, String>> buildEnvVars({
     'LANG': 'en_US.UTF-8',
     'OPENCI_PROJECT_ID': projectId,
     if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
-    'OPENCI_TAG_VERSION': ?tagVersion,
-    'OPENCI_TEAM_ID': ?teamId,
+    if (tagVersion != null) 'OPENCI_TAG_VERSION': tagVersion,
+    if (teamId != null) 'OPENCI_TEAM_ID': teamId,
   };
 
   if (teamId != null) {
-    final envVarsSnapshot = await firestore
-        .collection(environmentVariablesCollection)
-        .where('teamId', WhereFilter.equal, teamId)
-        .get();
+    final variables = await apiClient.getEnvironmentVariables(teamId);
 
-    for (final envVarDoc in envVarsSnapshot.docs) {
-      final envVarData = envVarDoc.data();
+    for (final envVarData in variables) {
       final key = envVarData['key'] as String;
       var value = envVarData['value'] as String;
       final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
 
       if (autoIncrement) {
-        final docRef = firestore.doc(
-          'environment_variables_v0/${envVarDoc.id}',
-        );
-        await firestore.runTransaction((transaction) async {
-          final freshDoc = await transaction.get(docRef);
-          final currentValue = freshDoc.data()!['value'] as String;
-          value = currentValue;
-          final numValue = int.tryParse(currentValue);
-          if (numValue != null) {
-            transaction.update(docRef, {'value': '${numValue + 1}'});
-          }
-        });
-        await logInfo(
-          firestore,
-          buildJobId,
-          runId,
-          'Auto-incremented $key: $value → ${int.parse(value) + 1}',
-        );
+        final numValue = int.tryParse(value);
+        if (numValue != null) {
+          final nextVal = '${numValue + 1}';
+          await apiClient.updateEnvironmentVariable(envVarData['id'] as String, nextVal);
+          await logInfo(
+            buildJobId,
+            runId,
+            'Auto-incremented $key: $value → $nextVal',
+          );
+          value = nextVal;
+        }
       }
 
       envVars[key] = value;
     }
 
-    if (envVarsSnapshot.docs.isNotEmpty) {
+    if (variables.isNotEmpty) {
       await logInfo(
-        firestore,
         buildJobId,
         runId,
-        'Loaded ${envVarsSnapshot.docs.length} environment variable(s)',
+        'Loaded ${variables.length} environment variable(s)',
       );
     }
   }
 
   if (tagName != null && tagName.isNotEmpty) {
     await logInfo(
-      firestore,
       buildJobId,
       runId,
       'Tag: $tagName (available as \$OPENCI_TAG)',
@@ -464,14 +470,6 @@ Future<Map<String, String>> buildEnvVars({
   return envVars;
 }
 
-/// Builds a minimal GitHub event payload JSON for `act -e <file>`.
-///
-/// `act` reads this file and exposes it via `${{ github.event.* }}`.
-/// Without it, expressions like `${{ github.event.pull_request.number }}`
-/// evaluate to empty strings.
-///
-/// The payload is minimal and only covers fields we can derive from
-/// [BuildJob]. Base ref is left empty since it is not tracked today.
 String buildEventPayload(BuildJob buildJob) {
   final owner = buildJob.owner;
   final repo = buildJob.repo;
@@ -521,81 +519,96 @@ String buildEventPayload(BuildJob buildJob) {
 }
 
 Future<Map<String, String>> buildSecretVars({
-  required Firestore firestore,
-  required String serviceAccountPath,
+  required ApiClient apiClient,
   required String token,
   required String buildJobId,
   required String runId,
-  String? teamId,
+  required BuildJob buildJob,
 }) async {
-  final saJsonCompact = jsonEncode(
-    jsonDecode(File(serviceAccountPath).readAsStringSync()),
-  );
-
   final secrets = <String, String>{
-    'OPENCI_GCP_SA_JSON': saJsonCompact,
     'GITHUB_TOKEN': token,
   };
 
+  final teamId = buildJob.teamId;
   if (teamId == null) return secrets;
 
-  final secretsSnapshot = await firestore
-      .collection(secretsCollection)
-      .where('teamId', WhereFilter.equal, teamId)
-      .get();
+  // Retrieve the metadata of all secrets for the team
+  final secretMetadataList = await apiClient.getSecrets(teamId);
+  if (secretMetadataList.isEmpty) return secrets;
 
-  if (secretsSnapshot.docs.isEmpty) return secrets;
-
-  await logInfo(
-    firestore,
-    buildJobId,
-    runId,
-    'Loading ${secretsSnapshot.docs.length} secret(s) from Secret Manager...',
-  );
-
-  final saJson =
-      jsonDecode(File(serviceAccountPath).readAsStringSync())
-          as Map<String, dynamic>;
-  final credentials = ServiceAccountCredentials.fromJson(saJson);
-  final httpClient = await clientViaServiceAccount(credentials, [
-    SecretManagerApi.cloudPlatformScope,
-  ]);
-
-  try {
-    final smApi = SecretManagerApi(httpClient);
-
-    for (final doc in secretsSnapshot.docs) {
-      final data = doc.data();
-      final name = data['name'] as String;
-      final pathToSecret = data['pathToSecret'] as String?;
-      if (pathToSecret == null) continue;
-
-      try {
-        final response = await smApi.projects.secrets.versions.access(
-          '$pathToSecret/versions/latest',
-        );
-        final payload = response.payload?.data;
-        if (payload != null) {
-          secrets[name] = utf8.decode(base64Decode(payload));
-        }
-      } catch (e) {
-        await logWarning(
-          firestore,
-          buildJobId,
-          runId,
-          'Failed to load secret "$name": $e',
-        );
-      }
+  // Attempt to fetch the workflow file content from GitHub to analyze used secrets
+  Set<String>? usedSecretNames;
+  if (buildJob.workflowFileName != null) {
+    try {
+      await logInfo(
+        buildJobId,
+        runId,
+        'Fetching workflow ${buildJob.workflowFileName} from GitHub to analyze referenced secrets...',
+      );
+      final workflowContent = await fetchWorkflowContent(
+        owner: buildJob.owner,
+        repo: buildJob.repo,
+        workflowFileName: buildJob.workflowFileName!,
+        token: token,
+        githubApiBaseUrl: buildJob.githubApiBaseUrl,
+        commitSha: buildJob.commitSha,
+        branch: buildJob.branch,
+      );
+      usedSecretNames = extractSecretNames(workflowContent);
+      await logInfo(
+        buildJobId,
+        runId,
+        'Referenced secret(s) in workflow: ${usedSecretNames.isEmpty ? "(none)" : usedSecretNames.join(', ')}',
+      );
+    } catch (e) {
+      await logWarning(
+        buildJobId,
+        runId,
+        'Failed to fetch or analyze workflow file; falling back to loading all secrets: $e',
+      );
     }
-  } finally {
-    httpClient.close();
+  }
+
+  // Filter list by referenced secret names (or load all if analysis failed)
+  final targetSecrets = secretMetadataList.where((meta) {
+    if (usedSecretNames == null) return true;
+    final name = meta['name'] as String?;
+    return name != null && usedSecretNames.contains(name);
+  }).toList();
+
+  if (targetSecrets.isEmpty) {
+    await logInfo(buildJobId, runId, 'No secrets need to be loaded');
+    return secrets;
   }
 
   await logInfo(
-    firestore,
     buildJobId,
     runId,
-    'Loaded ${secretsSnapshot.docs.length} secret(s)',
+    'Loading ${targetSecrets.length} secret(s) from Secret Manager via Cloud Functions...',
+  );
+
+  for (final meta in targetSecrets) {
+    final name = meta['name'] as String?;
+    if (name == null) continue;
+
+    try {
+      final value = await apiClient.getSecretValue(teamId, name);
+      if (value.isNotEmpty) {
+        secrets[name] = value;
+      }
+    } catch (e) {
+      await logWarning(
+        buildJobId,
+        runId,
+        'Failed to load secret "$name": $e',
+      );
+    }
+  }
+
+  await logInfo(
+    buildJobId,
+    runId,
+    'Loaded ${targetSecrets.length} secret(s)',
   );
 
   return secrets;

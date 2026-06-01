@@ -1,119 +1,167 @@
 import 'dart:async';
+import 'package:uuid/uuid.dart';
+import 'package:logging/logging.dart' as dart_logging;
+import 'cloud_function_caller.dart';
 
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
-import 'package:logging/logging.dart';
-import 'package:openci_shared/firestore_paths.dart';
-
-final _log = Logger('BuildLog');
+final _log = dart_logging.Logger('BuildLog');
+const _uuid = Uuid();
 
 enum LogLevel { info, warning, error }
 
-const _maxConcurrent = 5;
-int _activeWrites = 0;
-final _writeQueue = <Future<void> Function()>[];
+class LogEntry {
+  final String id;
+  final String message;
+  final LogLevel level;
+  final String timestamp;
+  final String? stackTrace;
 
-Future<void> _enqueue(Future<void> Function() task) async {
-  if (_activeWrites >= _maxConcurrent) {
-    final completer = Completer<void>();
-    _writeQueue.add(() async {
-      try {
-        await task();
-      } finally {
-        completer.complete();
-      }
-    });
-    return completer.future;
+  LogEntry({
+    required this.id,
+    required this.message,
+    required this.level,
+    required this.timestamp,
+    this.stackTrace,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'message': message,
+        'level': level.name,
+        'timestamp': timestamp,
+        if (stackTrace != null) 'stackTrace': stackTrace,
+      };
+}
+
+class _BufferGroup {
+  final String buildJobId;
+  final String runId;
+  List<LogEntry> entries = [];
+  Timer? timer;
+
+  _BufferGroup({required this.buildJobId, required this.runId});
+}
+
+ApiClient? _apiClient;
+final _bufferGroups = <String, _BufferGroup>{};
+final _activeWrites = <Future<void>>[];
+
+void setLoggerApiClient(ApiClient apiClient) {
+  _apiClient = apiClient;
+}
+
+_BufferGroup _getBufferGroup(String buildJobId, String runId) {
+  final key = '$buildJobId:$runId';
+  return _bufferGroups.putIfAbsent(
+    key,
+    () => _BufferGroup(buildJobId: buildJobId, runId: runId),
+  );
+}
+
+const _maxBufferCount = 50;
+const _flushInterval = Duration(seconds: 1);
+const _maxWriteAttempts = 5;
+const _initialRetryDelay = Duration(milliseconds: 500);
+
+Future<void> _sendLogsWithRetry(
+  String buildJobId,
+  String runId,
+  List<LogEntry> logs,
+) async {
+  final client = _apiClient;
+  if (client == null) {
+    _log.warning('ApiClient not configured for logging. Logs will be discarded.');
+    return;
   }
 
-  _activeWrites++;
-  try {
-    await task();
-  } finally {
-    _activeWrites--;
-    _drainQueue();
+  final payloadLogs = logs.map((e) => e.toJson()).toList();
+
+  for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+    try {
+      await client.appendBuildLogs(
+        buildJobId: buildJobId,
+        runId: runId,
+        logs: payloadLogs,
+      );
+      return;
+    } catch (e) {
+      if (attempt == _maxWriteAttempts) {
+        _log.warning('[BuildLog] Failed to send bulk logs: $e');
+        return;
+      }
+      final delay = _initialRetryDelay * (1 << (attempt - 1));
+      await Future.delayed(delay);
+    }
   }
 }
 
-void _drainQueue() {
-  while (_writeQueue.isNotEmpty && _activeWrites < _maxConcurrent) {
-    final next = _writeQueue.removeAt(0);
-    _activeWrites++;
-    next().whenComplete(() {
-      _activeWrites--;
-      _drainQueue();
-    });
+void _triggerFlush(_BufferGroup group) {
+  group.timer?.cancel();
+  group.timer = null;
+
+  if (group.entries.isEmpty) return;
+
+  final logsToSend = List<LogEntry>.from(group.entries);
+  group.entries.clear();
+
+  final writeFuture = _sendLogsWithRetry(group.buildJobId, group.runId, logsToSend);
+  _activeWrites.add(writeFuture);
+  writeFuture.whenComplete(() {
+    _activeWrites.remove(writeFuture);
+  });
+}
+
+Future<void> writeBuildLog(
+  String buildJobId,
+  String runId,
+  LogLevel level,
+  String message, {
+  String? stackTrace,
+}) async {
+  final group = _getBufferGroup(buildJobId, runId);
+  group.entries.add(LogEntry(
+    id: _uuid.v4(),
+    message: message,
+    level: level,
+    timestamp: DateTime.now().toUtc().toIso8601String(),
+    stackTrace: stackTrace,
+  ));
+
+  if (group.entries.length >= _maxBufferCount) {
+    _triggerFlush(group);
+  } else {
+    group.timer ??= Timer(_flushInterval, () => _triggerFlush(group));
   }
 }
 
 Future<void> flushRemainingLogs() async {
-  while (_activeWrites > 0 || _writeQueue.isNotEmpty) {
-    await Future.delayed(const Duration(milliseconds: 100));
+  for (final group in _bufferGroups.values) {
+    _triggerFlush(group);
+  }
+
+  while (_activeWrites.isNotEmpty) {
+    await Future.wait(_activeWrites);
   }
 }
 
-Future<void> writeLogsToFirestore(
-  Firestore firestore,
-  String buildJobId,
-  String runId,
-  String message,
-  LogLevel level, {
-  String? stackTrace,
-}) async {
-  await _enqueue(() async {
-    try {
-      final logRef = firestore
-          .collection(buildJobsCollection)
-          .doc(buildJobId)
-          .collection('runs')
-          .doc(runId)
-          .collection('logs')
-          .doc();
-      await logRef.set({
-        'message': message,
-        'level': level.name,
-        'timestamp': DateTime.now().toIso8601String(),
-        'stackTrace': ?stackTrace,
-      });
-    } catch (e) {
-      _log.warning('Failed to write log to Firestore: $e');
-    }
-  });
-}
-
 Future<void> logInfo(
-  Firestore firestore,
   String buildJobId,
   String runId,
   String message,
 ) async {
   _log.info(message);
-  await writeLogsToFirestore(
-    firestore,
-    buildJobId,
-    runId,
-    message,
-    LogLevel.info,
-  );
+  await writeBuildLog(buildJobId, runId, LogLevel.info, message);
 }
 
 Future<void> logWarning(
-  Firestore firestore,
   String buildJobId,
   String runId,
   String message,
 ) async {
   _log.warning(message);
-  await writeLogsToFirestore(
-    firestore,
-    buildJobId,
-    runId,
-    message,
-    LogLevel.warning,
-  );
+  await writeBuildLog(buildJobId, runId, LogLevel.warning, message);
 }
 
 Future<void> logError(
-  Firestore firestore,
   String buildJobId,
   String runId,
   String message, {
@@ -123,12 +171,18 @@ Future<void> logError(
   if (stackTrace != null) {
     _log.severe('Stack trace: $stackTrace');
   }
-  await writeLogsToFirestore(
-    firestore,
+  await writeBuildLog(
     buildJobId,
     runId,
-    message,
     LogLevel.error,
+    message,
     stackTrace: stackTrace,
   );
+}
+
+void setupLogging() {
+  dart_logging.Logger.root.level = dart_logging.Level.ALL;
+  dart_logging.Logger.root.onRecord.listen((record) {
+    print('${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}');
+  });
 }

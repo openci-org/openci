@@ -16,14 +16,19 @@ ArgParser get argParser {
       help: 'Update to the latest version.',
     )
     ..addOption(
-      'service-account',
-      abbr: 's',
-      help: 'The path to the Firebase service account JSON file.',
+      'email',
+      abbr: 'e',
+      help: 'The Firebase Auth email for this worker.',
     )
     ..addOption(
-      'worker-id',
-      abbr: 'w',
-      help: 'Unique ID for this worker (e.g., worker-1, worker-2).',
+      'password',
+      abbr: 'p',
+      help: 'The Firebase Auth password for this worker.',
+    )
+    ..addOption(
+      'project-id',
+      help: 'The Firebase project ID (defaults to openci-b1b91).',
+      defaultsTo: 'openci-b1b91',
     )
     ..addOption('sentry-dsn', help: 'Sentry DSN for error reporting.')
     ..addFlag(

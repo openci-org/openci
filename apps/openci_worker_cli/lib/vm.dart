@@ -2,12 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
-import 'package:process_run/process_run.dart';
-import 'package:process_run/stdio.dart';
+import 'package:avf_dart/avf_dart.dart';
 import 'package:sentry/sentry.dart';
 
 final _log = Logger('VM');
@@ -17,16 +15,13 @@ Future<void> cloneVm({
   required String vmName,
   required String buildJobId,
   required String runId,
-  required Firestore firestore,
 }) async {
   await logInfo(
-    firestore,
     buildJobId,
     runId,
     'Cloning VM $baseVmName to $vmName...',
   );
-  var shell = Shell();
-  await shell.run('lume clone $baseVmName $vmName');
+  await VirtualMachine.clone(sourceName: baseVmName, targetName: vmName);
 }
 
 String currentVmName({required String workerId, required String buildJobId}) {
@@ -39,131 +34,55 @@ String currentVmName({required String workerId, required String buildJobId}) {
 Future<void> execVmCommand({
   required String vmName,
   required String command,
-  required Firestore firestore,
   required String buildJobId,
   required String runId,
   required String token,
+  required String? ipAddress,
 }) async {
-  var shell = Shell(verbose: true, throwOnError: false);
-  final results = await shell.run(
-    "lume ssh $vmName --user $sshUser --password $sshPassword --timeout 0 -- $command",
+  final exitCode = await VirtualMachineSsh.executeStream(
+    command,
+    ipAddress: ipAddress,
+    username: sshUser,
+    privateKeyPath: _sshKeyPath,
+    onStdout: (data) async {
+      final masked = data.replaceAll(token, '***').trim();
+      if (masked.isNotEmpty) {
+        await logInfo(buildJobId, runId, masked);
+      }
+    },
+    onStderr: (data) async {
+      final masked = data.replaceAll(token, '***').trim();
+      if (masked.isNotEmpty) {
+        await logWarning(buildJobId, runId, masked);
+      }
+    },
   );
 
-  for (final result in results) {
-    final stdout = result.stdout?.toString().trim();
-    final stderr = result.stderr?.toString().trim();
-
-    if (stdout != null && stdout.isNotEmpty) {
-      final maskedOutput = stdout.replaceAll(token, '***');
-      await logInfo(firestore, buildJobId, runId, maskedOutput);
-    }
-    if (stderr != null && stderr.isNotEmpty) {
-      final maskedOutput = stderr.replaceAll(token, '***');
-      await logInfo(firestore, buildJobId, runId, maskedOutput);
-    }
-
-    if (result.exitCode != 0) {
-      throw Exception('Command failed with exit code ${result.exitCode}');
-    }
+  if (exitCode != 0) {
+    throw Exception('Command failed with exit code $exitCode');
   }
 }
 
-Future<void> runVm(String vmName) async {
-  var shell = Shell();
-  await shell.run('lume run $vmName --no-display');
+Future<VirtualMachine> runVm(String vmName) async {
+  return await VirtualMachine.boot(name: vmName);
 }
 
-Future<void> stopVm(String vmName) async {
-  var shell = Shell(throwOnError: false);
-  await shell.run('lume stop $vmName');
+Future<void> stopVm(VirtualMachine? vm) async {
+  if (vm == null) return;
+  try {
+    await vm.stop();
+  } catch (_) {}
 }
 
 Future<void> deleteVm(String vmName) async {
-  var shell = Shell(throwOnError: false);
-  await shell.run('lume delete $vmName --force');
-}
-
-Future<void> waitForVmReady(
-  String name, {
-  Object? Function()? vmStartError,
-}) async {
-  var shell = Shell(throwOnError: false);
-  _log.info('Waiting for VM to respond...');
-  for (var i = 0; i < 120; i++) {
-    final error = vmStartError?.call();
-    if (error != null) {
-      throw Exception('VM failed to start: $error');
-    }
-
-    var result = await shell.run(
-      'lume ssh $name --user $sshUser --password $sshPassword --timeout 10 -- echo "ready"',
-    );
-    _log.fine('exit code: ${result.first.exitCode}');
-
-    if (result.first.exitCode == 0) {
-      return;
-    }
-
-    await Future.delayed(const Duration(seconds: 2));
-  }
-
-  throw Exception('VM boot timeout: VM did not respond.');
+  try {
+    await VirtualMachine.delete(vmName);
+  } catch (_) {}
 }
 
 const _sshKeyPath = '/tmp/openci-ssh-key';
 
-final _ipPattern = RegExp(r'\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b');
-
-Future<String> getVmIp(String vmName) async {
-  const maxRetries = 15;
-  const retryDelay = Duration(seconds: 3);
-  for (var attempt = 1; attempt <= maxRetries; attempt++) {
-    final result = await Process.run('lume', [
-      'ssh',
-      vmName,
-      '--user',
-      sshUser,
-      '--password',
-      sshPassword,
-      '--timeout',
-      '10',
-      '--',
-      'ipconfig',
-      'getifaddr',
-      'en0',
-    ]);
-    final output = result.stdout.toString().trim();
-    final stderr = result.stderr.toString().trim();
-    if (output.isNotEmpty) {
-      final lines = LineSplitter.split(output).toList();
-      for (final line in lines.reversed) {
-        final match = _ipPattern.firstMatch(line.trim());
-        if (match != null &&
-            !line.contains('DEBUG') &&
-            !line.contains('INFO')) {
-          final ip = match.group(1)!;
-          _log.info('VM IP: $ip');
-          return ip;
-        }
-      }
-    }
-    if (attempt < maxRetries) {
-      _log.info(
-        'getVmIp attempt $attempt/$maxRetries failed '
-        '(stdout: "$output", stderr: "$stderr"). Retrying...',
-      );
-      await Future<void>.delayed(retryDelay);
-    } else {
-      throw Exception(
-        'Failed to get VM IP for $vmName after $maxRetries attempts: '
-        'stdout="$output", stderr="$stderr"',
-      );
-    }
-  }
-  throw StateError('Unreachable');
-}
-
-Future<void> setupDirectSsh(String vmName) async {
+Future<void> setupDirectSsh(VirtualMachine vm) async {
   final keyFile = File(_sshKeyPath);
   if (!keyFile.existsSync()) {
     await Process.run('ssh-keygen', [
@@ -178,80 +97,63 @@ Future<void> setupDirectSsh(String vmName) async {
     _log.info('Generated SSH key at $_sshKeyPath');
   }
   final pubKey = File('$_sshKeyPath.pub').readAsStringSync().trim();
-  final shell = Shell(throwOnError: false);
-  await shell.run(
-    'lume ssh $vmName --user $sshUser --password $sshPassword --timeout 10 '
-    '-- mkdir -p ~/.ssh '
-    '&& echo "$pubKey" >> ~/.ssh/authorized_keys '
-    '&& chmod 700 ~/.ssh '
-    '&& chmod 600 ~/.ssh/authorized_keys',
+
+  // Install SSH key via avf_dart's SSH module (using default password)
+  final exitCode = await VirtualMachineSsh.executeStream(
+    'mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF \'$pubKey\' ~/.ssh/authorized_keys || printf \'%s\\n\' \'$pubKey\' >> ~/.ssh/authorized_keys; chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys',
+    ipAddress: vm.ipAddress,
+    username: sshUser,
+    password: sshPassword,
   );
+
+  if (exitCode != 0) {
+    throw Exception('Failed to install SSH key on VM. Exit code: $exitCode');
+  }
   _log.info('SSH key installed on VM');
 }
 
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
-    _log.info('Cleaning orphaned VMs');
-    final shell = Shell(throwOnError: false, verbose: false);
+    _log.info('Cleaning orphaned VMs for worker $workerId...');
+    final prefix = 'openci-vm-$workerId-';
 
     // 1. Clean up filesystem-based VMs for this worker
-    final prefix = 'openci-vm-$workerId-';
-    final lsResult = await Process.run('ls', [
-      '-1',
-      '${Platform.environment['HOME']}/.lume/',
-    ]);
-    if (lsResult.exitCode == 0) {
-      final vmNames = LineSplitter.split(
-        lsResult.stdout.toString(),
-      ).where((name) => name.startsWith(prefix)).toList();
+    final vms = await VirtualMachine.list();
+    final workerVms = vms.where((vm) => vm.name.startsWith(prefix)).toList();
 
-      for (final vmName in vmNames) {
-        _log.info('Deleting orphaned VM: $vmName');
-        await shell.run('lume stop $vmName');
-        await shell.run('lume delete $vmName --force');
-      }
-      if (vmNames.isNotEmpty) {
-        _log.info('Deleted ${vmNames.length} orphaned VM(s)');
-      }
+    for (final vm in workerVms) {
+      _log.info('Deleting orphaned VM: ${vm.name}');
+      await VirtualMachine.delete(vm.name);
     }
 
-    // 2. Kill zombie "lume run openci-vm-*" processes from ANY worker
-    //    These can linger after lume delete and block VM slots.
-    await _killZombieLumeProcesses();
+    // 2. Kill zombie helper processes
+    await _killZombieAvfProcesses();
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
   }
 }
 
-/// Finds and kills any `lume run openci-vm-*` processes that are still
-/// running but whose VM no longer exists on disk.
-Future<void> _killZombieLumeProcesses() async {
+Future<void> _killZombieAvfProcesses() async {
   try {
     final psResult = await Process.run('ps', ['aux']);
     if (psResult.exitCode != 0) return;
 
-    final lumeRunPattern = RegExp(
-      r'^\S+\s+(\d+)\s+.*lume\s+run\s+(openci-vm-\S+)',
-    );
-    final homeDir = Platform.environment['HOME'] ?? '';
+    final avfRunPattern = RegExp(r'^\S+\s+(\d+)\s+.*avf_helper\s+boot\s+(\S+)');
     final zombiePids = <int>[];
 
     for (final line in LineSplitter.split(psResult.stdout.toString())) {
-      final match = lumeRunPattern.firstMatch(line);
+      final match = avfRunPattern.firstMatch(line);
       if (match == null) continue;
 
       final pid = int.tryParse(match.group(1)!);
-      final vmName = match.group(2)!;
+      final vmPath = match.group(2)!;
       if (pid == null) continue;
 
-      // Check if the VM still exists on disk
-      final vmDir = Directory('$homeDir/.lume/$vmName');
+      // Check if the VM directory still exists
+      final vmDir = Directory(vmPath);
       if (!vmDir.existsSync()) {
-        _log.warning(
-          'Found zombie lume process: PID=$pid VM=$vmName (no disk entry). '
-          'Killing...',
-        );
+        _log.warning('Found zombie AVF process: PID=$pid VMPath=$vmPath. Killing...');
         zombiePids.add(pid);
       }
     }
@@ -259,45 +161,29 @@ Future<void> _killZombieLumeProcesses() async {
     for (final pid in zombiePids) {
       Process.killPid(pid);
     }
-    if (zombiePids.isNotEmpty) {
-      _log.info('Killed ${zombiePids.length} zombie lume process(es)');
-      // Wait for Virtualization.framework to clean up
-      await Future<void>.delayed(const Duration(seconds: 2));
-    }
   } catch (e) {
-    _log.warning('Error killing zombie lume processes: $e');
+    _log.warning('Error killing zombie AVF processes: $e');
   }
 }
 
 Future<void> pruneStaleVms(
-  Firestore firestore,
   String buildJobId,
   String runId, {
   required String workerId,
 }) async {
   try {
-    final shell = Shell(throwOnError: false, verbose: false);
     final prefix = 'openci-vm-$workerId-';
     final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
-    final lsResult = await Process.run('ls', [
-      '-1',
-      '${Platform.environment['HOME']}/.lume/',
-    ]);
-    if (lsResult.exitCode != 0) return;
+    final vms = await VirtualMachine.list();
+    final staleVms = vms.where((vm) => vm.name.startsWith(prefix) && vm.name != currentVm).toList();
 
-    final vmNames = LineSplitter.split(
-      lsResult.stdout.toString(),
-    ).where((name) => name.startsWith(prefix) && name != currentVm).toList();
-
-    for (final vmName in vmNames) {
-      await logInfo(firestore, buildJobId, runId, 'Deleting stale VM: $vmName');
-      await shell.run('lume stop $vmName');
-      await shell.run('lume delete $vmName --force');
+    for (final vm in staleVms) {
+      await logInfo(buildJobId, runId, 'Deleting stale VM: ${vm.name}');
+      await VirtualMachine.delete(vm.name);
     }
   } catch (e) {
     await logWarning(
-      firestore,
       buildJobId,
       runId,
       'Error pruning stale VMs: $e',
@@ -306,7 +192,7 @@ Future<void> pruneStaleVms(
 }
 
 Future<void> writeFileToVm(
-  String vmName,
+  String? ipAddress,
   String remotePath,
   String content,
 ) async {
@@ -321,33 +207,30 @@ Future<void> writeFileToVm(
     chunks.add(encoded.substring(i, end));
   }
 
-  Future<ProcessResult> sshRun(String remoteCommand) async {
-    return Process.run('lume', [
-      'ssh',
-      vmName,
-      '--user',
-      sshUser,
-      '--password',
-      sshPassword,
+  Future<int> sshRun(String remoteCommand) async {
+    return await VirtualMachineSsh.executeStream(
       remoteCommand,
-    ]);
+      ipAddress: ipAddress,
+      username: sshUser,
+      password: sshPassword,
+    );
   }
 
   await sshRun('rm -f $remotePath $remotePath.b64');
 
   for (final chunk in chunks) {
-    final result = await sshRun('printf %s $chunk >> $remotePath.b64');
-    if (result.exitCode != 0) {
-      throw Exception('Failed to write chunk to $remotePath: ${result.stderr}');
+    final exitCode = await sshRun('printf %s \'$chunk\' >> $remotePath.b64');
+    if (exitCode != 0) {
+      throw Exception('Failed to write chunk to $remotePath');
     }
   }
 
-  final decodeResult = await sshRun(
+  final decodeExitCode = await sshRun(
     'base64 -D < $remotePath.b64 > $remotePath && rm $remotePath.b64',
   );
-  if (decodeResult.exitCode != 0) {
+  if (decodeExitCode != 0) {
     throw Exception(
-      'Failed to decode $remotePath in VM: ${decodeResult.stderr}',
+      'Failed to decode $remotePath in VM: $decodeExitCode',
     );
   }
 }
@@ -365,13 +248,16 @@ bool _isNoisyLine(String line) {
 
 Future<void> execCommandStreaming(
   List<String> command,
-  String vmIp,
-  Firestore firestore,
+  String? vmIp,
   String buildJobId,
   String runId,
   String token, {
   required Future<bool> Function() isCancelled,
 }) async {
+  if (vmIp == null) {
+    throw StateError('Cannot stream SSH command: VM IP is null.');
+  }
+
   final process = await Process.start('ssh', [
     '-o',
     'StrictHostKeyChecking=no',
@@ -410,7 +296,7 @@ Future<void> execCommandStreaming(
       outputErrors.add(trimmed);
     }
 
-    logInfo(firestore, buildJobId, runId, trimmed);
+    logInfo(buildJobId, runId, trimmed);
   }
 
   process.stdout.transform(utf8.decoder).listen((data) {

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
@@ -41,7 +40,6 @@ Future<void> startContainer(String name) async {
 Future<void> execInContainer({
   required String name,
   required String command,
-  required Firestore firestore,
   required String buildJobId,
   required String runId,
   required String token,
@@ -59,11 +57,11 @@ Future<void> execInContainer({
 
   if (stdout != null && stdout.isNotEmpty) {
     final masked = stdout.replaceAll(token, '***');
-    await logInfo(firestore, buildJobId, runId, masked);
+    await logInfo(buildJobId, runId, masked);
   }
   if (stderr != null && stderr.isNotEmpty) {
     final masked = stderr.replaceAll(token, '***');
-    await logInfo(firestore, buildJobId, runId, masked);
+    await logInfo(buildJobId, runId, masked);
   }
 
   if (result.exitCode != 0) {
@@ -126,7 +124,6 @@ bool _isActError(String line) {
 Future<void> execStreamingInContainer(
   String name,
   List<String> command,
-  Firestore firestore,
   String buildJobId,
   String runId,
   String token, {
@@ -153,7 +150,7 @@ Future<void> execStreamingInContainer(
       outputErrors.add(trimmed);
     }
 
-    logInfo(firestore, buildJobId, runId, trimmed);
+    logInfo(buildJobId, runId, trimmed);
   }
 
   process.stdout.transform(utf8.decoder).listen((data) {
@@ -243,7 +240,6 @@ Future<void> cleanupOrphanedContainers(String workerId) async {
 }
 
 Future<void> pruneStaleContainers(
-  Firestore firestore,
   String buildJobId,
   String runId, {
   required String workerId,
@@ -269,7 +265,6 @@ Future<void> pruneStaleContainers(
 
     for (final container in containers) {
       await logInfo(
-        firestore,
         buildJobId,
         runId,
         'Removing stale container: $container',
@@ -278,7 +273,6 @@ Future<void> pruneStaleContainers(
     }
   } catch (e) {
     await logWarning(
-      firestore,
       buildJobId,
       runId,
       'Error pruning stale containers: $e',

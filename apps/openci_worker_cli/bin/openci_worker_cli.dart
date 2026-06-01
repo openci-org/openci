@@ -10,6 +10,7 @@ import 'package:openci_worker_cli/poller.dart';
 import 'package:openci_worker_cli/supervisor.dart';
 import 'package:openci_worker_cli/vm.dart';
 import 'package:openci_worker_cli/worker_config.dart';
+import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:sentry/sentry.dart';
 
 final _log = Logger('Main');
@@ -28,14 +29,14 @@ Future<void> main(List<String> arguments) async {
     final config = await parseWorkerConfig(arguments);
     if (config == null) return;
 
-    final firestore = await initFirestore(
-      projectId: config.projectId,
-      serviceAccountPath: config.serviceAccountPath,
-    );
+    final authManager = AuthManager(email: config.email, password: config.password);
+    final apiClient = ApiClient(authManager: authManager, projectId: config.projectId);
 
-    _log.info('Worker started. Worker ID: ${config.workerId} (v$version)');
+    final localPart = config.email.split('@').first;
+    final workerId = localPart.contains('+') ? localPart.split('+').last : localPart;
+    _log.info('Worker started. Worker ID: $workerId (v$version)');
     _log.info(
-      'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (Lume)'}',
+      'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (AVF)'}',
     );
     _log.info(
       'Host: ${Platform.localHostname} | '
@@ -44,16 +45,14 @@ Future<void> main(List<String> arguments) async {
     );
 
     if (Platform.isLinux) {
-      await cleanupOrphanedContainers(config.workerId);
+      await cleanupOrphanedContainers(workerId);
     } else {
-      await cleanupOrphanedVms(config.workerId);
+      await cleanupOrphanedVms(workerId);
     }
 
     await pollForJobs(
-      firestore: firestore,
-      workerId: config.workerId,
-      projectId: config.projectId,
-      serviceAccountPath: config.serviceAccountPath,
+      apiClient: apiClient,
+      workerId: workerId,
     );
   } on FormatException catch (e) {
     _log.severe(e.message);

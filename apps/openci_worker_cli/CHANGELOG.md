@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.19
+- Ported Node.js worker CLI to Dart
+- Migrated from direct Firestore operations to Firebase Functions API (fully removed Firestore dependency)
+- Added Firebase Auth credentials support (`--email` and `--password`) to deprecate Google Service Account keys
+- Integrated `avf_dart` for macOS Apple Virtualization Framework support
+
 ## 0.9.18
 - Pass a GitHub event payload to `act` via `-e /tmp/openci-event.json` so workflow expressions like `${{ github.event.pull_request.number }}` resolve correctly (enables Firebase Hosting preview channel deploys on PRs)
 

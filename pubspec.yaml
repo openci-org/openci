@@ -11,6 +11,8 @@ workspace:
   - packages/openci_shared
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
+  - packages/gcp_secret_manager
+  - apps/openci_worker_cli
 
 
 dependency_overrides:

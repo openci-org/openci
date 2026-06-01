@@ -5,3 +5,5 @@ export 'src/file_transfer.dart';
 export 'src/local_vm.dart';
 export 'src/transfer_progress.dart';
 export 'src/virtual_machine.dart';
+export 'src/virtual_machine_ssh.dart';
+export 'src/virtual_machine_transfer.dart';

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
@@ -10,8 +9,8 @@ import 'package:sentry/sentry.dart';
 final _log = Logger('Config');
 
 typedef WorkerConfig = ({
-  String serviceAccountPath,
-  String workerId,
+  String email,
+  String password,
   String projectId,
 });
 
@@ -36,40 +35,25 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
     return null;
   }
 
-  final serviceAccountPath = results['service-account'] as String?;
-  if (serviceAccountPath == null) {
-    _log.severe('--service-account is required.');
+  final email = (results['email'] as String?) ?? Platform.environment['OPENCI_EMAIL'];
+  if (email == null || email.isEmpty) {
+    _log.severe('--email or OPENCI_EMAIL environment variable is required.');
     printArgsUsage();
     return null;
   }
 
-  final workerId = results['worker-id'] as String?;
-  if (workerId == null) {
-    _log.severe('--worker-id is required.');
+  final password = (results['password'] as String?) ?? Platform.environment['OPENCI_PASSWORD'];
+  if (password == null || password.isEmpty) {
+    _log.severe('--password or OPENCI_PASSWORD environment variable is required.');
     printArgsUsage();
     return null;
   }
 
-  final serviceAccountFile = File(serviceAccountPath);
-  if (!serviceAccountFile.existsSync()) {
-    _log.severe('Service account file not found: $serviceAccountPath');
-    return null;
-  }
+  final projectId = (results['project-id'] as String?) ?? 
+      Platform.environment['OPENCI_PROJECT_ID'] ?? 
+      'openci-b1b91';
 
-  final serviceAccountJson =
-      jsonDecode(serviceAccountFile.readAsStringSync()) as Map<String, dynamic>;
-  final projectId = serviceAccountJson['project_id'] as String?;
-  if (projectId == null) {
-    _log.severe('project_id not found in service account file.');
-    return null;
-  }
-
-  if (projectId.isEmpty) {
-    _log.severe('project_id is empty in service account file.');
-    return null;
-  }
-
-  final sentryDsn = results['sentry-dsn'] as String?;
+  final sentryDsn = (results['sentry-dsn'] as String?) ?? Platform.environment['SENTRY_DSN'];
   if (sentryDsn != null && sentryDsn.isNotEmpty) {
     await Sentry.init((options) {
       options.dsn = sentryDsn;
@@ -78,8 +62,8 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
   }
 
   return (
-    serviceAccountPath: serviceAccountPath,
-    workerId: workerId,
+    email: email,
+    password: password,
     projectId: projectId,
   );
 }
