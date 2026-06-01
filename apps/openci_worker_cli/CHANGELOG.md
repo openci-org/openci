@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.2
+- Fix: Bump avf_dart to 0.1.1 to resolve the native assets (avf_helper) loading failure on AOT-compiled global packages.
+
 ## 0.10.1
 - Feature: Migrate from 'dart pub global activate' to 'dart install' to support native assets (build hooks) compilation on macOS global installations.
 

@@ -11,23 +11,7 @@ class AppleVirtualization {
     required String machineIdentifierB64,
     required String macAddress,
   }) async {
-    // 1. Resolve packages/avf_dart to locate helper
-    final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
-    final resolvedUri = await Isolate.resolvePackageUri(packageUri);
-    if (resolvedUri == null) {
-      throw StateError(
-          'Could not resolve package:avf_dart URI. Ensure the package is properly imported and resolved.');
-    }
-
-    // We get the directory containing avf_dart.dart, which is packages/avf_dart/lib
-    final libDir = File(resolvedUri.toFilePath()).parent;
-    final packageRoot = libDir.parent;
-    final helperBinary = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
-
-    if (!File(helperBinary).existsSync()) {
-      throw StateError('avf_helper binary not found at $helperBinary.\n'
-          'Please ensure build hooks have run by running "dart pub get" or "dart test" in the avf_dart directory.');
-    }
+    final helperBinary = await _findHelperBinary();
 
     // 2. Start VM process using the helper binary with macOS arguments
     final Process process;
@@ -95,18 +79,7 @@ class AppleVirtualization {
   /// Contacts Apple's servers using the Virtualization framework API to retrieve
   /// the URL for the latest supported macOS restore image (IPSW).
   static Future<Uri> fetchLatestIpswUrl() async {
-    final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
-    final resolvedUri = await Isolate.resolvePackageUri(packageUri);
-    if (resolvedUri == null) {
-      throw StateError('Could not resolve package:avf_dart URI.');
-    }
-    final libDir = File(resolvedUri.toFilePath()).parent;
-    final packageRoot = libDir.parent;
-    final helperBinary = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
-
-    if (!File(helperBinary).existsSync()) {
-      throw StateError('avf_helper binary not found at $helperBinary.');
-    }
+    final helperBinary = await _findHelperBinary();
 
     final tmpFile = File('${Directory.systemTemp.path}/avf_ipsw_url.txt');
     if (tmpFile.existsSync()) {
@@ -139,18 +112,7 @@ class AppleVirtualization {
     required String nvramPath,
     required String configJsonPath,
   }) async {
-    final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
-    final resolvedUri = await Isolate.resolvePackageUri(packageUri);
-    if (resolvedUri == null) {
-      throw StateError('Could not resolve package:avf_dart URI.');
-    }
-    final libDir = File(resolvedUri.toFilePath()).parent;
-    final packageRoot = libDir.parent;
-    final helperBinary = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
-
-    if (!File(helperBinary).existsSync()) {
-      throw StateError('avf_helper binary not found at $helperBinary.');
-    }
+    final helperBinary = await _findHelperBinary();
 
     final process = await Process.start(helperBinary, [
       'install',
@@ -161,5 +123,49 @@ class AppleVirtualization {
     ]);
 
     return process;
+  }
+
+  /// Locates the avf_helper binary, supporting both local execution and pub-cache AOT deployment.
+  static Future<String> _findHelperBinary() async {
+    // 1. Try to resolve via Isolate package URI (normal project run)
+    try {
+      final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
+      final resolvedUri = await Isolate.resolvePackageUri(packageUri);
+      if (resolvedUri != null) {
+        final libDir = File(resolvedUri.toFilePath()).parent;
+        final packageRoot = libDir.parent;
+        final helper = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
+        if (File(helper).existsSync()) {
+          return helper;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try to fallback to pub-cache dynamic scanning (AOT/global run)
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    if (home != null) {
+      final pubCacheDir = Directory('$home/.pub-cache/hosted/pub.dev');
+      if (pubCacheDir.existsSync()) {
+        final matches = pubCacheDir
+            .listSync()
+            .whereType<Directory>()
+            .where((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last.startsWith('avf_dart-'));
+        for (final match in matches) {
+          final helper = File('${match.path}/.dart_tool/avf_dart/avf_helper');
+          if (helper.existsSync()) {
+            return helper.path;
+          }
+        }
+      }
+    }
+
+    // 3. Last resort: Try standard relative path if running from source
+    final localHelper = './.dart_tool/avf_dart/avf_helper';
+    if (File(localHelper).existsSync()) {
+      return localHelper;
+    }
+
+    throw StateError(
+        'Could not locate avf_helper binary. Ensure package:avf_dart is resolved or compiled.');
   }
 }
