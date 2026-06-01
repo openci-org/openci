@@ -626,90 +626,100 @@ class ReviewPullRequestGroupView extends StatelessWidget {
                       ),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: url == null
-                            ? null
-                            : () => unawaited(launchUrlExternal(url)),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
-                          child: Column(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    alignment: Alignment.center,
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
-                                      borderRadius: BorderRadius.circular(11),
+                              Container(
+                                alignment: Alignment.center,
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: const FaIcon(
+                                  FontAwesomeIcons.codePullRequest,
+                                  size: 16,
+                                  color: Color(0xFF2563EB),
+                                ),
+                              ),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      pullRequest == null
+                                          ? 'PRなし'
+                                          : '${group.repository} #${pullRequest.number}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFF475569),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                    child: FaIcon(
-                                      FontAwesomeIcons.codePullRequest,
-                                      size: 16,
-                                      color: Color(0xFF2563EB),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFF0F172A),
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (url != null) ...[
+                                const SizedBox(width: 8),
+                                Tooltip(
+                                  message: 'GitHubでPRを開く',
+                                  child: SizedBox(
+                                    width: 26,
+                                    height: 26,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const FaIcon(
+                                        FontAwesomeIcons.github,
+                                        size: 16,
+                                        color: Color(0xFF475569),
+                                      ),
+                                      onPressed: () => unawaited(
+                                        launchUrlExternal(url),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 9),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          pullRequest == null
-                                              ? 'PRなし'
-                                              : '${group.repository} #${pullRequest.number}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Color(0xFF475569),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Color(0xFF0F172A),
-                                            fontWeight: FontWeight.w900,
-                                            height: 1.25,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 9),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  if (!isOpenPullRequest)
-                                    ReviewGroupPill(
-                                      label: stateLabel,
-                                      color: stateColor,
-                                      icon: pullRequest?.merged == true
-                                          ? Icons.call_merge_rounded
-                                          : Icons.circle_rounded,
-                                    ),
-                                  BuildStatusBadge(status: buildStatus),
-                                ],
-                              ),
+                                ),
+                              ],
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 9),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              if (!isOpenPullRequest)
+                                ReviewGroupPill(
+                                  label: stateLabel,
+                                  color: stateColor,
+                                  icon: pullRequest?.merged == true
+                                      ? Icons.call_merge_rounded
+                                      : Icons.circle_rounded,
+                                ),
+                              BuildStatusBadge(status: buildStatus),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -788,7 +798,7 @@ class ReviewGroupPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
         border: Border.all(color: color.withValues(alpha: 0.22)),
@@ -805,8 +815,8 @@ class ReviewGroupPill extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontSize: 10.5,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

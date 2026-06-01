@@ -596,9 +596,13 @@ class ReviewGroupIssueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final weightEstimate = issue.weightEstimate;
     final weight = issue.statusId == closedStatusId
         ? issue.resolution?.actualWeight
-        : issue.weightEstimate?.value;
+        : weightEstimate?.value;
+    final tooltip = issue.statusId == closedStatusId
+        ? '実績weight $weight'
+        : 'Weight $weight / 信頼度 ${((weightEstimate?.confidence ?? 0) * 100).round()}%';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
@@ -677,12 +681,10 @@ class ReviewGroupIssueCard extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (weight != null)
-                ReviewGroupPill(
-                  label: 'W$weight',
-                  color: issue.statusId == closedStatusId
-                      ? const Color(0xFF15803D)
-                      : const Color(0xFF2563EB),
-                  icon: Icons.speed_rounded,
+                WeightBadge(
+                  value: weight,
+                  tooltip: tooltip,
+                  isActual: issue.statusId == closedStatusId,
                 ),
             ],
           ),
