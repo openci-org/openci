@@ -67,7 +67,7 @@ export async function processOneJob(
   config: WorkerConfig,
   callbacks: JobLifecycleCallbacks = {},
 ): Promise<boolean> {
-  const claimedJob = await claimNextJob();
+  const claimedJob = await claimNextJob(config.runsOnPattern);
   if (!claimedJob) return false;
 
   const runId = randomUUID();

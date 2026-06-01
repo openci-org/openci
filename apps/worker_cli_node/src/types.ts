@@ -42,6 +42,7 @@ export interface WorkerConfig {
   projectId: string;
   pollIntervalMs: number;
   once: boolean;
+  runsOnPattern?: string;
 }
 
 export type WorkerStatus = "starting" | "idle" | "busy" | "error" | "stopping";
