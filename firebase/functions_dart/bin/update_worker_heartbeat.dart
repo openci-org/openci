@@ -17,6 +17,20 @@ Future<Response> updateWorkerHeartbeat(Request request, Firebase firebase) async
     await firestore.runTransaction((tx) async {
       final snap = await tx.get(ref);
       final isCreate = !snap.exists;
+      
+      final String createdAt;
+      if (isCreate) {
+        createdAt = nowIso;
+      } else {
+        final rawCreatedAt = snap.data()?['createdAt'];
+        if (rawCreatedAt is Timestamp) {
+          createdAt = rawCreatedAt.toDate().toUtc().toIso8601String();
+        } else if (rawCreatedAt is String) {
+          createdAt = rawCreatedAt;
+        } else {
+          createdAt = nowIso;
+        }
+      }
 
       final data = {
         'workerId': workerId,
@@ -31,10 +45,10 @@ Future<Response> updateWorkerHeartbeat(Request request, Firebase firebase) async
         'consecutiveFailures': body['consecutiveFailures'] ?? 0,
         'lastError': body['lastError'],
         'updatedAt': nowIso,
-        if (isCreate) 'createdAt': nowIso,
+        'createdAt': createdAt,
       };
 
-      tx.set(ref, data, options: const SetOptions.merge());
+      tx.set(ref, data);
     });
 
     return jsonResponse({

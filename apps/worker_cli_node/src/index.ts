@@ -8,7 +8,7 @@ async function main(): Promise<void> {
   const config = parseConfig(process.argv.slice(2));
   if (!config) return;
 
-  initFirebase(config.serviceAccountPath);
+  initFirebase(config.serviceAccountPath, config.projectNumber);
   await pollForJobs(config);
 }
 

@@ -1,18 +1,26 @@
 import { readFileSync } from "node:fs";
-import { GoogleAuth } from "google-auth-library";
+import { JWT } from "google-auth-library";
 import { BuildJobStatus } from "./build_job_services.js";
 import type { BuildJob, WorkerHeartbeatInput } from "./types.js";
 
 let apiBaseUrl = "";
-let googleAuth: GoogleAuth | null = null;
+let jwtClient: JWT | null = null;
 let isEmulator = false;
+let configProjectNumber: string | null = null;
 
-export function initFirebase(serviceAccountPath: string): void {
+// プロジェクトIDに対応するデフォルトのプロジェクト番号マッピング
+const defaultProjectNumbers: Record<string, string> = {
+  "openci-b1b91": "372767414789",
+};
+
+export function initFirebase(serviceAccountPath: string, projectNumber?: string): void {
   isEmulator =
     process.env.FUNCTIONS_EMULATOR === "true" || process.env.FIRESTORE_EMULATOR_HOST !== undefined;
 
   const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as {
     project_id?: string;
+    client_email?: string;
+    private_key?: string;
   };
   const projectId = serviceAccount.project_id ?? "openci-b1b91";
 
@@ -20,32 +28,41 @@ export function initFirebase(serviceAccountPath: string): void {
     const emulatorHost = process.env.FIREBASE_FUNCTIONS_EMULATOR_HOST || "127.0.0.1:5001";
     apiBaseUrl = `http://${emulatorHost}/${projectId}/asia-northeast1`;
   } else {
-    apiBaseUrl = `https://asia-northeast1-${projectId}.cloudfunctions.net`;
-    googleAuth = new GoogleAuth({
-      keyFile: serviceAccountPath,
-      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    configProjectNumber = projectNumber ?? defaultProjectNumbers[projectId] ?? null;
+    if (!serviceAccount.client_email || !serviceAccount.private_key) {
+      throw new Error("client_email or private_key not found in service account file");
+    }
+    jwtClient = new JWT({
+      email: serviceAccount.client_email,
+      key: serviceAccount.private_key,
     });
   }
-  console.log(`Worker API Client Initialized. Base URL: ${apiBaseUrl}, Emulator: ${isEmulator}`);
+  console.log(
+    `Worker API Client Initialized. Emulator: ${isEmulator}, Project ID: ${projectId}, Project Number: ${configProjectNumber}`,
+  );
 }
 
 async function callApi(functionName: string, payload: unknown): Promise<any> {
-  const url = `${apiBaseUrl}/${functionName}`;
+  let url: string;
+  if (isEmulator) {
+    url = `${apiBaseUrl}/${functionName}`;
+  } else {
+    if (!configProjectNumber) {
+      throw new Error(
+        "FUNCTIONS_PROJECT_NUMBER is required for production mode but was not provided or resolved automatically.",
+      );
+    }
+    url = `https://${functionName}-${configProjectNumber}.asia-northeast1.run.app`;
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (!isEmulator && googleAuth) {
+  if (!isEmulator && jwtClient) {
     try {
-      const client = await googleAuth.getIdTokenClient(url);
-      const authHeaders = (await client.getRequestHeaders()) as unknown as Record<
-        string,
-        string | undefined
-      >;
-      const authVal = authHeaders["Authorization"] || authHeaders["authorization"];
-      if (authVal) {
-        headers["Authorization"] = authVal;
-      }
+      const idToken = await jwtClient.fetchIdToken(url);
+      headers["Authorization"] = `Bearer ${idToken}`;
     } catch (err) {
       console.warn(`[API] Failed to retrieve Auth ID Token: ${String(err)}`);
     }

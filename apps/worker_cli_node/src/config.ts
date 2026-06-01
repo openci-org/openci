@@ -26,6 +26,7 @@ export function printUsage(): void {
 Options:
   -s, --service-account <path>  Firebase service account JSON file
   -w, --worker-id <id>          Unique worker ID
+      --project-number <number> GCP Project Number for Cloud Run URL mapping
       --poll-interval <ms>      Poll interval in milliseconds (default: ${defaultPollIntervalMs})
       --runs-on <pattern>       SQL LIKE pattern to claim specific jobs (e.g. %macos-dedicated%)
       --once                    Process at most one job, then exit
@@ -66,6 +67,7 @@ export function parseConfig(args: string[]): WorkerConfig | null {
   process.env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountPath;
 
   const runsOnPattern = readOption(args, "runs-on");
+  const projectNumber = readOption(args, "project-number") ?? process.env.FUNCTIONS_PROJECT_NUMBER;
 
   return {
     serviceAccountPath,
@@ -74,5 +76,6 @@ export function parseConfig(args: string[]): WorkerConfig | null {
     pollIntervalMs,
     once: args.includes("--once"),
     runsOnPattern,
+    projectNumber,
   };
 }

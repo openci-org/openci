@@ -1,16 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_functions/firebase_functions.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 
 const workerOptions = HttpsOptions(
   region: Region(SupportedRegion.asiaNortheast1),
 );
 
+// Map 内の Timestamp 型やその他の非シリアライズ可能オブジェクトをシリアライズ可能な型に変換する
+dynamic sanitizeForJson(dynamic value) {
+  if (value is Map) {
+    return value.map((k, v) => MapEntry(k as String, sanitizeForJson(v)));
+  } else if (value is List) {
+    return value.map(sanitizeForJson).toList();
+  } else if (value is Timestamp) {
+    return value.toDate().toUtc().toIso8601String();
+  } else if (value is DateTime) {
+    return value.toUtc().toIso8601String();
+  }
+  return value;
+}
+
 // HTTP レスポンス用の共通ヘルパー
 Response jsonResponse(Map<String, dynamic> data, {int status = 200}) {
   return Response(
     status,
-    body: jsonEncode(data),
+    body: jsonEncode(sanitizeForJson(data)),
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
