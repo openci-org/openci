@@ -22,6 +22,8 @@ Future<void> createContainer(String name) async {
     'create',
     '--name',
     name,
+    '-v',
+    '/var/run/docker.sock:/var/run/docker.sock',
     dockerImage,
   ]);
   if (result.exitCode != 0) {

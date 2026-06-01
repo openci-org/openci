@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.4
+- Fix: Mount host's docker.sock inside the runner container in docker_runner.dart to allow 'act' to run jobs in sibling docker containers.
+
 ## 0.10.3
 - Fix: Prioritize running the AOT binary installed via 'dart install' in supervisor.dart to resolve the old version loading issue on Linux workers.
 
