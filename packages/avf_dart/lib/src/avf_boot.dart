@@ -15,7 +15,8 @@ class AppleVirtualization {
     final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
     final resolvedUri = await Isolate.resolvePackageUri(packageUri);
     if (resolvedUri == null) {
-      throw StateError('Could not resolve package:avf_dart URI. Ensure the package is properly imported and resolved.');
+      throw StateError(
+          'Could not resolve package:avf_dart URI. Ensure the package is properly imported and resolved.');
     }
 
     // We get the directory containing avf_dart.dart, which is packages/avf_dart/lib
@@ -24,10 +25,8 @@ class AppleVirtualization {
     final helperBinary = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
 
     if (!File(helperBinary).existsSync()) {
-      throw StateError(
-        'avf_helper binary not found at $helperBinary.\n'
-        'Please ensure build hooks have run by running "dart pub get" or "dart test" in the avf_dart directory.'
-      );
+      throw StateError('avf_helper binary not found at $helperBinary.\n'
+          'Please ensure build hooks have run by running "dart pub get" or "dart test" in the avf_dart directory.');
     }
 
     // 2. Start VM process using the helper binary with macOS arguments
@@ -53,12 +52,14 @@ class AppleVirtualization {
   static Future<Process> bootFromDirectory(String directoryPath) async {
     final configFile = File('$directoryPath/config.json');
     if (!configFile.existsSync()) {
-      throw FileSystemException('config.json not found in VM directory', configFile.path);
+      throw FileSystemException(
+          'config.json not found in VM directory', configFile.path);
     }
 
     final configData = jsonDecode(configFile.readAsStringSync());
     if (configData['os'] != 'macOS') {
-      throw StateError('Only macOS VMs are supported. Found OS: ${configData['os']}');
+      throw StateError(
+          'Only macOS VMs are supported. Found OS: ${configData['os']}');
     }
 
     final diskImgPath = '$directoryPath/disk.img';
@@ -68,7 +69,8 @@ class AppleVirtualization {
     final macAddress = configData['macAddress'] as String?;
 
     if (hardwareModelB64 == null || machineIdentifierB64 == null) {
-      throw StateError('hardwareModel or machineIdentifier missing in config.json');
+      throw StateError(
+          'hardwareModel or machineIdentifier missing in config.json');
     }
     if (macAddress == null) {
       throw StateError('macAddress missing in config.json');
@@ -111,7 +113,8 @@ class AppleVirtualization {
       tmpFile.deleteSync();
     }
 
-    final processResult = await Process.run(helperBinary, ['fetch-ipsw-url', tmpFile.path]);
+    final processResult =
+        await Process.run(helperBinary, ['fetch-ipsw-url', tmpFile.path]);
     if (processResult.exitCode != 0) {
       throw StateError('Failed to fetch IPSW URL: ${processResult.stderr}');
     }
