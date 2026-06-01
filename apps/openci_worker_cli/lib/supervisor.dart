@@ -86,12 +86,17 @@ String? _findInstalledAotBinary() {
     final path = '$home/Library/Application Support/Dart/install/bin/openci_worker';
     if (File(path).existsSync()) return path;
   } else if (Platform.isLinux) {
+    final xdgStateHome = Platform.environment['XDG_STATE_HOME'];
+    final statePath = (xdgStateHome != null && xdgStateHome.isNotEmpty)
+        ? '$xdgStateHome/Dart/install/bin/openci_worker'
+        : '$home/.local/state/Dart/install/bin/openci_worker';
+    if (File(statePath).existsSync()) return statePath;
+
     final xdgDataHome = Platform.environment['XDG_DATA_HOME'];
-    final baseDir = (xdgDataHome != null && xdgDataHome.isNotEmpty)
-        ? xdgDataHome
-        : '$home/.local/share';
-    final path = '$baseDir/Dart/install/bin/openci_worker';
-    if (File(path).existsSync()) return path;
+    final sharePath = (xdgDataHome != null && xdgDataHome.isNotEmpty)
+        ? '$xdgDataHome/Dart/install/bin/openci_worker'
+        : '$home/.local/share/Dart/install/bin/openci_worker';
+    if (File(sharePath).existsSync()) return sharePath;
   } else if (Platform.isWindows) {
     final appData = Platform.environment['APPDATA'];
     if (appData != null) {

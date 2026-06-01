@@ -56,9 +56,19 @@ platformCreds.forEach((cred, index) => {
   if (platform === 'mac') {
     binaryPath = \`\${process.env.HOME}/Library/Application Support/Dart/install/bin/openci_worker\`;
   } else {
+    const xdgStateHome = process.env.XDG_STATE_HOME;
     const xdgDataHome = process.env.XDG_DATA_HOME;
-    const baseDir = xdgDataHome ? xdgDataHome : \`\${process.env.HOME}/.local/share\`;
-    binaryPath = \`\${baseDir}/Dart/install/bin/openci_worker\`;
+    const statePath = xdgStateHome ? \`\${xdgStateHome}/Dart/install/bin/openci_worker\` : \`\${process.env.HOME}/.local/state/Dart/install/bin/openci_worker\`;
+    const sharePath = xdgDataHome ? \`\${xdgDataHome}/Dart/install/bin/openci_worker\` : \`\${process.env.HOME}/.local/share/Dart/install/bin/openci_worker\`;
+    
+    const fs = require('fs');
+    if (fs.existsSync(statePath)) {
+      binaryPath = statePath;
+    } else if (fs.existsSync(sharePath)) {
+      binaryPath = sharePath;
+    } else {
+      binaryPath = statePath;
+    }
   }
 
   const cmd = \`'\${binaryPath}' --supervised --email \"\${email}\" --password \"\${password}\"\`;

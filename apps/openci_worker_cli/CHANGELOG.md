@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.9
+- Fix: Check both `~/.local/state` and `~/.local/share` directories for the AOT binary in supervisor.dart on Linux. This resolves the issue where Linux workers failed to reload after an auto-update because `dart install` placed the binary under the `state` directory while supervisor only looked in `share`.
+
 ## 0.10.8
 - Fix: Add automatic cleanup of zombie `com.apple.Virtualization.VirtualMachine` processes holding locks on macOS VM nvram/disk files, preventing startup timeouts.
 

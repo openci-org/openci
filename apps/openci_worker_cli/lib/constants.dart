@@ -1,4 +1,4 @@
-const version = '0.10.8';
+const version = '0.10.9';
 
 // macOS (Lume VM)
 const baseVmName = 'tahoe-base_v1.1.1';
