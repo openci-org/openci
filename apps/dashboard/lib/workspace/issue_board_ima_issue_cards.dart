@@ -864,7 +864,7 @@ class IssueCardSubIssuesSection extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
