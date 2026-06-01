@@ -1,0 +1,10 @@
+If:
+  PathExclude: ".*\\.dart\\.m"
+Diagnostics:
+  Suppress: "*"
+
+---
+If:
+  PathMatch: ".*\\.dart\\.m"
+CompileFlags:
+  Add: [-x, objective-c, -fobjc-arc]

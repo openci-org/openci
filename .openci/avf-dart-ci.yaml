@@ -1,0 +1,26 @@
+name: avf_dart CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+defaults:
+  run:
+    working-directory: packages/avf_dart
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Test (Unit Only)
+        run: dart test
