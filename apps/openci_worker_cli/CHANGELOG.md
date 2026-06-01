@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.6
+- Fix: Dynamically inject env.HOME path based on matrix.name in actions-ci.yaml before running act to prevent parallel write conflicts on self-hosted matrix jobs.
+
 ## 0.10.5
 - Fix: Export unique HOME directory for each act run to prevent parallel write conflicts on Vite+ installations.
 

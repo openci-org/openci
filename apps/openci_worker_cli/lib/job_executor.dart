@@ -330,6 +330,7 @@ Future<bool> processJob(
       'export HOME=$uniqueHome',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
       'cd $repo',
+      'sed -i \'\' \'s|runs-on: ubuntu-latest|runs-on: ubuntu-latest\\n    env:\\n      HOME: "/tmp/openci-home-\\\$\\{\\{ matrix.name \\}\\}"|g\' .openci/$workflowFileName',
       'act $eventType -W .openci/$workflowFileName '
           '$jobFlag'
           '-P macos-latest=-self-hosted '
