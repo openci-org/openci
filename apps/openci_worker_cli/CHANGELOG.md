@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.12
+- Fix: Bump avf_dart to 0.1.3 to improve avf_helper search resolution order, prioritizing pub-cache and latest version over installer cache directories to fix VM startup timeout issues.
+
 ## 0.10.11
 - Fix: Proactively run VM cleanup and kill zombie virtualization helper processes before and after every build job on macOS. This ensures that memory held by orphaned VM helper processes is fully released, preventing subsequent jobs from failing with VM boot timeouts.
 

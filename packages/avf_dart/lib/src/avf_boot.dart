@@ -127,7 +127,51 @@ class AppleVirtualization {
 
   /// Locates the avf_helper binary, supporting both local execution and pub-cache AOT deployment.
   static Future<String> _findHelperBinary() async {
-    // 1. Try to resolve via Isolate package URI (normal project run)
+    // 1. Try to resolve via Isolate package URI (normal project run - only trust if it points to a local dev environment)
+    try {
+      final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
+      final resolvedUri = await Isolate.resolvePackageUri(packageUri);
+      if (resolvedUri != null) {
+        final libDir = File(resolvedUri.toFilePath()).parent;
+        final packageRoot = libDir.parent;
+        if (packageRoot.path.endsWith('packages/avf_dart')) {
+          final helper = '${packageRoot.path}/.dart_tool/avf_dart/avf_helper';
+          if (File(helper).existsSync()) {
+            return helper;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try to fallback to pub-cache dynamic scanning (AOT/global run)
+    // Find the latest version of avf_dart in pub-cache.
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    if (home != null) {
+      final pubCacheDir = Directory('$home/.pub-cache/hosted/pub.dev');
+      if (pubCacheDir.existsSync()) {
+        final matches = pubCacheDir
+            .listSync()
+            .whereType<Directory>()
+            .where((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last.startsWith('avf_dart-'))
+            .toList();
+
+        // Sort packages by version descending
+        matches.sort((a, b) {
+          final aVer = a.uri.pathSegments.where((s) => s.isNotEmpty).last.replaceFirst('avf_dart-', '');
+          final bVer = b.uri.pathSegments.where((s) => s.isNotEmpty).last.replaceFirst('avf_dart-', '');
+          return _compareVersions(bVer, aVer); // Descending (latest first)
+        });
+
+        for (final match in matches) {
+          final helper = File('${match.path}/.dart_tool/avf_dart/avf_helper');
+          if (helper.existsSync()) {
+            return helper.path;
+          }
+        }
+      }
+    }
+
+    // 3. Fallback: Try general Isolate resolve (even if it might point to a dummy install dir)
     try {
       final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
       final resolvedUri = await Isolate.resolvePackageUri(packageUri);
@@ -141,25 +185,7 @@ class AppleVirtualization {
       }
     } catch (_) {}
 
-    // 2. Try to fallback to pub-cache dynamic scanning (AOT/global run)
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-    if (home != null) {
-      final pubCacheDir = Directory('$home/.pub-cache/hosted/pub.dev');
-      if (pubCacheDir.existsSync()) {
-        final matches = pubCacheDir
-            .listSync()
-            .whereType<Directory>()
-            .where((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last.startsWith('avf_dart-'));
-        for (final match in matches) {
-          final helper = File('${match.path}/.dart_tool/avf_dart/avf_helper');
-          if (helper.existsSync()) {
-            return helper.path;
-          }
-        }
-      }
-    }
-
-    // 3. Last resort: Try standard relative path if running from source
+    // 4. Last resort: Try standard relative path if running from source
     final localHelper = './.dart_tool/avf_dart/avf_helper';
     if (File(localHelper).existsSync()) {
       return localHelper;
@@ -167,5 +193,20 @@ class AppleVirtualization {
 
     throw StateError(
         'Could not locate avf_helper binary. Ensure package:avf_dart is resolved or compiled.');
+  }
+
+  static int _compareVersions(String a, String b) {
+    final aClean = a.split('-').first;
+    final bClean = b.split('-').first;
+    final aParts = aClean.split('.').map(int.tryParse).toList();
+    final bParts = bClean.split('.').map(int.tryParse).toList();
+    for (var i = 0; i < 3; i++) {
+      final aVal = i < aParts.length ? (aParts[i] ?? 0) : 0;
+      final bVal = i < bParts.length ? (bParts[i] ?? 0) : 0;
+      if (aVal != bVal) {
+        return aVal.compareTo(bVal);
+      }
+    }
+    return a.compareTo(b);
   }
 }

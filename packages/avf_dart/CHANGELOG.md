@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Fix: Prioritize latest version in pub-cache and skip resolving dummy install/bin paths to ensure the correct avf_helper version is chosen in AOT-compiled environments.
+
 ## 0.1.2
 
 - Fix: Bump SSH and guest IP allocation timeout limits from 120 seconds to 300 seconds (5 minutes) to prevent VM startup timeouts on heavily-loaded macOS hosts.
