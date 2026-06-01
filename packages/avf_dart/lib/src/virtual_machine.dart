@@ -8,8 +8,9 @@ import 'avf_boot.dart';
 class VirtualMachine {
   final Process _process;
   final String name;
+  final String? ipAddress;
 
-  VirtualMachine._(this._process, this.name);
+  VirtualMachine._(this._process, this.name, this.ipAddress);
 
   /// Default directory where Virtual Machines are stored.
   /// Standard path on macOS: `~/Library/Application Support/avf_dart/vms`
@@ -49,16 +50,69 @@ class VirtualMachine {
       rethrow;
     }
 
-    if (showLogs) {
-      process.stdout.transform(utf8.decoder).listen(stdout.write);
-      process.stderr.transform(utf8.decoder).listen(stderr.write);
+    final bootCompleter = Completer<void>();
+    final errorSb = StringBuffer();
+    String? resolvedIp;
 
-      process.exitCode.then((code) {
+    // Monitor stdout line by line
+    final stdoutSubscription = process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      if (showLogs) {
+        print(line);
+      }
+      if (!bootCompleter.isCompleted) {
+        final ipMatch = RegExp(r'VM started successfully! IP:\s+([0-9.]+)').firstMatch(line);
+        if (ipMatch != null) {
+          resolvedIp = ipMatch.group(1);
+          bootCompleter.complete();
+        } else if (line.contains('VM started successfully!')) {
+          bootCompleter.complete();
+        } else if (line.contains('Error:')) {
+          bootCompleter.completeError(StateError(line));
+        }
+      }
+    });
+
+    // Monitor stderr
+    final stderrSubscription =
+        process.stderr.transform(utf8.decoder).listen((data) {
+      if (showLogs) {
+        stderr.write(data);
+      }
+      errorSb.write(data);
+      if (!bootCompleter.isCompleted && errorSb.toString().contains('Error:')) {
+        final lines = errorSb.toString().split('\n');
+        final errorLine = lines.firstWhere((l) => l.contains('Error:'),
+            orElse: () => errorSb.toString());
+        bootCompleter.completeError(StateError(errorLine.trim()));
+      }
+    });
+
+    // Monitor process exit in case it terminates before boot success
+    process.exitCode.then((code) {
+      if (showLogs) {
         print('\nVM "$name" exited with code $code');
-      });
+      }
+      if (!bootCompleter.isCompleted) {
+        final errMessage = errorSb.isNotEmpty
+            ? errorSb.toString().trim()
+            : 'VM process exited prematurely with code $code';
+        bootCompleter.completeError(StateError(errMessage));
+      }
+    });
+
+    try {
+      await bootCompleter.future;
+    } catch (e) {
+      await stdoutSubscription.cancel();
+      await stderrSubscription.cancel();
+      process.kill(ProcessSignal.sigterm);
+      rethrow;
     }
 
-    return VirtualMachine._(process, name);
+    return VirtualMachine._(process, name, resolvedIp);
   }
 
   /// Stops the VM process gracefully (sends SIGTERM).
@@ -268,7 +322,9 @@ class VirtualMachine {
     if (!force && totalLength > 0) {
       final file = File(savePath);
       final metadataFile = File('$savePath.download');
-      if (file.existsSync() && !metadataFile.existsSync() && file.lengthSync() == totalLength) {
+      if (file.existsSync() &&
+          !metadataFile.existsSync() &&
+          file.lengthSync() == totalLength) {
         client.close();
         throw StateError('The file is already fully downloaded.');
       }

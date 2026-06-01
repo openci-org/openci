@@ -9,6 +9,7 @@ class AppleVirtualization {
     required String nvramPath,
     required String hardwareModelB64,
     required String machineIdentifierB64,
+    required String macAddress,
   }) async {
     // 1. Resolve packages/avf_dart to locate helper
     final packageUri = Uri.parse('package:avf_dart/avf_dart.dart');
@@ -38,6 +39,7 @@ class AppleVirtualization {
         nvramPath,
         hardwareModelB64,
         machineIdentifierB64,
+        macAddress,
       ]);
     } catch (e) {
       rethrow;
@@ -63,9 +65,13 @@ class AppleVirtualization {
     final nvramPath = '$directoryPath/nvram.bin';
     final hardwareModelB64 = configData['hardwareModel'] as String?;
     final machineIdentifierB64 = configData['machineIdentifier'] as String?;
+    final macAddress = configData['macAddress'] as String?;
 
     if (hardwareModelB64 == null || machineIdentifierB64 == null) {
       throw StateError('hardwareModel or machineIdentifier missing in config.json');
+    }
+    if (macAddress == null) {
+      throw StateError('macAddress missing in config.json');
     }
 
     if (!File(diskImgPath).existsSync()) {
@@ -80,6 +86,7 @@ class AppleVirtualization {
       nvramPath: nvramPath,
       hardwareModelB64: hardwareModelB64,
       machineIdentifierB64: machineIdentifierB64,
+      macAddress: macAddress,
     );
   }
 

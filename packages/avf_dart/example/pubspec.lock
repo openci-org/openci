@@ -8,14 +8,6 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
-  code_assets:
-    dependency: transitive
-    description:
-      name: code_assets
-      sha256: "67cf6d84013f9c601e42a6f8a6b74c4c0d9dc1a1619d775f2b28b732d3551b85"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.2.0"
   collection:
     dependency: transitive
     description:
@@ -32,14 +24,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
-  ffi:
-    dependency: transitive
-    description:
-      name: ffi
-      sha256: "6d7fd89431262d8f3125e81b50d3847a091d846eafcd4fdb88dd06f36d705a45"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.0"
   hooks:
     dependency: transitive
     description:
@@ -64,14 +48,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.18.2"
-  objective_c:
-    dependency: transitive
-    description:
-      name: objective_c
-      sha256: "6cb691c686fa2838c6deb34980d426145c2a5d537491cb83d463c33cdbc726ed"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.4.1"
   path:
     dependency: transitive
     description:

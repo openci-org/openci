@@ -6,7 +6,7 @@ void main(List<String> args) async {
   await build(args, (input, output) async {
     final packageRoot = input.packageRoot;
     final helperSource =
-        packageRoot.resolve('hook/avf_helper.m').toFilePath();
+        packageRoot.resolve('hook/avf_helper.swift').toFilePath();
     final entitlements =
         packageRoot.resolve('hook/entitlements.plist').toFilePath();
 
@@ -18,16 +18,19 @@ void main(List<String> args) async {
     }
     final helperBinary = '${outputDir.path}/avf_helper';
 
+    // Get macOS SDK path
+    final sdkResult = await Process.run('xcrun', ['--show-sdk-path']);
+    if (sdkResult.exitCode != 0) {
+      throw Exception('Failed to locate macOS SDK: ${sdkResult.stderr}');
+    }
+    final sdkPath = sdkResult.stdout.toString().trim();
+
     print('=== Build Hook: Compiling avf_helper ===');
-    final compileResult = await Process.run('clang', [
-      '-framework',
-      'Foundation',
-      '-framework',
-      'Virtualization',
-      '-framework',
-      'AppKit',
-      '-fobjc-arc',
-      '-mmacosx-version-min=13.0',
+    final compileResult = await Process.run('swiftc', [
+      '-O',
+      '-parse-as-library',
+      '-sdk',
+      sdkPath,
       helperSource,
       '-o',
       helperBinary,
