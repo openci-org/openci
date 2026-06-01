@@ -472,7 +472,7 @@ List<_ReviewLinkedIssueItem> _linkedIssueItemsForPullRequest({
   return items;
 }
 
-class ReviewPullRequestGroupView extends StatelessWidget {
+class ReviewPullRequestGroupView extends StatefulWidget {
   const ReviewPullRequestGroupView({
     super.key,
     required this.group,
@@ -501,36 +501,29 @@ class ReviewPullRequestGroupView extends StatelessWidget {
   final IssuePullRequestLinkCallback? onIssueLinkedToPullRequest;
 
   @override
+  State<ReviewPullRequestGroupView> createState() =>
+      _ReviewPullRequestGroupViewState();
+}
+
+class _ReviewPullRequestGroupViewState
+    extends State<ReviewPullRequestGroupView> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final pullRequest = group.pullRequest;
+    final pullRequest = widget.group.pullRequest;
     final linkedIssueItems = _linkedIssueItemsForPullRequest(
-      group: group,
-      issuesByRepositoryNumber: issuesByRepositoryNumber,
+      group: widget.group,
+      issuesByRepositoryNumber: widget.issuesByRepositoryNumber,
     );
     final buildStatus = pullRequest == null
         ? null
-        : group.issues.isEmpty
+        : widget.group.issues.isEmpty
         ? null
-        : buildStatusesByIssueId[group.issues.first.id];
+        : widget.buildStatusesByIssueId[widget.group.issues.first.id];
     final title = pullRequest?.title ?? 'PR未紐づけ';
     final url = pullRequest?.url;
-    final isOpenPullRequest =
-        pullRequest != null &&
-        !pullRequest.merged &&
-        pullRequest.state.toLowerCase() == 'open';
-    final stateLabel = pullRequest == null
-        ? 'no PR'
-        : pullRequest.merged
-        ? 'merged'
-        : pullRequest.state;
-    final stateColor = pullRequest == null
-        ? const Color(0xFF64748B)
-        : pullRequest.merged
-        ? const Color(0xFF7C3AED)
-        : pullRequest.state == 'closed'
-        ? const Color(0xFFB45309)
-        : const Color(0xFF15803D);
-    final groupIssueIds = group.issues.map((issue) => issue.id).toSet();
+    final groupIssueIds = widget.group.issues.map((issue) => issue.id).toSet();
 
     void handleIssueDropped({
       required String issueId,
@@ -539,21 +532,21 @@ class ReviewPullRequestGroupView extends StatelessWidget {
       bool clearPullRequests = false,
     }) {
       final targetPullRequest = pullRequest;
-      final onLink = onIssueLinkedToPullRequest;
+      final onLink = widget.onIssueLinkedToPullRequest;
       if (targetPullRequest != null &&
           onLink != null &&
           !groupIssueIds.contains(issueId)) {
         unawaited(
           onLink(
             issueId: issueId,
-            repository: group.repository,
+            repository: widget.group.repository,
             pullRequest: targetPullRequest,
           ),
         );
         return;
       }
 
-      onIssueDropped(
+      widget.onIssueDropped(
         issueId: issueId,
         targetColumnId: targetColumnId,
         targetIndex: targetIndex,
@@ -564,218 +557,302 @@ class ReviewPullRequestGroupView extends StatelessWidget {
     return DragTarget<IssueDragData>(
       onWillAcceptWithDetails: (details) =>
           pullRequest != null &&
-          onIssueLinkedToPullRequest != null &&
+          widget.onIssueLinkedToPullRequest != null &&
           !groupIssueIds.contains(details.data.issueId),
       onAcceptWithDetails: (details) {
         handleIssueDropped(
           issueId: details.data.issueId,
-          targetColumnId: column.id,
-          targetIndex: column.issues.length,
+          targetColumnId: widget.column.id,
+          targetIndex: widget.column.issues.length,
         );
       },
       builder: (context, candidateData, rejectedData) {
         final isGroupHovering = candidateData.isNotEmpty;
-        return Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isGroupHovering
-                ? const Color(0xFFEFF6FF)
-                : const Color(0xFFF8FAFC),
-            border: Border.all(
-              color: isGroupHovering
-                  ? const Color(0xFF60A5FA)
-                  : const Color(0xFFE2E8F0),
+
+        final border = Border.all(
+          color: isGroupHovering
+              ? const Color(0xFF60A5FA)
+              : (_isHovered
+                    ? const Color(0xFFCBD5E1)
+                    : const Color(0xFFDDE7F0)),
+        );
+
+        final color = isGroupHovering
+            ? const Color(0xFFEFF6FF)
+            : (_isHovered ? const Color(0xFFF8FAFC) : Colors.white);
+
+        final shadow = [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: isGroupHovering ? 0 : (_isHovered ? 0.045 : 0.02),
             ),
-            borderRadius: BorderRadius.circular(18),
+            blurRadius: _isHovered ? 16 : 10,
+            offset: Offset(0, _isHovered ? 6 : 4),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DragTarget<IssueDragData>(
-                onWillAcceptWithDetails: (details) =>
-                    pullRequest != null &&
-                    onIssueLinkedToPullRequest != null &&
-                    !groupIssueIds.contains(details.data.issueId),
-                onAcceptWithDetails: (details) {
-                  final targetPullRequest = pullRequest;
-                  final onLink = onIssueLinkedToPullRequest;
-                  if (targetPullRequest == null || onLink == null) {
-                    return;
-                  }
+        ];
 
-                  unawaited(
-                    onLink(
-                      issueId: details.data.issueId,
-                      repository: group.repository,
-                      pullRequest: targetPullRequest,
-                    ),
-                  );
-                },
-                builder: (context, candidateData, rejectedData) {
-                  final isHovering = candidateData.isNotEmpty;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    decoration: BoxDecoration(
-                      color: isHovering
-                          ? const Color(0xFFEFF6FF)
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: isHovering
-                            ? const Color(0xFF60A5FA)
-                            : Colors.transparent,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                alignment: Alignment.center,
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(11),
-                                ),
-                                child: const FaIcon(
-                                  FontAwesomeIcons.codePullRequest,
-                                  size: 16,
-                                  color: Color(0xFF2563EB),
-                                ),
+        return MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            decoration: BoxDecoration(
+              border: border,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: shadow,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Material(
+              color: color,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                onTap: widget.group.issues.isNotEmpty
+                    ? () => widget.onIssueTapped(widget.group.issues.first.id)
+                    : null,
+                mouseCursor: SystemMouseCursors.click,
+                borderRadius: BorderRadius.circular(18),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DragTarget<IssueDragData>(
+                        onWillAcceptWithDetails: (details) =>
+                            pullRequest != null &&
+                            widget.onIssueLinkedToPullRequest != null &&
+                            !groupIssueIds.contains(details.data.issueId),
+                        onAcceptWithDetails: (details) {
+                          final targetPullRequest = pullRequest;
+                          final onLink = widget.onIssueLinkedToPullRequest;
+                          if (targetPullRequest == null || onLink == null) {
+                            return;
+                          }
+
+                          unawaited(
+                            onLink(
+                              issueId: details.data.issueId,
+                              repository: widget.group.repository,
+                              pullRequest: targetPullRequest,
+                            ),
+                          );
+                        },
+                        builder: (context, candidateData, rejectedData) {
+                          final isHovering = candidateData.isNotEmpty;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            decoration: BoxDecoration(
+                              color: isHovering
+                                  ? const Color(0xFFEFF6FF)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isHovering
+                                    ? const Color(0xFF60A5FA)
+                                    : Colors.transparent,
                               ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      pullRequest == null
-                                          ? 'PRなし'
-                                          : '${group.repository} #${pullRequest.number}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFF475569),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        alignment: Alignment.center,
+                                        width: 30,
+                                        height: 30,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEFF6FF),
+                                          borderRadius: BorderRadius.circular(
+                                            11,
+                                          ),
+                                        ),
+                                        child: const FaIcon(
+                                          FontAwesomeIcons.codePullRequest,
+                                          size: 16,
+                                          color: Color(0xFF2563EB),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xFF0F172A),
-                                        fontWeight: FontWeight.bold,
-                                        height: 1.25,
+                                      const SizedBox(width: 9),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    widget.group.repository,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF64748B),
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (pullRequest != null) ...[
+                                                  const SizedBox(width: 6),
+                                                  const Text(
+                                                    '•',
+                                                    style: TextStyle(
+                                                      color: Color(0xFFCBD5E1),
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    '#${pullRequest.number}',
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF475569),
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (pullRequest == null) ...[
+                                                  const SizedBox(width: 6),
+                                                  const Text(
+                                                    '•',
+                                                    style: TextStyle(
+                                                      color: Color(0xFFCBD5E1),
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  const Text(
+                                                    'PR未紐づけ',
+                                                    style: TextStyle(
+                                                      color: Color(0xFF475569),
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              title,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Color(0xFF0F172A),
+                                                fontWeight: FontWeight.bold,
+                                                height: 1.25,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (url != null) ...[
-                                const SizedBox(width: 8),
-                                Tooltip(
-                                  message: 'GitHubでPRを開く',
-                                  child: SizedBox(
-                                    width: 26,
-                                    height: 26,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: const FaIcon(
-                                        FontAwesomeIcons.github,
-                                        size: 16,
-                                        color: Color(0xFF475569),
-                                      ),
-                                      onPressed: () => unawaited(
-                                        launchUrlExternal(url),
-                                      ),
-                                    ),
+                                      if (url != null) ...[
+                                        const SizedBox(width: 8),
+                                        Tooltip(
+                                          message: 'GitHubでPRを開く',
+                                          child: SizedBox(
+                                            width: 26,
+                                            height: 26,
+                                            child: IconButton(
+                                              padding: EdgeInsets.zero,
+                                              icon: const FaIcon(
+                                                FontAwesomeIcons.github,
+                                                size: 16,
+                                                color: Color(0xFF475569),
+                                              ),
+                                              onPressed: () => unawaited(
+                                                launchUrlExternal(url),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 9),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              if (!isOpenPullRequest)
-                                ReviewGroupPill(
-                                  label: stateLabel,
-                                  color: stateColor,
-                                  icon: pullRequest?.merged == true
-                                      ? Icons.call_merge_rounded
-                                      : Icons.circle_rounded,
-                                ),
-                              BuildStatusBadge(status: buildStatus),
-                            ],
-                          ),
-                        ],
+                                  if (buildStatus != null) ...[
+                                    const SizedBox(height: 9),
+                                    BuildStatusBadge(status: buildStatus),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 6),
-              for (final entry in linkedIssueItems.indexed) ...[
-                Builder(
-                  builder: (context) {
-                    final item = entry.$2;
-                    final issue = item.issue;
-                    if (issue == null) {
-                      final reference = item.reference;
-                      if (reference == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return ReviewLinkedIssueReferenceCard(
-                        reference: reference,
-                      );
-                    }
+                      const Divider(
+                        height: 8,
+                        thickness: 1,
+                        color: Color(0xFFE2E8F0),
+                        indent: 6,
+                        endIndent: 6,
+                      ),
+                      const SizedBox(height: 4),
+                      for (final entry in linkedIssueItems.indexed) ...[
+                        Builder(
+                          builder: (context) {
+                            final item = entry.$2;
+                            final issue = item.issue;
+                            if (issue == null) {
+                              final reference = item.reference;
+                              if (reference == null) {
+                                return const SizedBox.shrink();
+                              }
+                              return ReviewLinkedIssueReferenceCard(
+                                reference: reference,
+                              );
+                            }
 
-                    final isReviewColumnIssue = group.issues.any(
-                      (candidate) => candidate.id == issue.id,
-                    );
-                    if (!isReviewColumnIssue) {
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => onIssueTapped(issue.id),
-                        child: ReviewGroupIssueCard(issue: issue),
-                      );
-                    }
+                            final isReviewColumnIssue = widget.group.issues.any(
+                              (candidate) => candidate.id == issue.id,
+                            );
+                            if (!isReviewColumnIssue) {
+                              return ReviewGroupIssueCard(
+                                issue: issue,
+                                onTap: () => widget.onIssueTapped(issue.id),
+                              );
+                            }
 
-                    final rankIndex = rankIndicesByIssueId[issue.id];
+                            final rankIndex =
+                                widget.rankIndicesByIssueId[issue.id];
 
-                    return IssueCardDropTarget(
-                      key: ValueKey(issue.id),
-                      issue: issue,
-                      subIssues:
-                          subIssuesByParentId[issue.id] ?? const <Issue>[],
-                      buildStatus: pullRequest == null
-                          ? buildStatusesByIssueId[issue.id]
-                          : null,
-                      isReviewGroupCard: true,
-                      sourceColumnId: column.id,
-                      index: rankIndex ?? entry.$1,
-                      requiresLongPressDrag: requiresLongPressDrag,
-                      onTap: () => onIssueTapped(issue.id),
-                      onSubIssueTap: onSubIssueTap,
-                      onIssueDropped: handleIssueDropped,
-                    );
-                  },
+                            return IssueCardDropTarget(
+                              key: ValueKey(issue.id),
+                              issue: issue,
+                              subIssues:
+                                  widget.subIssuesByParentId[issue.id] ??
+                                  const <Issue>[],
+                              buildStatus: pullRequest == null
+                                  ? widget.buildStatusesByIssueId[issue.id]
+                                  : null,
+                              isReviewGroupCard: true,
+                              sourceColumnId: widget.column.id,
+                              index: rankIndex ?? entry.$1,
+                              requiresLongPressDrag:
+                                  widget.requiresLongPressDrag,
+                              onTap: () => widget.onIssueTapped(issue.id),
+                              onSubIssueTap: widget.onSubIssueTap,
+                              onIssueDropped: handleIssueDropped,
+                            );
+                          },
+                        ),
+                        if (entry.$1 != linkedIssueItems.length - 1)
+                          const SizedBox(height: 3),
+                      ],
+                    ],
+                  ),
                 ),
-                if (entry.$1 != linkedIssueItems.length - 1)
-                  const SizedBox(height: 8),
-              ],
-            ],
+              ),
+            ),
           ),
         );
       },
