@@ -54,14 +54,13 @@ bool _isNewerVersion(String remote, String current) {
 
 /// Installs the specified version via `dart pub global activate`.
 Future<bool> _installUpdate(String latestVersion) async {
-  _log.info('Installing update via dart pub global activate...');
+  _log.info('Installing update via dart install...');
 
   final result = await Process.run('dart', [
-    'pub',
-    'global',
-    'activate',
+    'install',
     'openci_worker_cli',
     latestVersion,
+    '--overwrite',
   ]);
 
   if (result.exitCode != 0) {

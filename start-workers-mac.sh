@@ -19,9 +19,9 @@ if ! command -v "$BIN_PATH" &> /dev/null; then
   exit 1
 fi
 
-# 起動前に最新の openci_worker_cli をアクティベート
-echo "Activating latest openci_worker_cli..."
-dart pub global activate openci_worker_cli
+# 起動前に最新の openci_worker_cli をインストール
+echo "Installing latest openci_worker_cli..."
+dart install openci_worker_cli --overwrite
 
 MACHINE_INDEX=1
 for i in "$@"; do
@@ -68,8 +68,9 @@ activeCreds.forEach((cred) => {
   const password = cred.password;
   const logFile = \`/Users/admin/openci-worker-\${cred.workerId}.log\`;
   
-  // AOTバイナリの代わりに dart pub global run openci_worker_cli を使用
-  const cmd = \`nohup \${binPath} pub global run openci_worker_cli --supervised --email \"\${email}\" --password \"\${password}\" > \${logFile} 2>&1 &\`;
+  // dart install でビルドされた AOT バイナリを直接実行
+  const binaryPath = '/Users/admin/Library/Application Support/Dart/install/bin/openci_worker';
+  const cmd = \`nohup '\${binaryPath}' --supervised --email \"\${email}\" --password \"\${password}\" > \${logFile} 2>&1 &\`;
   
   execSync(cmd);
   console.log(\`✅ Launched worker \${cred.workerId} (\${email}) in background (log: \${logFile})\`);

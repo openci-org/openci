@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.1
+- Feature: Migrate from 'dart pub global activate' to 'dart install' to support native assets (build hooks) compilation on macOS global installations.
+
 ## 0.10.0
 - Feature: Unified auto-updater on Mac and Linux via global Dart packages (dart pub global activate)
 - Fix: Await _installUpdate call to catch process exceptions properly
