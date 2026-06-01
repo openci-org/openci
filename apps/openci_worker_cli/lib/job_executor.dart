@@ -322,8 +322,12 @@ Future<bool> processJob(
     final jobKey = buildJob.workflowJobKey ?? buildJob.jobKey;
     final jobFlag = jobKey != null ? '-j $jobKey ' : '';
 
+    final uniqueHome = '/tmp/openci-home-${_uuid.v4()}';
+
     final actScript = [
       'set -e',
+      'mkdir -p $uniqueHome',
+      'export HOME=$uniqueHome',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
       'cd $repo',
       'act $eventType -W .openci/$workflowFileName '

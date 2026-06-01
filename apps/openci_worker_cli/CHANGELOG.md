@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.5
+- Fix: Export unique HOME directory for each act run to prevent parallel write conflicts on Vite+ installations.
+
 ## 0.10.4
 - Fix: Mount host's docker.sock inside the runner container in docker_runner.dart to allow 'act' to run jobs in sibling docker containers.
 
