@@ -1,6 +1,6 @@
 {
   "name": "openci-worker-cli",
-  "version": "0.1.50",
+  "version": "0.1.51",
   "description": "OpenCI Worker CLI",
   "license": "Apache-2.0",
   "repository": {
@@ -38,7 +38,6 @@
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.1",
     "@sentry/node": "^10.29.0",
-    "firebase-admin": "^13.8.0",
     "google-auth-library": "^10.5.0",
     "yaml": "^2.9.0"
   },

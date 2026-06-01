@@ -1,55 +1,89 @@
 import { readFileSync } from "node:fs";
-
-import {
-  appendBuildLogForWorker,
-  BuildJobStatus,
-  claimQueuedBuildJob,
-  completeBuildJobForWorker,
-  createBuildRunForWorker,
-  getBuildJob,
-  listWorkerEnvironmentVariables,
-  listWorkerSecrets,
-  updateBuildJobStatus,
-  updateBuildRunStatusForWorker,
-  updateEnvironmentVariableValueForWorker,
-  upsertWorkerHeartbeat,
-} from "./build_job_services.js";
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-
+import { GoogleAuth } from "google-auth-library";
+import { BuildJobStatus } from "./build_job_services.js";
 import type { BuildJob, WorkerHeartbeatInput } from "./types.js";
 
-type SuccessfulBuildJobStatus = typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE;
+let apiBaseUrl = "";
+let googleAuth: GoogleAuth | null = null;
+let isEmulator = false;
 
 export function initFirebase(serviceAccountPath: string): void {
-  if (getApps().length > 0) return;
-  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as Parameters<
-    typeof cert
-  >[0] & { project_id?: string };
-  initializeApp({
-    credential: cert(serviceAccount),
-  });
-  console.log(`Firestore project: ${serviceAccount.project_id ?? "default"}`);
+  isEmulator = process.env.FUNCTIONS_EMULATOR === "true" || process.env.FIRESTORE_EMULATOR_HOST !== undefined;
+
+  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as {
+    project_id?: string;
+  };
+  const projectId = serviceAccount.project_id ?? "openci-b1b91";
+
+  if (isEmulator) {
+    const emulatorHost = process.env.FIREBASE_FUNCTIONS_EMULATOR_HOST || "127.0.0.1:5001";
+    apiBaseUrl = `http://${emulatorHost}/${projectId}/asia-northeast1`;
+  } else {
+    apiBaseUrl = `https://asia-northeast1-${projectId}.cloudfunctions.net`;
+    googleAuth = new GoogleAuth({
+      keyFile: serviceAccountPath,
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+  }
+  console.log(`Worker API Client Initialized. Base URL: ${apiBaseUrl}, Emulator: ${isEmulator}`);
 }
 
-function normalizeJob(job: unknown): BuildJob | null {
-  if (!job || typeof job !== "object") return null;
-  return job as BuildJob;
+async function callApi(functionName: string, payload: unknown): Promise<any> {
+  const url = `${apiBaseUrl}/${functionName}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (!isEmulator && googleAuth) {
+    try {
+      const client = await googleAuth.getIdTokenClient(url);
+      const authHeaders = (await client.getRequestHeaders()) as unknown as Record<string, string | undefined>;
+      const authVal = authHeaders["Authorization"] || authHeaders["authorization"];
+      if (authVal) {
+        headers["Authorization"] = authVal;
+      }
+    } catch (err) {
+      console.warn(`[API] Failed to retrieve Auth ID Token: ${String(err)}`);
+    }
+  } else if (isEmulator) {
+    headers.Authorization = "Bearer emulator-token";
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API ${functionName} failed: ${response.status} ${await response.text()}`);
+  }
+
+  return response.json();
 }
 
 export async function claimNextJob(customPattern?: string): Promise<BuildJob | null> {
   const runsOnPattern = customPattern ?? (process.platform === "linux" ? "%ubuntu%" : "%macos%");
-  const response = await claimQueuedBuildJob({ runsOnPattern });
-  const claimedJob = normalizeJob(response.data.job);
-  if (!claimedJob) return null;
-
-  // Native SQL mutation results can lose fields through generated SDK decoding.
-  // Re-read through the typed query before executing the job.
-  const details = await getBuildJob({ id: claimedJob.id });
-  return normalizeJob(details.data.buildJob) ?? claimedJob;
+  const response = await callApi("claimNextJob", { runsOnPattern });
+  return response.job;
 }
 
 export async function createRun(buildJobId: string, runId: string): Promise<void> {
-  await createBuildRunForWorker({ buildJobId, id: runId });
+  await callApi("createBuildRun", { buildJobId, id: runId });
+}
+
+export async function appendBuildLogs(input: {
+  buildJobId: string;
+  runId: string;
+  logs: Array<{
+    id: string;
+    message: string;
+    level: "info" | "warning" | "error";
+    timestamp: string;
+    stackTrace?: string;
+  }>;
+}): Promise<void> {
+  await callApi("appendBuildLogs", input);
 }
 
 export async function appendLog(input: {
@@ -61,19 +95,27 @@ export async function appendLog(input: {
   timestamp: string;
   stackTrace?: string;
 }): Promise<void> {
-  await appendBuildLogForWorker(input);
-}
-
-export async function completeJob(id: string, status: SuccessfulBuildJobStatus): Promise<void> {
-  await completeBuildJobForWorker({
-    id,
-    status,
-    completedAt: new Date().toISOString(),
+  await appendBuildLogs({
+    buildJobId: input.buildJobId,
+    runId: input.runId,
+    logs: [
+      {
+        id: input.id,
+        message: input.message,
+        level: input.level,
+        timestamp: input.timestamp,
+        stackTrace: input.stackTrace,
+      },
+    ],
   });
 }
 
+export async function completeJob(id: string, status: BuildJobStatus): Promise<void> {
+  await callApi("completeBuildJob", { id, status });
+}
+
 export async function setJobStatus(id: string, status: BuildJobStatus): Promise<void> {
-  await updateBuildJobStatus({ id, status });
+  await callApi("completeBuildJob", { id, status });
 }
 
 export async function updateRunStatus(input: {
@@ -82,17 +124,16 @@ export async function updateRunStatus(input: {
   status: string;
   conclusion?: string | null;
 }): Promise<void> {
-  await updateBuildRunStatusForWorker(input);
+  await callApi("updateBuildRunStatus", input);
 }
 
 export async function updateWorkerHeartbeat(input: WorkerHeartbeatInput): Promise<void> {
-  await upsertWorkerHeartbeat(input);
+  await callApi("updateWorkerHeartbeat", input);
 }
 
 export async function isJobCancelled(buildJobId: string): Promise<boolean> {
-  const response = await getBuildJob({ id: buildJobId });
-  const status = response.data.buildJob?.status;
-  return status === BuildJobStatus.CANCELLED;
+  const response = await callApi("isJobCancelled", { buildJobId });
+  return response.cancelled;
 }
 
 export async function getEnvironmentVariables(teamId: string): Promise<
@@ -103,12 +144,12 @@ export async function getEnvironmentVariables(teamId: string): Promise<
     autoIncrement?: boolean | null;
   }[]
 > {
-  const response = await listWorkerEnvironmentVariables({ teamId });
-  return response.data.environmentVariables;
+  const response = await callApi("getEnvironmentVariables", { teamId });
+  return response.environmentVariables;
 }
 
 export async function updateEnvironmentVariable(id: string, value: string): Promise<void> {
-  await updateEnvironmentVariableValueForWorker({ id, value });
+  await callApi("updateEnvironmentVariable", { id, value });
 }
 
 export async function getSecrets(teamId: string): Promise<
@@ -118,6 +159,21 @@ export async function getSecrets(teamId: string): Promise<
     pathToSecret?: string | null;
   }[]
 > {
-  const response = await listWorkerSecrets({ teamId });
-  return response.data.secrets;
+  const response = await callApi("getSecrets", { teamId });
+  return response.secrets;
+}
+
+export async function updateCheckRun(
+  buildJob: BuildJob,
+  runStatus: string,
+  conclusion?: string | null,
+): Promise<void> {
+  await callApi("updateCheckRun", { buildJob, runStatus, conclusion });
+}
+
+export async function handleBuildJobStatusChange(
+  buildJob: BuildJob,
+  status: BuildJobStatus,
+): Promise<void> {
+  await callApi("handleBuildJobStatusChange", { buildJob, status });
 }
