@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.10
+- Fix: Bump SSH and guest IP allocation timeout limits from 120 seconds to 300 seconds (5 minutes) in avf_dart's virtual machine boot helper to prevent VM startup timeouts on heavily-loaded macOS workers.
+
 ## 0.10.9
 - Fix: Check both `~/.local/state` and `~/.local/share` directories for the AOT binary in supervisor.dart on Linux. This resolves the issue where Linux workers failed to reload after an auto-update because `dart install` placed the binary under the `state` directory while supervisor only looked in `share`.
 

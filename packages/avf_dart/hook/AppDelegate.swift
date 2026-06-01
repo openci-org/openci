@@ -47,9 +47,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     var guestIp: String? = nil
                     let startTime = Date()
                     
-                    // Loop until IP is allocated, timeout after 2 minutes
+                    // Loop until IP is allocated, timeout after 5 minutes
                     while guestIp == nil {
-                        if Date().timeIntervalSince(startTime) > 120 {
+                        if Date().timeIntervalSince(startTime) > 300 {
                             fputs("Error: Timeout waiting for guest IP allocation.\n", stderr)
                             exit(1)
                         }
@@ -61,10 +61,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     print("Guest IP allocated: \(ip). Checking SSH readiness...")
                     fflush(stdout)
                     
-                    // Loop until SSH port (22) is open, timeout after 2 minutes total
+                    // Loop until SSH port (22) is open, timeout after 5 minutes total
                     var sshReady = false
                     while !sshReady {
-                        if Date().timeIntervalSince(startTime) > 120 {
+                        if Date().timeIntervalSince(startTime) > 300 {
                             fputs("Error: Timeout waiting for SSH port to open.\n", stderr)
                             exit(1)
                         }

@@ -113,14 +113,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
-  avf_dart:
-    dependency: transitive
-    description:
-      name: avf_dart
-      sha256: "88a4cb7abee4d4210a6ef0d83caa81b822128021f837df6b0883f739157e6df1"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.1"
   black_hole_flutter:
     dependency: transitive
     description:

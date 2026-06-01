@@ -13,6 +13,7 @@ workspace:
   - packages/app_minimizer_plus/example
   - packages/gcp_secret_manager
   - apps/openci_worker_cli
+  - packages/avf_dart
 
 
 dependency_overrides:
