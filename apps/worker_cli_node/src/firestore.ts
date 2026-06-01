@@ -8,7 +8,8 @@ let googleAuth: GoogleAuth | null = null;
 let isEmulator = false;
 
 export function initFirebase(serviceAccountPath: string): void {
-  isEmulator = process.env.FUNCTIONS_EMULATOR === "true" || process.env.FIRESTORE_EMULATOR_HOST !== undefined;
+  isEmulator =
+    process.env.FUNCTIONS_EMULATOR === "true" || process.env.FIRESTORE_EMULATOR_HOST !== undefined;
 
   const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8")) as {
     project_id?: string;
@@ -37,7 +38,10 @@ async function callApi(functionName: string, payload: unknown): Promise<any> {
   if (!isEmulator && googleAuth) {
     try {
       const client = await googleAuth.getIdTokenClient(url);
-      const authHeaders = (await client.getRequestHeaders()) as unknown as Record<string, string | undefined>;
+      const authHeaders = (await client.getRequestHeaders()) as unknown as Record<
+        string,
+        string | undefined
+      >;
       const authVal = authHeaders["Authorization"] || authHeaders["authorization"];
       if (authVal) {
         headers["Authorization"] = authVal;
@@ -64,12 +68,12 @@ async function callApi(functionName: string, payload: unknown): Promise<any> {
 
 export async function claimNextJob(customPattern?: string): Promise<BuildJob | null> {
   const runsOnPattern = customPattern ?? (process.platform === "linux" ? "%ubuntu%" : "%macos%");
-  const response = await callApi("claimNextJob", { runsOnPattern });
+  const response = await callApi("claim-next-job", { runsOnPattern });
   return response.job;
 }
 
 export async function createRun(buildJobId: string, runId: string): Promise<void> {
-  await callApi("createBuildRun", { buildJobId, id: runId });
+  await callApi("create-build-run", { buildJobId, id: runId });
 }
 
 export async function appendBuildLogs(input: {
@@ -83,7 +87,7 @@ export async function appendBuildLogs(input: {
     stackTrace?: string;
   }>;
 }): Promise<void> {
-  await callApi("appendBuildLogs", input);
+  await callApi("append-build-logs", input);
 }
 
 export async function appendLog(input: {
@@ -111,11 +115,11 @@ export async function appendLog(input: {
 }
 
 export async function completeJob(id: string, status: BuildJobStatus): Promise<void> {
-  await callApi("completeBuildJob", { id, status });
+  await callApi("complete-build-job", { id, status });
 }
 
 export async function setJobStatus(id: string, status: BuildJobStatus): Promise<void> {
-  await callApi("completeBuildJob", { id, status });
+  await callApi("complete-build-job", { id, status });
 }
 
 export async function updateRunStatus(input: {
@@ -124,15 +128,15 @@ export async function updateRunStatus(input: {
   status: string;
   conclusion?: string | null;
 }): Promise<void> {
-  await callApi("updateBuildRunStatus", input);
+  await callApi("update-build-run-status", input);
 }
 
 export async function updateWorkerHeartbeat(input: WorkerHeartbeatInput): Promise<void> {
-  await callApi("updateWorkerHeartbeat", input);
+  await callApi("update-worker-heartbeat", input);
 }
 
 export async function isJobCancelled(buildJobId: string): Promise<boolean> {
-  const response = await callApi("isJobCancelled", { buildJobId });
+  const response = await callApi("is-job-cancelled", { buildJobId });
   return response.cancelled;
 }
 
@@ -144,12 +148,12 @@ export async function getEnvironmentVariables(teamId: string): Promise<
     autoIncrement?: boolean | null;
   }[]
 > {
-  const response = await callApi("getEnvironmentVariables", { teamId });
+  const response = await callApi("get-environment-variables", { teamId });
   return response.environmentVariables;
 }
 
 export async function updateEnvironmentVariable(id: string, value: string): Promise<void> {
-  await callApi("updateEnvironmentVariable", { id, value });
+  await callApi("update-environment-variable", { id, value });
 }
 
 export async function getSecrets(teamId: string): Promise<
@@ -159,7 +163,7 @@ export async function getSecrets(teamId: string): Promise<
     pathToSecret?: string | null;
   }[]
 > {
-  const response = await callApi("getSecrets", { teamId });
+  const response = await callApi("get-secrets", { teamId });
   return response.secrets;
 }
 
@@ -168,12 +172,12 @@ export async function updateCheckRun(
   runStatus: string,
   conclusion?: string | null,
 ): Promise<void> {
-  await callApi("updateCheckRun", { buildJob, runStatus, conclusion });
+  await callApi("update-check-run", { buildJob, runStatus, conclusion });
 }
 
 export async function handleBuildJobStatusChange(
   buildJob: BuildJob,
   status: BuildJobStatus,
 ): Promise<void> {
-  await callApi("handleBuildJobStatusChange", { buildJob, status });
+  await callApi("handle-build-job-status-change", { buildJob, status });
 }

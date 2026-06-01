@@ -4,9 +4,7 @@ import { hostname } from "node:os";
 import { setTimeout } from "node:timers/promises";
 
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
-import {
-  BuildJobStatus,
-} from "../build_job_services.js";
+import { BuildJobStatus } from "../build_job_services.js";
 import {
   claimNextJob,
   completeJob,
