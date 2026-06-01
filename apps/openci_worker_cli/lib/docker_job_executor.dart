@@ -207,6 +207,7 @@ Future<bool> processDockerJob(
       'act $eventType -W .openci/$workflowFileName '
           '$jobFlag'
           '$matrixFlag'
+          '--pull=false '
           '-P macos-latest=-self-hosted '
           '-P macos-14=-self-hosted '
           '-P macos-15=-self-hosted '
