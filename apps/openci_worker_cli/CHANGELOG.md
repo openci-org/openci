@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0
+- Feature: Unified auto-updater on Mac and Linux via global Dart packages (dart pub global activate)
+- Fix: Await _installUpdate call to catch process exceptions properly
+
+## 0.9.22
+- Fix: Bump openci_shared to 1.0.1 to resolve strict SDK constraint (allowing execution on Dart SDK >= 3.12)
+
+## 0.9.21
+- Fix: Add await to _installUpdate call to properly catch ProcessException inside try-catch
+
+## 0.9.20
+- Fix: Resolve version constants to match pubspec.yaml to prevent redundant auto-updates
+- Fix: Ensure non-interactive ssh compatibility for worker launch scripts
+
 ## 0.9.19
 - Ported Node.js worker CLI to Dart
 - Migrated from direct Firestore operations to Firebase Functions API (fully removed Firestore dependency)

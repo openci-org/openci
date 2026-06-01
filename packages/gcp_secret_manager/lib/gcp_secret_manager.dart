@@ -9,11 +9,11 @@ class GcpSecretManager {
   /// `projects/{projectId}/secrets/{secretName}`
   static Future<String> fetchSecretValue(String pathToSecret) async {
     final client = await clientViaApplicationDefaultCredentials(scopes: [
-      SecretmanagerApi.cloudPlatformScope,
+      SecretManagerApi.cloudPlatformScope,
     ]);
 
     try {
-      final api = SecretmanagerApi(client);
+      final api = SecretManagerApi(client);
       final response = await api.projects.secrets.versions.access(
         '$pathToSecret/versions/latest',
       );

@@ -1,11 +1,11 @@
 name: openci_shared
 description: Shared constants and utility models for OpenCI organization.
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/openci-org/openci/tree/main/packages/openci_shared
 resolution: workspace
 
 environment:
-  sdk: "3.11.5"
+  sdk: ">=3.11.5 <4.0.0"
 
 dependencies:
   freezed_annotation: ^3.1.0

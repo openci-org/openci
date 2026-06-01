@@ -10,15 +10,15 @@ fi
 
 CREDENTIALS_FILE="./worker_credentials.json"
 SESSION_NAME="openci-workers"
-BIN_PATH="./apps/openci_worker_cli/build/worker_bundle/bundle/bin/openci_worker_cli"
+BIN_PATH="dart"
 
 if [ ! -f "$CREDENTIALS_FILE" ]; then
   echo "Error: Credentials file not found at $CREDENTIALS_FILE"
   exit 1
 fi
 
-if [ ! -f "$BIN_PATH" ]; then
-  echo "Error: Worker binary not found at $BIN_PATH. Please compile it first."
+if ! command -v "$BIN_PATH" &> /dev/null; then
+  echo "Error: dart command not found. Please install Dart SDK."
   exit 1
 fi
 
@@ -51,7 +51,7 @@ if (platformCreds.length === 0) {
 platformCreds.forEach((cred, index) => {
   const email = cred.email;
   const password = cred.password;
-  const cmd = \`\${binPath} --supervised --email \"\${email}\" --password \"\${password}\"\`;
+  const cmd = \`\${binPath} pub global run openci_worker_cli --supervised --email \"\${email}\" --password \"\${password}\"\`;
 
   if (index === 0) {
     execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);

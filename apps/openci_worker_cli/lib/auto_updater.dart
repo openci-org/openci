@@ -30,7 +30,7 @@ Future<bool> checkAndUpdate() async {
     }
 
     _log.info('New version available: $version → $latestVersion');
-    return _installUpdate(latestVersion);
+    return await _installUpdate(latestVersion);
   } catch (e) {
     _log.warning('Auto-update check failed: $e');
     return false;
