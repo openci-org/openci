@@ -10,6 +10,9 @@ environment:
 dependencies:
   firebase_functions: ^0.6.0
   firebase_admin_sdk: ^0.5.3
+  google_cloud_firestore: ^0.5.2
+  collection: ^1.19.1
+  shelf: ^1.4.1
   openci_shared:
     path: ../../packages/openci_shared
 

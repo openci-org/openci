@@ -5,7 +5,8 @@ import 'package:hooks/hooks.dart';
 void main(List<String> args) async {
   await build(args, (input, output) async {
     if (!Platform.isMacOS) {
-      print('=== Build Hook: Skipping avf_helper compilation (Host is not macOS) ===');
+      print(
+          '=== Build Hook: Skipping avf_helper compilation (Host is not macOS) ===');
       return;
     }
     final packageRoot = input.packageRoot;

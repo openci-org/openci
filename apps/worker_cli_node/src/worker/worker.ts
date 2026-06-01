@@ -4,17 +4,15 @@ import { hostname } from "node:os";
 import { setTimeout } from "node:timers/promises";
 
 import { checkAndUpdate, exitForUpdate } from "../auto_updater.js";
-import {
-  BuildJobStatus,
-  handleBuildJobStatusChange,
-  updateCheckRun,
-} from "../build_job_services.js";
+import { BuildJobStatus } from "../build_job_services.js";
 import {
   claimNextJob,
   completeJob,
   createRun,
   updateRunStatus,
   updateWorkerHeartbeat,
+  updateCheckRun,
+  handleBuildJobStatusChange,
 } from "../firestore.js";
 import { buildEnvVars, buildSecretVars } from "../env.js";
 import { withInstallationToken, fetchWorkflowContent } from "../github.js";
