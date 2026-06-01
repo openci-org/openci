@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dartssh2/dartssh2.dart';
-
 import 'avf_boot.dart';
-import 'file_transfer.dart';
 import 'local_vm.dart';
 import 'transfer_progress.dart';
+import 'virtual_machine_manager.dart';
+import 'virtual_machine_ssh.dart';
+import 'virtual_machine_transfer.dart';
 
 class VirtualMachine {
   final Process _process;
@@ -140,54 +140,12 @@ class VirtualMachine {
     String? customVmsDir,
     void Function(double progress)? onProgress,
   }) async {
-    final vmsDir = customVmsDir ?? defaultVmsDir;
-    final vmDir = '$vmsDir/$name';
-
-    final targetDir = Directory(vmDir);
-    if (!targetDir.existsSync()) {
-      targetDir.createSync(recursive: true);
-    }
-
-    final diskImgPath = '$vmDir/disk.img';
-    final nvramPath = '$vmDir/nvram.bin';
-    final configJsonPath = '$vmDir/config.json';
-
-    final process = await AppleVirtualization.install(
+    await VirtualMachineManager.install(
+      name: name,
       ipswPath: ipswPath,
-      diskImgPath: diskImgPath,
-      nvramPath: nvramPath,
-      configJsonPath: configJsonPath,
+      customVmsDir: customVmsDir,
+      onProgress: onProgress,
     );
-
-    // Parse progress from standard output: "Progress: XX.XX%"
-    final progressRegExp = RegExp(r'Progress:\s+(\d+\.\d+)%');
-
-    final stdoutDone = process.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .forEach((line) {
-      final match = progressRegExp.firstMatch(line);
-      if (match != null && onProgress != null) {
-        final progressVal = double.tryParse(match.group(1) ?? '');
-        if (progressVal != null) {
-          onProgress(progressVal / 100.0);
-        }
-      } else {
-        print(line);
-      }
-    });
-
-    final stderrDone = process.stderr
-        .transform(utf8.decoder)
-        .listen(stderr.write)
-        .asFuture<void>();
-
-    final exitCode = await process.exitCode;
-    await Future.wait([stdoutDone, stderrDone]);
-
-    if (exitCode != 0) {
-      throw StateError('macOS installation failed with exit code $exitCode');
-    }
   }
 
   /// Clones the VM assets from [sourceName] to [targetName].
@@ -201,81 +159,12 @@ class VirtualMachine {
     String? customVmsDir,
     bool showLogs = true,
   }) async {
-    if (showLogs) {
-      print('Cloning macOS VM "$sourceName" to "$targetName"...');
-    }
-
-    try {
-      final vmsDir = customVmsDir ?? defaultVmsDir;
-      final sourceDir = '$vmsDir/$sourceName';
-      final targetDir = '$vmsDir/$targetName';
-
-      final srcDir = Directory(sourceDir);
-      if (!srcDir.existsSync()) {
-        throw FileSystemException('Source directory does not exist', sourceDir);
-      }
-
-      final target = Directory(targetDir);
-      if (!target.existsSync()) {
-        await target.create(recursive: true);
-      }
-
-      final configFile = File('$sourceDir/config.json');
-      final diskFile = File('$sourceDir/disk.img');
-      final nvramFile = File('$sourceDir/nvram.bin');
-
-      if (!configFile.existsSync()) {
-        throw FileSystemException(
-            'config.json not found in source directory', configFile.path);
-      }
-      if (!diskFile.existsSync()) {
-        throw FileSystemException(
-            'disk.img not found in source directory', diskFile.path);
-      }
-      if (!nvramFile.existsSync()) {
-        throw FileSystemException(
-            'nvram.bin not found in source directory', nvramFile.path);
-      }
-
-      if (Platform.isMacOS) {
-        // Use copy-on-write clone on macOS for instant copy and sparse file support
-        final result = await Process.run('cp', [
-          '-c',
-          configFile.path,
-          '$targetDir/config.json',
-        ]);
-        if (result.exitCode != 0) {
-          throw StateError('Failed to clone config.json: ${result.stderr}');
-        }
-
-        final diskResult = await Process.run('cp', [
-          '-c',
-          diskFile.path,
-          '$targetDir/disk.img',
-        ]);
-        if (diskResult.exitCode != 0) {
-          throw StateError('Failed to clone disk.img: ${diskResult.stderr}');
-        }
-
-        final nvramResult = await Process.run('cp', [
-          '-c',
-          nvramFile.path,
-          '$targetDir/nvram.bin',
-        ]);
-        if (nvramResult.exitCode != 0) {
-          throw StateError('Failed to clone nvram.bin: ${nvramResult.stderr}');
-        }
-      } else {
-        await configFile.copy('$targetDir/config.json');
-        await diskFile.copy('$targetDir/disk.img');
-        await nvramFile.copy('$targetDir/nvram.bin');
-      }
-    } catch (e) {
-      if (showLogs) {
-        print('Failed to clone VM assets: $e');
-      }
-      rethrow;
-    }
+    await VirtualMachineManager.clone(
+      sourceName: sourceName,
+      targetName: targetName,
+      customVmsDir: customVmsDir,
+      showLogs: showLogs,
+    );
   }
 
   /// Deletes the VM directory with the given [name] under [customVmsDir] (or [defaultVmsDir]).
@@ -286,25 +175,11 @@ class VirtualMachine {
     String? customVmsDir,
     bool showLogs = true,
   }) async {
-    if (showLogs) {
-      print('Cleaning up VM "$name"...');
-    }
-
-    try {
-      final vmsDir = customVmsDir ?? defaultVmsDir;
-      final vmDir = Directory('$vmsDir/$name');
-      if (vmDir.existsSync()) {
-        await vmDir.delete(recursive: true);
-      }
-      if (showLogs) {
-        print('Cleanup complete.');
-      }
-    } catch (e) {
-      if (showLogs) {
-        print('Cleanup failed: $e');
-      }
-      rethrow;
-    }
+    await VirtualMachineManager.delete(
+      name,
+      customVmsDir: customVmsDir,
+      showLogs: showLogs,
+    );
   }
 
   /// Downloads a file from the given [uri] to [savePath] with progress notifications.
@@ -318,7 +193,7 @@ class VirtualMachine {
     bool force = false,
     void Function(TransferProgress progress)? onProgress,
   }) async {
-    await downloadFile(
+    await VirtualMachineTransfer.downloadIpsw(
       uri: uri,
       savePath: savePath,
       concurrency: concurrency,
@@ -329,56 +204,7 @@ class VirtualMachine {
 
   /// Lists all local Virtual Machines available in the VM directory.
   static Future<List<LocalVM>> list({String? customVmsDir}) async {
-    final vmsDir = Directory(customVmsDir ?? defaultVmsDir);
-    if (!vmsDir.existsSync()) {
-      return [];
-    }
-
-    final list = <LocalVM>[];
-    await for (final entity in vmsDir.list()) {
-      if (entity is Directory) {
-        final name = entity.path.split('/').last;
-        final configFile = File('${entity.path}/config.json');
-        final diskFile = File('${entity.path}/disk.img');
-        final nvramFile = File('${entity.path}/nvram.bin');
-
-        // A directory is considered a valid VM if all core assets are present
-        if (configFile.existsSync() &&
-            diskFile.existsSync() &&
-            nvramFile.existsSync()) {
-          final diskSize = diskFile.lengthSync();
-          int diskSizeUsed = diskSize;
-
-          if (Platform.isMacOS) {
-            try {
-              final statResult =
-                  await Process.run('stat', ['-f', '%b', diskFile.path]);
-              if (statResult.exitCode == 0) {
-                final blocks =
-                    int.tryParse(statResult.stdout.toString().trim());
-                if (blocks != null) {
-                  diskSizeUsed = blocks * 512;
-                }
-              }
-            } catch (_) {
-              // Fallback to logical size on error
-            }
-          }
-
-          final stat = entity.statSync();
-          list.add(LocalVM(
-            name: name,
-            path: entity.path,
-            diskSizeBytes: diskSize,
-            diskSizeUsedBytes: diskSizeUsed,
-            created: stat.changed,
-          ));
-        }
-      }
-    }
-    // Sort alphabetically by name
-    list.sort((a, b) => a.name.compareTo(b.name));
-    return list;
+    return VirtualMachineManager.list(customVmsDir: customVmsDir);
   }
 
   /// Compresses the VM directory and uploads it to Firebase Storage (Google Cloud Storage) via Pure Dart.
@@ -392,207 +218,14 @@ class VirtualMachine {
     void Function(String log)? onLog,
     void Function(TransferProgress progress)? onProgress,
   }) async {
-    final vmsDir = customVmsDir ?? defaultVmsDir;
-    final vmDir = '$vmsDir/$name';
-
-    if (!Directory(vmDir).existsSync()) {
-      throw FileSystemException('VM directory does not exist', vmDir);
-    }
-
-    final tempDir = Directory.systemTemp.path;
-    final tempArchivePath = '$tempDir/$name.tar.gz';
-    final metadataFile = File('$tempArchivePath.upload');
-
-    // Helper to safely log messages
-    void log(String msg) {
-      if (onLog != null) {
-        onLog(msg);
-      } else {
-        print(msg);
-      }
-    }
-
-    // 1. Archiving VM folder (if temp archive doesn't exist yet)
-    final archiveFile = File(tempArchivePath);
-    if (!archiveFile.existsSync()) {
-      log('Archiving and compressing VM "$name" (maintaining sparse files)...');
-      final compressCmd =
-          'tar -czf ${escapeShellArg(tempArchivePath)} -C ${escapeShellArg(vmDir)} .';
-      final compressResult = await Process.run('/bin/sh', ['-c', compressCmd]);
-
-      if (compressResult.exitCode != 0) {
-        throw ProcessException(
-            'tar',
-            [],
-            'Compression failed: ${compressResult.stderr}',
-            compressResult.exitCode);
-      }
-    } else {
-      log('Reusing existing archive for upload resume...');
-    }
-
-    final totalLength = archiveFile.lengthSync();
-    String? sessionUrl;
-    int uploadedBytes = 0;
-
-    final client = HttpClient();
-
-    // 2. Resolve Resumable Upload session URL
-    if (metadataFile.existsSync()) {
-      try {
-        final metaContent = metadataFile.readAsStringSync();
-        final meta = jsonDecode(metaContent) as Map<String, dynamic>;
-        if (meta['totalLength'] == totalLength && meta['sessionUrl'] != null) {
-          sessionUrl = meta['sessionUrl'] as String;
-          log('Resuming upload session...');
-
-          // Query current upload status from GCS
-          final queryReq = await client.putUrl(Uri.parse(sessionUrl));
-          queryReq.headers.add(HttpHeaders.contentLengthHeader, '0');
-          queryReq.headers.add('Content-Range', 'bytes */$totalLength');
-
-          final queryResp = await queryReq.close();
-          if (queryResp.statusCode == 308) {
-            final rangeHeader = queryResp.headers.value('range');
-            if (rangeHeader != null && rangeHeader.startsWith('bytes=')) {
-              final parts = rangeHeader.substring(6).split('-');
-              if (parts.length > 1) {
-                uploadedBytes = (int.tryParse(parts[1]) ?? -1) + 1;
-                log('Server already received $uploadedBytes bytes. Resuming...');
-              }
-            }
-          } else if (queryResp.statusCode == 200 ||
-              queryResp.statusCode == 201) {
-            log('Upload already complete according to GCS server.');
-            uploadedBytes = totalLength;
-          } else {
-            // Session expired (404/410), restart upload
-            sessionUrl = null;
-          }
-        }
-      } catch (_) {
-        sessionUrl = null;
-      }
-    }
-
-    if (sessionUrl == null) {
-      log('Initiating resumable upload session on GCS...');
-      final initUri = Uri.parse(
-          'https://storage.googleapis.com/upload/storage/v1/b/$bucket/o?uploadType=resumable&name=$name.tar.gz');
-      final initReq = await client.postUrl(initUri);
-      initReq.headers
-          .add(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
-      initReq.headers.add('X-Upload-Content-Type', 'application/octet-stream');
-      initReq.headers.add(
-          HttpHeaders.contentTypeHeader, 'application/json; charset=UTF-8');
-
-      final initResp = await initReq.close();
-      if (initResp.statusCode != 200) {
-        client.close();
-        throw HttpException(
-            'Failed to initiate upload session: HTTP ${initResp.statusCode}');
-      }
-
-      sessionUrl = initResp.headers.value(HttpHeaders.locationHeader);
-      if (sessionUrl == null) {
-        client.close();
-        throw StateError(
-            'GCS did not return a session URL (Location header missing).');
-      }
-
-      // Write session details to metadata
-      metadataFile.writeAsStringSync(jsonEncode({
-        'sessionUrl': sessionUrl,
-        'totalLength': totalLength,
-      }));
-    }
-
-    // 3. Perform chunk uploads
-    try {
-      final raf = await archiveFile.open(mode: FileMode.read);
-
-      const chunkSize =
-          2 * 1024 * 1024; // 2MB chunks (must be a multiple of 256KB)
-
-      final stopwatch = Stopwatch()..start();
-      int lastTime = stopwatch.elapsedMilliseconds;
-      int lastUploaded = uploadedBytes;
-      double speedMb = 0.0;
-      Duration? remaining;
-
-      void triggerProgress(int currentUploaded) {
-        if (onProgress != null) {
-          final now = stopwatch.elapsedMilliseconds;
-          if (now - lastTime >= 500) {
-            final diff = currentUploaded - lastUploaded;
-            final sec = (now - lastTime) / 1000.0;
-            final speedBytesPerSec = diff / sec;
-            speedMb = speedBytesPerSec / (1024.0 * 1024.0);
-
-            final remainingBytes = totalLength - currentUploaded;
-            final etaSeconds = speedBytesPerSec > 0
-                ? (remainingBytes / speedBytesPerSec).round()
-                : 0;
-            remaining = etaSeconds > 0 ? Duration(seconds: etaSeconds) : null;
-
-            lastUploaded = currentUploaded;
-            lastTime = now;
-          }
-
-          onProgress(TransferProgress(
-            downloaded: currentUploaded,
-            total: totalLength,
-            speedMb: speedMb,
-            elapsed: stopwatch.elapsed,
-            remaining: remaining,
-          ));
-        }
-      }
-
-      while (uploadedBytes < totalLength) {
-        await raf.setPosition(uploadedBytes);
-        int currentChunkSize = chunkSize;
-        if (uploadedBytes + currentChunkSize > totalLength) {
-          currentChunkSize = totalLength - uploadedBytes;
-        }
-
-        final data = await raf.read(currentChunkSize);
-        final endRange = uploadedBytes + data.length - 1;
-
-        final putReq = await client.putUrl(Uri.parse(sessionUrl));
-        putReq.headers
-            .add(HttpHeaders.contentLengthHeader, data.length.toString());
-        putReq.headers.add(
-            'Content-Range', 'bytes $uploadedBytes-$endRange/$totalLength');
-        putReq.add(data);
-
-        final putResp = await putReq.close();
-
-        if (putResp.statusCode != 308 &&
-            putResp.statusCode != 200 &&
-            putResp.statusCode != 201) {
-          await raf.close();
-          throw HttpException(
-              'Upload chunk failed: HTTP ${putResp.statusCode}');
-        }
-
-        uploadedBytes += data.length;
-        triggerProgress(uploadedBytes);
-      }
-
-      await raf.close();
-      log('Success: VM "$name" pushed successfully.');
-
-      // 4. Cleanup temporary archive and metadata on success
-      if (archiveFile.existsSync()) {
-        archiveFile.deleteSync();
-      }
-      if (metadataFile.existsSync()) {
-        metadataFile.deleteSync();
-      }
-    } finally {
-      client.close();
-    }
+    await VirtualMachineTransfer.push(
+      name: name,
+      bucket: bucket,
+      accessToken: accessToken,
+      customVmsDir: customVmsDir,
+      onLog: onLog,
+      onProgress: onProgress,
+    );
   }
 
   /// Executes a [command] on the guest VM via SSH, streaming standard output
@@ -608,61 +241,16 @@ class VirtualMachine {
     void Function(String data)? onStdout,
     void Function(String data)? onStderr,
   }) async {
-    final ip = ipAddress;
-    if (ip == null) {
-      throw StateError(
-          'Cannot execute SSH command because the VM does not have an allocated IP address. Ensure the VM is booted successfully.');
-    }
-
-    final List<SSHKeyPair>? keyPairs;
-    if (privateKeyPath != null) {
-      final keyFile = File(privateKeyPath);
-      if (!keyFile.existsSync()) {
-        throw FileSystemException('Private key file not found', privateKeyPath);
-      }
-      final pem = await keyFile.readAsString();
-      keyPairs = SSHKeyPair.fromPem(pem);
-    } else {
-      keyPairs = null;
-    }
-
-    final socket = await SSHSocket.connect(ip, port);
-    final client = SSHClient(
-      socket,
+    return VirtualMachineSsh.executeStream(
+      command,
+      ipAddress: ipAddress,
       username: username,
-      onPasswordRequest: password != null ? () => password : null,
-      identities: keyPairs,
+      password: password,
+      privateKeyPath: privateKeyPath,
+      port: port,
+      onStdout: onStdout,
+      onStderr: onStderr,
     );
-
-    try {
-      final session = await client.execute(command);
-
-      StreamSubscription<String>? stdoutSub;
-      StreamSubscription<String>? stderrSub;
-
-      if (onStdout != null) {
-        stdoutSub = session.stdout
-            .cast<List<int>>()
-            .transform(utf8.decoder)
-            .listen(onStdout);
-      }
-      if (onStderr != null) {
-        stderrSub = session.stderr
-            .cast<List<int>>()
-            .transform(utf8.decoder)
-            .listen(onStderr);
-      }
-
-      await session.done;
-
-      await stdoutSub?.cancel();
-      await stderrSub?.cancel();
-
-      return session.exitCode ?? -1;
-    } finally {
-      client.close();
-      await client.done;
-    }
   }
 
   /// Downloads a VM archive from Firebase Storage and decompresses it locally via Pure Dart.
@@ -676,68 +264,13 @@ class VirtualMachine {
     void Function(String log)? onLog,
     void Function(TransferProgress progress)? onProgress,
   }) async {
-    final vmsDir = customVmsDir ?? defaultVmsDir;
-    final targetVmDir = '$vmsDir/$name';
-
-    final tempDir = Directory.systemTemp.path;
-    final tempArchivePath = '$tempDir/$name.tar.gz';
-
-    // Helper to safely log messages
-    void log(String msg) {
-      if (onLog != null) {
-        onLog(msg);
-      } else {
-        print(msg);
-      }
-    }
-
-    log('Downloading VM "$name" from Firebase Storage (maintaining sparse files)...');
-
-    final downloadUri = Uri.parse(
-        'https://storage.googleapis.com/storage/v1/b/$bucket/o/$name.tar.gz?alt=media');
-
-    await downloadFile(
-      uri: downloadUri,
-      savePath: tempArchivePath,
+    await VirtualMachineTransfer.pull(
+      name: name,
+      bucket: bucket,
       accessToken: accessToken,
+      customVmsDir: customVmsDir,
+      onLog: onLog,
       onProgress: onProgress,
     );
-
-    log('Decompressing and extracting VM archive...');
-
-    final targetDir = Directory(targetVmDir);
-    if (!targetDir.existsSync()) {
-      targetDir.createSync(recursive: true);
-    }
-
-    // Command: tar -xzf <tempArchivePath> -C <targetVmDir>
-    final decompressCmd =
-        'tar -xzf ${escapeShellArg(tempArchivePath)} -C ${escapeShellArg(targetVmDir)}';
-    final decompressResult =
-        await Process.run('/bin/sh', ['-c', decompressCmd]);
-
-    // Cleanup temporary archive file on extraction success
-    final tempFile = File(tempArchivePath);
-    if (tempFile.existsSync()) {
-      tempFile.deleteSync();
-    }
-
-    if (decompressResult.exitCode != 0) {
-      throw ProcessException(
-          'tar',
-          [],
-          'Decompression failed: ${decompressResult.stderr}',
-          decompressResult.exitCode);
-    }
-
-    log('Success: VM "$name" pulled and extracted to $targetVmDir.');
-  }
-
-  /// Safely escapes shell arguments by wrapping them in single quotes.
-  static String escapeShellArg(String arg) {
-    if (Platform.isWindows) {
-      return '"${arg.replaceAll('"', '\\"')}"';
-    }
-    return "'${arg.replaceAll("'", "'\\''")}'";
   }
 }

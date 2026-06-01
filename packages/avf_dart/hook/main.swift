@@ -1,8 +1,5 @@
 import Foundation
 
-// main.swift は Swiftc において暗黙的にエントリーポイント（トップレベルコード）となります。
-// -parse-as-library フラグなしでコンパイルするため、@main 宣言は不要です。
-
 let args = CommandLine.arguments
 guard args.count >= 2 else {
     printUsage()
