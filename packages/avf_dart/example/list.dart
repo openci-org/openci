@@ -8,14 +8,16 @@ void main() async {
       print('  No local VMs found.');
     } else {
       print(
-          '  ${"Name".padRight(20)} ${"Disk Size".padRight(12)} ${"Created"}');
-      print('  ${"-" * 60}');
+          '  ${"Name".padRight(20)} ${"Disk Size".padRight(24)} ${"Created"}');
+      print('  ${"-" * 72}');
       for (final vm in list) {
         final sizeGb =
             (vm.diskSizeBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
-        final sizeStr = '$sizeGb GB';
+        final usedGb =
+            (vm.diskSizeUsedBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
+        final sizeStr = '$usedGb GB / $sizeGb GB';
         print(
-            '  ${vm.name.padRight(20)} ${sizeStr.padRight(12)} ${vm.created.toLocal()}');
+            '  ${vm.name.padRight(20)} ${sizeStr.padRight(24)} ${vm.created.toLocal()}');
       }
     }
   } catch (e) {

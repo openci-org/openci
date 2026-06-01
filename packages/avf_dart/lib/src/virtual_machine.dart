@@ -63,7 +63,8 @@ class VirtualMachine {
         print(line);
       }
       if (!bootCompleter.isCompleted) {
-        final ipMatch = RegExp(r'VM started successfully! IP:\s+([0-9.]+)').firstMatch(line);
+        final ipMatch = RegExp(r'VM started successfully! IP:\s+([0-9.]+)')
+            .firstMatch(line);
         if (ipMatch != null) {
           resolvedIp = ipMatch.group(1);
           bootCompleter.complete();
@@ -232,9 +233,39 @@ class VirtualMachine {
             'nvram.bin not found in source directory', nvramFile.path);
       }
 
-      await configFile.copy('$targetDir/config.json');
-      await diskFile.copy('$targetDir/disk.img');
-      await nvramFile.copy('$targetDir/nvram.bin');
+      if (Platform.isMacOS) {
+        // Use copy-on-write clone on macOS for instant copy and sparse file support
+        final result = await Process.run('cp', [
+          '-c',
+          configFile.path,
+          '$targetDir/config.json',
+        ]);
+        if (result.exitCode != 0) {
+          throw StateError('Failed to clone config.json: ${result.stderr}');
+        }
+
+        final diskResult = await Process.run('cp', [
+          '-c',
+          diskFile.path,
+          '$targetDir/disk.img',
+        ]);
+        if (diskResult.exitCode != 0) {
+          throw StateError('Failed to clone disk.img: ${diskResult.stderr}');
+        }
+
+        final nvramResult = await Process.run('cp', [
+          '-c',
+          nvramFile.path,
+          '$targetDir/nvram.bin',
+        ]);
+        if (nvramResult.exitCode != 0) {
+          throw StateError('Failed to clone nvram.bin: ${nvramResult.stderr}');
+        }
+      } else {
+        await configFile.copy('$targetDir/config.json');
+        await diskFile.copy('$targetDir/disk.img');
+        await nvramFile.copy('$targetDir/nvram.bin');
+      }
     } catch (e) {
       if (showLogs) {
         print('Failed to clone VM assets: $e');
@@ -668,11 +699,30 @@ class VirtualMachine {
             diskFile.existsSync() &&
             nvramFile.existsSync()) {
           final diskSize = diskFile.lengthSync();
+          int diskSizeUsed = diskSize;
+
+          if (Platform.isMacOS) {
+            try {
+              final statResult =
+                  await Process.run('stat', ['-f', '%b', diskFile.path]);
+              if (statResult.exitCode == 0) {
+                final blocks =
+                    int.tryParse(statResult.stdout.toString().trim());
+                if (blocks != null) {
+                  diskSizeUsed = blocks * 512;
+                }
+              }
+            } catch (_) {
+              // Fallback to logical size on error
+            }
+          }
+
           final stat = entity.statSync();
           list.add(LocalVM(
             name: name,
             path: entity.path,
             diskSizeBytes: diskSize,
+            diskSizeUsedBytes: diskSizeUsed,
             created: stat.changed,
           ));
         }
@@ -978,12 +1028,14 @@ class LocalVM {
   final String name;
   final String path;
   final int diskSizeBytes;
+  final int diskSizeUsedBytes;
   final DateTime created;
 
   LocalVM({
     required this.name,
     required this.path,
     required this.diskSizeBytes,
+    required this.diskSizeUsedBytes,
     required this.created,
   });
 }
