@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.8
+- Fix: Add automatic cleanup of zombie `com.apple.Virtualization.VirtualMachine` processes holding locks on macOS VM nvram/disk files, preventing startup timeouts.
+
 ## 0.10.7
 - Feature: Map ubuntu-latest to the dockerImage in docker_job_executor.dart to run each matrix job in an individual container instead of self-hosted, resolving parallel file write conflicts.
 

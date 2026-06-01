@@ -117,7 +117,11 @@ Future<void> cleanupOrphanedVms(String workerId) async {
     _log.info('Cleaning orphaned VMs for worker $workerId...');
     final prefix = 'openci-vm-$workerId-';
 
-    // 1. Clean up filesystem-based VMs for this worker
+    // 1. Kill zombie processes to release file locks first
+    await _killZombieAvfProcesses();
+    await _killZombieVirtualizationProcesses(workerId);
+
+    // 2. Clean up filesystem-based VMs for this worker
     final vms = await VirtualMachine.list();
     final workerVms = vms.where((vm) => vm.name.startsWith(prefix)).toList();
 
@@ -125,9 +129,6 @@ Future<void> cleanupOrphanedVms(String workerId) async {
       _log.info('Deleting orphaned VM: ${vm.name}');
       await VirtualMachine.delete(vm.name);
     }
-
-    // 2. Kill zombie helper processes
-    await _killZombieAvfProcesses();
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
@@ -163,6 +164,48 @@ Future<void> _killZombieAvfProcesses() async {
     }
   } catch (e) {
     _log.warning('Error killing zombie AVF processes: $e');
+  }
+}
+
+Future<void> _killZombieVirtualizationProcesses(String workerId) async {
+  try {
+    if (!Platform.isMacOS) return;
+
+    // Use lsof to find com.apple.Virtualization.VirtualMachine processes holding nvram.bin or disk.img
+    final lsofResult = await Process.run('lsof', [
+      '-c',
+      'com.apple.Virtualization.VirtualMachine',
+      '-F',
+      'pn',
+    ]);
+    if (lsofResult.exitCode != 0) return;
+
+    final prefix = 'openci-vm-$workerId-';
+    final lines = LineSplitter.split(lsofResult.stdout.toString());
+
+    int? currentPid;
+    final pidsToKill = <int>{};
+
+    for (final line in lines) {
+      if (line.startsWith('p')) {
+        currentPid = int.tryParse(line.substring(1));
+      } else if (line.startsWith('n') && currentPid != null) {
+        final filePath = line.substring(1);
+        if (filePath.contains(prefix) &&
+            (filePath.endsWith('nvram.bin') || filePath.endsWith('disk.img'))) {
+          _log.warning(
+            'Found zombie Virtualization XPC process: PID=$currentPid holding $filePath. Killing...',
+          );
+          pidsToKill.add(currentPid);
+        }
+      }
+    }
+
+    for (final pid in pidsToKill) {
+      Process.killPid(pid);
+    }
+  } catch (e) {
+    _log.warning('Error killing zombie Virtualization XPC processes: $e');
   }
 }
 
