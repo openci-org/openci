@@ -5,8 +5,16 @@ import 'package:hooks/hooks.dart';
 void main(List<String> args) async {
   await build(args, (input, output) async {
     final packageRoot = input.packageRoot;
-    final helperSource =
-        packageRoot.resolve('hook/avf_helper.swift').toFilePath();
+    final hookDir = Directory(packageRoot.resolve('hook').toFilePath());
+    final swiftFiles = hookDir
+        .listSync()
+        .where((entity) => entity is File && entity.path.endsWith('.swift'))
+        .map((entity) => entity.path)
+        .toList();
+    if (swiftFiles.isEmpty) {
+      throw Exception('No Swift source files found in hook/ directory');
+    }
+
     final entitlements =
         packageRoot.resolve('hook/entitlements.plist').toFilePath();
 
@@ -28,10 +36,9 @@ void main(List<String> args) async {
     print('=== Build Hook: Compiling avf_helper ===');
     final compileResult = await Process.run('swiftc', [
       '-O',
-      '-parse-as-library',
       '-sdk',
       sdkPath,
-      helperSource,
+      ...swiftFiles,
       '-o',
       helperBinary,
     ]);
