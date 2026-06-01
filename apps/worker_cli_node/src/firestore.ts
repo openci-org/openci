@@ -36,8 +36,8 @@ function normalizeJob(job: unknown): BuildJob | null {
   return job as BuildJob;
 }
 
-export async function claimNextJob(): Promise<BuildJob | null> {
-  const runsOnPattern = process.platform === "linux" ? "%ubuntu%" : "%macos%";
+export async function claimNextJob(customPattern?: string): Promise<BuildJob | null> {
+  const runsOnPattern = customPattern ?? (process.platform === "linux" ? "%ubuntu%" : "%macos%");
   const response = await claimQueuedBuildJob({ runsOnPattern });
   const claimedJob = normalizeJob(response.data.job);
   if (!claimedJob) return null;
