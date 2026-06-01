@@ -1,8 +1,6 @@
 import Foundation
 import Virtualization
-import AppKit
 
-private var activeDelegate: AppDelegate?
 
 func runFetchIpswUrl(args: [String]) async {
     guard args.count >= 3 else {
@@ -207,7 +205,7 @@ func runBoot(args: [String]) {
     let machineIdentifierB64 = args[5]
     let macAddressStr = args[6]
 
-    print("=== AVF Native Helper VM Boot (macOS Mode) ===")
+    print("=== AVF Native Helper VM Boot (macOS Headless Mode) ===")
     print("Disk Image: \(diskImgPath)")
     print("NVRAM: \(nvramPath)")
     fflush(stdout)
@@ -277,30 +275,50 @@ func runBoot(args: [String]) {
         let entropy = VZVirtioEntropyDeviceConfiguration()
         config.entropyDevices = [entropy]
 
-        let graphics = VZMacGraphicsDeviceConfiguration()
-        let display = VZMacGraphicsDisplayConfiguration(widthInPixels: 1024, heightInPixels: 768, pixelsPerInch: 80)
-        graphics.displays = [display]
-        config.graphicsDevices = [graphics]
-
-        config.keyboards = [VZUSBKeyboardConfiguration()]
-        config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
+        // Headless execution: no graphics, keyboard, pointing devices
 
         try config.validate()
 
         let vm = VZVirtualMachine(configuration: config)
 
-        let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
+        print("Starting Virtual Machine (Headless)...")
+        fflush(stdout)
 
-        let delegate = AppDelegate()
-        activeDelegate = delegate
-        delegate.vm = vm
-        if let netConfig = config.networkDevices.first as? VZVirtioNetworkDeviceConfiguration {
-            delegate.macAddress = netConfig.macAddress.string
+        vm.start { result in
+            switch result {
+            case .success:
+                print("VM boot initiated. MAC address: \(macAddressStr)")
+                print("Waiting for guest OS to allocate IP and start SSH...")
+                fflush(stdout)
+                
+                Task {
+                    var guestIp: String? = nil
+                    let startTime = Date()
+                    
+                    // Loop until IP is allocated, timeout after 5 minutes
+                    while guestIp == nil {
+                        if Date().timeIntervalSince(startTime) > 300 {
+                            fputs("Error: Timeout waiting for guest IP allocation.\n", stderr)
+                            exit(1)
+                        }
+                        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                        guestIp = getIPAddress(forMac: macAddressStr)
+                    }
+                    
+                    let ip = guestIp!
+                    print("VM started successfully! IP: \(ip)")
+                    fflush(stdout)
+                }
+                
+            case .failure(let error):
+                fputs("Error: VM startup failed: \(error.localizedDescription)\n", stderr)
+                exit(1)
+            }
         }
-        app.delegate = delegate
 
-        app.run()
+        // Keep process alive in headless mode
+        dispatchMain()
+
     } catch {
         print("Error: Configuration validation failed: \(error.localizedDescription)", to: &errStream)
         exit(1)

@@ -121,7 +121,7 @@ class VirtualMachine {
       if (showLogs) {
         print('Guest IP allocated: $resolvedIp. Checking SSH readiness (Dart)...');
       }
-      final portOpen = await _waitForSshPort(resolvedIp!, timeout: const Duration(minutes: 5));
+      final portOpen = await _waitForSshPort(resolvedIp!, timeout: const Duration(minutes: 5), showLogs: showLogs);
       if (!portOpen) {
         await stdoutSubscription.cancel();
         await stderrSubscription.cancel();
@@ -133,14 +133,17 @@ class VirtualMachine {
     return VirtualMachine._(process, name, resolvedIp);
   }
 
-  static Future<bool> _waitForSshPort(String ip, {required Duration timeout}) async {
+  static Future<bool> _waitForSshPort(String ip, {required Duration timeout, required bool showLogs}) async {
     final stopTime = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(stopTime)) {
       try {
         final socket = await Socket.connect(ip, 22, timeout: const Duration(seconds: 2));
         await socket.close();
         return true;
-      } catch (_) {
+      } catch (e) {
+        if (showLogs) {
+          print('Debug: SSH connection attempt failed for $ip: $e');
+        }
         await Future.delayed(const Duration(seconds: 1));
       }
     }

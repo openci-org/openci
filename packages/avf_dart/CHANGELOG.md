@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- Fix: Run macOS VM in headless mode by removing GUI dependencies (NSApplication, VZVirtualMachineView, AppDelegate) and keeping the process alive via dispatchMain() to prevent VM boot hang ups on headless host runners.
+
 ## 0.1.4
 
 - Fix: Move SSH port checking logic from Swift (NWConnection) to Dart (Socket.connect) to resolve network path resolution delays and hang ups in virtual networks.
