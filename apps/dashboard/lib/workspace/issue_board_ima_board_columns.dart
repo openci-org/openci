@@ -1172,12 +1172,15 @@ class OverviewSectionHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(10, 9, 8, 8),
           child: Row(
             children: [
-              Container(
-                width: 7,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: column.color,
-                  borderRadius: BorderRadius.circular(999),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: column.color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1189,7 +1192,7 @@ class OverviewSectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 13,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -1304,7 +1307,7 @@ class OverviewSummaryCard extends StatelessWidget {
             style: TextStyle(
               color: Color(0xFF0F172A),
               fontSize: 13,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.bold,
             ),
           ),
           _OverviewMiniPill(
@@ -1408,31 +1411,30 @@ class _OverviewSectionState extends State<OverviewSection> {
                 padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
                 color: const Color(0xFFFAFBFC),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 7,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: widget.column.color,
-                        borderRadius: BorderRadius.circular(999),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: widget.column.color,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.column.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF0F172A),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        widget.column.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1770,7 +1772,7 @@ class _OverviewIssueRowContent extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF64748B),
                 fontSize: 11,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -1783,7 +1785,7 @@ class _OverviewIssueRowContent extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF0F172A),
                 fontSize: 13,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.bold,
                 height: 1.24,
               ),
             ),
@@ -1815,7 +1817,7 @@ class _OverviewMiniPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(999),
@@ -1826,8 +1828,8 @@ class _OverviewMiniPill extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: foregroundColor,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -1925,12 +1927,15 @@ class ColumnHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 8,
-          height: 34,
-          decoration: BoxDecoration(
-            color: column.color,
-            borderRadius: BorderRadius.circular(999),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              color: column.color,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -1939,6 +1944,7 @@ class ColumnHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Text(
@@ -1950,7 +1956,9 @@ class ColumnHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  CountPill(count: column.issues.length),
+                  CountPill(
+                    count: column.issues.length,
+                  ),
                   const SizedBox(width: 2),
                   AddIssueToColumnButton(
                     columnTitle: column.title,
@@ -2000,6 +2008,7 @@ class AddIssueToColumnButton extends StatelessWidget {
           width: buttonSize,
           height: buttonSize,
         ),
+        mouseCursor: SystemMouseCursors.click,
         onPressed: onPressed,
         icon: Icon(Icons.add_rounded, size: iconSize),
       ),
