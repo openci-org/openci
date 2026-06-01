@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.11
+- Fix: Proactively run VM cleanup and kill zombie virtualization helper processes before and after every build job on macOS. This ensures that memory held by orphaned VM helper processes is fully released, preventing subsequent jobs from failing with VM boot timeouts.
+
 ## 0.10.10
 - Fix: Bump SSH and guest IP allocation timeout limits from 120 seconds to 300 seconds (5 minutes) in avf_dart's virtual machine boot helper to prevent VM startup timeouts on heavily-loaded macOS workers.
 

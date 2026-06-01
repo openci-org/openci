@@ -215,6 +215,9 @@ Future<void> pruneStaleVms(
   required String workerId,
 }) async {
   try {
+    // Kill zombie processes first to release file locks and free memory
+    await _killZombieVirtualizationProcesses(workerId);
+
     final prefix = 'openci-vm-$workerId-';
     final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 

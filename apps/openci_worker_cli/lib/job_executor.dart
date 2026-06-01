@@ -170,6 +170,13 @@ Future<bool> processJob(
   await apiClient.createRun(buildJobId, runId);
   await apiClient.updateCheckRun(buildJob, 'in_progress');
 
+  // Clean up orphaned VMs and zombie processes from previous runs to free memory/locks
+  try {
+    await cleanupOrphanedVms(workerId);
+  } catch (e) {
+    await logWarning(buildJobId, runId, 'Failed to run VM cleanup before job: $e');
+  }
+
   await logInfo(
     buildJobId,
     runId,
