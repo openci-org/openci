@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.3
+- Fix: Prioritize running the AOT binary installed via 'dart install' in supervisor.dart to resolve the old version loading issue on Linux workers.
+
 ## 0.10.2
 - Fix: Bump avf_dart to 0.1.1 to resolve the native assets (avf_helper) loading failure on AOT-compiled global packages.
 

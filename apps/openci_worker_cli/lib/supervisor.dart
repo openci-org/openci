@@ -31,7 +31,12 @@ Future<void> runSupervised(List<String> arguments) async {
     final String executable;
     final List<String> processArgs;
 
-    if (isRunningViaPubGlobal) {
+    final installedAot = _findInstalledAotBinary();
+    if (installedAot != null) {
+      _log.info('Found installed AOT binary: $installedAot');
+      executable = installedAot;
+      processArgs = workerArgs;
+    } else if (isRunningViaPubGlobal) {
       // Use `dart pub global run` to re-enter through the package entrypoint.
       executable = resolvedExe;
       processArgs = [
@@ -71,3 +76,29 @@ Future<void> runSupervised(List<String> arguments) async {
     }
   }
 }
+
+/// Locates the AOT-compiled binary installed via `dart install`.
+String? _findInstalledAotBinary() {
+  final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+  if (home == null) return null;
+
+  if (Platform.isMacOS) {
+    final path = '$home/Library/Application Support/Dart/install/bin/openci_worker';
+    if (File(path).existsSync()) return path;
+  } else if (Platform.isLinux) {
+    final xdgDataHome = Platform.environment['XDG_DATA_HOME'];
+    final baseDir = (xdgDataHome != null && xdgDataHome.isNotEmpty)
+        ? xdgDataHome
+        : '$home/.local/share';
+    final path = '$baseDir/Dart/install/bin/openci_worker';
+    if (File(path).existsSync()) return path;
+  } else if (Platform.isWindows) {
+    final appData = Platform.environment['APPDATA'];
+    if (appData != null) {
+      final path = '$appData\\Dart\\install\\bin\\openci_worker.exe';
+      if (File(path).existsSync()) return path;
+    }
+  }
+  return null;
+}
+

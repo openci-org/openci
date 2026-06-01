@@ -51,7 +51,17 @@ if (platformCreds.length === 0) {
 platformCreds.forEach((cred, index) => {
   const email = cred.email;
   const password = cred.password;
-  const cmd = \`\${binPath} pub global run openci_worker_cli --supervised --email \"\${email}\" --password \"\${password}\"\`;
+  
+  let binaryPath;
+  if (platform === 'mac') {
+    binaryPath = \`\${process.env.HOME}/Library/Application Support/Dart/install/bin/openci_worker\`;
+  } else {
+    const xdgDataHome = process.env.XDG_DATA_HOME;
+    const baseDir = xdgDataHome ? xdgDataHome : \`\${process.env.HOME}/.local/share\`;
+    binaryPath = \`\${baseDir}/Dart/install/bin/openci_worker\`;
+  }
+
+  const cmd = \`'\${binaryPath}' --supervised --email \"\${email}\" --password \"\${password}\"\`;
 
   if (index === 0) {
     execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);
