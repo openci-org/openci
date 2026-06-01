@@ -58,22 +58,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     }
                     
                     let ip = guestIp!
-                    print("Guest IP allocated: \(ip). Checking SSH readiness...")
-                    fflush(stdout)
-                    
-                    // Loop until SSH port (22) is open, timeout after 5 minutes total
-                    var sshReady = false
-                    while !sshReady {
-                        if Date().timeIntervalSince(startTime) > 300 {
-                            fputs("Error: Timeout waiting for SSH port to open.\n", stderr)
-                            exit(1)
-                        }
-                        sshReady = await checkSSHPort(ip: ip)
-                        if !sshReady {
-                            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                        }
-                    }
-                    
                     print("VM started successfully! IP: \(ip)")
                     fflush(stdout)
                 }

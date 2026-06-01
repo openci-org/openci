@@ -117,7 +117,34 @@ class VirtualMachine {
       rethrow;
     }
 
+    if (resolvedIp != null) {
+      if (showLogs) {
+        print('Guest IP allocated: $resolvedIp. Checking SSH readiness (Dart)...');
+      }
+      final portOpen = await _waitForSshPort(resolvedIp!, timeout: const Duration(minutes: 5));
+      if (!portOpen) {
+        await stdoutSubscription.cancel();
+        await stderrSubscription.cancel();
+        process.kill(ProcessSignal.sigterm);
+        throw StateError('Error: Timeout waiting for SSH port to open (Dart).');
+      }
+    }
+
     return VirtualMachine._(process, name, resolvedIp);
+  }
+
+  static Future<bool> _waitForSshPort(String ip, {required Duration timeout}) async {
+    final stopTime = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(stopTime)) {
+      try {
+        final socket = await Socket.connect(ip, 22, timeout: const Duration(seconds: 2));
+        await socket.close();
+        return true;
+      } catch (_) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+    return false;
   }
 
   /// Stops the VM process gracefully (sends SIGTERM).

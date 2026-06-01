@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Fix: Move SSH port checking logic from Swift (NWConnection) to Dart (Socket.connect) to resolve network path resolution delays and hang ups in virtual networks.
+
 ## 0.1.3
 
 - Fix: Prioritize latest version in pub-cache and skip resolving dummy install/bin paths to ensure the correct avf_helper version is chosen in AOT-compiled environments.

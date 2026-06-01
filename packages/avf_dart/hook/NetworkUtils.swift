@@ -1,5 +1,5 @@
 import Foundation
-import Network
+
 
 // Helper to normalize MAC address string by removing leading zeros in each octet
 // e.g. "e2:8c:5c:f5:07:be" -> "e2:8c:5c:f5:7:be"
@@ -51,43 +51,3 @@ func getIPAddress(forMac mac: String) -> String? {
     return nil
 }
 
-// Thread-safe wrapper to ensure the continuation is resumed exactly once
-class SafeResumer: @unchecked Sendable {
-    private var isResumed = false
-    private let lock = NSLock()
-    
-    func resume(connection: NWConnection, continuation: CheckedContinuation<Bool, Never>, value: Bool) {
-        lock.lock()
-        defer { lock.unlock() }
-        if !isResumed {
-            isResumed = true
-            connection.cancel()
-            continuation.resume(returning: value)
-        }
-    }
-}
-
-// Helper to check if SSH port (22) is open on the guest IP using non-blocking async wait
-func checkSSHPort(ip: String) async -> Bool {
-    let host = NWEndpoint.Host(ip)
-    let port = NWEndpoint.Port(integerLiteral: 22)
-    let connection = NWConnection(host: host, port: port, using: .tcp)
-    let resumer = SafeResumer()
-    
-    return await withCheckedContinuation { continuation in
-        connection.stateUpdateHandler = { state in
-            if case .ready = state {
-                resumer.resume(connection: connection, continuation: continuation, value: true)
-            } else if case .failed = state {
-                resumer.resume(connection: connection, continuation: continuation, value: false)
-            }
-        }
-        
-        connection.start(queue: .global())
-        
-        // Timeout after 1.5 seconds
-        DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) {
-            resumer.resume(connection: connection, continuation: continuation, value: false)
-        }
-    }
-}

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.13
+- Fix: Bump avf_dart to 0.1.4 to migrate the SSH port checking logic from Swift (NWConnection) to Dart (Socket.connect), resolving VM startup timeouts caused by unstable virtual network path resolution in Swift.
+
 ## 0.10.12
 - Fix: Bump avf_dart to 0.1.3 to improve avf_helper search resolution order, prioritizing pub-cache and latest version over installer cache directories to fix VM startup timeout issues.
 
