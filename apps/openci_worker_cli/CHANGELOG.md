@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.7
+- Feature: Map ubuntu-latest to the dockerImage in docker_job_executor.dart to run each matrix job in an individual container instead of self-hosted, resolving parallel file write conflicts.
+
 ## 0.10.6
 - Fix: Dynamically inject env.HOME path based on matrix.name in actions-ci.yaml before running act to prevent parallel write conflicts on self-hosted matrix jobs.
 

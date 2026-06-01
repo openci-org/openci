@@ -322,6 +322,15 @@ Future<bool> processJob(
     final jobKey = buildJob.workflowJobKey ?? buildJob.jobKey;
     final jobFlag = jobKey != null ? '-j $jobKey ' : '';
 
+    final matrixArgs = <String>[];
+    final buildJobMatrix = buildJob.matrix;
+    if (buildJobMatrix != null && buildJobMatrix.isNotEmpty) {
+      for (final entry in buildJobMatrix.entries) {
+        matrixArgs.add('--matrix "${entry.key}:${entry.value}"');
+      }
+    }
+    final matrixFlag = matrixArgs.isNotEmpty ? '${matrixArgs.join(' ')} ' : '';
+
     final uniqueHome = '/tmp/openci-home-${_uuid.v4()}';
 
     final actScript = [
@@ -330,9 +339,9 @@ Future<bool> processJob(
       'export HOME=$uniqueHome',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
       'cd $repo',
-      'sed -i \'\' \'s|runs-on: ubuntu-latest|runs-on: ubuntu-latest\\n    env:\\n      HOME: "/tmp/openci-home-\\\$\\{\\{ matrix.name \\}\\}"|g\' .openci/$workflowFileName',
       'act $eventType -W .openci/$workflowFileName '
           '$jobFlag'
+          '$matrixFlag'
           '-P macos-latest=-self-hosted '
           '-P macos-14=-self-hosted '
           '-P macos-15=-self-hosted '
