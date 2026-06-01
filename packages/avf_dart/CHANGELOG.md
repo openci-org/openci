@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- Feature: Automatically generate a unique random MAC address during VM cloning in virtual_machine_manager.dart. This prevents MAC address and IP address conflicts when launching multiple VMs concurrently on the same host.
+
+## 0.1.6
+
+- Fix: Re-add virtual graphics, keyboard, and pointing devices to VM configuration in runBoot. While the host process runs in headless mode, macOS guest OS requires these basic virtual hardware interfaces to boot successfully and open the SSH port.
+
 ## 0.1.5
 
 - Fix: Run macOS VM in headless mode by removing GUI dependencies (NSApplication, VZVirtualMachineView, AppDelegate) and keeping the process alive via dispatchMain() to prevent VM boot hang ups on headless host runners.

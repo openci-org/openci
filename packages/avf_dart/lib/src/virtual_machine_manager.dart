@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'avf_boot.dart';
 import 'local_vm.dart';
@@ -139,12 +140,34 @@ class VirtualMachineManager {
         await diskFile.copy('$targetDir/disk.img');
         await nvramFile.copy('$targetDir/nvram.bin');
       }
+
+      // Generate a new unique MAC address to prevent network interface conflict
+      final targetConfigFile = File('$targetDir/config.json');
+      if (targetConfigFile.existsSync()) {
+        try {
+          final configData = jsonDecode(targetConfigFile.readAsStringSync()) as Map<String, dynamic>;
+          configData['macAddress'] = _generateRandomMac();
+          targetConfigFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(configData));
+        } catch (e) {
+          if (showLogs) {
+            print('Warning: Failed to update macAddress in cloned config.json: $e');
+          }
+        }
+      }
     } catch (e) {
       if (showLogs) {
         print('Failed to clone VM assets: $e');
       }
       rethrow;
     }
+  }
+
+  static String _generateRandomMac() {
+    final rand = Random();
+    final bytes = List<int>.generate(6, (_) => rand.nextInt(256));
+    // Set locally administered bit (U/L) to 1, and unicast bit to 0
+    bytes[0] = (bytes[0] & 0xFC) | 0x02;
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':');
   }
 
   /// Deletes the VM directory with the given [name] under VM directory.

@@ -275,7 +275,14 @@ func runBoot(args: [String]) {
         let entropy = VZVirtioEntropyDeviceConfiguration()
         config.entropyDevices = [entropy]
 
-        // Headless execution: no graphics, keyboard, pointing devices
+        // Headless host execution, but VM configuration requires graphics and input devices for macOS to boot successfully
+        let graphics = VZMacGraphicsDeviceConfiguration()
+        let display = VZMacGraphicsDisplayConfiguration(widthInPixels: 1024, heightInPixels: 768, pixelsPerInch: 80)
+        graphics.displays = [display]
+        config.graphicsDevices = [graphics]
+
+        config.keyboards = [VZUSBKeyboardConfiguration()]
+        config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
 
         try config.validate()
 

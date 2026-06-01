@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.16
+- Fix: Bump avf_dart to 0.1.7 to dynamically generate a unique random MAC address during VM cloning. This resolves MAC address and IP address conflicts when multiple matrix worker jobs run concurrently on the same host machine.
+
+## 0.10.15
+- Fix: Bump avf_dart to 0.1.6 to restore virtual graphics, keyboard, and pointing devices to macOS VM configurations. These virtual devices are required for macOS guest OS to complete initialization and open SSH port under headless execution mode.
+
 ## 0.10.14
 - Fix: Bump avf_dart to 0.1.5 to configure macOS VM to run in fully headless mode, avoiding AppKit/NSApplication window system deadlocks on headless host machines.
 
