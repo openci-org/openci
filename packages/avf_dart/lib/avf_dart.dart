@@ -1,5 +1,3 @@
-library avf_dart;
-
 export 'src/avf_boot.dart';
 export 'src/file_transfer.dart';
 export 'src/local_vm.dart';
