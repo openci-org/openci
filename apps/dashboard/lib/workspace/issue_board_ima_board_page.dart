@@ -1616,7 +1616,7 @@ String? _pullRequestMergeConflictMessage(Object error) {
   return 'このPRはbase branchとconflictしています。GitHubでconflictを解消してから、もう一度マージしてください。';
 }
 
-class _IssueBoardShortcuts extends StatelessWidget {
+class _IssueBoardShortcuts extends StatefulWidget {
   const _IssueBoardShortcuts({
     required this.onAddIssue,
     required this.onSearchIssues,
@@ -1632,49 +1632,84 @@ class _IssueBoardShortcuts extends StatelessWidget {
   final Widget child;
 
   @override
+  State<_IssueBoardShortcuts> createState() => _IssueBoardShortcutsState();
+}
+
+class _IssueBoardShortcutsState extends State<_IssueBoardShortcuts> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final bindings = <ShortcutActivator, VoidCallback>{
       const SingleActivator(LogicalKeyboardKey.keyN): () {
         if (_hasTextInputFocus()) {
           return;
         }
-        onAddIssue();
+        widget.onAddIssue();
       },
       const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-          onSearchIssues,
+          widget.onSearchIssues,
       const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.issueBoard),
+          widget.onDestinationSelected(CompactBoardDestination.issueBoard),
       const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.runs),
+          widget.onDestinationSelected(CompactBoardDestination.runs),
       const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.workers),
+          widget.onDestinationSelected(CompactBoardDestination.workers),
       const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.workflows),
+          widget.onDestinationSelected(CompactBoardDestination.workflows),
       const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.variables),
+          widget.onDestinationSelected(CompactBoardDestination.variables),
       const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.storeRelease),
+          widget.onDestinationSelected(CompactBoardDestination.storeRelease),
       const SingleActivator(LogicalKeyboardKey.digit7, meta: true): () =>
-          onDestinationSelected(CompactBoardDestination.settings),
+          widget.onDestinationSelected(CompactBoardDestination.settings),
     };
 
     if (!kIsWeb) {
       bindings.addAll({
-        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): onAddIssue,
+        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): widget.onAddIssue,
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
-            onToggleNavigation,
+            widget.onToggleNavigation,
       });
     }
 
     return CallbackShortcuts(
       bindings: bindings,
-      child: Focus(autofocus: true, child: child),
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            if (_hasTextInputFocus()) {
+              _focusNode.requestFocus();
+            }
+          },
+          child: widget.child,
+        ),
+      ),
     );
   }
 
   bool _hasTextInputFocus() {
     final context = FocusManager.instance.primaryFocus?.context;
-    return context?.findAncestorWidgetOfExactType<EditableText>() != null;
+    if (context == null) {
+      return false;
+    }
+    return context.widget is EditableText ||
+        context.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 }
 
