@@ -135,17 +135,59 @@ class VirtualMachine {
 
   static Future<bool> _waitForSshPort(String ip, {required Duration timeout, required bool showLogs}) async {
     final stopTime = DateTime.now().add(timeout);
+
+    if (showLogs) {
+      print('Debug: Waiting for guest OS network to respond via ping...');
+    }
+
+    // Phase 1: Wait for ping to succeed (resolves ARP and ensures routing is active)
+    bool pingSuccess = false;
     while (DateTime.now().isBefore(stopTime)) {
       try {
-        final socket = await Socket.connect(ip, 22, timeout: const Duration(seconds: 2));
-        await socket.close();
+        final res = await Process.run('/sbin/ping', ['-c', '1', '-t', '1', ip]).timeout(const Duration(seconds: 2));
+        if (res.exitCode == 0) {
+          pingSuccess = true;
+          if (showLogs) {
+            print('Debug: Guest OS network responded to ping successfully!');
+          }
+          break;
+        } else {
+          if (showLogs) {
+            print('Debug: Guest OS network not responding to ping yet (exitCode: ${res.exitCode})');
+          }
+        }
+      } catch (e) {
+        if (showLogs) {
+          print('Debug: Ping execution failed: $e');
+        }
+      }
+      await Future.delayed(const Duration(seconds: 2));
+    }
+
+    if (!pingSuccess) {
+      if (showLogs) {
+        print('Debug: Timeout waiting for guest OS network to respond to ping.');
+      }
+      return false;
+    }
+
+    // Phase 2: Ping succeeded, now wait for SSH port 22 to open
+    if (showLogs) {
+      print('Debug: Guest network is up. Waiting for SSH port 22 to open...');
+    }
+
+    while (DateTime.now().isBefore(stopTime)) {
+      try {
+        final targetAddress = InternetAddress(ip, type: InternetAddressType.IPv4);
+        final socket = await Socket.connect(targetAddress, 22, timeout: const Duration(seconds: 5));
+        socket.destroy();
         return true;
       } catch (e) {
         if (showLogs) {
-          print('Debug: SSH connection attempt failed for $ip: $e');
+          print('Debug: SSH port connection attempt failed for $ip: $e');
         }
-        await Future.delayed(const Duration(seconds: 1));
       }
+      await Future.delayed(const Duration(seconds: 5));
     }
     return false;
   }

@@ -1,6 +1,6 @@
 name: openci_worker_cli
 description: OpenCI Worker CLI - A CI/CD worker for OpenCI
-version: 0.10.16
+version: 0.10.23
 repository: https://github.com/openci-org/openci
 
 false_secrets:
@@ -22,7 +22,7 @@ dependencies:
   yaml: ^3.1.2
   yaml_edit: ^2.2.0
   openci_shared: ^1.0.1
-  avf_dart: ^0.1.7
+  avf_dart: ^0.1.14
 
 dev_dependencies:
   lints: ^6.0.0

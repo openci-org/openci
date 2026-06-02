@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.14
+
+- Fix: Implement two-phase wait in `_waitForSshPort`. First wait for guest OS ping to succeed (resolves ARP and routes), and only then attempt `Socket.connect`. This prevents Dart VM socket from encountering and caching a permanent `No route to host` error state when the VM boots up.
+
+## 0.1.13
+
+- Fix: Re-create `InternetAddress` instance on every connection attempt inside `_waitForSshPort` to bypass potential Socket DNS/resolution caching bugs in Dart VM.
+
+## 0.1.12
+
+- Fix: Use explicit `InternetAddress` with `InternetAddressType.IPv4` in `_waitForSshPort` to bypass any IPv6 lookup fallback issues in Dart's `Socket.connect`.
+- Fix: Use absolute path `/sbin/ping` for the force-ARP workaround and print detailed execution output to diagnose command execution in non-interactive background environments.
+
+## 0.1.11
+
+- Fix: Connect directly to IP string in `_waitForSshPort` to avoid potential IPv6 mapping or resolution bugs in Dart's `InternetAddress.lookup`.
+
+## 0.1.10
+
+- Fix: Prevent picking up stale DHCP lease records from `/var/db/dhcpd_leases` on boot. Prefetch the latest lease timestamp before VM startup and ignore any leases older than or equal to that timestamp.
+
+## 0.1.9
+
+- Fix: Remove unique MAC address generation during VM cloning. macOS guest OS configures its network interface (en0) based on the original fixed MAC address, and altering it causes DHCP lease allocation timeouts.
+
+## 0.1.8
+
+- Fix: Resolve Dart VM socket connection caching issues when checking SSH port availability by performing a dynamic IP address lookup before connecting and increasing retry interval to 5 seconds.
+
 ## 0.1.7
 
 - Feature: Automatically generate a unique random MAC address during VM cloning in virtual_machine_manager.dart. This prevents MAC address and IP address conflicts when launching multiple VMs concurrently on the same host.

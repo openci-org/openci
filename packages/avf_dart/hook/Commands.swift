@@ -284,12 +284,29 @@ func runBoot(args: [String]) {
         config.keyboards = [VZUSBKeyboardConfiguration()]
         config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
 
+        // Add serial port for boot debugging
+        let serialPort = VZVirtioConsoleDeviceSerialPortConfiguration()
+        let nvramUrl = URL(fileURLWithPath: nvramPath)
+        let vmDirUrl = nvramUrl.deletingLastPathComponent()
+        let logUrl = vmDirUrl.appendingPathComponent("serial.log")
+        
+        if !FileManager.default.fileExists(atPath: logUrl.path) {
+            FileManager.default.createFile(atPath: logUrl.path, contents: nil, attributes: nil)
+        }
+        if let fileHandle = try? FileHandle(forWritingTo: logUrl) {
+            let attachment = VZFileHandleSerialPortAttachment(fileHandleForReading: nil, fileHandleForWriting: fileHandle)
+            serialPort.attachment = attachment
+            config.serialPorts = [serialPort]
+        }
+
         try config.validate()
 
         let vm = VZVirtualMachine(configuration: config)
 
         print("Starting Virtual Machine (Headless)...")
         fflush(stdout)
+
+        let initialLeaseTime = getLatestLeaseTime(forMac: macAddressStr)
 
         vm.start { result in
             switch result {
@@ -309,7 +326,7 @@ func runBoot(args: [String]) {
                             exit(1)
                         }
                         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                        guestIp = getIPAddress(forMac: macAddressStr)
+                        guestIp = getIPAddress(forMac: macAddressStr, newerThanLeaseTime: initialLeaseTime)
                     }
                     
                     let ip = guestIp!

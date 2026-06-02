@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.10.23
+- Fix: Bump avf_dart to 0.1.14 to use a two-phase check (ping then socket connect) to avoid socket resolution error caching issues.
+
+## 0.10.22
+- Fix: Bump avf_dart to 0.1.13 to recreate InternetAddress instance on every SSH connection attempt.
+
+## 0.10.21
+- Fix: Bump avf_dart to 0.1.12 to use explicit InternetAddress with InternetAddressType.IPv4 and absolute path /sbin/ping for the force-ARP workaround.
+
+## 0.10.20
+- Fix: Bump avf_dart to 0.1.11 to connect directly to the IP address string in SSH port checking, bypassing potential `InternetAddress.lookup` resolution/mapping bugs.
+
+## 0.10.19
+- Fix: Bump avf_dart to 0.1.10 to prevent VM boot timeouts caused by picking up stale DHCP lease records on startup.
+
+## 0.10.18
+- Fix: Bump avf_dart to 0.1.9 to remove MAC address randomization. Restores the fixed original MAC address to prevent guest macOS network device (en0) from breaking and failing DHCP lease allocation.
+
+## 0.10.17
+- Fix: Bump avf_dart to 0.1.8 to resolve Dart VM socket connection caching issues when checking SSH port availability. This prevents VM boot timeouts by checking IP resolution and using a longer retry interval (5s) for port connectivity checks.
+
 ## 0.10.16
 - Fix: Bump avf_dart to 0.1.7 to dynamically generate a unique random MAC address during VM cloning. This resolves MAC address and IP address conflicts when multiple matrix worker jobs run concurrently on the same host machine.
 

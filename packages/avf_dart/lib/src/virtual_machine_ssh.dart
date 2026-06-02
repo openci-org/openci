@@ -36,12 +36,22 @@ class VirtualMachineSsh {
       keyPairs = null;
     }
 
-    final socket = await SSHSocket.connect(ipAddress, port);
+    final socket = await SSHSocket.connect(ipAddress, port).timeout(
+      const Duration(seconds: 15),
+      onTimeout: () => throw TimeoutException('SSH socket connection timed out'),
+    );
     final client = SSHClient(
       socket,
       username: username,
       onPasswordRequest: password != null ? () => password : null,
       identities: keyPairs,
+    );
+    await client.authenticated.timeout(
+      const Duration(seconds: 15),
+      onTimeout: () {
+        socket.destroy();
+        throw TimeoutException('SSH authentication timed out');
+      },
     );
 
     try {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:uuid/uuid.dart';
 import 'package:logging/logging.dart' as dart_logging;
 import 'cloud_function_caller.dart';
@@ -183,6 +184,7 @@ Future<void> logError(
 void setupLogging() {
   dart_logging.Logger.root.level = dart_logging.Level.ALL;
   dart_logging.Logger.root.onRecord.listen((record) {
-    print('${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}');
+    stdout.writeln('${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}');
+    stdout.flush();
   });
 }

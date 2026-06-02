@@ -16,8 +16,49 @@ func normalizeMacAddress(_ mac: String) -> String {
     return normalizedParts.joined(separator: ":").lowercased()
 }
 
-// Helper to query DHCP leases file (/var/db/dhcpd_leases) for VM's IP address
-func getIPAddress(forMac mac: String) -> String? {
+// Helper to get the maximum lease time currently recorded for a MAC address
+func getLatestLeaseTime(forMac mac: String) -> UInt32 {
+    let leasePath = "/var/db/dhcpd_leases"
+    guard let content = try? String(contentsOfFile: leasePath) else {
+        return 0
+    }
+    
+    let targetHwNormalized = normalizeMacAddress(mac)
+    let blocks = content.components(separatedBy: "}")
+    var maxLease: UInt32 = 0
+    
+    for block in blocks {
+        let lines = block.components(separatedBy: "\n")
+        var currentHw: String? = nil
+        var currentLeaseStr: String? = nil
+        
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("hw_address=") {
+                currentHw = trimmed.replacingOccurrences(of: "hw_address=", with: "")
+            } else if trimmed.hasPrefix("lease=") {
+                currentLeaseStr = trimmed.replacingOccurrences(of: "lease=", with: "")
+            }
+        }
+        
+        if let hw = currentHw, let leaseStr = currentLeaseStr {
+            let hwNormalized = normalizeMacAddress(hw)
+            if hwNormalized == targetHwNormalized {
+                let cleanLease = leaseStr.replacingOccurrences(of: "0x", with: "")
+                if let leaseVal = UInt32(cleanLease, radix: 16) {
+                    if leaseVal > maxLease {
+                        maxLease = leaseVal
+                    }
+                }
+            }
+        }
+    }
+    return maxLease
+}
+
+// Helper to query DHCP leases file (/var/db/dhcpd_leases) for VM's IP address,
+// but only returns the IP if the lease time is strictly greater than newerThanLeaseTime.
+func getIPAddress(forMac mac: String, newerThanLeaseTime: UInt32 = 0) -> String? {
     let leasePath = "/var/db/dhcpd_leases"
     guard let content = try? String(contentsOfFile: leasePath) else {
         fputs("Debug Error: Failed to read \(leasePath) from avf_helper\n", stderr)
@@ -27,10 +68,11 @@ func getIPAddress(forMac mac: String) -> String? {
     
     let targetHwNormalized = normalizeMacAddress(mac)
     let blocks = content.components(separatedBy: "}")
-    for block in blocks {
+    for block in blocks.reversed() {
         let lines = block.components(separatedBy: "\n")
         var currentHw: String? = nil
         var currentIp: String? = nil
+        var currentLeaseStr: String? = nil
         
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -38,13 +80,26 @@ func getIPAddress(forMac mac: String) -> String? {
                 currentHw = trimmed.replacingOccurrences(of: "hw_address=", with: "")
             } else if trimmed.hasPrefix("ip_address=") {
                 currentIp = trimmed.replacingOccurrences(of: "ip_address=", with: "")
+            } else if trimmed.hasPrefix("lease=") {
+                currentLeaseStr = trimmed.replacingOccurrences(of: "lease=", with: "")
             }
         }
         
         if let hw = currentHw, let ip = currentIp {
             let hwNormalized = normalizeMacAddress(hw)
             if hwNormalized == targetHwNormalized {
-                return ip
+                if newerThanLeaseTime > 0 {
+                    if let leaseStr = currentLeaseStr {
+                        let cleanLease = leaseStr.replacingOccurrences(of: "0x", with: "")
+                        if let leaseVal = UInt32(cleanLease, radix: 16) {
+                            if leaseVal > newerThanLeaseTime {
+                                return ip
+                            }
+                        }
+                    }
+                } else {
+                    return ip
+                }
             }
         }
     }
