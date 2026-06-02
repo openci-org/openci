@@ -23,6 +23,13 @@ void main(List<String> args) async {
     final entitlements =
         packageRoot.resolve('hook/entitlements.plist').toFilePath();
 
+    // Declare the native sources as build dependencies so the native-assets
+    // build system re-runs this hook (recompiles avf_helper) whenever they
+    // change. Without this, `dart build`/`dart test` cache the hook output and
+    // skip recompilation after Swift edits.
+    output.dependencies.addAll(swiftFiles.map(Uri.file));
+    output.dependencies.add(Uri.file(entitlements));
+
     // Determine cache output directory
     final outputDir =
         Directory(packageRoot.resolve('.dart_tool/avf_dart').toFilePath());

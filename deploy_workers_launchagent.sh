@@ -21,7 +21,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-AVF_DART_VER="0.1.15"
+AVF_DART_VER="0.1.16"
 HELPER_BIN="${SCRIPT_DIR}/packages/avf_dart/.dart_tool/avf_dart/avf_helper"
 WORKER_BIN="${SCRIPT_DIR}/apps/openci_worker_cli/build/cli/macos_arm64/bundle/bin/openci_worker_cli"
 LABEL_PREFIX="org.openci.worker"

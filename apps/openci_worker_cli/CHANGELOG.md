@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.28
+- Change: Bump avf_dart to 0.1.16 to boot macOS VMs with 8 GB of memory (was 4 GB), giving Flutter/Xcode/iOS builds enough headroom (4 GB caused in-guest memory pressure and SSH drops / `act exited with code 255`).
+
 ## 0.10.27
 - Feature: Assign each worker a distinct, stable MAC address for its cloned VM (derived from the worker number, keeping the validated da:d7:a6:2d:e9 prefix). This lets two workers run on the same physical host without their VMs colliding on the shared vmnet bridge (same MAC previously meant the same DHCP IP/ARP entry). Enables the 2-workers-per-host deployment.
 

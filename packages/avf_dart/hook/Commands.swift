@@ -231,7 +231,7 @@ func runBoot(args: [String]) {
 
     let config = VZVirtualMachineConfiguration()
     config.cpuCount = max(VZVirtualMachineConfiguration.minimumAllowedCPUCount, min(4, VZVirtualMachineConfiguration.maximumAllowedCPUCount))
-    config.memorySize = max(VZVirtualMachineConfiguration.minimumAllowedMemorySize, min(4 * 1024 * 1024 * 1024, VZVirtualMachineConfiguration.maximumAllowedMemorySize))
+    config.memorySize = max(VZVirtualMachineConfiguration.minimumAllowedMemorySize, min(8 * 1024 * 1024 * 1024, VZVirtualMachineConfiguration.maximumAllowedMemorySize))
 
     print("Configuring VM with \(config.cpuCount) CPUs and \(config.memorySize) bytes of memory")
     fflush(stdout)

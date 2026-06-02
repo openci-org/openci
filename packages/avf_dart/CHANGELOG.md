@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.16
+
+- Change: Boot macOS VMs with 8 GB of memory (was 4 GB). 4 GB was too small for Flutter/Xcode/iOS-simulator builds, causing in-guest memory pressure (and SSH drops / `act exited with code 255` when two workers shared a host). Memory is still clamped to the framework's allowed range.
+
 ## 0.1.15
 
 - Fix: Probe SSH port 22 with a fresh `nc` subprocess on each attempt in `_waitForSshPort` instead of an in-process `Socket.connect`. A long-running worker process could cache a permanent `No route to host` (EHOSTUNREACH) state after a connect failed during the guest's early-boot network flap, then keep failing for the rest of the process lifetime even though the port was fully reachable (a fresh process / `nc` / `ssh` connected fine at the same time). Using a subprocess matches the ping probe and sidesteps the stale in-process socket/route state.
