@@ -6,14 +6,14 @@ environment:
 
 workspace:
   - apps/dashboard
+  - apps/openci_worker_cli
   - firebase/functions_dart
-  - packages/macos_updater
-  - packages/openci_shared
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
-  - packages/gcp_secret_manager
-  - apps/openci_worker_cli
   - packages/avf_dart
+  - packages/gcp_secret_manager
+  - packages/macos_updater
+  - packages/openci_shared
 
 
 dependency_overrides:

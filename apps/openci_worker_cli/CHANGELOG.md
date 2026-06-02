@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.31
+- Test auto-update logic with a minor version bump.
+
 ## 0.10.30
 - Fix: Scope `_killZombieAvfProcesses` to the worker's own `openci-vm-<workerId>-` VMs. With two workers per host, one worker's pre-job cleanup was killing the sibling worker's actively-booting VM (SIGTERM → "VM process exited prematurely with code -15"), because the zombie check was unscoped and mis-parsed the VM path (the path contains a space in "Application Support"). Now it matches the VM-name token and only kills genuinely-orphaned VMs belonging to this worker.
 
