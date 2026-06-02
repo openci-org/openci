@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.23
+
+- Fix: macOS installation failed with exit code -5 (SIGTRAP) by wrapping installation sequence inside main thread queue and executing `dispatchMain()`.
+- Fix: Automatic cleanup of existing `nvram.bin` inside target VM directory to prevent `File exists` error on installation retry.
+
 ## 0.1.22
 
 - Maintenance: Bump version for synchronization and integration verification.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.9
+
+- Update `avf_dart` to `0.1.23` to resolve macOS installer crash on headless environments.
+
+## 0.1.8
+
+- Maintenance: Bump version for synchronization and integration verification.
+
 ## 0.1.7
 
 - Maintenance: Bump version for release verification.
