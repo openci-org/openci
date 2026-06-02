@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.27
+- Feature: Assign each worker a distinct, stable MAC address for its cloned VM (derived from the worker number, keeping the validated da:d7:a6:2d:e9 prefix). This lets two workers run on the same physical host without their VMs colliding on the shared vmnet bridge (same MAC previously meant the same DHCP IP/ARP entry). Enables the 2-workers-per-host deployment.
+
 ## 0.10.26
 - Fix: Communicate with the guest VM exclusively through the macOS system binaries `/usr/bin/ssh` and `/usr/bin/scp` (and `/sbin/ping`, `/usr/bin/nc`) instead of in-process Dart sockets (dartssh2). On macOS 15+/26, Local Network privacy blocks in-process sockets of a non-exempt process (such as the worker running as a LaunchAgent) from reaching the VM's local network address, surfacing as a persistent `No route to host` (EHOSTUNREACH), while Apple's system binaries remain exempt. `setupDirectSsh` now uses `ssh` with `SSH_ASKPASS` for the one-time password auth, and file uploads use `scp`. Intended to run as a LaunchAgent in the GUI session (see scripts/openci-worker LaunchAgent).
 

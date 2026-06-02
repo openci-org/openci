@@ -239,6 +239,7 @@ Future<bool> processJob(
       vmName: vmName,
       buildJobId: buildJobId,
       runId: runId,
+      workerId: workerId,
     );
 
     await logInfo(buildJobId, runId, 'Booting macOS VM via avf_dart...');

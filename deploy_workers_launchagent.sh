@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Deploys the OpenCI worker as a per-user LaunchAgent running inside the admin
-# GUI (Aqua) session on each Mac worker.
+# Deploys the OpenCI worker(s) as per-user LaunchAgents inside the admin GUI
+# (Aqua) session on each Mac worker host. Runs TWO workers per host.
 #
 # Why a GUI-session LaunchAgent (and not nohup or a root LaunchDaemon)?
 #   * Apple's Virtualization.framework needs the logged-in user's security
@@ -13,19 +13,22 @@ set -e
 #     reaching the VM's local network address ("No route to host"). A
 #     launchd-managed agent plus talking to the guest exclusively through the
 #     macOS system binaries (/usr/bin/ssh, /usr/bin/scp, /sbin/ping,
-#     /usr/bin/nc) keeps that traffic exempt. The worker binary must be
-#     openci_worker_cli >= 0.10.26 for the system-binary SSH path.
+#     /usr/bin/nc) keeps that traffic exempt.
+#
+# Two workers per host is safe because openci_worker_cli >= 0.10.27 assigns
+# each worker a distinct MAC (derived from its worker number) to its cloned VM,
+# so two VMs on the same host don't collide on the shared vmnet bridge.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 AVF_DART_VER="0.1.15"
 HELPER_BIN="${SCRIPT_DIR}/packages/avf_dart/.dart_tool/avf_dart/avf_helper"
 WORKER_BIN="${SCRIPT_DIR}/apps/openci_worker_cli/build/cli/macos_arm64/bundle/bin/openci_worker_cli"
-LABEL="org.openci.worker"
+LABEL_PREFIX="org.openci.worker"
 
 # Worker credentials are read from worker_credentials.json (never hardcoded
-# here). The script only maps each worker host IP to a workerId; the email and
-# password for that workerId are looked up from the JSON at deploy time.
+# here). The script only maps each host IP to its workerIds; the email and
+# password for each workerId are looked up from the JSON at deploy time.
 CREDENTIALS_FILE="${SCRIPT_DIR}/worker_credentials.json"
 
 echo "=== Local check ==="
@@ -42,42 +45,47 @@ SSH_OPTS=(-o PubkeyAuthentication=no -o IdentitiesOnly=yes -o StrictHostKeyCheck
 
 remote() { sshpass -p admin ssh "${SSH_OPTS[@]}" "admin@$1" "$2"; }
 
-deploy_to_host() {
-  local host=$1 email=$2 pass=$3
+# Copy binaries and stop every previous worker/agent on the host.
+prep_host() {
+  local host=$1
+  echo "=== Preparing $host (binaries + stop old workers) ==="
 
-  echo "=== Deploying LaunchAgent worker on $host ==="
-
-  # 1. Copy the avf_helper to the versioned pub-cache path
   remote "$host" "mkdir -p '/Users/admin/.pub-cache/hosted/pub.dev/avf_dart-${AVF_DART_VER}/.dart_tool/avf_dart'"
   sshpass -p admin scp "${SSH_OPTS[@]}" "$HELPER_BIN" \
     "admin@$host:/Users/admin/.pub-cache/hosted/pub.dev/avf_dart-${AVF_DART_VER}/.dart_tool/avf_dart/avf_helper"
   remote "$host" "chmod +x '/Users/admin/.pub-cache/hosted/pub.dev/avf_dart-${AVF_DART_VER}/.dart_tool/avf_dart/avf_helper'"
 
-  # 2. Stop any previous worker (nohup processes, old LaunchDaemon/Agent)
-  echo "Stopping previous worker on $host..."
-  remote "$host" "echo admin | sudo -S launchctl bootout system/${LABEL} 2>/dev/null; \
-    launchctl bootout gui/\$(id -u admin)/${LABEL} 2>/dev/null; \
-    echo admin | sudo -S rm -f /Library/LaunchDaemons/${LABEL}.plist; \
+  echo "Stopping previous workers on $host..."
+  remote "$host" "for L in ${LABEL_PREFIX} ${LABEL_PREFIX}.1 ${LABEL_PREFIX}.2; do \
+      launchctl bootout gui/\$(id -u admin)/\$L 2>/dev/null; \
+      echo admin | sudo -S launchctl bootout system/\$L 2>/dev/null; \
+      echo admin | sudo -S rm -f /Library/LaunchDaemons/\$L.plist /Library/LaunchAgents/\$L.plist; \
+    done; \
     echo admin | sudo -S pkill -9 -f openci_worker 2>/dev/null; \
     echo admin | sudo -S pkill -9 -f avf_helper 2>/dev/null; true"
 
-  # 3. Copy the worker binary
   sshpass -p admin scp "${SSH_OPTS[@]}" "$WORKER_BIN" \
     "admin@$host:/Users/admin/Library/Application Support/Dart/install/bin/openci_worker"
   remote "$host" "chmod +x '/Users/admin/Library/Application Support/Dart/install/bin/openci_worker'"
+}
 
-  # 4. Write the LaunchAgent plist.
-  #    Write to a temp file WITHOUT sudo first (so the heredoc is the only thing
-  #    on stdin), then `sudo cp` it into place. Do NOT combine `sudo -S` (which
-  #    reads the password from stdin) with a heredoc on the same command, or the
-  #    heredoc body gets consumed as the sudo password and the file is corrupted.
-  remote "$host" "cat > /tmp/${LABEL}.plist <<'PLIST'
+# Install and bootstrap one worker LaunchAgent (slot 1 or 2) on the host.
+install_agent() {
+  local host=$1 slot=$2 email=$3 pass=$4
+  local label="${LABEL_PREFIX}.${slot}"
+  local logf="/tmp/worker_${slot}.log"
+  echo "--- $host: $label ($email) ---"
+
+  # Write to a temp file WITHOUT sudo first (so the heredoc is the only thing on
+  # stdin), then `sudo cp` it into place. Never combine `sudo -S` (reads the
+  # password from stdin) with a heredoc on the same command.
+  remote "$host" "cat > /tmp/${label}.plist <<'PLIST'
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
 <plist version=\"1.0\">
 <dict>
   <key>Label</key>
-  <string>${LABEL}</string>
+  <string>${label}</string>
   <key>ProgramArguments</key>
   <array>
     <string>/Users/admin/Library/Application Support/Dart/install/bin/openci_worker</string>
@@ -97,44 +105,45 @@ deploy_to_host() {
   <key>KeepAlive</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>/tmp/worker_1.log</string>
+  <string>${logf}</string>
   <key>StandardErrorPath</key>
-  <string>/tmp/worker_1.log</string>
+  <string>${logf}</string>
 </dict>
 </plist>
 PLIST
-plutil -lint /tmp/${LABEL}.plist
-echo admin | sudo -S cp /tmp/${LABEL}.plist /Library/LaunchAgents/${LABEL}.plist
-echo admin | sudo -S chown root:wheel /Library/LaunchAgents/${LABEL}.plist
-echo admin | sudo -S chmod 644 /Library/LaunchAgents/${LABEL}.plist"
+plutil -lint /tmp/${label}.plist
+echo admin | sudo -S cp /tmp/${label}.plist /Library/LaunchAgents/${label}.plist
+echo admin | sudo -S chown root:wheel /Library/LaunchAgents/${label}.plist
+echo admin | sudo -S chmod 644 /Library/LaunchAgents/${label}.plist"
 
-  # 5. Bootstrap into the admin GUI session
-  echo "Bootstrapping LaunchAgent on $host..."
-  remote "$host" "launchctl bootstrap gui/\$(id -u admin) /Library/LaunchAgents/${LABEL}.plist; \
-    launchctl enable gui/\$(id -u admin)/${LABEL}; true"
-
+  remote "$host" "launchctl bootstrap gui/\$(id -u admin) /Library/LaunchAgents/${label}.plist; \
+    launchctl enable gui/\$(id -u admin)/${label}; true"
   sleep 2
-  remote "$host" "launchctl print gui/\$(id -u admin)/${LABEL} 2>/dev/null | grep -E 'state =|pid =' | head -2"
+  remote "$host" "launchctl print gui/\$(id -u admin)/${label} 2>/dev/null | grep -E 'state =|pid =' | head -2"
 }
 
-# host IP -> workerId (one worker per host). Credentials come from the JSON.
+# host IP -> two workerIds (two workers per host). Credentials come from JSON.
 HOSTS=(
-  "100.104.145.82:worker-mac-1"
-  "100.83.142.124:worker-mac-3"
-  "100.112.30.120:worker-mac-5"
-  "100.66.12.37:worker-mac-7"
+  "100.104.145.82:worker-mac-1:worker-mac-2"
+  "100.83.142.124:worker-mac-3:worker-mac-4"
+  "100.112.30.120:worker-mac-5:worker-mac-6"
+  "100.66.12.37:worker-mac-7:worker-mac-8"
 )
 
 for entry in "${HOSTS[@]}"; do
-  host="${entry%%:*}"
-  worker_id="${entry##*:}"
-  email="$(cred_field "$worker_id" email)"
-  pass="$(cred_field "$worker_id" password)"
-  if [ -z "$email" ] || [ -z "$pass" ]; then
-    echo "Error: missing credentials for $worker_id in $CREDENTIALS_FILE"
-    exit 1
-  fi
-  deploy_to_host "$host" "$email" "$pass"
+  IFS=':' read -r host w1 w2 <<< "$entry"
+  prep_host "$host"
+  slot=1
+  for wid in "$w1" "$w2"; do
+    email="$(cred_field "$wid" email)"
+    pass="$(cred_field "$wid" password)"
+    if [ -z "$email" ] || [ -z "$pass" ]; then
+      echo "Error: missing credentials for $wid in $CREDENTIALS_FILE"
+      exit 1
+    fi
+    install_agent "$host" "$slot" "$email" "$pass"
+    slot=$((slot + 1))
+  done
 done
 
-echo "=== All LaunchAgent deployments done ==="
+echo "=== All LaunchAgent deployments done (2 workers/host) ==="
