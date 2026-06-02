@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BuildJobCardDemo } from "./build-job-card-demo";
 import { formatReleaseDate, getLatestReleaseNote, type ReleaseNote } from "../lib/releases";
 
 const formUrl = "https://form.typeform.com/to/XIdO4iES";
@@ -220,21 +221,9 @@ export function CicdPage({ lang }: { lang: "en" | "ja" }) {
           </div>
         </section>
 
-        <section className="py-8">
+        <section className="pt-8 pb-16 sm:pb-24">
           <div className={cicdContainerClass}>
-            <div className="overflow-hidden rounded-xl border border-neutral-950/8">
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                aria-label={copy.demoLabel}
-                className="w-full"
-              >
-                <source src="/openci_demo.mp4" type="video/mp4" />
-              </video>
-            </div>
+            <BuildJobCardDemo lang={lang} />
           </div>
         </section>
 
