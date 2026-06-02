@@ -1,0 +1,13 @@
+name: gcp_secret_manager
+description: Shared package for interacting with GCP Secret Manager using ADC
+version: 1.0.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.3.0
+  http: ^1.3.0

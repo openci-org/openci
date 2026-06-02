@@ -1,0 +1,6 @@
+.dart_tool/
+firebase_service_account.json
+build/
+openci_worker
+
+.macos_worker_ip

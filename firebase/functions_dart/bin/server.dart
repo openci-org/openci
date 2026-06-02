@@ -13,6 +13,8 @@ import 'update_build_run_status.dart';
 import 'update_check_run.dart';
 import 'update_environment_variable.dart';
 import 'update_worker_heartbeat.dart';
+import 'resolve_installation_token.dart';
+import 'get_secret_value.dart';
 import 'worker_api_common.dart';
 
 void main(List<String> args) {
@@ -97,6 +99,18 @@ void main(List<String> args) {
       name: 'handleBuildJobStatusChange',
       options: workerOptions,
       (request) => handleBuildJobStatusChange(request, firebase),
+    );
+
+    firebase.https.onRequest(
+      name: 'resolveInstallationToken',
+      options: workerOptions,
+      (request) => resolveInstallationToken(request, firebase),
+    );
+
+    firebase.https.onRequest(
+      name: 'getSecretValue',
+      options: workerOptions,
+      (request) => getSecretValue(request, firebase),
     );
   });
 }

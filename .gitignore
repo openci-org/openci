@@ -11,3 +11,8 @@ node_modules/
 # Build artifacts
 *.tar.gz
 apps/openci_vm_cli/openci-vm
+
+# Worker configuration secrets
+worker_credentials.json
+create_workers.js
+

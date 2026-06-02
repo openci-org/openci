@@ -1,15 +1,16 @@
 name: avf_dart
 description: Dart bindings for Apple Virtualization.framework.
-version: 0.1.0
+version: 0.1.16
 repository: https://github.com/openci-org/openci/tree/main/packages/avf_dart
+resolution: workspace
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.6.0 <4.0.0'
 
 dependencies:
   dartssh2: ^2.17.1
   hooks: ^2.0.0
 
 dev_dependencies:
-  lints: ^3.0.0
+  lints: ^6.0.0
   test: ^1.24.0

@@ -117,7 +117,95 @@ class VirtualMachine {
       rethrow;
     }
 
+    if (resolvedIp != null) {
+      if (showLogs) {
+        print('Guest IP allocated: $resolvedIp. Checking SSH readiness (Dart)...');
+      }
+      final portOpen = await _waitForSshPort(resolvedIp!, timeout: const Duration(minutes: 5), showLogs: showLogs);
+      if (!portOpen) {
+        await stdoutSubscription.cancel();
+        await stderrSubscription.cancel();
+        process.kill(ProcessSignal.sigterm);
+        throw StateError('Error: Timeout waiting for SSH port to open (Dart).');
+      }
+    }
+
     return VirtualMachine._(process, name, resolvedIp);
+  }
+
+  static Future<bool> _waitForSshPort(String ip, {required Duration timeout, required bool showLogs}) async {
+    final stopTime = DateTime.now().add(timeout);
+
+    if (showLogs) {
+      print('Debug: Waiting for guest OS network to respond via ping...');
+    }
+
+    // Phase 1: Wait for ping to succeed (resolves ARP and ensures routing is active)
+    bool pingSuccess = false;
+    while (DateTime.now().isBefore(stopTime)) {
+      try {
+        final res = await Process.run('/sbin/ping', ['-c', '1', '-t', '1', ip]).timeout(const Duration(seconds: 2));
+        if (res.exitCode == 0) {
+          pingSuccess = true;
+          if (showLogs) {
+            print('Debug: Guest OS network responded to ping successfully!');
+          }
+          break;
+        } else {
+          if (showLogs) {
+            print('Debug: Guest OS network not responding to ping yet (exitCode: ${res.exitCode})');
+          }
+        }
+      } catch (e) {
+        if (showLogs) {
+          print('Debug: Ping execution failed: $e');
+        }
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+
+    if (!pingSuccess) {
+      if (showLogs) {
+        print('Debug: Timeout waiting for guest OS network to respond to ping.');
+      }
+      return false;
+    }
+
+    // Phase 2: Ping succeeded, now wait for SSH port 22 to open.
+    //
+    // Probe the port with a fresh `nc` subprocess on each attempt instead of an
+    // in-process Socket.connect. A long-running Dart process can fail the first
+    // connect during the guest's early-boot network flap with EHOSTUNREACH
+    // ("No route to host") and then keep returning that error for the lifetime
+    // of the process, even after the port is fully reachable (a brand-new
+    // process / `nc` / `ssh` connects fine to the same IP at the same time).
+    // Spawning a subprocess sidesteps that stale in-process socket/route state,
+    // matching the ping probe above which already runs as a subprocess.
+    if (showLogs) {
+      print('Debug: Guest network is up. Waiting for SSH port 22 to open...');
+    }
+
+    while (DateTime.now().isBefore(stopTime)) {
+      try {
+        final res = await Process.run(
+          '/usr/bin/nc',
+          ['-z', '-G', '5', '-w', '5', ip, '22'],
+        ).timeout(const Duration(seconds: 8));
+        if (res.exitCode == 0) {
+          return true;
+        }
+        if (showLogs) {
+          print(
+              'Debug: SSH port 22 not open yet for $ip (nc exit ${res.exitCode})');
+        }
+      } catch (e) {
+        if (showLogs) {
+          print('Debug: SSH port probe failed for $ip: $e');
+        }
+      }
+      await Future<void>.delayed(const Duration(seconds: 5));
+    }
+    return false;
   }
 
   /// Stops the VM process gracefully (sends SIGTERM).
