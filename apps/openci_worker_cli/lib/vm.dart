@@ -257,7 +257,7 @@ Future<void> cleanupOrphanedVms(String workerId) async {
     final prefix = 'openci-vm-$workerId-';
 
     // 1. Kill zombie processes to release file locks first
-    await _killZombieAvfProcesses();
+    await _killZombieAvfProcesses(workerId);
     await _killZombieVirtualizationProcesses(workerId);
 
     // 2. Clean up filesystem-based VMs for this worker
@@ -274,26 +274,32 @@ Future<void> cleanupOrphanedVms(String workerId) async {
   }
 }
 
-Future<void> _killZombieAvfProcesses() async {
+Future<void> _killZombieAvfProcesses(String workerId) async {
   try {
     final psResult = await Process.run('ps', ['aux']);
     if (psResult.exitCode != 0) return;
 
-    final avfRunPattern = RegExp(r'^\S+\s+(\d+)\s+.*avf_helper\s+boot\s+(\S+)');
+    final vmsDir = VirtualMachine.defaultVmsDir;
+    // Only ever consider THIS worker's own VMs. With multiple workers per host
+    // each worker owns a distinct `openci-vm-<workerId>-<id>` namespace; never
+    // touch a sibling worker's running VM. (The VM directory path also contains
+    // a space — "Application Support" — so we match the VM-name token rather
+    // than trying to parse the full path argument.)
+    final namePattern = RegExp('openci-vm-${RegExp.escape(workerId)}-[0-9a-fA-F]+');
+    final pidPattern = RegExp(r'^\S+\s+(\d+)\s');
     final zombiePids = <int>[];
 
     for (final line in LineSplitter.split(psResult.stdout.toString())) {
-      final match = avfRunPattern.firstMatch(line);
-      if (match == null) continue;
-
-      final pid = int.tryParse(match.group(1)!);
-      final vmPath = match.group(2)!;
+      if (!line.contains('avf_helper') || !line.contains(' boot ')) continue;
+      final nameMatch = namePattern.firstMatch(line);
+      if (nameMatch == null) continue;
+      final vmName = nameMatch.group(0)!;
+      final pid = int.tryParse(pidPattern.firstMatch(line)?.group(1) ?? '');
       if (pid == null) continue;
 
-      // Check if the VM directory still exists
-      final vmDir = Directory(vmPath);
-      if (!vmDir.existsSync()) {
-        _log.warning('Found zombie AVF process: PID=$pid VMPath=$vmPath. Killing...');
+      // Only kill if the VM directory no longer exists (genuinely orphaned).
+      if (!Directory('$vmsDir/$vmName').existsSync()) {
+        _log.warning('Found zombie AVF process: PID=$pid VM=$vmName. Killing...');
         zombiePids.add(pid);
       }
     }
