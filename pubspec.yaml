@@ -5,18 +5,17 @@ environment:
   sdk: 3.11.5
 
 workspace:
+  - apps/avf_cli
   - apps/dashboard
   - apps/openci_worker_cli
   - firebase/functions_dart
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
-  - packages/avf_cli
   - packages/avf_dart
   - packages/gcp_secret_manager
   - packages/macos_updater
-  - packages/pubspec_version_hook
   - packages/openci_shared
-
+  - packages/pubspec_version_hook
 
 dependency_overrides:
   analyzer: 9.0.0
