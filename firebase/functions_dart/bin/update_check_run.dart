@@ -11,7 +11,10 @@ Future<Response> updateCheckRun(Request request, Firebase firebase) async {
       return jsonResponse({'error': 'buildJob and runStatus are required'}, status: 400);
     }
 
-    await updateCheckRunInternal(buildJob, runStatus, conclusion);
+    // Pass `firebase` so updateCheckRunInternal can pull checkRunId from
+    // Firestore and mint a fresh installation token (the worker's BuildJob
+    // model does not carry checkRunId/installationToken).
+    await updateCheckRunInternal(buildJob, runStatus, conclusion, firebase: firebase);
     return jsonResponse({'success': true});
   });
 }

@@ -51,7 +51,7 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
 
       // キャンセルされた他のマトリックスジョブの Check Run も完了させる
       for (final job in cancelledJobs) {
-        await updateCheckRunInternal(job, 'completed', 'cancelled');
+        await updateCheckRunInternal(job, 'completed', 'cancelled', firebase: firebase);
       }
     }
 
@@ -89,7 +89,7 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
             FieldPath.from('updatedAt'): nowIso,
           });
 
-          await updateCheckRunInternal(updated, 'completed', 'skipped');
+          await updateCheckRunInternal(updated, 'completed', 'skipped', firebase: firebase);
           await resolveDependencies(updated, 'SKIPPED');
           continue;
         }
