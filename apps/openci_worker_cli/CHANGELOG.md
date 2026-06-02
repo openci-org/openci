@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.29
+- Fix: Run `act` with `HOME=/Users/admin` instead of a unique `/tmp/openci-home-<uuid>` directory. On macOS 26 (Tahoe) a code-signing keychain created under a non-standard home (e.g. `/tmp/.../Library/Keychains`) is not honored by `security find-identity -v -p codesigning` (0 valid identities), breaking iOS/macOS signing. The per-run unique HOME is unnecessary now that each build runs in its own fresh VM. This also keeps the stable build workspace path consistent.
+
 ## 0.10.28
 - Change: Bump avf_dart to 0.1.16 to boot macOS VMs with 8 GB of memory (was 4 GB), giving Flutter/Xcode/iOS builds enough headroom (4 GB caused in-guest memory pressure and SSH drops / `act exited with code 255`).
 

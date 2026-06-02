@@ -339,12 +339,14 @@ Future<bool> processJob(
     }
     final matrixFlag = matrixArgs.isNotEmpty ? '${matrixArgs.join(' ')} ' : '';
 
-    final uniqueHome = '/tmp/openci-home-${_uuid.v4()}';
-
+    // Use the VM's real home. Each build runs in its own fresh VM, so a unique
+    // per-run HOME is unnecessary for isolation. Critically, macOS 26 (Tahoe)
+    // will NOT treat a code-signing keychain stored outside the user's real
+    // home (e.g. under /tmp) as a valid signing identity, so build keychains
+    // must live under /Users/admin/Library/Keychains for `find-identity -v`.
     final actScript = [
       'set -e',
-      'mkdir -p $uniqueHome',
-      'export HOME=$uniqueHome',
+      'export HOME=/Users/admin',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
       'cd $repo',
       'act $eventType -W .openci/$workflowFileName '
