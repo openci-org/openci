@@ -39,21 +39,19 @@ Future<void> execVmCommand({
   required String token,
   required String? ipAddress,
 }) async {
-  final exitCode = await VirtualMachineSsh.executeStream(
+  final exitCode = await _sshKeyExecStream(
+    ipAddress,
     command,
-    ipAddress: ipAddress,
-    username: sshUser,
-    privateKeyPath: _sshKeyPath,
-    onStdout: (data) async {
+    onStdout: (data) {
       final masked = data.replaceAll(token, '***').trim();
       if (masked.isNotEmpty) {
-        await logInfo(buildJobId, runId, masked);
+        logInfo(buildJobId, runId, masked);
       }
     },
-    onStderr: (data) async {
+    onStderr: (data) {
       final masked = data.replaceAll(token, '***').trim();
       if (masked.isNotEmpty) {
-        await logWarning(buildJobId, runId, masked);
+        logWarning(buildJobId, runId, masked);
       }
     },
   );
@@ -81,6 +79,62 @@ Future<void> deleteVm(String vmName) async {
 }
 
 const _sshKeyPath = '/tmp/openci-ssh-key';
+const _askPassPath = '/tmp/openci-askpass.sh';
+
+/// Shared options for the system `ssh`/`scp` binaries.
+const List<String> _sshBaseOpts = [
+  '-o',
+  'StrictHostKeyChecking=no',
+  '-o',
+  'UserKnownHostsFile=/dev/null',
+  '-o',
+  'LogLevel=ERROR',
+  '-o',
+  'ConnectTimeout=30',
+  '-o',
+  'ServerAliveInterval=30',
+  '-o',
+  'ServerAliveCountMax=5',
+];
+
+/// Runs [command] on the guest via the system `ssh` binary using key auth,
+/// streaming output. We deliberately shell out to `/usr/bin/ssh` (and `scp`)
+/// instead of an in-process Dart socket (dartssh2): on macOS 15+/26 the Local
+/// Network privacy feature blocks in-process sockets of a non-exempt process
+/// (e.g. the worker running as a LaunchAgent) from reaching the VM's local
+/// network address, while Apple's own system binaries remain exempt.
+Future<int> _sshKeyExecStream(
+  String? ip,
+  String command, {
+  void Function(String data)? onStdout,
+  void Function(String data)? onStderr,
+}) async {
+  if (ip == null) {
+    throw StateError('Cannot run SSH command: VM IP is null.');
+  }
+  final process = await Process.start('/usr/bin/ssh', [
+    ..._sshBaseOpts,
+    '-o',
+    'BatchMode=yes',
+    '-o',
+    'RequestTTY=no',
+    '-i',
+    _sshKeyPath,
+    '$sshUser@$ip',
+    command,
+  ]);
+  await process.stdin.close();
+  final outDone = process.stdout
+      .transform(utf8.decoder)
+      .forEach((data) => onStdout?.call(data));
+  final errDone = process.stderr
+      .transform(utf8.decoder)
+      .forEach((data) => onStderr?.call(data));
+  final exitCode = await process.exitCode;
+  await outDone;
+  await errDone;
+  return exitCode;
+}
 
 Future<void> setupDirectSsh(VirtualMachine vm) async {
   final keyFile = File(_sshKeyPath);
@@ -97,14 +151,66 @@ Future<void> setupDirectSsh(VirtualMachine vm) async {
     _log.info('Generated SSH key at $_sshKeyPath');
   }
   final pubKey = File('$_sshKeyPath.pub').readAsStringSync().trim();
+  final ip = vm.ipAddress;
+  if (ip == null) {
+    throw StateError('VM IP is null; cannot install SSH key.');
+  }
 
-  // Install SSH key via avf_dart's SSH module (using default password)
-  final exitCode = await VirtualMachineSsh.executeStream(
-    'mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF \'$pubKey\' ~/.ssh/authorized_keys || printf \'%s\\n\' \'$pubKey\' >> ~/.ssh/authorized_keys; chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys',
-    ipAddress: vm.ipAddress,
-    username: sshUser,
-    password: sshPassword,
-  );
+  // Drive the system `ssh` binary's password auth via SSH_ASKPASS (no TTY
+  // required). Using /usr/bin/ssh keeps this exempt from macOS Local Network
+  // privacy when the worker runs as a LaunchAgent.
+  final askpass = File(_askPassPath);
+  askpass.writeAsStringSync("#!/bin/sh\nprintf '%s' '$sshPassword'\n");
+  await Process.run('chmod', ['+x', _askPassPath]);
+
+  const installCmd =
+      'mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys';
+
+  Future<int> runPasswordSsh(String command) async {
+    final process = await Process.start(
+      '/usr/bin/ssh',
+      [
+        ..._sshBaseOpts,
+        '-o',
+        'PubkeyAuthentication=no',
+        '-o',
+        'PreferredAuthentications=password,keyboard-interactive',
+        '-o',
+        'NumberOfPasswordPrompts=1',
+        '$sshUser@$ip',
+        command,
+      ],
+      environment: {
+        'SSH_ASKPASS': _askPassPath,
+        'SSH_ASKPASS_REQUIRE': 'force',
+        'DISPLAY': ':0',
+      },
+    );
+    await process.stdin.close();
+    await process.stdout.drain<void>();
+    await process.stderr.drain<void>();
+    return process.exitCode;
+  }
+
+  // The append uses base64 of the public key to avoid any quoting issues over
+  // the password-auth ssh channel.
+  final pubKeyB64 = base64Encode(utf8.encode('$pubKey\n'));
+  final appendCmd =
+      'printf %s \'$pubKeyB64\' | base64 -D >> ~/.ssh/authorized_keys';
+
+  var exitCode = -1;
+  for (var attempt = 1; attempt <= 5; attempt++) {
+    exitCode = await runPasswordSsh('$installCmd && $appendCmd');
+    if (exitCode == 0) break;
+    _log.warning(
+      'SSH key install attempt $attempt failed (exit $exitCode); retrying...',
+    );
+    await Future<void>.delayed(const Duration(seconds: 5));
+  }
+
+  try {
+    askpass.deleteSync();
+  } catch (_) {}
 
   if (exitCode != 0) {
     throw Exception('Failed to install SSH key on VM. Exit code: $exitCode');
@@ -242,42 +348,36 @@ Future<void> writeFileToVm(
   String remotePath,
   String content,
 ) async {
-  final encoded = base64Encode(utf8.encode(content));
-
-  const chunkSize = 4096;
-  final chunks = <String>[];
-  for (var i = 0; i < encoded.length; i += chunkSize) {
-    final end = (i + chunkSize < encoded.length)
-        ? i + chunkSize
-        : encoded.length;
-    chunks.add(encoded.substring(i, end));
+  if (ipAddress == null) {
+    throw StateError('Cannot write file to VM: IP is null.');
   }
 
-  Future<int> sshRun(String remoteCommand) async {
-    return await VirtualMachineSsh.executeStream(
-      remoteCommand,
-      ipAddress: ipAddress,
-      username: sshUser,
-      password: sshPassword,
-    );
-  }
-
-  await sshRun('rm -f $remotePath $remotePath.b64');
-
-  for (final chunk in chunks) {
-    final exitCode = await sshRun('printf %s \'$chunk\' >> $remotePath.b64');
-    if (exitCode != 0) {
-      throw Exception('Failed to write chunk to $remotePath');
-    }
-  }
-
-  final decodeExitCode = await sshRun(
-    'base64 -D < $remotePath.b64 > $remotePath && rm $remotePath.b64',
+  // Copy via the system `scp` binary (key auth). This relies on the SSH key
+  // already installed by setupDirectSsh and, like ssh, is exempt from macOS
+  // Local Network privacy when the worker runs as a LaunchAgent.
+  final local = File(
+    '/tmp/openci-upload-${DateTime.now().microsecondsSinceEpoch}',
   );
-  if (decodeExitCode != 0) {
-    throw Exception(
-      'Failed to decode $remotePath in VM: $decodeExitCode',
-    );
+  local.writeAsStringSync(content);
+  try {
+    final result = await Process.run('/usr/bin/scp', [
+      ..._sshBaseOpts,
+      '-o',
+      'BatchMode=yes',
+      '-i',
+      _sshKeyPath,
+      local.path,
+      '$sshUser@$ipAddress:$remotePath',
+    ]);
+    if (result.exitCode != 0) {
+      throw Exception(
+        'Failed to scp file to $remotePath: ${result.stderr}',
+      );
+    }
+  } finally {
+    try {
+      local.deleteSync();
+    } catch (_) {}
   }
 }
 
@@ -304,7 +404,7 @@ Future<void> execCommandStreaming(
     throw StateError('Cannot stream SSH command: VM IP is null.');
   }
 
-  final process = await Process.start('ssh', [
+  final process = await Process.start('/usr/bin/ssh', [
     '-o',
     'StrictHostKeyChecking=no',
     '-o',
@@ -313,6 +413,8 @@ Future<void> execCommandStreaming(
     'LogLevel=ERROR',
     '-o',
     'RequestTTY=no',
+    '-o',
+    'BatchMode=yes',
     '-o',
     'ServerAliveInterval=30',
     '-o',
@@ -398,7 +500,14 @@ bool _isActError(String line) {
   if (lower.contains('level=error') && !lower.contains('cve-')) {
     return true;
   }
-  if (lower.contains('❌')) {
+  if (line.contains('❌')) {
+    // Some tools (e.g. Patrol) print a decorative "❌ Failed: 0" summary line
+    // where the count is zero, which means success, not a failure. Treat any
+    // explicit zero failure/error count as benign.
+    if (RegExp(r'(?:failed|failures|failing|errors?)\s*[:=]?\s*0\b')
+        .hasMatch(lower)) {
+      return false;
+    }
     return true;
   }
   return false;

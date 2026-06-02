@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.15
+
+- Fix: Probe SSH port 22 with a fresh `nc` subprocess on each attempt in `_waitForSshPort` instead of an in-process `Socket.connect`. A long-running worker process could cache a permanent `No route to host` (EHOSTUNREACH) state after a connect failed during the guest's early-boot network flap, then keep failing for the rest of the process lifetime even though the port was fully reachable (a fresh process / `nc` / `ssh` connected fine at the same time). Using a subprocess matches the ping probe and sidesteps the stale in-process socket/route state.
+
 ## 0.1.14
 
 - Fix: Implement two-phase wait in `_waitForSshPort`. First wait for guest OS ping to succeed (resolves ARP and routes), and only then attempt `Socket.connect`. This prevents Dart VM socket from encountering and caching a permanent `No route to host` error state when the VM boots up.

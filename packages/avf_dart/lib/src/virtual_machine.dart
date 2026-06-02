@@ -161,7 +161,7 @@ class VirtualMachine {
           print('Debug: Ping execution failed: $e');
         }
       }
-      await Future.delayed(const Duration(seconds: 2));
+      await Future<void>.delayed(const Duration(seconds: 2));
     }
 
     if (!pingSuccess) {
@@ -171,23 +171,39 @@ class VirtualMachine {
       return false;
     }
 
-    // Phase 2: Ping succeeded, now wait for SSH port 22 to open
+    // Phase 2: Ping succeeded, now wait for SSH port 22 to open.
+    //
+    // Probe the port with a fresh `nc` subprocess on each attempt instead of an
+    // in-process Socket.connect. A long-running Dart process can fail the first
+    // connect during the guest's early-boot network flap with EHOSTUNREACH
+    // ("No route to host") and then keep returning that error for the lifetime
+    // of the process, even after the port is fully reachable (a brand-new
+    // process / `nc` / `ssh` connects fine to the same IP at the same time).
+    // Spawning a subprocess sidesteps that stale in-process socket/route state,
+    // matching the ping probe above which already runs as a subprocess.
     if (showLogs) {
       print('Debug: Guest network is up. Waiting for SSH port 22 to open...');
     }
 
     while (DateTime.now().isBefore(stopTime)) {
       try {
-        final targetAddress = InternetAddress(ip, type: InternetAddressType.IPv4);
-        final socket = await Socket.connect(targetAddress, 22, timeout: const Duration(seconds: 5));
-        socket.destroy();
-        return true;
+        final res = await Process.run(
+          '/usr/bin/nc',
+          ['-z', '-G', '5', '-w', '5', ip, '22'],
+        ).timeout(const Duration(seconds: 8));
+        if (res.exitCode == 0) {
+          return true;
+        }
+        if (showLogs) {
+          print(
+              'Debug: SSH port 22 not open yet for $ip (nc exit ${res.exitCode})');
+        }
       } catch (e) {
         if (showLogs) {
-          print('Debug: SSH port connection attempt failed for $ip: $e');
+          print('Debug: SSH port probe failed for $ip: $e');
         }
       }
-      await Future.delayed(const Duration(seconds: 5));
+      await Future<void>.delayed(const Duration(seconds: 5));
     }
     return false;
   }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.26
+- Fix: Communicate with the guest VM exclusively through the macOS system binaries `/usr/bin/ssh` and `/usr/bin/scp` (and `/sbin/ping`, `/usr/bin/nc`) instead of in-process Dart sockets (dartssh2). On macOS 15+/26, Local Network privacy blocks in-process sockets of a non-exempt process (such as the worker running as a LaunchAgent) from reaching the VM's local network address, surfacing as a persistent `No route to host` (EHOSTUNREACH), while Apple's system binaries remain exempt. `setupDirectSsh` now uses `ssh` with `SSH_ASKPASS` for the one-time password auth, and file uploads use `scp`. Intended to run as a LaunchAgent in the GUI session (see scripts/openci-worker LaunchAgent).
+
+## 0.10.25
+- Fix: Stop `_isActError` from flagging a successful run as failed when the workflow output contains a decorative zero-count summary line such as Patrol's `❌ Failed: 0`. A `❌` with an explicit zero failure/error count is now treated as benign.
+
+## 0.10.24
+- Fix: Bump avf_dart to 0.1.15 to probe the SSH port with a fresh `nc` subprocess instead of an in-process `Socket.connect`. This fixes long-running workers getting stuck on a permanent `No route to host` for a VM whose SSH port is actually reachable (confirmed: a fresh process/`nc`/`ssh` connect fine while the worker keeps failing).
+
 ## 0.10.23
 - Fix: Bump avf_dart to 0.1.14 to use a two-phase check (ping then socket connect) to avoid socket resolution error caching issues.
 
