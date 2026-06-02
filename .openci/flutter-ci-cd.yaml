@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          stable_workspace="${HOME}/openci-workspaces/openci-org-openci-ios"
+          stable_workspace="/Users/admin/openci-workspaces/openci-org-openci-ios"
           rm -rf "$stable_workspace"
           mkdir -p "$(dirname "$stable_workspace")"
           rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
@@ -185,7 +185,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          stable_workspace="${HOME}/openci-workspaces/openci-org-openci-macos"
+          stable_workspace="/Users/admin/openci-workspaces/openci-org-openci-macos"
           rm -rf "$stable_workspace"
           mkdir -p "$(dirname "$stable_workspace")"
           rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
