@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_functions/firebase_functions.dart';
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
-import 'package:gcp_secret_manager/gcp_secret_manager.dart';
+
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:firebase_functions/firebase_functions.dart';
+import 'package:gcp_secret_manager/gcp_secret_manager.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
+
 import 'worker_api_common.dart';
 
-Future<Response> resolveInstallationToken(Request request, Firebase firebase) async {
+Future<Response> resolveInstallationToken(
+  Request request,
+  Firebase firebase,
+) async {
   return handleRequest(request, (body) async {
     final buildJobId = body['buildJobId'] as String?;
     if (buildJobId == null || buildJobId.isEmpty) {
@@ -42,17 +47,25 @@ Future<Response> resolveInstallationToken(Request request, Firebase firebase) as
           'expiresAt': tokenExpiresAt,
         });
       }
-      return jsonResponse({'error': 'installationId and currentToken are missing'}, status: 400);
+      return jsonResponse({
+        'error': 'installationId and currentToken are missing',
+      }, status: 400);
     }
 
     final projectId = Platform.environment['GCLOUD_PROJECT'] ?? 'openci-b1b91';
-    
-    // Fetch GitHub App credentials from GCP Secret Manager
-    final appId = await GcpSecretManager.fetchSecretValue('projects/$projectId/secrets/GITHUB_APP_ID');
-    final privateKey = await GcpSecretManager.fetchSecretValue('projects/$projectId/secrets/GITHUB_PRIVATE_KEY');
+
+    final appId = await GcpSecretManager.fetchSecretValue(
+      'projects/$projectId/secrets/GITHUB_APP_ID',
+    );
+    final privateKey = await GcpSecretManager.fetchSecretValue(
+      'projects/$projectId/secrets/GITHUB_PRIVATE_KEY',
+    );
 
     if (appId.isEmpty || privateKey.isEmpty) {
-      return jsonResponse({'error': 'GITHUB_APP_ID or GITHUB_PRIVATE_KEY not configured in Secret Manager'}, status: 500);
+      return jsonResponse({
+        'error':
+            'GITHUB_APP_ID or GITHUB_PRIVATE_KEY not configured in Secret Manager',
+      }, status: 500);
     }
 
     // Generate GitHub App JWT
@@ -67,8 +80,11 @@ Future<Response> resolveInstallationToken(Request request, Firebase firebase) as
     final jwtToken = jwt.sign(key, algorithm: JWTAlgorithm.RS256);
 
     // Call GitHub API to generate Installation Access Token
-    final githubApiBaseUrl = normalizeGitHubApiBaseUrl(jobData['githubApiBaseUrl'] as String?);
-    final url = '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
+    final githubApiBaseUrl = normalizeGitHubApiBaseUrl(
+      jobData['githubApiBaseUrl'] as String?,
+    );
+    final url =
+        '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
 
     final client = HttpClient();
     try {
@@ -95,7 +111,9 @@ Future<Response> resolveInstallationToken(Request request, Firebase firebase) as
       final expiresAt = data['expires_at'] as String?;
 
       if (token == null || expiresAt == null) {
-        return jsonResponse({'error': 'Invalid response from GitHub'}, status: 500);
+        return jsonResponse({
+          'error': 'Invalid response from GitHub',
+        }, status: 500);
       }
 
       // Cache the token back into Firestore
@@ -110,7 +128,10 @@ Future<Response> resolveInstallationToken(Request request, Firebase firebase) as
         'expiresAt': expiresAt,
       });
     } catch (e) {
-      return jsonResponse({'error': 'Error connecting to GitHub API', 'details': e.toString()}, status: 500);
+      return jsonResponse({
+        'error': 'Error connecting to GitHub API',
+        'details': e.toString(),
+      }, status: 500);
     } finally {
       client.close();
     }
