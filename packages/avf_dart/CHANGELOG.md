@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.21
+
+- Fix: Completely rewrite parallel download implementation to download chunk ranges to separate temporary chunk files (e.g. `.chunk0`, `.chunk1`), then merge them sequentially upon completion. This guarantees 100% sequential I/O per stream, fully resolving OS-level virtual disk bottlenecks and lock freezes while preserving high-speed multi-connection downloads.
+
+## 0.1.20
+
+- Feature: Restore parallel connection downloading to improve speed.
+- Fix: Use `package:synchronized` Lock instead of self-implemented lock for thread-safe random disk writes.
+- Fix: Add a progress watchdog timer (30s) that forcefully aborts HttpClient connections if overall download progress ceases.
+
+## 0.1.19
+
+- Fix: Rewrite `downloadFile` to use a single connection sequential download with robust appending. This avoids disk I/O bottlenecks and potential deadlock freezes on virtual disks during concurrent chunk writes.
+
+## 0.1.18
+
+- Fix: Enforce strict `206 Partial Content` check for range requests to prevent silent download freezes on CDN response anomalies.
+- Fix: Add connection (15s) and response stream (30s) timeouts to HttpClient to avoid infinite hang-ups.
+- Fix: Disable response auto-uncompression (`autoUncompress = false`) to bypass processing overhead on large binary downloads.
+- Change: Reduce default download concurrency to 4.
+
+## 0.1.17
+
+- Fix: Create parent directory before opening file for write in `downloadFile` to prevent `PathNotFoundException` (No such file or directory) if the target download directory does not exist.
+
 ## 0.1.16
 
 - Change: Boot macOS VMs with 8 GB of memory (was 4 GB). 4 GB was too small for Flutter/Xcode/iOS-simulator builds, causing in-guest memory pressure (and SSH drops / `act exited with code 255` when two workers shared a host). Memory is still clamped to the framework's allowed range.

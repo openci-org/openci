@@ -1,23 +1,30 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'transfer_progress.dart';
 
 /// Downloads a file from the given [uri] to [savePath] with progress notifications.
-/// Supports parallel connections and resuming from partial download state.
+/// Supports parallel connections and resuming by downloading to temporary chunk files
+/// and merging them at the end. This prevents concurrent disk I/O bottlenecks.
 Future<void> downloadFile({
   required Uri uri,
   required String savePath,
   String? accessToken,
-  int concurrency = 8,
+  int concurrency = 4,
   bool force = false,
   void Function(TransferProgress progress)? onProgress,
 }) async {
-  final client = HttpClient();
+  final file = File(savePath);
+  final parentDir = file.parent;
+  if (!parentDir.existsSync()) {
+    parentDir.createSync(recursive: true);
+  }
 
-  // 1. Fetch file size and Range support verification via HEAD request
+  // HTTP client for HEAD request
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 15)
+    ..autoUncompress = false;
+
   final headReq = await client.headUrl(uri);
   if (accessToken != null) {
     headReq.headers.add(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
@@ -25,28 +32,24 @@ Future<void> downloadFile({
   final headResp = await headReq.close();
 
   if (headResp.statusCode != HttpStatus.ok) {
+    client.close();
     throw HttpException(
         'Failed to fetch file metadata: HTTP ${headResp.statusCode}');
   }
 
   final totalLength = headResp.contentLength;
   final acceptRanges = headResp.headers.value(HttpHeaders.acceptRangesHeader);
+  client.close();
 
-  // Prevent duplicate downloading if the file is already completed
-  if (!force && totalLength > 0) {
-    final file = File(savePath);
-    final metadataFile = File('$savePath.download');
-    if (file.existsSync() &&
-        !metadataFile.existsSync() &&
-        file.lengthSync() == totalLength) {
-      client.close();
+  // If already completed, skip
+  if (!force && totalLength > 0 && file.existsSync()) {
+    if (file.lengthSync() == totalLength) {
       throw StateError('The file is already fully downloaded.');
     }
   }
 
-  // If Range is not supported or total length is unknown, fallback to single-connection download
-  if (totalLength <= 0 || acceptRanges != 'bytes') {
-    client.close();
+  // Fallback to single-connection if range or length not supported
+  if (totalLength <= 0 || acceptRanges != 'bytes' || concurrency <= 1) {
     return downloadFileFallback(
         uri: uri,
         savePath: savePath,
@@ -54,74 +57,40 @@ Future<void> downloadFile({
         force: force,
         onProgress: onProgress);
   }
-  client.close();
 
-  final file = File(savePath);
-  final metadataFile = File('$savePath.download');
+  // Divide the file into chunks
+  final chunkSize = (totalLength / concurrency).ceil();
+  final futures = <Future<void>>[];
+  final activeClients = <HttpClient>[];
+  final chunkFiles = <int, File>{};
+  final chunkDownloadedBytes = List<int>.filled(concurrency, 0);
 
-  Map<String, dynamic> metadata;
-  bool isResumed = false;
+  // Initialize chunk files and check resume state
+  for (int i = 0; i < concurrency; i++) {
+    final chunkFile = File('$savePath.chunk$i');
+    chunkFiles[i] = chunkFile;
 
-  // Check if metadata exists and is compatible
-  if (metadataFile.existsSync() && file.existsSync()) {
-    try {
-      final content = metadataFile.readAsStringSync();
-      metadata = jsonDecode(content) as Map<String, dynamic>;
-      if (metadata['totalLength'] == totalLength &&
-          metadata['concurrency'] == concurrency &&
-          metadata['chunks'] != null) {
-        isResumed = true;
-      } else {
-        metadata = createNewMetadata(totalLength, concurrency);
+    if (!force && chunkFile.existsSync()) {
+      chunkDownloadedBytes[i] = chunkFile.lengthSync();
+    } else {
+      if (chunkFile.existsSync()) {
+        chunkFile.deleteSync();
       }
-    } catch (_) {
-      metadata = createNewMetadata(totalLength, concurrency);
-    }
-  } else {
-    metadata = createNewMetadata(totalLength, concurrency);
-  }
-
-  // Open file for shared random-access writing
-  final raf = await file.open(mode: FileMode.write);
-  if (!isResumed) {
-    final parentDir = file.parent;
-    if (!parentDir.existsSync()) {
-      parentDir.createSync(recursive: true);
-    }
-    await raf.truncate(totalLength);
-  }
-
-  final chunks = (metadata['chunks'] as List)
-      .map((c) => Map<String, dynamic>.from(c as Map))
-      .toList();
-
-  // Calculate total already downloaded bytes
-  int overallDownloaded =
-      chunks.fold(0, (sum, c) => sum + (c['downloaded'] as int));
-
-  // Throttle progress metadata saving
-  int lastSavedTime = DateTime.now().millisecondsSinceEpoch;
-  void saveProgress() {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - lastSavedTime > 1000) {
-      try {
-        metadata['chunks'] = chunks;
-        metadataFile.writeAsStringSync(jsonEncode(metadata));
-      } catch (_) {}
-      lastSavedTime = now;
+      chunkDownloadedBytes[i] = 0;
     }
   }
 
   final stopwatch = Stopwatch()..start();
   int lastTime = stopwatch.elapsedMilliseconds;
-  int lastDownloaded = overallDownloaded;
+  int lastDownloaded = chunkDownloadedBytes.reduce((a, b) => a + b);
   double speedMb = 0.0;
   Duration? remaining;
 
-  void updateProgress(int chunkIndex, int bytesReceived) {
-    overallDownloaded += bytesReceived;
-    chunks[chunkIndex]['downloaded'] =
-        (chunks[chunkIndex]['downloaded'] as int) + bytesReceived;
+  int lastActivityTime = DateTime.now().millisecondsSinceEpoch;
+
+  void triggerProgress() {
+    final overallDownloaded = chunkDownloadedBytes.reduce((a, b) => a + b);
+    lastActivityTime = DateTime.now().millisecondsSinceEpoch;
 
     if (onProgress != null && totalLength > 0) {
       final now = stopwatch.elapsedMilliseconds;
@@ -149,129 +118,121 @@ Future<void> downloadFile({
         remaining: remaining,
       ));
     }
-    saveProgress();
   }
 
-  final futures = <Future<void>>[];
-  final rafLock = Object();
+  // Watchdog to prevent silent hangs (30s timeout)
+  final watchdogTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - lastActivityTime > 30 * 1000) {
+      for (final client in activeClients) {
+        try {
+          client.close(force: true);
+        } catch (_) {}
+      }
+    }
+  });
 
-  for (int i = 0; i < concurrency; i++) {
-    final chunk = chunks[i];
-    final start = chunk['start'] as int;
-    final end = chunk['end'] as int;
-    final downloaded = chunk['downloaded'] as int;
+  try {
+    for (int i = 0; i < concurrency; i++) {
+      final start = i * chunkSize;
+      int end = start + chunkSize - 1;
+      if (end >= totalLength) {
+        end = totalLength - 1;
+      }
 
-    // Skip fully downloaded chunks
-    if (downloaded >= (end - start + 1)) {
-      continue;
+      final downloaded = chunkDownloadedBytes[i];
+      if (downloaded >= (end - start + 1)) {
+        continue; // This chunk is already fully downloaded
+      }
+
+      final chunkFuture = () async {
+        final chunkClient = HttpClient()
+          ..connectionTimeout = const Duration(seconds: 15)
+          ..autoUncompress = false;
+
+        activeClients.add(chunkClient);
+
+        try {
+          final request = await chunkClient.getUrl(uri);
+          if (accessToken != null) {
+            request.headers
+                .add(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
+          }
+
+          int requestStart = start + downloaded;
+          request.headers.add(HttpHeaders.rangeHeader, 'bytes=$requestStart-$end');
+          final response = await request.close();
+
+          if (response.statusCode != HttpStatus.partialContent) {
+            throw HttpException(
+                'Parallel connection $i failed: HTTP ${response.statusCode} (Expected 206 Partial Content)');
+          }
+
+          final chunkFile = chunkFiles[i]!;
+          final mode = downloaded > 0 ? FileMode.append : FileMode.write;
+          final outputSink = chunkFile.openWrite(mode: mode);
+
+          try {
+            final stream = response.timeout(
+              const Duration(seconds: 30),
+              onTimeout: (sink) {
+                sink.addError(TimeoutException('Response timed out while waiting for data on connection $i'));
+                sink.close();
+              },
+            );
+
+            await stream.forEach((data) {
+              outputSink.add(data);
+              chunkDownloadedBytes[i] += data.length;
+              triggerProgress();
+            });
+          } finally {
+            await outputSink.close();
+          }
+        } finally {
+          chunkClient.close();
+          activeClients.remove(chunkClient);
+        }
+      }();
+
+      futures.add(chunkFuture);
     }
 
-    final chunkFuture = () async {
-      final chunkClient = HttpClient();
-      final request = await chunkClient.getUrl(uri);
-      if (accessToken != null) {
-        request.headers
-            .add(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
-      }
+    await Future.wait(futures);
+    watchdogTimer.cancel();
 
-      int requestStart = start + downloaded;
-      request.headers.add(HttpHeaders.rangeHeader, 'bytes=$requestStart-$end');
-      final response = await request.close();
+    // 2. Merge chunk files sequentially into the final file
+    if (onProgress != null) {
+      print('\nAll chunks downloaded. Merging files...');
+    }
 
-      if (response.statusCode != HttpStatus.partialContent &&
-          response.statusCode != HttpStatus.ok) {
-        throw HttpException(
-            'Parallel connection $i failed: HTTP ${response.statusCode}');
-      }
-
-      try {
-        final buffer = BytesBuilder(copy: false);
-        int bufferOffset = requestStart;
-        const writeBufferSize = 2 * 1024 * 1024; // 2MB buffer
-
-        Future<void> flushBuffer() async {
-          if (buffer.isEmpty) return;
-          final dataToWrite = buffer.takeBytes();
-          final offset = bufferOffset;
-          bufferOffset += dataToWrite.length;
-
-          await synchronizedAsync(rafLock, () async {
-            await raf.setPosition(offset);
-            await raf.writeFrom(dataToWrite);
+    final outputSink = file.openWrite(mode: FileMode.write);
+    try {
+      for (int i = 0; i < concurrency; i++) {
+        final chunkFile = chunkFiles[i]!;
+        if (chunkFile.existsSync()) {
+          final stream = chunkFile.openRead();
+          await stream.forEach((data) {
+            outputSink.add(data);
           });
         }
-
-        await for (final data in response) {
-          buffer.add(data);
-          updateProgress(i, data.length);
-
-          if (buffer.length >= writeBufferSize) {
-            await flushBuffer();
-          }
-        }
-        await flushBuffer();
-      } finally {
-        chunkClient.close();
       }
-    }();
-
-    futures.add(chunkFuture);
-  }
-
-  try {
-    await Future.wait(futures);
-  } finally {
-    await raf.close();
-  }
-
-  // Save final progress state and clean up metadata file
-  try {
-    if (metadataFile.existsSync()) {
-      metadataFile.deleteSync();
+    } finally {
+      await outputSink.close();
     }
-  } catch (_) {}
-}
 
-Map<String, dynamic> createNewMetadata(int totalLength, int concurrency) {
-  final chunkSize = (totalLength / concurrency).ceil();
-  final chunks = <Map<String, dynamic>>[];
-
-  for (int i = 0; i < concurrency; i++) {
-    final start = i * chunkSize;
-    int end = start + chunkSize - 1;
-    if (end >= totalLength) {
-      end = totalLength - 1;
+    // Clean up chunk files after successful merge
+    for (int i = 0; i < concurrency; i++) {
+      final chunkFile = chunkFiles[i]!;
+      if (chunkFile.existsSync()) {
+        try {
+          chunkFile.deleteSync();
+        } catch (_) {}
+      }
     }
-    chunks.add({
-      'start': start,
-      'end': end,
-      'downloaded': 0,
-    });
-  }
-
-  return {
-    'totalLength': totalLength,
-    'concurrency': concurrency,
-    'chunks': chunks,
-  };
-}
-
-// Simple asynchronous serialization helper
-final _asyncLocks = <Object, Future<void>>{};
-Future<T> synchronizedAsync<T>(Object lock, Future<T> Function() fn) async {
-  final previous = _asyncLocks[lock];
-  final completer = Completer<void>();
-  _asyncLocks[lock] = completer.future;
-
-  if (previous != null) {
-    try {
-      await previous;
-    } catch (_) {}
-  }
-  try {
-    return await fn();
-  } finally {
-    completer.complete();
+  } catch (e) {
+    watchdogTimer.cancel();
+    rethrow;
   }
 }
 
@@ -288,7 +249,9 @@ Future<void> downloadFileFallback({
     parentDir.createSync(recursive: true);
   }
 
-  final client = HttpClient();
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 15)
+    ..autoUncompress = false;
   final request = await client.getUrl(uri);
   if (accessToken != null) {
     request.headers.add(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
@@ -322,7 +285,14 @@ Future<void> downloadFileFallback({
 
   final outputSink = file.openWrite(mode: FileMode.write);
   try {
-    await response.forEach((chunk) {
+    final stream = response.timeout(
+      const Duration(seconds: 30),
+      onTimeout: (sink) {
+        sink.addError(TimeoutException('Response timed out while waiting for data'));
+        sink.close();
+      },
+    );
+    await stream.forEach((chunk) {
       outputSink.add(chunk);
       downloadedBytes += chunk.length;
       if (onProgress != null && contentLength > 0) {

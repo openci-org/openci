@@ -10,6 +10,7 @@ workspace:
   - firebase/functions_dart
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
+  - packages/avf_cli
   - packages/avf_dart
   - packages/gcp_secret_manager
   - packages/macos_updater
