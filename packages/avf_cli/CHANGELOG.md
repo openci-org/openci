@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- Maintenance: Bump version for release verification.
+
+## 0.1.6
+
+- Feature: Integrate Native Assets build hooks (`hook/build.dart`) to automatically generate `lib/src/version.dart` from the version defined in `pubspec.yaml`, ensuring CLI version sync without manual updates.
+
 ## 0.1.5
 
 - Update `avf_dart` to `0.1.21` to use chunk-file sequential writes and merging for robust high-speed downloads without OS disk freezes.

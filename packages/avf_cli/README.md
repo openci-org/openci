@@ -72,3 +72,15 @@ avf <command> [arguments]
   ```bash
   avf fetch-ipsw
   ```
+
+## Publishing to pub.dev
+
+When publishing `avf_cli` to pub.dev, you must prepare the configuration in `pubspec.yaml` as follows:
+
+1. **Remove `publish_to: none`** (which prevents accidental pub.dev publishes during local development).
+2. **Replace the local `path` dependency** of `avf_dart` with the published version dependency:
+   ```yaml
+   dependencies:
+     avf_dart: ^0.1.22
+   ```
+

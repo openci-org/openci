@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:avf_cli/src/version.dart';
 import 'package:avf_dart/avf_dart.dart';
 
 void main(List<String> args) async {
@@ -48,7 +49,8 @@ class ListCommand extends Command<void> {
         print('  No local VMs found.');
       } else {
         print(
-            '  ${"Name".padRight(20)} ${"Disk Size".padRight(24)} ${"Created"}');
+          '  ${"Name".padRight(20)} ${"Disk Size".padRight(24)} ${"Created"}',
+        );
         print('  ${"-" * 72}');
         for (final vm in list) {
           final sizeGb =
@@ -57,7 +59,8 @@ class ListCommand extends Command<void> {
               (vm.diskSizeUsedBytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
           final sizeStr = '$usedGb GB / $sizeGb GB';
           print(
-              '  ${vm.name.padRight(20)} ${sizeStr.padRight(24)} ${vm.created.toLocal()}');
+            '  ${vm.name.padRight(20)} ${sizeStr.padRight(24)} ${vm.created.toLocal()}',
+          );
         }
       }
     } catch (e) {
@@ -171,14 +174,16 @@ class InstallCommand extends Command<void> {
     }
 
     print(
-        'Starting macOS installation onto VM "$vmName" using IPSW "$ipswPath"...');
+      'Starting macOS installation onto VM "$vmName" using IPSW "$ipswPath"...',
+    );
     try {
       await VirtualMachine.install(
         name: vmName,
         ipswPath: ipswPath,
         onProgress: (progress) {
           stdout.write(
-              '\rInstalling macOS... ${(progress * 100.0).toStringAsFixed(2)}%');
+            '\rInstalling macOS... ${(progress * 100.0).toStringAsFixed(2)}%',
+          );
         },
       );
       print('\nSuccess: macOS installation complete!');
@@ -282,7 +287,8 @@ class PullCommand extends Command<void> {
         onLog: (msg) => print(msg),
         onProgress: (progress) {
           stdout.write(
-              '\rDownloading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]');
+            '\rDownloading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]',
+          );
         },
       );
       print('\nSuccess: VM pulled successfully.');
@@ -296,7 +302,8 @@ class PullCommand extends Command<void> {
     final result = await Process.run('gcloud', ['auth', 'print-access-token']);
     if (result.exitCode != 0) {
       throw StateError(
-          'Failed to retrieve gcloud access token: ${result.stderr}');
+        'Failed to retrieve gcloud access token: ${result.stderr}',
+      );
     }
     return result.stdout.toString().trim();
   }
@@ -342,7 +349,8 @@ class PushCommand extends Command<void> {
         onLog: (msg) => print(msg),
         onProgress: (progress) {
           stdout.write(
-              '\rUploading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]');
+            '\rUploading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]',
+          );
         },
       );
       print('\nSuccess: VM pushed successfully.');
@@ -356,7 +364,8 @@ class PushCommand extends Command<void> {
     final result = await Process.run('gcloud', ['auth', 'print-access-token']);
     if (result.exitCode != 0) {
       throw StateError(
-          'Failed to retrieve gcloud access token: ${result.stderr}');
+        'Failed to retrieve gcloud access token: ${result.stderr}',
+      );
     }
     return result.stdout.toString().trim();
   }
@@ -378,12 +387,20 @@ class DownloadIpswCommand extends Command<void> {
       abbr: 'o',
       help: 'Optional save path (defaults to standard downloads directory)',
     );
+    argParser.addOption(
+      'concurrency',
+      abbr: 'c',
+      defaultsTo: '1',
+      help: 'Number of concurrent chunk downloads (recommend 1 to avoid Apple CDN blocking)',
+    );
   }
 
   @override
   void run() async {
     final urlStr = argResults?['url'] as String?;
     final outPath = argResults?['out'] as String?;
+    final concurrencyStr = argResults?['concurrency'] as String? ?? '1';
+    final concurrency = int.tryParse(concurrencyStr) ?? 1;
 
     try {
       final Uri url;
@@ -406,7 +423,7 @@ class DownloadIpswCommand extends Command<void> {
       await VirtualMachine.downloadIpsw(
         uri: url,
         savePath: savePath,
-        concurrency: 4,
+        concurrency: concurrency,
         onProgress: (progress) {
           stdout.write(
             '\rDownloading... ${progress.percent.toStringAsFixed(2)}% (${progress.speedStr}) [Elapsed: ${progress.elapsedStr}, ETA: ${progress.etaStr}]',
@@ -453,6 +470,6 @@ class VersionCommand extends Command<void> {
 
   @override
   void run() {
-    print('avf_cli version 0.1.5');
+    print('avf_cli version $packageVersion');
   }
 }

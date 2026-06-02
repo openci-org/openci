@@ -1,6 +1,6 @@
 name: avf_dart
 description: Dart bindings for Apple Virtualization.framework.
-version: 0.1.21
+version: 0.1.22
 repository: https://github.com/openci-org/openci/tree/main/packages/avf_dart
 resolution: workspace
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.22
+
+- Maintenance: Bump version for synchronization and integration verification.
+
 ## 0.1.21
 
 - Fix: Completely rewrite parallel download implementation to download chunk ranges to separate temporary chunk files (e.g. `.chunk0`, `.chunk1`), then merge them sequentially upon completion. This guarantees 100% sequential I/O per stream, fully resolving OS-level virtual disk bottlenecks and lock freezes while preserving high-speed multi-connection downloads.

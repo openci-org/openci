@@ -14,6 +14,7 @@ workspace:
   - packages/avf_dart
   - packages/gcp_secret_manager
   - packages/macos_updater
+  - packages/pubspec_version_hook
   - packages/openci_shared
 
 
