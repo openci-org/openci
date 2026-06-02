@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_functions/firebase_functions.dart';
-import 'package:google_cloud_firestore/google_cloud_firestore.dart';
-import 'package:gcp_secret_manager/gcp_secret_manager.dart';
+
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:firebase_functions/firebase_functions.dart';
+import 'package:gcp_secret_manager/gcp_secret_manager.dart';
+import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 const workerOptions = HttpsOptions(
@@ -51,13 +52,15 @@ Response optionsResponse() {
 
 // 認証トークンの検証処理（簡易版 & エミュレータバイパス）
 bool verifyAuth(Request request) {
-  final isEmulator = const bool.fromEnvironment('FUNCTIONS_EMULATOR') ||
+  final isEmulator =
+      const bool.fromEnvironment('FUNCTIONS_EMULATOR') ||
       const String.fromEnvironment('FUNCTIONS_EMULATOR') == 'true';
   if (isEmulator) {
     return true;
   }
 
-  final authHeader = request.headers['Authorization'] ?? request.headers['authorization'];
+  final authHeader =
+      request.headers['Authorization'] ?? request.headers['authorization'];
   if (authHeader == null || !authHeader.startsWith('Bearer ')) {
     return false;
   }
@@ -77,10 +80,11 @@ bool verifyAuth(Request request) {
     final email = payload['email'] as String?;
 
     if (iss == null || email == null) return false;
-    
-    final isGoogleIss = iss.contains('accounts.google.com') || 
-                        iss.contains('oauth2.googleapis.com') ||
-                        iss.startsWith('https://securetoken.google.com');
+
+    final isGoogleIss =
+        iss.contains('accounts.google.com') ||
+        iss.contains('oauth2.googleapis.com') ||
+        iss.startsWith('https://securetoken.google.com');
     if (!isGoogleIss) return false;
 
     if (!email.contains('gserviceaccount.com') && !email.contains('openci')) {
@@ -93,7 +97,10 @@ bool verifyAuth(Request request) {
   }
 }
 
-Future<Response> handleRequest(Request request, Future<Response> Function(Map<String, dynamic> body) handler) async {
+Future<Response> handleRequest(
+  Request request,
+  Future<Response> Function(Map<String, dynamic> body) handler,
+) async {
   if (request.method == 'OPTIONS') {
     return optionsResponse();
   }
@@ -108,10 +115,15 @@ Future<Response> handleRequest(Request request, Future<Response> Function(Map<St
 
   try {
     final bodyString = await request.readAsString();
-    final body = bodyString.isEmpty ? <String, dynamic>{} : jsonDecode(bodyString) as Map<String, dynamic>;
+    final body = bodyString.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(bodyString) as Map<String, dynamic>;
     return await handler(body);
   } catch (e) {
-    return jsonResponse({'error': 'Bad Request', 'details': e.toString()}, status: 400);
+    return jsonResponse({
+      'error': 'Bad Request',
+      'details': e.toString(),
+    }, status: 400);
   }
 }
 
@@ -119,13 +131,16 @@ Future<Response> handleRequest(Request request, Future<Response> Function(Map<St
 String normalizeGitHubApiBaseUrl(String? apiBaseUrl) {
   if (apiBaseUrl == null || apiBaseUrl.isEmpty) return 'https://api.github.com';
   final normalized = apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-  if (normalized == 'https://api.github.com' || normalized == 'https://github.com' || normalized == 'https://api.github.com/graphql') {
+  if (normalized == 'https://api.github.com' ||
+      normalized == 'https://github.com' ||
+      normalized == 'https://api.github.com/graphql') {
     return 'https://api.github.com';
   }
   if (normalized.endsWith('/api/v3')) return normalized;
   try {
     final uri = Uri.parse(normalized);
-    if (normalized.endsWith('/api/graphql') || normalized.endsWith('/graphql')) {
+    if (normalized.endsWith('/api/graphql') ||
+        normalized.endsWith('/graphql')) {
       return '${uri.scheme}://${uri.host}/api/v3';
     }
     return '${uri.scheme}://${uri.host}/api/v3';
@@ -176,7 +191,11 @@ Future<void> updateCheckRunInternal(
     }
   }
 
-  if (checkRunId == null || installationToken == null || installationToken.isEmpty) return;
+  if (checkRunId == null ||
+      installationToken == null ||
+      installationToken.isEmpty) {
+    return;
+  }
 
   final githubApiBaseUrl = normalizeGitHubApiBaseUrl(apiBaseRaw);
 
@@ -192,15 +211,19 @@ Future<void> updateCheckRunInternal(
 
     final body = {
       'status': runStatus,
-      if (runStatus == 'completed' && conclusion != null) 'conclusion': conclusion,
-      'details_url': 'https://dashboard.openci.org/runs/${Uri.encodeComponent(buildJob['id'] as String)}',
+      if (runStatus == 'completed' && conclusion != null)
+        'conclusion': conclusion,
+      'details_url':
+          'https://dashboard.openci.org/runs/${Uri.encodeComponent(buildJob['id'] as String)}',
     };
 
     request.write(jsonEncode(body));
     final response = await request.close();
     if (response.statusCode >= 300) {
       final responseBody = await response.transform(utf8.decoder).join();
-      logger.warn('Failed to update GitHub check run: ${response.statusCode} $responseBody');
+      logger.warn(
+        'Failed to update GitHub check run: ${response.statusCode} $responseBody',
+      );
     }
   } catch (e) {
     logger.warn('Error updating GitHub check run: $e');
@@ -225,7 +248,9 @@ Future<String?> resolveFreshInstallationToken(
   final jobData = snap.data()!;
   final currentToken = jobData['installationToken'] as String?;
   final tokenExpiresAt = jobData['tokenExpiresAt'] as String?;
-  if (currentToken != null && currentToken.isNotEmpty && _isInstallationTokenFresh(tokenExpiresAt)) {
+  if (currentToken != null &&
+      currentToken.isNotEmpty &&
+      _isInstallationTokenFresh(tokenExpiresAt)) {
     return currentToken;
   }
 
@@ -233,8 +258,12 @@ Future<String?> resolveFreshInstallationToken(
   if (installationId == null) return currentToken;
 
   final projectId = Platform.environment['GCLOUD_PROJECT'] ?? 'openci-b1b91';
-  final appId = await GcpSecretManager.fetchSecretValue('projects/$projectId/secrets/GITHUB_APP_ID');
-  final privateKey = await GcpSecretManager.fetchSecretValue('projects/$projectId/secrets/GITHUB_PRIVATE_KEY');
+  final appId = await GcpSecretManager.fetchSecretValue(
+    'projects/$projectId/secrets/GITHUB_APP_ID',
+  );
+  final privateKey = await GcpSecretManager.fetchSecretValue(
+    'projects/$projectId/secrets/GITHUB_PRIVATE_KEY',
+  );
   if (appId.isEmpty || privateKey.isEmpty) return currentToken;
 
   final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -243,10 +272,16 @@ Future<String?> resolveFreshInstallationToken(
     'exp': nowSeconds + 540,
     'iss': appId.trim(),
   });
-  final jwtToken = jwt.sign(RSAPrivateKey(privateKey), algorithm: JWTAlgorithm.RS256);
+  final jwtToken = jwt.sign(
+    RSAPrivateKey(privateKey),
+    algorithm: JWTAlgorithm.RS256,
+  );
 
-  final githubApiBaseUrl = normalizeGitHubApiBaseUrl(jobData['githubApiBaseUrl'] as String?);
-  final url = '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
+  final githubApiBaseUrl = normalizeGitHubApiBaseUrl(
+    jobData['githubApiBaseUrl'] as String?,
+  );
+  final url =
+      '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
 
   final client = HttpClient();
   try {
@@ -260,7 +295,9 @@ Future<String?> resolveFreshInstallationToken(
     final response = await request.close();
     final responseBody = await response.transform(utf8.decoder).join();
     if (response.statusCode >= 300) {
-      logger.warn('Failed to mint installation token: ${response.statusCode} $responseBody');
+      logger.warn(
+        'Failed to mint installation token: ${response.statusCode} $responseBody',
+      );
       return currentToken;
     }
 
@@ -271,7 +308,7 @@ Future<String?> resolveFreshInstallationToken(
 
     await docRef.update({
       FieldPath.from('installationToken'): token,
-      if (expiresAt != null) FieldPath.from('tokenExpiresAt'): expiresAt,
+      FieldPath.from('tokenExpiresAt'): ?expiresAt,
       FieldPath.from('updatedAt'): DateTime.now().toUtc().toIso8601String(),
     });
     return token;
