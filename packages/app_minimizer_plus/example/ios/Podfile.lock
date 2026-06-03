@@ -1,6 +1,4 @@
 PODS:
-  - app_minimizer_plus (0.0.1):
-    - Flutter
   - CocoaAsyncSocket (7.6.5)
   - Flutter (1.0.0)
   - patrol (0.0.1):
@@ -9,7 +7,6 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
-  - app_minimizer_plus (from `.symlinks/plugins/app_minimizer_plus/ios`)
   - Flutter (from `Flutter`)
   - patrol (from `.symlinks/plugins/patrol/darwin`)
 
@@ -18,15 +15,12 @@ SPEC REPOS:
     - CocoaAsyncSocket
 
 EXTERNAL SOURCES:
-  app_minimizer_plus:
-    :path: ".symlinks/plugins/app_minimizer_plus/ios"
   Flutter:
     :path: Flutter
   patrol:
     :path: ".symlinks/plugins/patrol/darwin"
 
 SPEC CHECKSUMS:
-  app_minimizer_plus: baeff3daf6078f1cc063b03a4c2df802fe4fd60d
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   patrol: cea8074f183a2a4232d0ebd10569ae05149ada42
