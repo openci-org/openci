@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/auth/auth_provider.dart';
@@ -524,52 +526,6 @@ class FirebaseFormSheet extends HookConsumerWidget {
     super.key,
   });
 
-  /// Tries to parse file content as JSON (google-services.json) and returns
-  /// a [SelfHostedConfig] if successful.
-  static SelfHostedConfig? _parseJson(String content) {
-    try {
-      final map = jsonDecode(content) as Map<String, dynamic>;
-
-      // Web-style firebase config JSON (has apiKey at top-level)
-      if (map.containsKey('apiKey')) {
-        return SelfHostedConfig.fromJson(map);
-      }
-
-      // Android google-services.json style
-      final projectInfo = map['project_info'] as Map<String, dynamic>?;
-      final clients = map['client'] as List<dynamic>?;
-      if (projectInfo != null && clients != null && clients.isNotEmpty) {
-        final client = clients[0] as Map<String, dynamic>;
-        final clientInfo = client['client_info'] as Map<String, dynamic>? ?? {};
-        final apiKeys = client['api_key'] as List<dynamic>? ?? [];
-        final appId = clientInfo['mobilesdk_app_id'] as String? ?? '';
-        final apiKey = apiKeys.isNotEmpty
-            ? (apiKeys[0] as Map<String, dynamic>)['current_key'] as String? ??
-                  ''
-            : '';
-        final projectId = projectInfo['project_id'] as String? ?? '';
-        final storageBucket = projectInfo['storage_bucket'] as String? ?? '';
-        final projectNumber = projectInfo['project_number'] as String? ?? '';
-
-        if (apiKey.isEmpty || appId.isEmpty || projectId.isEmpty) {
-          return null;
-        }
-
-        return SelfHostedConfig(
-          apiKey: apiKey,
-          appId: appId,
-          messagingSenderId: projectNumber,
-          projectId: projectId,
-          storageBucket: storageBucket,
-        );
-      }
-
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final apiKeyController = useTextEditingController();
@@ -611,28 +567,62 @@ class FirebaseFormSheet extends HookConsumerWidget {
       if (result == null || result.files.isEmpty) return;
 
       final file = result.files.first;
-      final bytes = file.bytes;
-      if (bytes == null) return;
+      List<int>? bytes = file.bytes;
 
-      final content = utf8.decode(bytes);
-      final fileName = file.name.toLowerCase();
-
-      SelfHostedConfig? config;
-
-      if (fileName.endsWith('.plist')) {
-        config = parsePlist(content);
-      } else if (fileName.endsWith('.json')) {
-        config = _parseJson(content);
+      if (!kIsWeb && bytes == null && file.path != null) {
+        try {
+          final f = File(file.path!);
+          if (f.existsSync()) {
+            bytes = f.readAsBytesSync();
+          }
+        } catch (e) {
+          debugPrint('Error reading file: $e');
+        }
       }
 
-      if (config != null) {
+      if (bytes == null) {
+        if (context.mounted) {
+          context.showSnackBarMessage(formT.invalidFile);
+        }
+        return;
+      }
+
+      final fileName = file.name.toLowerCase();
+
+      try {
+        String content;
+        if (isBinaryPlist(bytes)) {
+          throw const FormatException(
+            'バイナリ形式の plist はサポートしていません。XML形式に変換した GoogleService-Info.plist を選択してください。',
+          );
+        } else if (isUtf16Le(bytes)) {
+          content = decodeUtf16(bytes, isLittleEndian: true);
+        } else if (isUtf16Be(bytes)) {
+          content = decodeUtf16(bytes, isLittleEndian: false);
+        } else {
+          content = utf8.decode(bytes);
+        }
+
+        SelfHostedConfig config;
+        if (fileName.endsWith('.plist')) {
+          config = parsePlist(content);
+        } else if (fileName.endsWith('.json')) {
+          config = parseJsonConfig(content);
+        } else {
+          throw const FormatException(
+            '未対応のファイル形式です。JSON (google-services.json) または plist (GoogleService-Info.plist) を選択してください。',
+          );
+        }
+
         applyConfig(config);
         if (context.mounted) {
           context.showSnackBarMessage(formT.fileLoaded);
         }
-      } else {
+      } catch (e) {
         if (context.mounted) {
-          context.showSnackBarMessage(formT.invalidFile);
+          context.showSnackBarMessage(
+            'ファイルの読み込みに失敗しました: ${e.toString().replaceAll('FormatException: ', '')}',
+          );
         }
       }
     }
