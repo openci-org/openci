@@ -147,15 +147,18 @@ export const registerDevice = onRequest(async (request, response) => {
     );
 
     const db = getFirestore();
-    await db.collection("users_v0").doc(userId).set(
-      {
-        [`teamUdids.${teamId}`]: udid,
-        [`teamDeviceProducts.${teamId}`]: product,
-        [`teamDeviceOsVersions.${teamId}`]: osVersion,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    );
+    await db
+      .collection("users_v0")
+      .doc(userId)
+      .set(
+        {
+          [`teamUdids.${teamId}`]: udid,
+          [`teamDeviceProducts.${teamId}`]: product,
+          [`teamDeviceOsVersions.${teamId}`]: osVersion,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
 
     const redirectUrl = `${redirectOrigin}/?enrolled=true&udid=${encodeURIComponent(udid)}#/distributions`;
     logger.info(`Redirecting device to ${redirectUrl}`);
