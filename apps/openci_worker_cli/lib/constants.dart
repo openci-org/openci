@@ -12,4 +12,3 @@ const dockerImage = 'openci-ubuntu:latest';
 
 // Exit codes for supervisor communication
 const exitCodeUpdateRequested = 42;
-
