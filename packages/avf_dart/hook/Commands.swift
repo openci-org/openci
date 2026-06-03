@@ -316,6 +316,33 @@ func runBoot(args: [String]) {
 
         let vm = VZVirtualMachine(configuration: config)
 
+        // Setup signal sources for SIGINT and SIGTERM to stop VM gracefully
+        let sigintSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+        let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+
+        let cleanupAndExit = {
+            print("\nStopping Virtual Machine gracefully...")
+            fflush(stdout)
+            vm.stop { error in
+                if let error = error {
+                    fputs("Warning: Failed to stop VM gracefully: \(error.localizedDescription)\n", stderr)
+                } else {
+                    print("VM stopped successfully.")
+                }
+                fflush(stdout)
+                exit(0)
+            }
+        }
+
+        sigintSource.setEventHandler(handler: cleanupAndExit)
+        sigtermSource.setEventHandler(handler: cleanupAndExit)
+
+        signal(SIGINT, SIG_IGN)
+        signal(SIGTERM, SIG_IGN)
+
+        sigintSource.resume()
+        sigtermSource.resume()
+
         print("Starting Virtual Machine (Headless)...")
         fflush(stdout)
 

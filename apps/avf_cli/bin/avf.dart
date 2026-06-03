@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -119,6 +120,25 @@ class BootCommand extends Command<void> {
       final vm = await VirtualMachine.boot(name: vmName);
       print('VM booted successfully! Guest IP Address: ${vm.ipAddress}');
 
+      late final StreamSubscription<ProcessSignal> sigintSub;
+      late final StreamSubscription<ProcessSignal> sigtermSub;
+      var stopping = false;
+
+      Future<void> stopVm() async {
+        if (stopping) return;
+        stopping = true;
+        print('\nStopping VM gracefully...');
+        try {
+          sigintSub.cancel();
+          sigtermSub.cancel();
+        } catch (_) {}
+        await vm.stop();
+        exit(0);
+      }
+
+      sigintSub = ProcessSignal.sigint.watch().listen((_) => stopVm());
+      sigtermSub = ProcessSignal.sigterm.watch().listen((_) => stopVm());
+
       if (commandToRun != null) {
         print('Executing command inside VM: $commandToRun');
         final exitStatus = await vm.executeStream(
@@ -134,6 +154,10 @@ class BootCommand extends Command<void> {
 
       print('Waiting for VM process to terminate (Press Ctrl+C to stop)...');
       final code = await vm.exitCode;
+      try {
+        sigintSub.cancel();
+        sigtermSub.cancel();
+      } catch (_) {}
       print('VM exited with code: $code');
     } catch (e) {
       print('Error booting VM: $e');
