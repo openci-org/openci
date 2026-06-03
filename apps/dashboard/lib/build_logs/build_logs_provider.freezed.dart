@@ -13,7 +13,7 @@ part of 'build_logs_provider.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$BuildLog {
+mixin _$BuildLog implements DiagnosticableTreeMixin {
 
  String get message; String get level;@DateTimeConverter() DateTime? get timestamp;
 /// Create a copy of BuildLog
@@ -25,6 +25,12 @@ $BuildLogCopyWith<BuildLog> get copyWith => _$BuildLogCopyWithImpl<BuildLog>(thi
   /// Serializes this BuildLog to a JSON map.
   Map<String, dynamic> toJson();
 
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'BuildLog'))
+    ..add(DiagnosticsProperty('message', message))..add(DiagnosticsProperty('level', level))..add(DiagnosticsProperty('timestamp', timestamp));
+}
 
 @override
 bool operator ==(Object other) {
@@ -36,7 +42,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hash(runtimeType,message,level,timestamp);
 
 @override
-String toString() {
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
   return 'BuildLog(message: $message, level: $level, timestamp: $timestamp)';
 }
 
@@ -210,7 +216,7 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _BuildLog implements BuildLog {
+class _BuildLog with DiagnosticableTreeMixin implements BuildLog {
   const _BuildLog({required this.message, required this.level, @DateTimeConverter() this.timestamp});
   factory _BuildLog.fromJson(Map<String, dynamic> json) => _$BuildLogFromJson(json);
 
@@ -228,6 +234,12 @@ _$BuildLogCopyWith<_BuildLog> get copyWith => __$BuildLogCopyWithImpl<_BuildLog>
 Map<String, dynamic> toJson() {
   return _$BuildLogToJson(this, );
 }
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'BuildLog'))
+    ..add(DiagnosticsProperty('message', message))..add(DiagnosticsProperty('level', level))..add(DiagnosticsProperty('timestamp', timestamp));
+}
 
 @override
 bool operator ==(Object other) {
@@ -239,7 +251,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hash(runtimeType,message,level,timestamp);
 
 @override
-String toString() {
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
   return 'BuildLog(message: $message, level: $level, timestamp: $timestamp)';
 }
 
