@@ -58,6 +58,37 @@ class VirtualMachine {
     final errorSb = StringBuffer();
     String? resolvedIp;
 
+    // Handle OS signals (SIGINT/SIGTERM) to shut down VM process gracefully
+    late final StreamSubscription<ProcessSignal> sigintSub;
+    late final StreamSubscription<ProcessSignal> sigtermSub;
+
+    void cleanupSignals() {
+      try {
+        sigintSub.cancel();
+        sigtermSub.cancel();
+      } catch (_) {}
+    }
+
+    sigintSub = ProcessSignal.sigint.watch().listen((signal) async {
+      if (showLogs) {
+        print('\nReceived SIGINT. Stopping VM gracefully...');
+      }
+      process.kill(ProcessSignal.sigterm);
+      cleanupSignals();
+      await process.exitCode;
+      exit(0);
+    });
+
+    sigtermSub = ProcessSignal.sigterm.watch().listen((signal) async {
+      if (showLogs) {
+        print('\nReceived SIGTERM. Stopping VM gracefully...');
+      }
+      process.kill(ProcessSignal.sigterm);
+      cleanupSignals();
+      await process.exitCode;
+      exit(0);
+    });
+
     // Monitor stdout line by line
     final stdoutSubscription = process.stdout
         .transform(utf8.decoder)
@@ -97,6 +128,7 @@ class VirtualMachine {
 
     // Monitor process exit in case it terminates before boot success
     process.exitCode.then((code) {
+      cleanupSignals();
       if (showLogs) {
         print('\nVM "$name" exited with code $code');
       }
@@ -111,9 +143,11 @@ class VirtualMachine {
     try {
       await bootCompleter.future;
     } catch (e) {
+      cleanupSignals();
       await stdoutSubscription.cancel();
       await stderrSubscription.cancel();
       process.kill(ProcessSignal.sigterm);
+      await process.exitCode;
       rethrow;
     }
 
@@ -123,13 +157,16 @@ class VirtualMachine {
       }
       final portOpen = await _waitForSshPort(resolvedIp!, timeout: const Duration(minutes: 5), showLogs: showLogs);
       if (!portOpen) {
+        cleanupSignals();
         await stdoutSubscription.cancel();
         await stderrSubscription.cancel();
         process.kill(ProcessSignal.sigterm);
+        await process.exitCode;
         throw StateError('Error: Timeout waiting for SSH port to open (Dart).');
       }
     }
 
+    cleanupSignals();
     return VirtualMachine._(process, name, resolvedIp);
   }
 

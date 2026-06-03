@@ -34,14 +34,20 @@ function getRequestOrigin(request: any): { protocol: string; host: string; origi
 
 export const getMobileconfig = onRequest(async (request, response) => {
   const userId = request.query.userId;
+  const teamId = request.query.teamId;
   if (typeof userId !== "string" || !userId) {
     logger.warn("getMobileconfig request is missing userId query parameter");
     response.status(400).send("Missing userId query parameter");
     return;
   }
+  if (typeof teamId !== "string" || !teamId) {
+    logger.warn("getMobileconfig request is missing teamId query parameter");
+    response.status(400).send("Missing teamId query parameter");
+    return;
+  }
 
   const { protocol, host, origin } = getRequestOrigin(request);
-  const callbackUrl = `${protocol}://${host}/register-device?userId=${encodeURIComponent(userId)}&amp;redirectOrigin=${encodeURIComponent(origin)}`;
+  const callbackUrl = `${protocol}://${host}/register-device?userId=${encodeURIComponent(userId)}&teamId=${encodeURIComponent(teamId)}&redirectOrigin=${encodeURIComponent(origin)}`;
 
   const profileUuid = randomUUID();
 
@@ -86,9 +92,15 @@ export const getMobileconfig = onRequest(async (request, response) => {
 
 export const registerDevice = onRequest(async (request, response) => {
   const userId = request.query.userId;
+  const teamId = request.query.teamId;
   if (typeof userId !== "string" || !userId) {
     logger.warn("registerDevice callback request is missing userId query parameter");
     response.status(400).send("Missing userId query parameter");
+    return;
+  }
+  if (typeof teamId !== "string" || !teamId) {
+    logger.warn("registerDevice callback request is missing teamId query parameter");
+    response.status(400).send("Missing teamId query parameter");
     return;
   }
 
@@ -131,19 +143,22 @@ export const registerDevice = onRequest(async (request, response) => {
     const osVersion = versionMatch && versionMatch[1] ? versionMatch[1].trim() : "Unknown";
 
     logger.info(
-      `Successfully extracted UDID ${udid} for user ${userId} (Product: ${product}, OS: ${osVersion})`,
+      `Successfully extracted UDID ${udid} for user ${userId} in team ${teamId} (Product: ${product}, OS: ${osVersion})`,
     );
 
     const db = getFirestore();
-    await db.collection("users_v0").doc(userId).set(
-      {
-        udid,
-        deviceProduct: product,
-        deviceOsVersion: osVersion,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    );
+    await db
+      .collection("users_v0")
+      .doc(userId)
+      .set(
+        {
+          [`teamUdids.${teamId}`]: udid,
+          [`teamDeviceProducts.${teamId}`]: product,
+          [`teamDeviceOsVersions.${teamId}`]: osVersion,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
 
     const redirectUrl = `${redirectOrigin}/?enrolled=true&udid=${encodeURIComponent(udid)}#/distributions`;
     logger.info(`Redirecting device to ${redirectUrl}`);

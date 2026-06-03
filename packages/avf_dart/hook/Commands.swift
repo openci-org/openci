@@ -23,7 +23,7 @@ func runFetchIpswUrl(args: [String]) async {
     }
 }
 
-func runInstall(args: [String]) async {
+func runInstall(args: [String]) {
     guard args.count >= 6 else {
         print("Usage: avf_helper install <ipsw-path> <disk-img-path> <nvram-path> <config-json-path>", to: &errStream)
         exit(1)
@@ -73,125 +73,138 @@ func runInstall(args: [String]) async {
         exit(1)
     }
 
-    print("Loading IPSW restore image...")
-    fflush(stdout)
     let ipswURL = URL(fileURLWithPath: ipswPath)
     
-    do {
-        let restoreImage: VZMacOSRestoreImage = try await withCheckedThrowingContinuation { continuation in
-            VZMacOSRestoreImage.load(from: ipswURL) { result in
-                continuation.resume(with: result)
-            }
-        }
+    print("Loading IPSW restore image...")
+    fflush(stdout)
 
-        guard let requirements = restoreImage.mostFeaturefulSupportedConfiguration else {
-            print("Error: Failed to retrieve configuration requirements from restore image.", to: &errStream)
-            exit(1)
-        }
+    // Keep KVO observation reference alive outside completion handler scope
+    var observation: NSKeyValueObservation?
 
-        let hardwareModel = requirements.hardwareModel
-        let machineIdentifier = VZMacMachineIdentifier()
-
-        let auxiliaryStorage = try VZMacAuxiliaryStorage(
-            creatingStorageAt: URL(fileURLWithPath: nvramPath),
-            hardwareModel: hardwareModel,
-            options: []
-        )
-
-        let config = VZVirtualMachineConfiguration()
-        config.cpuCount = max(4, requirements.minimumSupportedCPUCount)
-        if config.cpuCount > VZVirtualMachineConfiguration.maximumAllowedCPUCount {
-            config.cpuCount = VZVirtualMachineConfiguration.maximumAllowedCPUCount
-        }
-
-        config.memorySize = max(4 * 1024 * 1024 * 1024, requirements.minimumSupportedMemorySize)
-        if config.memorySize > VZVirtualMachineConfiguration.maximumAllowedMemorySize {
-            config.memorySize = VZVirtualMachineConfiguration.maximumAllowedMemorySize
-        }
-
-        let platform = VZMacPlatformConfiguration()
-        platform.hardwareModel = hardwareModel
-        platform.machineIdentifier = machineIdentifier
-        platform.auxiliaryStorage = auxiliaryStorage
-        config.platform = platform
-
-        config.bootLoader = VZMacOSBootLoader()
-
-        let attachment = try VZDiskImageStorageDeviceAttachment(url: URL(fileURLWithPath: diskImgPath), readOnly: false)
-        let blockDevice = VZVirtioBlockDeviceConfiguration(attachment: attachment)
-        config.storageDevices = [blockDevice]
-
-        let networkAttachment = VZNATNetworkDeviceAttachment()
-        let networkConfig = VZVirtioNetworkDeviceConfiguration()
-        networkConfig.attachment = networkAttachment
-        config.networkDevices = [networkConfig]
-
-        let entropy = VZVirtioEntropyDeviceConfiguration()
-        config.entropyDevices = [entropy]
-
-        let graphics = VZMacGraphicsDeviceConfiguration()
-        let display = VZMacGraphicsDisplayConfiguration(widthInPixels: 1024, heightInPixels: 768, pixelsPerInch: 80)
-        graphics.displays = [display]
-        config.graphicsDevices = [graphics]
-
-        config.keyboards = [VZUSBKeyboardConfiguration()]
-        config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
-
-        try config.validate()
-
-        let vm = VZVirtualMachine(configuration: config)
-        let installer = VZMacOSInstaller(virtualMachine: vm, restoringFromImageAt: ipswURL)
-
-        let observation = installer.progress.observe(\.fractionCompleted, options: [.new]) { progress, change in
-            let percent = (change.newValue ?? 0.0) * 100.0
-            print(String(format: "Progress: %.2f%%", percent))
-            fflush(stdout)
-        }
-
-        print("Starting macOS installation. This may take a while...")
-        fflush(stdout)
-
-        do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                installer.install { result in
-                    switch result {
-                    case .success:
-                        continuation.resume()
-                    case .failure(let error):
-                        continuation.resume(throwing: error)
-                    }
+    VZMacOSRestoreImage.load(from: ipswURL) { result in
+        DispatchQueue.main.async {
+            switch result {
+            case .success(let restoreImage):
+                guard let requirements = restoreImage.mostFeaturefulSupportedConfiguration else {
+                    print("Error: Failed to retrieve configuration requirements from restore image.", to: &errStream)
+                    exit(1)
                 }
+
+                let hardwareModel = requirements.hardwareModel
+                let machineIdentifier = VZMacMachineIdentifier()
+
+                // Clean up existing NVRAM file if it exists, avoiding the "File exists" error
+                if fileManager.fileExists(atPath: nvramPath) {
+                    print("Removing existing NVRAM file at \(nvramPath) to re-initialize auxiliary storage...")
+                    fflush(stdout)
+                    try? fileManager.removeItem(atPath: nvramPath)
+                }
+
+                do {
+                    let auxiliaryStorage = try VZMacAuxiliaryStorage(
+                        creatingStorageAt: URL(fileURLWithPath: nvramPath),
+                        hardwareModel: hardwareModel,
+                        options: []
+                    )
+
+                    let config = VZVirtualMachineConfiguration()
+                    config.cpuCount = max(4, requirements.minimumSupportedCPUCount)
+                    if config.cpuCount > VZVirtualMachineConfiguration.maximumAllowedCPUCount {
+                        config.cpuCount = VZVirtualMachineConfiguration.maximumAllowedCPUCount
+                    }
+
+                    config.memorySize = max(4 * 1024 * 1024 * 1024, requirements.minimumSupportedMemorySize)
+                    if config.memorySize > VZVirtualMachineConfiguration.maximumAllowedMemorySize {
+                        config.memorySize = VZVirtualMachineConfiguration.maximumAllowedMemorySize
+                    }
+
+                    let platform = VZMacPlatformConfiguration()
+                    platform.hardwareModel = hardwareModel
+                    platform.machineIdentifier = machineIdentifier
+                    platform.auxiliaryStorage = auxiliaryStorage
+                    config.platform = platform
+
+                    config.bootLoader = VZMacOSBootLoader()
+
+                    let attachment = try VZDiskImageStorageDeviceAttachment(url: URL(fileURLWithPath: diskImgPath), readOnly: false)
+                    let blockDevice = VZVirtioBlockDeviceConfiguration(attachment: attachment)
+                    config.storageDevices = [blockDevice]
+
+                    let networkAttachment = VZNATNetworkDeviceAttachment()
+                    let networkConfig = VZVirtioNetworkDeviceConfiguration()
+                    networkConfig.attachment = networkAttachment
+                    config.networkDevices = [networkConfig]
+
+                    let entropy = VZVirtioEntropyDeviceConfiguration()
+                    config.entropyDevices = [entropy]
+
+                    let graphics = VZMacGraphicsDeviceConfiguration()
+                    let display = VZMacGraphicsDisplayConfiguration(widthInPixels: 1024, heightInPixels: 768, pixelsPerInch: 80)
+                    graphics.displays = [display]
+                    config.graphicsDevices = [graphics]
+
+                    config.keyboards = [VZUSBKeyboardConfiguration()]
+                    config.pointingDevices = [VZUSBScreenCoordinatePointingDeviceConfiguration()]
+
+                    try config.validate()
+
+                    let vm = VZVirtualMachine(configuration: config)
+                    let installer = VZMacOSInstaller(virtualMachine: vm, restoringFromImageAt: ipswURL)
+
+                    observation = installer.progress.observe(\.fractionCompleted, options: [.new]) { progress, change in
+                        let percent = (change.newValue ?? 0.0) * 100.0
+                        print(String(format: "Progress: %.2f%%", percent))
+                        fflush(stdout)
+                    }
+
+                    print("Starting macOS installation. This may take a while...")
+                    fflush(stdout)
+
+                    installer.install { result in
+                        observation?.invalidate()
+                        switch result {
+                        case .success:
+                            print("Installation completed successfully!")
+                            fflush(stdout)
+
+                            let hwB64 = hardwareModel.dataRepresentation.base64EncodedString()
+                            let machB64 = machineIdentifier.dataRepresentation.base64EncodedString()
+                            let jsonStr = """
+                            {
+                              "os": "macOS",
+                              "hardwareModel": "\(hwB64)",
+                              "machineIdentifier": "\(machB64)"
+                            }
+                            """
+
+                            do {
+                                try jsonStr.write(toFile: configJsonPath, atomically: true, encoding: String.Encoding.utf8)
+                                print("Configuration file successfully written to \(configJsonPath)")
+                                fflush(stdout)
+                                exit(0)
+                            } catch {
+                                print("Error: Failed to write configuration file: \(error.localizedDescription)", to: &errStream)
+                                exit(1)
+                            }
+                        case .failure(let error):
+                            print("Error: Installation failed: \(error.localizedDescription)", to: &errStream)
+                            exit(1)
+                        }
+                    }
+
+                } catch {
+                    print("Error: Configuration setup failed: \(error.localizedDescription)", to: &errStream)
+                    exit(1)
+                }
+
+            case .failure(let error):
+                print("Error: Failed to load restore image: \(error.localizedDescription)", to: &errStream)
+                exit(1)
             }
-        } catch {
-            observation.invalidate()
-            print("Error: Installation failed: \(error.localizedDescription)", to: &errStream)
-            exit(1)
         }
-
-        observation.invalidate()
-
-        print("Installation completed successfully!")
-        fflush(stdout)
-
-        let hwB64 = hardwareModel.dataRepresentation.base64EncodedString()
-        let machB64 = machineIdentifier.dataRepresentation.base64EncodedString()
-        let jsonStr = """
-        {
-          "os": "macOS",
-          "hardwareModel": "\(hwB64)",
-          "machineIdentifier": "\(machB64)"
-        }
-        """
-
-        try jsonStr.write(toFile: configJsonPath, atomically: true, encoding: String.Encoding.utf8)
-        print("Configuration file successfully written to \(configJsonPath)")
-        fflush(stdout)
-        exit(0)
-
-    } catch {
-        print("Error: Installation failed: \(error.localizedDescription)", to: &errStream)
-        exit(1)
     }
+
+    dispatchMain()
 }
 
 func runBoot(args: [String]) {
@@ -302,6 +315,33 @@ func runBoot(args: [String]) {
         try config.validate()
 
         let vm = VZVirtualMachine(configuration: config)
+
+        // Setup signal sources for SIGINT and SIGTERM to stop VM gracefully
+        let sigintSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+        let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+
+        let cleanupAndExit = {
+            print("\nStopping Virtual Machine gracefully...")
+            fflush(stdout)
+            vm.stop { error in
+                if let error = error {
+                    fputs("Warning: Failed to stop VM gracefully: \(error.localizedDescription)\n", stderr)
+                } else {
+                    print("VM stopped successfully.")
+                }
+                fflush(stdout)
+                exit(0)
+            }
+        }
+
+        sigintSource.setEventHandler(handler: cleanupAndExit)
+        sigtermSource.setEventHandler(handler: cleanupAndExit)
+
+        signal(SIGINT, SIG_IGN)
+        signal(SIGTERM, SIG_IGN)
+
+        sigintSource.resume()
+        sigtermSource.resume()
 
         print("Starting Virtual Machine (Headless)...")
         fflush(stdout)

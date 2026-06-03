@@ -50,14 +50,18 @@ class AppleVirtualization {
     final nvramPath = '$directoryPath/nvram.bin';
     final hardwareModelB64 = configData['hardwareModel'] as String?;
     final machineIdentifierB64 = configData['machineIdentifier'] as String?;
-    final macAddress = configData['macAddress'] as String?;
+    var macAddress = configData['macAddress'] as String?;
 
     if (hardwareModelB64 == null || machineIdentifierB64 == null) {
       throw StateError(
           'hardwareModel or machineIdentifier missing in config.json');
     }
-    if (macAddress == null) {
-      throw StateError('macAddress missing in config.json');
+    if (macAddress == null || macAddress.isEmpty) {
+      macAddress = _generateRandomMacAddress();
+      configData['macAddress'] = macAddress;
+      try {
+        configFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(configData));
+      } catch (_) {}
     }
 
     if (!File(diskImgPath).existsSync()) {
@@ -208,5 +212,20 @@ class AppleVirtualization {
       }
     }
     return a.compareTo(b);
+  }
+
+  static String _generateRandomMacAddress() {
+    final r = DateTime.now().microsecondsSinceEpoch;
+    // locally administered unicast
+    final firstByte = 0x02;
+    final mac = [
+      firstByte,
+      (r >> 32) & 0xff,
+      (r >> 24) & 0xff,
+      (r >> 16) & 0xff,
+      (r >> 8) & 0xff,
+      r & 0xff,
+    ];
+    return mac.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':');
   }
 }

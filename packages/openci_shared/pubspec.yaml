@@ -5,7 +5,7 @@ repository: https://github.com/openci-org/openci/tree/main/packages/openci_share
 resolution: workspace
 
 environment:
-  sdk: ">=3.11.5 <4.0.0"
+  sdk: ">=3.11.0 <4.0.0"
 
 dependencies:
   freezed_annotation: ^3.1.0

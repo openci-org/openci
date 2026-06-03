@@ -20,7 +20,21 @@ _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
       const [],
   selectedRepository: json['selectedRepository'] as String?,
   selectedBranch: json['selectedBranch'] as String?,
-  udid: json['udid'] as String?,
+  teamUdids:
+      (json['teamUdids'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+  teamDeviceProducts:
+      (json['teamDeviceProducts'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+  teamDeviceOsVersions:
+      (json['teamDeviceOsVersions'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
 );
 
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
@@ -32,7 +46,9 @@ Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
       'fcmTokens': instance.fcmTokens,
       'selectedRepository': instance.selectedRepository,
       'selectedBranch': instance.selectedBranch,
-      'udid': instance.udid,
+      'teamUdids': instance.teamUdids,
+      'teamDeviceProducts': instance.teamDeviceProducts,
+      'teamDeviceOsVersions': instance.teamDeviceOsVersions,
     };
 
 const _$NotificationPreferenceEnumMap = {

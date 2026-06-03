@@ -13,7 +13,7 @@ case "fetch-ipsw-url":
     await runFetchIpswUrl(args: args)
 
 case "install":
-    await runInstall(args: args)
+    runInstall(args: args)
 
 case "boot":
     runBoot(args: args)
