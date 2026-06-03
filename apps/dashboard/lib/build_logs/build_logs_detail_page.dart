@@ -1652,6 +1652,13 @@ class _DetailLogsView extends HookConsumerWidget {
         final nearBottom = (maxScroll - currentScroll) <= 200;
         showScrollToBottom.value = !nearBottom;
         isNearBottom.value = nearBottom;
+
+        if (nearBottom) {
+          final notifier = ref.read(buildLogsProvider(buildJobId, runId).notifier);
+          if (notifier.hasMore && !notifier.isLoadingMore) {
+            notifier.loadMore();
+          }
+        }
       }
 
       scrollController.addListener(listener);
@@ -1663,7 +1670,10 @@ class _DetailLogsView extends HookConsumerWidget {
         if (logs.length != prevLogCount.value) {
           final wasNearBottom = isNearBottom.value;
           prevLogCount.value = logs.length;
-          if (wasNearBottom && scrollController.hasClients) {
+          final isRunning = buildStatus == BuildJobStatus.IN_PROGRESS ||
+              buildStatus == BuildJobStatus.QUEUED ||
+              buildStatus == BuildJobStatus.WAITING;
+          if (isRunning && wasNearBottom && scrollController.hasClients) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (scrollController.hasClients) {
                 scrollController.animateTo(

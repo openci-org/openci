@@ -6,6 +6,7 @@ import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
 import 'package:sentry/sentry.dart';
+import 'package:uuid/uuid.dart';
 
 final _log = Logger('Docker');
 
@@ -95,13 +96,15 @@ Future<void> writeFileToContainer(
 ) async {
   // Write to a temp file, then docker cp
   final tmpFile = File(
-    '/tmp/openci-tmp-${DateTime.now().millisecondsSinceEpoch}',
+    '/tmp/openci-tmp-${const Uuid().v4()}',
   );
   await tmpFile.writeAsString(content);
   try {
     await copyToContainer(name, tmpFile.path, remotePath);
   } finally {
-    await tmpFile.delete();
+    try {
+      await tmpFile.delete();
+    } catch (_) {}
   }
 }
 

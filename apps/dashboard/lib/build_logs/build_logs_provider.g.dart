@@ -41,17 +41,11 @@ Json? _$JsonConverterToJson<Json, Value>(
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(buildLogs)
+@ProviderFor(BuildLogs)
 final buildLogsProvider = BuildLogsFamily._();
 
 final class BuildLogsProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<BuildLog>>,
-          List<BuildLog>,
-          Stream<List<BuildLog>>
-        >
-    with $FutureModifier<List<BuildLog>>, $StreamProvider<List<BuildLog>> {
+    extends $AsyncNotifierProvider<BuildLogs, List<BuildLog>> {
   BuildLogsProvider._({
     required BuildLogsFamily super.from,
     required (String, String) super.argument,
@@ -75,15 +69,7 @@ final class BuildLogsProvider
 
   @$internal
   @override
-  $StreamProviderElement<List<BuildLog>> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
-
-  @override
-  Stream<List<BuildLog>> create(Ref ref) {
-    final argument = this.argument as (String, String);
-    return buildLogs(ref, argument.$1, argument.$2);
-  }
+  BuildLogs create() => BuildLogs();
 
   @override
   bool operator ==(Object other) {
@@ -96,10 +82,17 @@ final class BuildLogsProvider
   }
 }
 
-String _$buildLogsHash() => r'b8050e020ce89b8e26cae2eacc84149b3e04809d';
+String _$buildLogsHash() => r'cf56d639153fd7a729e2451b74b3506e4393ee84';
 
 final class BuildLogsFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
+    with
+        $ClassFamilyOverride<
+          BuildLogs,
+          AsyncValue<List<BuildLog>>,
+          List<BuildLog>,
+          FutureOr<List<BuildLog>>,
+          (String, String)
+        > {
   BuildLogsFamily._()
     : super(
         retry: null,
@@ -114,4 +107,26 @@ final class BuildLogsFamily extends $Family
 
   @override
   String toString() => r'buildLogsProvider';
+}
+
+abstract class _$BuildLogs extends $AsyncNotifier<List<BuildLog>> {
+  late final _$args = ref.$arg as (String, String);
+  String get buildJobId => _$args.$1;
+  String get runId => _$args.$2;
+
+  FutureOr<List<BuildLog>> build(String buildJobId, String runId);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<List<BuildLog>>, List<BuildLog>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<BuildLog>>, List<BuildLog>>,
+              AsyncValue<List<BuildLog>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args.$1, _$args.$2));
+  }
 }

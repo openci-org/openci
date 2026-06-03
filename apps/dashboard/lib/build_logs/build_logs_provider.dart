@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/users/user_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -8,34 +10,139 @@ part 'build_logs_provider.freezed.dart';
 part 'build_logs_provider.g.dart';
 
 @riverpod
-Stream<List<BuildLog>> buildLogs(
-  Ref ref,
-  String buildJobId,
-  String runId,
-) async* {
-  final teamId = ref.watch(userProvider).value?.selectedTeamId;
-  if (teamId == null) {
-    yield const [];
-    return;
-  }
-  final buildJob = await firestore
-      .collection(buildJobsCollection)
-      .doc(buildJobId)
-      .get();
-  if (buildJob.data()?['teamId'] != teamId) {
-    yield const [];
-    return;
+class BuildLogs extends _$BuildLogs {
+  static const int _pageSize = 200;
+  static const int _maxLiveLogLimit = 500;
+
+  DocumentSnapshot? _lastDoc;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _logsSubscription;
+
+  @override
+  FutureOr<List<BuildLog>> build(String buildJobId, String runId) async {
+    ref.onDispose(() {
+      _logsSubscription?.cancel();
+    });
+
+    final teamId = ref.watch(userProvider).value?.selectedTeamId;
+    if (teamId == null) {
+      return const [];
+    }
+
+    final buildJobDoc = await firestore
+        .collection(buildJobsCollection)
+        .doc(buildJobId)
+        .get();
+    if (buildJobDoc.data()?['teamId'] != teamId) {
+      return const [];
+    }
+
+    final buildStatus = buildJobStatusFromFirestore(buildJobDoc.data()?['status']);
+    final isRunning = buildStatus == BuildJobStatus.IN_PROGRESS ||
+        buildStatus == BuildJobStatus.QUEUED ||
+        buildStatus == BuildJobStatus.WAITING;
+
+    final query = firestore
+        .collection(buildJobsCollection)
+        .doc(buildJobId)
+        .collection('runs')
+        .doc(runId)
+        .collection('logs')
+        .orderBy('timestamp')
+        .limit(_pageSize);
+
+    final snapshot = await query.get();
+    if (snapshot.docs.isNotEmpty) {
+      _lastDoc = snapshot.docs.last;
+    }
+    _hasMore = snapshot.docs.length >= _pageSize;
+
+    final initialLogs = _buildLogsFromDocs(snapshot.docs);
+
+    if (isRunning) {
+      _startRealtimeListener(buildJobId, runId, initialLogs);
+    }
+
+    return initialLogs;
   }
 
-  yield* firestore
-      .collection(buildJobsCollection)
-      .doc(buildJobId)
-      .collection('runs')
-      .doc(runId)
-      .collection('logs')
-      .orderBy('timestamp')
-      .snapshots()
-      .map((result) => _buildLogsFromDocs(result.docs));
+  void _startRealtimeListener(
+    String buildJobId,
+    String runId,
+    List<BuildLog> initialLogs,
+  ) {
+    _logsSubscription?.cancel();
+
+    Query<Map<String, dynamic>> query = firestore
+        .collection(buildJobsCollection)
+        .doc(buildJobId)
+        .collection('runs')
+        .doc(runId)
+        .collection('logs')
+        .orderBy('timestamp');
+
+    if (_lastDoc != null) {
+      query = query.startAfterDocument(_lastDoc!);
+    }
+
+    _logsSubscription = query.snapshots().listen(
+      (snapshot) {
+        if (snapshot.docs.isEmpty) return;
+
+        final newLogs = _buildLogsFromDocs(snapshot.docs);
+        final currentList = [...?state.value, ...newLogs];
+
+        if (currentList.length > _maxLiveLogLimit) {
+          state = AsyncData(
+            currentList.sublist(currentList.length - _maxLiveLogLimit),
+          );
+        } else {
+          state = AsyncData(currentList);
+        }
+
+        _lastDoc = snapshot.docs.last;
+      },
+      onError: (err, stack) {
+        debugPrint('Realtime log listener error: $err\n$stack');
+      },
+    );
+  }
+
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore || _lastDoc == null) return;
+
+    _isLoadingMore = true;
+    try {
+      final query = firestore
+          .collection(buildJobsCollection)
+          .doc(buildJobId)
+          .collection('runs')
+          .doc(runId)
+          .collection('logs')
+          .orderBy('timestamp')
+          .startAfterDocument(_lastDoc!)
+          .limit(_pageSize);
+
+      final snapshot = await query.get();
+      if (snapshot.docs.isNotEmpty) {
+        _lastDoc = snapshot.docs.last;
+      }
+      _hasMore = snapshot.docs.length >= _pageSize;
+
+      final moreLogs = _buildLogsFromDocs(snapshot.docs);
+      final currentList = [...?state.value, ...moreLogs];
+
+      state = AsyncData(currentList);
+    } catch (e, st) {
+      debugPrint('Error loading more logs: $e\n$st');
+    } finally {
+      _isLoadingMore = false;
+    }
+  }
+
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
 }
 
 @freezed
