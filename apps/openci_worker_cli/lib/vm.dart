@@ -7,6 +7,7 @@ import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/logger.dart';
 import 'package:avf_dart/avf_dart.dart';
 import 'package:sentry/sentry.dart';
+import 'package:uuid/uuid.dart';
 
 final _log = Logger('VM');
 
@@ -395,7 +396,7 @@ Future<void> writeFileToVm(
   // already installed by setupDirectSsh and, like ssh, is exempt from macOS
   // Local Network privacy when the worker runs as a LaunchAgent.
   final local = File(
-    '/tmp/openci-upload-${DateTime.now().microsecondsSinceEpoch}',
+    '/tmp/openci-upload-${const Uuid().v4()}',
   );
   local.writeAsStringSync(content);
   try {
