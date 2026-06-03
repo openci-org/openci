@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.24
+
+- Fix: Ensure all completion callback operations in `runInstall` are dispatched onto the main thread queue. This fixes the thread-safety assertion crash (exit code -5 / SIGTRAP) when instantiating `VZVirtualMachine` inside a background-thread callback context.
+
 ## 0.1.23
 
 - Fix: macOS installation failed with exit code -5 (SIGTRAP) by wrapping installation sequence inside main thread queue and executing `dispatchMain()`.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10
+
+- Update `avf_dart` to `0.1.24` to resolve thread-safety crash on macOS installation completion callback.
+
 ## 0.1.9
 
 - Update `avf_dart` to `0.1.23` to resolve macOS installer crash on headless environments.

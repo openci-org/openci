@@ -1,6 +1,6 @@
 name: avf_cli
 description: CLI tool for managing Apple Virtualization.framework macOS VMs, powered by avf_dart.
-version: 0.1.9
+version: 0.1.10
 
 repository: https://github.com/openci-org/openci/tree/main/packages/avf_cli
 resolution: workspace
@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   args: ^2.5.0
-  avf_dart: ^0.1.23
+  avf_dart: ^0.1.24
   cli_util: ^0.4.1
   hooks: ^2.0.0
   path: ^1.9.0
