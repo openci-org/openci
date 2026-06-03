@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.11
+
+- Update `avf_dart` to `0.1.25` for VM signal handling and automatic MAC address generation.
+
 ## 0.1.10
 
 - Update `avf_dart` to `0.1.24` to resolve thread-safety crash on macOS installation completion callback.

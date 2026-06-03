@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.25
+
+- Fix: Add VM signal handling (SIGINT/SIGTERM) to shut down VM gracefully.
+- Fix: Auto-generate random MAC address if not specified in config.json.
+
 ## 0.1.24
 
 - Fix: Ensure all completion callback operations in `runInstall` are dispatched onto the main thread queue. This fixes the thread-safety assertion crash (exit code -5 / SIGTRAP) when instantiating `VZVirtualMachine` inside a background-thread callback context.
