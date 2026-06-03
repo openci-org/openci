@@ -221,7 +221,9 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
               width: double.infinity,
               child: TextButton(
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.of(context).textPrimary,
+                  foregroundColor: selectedTeamId.value != null
+                      ? AppColors.of(context).accentOnAccent
+                      : AppColors.of(context).textTertiary,
                   backgroundColor: selectedTeamId.value != null
                       ? AppColors.of(context).accent
                       : AppColors.of(context).divider,
@@ -285,7 +287,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.of(context).textPrimary,
+                          color: AppColors.of(context).accentOnAccent,
                         ),
                       )
                     : Text(
@@ -294,7 +296,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: selectedTeamId.value != null
-                              ? AppColors.of(context).textPrimary
+                              ? AppColors.of(context).accentOnAccent
                               : AppColors.of(context).textTertiary,
                         ),
                       ),
