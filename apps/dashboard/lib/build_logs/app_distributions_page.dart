@@ -1,4 +1,3 @@
-
 import 'package:app_minimizer_plus/app_minimizer_plus.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
@@ -215,7 +214,8 @@ class _DeviceEnrollmentHeader extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasUdid = user.udid != null && user.udid!.isNotEmpty;
+    final hasUdid =
+        user.currentTeamUdid != null && user.currentTeamUdid!.isNotEmpty;
     final isUdidVisible = useState(false);
 
     return Card(
@@ -252,8 +252,8 @@ class _DeviceEnrollmentHeader extends HookWidget {
                         child: Text(
                           hasUdid
                               ? (isUdidVisible.value
-                                    ? 'UDID: ${user.udid}'
-                                    : 'UDID: ${_maskUdid(user.udid!)}')
+                                    ? 'UDID: ${user.currentTeamUdid}'
+                                    : 'UDID: ${_maskUdid(user.currentTeamUdid!)}')
                               : 'iOSアプリをインストールするには、この端末のUDID登録が必要です。',
                           style: TextStyle(
                             fontSize: 12,
@@ -297,7 +297,8 @@ class _DeviceEnrollmentHeader extends HookWidget {
                 final origin = kIsWeb
                     ? Uri.base.origin
                     : 'https://dashboard.openci.org';
-                final enrollUrl = '$origin/enroll-udid?userId=${user.id}';
+                final enrollUrl =
+                    '$origin/enroll-udid?userId=${user.id}&teamId=${user.selectedTeamId}';
                 final uri = Uri.parse(enrollUrl);
                 try {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -419,7 +420,7 @@ class _BuildListItem extends HookWidget {
     final dateText =
         '${buildJob.createdAt.toLocal().year}/${buildJob.createdAt.toLocal().month.toString().padLeft(2, '0')}/${buildJob.createdAt.toLocal().day.toString().padLeft(2, '0')} ${buildJob.createdAt.toLocal().hour.toString().padLeft(2, '0')}:${buildJob.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
-    final userUdid = user.udid;
+    final userUdid = user.currentTeamUdid;
     final isUdidProvisioned =
         userUdid != null &&
         buildJob.provisionedUdids != null &&
@@ -690,7 +691,7 @@ class _BuildListItem extends HookWidget {
                                   .set({
                                     'id': requestId,
                                     'userId': user.id,
-                                    'udid': user.udid,
+                                    'udid': user.currentTeamUdid,
                                     'deviceProduct': 'Unknown',
                                     'deviceOsVersion': 'Unknown',
                                     'teamId': user.selectedTeamId,
@@ -941,7 +942,6 @@ class QrCodeWidget extends StatelessWidget {
     );
   }
 }
-
 
 class _IosDistributionQrDialog extends HookWidget {
   const _IosDistributionQrDialog({required this.buildJob});
