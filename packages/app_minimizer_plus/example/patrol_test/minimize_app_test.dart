@@ -16,7 +16,8 @@ void main() {
     if (Platform.isIOS) {
       await $(#minimizeButton).tap();
 
-      await Future<void>.delayed(const Duration(seconds: 2));
+      // Wait 10 seconds to allow the app to fully transition to the background.
+      await Future<void>.delayed(const Duration(seconds: 10));
 
       final lifecycleState = WidgetsBinding.instance.lifecycleState;
       expect(
