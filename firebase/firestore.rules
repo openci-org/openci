@@ -61,9 +61,9 @@ service cloud.firestore {
                 'selectedBranch',
                 'notificationPreference',
                 'fcmTokens',
-                'udid',
-                'deviceProduct',
-                'deviceOsVersion',
+                'teamUdids',
+                'teamDeviceProducts',
+                'teamDeviceOsVersions',
                 'createdAt',
                 'updatedAt'
             ]);
@@ -80,9 +80,9 @@ service cloud.firestore {
                 'selectedBranch',
                 'notificationPreference',
                 'fcmTokens',
-                'udid',
-                'deviceProduct',
-                'deviceOsVersion',
+                'teamUdids',
+                'teamDeviceProducts',
+                'teamDeviceOsVersions',
                 'updatedAt'
             ]);
         }
@@ -120,9 +120,9 @@ service cloud.firestore {
                 && isOptionalString(data.photoUrl, 2000)
                 && isOptionalString(data.selectedRepository, 500)
                 && isOptionalString(data.selectedBranch, 500)
-                && (!('udid' in data) || isOptionalString(data.udid, 100))
-                && (!('deviceProduct' in data) || isOptionalString(data.deviceProduct, 100))
-                && (!('deviceOsVersion' in data) || isOptionalString(data.deviceOsVersion, 100))
+                && (!('teamUdids' in data) || data.teamUdids is map)
+                && (!('teamDeviceProducts' in data) || data.teamDeviceProducts is map)
+                && (!('teamDeviceOsVersions' in data) || data.teamDeviceOsVersions is map)
                 && (!('notificationPreference' in data)
                     || data.notificationPreference in ['all', 'successOnly', 'failureOnly', 'none'])
                 && (!('fcmTokens' in data)
@@ -144,12 +144,12 @@ service cloud.firestore {
                     || isOptionalString(request.resource.data.selectedRepository, 500))
                 && (!changedUserFields().hasAny(['selectedBranch'])
                     || isOptionalString(request.resource.data.selectedBranch, 500))
-                && (!changedUserFields().hasAny(['udid'])
-                    || isOptionalString(request.resource.data.udid, 100))
-                && (!changedUserFields().hasAny(['deviceProduct'])
-                    || isOptionalString(request.resource.data.deviceProduct, 100))
-                && (!changedUserFields().hasAny(['deviceOsVersion'])
-                    || isOptionalString(request.resource.data.deviceOsVersion, 100))
+                && (!changedUserFields().hasAny(['teamUdids'])
+                    || request.resource.data.teamUdids is map)
+                && (!changedUserFields().hasAny(['teamDeviceProducts'])
+                    || request.resource.data.teamDeviceProducts is map)
+                && (!changedUserFields().hasAny(['teamDeviceOsVersions'])
+                    || request.resource.data.teamDeviceOsVersions is map)
                 && (!changedUserFields().hasAny(['notificationPreference'])
                     || request.resource.data.notificationPreference in ['all', 'successOnly', 'failureOnly', 'none'])
                 && (!changedUserFields().hasAny(['fcmTokens'])

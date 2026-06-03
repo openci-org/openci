@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avf_dart/avf_dart.dart';
+import 'package:avf_dart/src/file_transfer.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -185,6 +186,24 @@ void main() {
       );
 
       expect(await vmDir.exists(), isFalse);
+    });
+
+    test('downloadFile creates parent directory when initiated', () async {
+      final nonExistentSubDir = Directory('${tempDir.path}/nested/downloads');
+      final targetFile = File('${nonExistentSubDir.path}/test_file.ipsw');
+
+      expect(nonExistentSubDir.existsSync(), isFalse);
+
+      try {
+        await downloadFile(
+          uri: Uri.parse('http://127.0.0.1:9999/non-existent.ipsw'),
+          savePath: targetFile.path,
+        );
+      } catch (_) {
+        // Expected to fail due to connection failure, but we check if directory is created
+      }
+
+      expect(nonExistentSubDir.existsSync(), isTrue);
     });
   });
 }

@@ -1,4 +1,6 @@
-const version = '0.10.33';
+import 'package:openci_worker_cli/src/version.dart';
+
+const version = packageVersion;
 
 // macOS (Lume VM)
 const baseVmName = 'tahoe-base_v1.1.1';

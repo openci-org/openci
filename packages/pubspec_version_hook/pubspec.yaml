@@ -1,0 +1,15 @@
+name: pubspec_version_hook
+description: A Dart build hook utility to automatically sync the version in pubspec.yaml to a Dart source file.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/openci-org/openci/tree/main/packages/pubspec_version_hook
+resolution: workspace
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+
+dependencies:
+  hooks: ^2.0.0
+
+dev_dependencies:
+  test: ^1.30.0

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/github/repository_aliases.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,8 +28,18 @@ abstract class OpenCIUser with _$OpenCIUser {
     @Default([]) List<String> fcmTokens,
     String? selectedRepository,
     String? selectedBranch,
-    String? udid,
+    @Default({}) Map<String, String> teamUdids,
+    @Default({}) Map<String, String> teamDeviceProducts,
+    @Default({}) Map<String, String> teamDeviceOsVersions,
   }) = _OpenCIUser;
+
+  const OpenCIUser._();
+
+  String? get currentTeamUdid => teamUdids[selectedTeamId];
+  String? get currentTeamDeviceProduct => teamDeviceProducts[selectedTeamId];
+  String? get currentTeamDeviceOsVersion =>
+      teamDeviceOsVersions[selectedTeamId];
+
   factory OpenCIUser.fromJson(Map<String, Object?> json) =>
       _$OpenCIUserFromJson(json);
 }
@@ -182,6 +192,12 @@ OpenCIUser _openCIUserFromSnapshot(
       _ => null,
     },
     selectedBranch: data['selectedBranch'] as String?,
-    udid: data['udid'] as String?,
+    teamUdids: Map<String, String>.from(data['teamUdids'] as Map? ?? {}),
+    teamDeviceProducts: Map<String, String>.from(
+      data['teamDeviceProducts'] as Map? ?? {},
+    ),
+    teamDeviceOsVersions: Map<String, String>.from(
+      data['teamDeviceOsVersions'] as Map? ?? {},
+    ),
   );
 }
