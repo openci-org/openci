@@ -75,33 +75,31 @@ func runInstall(args: [String]) {
 
     let ipswURL = URL(fileURLWithPath: ipswPath)
     
-    DispatchQueue.main.async {
-        Task {
-            print("Loading IPSW restore image...")
-            fflush(stdout)
-            
+    print("Loading IPSW restore image...")
+    fflush(stdout)
+
+    // Keep KVO observation reference alive outside completion handler scope
+    var observation: NSKeyValueObservation?
+
+    VZMacOSRestoreImage.load(from: ipswURL) { result in
+        switch result {
+        case .success(let restoreImage):
+            guard let requirements = restoreImage.mostFeaturefulSupportedConfiguration else {
+                print("Error: Failed to retrieve configuration requirements from restore image.", to: &errStream)
+                exit(1)
+            }
+
+            let hardwareModel = requirements.hardwareModel
+            let machineIdentifier = VZMacMachineIdentifier()
+
+            // Clean up existing NVRAM file if it exists, avoiding the "File exists" error
+            if fileManager.fileExists(atPath: nvramPath) {
+                print("Removing existing NVRAM file at \(nvramPath) to re-initialize auxiliary storage...")
+                fflush(stdout)
+                try? fileManager.removeItem(atPath: nvramPath)
+            }
+
             do {
-                let restoreImage: VZMacOSRestoreImage = try await withCheckedThrowingContinuation { continuation in
-                    VZMacOSRestoreImage.load(from: ipswURL) { result in
-                        continuation.resume(with: result)
-                    }
-                }
-
-                guard let requirements = restoreImage.mostFeaturefulSupportedConfiguration else {
-                    print("Error: Failed to retrieve configuration requirements from restore image.", to: &errStream)
-                    exit(1)
-                }
-
-                let hardwareModel = requirements.hardwareModel
-                let machineIdentifier = VZMacMachineIdentifier()
-
-                // Clean up existing NVRAM file if it exists, avoiding the "File exists" error
-                if fileManager.fileExists(atPath: nvramPath) {
-                    print("Removing existing NVRAM file at \(nvramPath) to re-initialize auxiliary storage...")
-                    fflush(stdout)
-                    try? fileManager.removeItem(atPath: nvramPath)
-                }
-
                 let auxiliaryStorage = try VZMacAuxiliaryStorage(
                     creatingStorageAt: URL(fileURLWithPath: nvramPath),
                     hardwareModel: hardwareModel,
@@ -152,7 +150,7 @@ func runInstall(args: [String]) {
                 let vm = VZVirtualMachine(configuration: config)
                 let installer = VZMacOSInstaller(virtualMachine: vm, restoringFromImageAt: ipswURL)
 
-                let observation = installer.progress.observe(\.fractionCompleted, options: [.new]) { progress, change in
+                observation = installer.progress.observe(\.fractionCompleted, options: [.new]) { progress, change in
                     let percent = (change.newValue ?? 0.0) * 100.0
                     print(String(format: "Progress: %.2f%%", percent))
                     fflush(stdout)
@@ -161,47 +159,46 @@ func runInstall(args: [String]) {
                 print("Starting macOS installation. This may take a while...")
                 fflush(stdout)
 
-                do {
-                    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                        installer.install { result in
-                            switch result {
-                            case .success:
-                                continuation.resume()
-                            case .failure(let error):
-                                continuation.resume(throwing: error)
-                            }
+                installer.install { result in
+                    observation?.invalidate()
+                    switch result {
+                    case .success:
+                        print("Installation completed successfully!")
+                        fflush(stdout)
+
+                        let hwB64 = hardwareModel.dataRepresentation.base64EncodedString()
+                        let machB64 = machineIdentifier.dataRepresentation.base64EncodedString()
+                        let jsonStr = """
+                        {
+                          "os": "macOS",
+                          "hardwareModel": "\(hwB64)",
+                          "machineIdentifier": "\(machB64)"
                         }
+                        """
+
+                        do {
+                            try jsonStr.write(toFile: configJsonPath, atomically: true, encoding: String.Encoding.utf8)
+                            print("Configuration file successfully written to \(configJsonPath)")
+                            fflush(stdout)
+                            exit(0)
+                        } catch {
+                            print("Error: Failed to write configuration file: \(error.localizedDescription)", to: &errStream)
+                            exit(1)
+                        }
+                    case .failure(let error):
+                        print("Error: Installation failed: \(error.localizedDescription)", to: &errStream)
+                        exit(1)
                     }
-                } catch {
-                    observation.invalidate()
-                    print("Error: Installation failed: \(error.localizedDescription)", to: &errStream)
-                    exit(1)
                 }
-
-                observation.invalidate()
-
-                print("Installation completed successfully!")
-                fflush(stdout)
-
-                let hwB64 = hardwareModel.dataRepresentation.base64EncodedString()
-                let machB64 = machineIdentifier.dataRepresentation.base64EncodedString()
-                let jsonStr = """
-                {
-                  "os": "macOS",
-                  "hardwareModel": "\(hwB64)",
-                  "machineIdentifier": "\(machB64)"
-                }
-                """
-
-                try jsonStr.write(toFile: configJsonPath, atomically: true, encoding: String.Encoding.utf8)
-                print("Configuration file successfully written to \(configJsonPath)")
-                fflush(stdout)
-                exit(0)
 
             } catch {
-                print("Error: Installation failed: \(error.localizedDescription)", to: &errStream)
+                print("Error: Configuration setup failed: \(error.localizedDescription)", to: &errStream)
                 exit(1)
             }
+
+        case .failure(let error):
+            print("Error: Failed to load restore image: \(error.localizedDescription)", to: &errStream)
+            exit(1)
         }
     }
 
