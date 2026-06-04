@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "build": "ncc build index.ts -o dist --license licenses.txt --no-cache",
+    "build": "ncc build index.ts -o dist --license licenses.txt --no-cache --transpile-only",
     "check": "vp check",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
