@@ -199876,10 +199876,11 @@ async function listEnabledDeviceIds(jwt) {
 async function createProvisioningProfile(jwt, certificateId, bundleIdentifier, profileType, deviceIds = []) {
     const bundleIdResponse = await ascApi(jwt, `/bundleIds?filter[identifier]=${encodeURIComponent(bundleIdentifier)}`);
     const bundleIds = bundleIdResponse?.data ?? [];
-    if (bundleIds.length === 0) {
+    const bundleIdRecord = bundleIds.find((b) => b.attributes?.identifier === bundleIdentifier);
+    if (!bundleIdRecord) {
         throw new Error(`Bundle ID not found: ${bundleIdentifier}. Register it in Apple Developer Portal first.`);
     }
-    const bundleIdResourceId = bundleIds[0].id;
+    const bundleIdResourceId = bundleIdRecord.id;
     const label = profileLabel(profileType);
     const allProfiles = await ascApi(jwt, "/profiles?limit=200");
     const profileNamePrefix = `OpenCI ${label} ${bundleIdentifier} `;
@@ -200399,7 +200400,8 @@ async function buildAndSignIos() {
         core.startGroup("Step 1: Configuring Flutter dependency manager");
         const pubGetAlreadyRan = await (0, flutter_1.configureSwiftPackageManager)(swiftPackageManagerMode, workingDirectory);
         core.endGroup();
-        const { bundleId, teamId: appleTeamId } = parsePbxproj(workingDirectory);
+        const flavor = parseFlavor(buildArgs);
+        const { bundleId, teamId: appleTeamId } = parsePbxproj(workingDirectory, flavor);
         // ── Step 2: Generate ASC JWT ────────────────────────────
         core.startGroup("Step 2: Generating App Store Connect JWT");
         const ascKeyPath = path.join(tmpDir, "AuthKey.p8");
@@ -200688,34 +200690,88 @@ function generateExportOptions(outputPath, teamId, bundleId, profileName, distri
 // ══════════════════════════════════════════════════════════════
 // Xcode project parsing
 // ══════════════════════════════════════════════════════════════
-function parsePbxproj(workingDirectory) {
+function parseFlavor(buildArgs) {
+    const match = buildArgs.match(/--flavor\s+(\S+)|--flavor=(\S+)/);
+    if (match) {
+        return match[1] || match[2];
+    }
+    return undefined;
+}
+function parsePbxproj(workingDirectory, flavor) {
     const pbxprojPath = path.join(workingDirectory, "ios/Runner.xcodeproj/project.pbxproj");
     if (!fs.existsSync(pbxprojPath)) {
         throw new Error("project.pbxproj not found. Is this a Flutter iOS project?");
     }
     const content = fs.readFileSync(pbxprojPath, "utf-8");
-    const bundleMatches = content.match(/PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);/g);
-    if (!bundleMatches || bundleMatches.length === 0) {
-        throw new Error("PRODUCT_BUNDLE_IDENTIFIER not found in project.pbxproj");
+    // 1. Extract XCBuildConfiguration section
+    const startIdx = content.indexOf("/* Begin XCBuildConfiguration section */");
+    const endIdx = content.indexOf("/* End XCBuildConfiguration section */");
+    if (startIdx === -1 || endIdx === -1) {
+        throw new Error("XCBuildConfiguration section not found in project.pbxproj");
     }
-    const bundleIds = [
-        ...new Set(bundleMatches
-            .map((m) => m.replace("PRODUCT_BUNDLE_IDENTIFIER = ", "").replace(";", "").trim())
-            .filter((id) => !id.includes("$(") && !id.includes("Tests"))),
-    ];
-    if (bundleIds.length === 0) {
+    const section = content.substring(startIdx, endIdx);
+    // 2. Parse configurations
+    const blocks = section.split("isa = XCBuildConfiguration;");
+    const configs = [];
+    for (let i = 1; i < blocks.length; i++) {
+        const block = blocks[i];
+        const nameMatch = block.match(/name\s*=\s*(?:"([^"]+)"|([^;\s]+))\s*;/);
+        if (!nameMatch)
+            continue;
+        const configName = nameMatch[1] || nameMatch[2];
+        const bundleMatch = block.match(/PRODUCT_BUNDLE_IDENTIFIER\s*=\s*([^;\s]+)\s*;/);
+        const teamMatch = block.match(/DEVELOPMENT_TEAM\s*=\s*([^;\s]+)\s*;/);
+        configs.push({
+            name: configName,
+            bundleId: bundleMatch ? bundleMatch[1].replace(/"|;/g, "").trim() : undefined,
+            teamId: teamMatch ? teamMatch[1].replace(/"|;/g, "").trim() : undefined,
+        });
+    }
+    // 3. Find target configuration matching the flavor
+    let targetConfig;
+    if (flavor) {
+        const lowerFlavor = flavor.toLowerCase();
+        targetConfig = configs.find((c) => c.name.toLowerCase() === `release-${lowerFlavor}`);
+        if (!targetConfig)
+            targetConfig = configs.find((c) => c.name.toLowerCase() === `profile-${lowerFlavor}`);
+        if (!targetConfig)
+            targetConfig = configs.find((c) => c.name.toLowerCase() === `debug-${lowerFlavor}`);
+        if (!targetConfig)
+            targetConfig = configs.find((c) => c.name.toLowerCase().includes(lowerFlavor));
+    }
+    else {
+        targetConfig = configs.find((c) => c.name.toLowerCase() === "release");
+        if (!targetConfig)
+            targetConfig = configs.find((c) => c.name.toLowerCase() === "profile");
+        if (!targetConfig)
+            targetConfig = configs.find((c) => c.name.toLowerCase() === "debug");
+    }
+    // 4. Extract bundle ID and team ID
+    let bundleId = targetConfig?.bundleId;
+    if (!bundleId) {
+        // Fallback: any valid PRODUCT_BUNDLE_IDENTIFIER
+        const validConfig = configs.find((c) => c.bundleId && !c.bundleId.includes("$(") && !c.bundleId.includes("Tests"));
+        bundleId = validConfig?.bundleId;
+    }
+    if (!bundleId) {
         throw new Error("No valid PRODUCT_BUNDLE_IDENTIFIER found in project.pbxproj");
     }
-    const teamMatches = content.match(/DEVELOPMENT_TEAM = ([A-Z0-9]+);/g);
-    if (!teamMatches || teamMatches.length === 0) {
+    // Team ID fallback to first found globally or in configs
+    let teamId = targetConfig?.teamId;
+    if (!teamId) {
+        const teamMatches = content.match(/DEVELOPMENT_TEAM = ([A-Z0-9]+);/);
+        teamId = teamMatches ? teamMatches[1] : undefined;
+    }
+    if (!teamId) {
+        const validConfig = configs.find((c) => c.teamId);
+        teamId = validConfig?.teamId;
+    }
+    if (!teamId) {
         throw new Error("DEVELOPMENT_TEAM not found in project.pbxproj. Open the project in Xcode and set your team first.");
     }
-    const teamIds = [
-        ...new Set(teamMatches.map((m) => m.replace("DEVELOPMENT_TEAM = ", "").replace(";", "").trim())),
-    ];
-    console.log(`  📦 Auto-detected bundle ID: ${bundleIds[0]}`);
-    console.log(`  👥 Auto-detected team ID: ${teamIds[0]}`);
-    return { bundleId: bundleIds[0], teamId: teamIds[0] };
+    console.log(`  📦 Auto-detected bundle ID: ${bundleId}`);
+    console.log(`  👥 Auto-detected team ID: ${teamId}`);
+    return { bundleId, teamId };
 }
 // ══════════════════════════════════════════════════════════════
 // Version parsing

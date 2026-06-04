@@ -424,12 +424,13 @@ export async function createProvisioningProfile(
     `/bundleIds?filter[identifier]=${encodeURIComponent(bundleIdentifier)}`,
   );
   const bundleIds = bundleIdResponse?.data ?? [];
-  if (bundleIds.length === 0) {
+  const bundleIdRecord = bundleIds.find((b: any) => b.attributes?.identifier === bundleIdentifier);
+  if (!bundleIdRecord) {
     throw new Error(
       `Bundle ID not found: ${bundleIdentifier}. Register it in Apple Developer Portal first.`,
     );
   }
-  const bundleIdResourceId = bundleIds[0].id as string;
+  const bundleIdResourceId = bundleIdRecord.id as string;
 
   const label = profileLabel(profileType);
   const allProfiles = await ascApi(jwt, "/profiles?limit=200");
