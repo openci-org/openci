@@ -8,6 +8,13 @@ class DateTimeConverter implements JsonConverter<DateTime, Object> {
     if (value is String) {
       return DateTime.parse(value);
     }
+    try {
+      if (value.runtimeType.toString().contains('Timestamp')) {
+        return (value as dynamic).toDate() as DateTime;
+      }
+    } catch (_) {
+      // 変換失敗時のフォールバック処理用
+    }
     throw ArgumentError(
       'Invalid type for DateTime conversion: ${value.runtimeType}',
     );
