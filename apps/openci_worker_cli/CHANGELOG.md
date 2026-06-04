@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.35
+
+- Feature: Shorten build log `[Workflow/Job]` prefixes to a shorter `[Job]` format for better mobile visibility.
+
 ## 0.10.34
 
 - Fix: Avoid reporting worker status as error when a build job (CI run) fails (e.g. test failures). The worker now intercepts act execution failures, marks the job as failed, and returns to idle state, preventing normal CI failures from surfacing as worker infrastructure errors in the dashboard.

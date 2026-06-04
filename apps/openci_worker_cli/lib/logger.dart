@@ -181,6 +181,24 @@ Future<void> logError(
   );
 }
 
+/// `act` の出力の "[Workflow/Job]" プレフィックスを "[Job]" の短い形式に短縮します。
+String stripActPrefix(String line) {
+  final pattern = RegExp(r'^\[([^\]]+)\]\s*(.*)$');
+  final match = pattern.firstMatch(line);
+  if (match != null) {
+    final prefixContent = match.group(1) ?? '';
+    final msg = match.group(2) ?? '';
+    if (msg.isNotEmpty) {
+      final slashIndex = prefixContent.lastIndexOf('/');
+      final shortJobName = slashIndex != -1
+          ? prefixContent.substring(slashIndex + 1).trim()
+          : prefixContent.trim();
+      return '[$shortJobName] $msg';
+    }
+  }
+  return line;
+}
+
 void setupLogging() {
   dart_logging.Logger.root.level = dart_logging.Level.ALL;
   dart_logging.Logger.root.onRecord.listen((record) {

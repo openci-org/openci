@@ -484,7 +484,8 @@ Future<void> execCommandStreaming(
       outputErrors.add(trimmed);
     }
 
-    logInfo(buildJobId, runId, trimmed);
+    final cleanLine = stripActPrefix(trimmed);
+    logInfo(buildJobId, runId, cleanLine);
   }
 
   process.stdout.transform(utf8.decoder).listen((data) {
