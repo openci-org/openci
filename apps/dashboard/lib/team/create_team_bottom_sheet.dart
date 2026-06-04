@@ -77,7 +77,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
             width: double.infinity,
             child: TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.of(context).textPrimary,
+                foregroundColor: AppColors.of(context).accentOnAccent,
                 backgroundColor: AppColors.of(context).accent,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -108,7 +108,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.of(context).textPrimary,
+                        color: AppColors.of(context).accentOnAccent,
                       ),
                     )
                   : Text(
