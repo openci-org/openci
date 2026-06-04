@@ -1,8 +1,16 @@
 # Changelog
 
+## 0.10.34
+
+- Fix: Avoid reporting worker status as error when a build job (CI run) fails (e.g. test failures). The worker now intercepts act execution failures, marks the job as failed, and returns to idle state, preventing normal CI failures from surfacing as worker infrastructure errors in the dashboard.
+
 ## 0.10.33
 
-- Fix: Use UUID to generate unique temporary file names in `writeFileToContainer` and `writeFileToVm`. This prevents conflicts where parallel job execution on the same host machine results in temporary scripts (like `/tmp/openci-act.sh`) being overwritten by event payload JSON files, causing `line 1: action:opened: command not found` errors.
+- Release 0.10.33
+
+## 0.10.32
+
+- Release 0.10.32
 
 ## 0.10.31
 

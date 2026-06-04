@@ -220,33 +220,53 @@ Future<bool> processDockerJob(
     await writeFileToContainer(name, '/tmp/openci-act.sh', actScript);
     await exec('chmod +x /tmp/openci-act.sh');
 
-    await execStreamingInContainer(
-      name,
-      ['/bin/bash', '-l', '/tmp/openci-act.sh'],
-      buildJobId,
-      runId,
-      token,
-      isCancelled: isCancelled,
-    );
+    try {
+      await execStreamingInContainer(
+        name,
+        ['/bin/bash', '-l', '/tmp/openci-act.sh'],
+        buildJobId,
+        runId,
+        token,
+        isCancelled: isCancelled,
+      );
 
-    await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 5));
 
-    await logInfo(buildJobId, runId, 'Build completed successfully');
-    await apiClient.updateRunStatus(
-      buildJobId: buildJobId,
-      runId: runId,
-      status: 'completed',
-      conclusion: 'success',
-    );
-    await apiClient.completeJob(buildJobId, 'SUCCESS');
-    
-    final completedJob = buildJob.copyWith(
-      status: BuildJobStatus.SUCCESS,
-      latestRunId: runId,
-      completedAt: DateTime.now(),
-    );
-    await apiClient.updateCheckRun(completedJob, 'completed', conclusion: 'success');
-    await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
+      await logInfo(buildJobId, runId, 'Build completed successfully');
+      await apiClient.updateRunStatus(
+        buildJobId: buildJobId,
+        runId: runId,
+        status: 'completed',
+        conclusion: 'success',
+      );
+      await apiClient.completeJob(buildJobId, 'SUCCESS');
+      
+      final completedJob = buildJob.copyWith(
+        status: BuildJobStatus.SUCCESS,
+        latestRunId: runId,
+        completedAt: DateTime.now(),
+      );
+      await apiClient.updateCheckRun(completedJob, 'completed', conclusion: 'success');
+      await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
+    } catch (actError) {
+      await logWarning(buildJobId, runId, 'Act build failed: $actError');
+      await apiClient.updateRunStatus(
+        buildJobId: buildJobId,
+        runId: runId,
+        status: 'completed',
+        conclusion: 'failure',
+      );
+      await apiClient.completeJob(buildJobId, 'FAILURE');
+
+      final failedJob = buildJob.copyWith(
+        status: BuildJobStatus.FAILURE,
+        latestRunId: runId,
+        completedAt: DateTime.now(),
+      );
+      await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+      await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
+      return true;
+    }
   } catch (e, s) {
     await logError(
       buildJobId,
