@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 enum _ActionState { idle, loading, done }
@@ -97,7 +98,13 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     size: 16,
                     color: AppColors.of(context).textSecondary,
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/workspace');
+                    }
+                  },
                 )
               : null,
           titleSpacing: showBackButton ? null : 16,
