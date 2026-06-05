@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
 export 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
+
 
 part 'build_jobs_provider.g.dart';
 
@@ -235,20 +237,33 @@ class OtaBuildJobs extends _$OtaBuildJobs {
 }
 
 @riverpod
-Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
-  final teamId = ref.watch(userProvider).value?.selectedTeamId;
-  if (teamId == null) {
-    yield null;
-    return;
+Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
+  final authState = ref.watch(authProvider);
+  if (authState.value == null) {
+    return Stream.value(null);
   }
-  yield* firestore
+
+  return firestore
       .collection(buildJobsCollection)
       .doc(buildJobId)
       .snapshots()
       .map((snapshot) {
         final job = _buildJobFromSnapshot(snapshot);
-        if (job?.teamId != teamId) return null;
+        if (job != null && job.teamId != null) {
+          final userAsync = ref.read(userProvider);
+          userAsync.whenData((user) {
+            if (user.selectedTeamId != job.teamId) {
+              Future.microtask(() {
+                ref.read(userProvider.notifier).updateSelectedTeamId(job.teamId!);
+              });
+            }
+          });
+        }
         return job;
+      })
+      .handleError((error) {
+        debugPrint('Error loading build job in buildJobById: $error');
+        return null;
       });
 }
 
