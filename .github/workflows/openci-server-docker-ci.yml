@@ -1,0 +1,56 @@
+name: openci_server Docker CI
+
+on:
+  push:
+    branches:
+      - develop
+
+    paths:
+      - "apps/openci_server/**"
+      - "packages/openci_shared/**"
+      - "docker-compose.yml"
+      - "Caddyfile"
+      - ".github/workflows/openci-server-docker-ci.yml"
+
+  pull_request:
+    branches:
+      - develop
+
+    paths:
+      - "apps/openci_server/**"
+      - "packages/openci_shared/**"
+      - "docker-compose.yml"
+      - "Caddyfile"
+      - ".github/workflows/openci-server-docker-ci.yml"
+
+jobs:
+  docker-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start services with Docker Compose
+        run: docker compose up --build -d
+
+      - name: Wait for server to start
+        run: sleep 3
+
+      - name: Verify connection and response
+        run: |
+          RESPONSE=$(curl -s http://localhost/)
+          echo "Server Response: $RESPONSE"
+          if [[ "$RESPONSE" != *"OpenCI Server (Shelf) is running!"* ]]; then
+            echo "Verification failed! Unexpected response."
+            exit 1
+          fi
+          echo "Verification successful!"
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Shut down services
+        if: always()
+        run: docker compose down -v
