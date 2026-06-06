@@ -12,9 +12,13 @@ void main() {
     late int port;
 
     setUpAll(() async {
-      // ポートに0を指定すると、システムが空いているポートを自動的に割り当てます
+      const emptyPort = 0;
       final handler = applyMiddleware(router);
-      server = await shelf_io.serve(handler, InternetAddress.loopbackIPv4, 0);
+      server = await shelf_io.serve(
+        handler,
+        InternetAddress.loopbackIPv4,
+        emptyPort,
+      );
       port = server.port;
     });
 
