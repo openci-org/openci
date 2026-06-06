@@ -9,6 +9,7 @@ resolution: workspace
 
 dependencies:
   openci_shared: ^1.0.1
+  postgres: ^3.1.2
   shelf: ^1.4.1
   shelf_router: ^1.1.4
 
