@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: openci
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
       - "5432:5432"
     volumes:
@@ -19,7 +19,7 @@ services:
     environment:
       - HOST=any
       - PORT=8080
-      - DATABASE_URL=postgres://postgres:password@db:5432/openci
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-openci}
     expose:
       - "8080"
     depends_on:
