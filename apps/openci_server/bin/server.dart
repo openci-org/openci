@@ -7,9 +7,24 @@ import 'package:openci_server/router.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 void main(List<String> args) async {
+  final databaseUrlEnv = Platform.environment['DATABASE_URL'];
+  final appEnv = Platform.environment['APP_ENV'] ?? 'development';
+
+  if (databaseUrlEnv == null && appEnv == 'production') {
+    stderr.writeln(
+      'Error: DATABASE_URL environment variable must be specified in production.',
+    );
+    exit(1);
+  }
+
   final databaseUrl =
-      Platform.environment['DATABASE_URL'] ??
-      'postgres://postgres:password@localhost:5432/openci';
+      databaseUrlEnv ?? 'postgres://postgres:password@localhost:5432/openci';
+  if (databaseUrlEnv == null) {
+    stdout.writeln(
+      'Warning: DATABASE_URL is missing. Falling back to local development URL.',
+    );
+  }
+
   final db = DatabaseManager(databaseUrl);
 
   final handler = applyMiddleware(getRouter(db));

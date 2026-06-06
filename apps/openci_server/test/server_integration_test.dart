@@ -47,14 +47,17 @@ void main() {
       expect(response.statusCode, equals(404));
     });
 
-    test('GET /health returns 500 when database is disconnected via HTTP', () async {
-      final response = await http.get(
-        Uri.parse('http://localhost:$port/health'),
-      );
+    test(
+      'GET /health returns 500 when database is disconnected via HTTP',
+      () async {
+        final response = await http.get(
+          Uri.parse('http://localhost:$port/health'),
+        );
 
-      expect(response.statusCode, equals(500));
-      expect(response.body, contains('disconnected'));
-      expect(response.body, contains('error'));
-    });
+        expect(response.statusCode, equals(500));
+        expect(response.body, contains('disconnected'));
+        expect(response.body, contains('error'));
+      },
+    );
   });
 }
