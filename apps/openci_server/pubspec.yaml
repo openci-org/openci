@@ -1,0 +1,14 @@
+name: openci_server
+description: OpenCI Self-Hosted Server
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  openci_shared:
+    path: ../../packages/openci_shared
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
