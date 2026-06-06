@@ -17,12 +17,25 @@ class DatabaseManager {
 
   static Endpoint parseEndpoint(String databaseUrl) {
     final uri = Uri.parse(databaseUrl);
-    final userInfo = uri.userInfo.split(':');
-    final username = userInfo.isNotEmpty && userInfo[0].isNotEmpty
-        ? userInfo[0]
+    final userInfo = uri.userInfo;
+    String? rawUsername;
+    String? rawPassword;
+
+    if (userInfo.isNotEmpty) {
+      final separatorIndex = userInfo.indexOf(':');
+      if (separatorIndex >= 0) {
+        rawUsername = userInfo.substring(0, separatorIndex);
+        rawPassword = userInfo.substring(separatorIndex + 1);
+      } else {
+        rawUsername = userInfo;
+      }
+    }
+
+    final username = rawUsername != null && rawUsername.isNotEmpty
+        ? rawUsername
         : null;
-    final password = userInfo.length > 1 && userInfo[1].isNotEmpty
-        ? userInfo[1]
+    final password = rawPassword != null && rawPassword.isNotEmpty
+        ? rawPassword
         : null;
     final dbName = uri.path.startsWith('/') ? uri.path.substring(1) : uri.path;
 

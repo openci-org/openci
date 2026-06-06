@@ -53,5 +53,27 @@ void main() {
       );
       expect(endpoint.database, equals('openci_test_db'));
     });
+
+    test('パスワードにコロンが含まれている場合も正しく動作する', () {
+      final endpoint = DatabaseManager.parseEndpoint(
+        'postgres://user:pass:word@localhost:5432/openci',
+      );
+      expect(endpoint.host, equals('localhost'));
+      expect(endpoint.port, equals(5432));
+      expect(endpoint.database, equals('openci'));
+      expect(endpoint.username, equals('user'));
+      expect(endpoint.password, equals('pass:word'));
+    });
+
+    test('パスワードに複数のコロンが含まれている場合も正しく動作する', () {
+      final endpoint = DatabaseManager.parseEndpoint(
+        'postgres://user:pass:word:extra@localhost:5432/openci',
+      );
+      expect(endpoint.host, equals('localhost'));
+      expect(endpoint.port, equals(5432));
+      expect(endpoint.database, equals('openci'));
+      expect(endpoint.username, equals('user'));
+      expect(endpoint.password, equals('pass:word:extra'));
+    });
   });
 }
