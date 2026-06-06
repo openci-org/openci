@@ -50,6 +50,8 @@ void main() {
     test(
       'GET /health returns 500 when database is disconnected via HTTP',
       () async {
+        await db.close();
+
         final response = await http.get(
           Uri.parse('http://localhost:$port/health'),
         );

@@ -46,6 +46,8 @@ void main() {
     });
 
     test('GET /health returns 500 when database is disconnected', () async {
+      await db.close();
+
       final request = Request(
         'GET',
         Uri.parse('$localHost/health'),
