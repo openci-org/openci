@@ -8,7 +8,6 @@ environment:
 resolution: workspace
 
 dependencies:
-  openci_shared:
-    path: ../../packages/openci_shared
+  openci_shared: ^1.0.1
   shelf: ^1.4.1
   shelf_router: ^1.1.4
