@@ -21,7 +21,13 @@ void main(List<String> args) async {
   final ip = InternetAddress.loopbackIPv4;
   const port = 8080;
 
-  final server = await shelf_io.serve(handler, ip, port);
+  HttpServer server;
+  try {
+    server = await shelf_io.serve(handler, ip, port);
+  } catch (e) {
+    stderr.writeln('Failed to start server: $e');
+    exit(1);
+  }
   stdout.writeln(
     'OpenCI Shelf Server listening on http://${server.address.host}:${server.port}',
   );
