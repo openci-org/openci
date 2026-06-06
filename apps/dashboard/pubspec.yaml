@@ -27,7 +27,6 @@ dependencies:
     sdk: flutter
   flutter_markdown_plus: ^1.0.7
   flutter_riverpod: ^3.3.1
-  flutter_sticky_header: ^0.8.0
   flutter_web_plugins:
     sdk: flutter
   font_awesome_flutter: ^11.0.0
