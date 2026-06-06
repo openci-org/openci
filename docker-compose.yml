@@ -1,0 +1,27 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/openci_server/Dockerfile
+    container_name: openci-server
+    environment:
+      - HOST=any
+      - PORT=8080
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: openci-caddy
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - server
+
+volumes:
+  caddy_data:
+  caddy_config:
