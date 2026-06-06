@@ -1,0 +1,25 @@
+name: openci_server CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Workspace root)
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed apps/openci_server
+
+      - name: Analyze code
+        run: flutter analyze --no-pub apps/openci_server
