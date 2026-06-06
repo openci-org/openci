@@ -1,4 +1,16 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: openci-db
+    environment:
+      POSTGRES_DB: openci
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   server:
     build:
       context: .
@@ -7,8 +19,11 @@ services:
     environment:
       - HOST=any
       - PORT=8080
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-openci}
     expose:
       - "8080"
+    depends_on:
+      - db
 
   caddy:
     image: caddy:2-alpine
@@ -23,5 +38,6 @@ services:
       - server
 
 volumes:
+  postgres_data:
   caddy_data:
   caddy_config:
