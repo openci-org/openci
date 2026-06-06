@@ -16,11 +16,14 @@ RUN dart compile exe bin/server.dart -o bin/server
 
 FROM debian:bookworm-slim
 
-RUN apt-get update && \
-    rm -rf /var/lib/apt/lists/*
+RUN groupadd -g 10001 appgroup && \
+    useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
 WORKDIR /app
-COPY --from=build /app/apps/openci_server/bin/server /app/server
+
+COPY --from=build --chown=appuser:appgroup /app/apps/openci_server/bin/server /app/server
+
+USER appuser
 
 ENV HOST=any
 ENV PORT=8080
