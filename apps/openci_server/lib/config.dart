@@ -1,4 +1,7 @@
 import 'dart:io';
 
-final ip = InternetAddress.loopbackIPv4;
-const port = 8080;
+final ip = Platform.environment['HOST'] == 'any'
+    ? InternetAddress.anyIPv4
+    : InternetAddress.loopbackIPv4;
+
+final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
