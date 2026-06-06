@@ -1,6 +1,7 @@
 .idea/
 node_modules/
 **/.dart_tool/
+**/build/
 *.tsbuildinfo
 .DS_Store
 
@@ -15,4 +16,3 @@ apps/openci_vm_cli/openci-vm
 # Worker configuration secrets
 worker_credentials.json
 create_workers.js
-
