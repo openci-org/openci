@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.36
+
+- Fix: Change `pruneStaleVms` log output from build log (logInfo/logWarning) to local logger (_log) to prevent errors when trying to write logs after `finalizeBuildLog` has been called.
+
 ## 0.10.35
 
 - Feature: Shorten build log `[Workflow/Job]` prefixes to a shorter `[Job]` format for better mobile visibility.
