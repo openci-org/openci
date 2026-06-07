@@ -39,13 +39,17 @@ jobs:
 
       - name: Verify connection and response
         run: |
-          RESPONSE=$(curl -s http://localhost/)
-          echo "Server Response: $RESPONSE"
-          if [[ "$RESPONSE" != *"OpenCI Server (Shelf) is running!"* ]]; then
-            echo "Verification failed! Unexpected response."
-            exit 1
-          fi
-          echo "Verification successful!"
+          for i in {1..30}; do
+            RESPONSE=$(curl -s http://localhost/ || true)
+            echo "Attempt $i: Server Response: $RESPONSE"
+            if [[ "$RESPONSE" == *"OpenCI Server (Shelf) is running!"* ]]; then
+              echo "Verification successful!"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Verification failed! Timeout waiting for server."
+          exit 1
 
       - name: Show logs on failure
         if: failure()
