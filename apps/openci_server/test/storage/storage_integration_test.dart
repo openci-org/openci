@@ -10,6 +10,7 @@ void main() {
   group('StorageManager Integration Tests with Local SeaweedFS', () {
     late StorageManager storage;
     const testBucket = 'openci-integration-test';
+    bool isStorageReachable = false;
 
     setUpAll(() async {
       final baseSettings = loadStorageSettings();
@@ -23,11 +24,23 @@ void main() {
       );
 
       storage = StorageManager(settings);
+      
+      try {
+        // 短いタイムアウト等で事前に疎通確認を試みる
+        isStorageReachable = await storage.verifyConnection();
+      } catch (_) {
+        isStorageReachable = false;
+      }
     });
 
     test(
       'Full lifecycle: verify, initialize, upload, download, and presigned url',
       () async {
+        if (!isStorageReachable) {
+          markTestSkipped('SeaweedFS (S3) is not reachable at the configured endpoint. Skipping integration test.');
+          return;
+        }
+
         await storage.initialize();
 
         final testFileName =
@@ -64,3 +77,4 @@ void main() {
     );
   });
 }
+

@@ -4,16 +4,32 @@ on:
   push:
     branches:
       - develop
+    paths:
+      - "apps/openci_server/**"
+      - "packages/openci_shared/**"
+      - ".github/workflows/openci-server-ci.yml"
 
   pull_request:
     branches:
       - develop
+    paths:
+      - "apps/openci_server/**"
+      - "packages/openci_shared/**"
+      - ".github/workflows/openci-server-ci.yml"
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
 
       - name: Install dependencies (Workspace root)
         run: flutter pub get
