@@ -145,9 +145,13 @@ Future<void> writeBuildLog(
   }
 }
 
-Future<void> flushRemainingLogs() async {
-  for (final group in _bufferGroups.values) {
-    _triggerFlush(group);
+Future<void> flushRemainingLogs({String? runId}) async {
+  for (final key in _bufferGroups.keys.toList()) {
+    final group = _bufferGroups[key]!;
+    if (runId == null || group.runId == runId) {
+      _triggerFlush(group);
+      _bufferGroups.remove(key);
+    }
   }
 
   while (_activeWrites.isNotEmpty) {
@@ -156,7 +160,7 @@ Future<void> flushRemainingLogs() async {
 }
 
 Future<void> finalizeBuildLog(String buildJobId, String runId) async {
-  await flushRemainingLogs();
+  await flushRemainingLogs(runId: runId);
 
   final serverUrl =
       Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
