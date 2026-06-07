@@ -14,7 +14,10 @@ class LogStreamManager {
 
   void initSession(String runId) {
     _buffers.putIfAbsent(runId, () => []);
-    _streams.putIfAbsent(runId, () => StreamController<String>.broadcast());
+    _streams.putIfAbsent(
+      runId,
+      () => StreamController<String>.broadcast(sync: true),
+    );
   }
 
   void appendLog(String runId, String message) {

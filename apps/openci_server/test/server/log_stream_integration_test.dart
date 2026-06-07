@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:openci_server/db.dart';
-import 'package:openci_server/logger_manager.dart';
+import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;

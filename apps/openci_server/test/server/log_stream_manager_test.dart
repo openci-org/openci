@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:openci_server/logger_manager.dart';
+import 'package:openci_server/log_stream_manager.dart';
 import 'package:test/test.dart';
 
 import '../storage/fake_storage.dart';
@@ -59,8 +59,6 @@ void main() {
 
       manager.appendLog(runId, 'Streaming log 1');
       manager.appendLog(runId, 'Streaming log 2');
-
-      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       expect(receivedLogs, equals(['Streaming log 1', 'Streaming log 2']));
 

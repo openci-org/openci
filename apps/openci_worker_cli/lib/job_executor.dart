@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
-import 'package:openci_worker_cli/logger.dart';
+import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:openci_worker_cli/vm.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';

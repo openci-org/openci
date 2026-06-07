@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
-import 'package:openci_worker_cli/logger.dart';
+import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:avf_dart/avf_dart.dart';
 import 'package:sentry/sentry.dart';
 import 'package:uuid/uuid.dart';

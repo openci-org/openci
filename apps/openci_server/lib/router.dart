@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:openci_server/db.dart';
-import 'package:openci_server/logger_manager.dart';
+import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
