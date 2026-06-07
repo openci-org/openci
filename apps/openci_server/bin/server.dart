@@ -1,39 +1,49 @@
 import 'dart:io';
 
-import 'package:openci_server/config.dart';
 import 'package:openci_server/db.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
+import 'package:openci_server/settings.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 void main(List<String> args) async {
-  final databaseUrlEnv = Platform.environment['DATABASE_URL'];
-  final appEnv = Platform.environment['APP_ENV'] ?? 'development';
-
-  if (databaseUrlEnv == null && appEnv == 'production') {
-    stderr.writeln(
-      'Error: DATABASE_URL environment variable must be specified in production.',
-    );
+  String databaseUrl;
+  try {
+    databaseUrl = loadDatabaseUrl();
+  } catch (e) {
+    stderr.writeln('Error loading database settings: $e');
     exit(1);
   }
 
-  final databaseUrl =
-      databaseUrlEnv ?? 'postgres://postgres:password@localhost:5432/openci';
-  if (databaseUrlEnv == null) {
-    stdout.writeln(
-      'Warning: DATABASE_URL is missing. Falling back to local development URL.',
-    );
+  DatabaseManager db;
+  try {
+    db = DatabaseManager(databaseUrl);
+  } catch (e) {
+    stderr.writeln('Failed to initialize database connection: $e');
+    exit(1);
   }
 
-  final db = DatabaseManager(databaseUrl);
+  ({InternetAddress ip, int port}) serverSettings;
+  try {
+    serverSettings = loadServerSettings();
+  } catch (e) {
+    stderr.writeln('Error loading server settings: $e');
+    await db.close();
+    exit(1);
+  }
 
   final handler = applyMiddleware(getRouter(db));
 
   HttpServer server;
   try {
-    server = await shelf_io.serve(handler, ip, port);
+    server = await shelf_io.serve(
+      handler,
+      serverSettings.ip,
+      serverSettings.port,
+    );
   } catch (e) {
     stderr.writeln('Failed to start server: $e');
+    await db.close();
     exit(1);
   }
   stdout.writeln(
