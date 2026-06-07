@@ -15,5 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies (monorepo)
+        run: flutter pub get
+
       - name: Verify formatting (monorepo)
         run: dart format --output=none --set-exit-if-changed .
