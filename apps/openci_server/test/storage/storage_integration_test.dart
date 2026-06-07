@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -71,7 +72,14 @@ void main() {
           'localhost:18000',
         );
 
-        final response = await http.get(Uri.parse(resolvedUrl));
+        final http.Response response;
+        try {
+          response = await http
+              .get(Uri.parse(resolvedUrl))
+              .timeout(const Duration(seconds: 10));
+        } on TimeoutException catch (e) {
+          fail('HTTP request to download presigned URL timed out: $e');
+        }
         expect(response.statusCode, equals(200));
         expect(response.body, equals(testContent));
       },
