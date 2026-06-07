@@ -85,11 +85,12 @@ Router getRouter(
         }),
         headers: {'content-type': 'application/json'},
       );
-    } catch (e) {
+    } catch (e, s) {
+      stderr.writeln('Test upload failed: $e\n$s');
       return Response.internalServerError(
         body: jsonEncode({
           'success': false,
-          'error': e.toString(),
+          'error': 'Internal server error',
         }),
         headers: {'content-type': 'application/json'},
       );
