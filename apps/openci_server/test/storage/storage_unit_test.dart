@@ -29,7 +29,9 @@ void main() {
     });
 
     test('initialize creates bucket if it does not exist', () async {
-      when(mockMinio.bucketExists('test-bucket')).thenAnswer((_) async => false);
+      when(
+        mockMinio.bucketExists('test-bucket'),
+      ).thenAnswer((_) async => false);
       when(mockMinio.makeBucket('test-bucket')).thenAnswer((_) async => null);
 
       await storage.initialize();
@@ -49,23 +51,28 @@ void main() {
 
     test('uploadObject calls putObject with correct parameters', () async {
       final stream = Stream.value(Uint8List.fromList([1, 2, 3]));
-      when(mockMinio.putObject(
-        'test-bucket',
-        'test.txt',
-        stream,
-        size: 3,
-        metadata: anyNamed('metadata'),
-      )).thenAnswer((_) async => 'etag');
+      when(
+        mockMinio.putObject(
+          'test-bucket',
+          'test.txt',
+          stream,
+          size: 3,
+          metadata: anyNamed('metadata'),
+        ),
+      ).thenAnswer((_) async => 'etag');
 
       await storage.uploadObject('test.txt', stream, size: 3);
 
-      verify(mockMinio.putObject('test-bucket', 'test.txt', stream, size: 3)).called(1);
+      verify(
+        mockMinio.putObject('test-bucket', 'test.txt', stream, size: 3),
+      ).called(1);
     });
 
     test('downloadObject calls getObject and returns stream', () async {
       final mockMinioByteStream = MockMinioByteStream();
-      when(mockMinio.getObject('test-bucket', 'test.txt'))
-          .thenAnswer((_) async => mockMinioByteStream);
+      when(
+        mockMinio.getObject('test-bucket', 'test.txt'),
+      ).thenAnswer((_) async => mockMinioByteStream);
 
       final result = await storage.downloadObject('test.txt');
 
@@ -74,16 +81,20 @@ void main() {
     });
 
     test('getPresignedUrl returns generated url', () async {
-      when(mockMinio.presignedGetObject(
-        'test-bucket',
-        'test.txt',
-        expires: anyNamed('expires'),
-      )).thenAnswer((_) async => 'https://signed-url.com');
+      when(
+        mockMinio.presignedGetObject(
+          'test-bucket',
+          'test.txt',
+          expires: anyNamed('expires'),
+        ),
+      ).thenAnswer((_) async => 'https://signed-url.com');
 
       final url = await storage.getPresignedUrl('test.txt');
 
       expect(url, equals('https://signed-url.com'));
-      verify(mockMinio.presignedGetObject('test-bucket', 'test.txt', expires: 3600)).called(1);
+      verify(
+        mockMinio.presignedGetObject('test-bucket', 'test.txt', expires: 3600),
+      ).called(1);
     });
 
     test('verifyConnection returns true on success', () async {
@@ -96,7 +107,9 @@ void main() {
     });
 
     test('verifyConnection returns false on failure', () async {
-      when(mockMinio.bucketExists('test-bucket')).thenThrow(Exception('failed'));
+      when(
+        mockMinio.bucketExists('test-bucket'),
+      ).thenThrow(Exception('failed'));
 
       final result = await storage.verifyConnection();
 

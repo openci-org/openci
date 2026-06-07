@@ -48,10 +48,15 @@ Router getRouter(DatabaseManager db, StorageManager storage) {
   router.get('/test-upload', (Request request) async {
     try {
       final testFileName = 'test_${DateTime.now().millisecondsSinceEpoch}.txt';
-      final testContent = 'Hello, this is a test artifact uploaded from OpenCI Server!';
+      final testContent =
+          'Hello, this is a test artifact uploaded from OpenCI Server!';
       final stream = Stream.value(Uint8List.fromList(utf8.encode(testContent)));
 
-      await storage.uploadObject(testFileName, stream, size: testContent.length);
+      await storage.uploadObject(
+        testFileName,
+        stream,
+        size: testContent.length,
+      );
 
       final downloadUrl = await storage.getPresignedUrl(testFileName);
 

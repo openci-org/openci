@@ -4,9 +4,11 @@ import 'package:test/test.dart';
 void main() {
   group('loadDatabaseUrl Tests', () {
     test('uses DATABASE_URL environment variable if specified', () {
-      final url = loadDatabaseUrl(environment: {
-        'DATABASE_URL': 'postgres://test-db:5432/test',
-      });
+      final url = loadDatabaseUrl(
+        environment: {
+          'DATABASE_URL': 'postgres://test-db:5432/test',
+        },
+      );
       expect(url, equals('postgres://test-db:5432/test'));
     });
 

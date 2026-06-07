@@ -1,6 +1,8 @@
 import 'dart:io';
 
-({InternetAddress ip, int port}) loadServerSettings({Map<String, String>? environment}) {
+({InternetAddress ip, int port}) loadServerSettings({
+  Map<String, String>? environment,
+}) {
   final env = environment ?? Platform.environment;
   final ip = env['HOST'] == 'any'
       ? InternetAddress.anyIPv4

@@ -4,12 +4,14 @@ import 'package:test/test.dart';
 void main() {
   group('loadStorageSettings Tests', () {
     test('parses storage environment variables correctly', () {
-      final settings = loadStorageSettings(environment: {
-        'S3_ENDPOINT': 'https://my-s3:9000',
-        'S3_ACCESS_KEY': 'my-access',
-        'S3_SECRET_KEY': 'my-secret',
-        'S3_BUCKET': 'my-bucket',
-      });
+      final settings = loadStorageSettings(
+        environment: {
+          'S3_ENDPOINT': 'https://my-s3:9000',
+          'S3_ACCESS_KEY': 'my-access',
+          'S3_SECRET_KEY': 'my-secret',
+          'S3_BUCKET': 'my-bucket',
+        },
+      );
       expect(settings.endPoint, equals('my-s3'));
       expect(settings.port, equals(9000));
       expect(settings.useSSL, isTrue);

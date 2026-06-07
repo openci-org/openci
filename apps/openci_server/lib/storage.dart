@@ -32,7 +32,8 @@ class StorageManager {
       maxAttempts: 15,
       delayFactor: const Duration(seconds: 2),
       maxDelay: const Duration(seconds: 2),
-      onRetry: (e) => stdout.writeln('Waiting for storage to be ready... Error: $e'),
+      onRetry: (e) =>
+          stdout.writeln('Waiting for storage to be ready... Error: $e'),
     );
   }
 

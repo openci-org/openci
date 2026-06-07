@@ -5,10 +5,12 @@ import 'package:test/test.dart';
 void main() {
   group('loadServerSettings Tests', () {
     test('parses HOST and PORT correctly', () {
-      final settings = loadServerSettings(environment: {
-        'HOST': 'any',
-        'PORT': '9090',
-      });
+      final settings = loadServerSettings(
+        environment: {
+          'HOST': 'any',
+          'PORT': '9090',
+        },
+      );
       expect(settings.ip, equals(InternetAddress.anyIPv4));
       expect(settings.port, equals(9090));
     });
