@@ -24,7 +24,7 @@ void main() {
       );
 
       storage = StorageManager(settings);
-      
+
       try {
         // 短いタイムアウト等で事前に疎通確認を試みる
         isStorageReachable = await storage.verifyConnection();
@@ -37,7 +37,9 @@ void main() {
       'Full lifecycle: verify, initialize, upload, download, and presigned url',
       () async {
         if (!isStorageReachable) {
-          markTestSkipped('SeaweedFS (S3) is not reachable at the configured endpoint. Skipping integration test.');
+          markTestSkipped(
+            'SeaweedFS (S3) is not reachable at the configured endpoint. Skipping integration test.',
+          );
           return;
         }
 
@@ -77,4 +79,3 @@ void main() {
     );
   });
 }
-
