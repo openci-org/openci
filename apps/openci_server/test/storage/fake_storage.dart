@@ -17,7 +17,8 @@ class FakeStorageManager implements StorageManager {
     String? bucket,
   }) async {
     final bytes = await data.expand((chunk) => chunk).toList();
-    storage[objectName] = bytes;
+    final activeBucket = bucket ?? 'default';
+    storage['$activeBucket/$objectName'] = bytes;
   }
 
   @override
@@ -25,7 +26,8 @@ class FakeStorageManager implements StorageManager {
     String objectName, {
     String? bucket,
   }) async {
-    final data = storage[objectName];
+    final activeBucket = bucket ?? 'default';
+    final data = storage['$activeBucket/$objectName'];
     if (data == null) throw Exception('Object not found');
     return Stream.value(data);
   }
@@ -36,7 +38,8 @@ class FakeStorageManager implements StorageManager {
     Duration expires = const Duration(hours: 1),
     String? bucket,
   }) async {
-    return 'http://fake-storage/$objectName';
+    final activeBucket = bucket ?? 'default';
+    return 'http://fake-storage/$activeBucket/$objectName';
   }
 
   @override
