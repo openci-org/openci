@@ -25,8 +25,25 @@ StorageSettings loadStorageSettings({Map<String, String>? environment}) {
   final secretKeyEnv = env['S3_SECRET_KEY'] ?? 'dummy_secret_key';
   final bucketEnv = env['S3_BUCKET'] ?? 'openci';
 
-  final uri = Uri.parse(endpointEnv);
-  final endPoint = uri.host.isEmpty ? 'localhost' : uri.host;
+  final trimmedEndpoint = endpointEnv.trim();
+  if (trimmedEndpoint.isEmpty) {
+    throw StateError('Invalid S3_ENDPOINT format: $endpointEnv');
+  }
+
+  final String normalizedEndpoint;
+  if (trimmedEndpoint.startsWith('http://') ||
+      trimmedEndpoint.startsWith('https://')) {
+    normalizedEndpoint = trimmedEndpoint;
+  } else {
+    normalizedEndpoint = 'http://$trimmedEndpoint';
+  }
+
+  final uri = Uri.parse(normalizedEndpoint);
+  if (uri.host.isEmpty || uri.host.trim().isEmpty) {
+    throw StateError('Invalid S3_ENDPOINT format: $endpointEnv');
+  }
+
+  final endPoint = uri.host;
   final port = uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80);
   final useSSL = uri.scheme == 'https';
 
