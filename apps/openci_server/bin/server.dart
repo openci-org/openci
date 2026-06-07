@@ -15,14 +15,27 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final db = DatabaseManager(databaseUrl);
+  DatabaseManager db;
+  try {
+    db = DatabaseManager(databaseUrl);
+  } catch (e) {
+    stderr.writeln('Failed to initialize database connection: $e');
+    exit(1);
+  }
+
+  ({InternetAddress ip, int port}) serverSettings;
+  try {
+    serverSettings = loadServerSettings();
+  } catch (e) {
+    stderr.writeln('Error loading server settings: $e');
+    await db.close();
+    exit(1);
+  }
 
   final handler = applyMiddleware(getRouter(db));
 
   HttpServer server;
   try {
-    final serverSettings = loadServerSettings();
-
     server = await shelf_io.serve(
       handler,
       serverSettings.ip,
@@ -30,6 +43,7 @@ void main(List<String> args) async {
     );
   } catch (e) {
     stderr.writeln('Failed to start server: $e');
+    await db.close();
     exit(1);
   }
   stdout.writeln(
