@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-import 'package:uuid/uuid.dart';
+
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart' as dart_logging;
+import 'package:uuid/uuid.dart';
+
 import 'cloud_function_caller.dart';
 
 final _log = dart_logging.Logger('BuildLog');
@@ -42,13 +46,11 @@ class _BufferGroup {
   _BufferGroup({required this.buildJobId, required this.runId});
 }
 
-ApiClient? _apiClient;
 final _bufferGroups = <String, _BufferGroup>{};
 final _activeWrites = <Future<void>>[];
 
-void setLoggerApiClient(ApiClient apiClient) {
-  _apiClient = apiClient;
-}
+// TODO(Someone): Remove this method.
+void setLoggerApiClient(ApiClient apiClient) {}
 
 _BufferGroup _getBufferGroup(String buildJobId, String runId) {
   final key = '$buildJobId:$runId';
@@ -63,32 +65,33 @@ const _flushInterval = Duration(seconds: 1);
 const _maxWriteAttempts = 5;
 const _initialRetryDelay = Duration(milliseconds: 500);
 
+final http.Client _httpClient = http.Client();
+
 Future<void> _sendLogsWithRetry(
   String buildJobId,
   String runId,
   List<LogEntry> logs,
 ) async {
-  final client = _apiClient;
-  if (client == null) {
-    _log.warning(
-      'ApiClient not configured for logging. Logs will be discarded.',
-    );
-    return;
-  }
-
+  final serverUrl =
+      Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
+  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
   final payloadLogs = logs.map((e) => e.toJson()).toList();
+  final body = jsonEncode({'logs': payloadLogs});
 
   for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
     try {
-      await client.appendBuildLogs(
-        buildJobId: buildJobId,
-        runId: runId,
-        logs: payloadLogs,
+      final response = await _httpClient.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
       );
-      return;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      }
+      throw HttpException('HTTP ${response.statusCode}: ${response.body}');
     } catch (e) {
       if (attempt == _maxWriteAttempts) {
-        _log.warning('[BuildLog] Failed to send bulk logs: $e');
+        _log.warning('[BuildLog] Failed to send logs to server: $e');
         return;
       }
       final delay = _initialRetryDelay * (1 << (attempt - 1));
@@ -149,6 +152,27 @@ Future<void> flushRemainingLogs() async {
 
   while (_activeWrites.isNotEmpty) {
     await Future.wait(_activeWrites);
+  }
+}
+
+Future<void> finalizeBuildLog(String buildJobId, String runId) async {
+  await flushRemainingLogs();
+
+  final serverUrl =
+      Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
+  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/complete');
+
+  try {
+    final response = await _httpClient
+        .post(url)
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _log.warning(
+        'Failed to send complete signal: ${response.statusCode} ${response.body}',
+      );
+    }
+  } catch (e) {
+    _log.warning('Error sending complete signal to server: $e');
   }
 }
 

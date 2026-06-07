@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:openci_server/db.dart';
+import 'package:openci_server/logger_manager.dart';
 import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 Router getRouter(
   DatabaseManager db,
@@ -87,6 +91,104 @@ Router getRouter(
       );
     } catch (e, s) {
       stderr.writeln('Test upload failed: $e\n$s');
+      return Response.internalServerError(
+        body: jsonEncode({
+          'success': false,
+          'error': 'Internal server error',
+        }),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+  });
+
+  router.post('/builds/<buildJobId>/runs/<runId>/logs', (
+    Request request,
+    String buildJobId,
+    String runId,
+  ) async {
+    try {
+      final payload =
+          jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+      final logs = payload['logs'] as List<dynamic>? ?? [];
+
+      for (final log in logs) {
+        if (log is Map) {
+          final message = log['message'] as String?;
+          if (message != null) {
+            LogStreamManager().appendLog(runId, message);
+          }
+        }
+      }
+
+      return Response.ok(
+        jsonEncode({'success': true}),
+        headers: {'content-type': 'application/json'},
+      );
+    } catch (e, s) {
+      stderr.writeln('Failed to append logs for run $runId: $e\n$s');
+      return Response.internalServerError(
+        body: jsonEncode({
+          'success': false,
+          'error': 'Internal server error',
+        }),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+  });
+
+  router.get('/builds/<buildJobId>/runs/<runId>/logs/stream', (
+    Request request,
+    String buildJobId,
+    String runId,
+  ) {
+    return webSocketHandler((WebSocketChannel webSocket, String? protocol) {
+      final manager = LogStreamManager();
+      manager.initSession(runId);
+
+      final buffer = manager.getBuffer(runId);
+      for (final logLine in buffer) {
+        webSocket.sink.add(logLine);
+      }
+
+      final stream = manager.getStream(runId);
+      StreamSubscription<String>? subscription;
+      if (stream != null) {
+        subscription = stream.listen(
+          (message) {
+            webSocket.sink.add(message);
+          },
+          onError: (err) {
+            webSocket.sink.close();
+          },
+          onDone: () {
+            webSocket.sink.close();
+          },
+        );
+      }
+
+      webSocket.stream.listen(
+        null,
+        onDone: () {
+          subscription?.cancel();
+        },
+      );
+    })(request);
+  });
+
+  router.post('/builds/<buildJobId>/runs/<runId>/complete', (
+    Request request,
+    String buildJobId,
+    String runId,
+  ) async {
+    try {
+      await LogStreamManager().finalizeSession(runId, storage);
+
+      return Response.ok(
+        jsonEncode({'success': true}),
+        headers: {'content-type': 'application/json'},
+      );
+    } catch (e, s) {
+      stderr.writeln('Failed to finalize log session for run $runId: $e\n$s');
       return Response.internalServerError(
         body: jsonEncode({
           'success': false,
