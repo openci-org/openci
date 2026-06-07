@@ -9,7 +9,9 @@ Future<Response> createBuildRun(Request request, Firebase firebase) async {
     final runId = body['id'] as String?;
 
     if (buildJobId == null || runId == null) {
-      return jsonResponse({'error': 'buildJobId and id are required'}, status: 400);
+      return jsonResponse({
+        'error': 'buildJobId and id are required',
+      }, status: 400);
     }
 
     final firestore = firebase.adminApp.firestore();
@@ -40,7 +42,7 @@ Future<Response> createBuildRun(Request request, Firebase firebase) async {
 
     return jsonResponse({
       'buildRun_upsert': {'buildJobId': buildJobId, 'id': runId},
-      'buildJob_update': {'id': buildJobId}
+      'buildJob_update': {'id': buildJobId},
     });
   });
 }

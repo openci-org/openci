@@ -20,9 +20,10 @@ class AuthManager {
   /// Signs in to Firebase Auth using Email & Password.
   Future<void> signIn() async {
     _log.info('Signing in to Firebase Auth as $email...');
-    
+
     // Check if emulator is being used
-    final isEmulator = Platform.environment['FUNCTIONS_EMULATOR'] == 'true' ||
+    final isEmulator =
+        Platform.environment['FUNCTIONS_EMULATOR'] == 'true' ||
         Platform.environment['FIRESTORE_EMULATOR_HOST'] != null;
 
     if (isEmulator) {
@@ -33,8 +34,9 @@ class AuthManager {
       return;
     }
 
-    final url = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$_apiKey';
-    
+    final url =
+        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$_apiKey';
+
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -46,7 +48,9 @@ class AuthManager {
     );
 
     if (response.statusCode != 200) {
-      throw HttpException('Firebase sign in failed: ${response.statusCode} ${response.body}');
+      throw HttpException(
+        'Firebase sign in failed: ${response.statusCode} ${response.body}',
+      );
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -66,7 +70,8 @@ class AuthManager {
       await signIn();
     }
 
-    final isEmulator = Platform.environment['FUNCTIONS_EMULATOR'] == 'true' ||
+    final isEmulator =
+        Platform.environment['FUNCTIONS_EMULATOR'] == 'true' ||
         Platform.environment['FIRESTORE_EMULATOR_HOST'] != null;
     if (isEmulator) {
       return 'emulator-token';
@@ -87,14 +92,13 @@ class AuthManager {
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'grant_type': 'refresh_token',
-        'refresh_token': _refreshToken,
-      },
+      body: {'grant_type': 'refresh_token', 'refresh_token': _refreshToken},
     );
 
     if (response.statusCode != 200) {
-      _log.warning('Token refresh failed: ${response.statusCode}. Re-signing in...');
+      _log.warning(
+        'Token refresh failed: ${response.statusCode}. Re-signing in...',
+      );
       // Fallback: Try signing in again with email and password
       await signIn();
       return;

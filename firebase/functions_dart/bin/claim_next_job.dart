@@ -7,7 +7,9 @@ import 'worker_api_common.dart';
 Future<Response> claimNextJob(Request request, Firebase firebase) async {
   return handleRequest(request, (body) async {
     final runsOnPattern = body['runsOnPattern'] as String?;
-    final platform = (runsOnPattern ?? '').toLowerCase().contains('macos') ? 'macos' : 'ubuntu';
+    final platform = (runsOnPattern ?? '').toLowerCase().contains('macos')
+        ? 'macos'
+        : 'ubuntu';
 
     final firestore = firebase.adminApp.firestore();
 
@@ -19,7 +21,8 @@ Future<Response> claimNextJob(Request request, Firebase firebase) async {
         .get();
 
     final doc = snapshot.docs.firstWhereOrNull((candidate) {
-      final runsOn = (candidate.data()['runsOn'] as String? ?? 'ubuntu-latest').toLowerCase();
+      final runsOn = (candidate.data()['runsOn'] as String? ?? 'ubuntu-latest')
+          .toLowerCase();
       return runsOn.contains(platform);
     });
 
@@ -32,7 +35,7 @@ Future<Response> claimNextJob(Request request, Firebase firebase) async {
       if (!fresh.exists || fresh.data()?['status'] != 'QUEUED') {
         return null;
       }
-      
+
       final updatedData = Map<String, dynamic>.from(fresh.data()!);
       updatedData['status'] = 'IN_PROGRESS';
       updatedData['updatedAt'] = DateTime.now().toUtc().toIso8601String();

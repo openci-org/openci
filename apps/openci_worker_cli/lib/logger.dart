@@ -25,12 +25,12 @@ class LogEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'message': message,
-        'level': level.name,
-        'timestamp': timestamp,
-        if (stackTrace != null) 'stackTrace': stackTrace,
-      };
+    'id': id,
+    'message': message,
+    'level': level.name,
+    'timestamp': timestamp,
+    if (stackTrace != null) 'stackTrace': stackTrace,
+  };
 }
 
 class _BufferGroup {
@@ -70,7 +70,9 @@ Future<void> _sendLogsWithRetry(
 ) async {
   final client = _apiClient;
   if (client == null) {
-    _log.warning('ApiClient not configured for logging. Logs will be discarded.');
+    _log.warning(
+      'ApiClient not configured for logging. Logs will be discarded.',
+    );
     return;
   }
 
@@ -104,7 +106,11 @@ void _triggerFlush(_BufferGroup group) {
   final logsToSend = List<LogEntry>.from(group.entries);
   group.entries.clear();
 
-  final writeFuture = _sendLogsWithRetry(group.buildJobId, group.runId, logsToSend);
+  final writeFuture = _sendLogsWithRetry(
+    group.buildJobId,
+    group.runId,
+    logsToSend,
+  );
   _activeWrites.add(writeFuture);
   writeFuture.whenComplete(() {
     _activeWrites.remove(writeFuture);
@@ -119,13 +125,15 @@ Future<void> writeBuildLog(
   String? stackTrace,
 }) async {
   final group = _getBufferGroup(buildJobId, runId);
-  group.entries.add(LogEntry(
-    id: _uuid.v4(),
-    message: message,
-    level: level,
-    timestamp: DateTime.now().toUtc().toIso8601String(),
-    stackTrace: stackTrace,
-  ));
+  group.entries.add(
+    LogEntry(
+      id: _uuid.v4(),
+      message: message,
+      level: level,
+      timestamp: DateTime.now().toUtc().toIso8601String(),
+      stackTrace: stackTrace,
+    ),
+  );
 
   if (group.entries.length >= _maxBufferCount) {
     _triggerFlush(group);
@@ -144,20 +152,12 @@ Future<void> flushRemainingLogs() async {
   }
 }
 
-Future<void> logInfo(
-  String buildJobId,
-  String runId,
-  String message,
-) async {
+Future<void> logInfo(String buildJobId, String runId, String message) async {
   _log.info(message);
   await writeBuildLog(buildJobId, runId, LogLevel.info, message);
 }
 
-Future<void> logWarning(
-  String buildJobId,
-  String runId,
-  String message,
-) async {
+Future<void> logWarning(String buildJobId, String runId, String message) async {
   _log.warning(message);
   await writeBuildLog(buildJobId, runId, LogLevel.warning, message);
 }
@@ -202,7 +202,9 @@ String stripActPrefix(String line) {
 void setupLogging() {
   dart_logging.Logger.root.level = dart_logging.Level.ALL;
   dart_logging.Logger.root.onRecord.listen((record) {
-    stdout.writeln('${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}');
+    stdout.writeln(
+      '${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}',
+    );
     stdout.flush();
   });
 }

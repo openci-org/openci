@@ -38,7 +38,8 @@ class VirtualMachineSsh {
 
     final socket = await SSHSocket.connect(ipAddress, port).timeout(
       const Duration(seconds: 15),
-      onTimeout: () => throw TimeoutException('SSH socket connection timed out'),
+      onTimeout: () =>
+          throw TimeoutException('SSH socket connection timed out'),
     );
     final client = SSHClient(
       socket,

@@ -163,7 +163,9 @@ class AuthPage extends HookConsumerWidget {
                                       prefixIcon: Icon(
                                         Icons.email_outlined,
                                         size: 18,
-                                        color: AppColors.of(context).textTertiary,
+                                        color: AppColors.of(
+                                          context,
+                                        ).textTertiary,
                                       ),
                                     ),
                                     keyboardType: TextInputType.emailAddress,
@@ -178,13 +180,17 @@ class AuthPage extends HookConsumerWidget {
                                   // ── Password field ──
                                   TextFormField(
                                     controller: passwordController,
-                                    autofillHints: const [AutofillHints.password],
+                                    autofillHints: const [
+                                      AutofillHints.password,
+                                    ],
                                     decoration: InputDecoration(
                                       labelText: authT.password,
                                       prefixIcon: Icon(
                                         Icons.lock_outline,
                                         size: 18,
-                                        color: AppColors.of(context).textTertiary,
+                                        color: AppColors.of(
+                                          context,
+                                        ).textTertiary,
                                       ),
                                       suffixIcon: IconButton(
                                         icon: Icon(
@@ -276,9 +282,11 @@ class AuthPage extends HookConsumerWidget {
                                               try {
                                                 await FirebaseAuth.instance
                                                     .signInWithEmailAndPassword(
-                                                      email: emailController.text,
+                                                      email:
+                                                          emailController.text,
                                                       password:
-                                                          passwordController.text,
+                                                          passwordController
+                                                              .text,
                                                     );
                                                 TextInput.finishAutofillContext();
                                                 ref.invalidate(authProvider);
@@ -313,23 +321,27 @@ class AuthPage extends HookConsumerWidget {
                                                 .validate()) {
                                               isLoading.value = true;
                                               try {
-                                                final credential = await FirebaseAuth
-                                                    .instance
-                                                    .createUserWithEmailAndPassword(
-                                                      email: emailController.text,
-                                                      password:
-                                                          passwordController.text,
-                                                    );
+                                                final credential =
+                                                    await FirebaseAuth.instance
+                                                        .createUserWithEmailAndPassword(
+                                                          email: emailController
+                                                              .text,
+                                                          password:
+                                                              passwordController
+                                                                  .text,
+                                                        );
                                                 TextInput.finishAutofillContext();
                                                 final userId =
                                                     credential.user!.uid;
                                                 final teamId = userId;
-                                                final timestamp = FieldValue
-                                                    .serverTimestamp();
+                                                final timestamp =
+                                                    FieldValue.serverTimestamp();
                                                 final batch = firestore.batch();
                                                 batch.set(
                                                   firestore
-                                                      .collection(teamsCollection)
+                                                      .collection(
+                                                        teamsCollection,
+                                                      )
                                                       .doc(teamId),
                                                   {
                                                     'id': teamId,
@@ -343,13 +355,17 @@ class AuthPage extends HookConsumerWidget {
                                                 );
                                                 batch.set(
                                                   firestore
-                                                      .collection(usersCollection)
+                                                      .collection(
+                                                        usersCollection,
+                                                      )
                                                       .doc(userId),
                                                   {
                                                     'id': userId,
                                                     'email':
-                                                        credential.user!.email ??
-                                                            emailController.text,
+                                                        credential
+                                                            .user!
+                                                            .email ??
+                                                        emailController.text,
                                                     'selectedTeamId': teamId,
                                                     'createdAt': timestamp,
                                                     'updatedAt': timestamp,

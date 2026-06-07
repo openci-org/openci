@@ -8,11 +8,7 @@ import 'package:sentry/sentry.dart';
 
 final _log = Logger('Config');
 
-typedef WorkerConfig = ({
-  String email,
-  String password,
-  String projectId,
-});
+typedef WorkerConfig = ({String email, String password, String projectId});
 
 Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
   final results = argParser.parse(arguments);
@@ -35,25 +31,32 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
     return null;
   }
 
-  final email = (results['email'] as String?) ?? Platform.environment['OPENCI_EMAIL'];
+  final email =
+      (results['email'] as String?) ?? Platform.environment['OPENCI_EMAIL'];
   if (email == null || email.isEmpty) {
     _log.severe('--email or OPENCI_EMAIL environment variable is required.');
     printArgsUsage();
     return null;
   }
 
-  final password = (results['password'] as String?) ?? Platform.environment['OPENCI_PASSWORD'];
+  final password =
+      (results['password'] as String?) ??
+      Platform.environment['OPENCI_PASSWORD'];
   if (password == null || password.isEmpty) {
-    _log.severe('--password or OPENCI_PASSWORD environment variable is required.');
+    _log.severe(
+      '--password or OPENCI_PASSWORD environment variable is required.',
+    );
     printArgsUsage();
     return null;
   }
 
-  final projectId = (results['project-id'] as String?) ?? 
-      Platform.environment['OPENCI_PROJECT_ID'] ?? 
+  final projectId =
+      (results['project-id'] as String?) ??
+      Platform.environment['OPENCI_PROJECT_ID'] ??
       'openci-b1b91';
 
-  final sentryDsn = (results['sentry-dsn'] as String?) ?? Platform.environment['SENTRY_DSN'];
+  final sentryDsn =
+      (results['sentry-dsn'] as String?) ?? Platform.environment['SENTRY_DSN'];
   if (sentryDsn != null && sentryDsn.isNotEmpty) {
     await Sentry.init((options) {
       options.dsn = sentryDsn;
@@ -61,9 +64,5 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
     });
   }
 
-  return (
-    email: email,
-    password: password,
-    projectId: projectId,
-  );
+  return (email: email, password: password, projectId: projectId);
 }

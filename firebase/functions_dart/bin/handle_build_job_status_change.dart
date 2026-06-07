@@ -4,24 +4,36 @@ import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'worker_api_common.dart';
 
-Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) async {
+Future<Response> handleBuildJobStatusChange(
+  Request request,
+  Firebase firebase,
+) async {
   return handleRequest(request, (body) async {
     final buildJob = body['buildJob'] as Map<String, dynamic>?;
     final statusStr = body['status'] as String?;
 
     if (buildJob == null || statusStr == null) {
-      return jsonResponse({'error': 'buildJob and status are required'}, status: 400);
+      return jsonResponse({
+        'error': 'buildJob and status are required',
+      }, status: 400);
     }
 
     final firestore = firebase.adminApp.firestore();
     final buildJobId = buildJob['id'] as String;
 
     // A. fail-fast マトリックスのキャンセル処理
-    if (statusStr == 'FAILURE' && buildJob['matrixFailFast'] != false && buildJob['workflowRunId'] != null && buildJob['matrixGroupKey'] != null) {
+    if (statusStr == 'FAILURE' &&
+        buildJob['matrixFailFast'] != false &&
+        buildJob['workflowRunId'] != null &&
+        buildJob['matrixGroupKey'] != null) {
       final candidates = await firestore
           .collection(buildJobsCollection)
           .where('workflowRunId', WhereFilter.equal, buildJob['workflowRunId'])
-          .where('matrixGroupKey', WhereFilter.equal, buildJob['matrixGroupKey'])
+          .where(
+            'matrixGroupKey',
+            WhereFilter.equal,
+            buildJob['matrixGroupKey'],
+          )
           .get();
 
       final batch = firestore.batch();
@@ -51,12 +63,20 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
 
       // キャンセルされた他のマトリックスジョブの Check Run も完了させる
       for (final job in cancelledJobs) {
-        await updateCheckRunInternal(job, 'completed', 'cancelled', firebase: firebase);
+        await updateCheckRunInternal(
+          job,
+          'completed',
+          'cancelled',
+          firebase: firebase,
+        );
       }
     }
 
     // B. 依存関係の解決
-    Future<void> resolveDependencies(Map<String, dynamic> completedJob, String completedStatus) async {
+    Future<void> resolveDependencies(
+      Map<String, dynamic> completedJob,
+      String completedStatus,
+    ) async {
       final workflowRunId = completedJob['workflowRunId'] as String?;
       final jobKey = completedJob['jobKey'] as String?;
       if (workflowRunId == null || jobKey == null) return;
@@ -89,7 +109,12 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
             FieldPath.from('updatedAt'): nowIso,
           });
 
-          await updateCheckRunInternal(updated, 'completed', 'skipped', firebase: firebase);
+          await updateCheckRunInternal(
+            updated,
+            'completed',
+            'skipped',
+            firebase: firebase,
+          );
           await resolveDependencies(updated, 'SKIPPED');
           continue;
         }
@@ -100,7 +125,10 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
 
         bool allSatisfied = true;
         for (final needBuildJobId in resolvedNeeds.values) {
-          final needDoc = await firestore.collection(buildJobsCollection).doc(needBuildJobId as String).get();
+          final needDoc = await firestore
+              .collection(buildJobsCollection)
+              .doc(needBuildJobId as String)
+              .get();
           if (!needDoc.exists || needDoc.data()?['status'] != 'SUCCESS') {
             allSatisfied = false;
             break;
@@ -110,7 +138,9 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
         if (allSatisfied) {
           await firestore.collection(buildJobsCollection).doc(doc.id).update({
             FieldPath.from('status'): 'QUEUED',
-            FieldPath.from('updatedAt'): DateTime.now().toUtc().toIso8601String(),
+            FieldPath.from('updatedAt'): DateTime.now()
+                .toUtc()
+                .toIso8601String(),
           });
         }
       }
@@ -121,12 +151,17 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
     // C. FCM 通知の送信
     final teamId = buildJob['teamId'] as String?;
     if (teamId != null && (statusStr == 'SUCCESS' || statusStr == 'FAILURE')) {
-      final teamDoc = await firestore.collection(teamsCollection).doc(teamId).get();
+      final teamDoc = await firestore
+          .collection(teamsCollection)
+          .doc(teamId)
+          .get();
       final members = teamDoc.data()?['members'] as List<dynamic>? ?? [];
 
       if (members.isNotEmpty) {
-        final title = statusStr == 'SUCCESS' ? '✅ Build Succeeded' : '❌ Build Failed';
-        
+        final title = statusStr == 'SUCCESS'
+            ? '✅ Build Succeeded'
+            : '❌ Build Failed';
+
         // ログの最新行を取得して要約（エラー理由）を取得
         String failureSummary = 'Unknown error';
         if (statusStr == 'FAILURE' && buildJob['latestRunId'] != null) {
@@ -139,14 +174,17 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
               .orderBy('timestamp', descending: true)
               .limit(2)
               .get();
-          
+
           if (logsSnap.docs.length >= 2) {
-            failureSummary = logsSnap.docs[1].data()['message'] as String? ?? 'Unknown error';
+            failureSummary =
+                logsSnap.docs[1].data()['message'] as String? ??
+                'Unknown error';
           }
         }
 
         final bodyLines = [
-          if (buildJob['workflowName'] != null) buildJob['workflowName'] as String,
+          if (buildJob['workflowName'] != null)
+            buildJob['workflowName'] as String,
           '${buildJob['repo']}${buildJob['branch'] != null ? ' (${buildJob['branch']})' : ''}',
           if (statusStr == 'FAILURE') failureSummary,
         ];
@@ -154,11 +192,15 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
         final messaging = firebase.adminApp.messaging();
 
         for (final memberUid in members) {
-          final userDoc = await firestore.collection(usersCollection).doc(memberUid as String).get();
+          final userDoc = await firestore
+              .collection(usersCollection)
+              .doc(memberUid as String)
+              .get();
           final userData = userDoc.data();
           if (userData == null) continue;
 
-          final preference = userData['notificationPreference'] as String? ?? 'all';
+          final preference =
+              userData['notificationPreference'] as String? ?? 'all';
           if (preference == 'none' ||
               (preference == 'successOnly' && statusStr != 'SUCCESS') ||
               (preference == 'failureOnly' && statusStr != 'FAILURE')) {
@@ -170,36 +212,43 @@ Future<Response> handleBuildJobStatusChange(Request request, Firebase firebase) 
 
           for (final token in fcmTokens) {
             try {
-              await messaging.send(TokenMessage(
-                token: token as String,
-                notification: Notification(
-                  title: title,
-                  body: bodyLines.join('\n'),
-                ),
-                data: {
-                  'buildJobId': buildJobId,
-                  'status': statusStr,
-                  'owner': buildJob['owner'] as String? ?? '',
-                  'repo': buildJob['repo'] as String? ?? '',
-                  if (buildJob['branch'] != null) 'branch': buildJob['branch'] as String,
-                  if (buildJob['workflowName'] != null) 'workflowName': buildJob['workflowName'] as String,
-                },
-                apns: ApnsConfig(
-                  payload: ApnsPayload(
-                    aps: Aps(sound: const ApsSoundName('default'), badge: 1),
+              await messaging.send(
+                TokenMessage(
+                  token: token as String,
+                  notification: Notification(
+                    title: title,
+                    body: bodyLines.join('\n'),
+                  ),
+                  data: {
+                    'buildJobId': buildJobId,
+                    'status': statusStr,
+                    'owner': buildJob['owner'] as String? ?? '',
+                    'repo': buildJob['repo'] as String? ?? '',
+                    if (buildJob['branch'] != null)
+                      'branch': buildJob['branch'] as String,
+                    if (buildJob['workflowName'] != null)
+                      'workflowName': buildJob['workflowName'] as String,
+                  },
+                  apns: ApnsConfig(
+                    payload: ApnsPayload(
+                      aps: Aps(sound: const ApsSoundName('default'), badge: 1),
+                    ),
                   ),
                 ),
-              ));
+              );
             } catch (e) {
               final errStr = e.toString();
-              if (errStr.contains('not-registered') || errStr.contains('invalid-argument')) {
+              if (errStr.contains('not-registered') ||
+                  errStr.contains('invalid-argument')) {
                 invalidTokens.add(token);
               }
             }
           }
 
           if (invalidTokens.isNotEmpty) {
-            final validTokens = fcmTokens.where((t) => !invalidTokens.contains(t)).toList();
+            final validTokens = fcmTokens
+                .where((t) => !invalidTokens.contains(t))
+                .toList();
             await firestore.collection(usersCollection).doc(memberUid).update({
               FieldPath.from('fcmTokens'): validTokens,
             });

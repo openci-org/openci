@@ -1661,7 +1661,9 @@ class _DetailLogsView extends HookConsumerWidget {
         isNearBottom.value = nearBottom;
 
         if (nearBottom) {
-          final notifier = ref.read(buildLogsProvider(buildJobId, runId).notifier);
+          final notifier = ref.read(
+            buildLogsProvider(buildJobId, runId).notifier,
+          );
           if (notifier.hasMore && !notifier.isLoadingMore) {
             notifier.loadMore();
           }
@@ -1677,7 +1679,8 @@ class _DetailLogsView extends HookConsumerWidget {
         if (logs.length != prevLogCount.value) {
           final wasNearBottom = isNearBottom.value;
           prevLogCount.value = logs.length;
-          final isRunning = buildStatus == BuildJobStatus.IN_PROGRESS ||
+          final isRunning =
+              buildStatus == BuildJobStatus.IN_PROGRESS ||
               buildStatus == BuildJobStatus.QUEUED ||
               buildStatus == BuildJobStatus.WAITING;
           if (isRunning && wasNearBottom && scrollController.hasClients) {

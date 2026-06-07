@@ -3,7 +3,10 @@ import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'worker_api_common.dart';
 
-Future<Response> updateBuildRunStatus(Request request, Firebase firebase) async {
+Future<Response> updateBuildRunStatus(
+  Request request,
+  Firebase firebase,
+) async {
   return handleRequest(request, (body) async {
     final buildJobId = body['buildJobId'] as String?;
     final runId = body['runId'] as String?;
@@ -11,7 +14,9 @@ Future<Response> updateBuildRunStatus(Request request, Firebase firebase) async 
     final conclusion = body['conclusion'] as String?;
 
     if (buildJobId == null || runId == null || status == null) {
-      return jsonResponse({'error': 'buildJobId, runId, and status are required'}, status: 400);
+      return jsonResponse({
+        'error': 'buildJobId, runId, and status are required',
+      }, status: 400);
     }
 
     final firestore = firebase.adminApp.firestore();
@@ -29,7 +34,7 @@ Future<Response> updateBuildRunStatus(Request request, Firebase firebase) async 
         }, options: const SetOptions.merge());
 
     return jsonResponse({
-      'buildRun_update': {'buildJobId': buildJobId, 'id': runId}
+      'buildRun_update': {'buildJobId': buildJobId, 'id': runId},
     });
   });
 }

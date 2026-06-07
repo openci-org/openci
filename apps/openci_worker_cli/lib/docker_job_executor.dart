@@ -43,7 +43,11 @@ Future<bool> processDockerJob(
     final tokenResp = await apiClient.resolveInstallationToken(buildJobId);
     token = tokenResp['token'] as String;
   } catch (e) {
-    await logError(buildJobId, runId, 'Failed to resolve GitHub App Installation Token: $e');
+    await logError(
+      buildJobId,
+      runId,
+      'Failed to resolve GitHub App Installation Token: $e',
+    );
     await apiClient.updateRunStatus(
       buildJobId: buildJobId,
       runId: runId,
@@ -51,7 +55,11 @@ Future<bool> processDockerJob(
       conclusion: 'failure',
     );
     await apiClient.completeJob(buildJobId, 'FAILURE');
-    await apiClient.updateCheckRun(buildJob, 'completed', conclusion: 'failure');
+    await apiClient.updateCheckRun(
+      buildJob,
+      'completed',
+      conclusion: 'failure',
+    );
     await apiClient.handleBuildJobStatusChange(buildJob, 'FAILURE');
     return true;
   }
@@ -62,12 +70,12 @@ Future<bool> processDockerJob(
   final name = containerName(workerId: workerId, buildJobId: buildJobId);
 
   Future<void> exec(String command) => execInContainer(
-        name: name,
-        command: command,
-        buildJobId: buildJobId,
-        runId: runId,
-        token: token,
-      );
+    name: name,
+    command: command,
+    buildJobId: buildJobId,
+    runId: runId,
+    token: token,
+  );
 
   Future<bool> isCancelled() async {
     try {
@@ -89,25 +97,18 @@ Future<bool> processDockerJob(
     await startContainer(name);
 
     // ── Clone repository ──
-    await logInfo(
-      buildJobId,
-      runId,
-      'Cloning repository $owner/$repo...',
-    );
+    await logInfo(buildJobId, runId, 'Cloning repository $owner/$repo...');
     final githubHost = buildJob.githubBaseUrl != null
         ? Uri.parse(buildJob.githubBaseUrl!).host
         : 'github.com';
-    final cloneUrl = 'https://x-access-token:$token@$githubHost/$owner/$repo.git';
+    final cloneUrl =
+        'https://x-access-token:$token@$githubHost/$owner/$repo.git';
 
     await exec('git clone --depth 1 --no-checkout $cloneUrl');
 
     final pullRequestNumber = buildJob.pullRequestNumber;
 
-    await logInfo(
-      buildJobId,
-      runId,
-      'Fetching commit $commitSha...',
-    );
+    await logInfo(buildJobId, runId, 'Fetching commit $commitSha...');
     try {
       await exec('git -C $repo fetch --depth 1 origin $commitSha');
     } catch (_) {
@@ -125,11 +126,7 @@ Future<bool> processDockerJob(
       }
     }
 
-    await logInfo(
-      buildJobId,
-      runId,
-      'Checking out commit $commitSha...',
-    );
+    await logInfo(buildJobId, runId, 'Checking out commit $commitSha...');
     await exec('git -C $repo checkout $commitSha');
     await logInfo(buildJobId, runId, 'Repository cloned successfully');
 
@@ -240,13 +237,17 @@ Future<bool> processDockerJob(
         conclusion: 'success',
       );
       await apiClient.completeJob(buildJobId, 'SUCCESS');
-      
+
       final completedJob = buildJob.copyWith(
         status: BuildJobStatus.SUCCESS,
         latestRunId: runId,
         completedAt: DateTime.now(),
       );
-      await apiClient.updateCheckRun(completedJob, 'completed', conclusion: 'success');
+      await apiClient.updateCheckRun(
+        completedJob,
+        'completed',
+        conclusion: 'success',
+      );
       await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
     } catch (actError) {
       await logWarning(buildJobId, runId, 'Act build failed: $actError');
@@ -263,7 +264,11 @@ Future<bool> processDockerJob(
         latestRunId: runId,
         completedAt: DateTime.now(),
       );
-      await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+      await apiClient.updateCheckRun(
+        failedJob,
+        'completed',
+        conclusion: 'failure',
+      );
       await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
       return true;
     }
@@ -287,7 +292,11 @@ Future<bool> processDockerJob(
       latestRunId: runId,
       completedAt: DateTime.now(),
     );
-    await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+    await apiClient.updateCheckRun(
+      failedJob,
+      'completed',
+      conclusion: 'failure',
+    );
     await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
@@ -295,18 +304,10 @@ Future<bool> processDockerJob(
     try {
       await stopAndRemoveContainer(name);
     } catch (e) {
-      await logWarning(
-        buildJobId,
-        runId,
-        'Error removing container: $e',
-      );
+      await logWarning(buildJobId, runId, 'Error removing container: $e');
     }
     await flushRemainingLogs();
-    await pruneStaleContainers(
-      buildJobId,
-      runId,
-      workerId: workerId,
-    );
+    await pruneStaleContainers(buildJobId, runId, workerId: workerId);
   }
 
   return true;

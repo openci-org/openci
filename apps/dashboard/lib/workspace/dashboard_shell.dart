@@ -123,12 +123,18 @@ class _DashboardShellState extends State<DashboardShell> {
         MediaQuery.sizeOf(context).width < compactBoardBreakpoint;
 
     void onRunsTap() => _selectCompactDestination(CompactBoardDestination.runs);
-    void onWorkersTap() => _selectCompactDestination(CompactBoardDestination.workers);
-    void onWorkflowsTap() => _selectCompactDestination(CompactBoardDestination.workflows);
-    void onVariablesTap() => _selectCompactDestination(CompactBoardDestination.variables);
-    void onStoreReleaseTap() => _selectCompactDestination(CompactBoardDestination.storeRelease);
-    void onDistributionsTap() => _selectCompactDestination(CompactBoardDestination.distributions);
-    void onSettingsTap() => _selectCompactDestination(CompactBoardDestination.settings);
+    void onWorkersTap() =>
+        _selectCompactDestination(CompactBoardDestination.workers);
+    void onWorkflowsTap() =>
+        _selectCompactDestination(CompactBoardDestination.workflows);
+    void onVariablesTap() =>
+        _selectCompactDestination(CompactBoardDestination.variables);
+    void onStoreReleaseTap() =>
+        _selectCompactDestination(CompactBoardDestination.storeRelease);
+    void onDistributionsTap() =>
+        _selectCompactDestination(CompactBoardDestination.distributions);
+    void onSettingsTap() =>
+        _selectCompactDestination(CompactBoardDestination.settings);
 
     final content = SafeArea(
       child: CompactDestinationBody(
@@ -427,25 +433,29 @@ class DashboardDrawer extends StatelessWidget {
             _CompactDrawerTile(
               icon: Icons.schema_rounded,
               label: 'CI/CD設定',
-              selected: selectedDestination == CompactBoardDestination.workflows,
+              selected:
+                  selectedDestination == CompactBoardDestination.workflows,
               onTap: () => runAfterClose(onWorkflowsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.key_rounded,
               label: 'シークレット',
-              selected: selectedDestination == CompactBoardDestination.variables,
+              selected:
+                  selectedDestination == CompactBoardDestination.variables,
               onTap: () => runAfterClose(onVariablesTap),
             ),
             _CompactDrawerTile(
               icon: Icons.rocket_launch_outlined,
               label: 'ストアリリース',
-              selected: selectedDestination == CompactBoardDestination.storeRelease,
+              selected:
+                  selectedDestination == CompactBoardDestination.storeRelease,
               onTap: () => runAfterClose(onStoreReleaseTap),
             ),
             _CompactDrawerTile(
               icon: Icons.install_mobile_rounded,
               label: 'アプリ配信',
-              selected: selectedDestination == CompactBoardDestination.distributions,
+              selected:
+                  selectedDestination == CompactBoardDestination.distributions,
               onTap: () => runAfterClose(onDistributionsTap),
             ),
             _CompactDrawerTile(
@@ -476,9 +486,7 @@ class _CompactDrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected
-        ? const Color(0xFF2563EB)
-        : const Color(0xFF0F172A);
+    final color = selected ? const Color(0xFF2563EB) : const Color(0xFF0F172A);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),

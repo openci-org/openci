@@ -8,9 +8,11 @@ class GcpSecretManager {
   /// The [pathToSecret] should be in the format:
   /// `projects/{projectId}/secrets/{secretName}`
   static Future<String> fetchSecretValue(String pathToSecret) async {
-    final client = await clientViaApplicationDefaultCredentials(scopes: [
-      SecretManagerApi.cloudPlatformScope,
-    ]);
+    final client = await clientViaApplicationDefaultCredentials(
+      scopes: [
+        SecretManagerApi.cloudPlatformScope,
+      ],
+    );
 
     try {
       final api = SecretManagerApi(client);
@@ -25,7 +27,10 @@ class GcpSecretManager {
 
       // Base64Url or Base64 decoding depending on payload format.
       // Usually standard Base64 padding is needed, standard base64 decoding supports both.
-      final cleanPayload = payload.replaceAll('\n', '').replaceAll('\r', '').trim();
+      final cleanPayload = payload
+          .replaceAll('\n', '')
+          .replaceAll('\r', '')
+          .trim();
       return utf8.decode(base64.decode(cleanPayload));
     } catch (e) {
       if (e.toString().contains('NOT_FOUND') ||

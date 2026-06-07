@@ -4,12 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 export 'package:openci_shared/openci_shared.dart';
 
-
-
 FirebaseFirestore get firestore => FirebaseFirestore.instance;
-
-
-
 
 DateTime dateTimeFromFirestore(Object? value) {
   if (value is Timestamp) return value.toDate();

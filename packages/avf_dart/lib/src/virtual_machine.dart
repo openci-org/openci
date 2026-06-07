@@ -153,9 +153,11 @@ class VirtualMachine {
 
     if (resolvedIp != null) {
       if (showLogs) {
-        print('Guest IP allocated: $resolvedIp. Checking SSH readiness (Dart)...');
+        print(
+            'Guest IP allocated: $resolvedIp. Checking SSH readiness (Dart)...');
       }
-      final portOpen = await _waitForSshPort(resolvedIp!, timeout: const Duration(minutes: 5), showLogs: showLogs);
+      final portOpen = await _waitForSshPort(resolvedIp!,
+          timeout: const Duration(minutes: 5), showLogs: showLogs);
       if (!portOpen) {
         cleanupSignals();
         await stdoutSubscription.cancel();
@@ -170,7 +172,8 @@ class VirtualMachine {
     return VirtualMachine._(process, name, resolvedIp);
   }
 
-  static Future<bool> _waitForSshPort(String ip, {required Duration timeout, required bool showLogs}) async {
+  static Future<bool> _waitForSshPort(String ip,
+      {required Duration timeout, required bool showLogs}) async {
     final stopTime = DateTime.now().add(timeout);
 
     if (showLogs) {
@@ -181,7 +184,8 @@ class VirtualMachine {
     bool pingSuccess = false;
     while (DateTime.now().isBefore(stopTime)) {
       try {
-        final res = await Process.run('/sbin/ping', ['-c', '1', '-t', '1', ip]).timeout(const Duration(seconds: 2));
+        final res = await Process.run('/sbin/ping', ['-c', '1', '-t', '1', ip])
+            .timeout(const Duration(seconds: 2));
         if (res.exitCode == 0) {
           pingSuccess = true;
           if (showLogs) {
@@ -190,7 +194,8 @@ class VirtualMachine {
           break;
         } else {
           if (showLogs) {
-            print('Debug: Guest OS network not responding to ping yet (exitCode: ${res.exitCode})');
+            print(
+                'Debug: Guest OS network not responding to ping yet (exitCode: ${res.exitCode})');
           }
         }
       } catch (e) {
@@ -203,7 +208,8 @@ class VirtualMachine {
 
     if (!pingSuccess) {
       if (showLogs) {
-        print('Debug: Timeout waiting for guest OS network to respond to ping.');
+        print(
+            'Debug: Timeout waiting for guest OS network to respond to ping.');
       }
       return false;
     }

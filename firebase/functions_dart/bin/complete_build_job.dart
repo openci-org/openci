@@ -23,7 +23,7 @@ Future<Response> completeBuildJob(Request request, Firebase firebase) async {
     });
 
     return jsonResponse({
-      'buildJob_update': {'id': id}
+      'buildJob_update': {'id': id},
     });
   });
 }

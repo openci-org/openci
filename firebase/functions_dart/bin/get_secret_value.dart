@@ -10,7 +10,9 @@ Future<Response> getSecretValue(Request request, Firebase firebase) async {
     final teamId = body['teamId'] as String?;
     final name = body['name'] as String?;
     if (teamId == null || name == null) {
-      return jsonResponse({'error': 'teamId and name are required'}, status: 400);
+      return jsonResponse({
+        'error': 'teamId and name are required',
+      }, status: 400);
     }
 
     final firestore = firebase.adminApp.firestore();
@@ -26,14 +28,19 @@ Future<Response> getSecretValue(Request request, Firebase firebase) async {
 
     final pathToSecret = doc.data()['pathToSecret'] as String?;
     if (pathToSecret == null || pathToSecret.isEmpty) {
-      return jsonResponse({'error': 'pathToSecret is not configured'}, status: 400);
+      return jsonResponse({
+        'error': 'pathToSecret is not configured',
+      }, status: 400);
     }
 
     try {
       final value = await GcpSecretManager.fetchSecretValue(pathToSecret);
       return jsonResponse({'value': value});
     } catch (e) {
-      return jsonResponse({'error': 'Failed to fetch secret value', 'details': e.toString()}, status: 500);
+      return jsonResponse({
+        'error': 'Failed to fetch secret value',
+        'details': e.toString(),
+      }, status: 500);
     }
   });
 }

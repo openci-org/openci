@@ -18,11 +18,7 @@ Future<void> cloneVm({
   required String runId,
   required String workerId,
 }) async {
-  await logInfo(
-    buildJobId,
-    runId,
-    'Cloning VM $baseVmName to $vmName...',
-  );
+  await logInfo(buildJobId, runId, 'Cloning VM $baseVmName to $vmName...');
   await VirtualMachine.clone(sourceName: baseVmName, targetName: vmName);
 
   // Give each worker's VM a distinct, stable MAC address so that multiple
@@ -31,15 +27,18 @@ Future<void> cloneVm({
   // tolerates a changed MAC (it re-runs DHCP on boot); we keep the validated
   // da:d7:a6:2d:e9 prefix and vary only the last octet by the worker number.
   final mac = macForWorker(workerId);
-  final configFile = File('${VirtualMachine.defaultVmsDir}/$vmName/config.json');
+  final configFile = File(
+    '${VirtualMachine.defaultVmsDir}/$vmName/config.json',
+  );
   if (configFile.existsSync()) {
     try {
       final config =
           jsonDecode(configFile.readAsStringSync()) as Map<String, dynamic>;
       if (config['macAddress'] != mac) {
         config['macAddress'] = mac;
-        configFile
-            .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(config));
+        configFile.writeAsStringSync(
+          const JsonEncoder.withIndent('  ').convert(config),
+        );
         await logInfo(buildJobId, runId, 'Assigned VM MAC $mac for $workerId');
       }
     } catch (e) {
@@ -286,7 +285,9 @@ Future<void> _killZombieAvfProcesses(String workerId) async {
     // touch a sibling worker's running VM. (The VM directory path also contains
     // a space — "Application Support" — so we match the VM-name token rather
     // than trying to parse the full path argument.)
-    final namePattern = RegExp('openci-vm-${RegExp.escape(workerId)}-[0-9a-fA-F]+');
+    final namePattern = RegExp(
+      'openci-vm-${RegExp.escape(workerId)}-[0-9a-fA-F]+',
+    );
     final pidPattern = RegExp(r'^\S+\s+(\d+)\s');
     final zombiePids = <int>[];
 
@@ -300,7 +301,9 @@ Future<void> _killZombieAvfProcesses(String workerId) async {
 
       // Only kill if the VM directory no longer exists (genuinely orphaned).
       if (!Directory('$vmsDir/$vmName').existsSync()) {
-        _log.warning('Found zombie AVF process: PID=$pid VM=$vmName. Killing...');
+        _log.warning(
+          'Found zombie AVF process: PID=$pid VM=$vmName. Killing...',
+        );
         zombiePids.add(pid);
       }
     }
@@ -368,18 +371,16 @@ Future<void> pruneStaleVms(
     final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
     final vms = await VirtualMachine.list();
-    final staleVms = vms.where((vm) => vm.name.startsWith(prefix) && vm.name != currentVm).toList();
+    final staleVms = vms
+        .where((vm) => vm.name.startsWith(prefix) && vm.name != currentVm)
+        .toList();
 
     for (final vm in staleVms) {
       await logInfo(buildJobId, runId, 'Deleting stale VM: ${vm.name}');
       await VirtualMachine.delete(vm.name);
     }
   } catch (e) {
-    await logWarning(
-      buildJobId,
-      runId,
-      'Error pruning stale VMs: $e',
-    );
+    await logWarning(buildJobId, runId, 'Error pruning stale VMs: $e');
   }
 }
 
@@ -395,9 +396,7 @@ Future<void> writeFileToVm(
   // Copy via the system `scp` binary (key auth). This relies on the SSH key
   // already installed by setupDirectSsh and, like ssh, is exempt from macOS
   // Local Network privacy when the worker runs as a LaunchAgent.
-  final local = File(
-    '/tmp/openci-upload-${const Uuid().v4()}',
-  );
+  final local = File('/tmp/openci-upload-${const Uuid().v4()}');
   local.writeAsStringSync(content);
   try {
     final result = await Process.run('/usr/bin/scp', [
@@ -410,9 +409,7 @@ Future<void> writeFileToVm(
       '$sshUser@$ipAddress:$remotePath',
     ]);
     if (result.exitCode != 0) {
-      throw Exception(
-        'Failed to scp file to $remotePath: ${result.stderr}',
-      );
+      throw Exception('Failed to scp file to $remotePath: ${result.stderr}');
     }
   } finally {
     try {
@@ -545,8 +542,9 @@ bool _isActError(String line) {
     // Some tools (e.g. Patrol) print a decorative "❌ Failed: 0" summary line
     // where the count is zero, which means success, not a failure. Treat any
     // explicit zero failure/error count as benign.
-    if (RegExp(r'(?:failed|failures|failing|errors?)\s*[:=]?\s*0\b')
-        .hasMatch(lower)) {
+    if (RegExp(
+      r'(?:failed|failures|failing|errors?)\s*[:=]?\s*0\b',
+    ).hasMatch(lower)) {
       return false;
     }
     return true;
