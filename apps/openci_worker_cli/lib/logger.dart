@@ -177,18 +177,26 @@ Future<void> finalizeBuildLog(String buildJobId, String runId) async {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return;
       }
-      
+
       final errorMsg = 'HTTP ${response.statusCode}: ${response.body}';
       if (attempt == maxAttempts) {
-        _log.warning('[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final error: $errorMsg');
+        _log.warning(
+          '[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final error: $errorMsg',
+        );
       } else {
-        _log.warning('[BuildLog] Attempt $attempt failed to send complete signal: $errorMsg. Retrying in ${delay.inMilliseconds}ms...');
+        _log.warning(
+          '[BuildLog] Attempt $attempt failed to send complete signal: $errorMsg. Retrying in ${delay.inMilliseconds}ms...',
+        );
       }
     } catch (e) {
       if (attempt == maxAttempts) {
-        _log.warning('[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final exception: $e');
+        _log.warning(
+          '[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final exception: $e',
+        );
       } else {
-        _log.warning('[BuildLog] Attempt $attempt failed to send complete signal with exception: $e. Retrying in ${delay.inMilliseconds}ms...');
+        _log.warning(
+          '[BuildLog] Attempt $attempt failed to send complete signal with exception: $e. Retrying in ${delay.inMilliseconds}ms...',
+        );
       }
     }
 
