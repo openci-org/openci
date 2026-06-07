@@ -1,8 +1,8 @@
 import 'dart:typed_data';
+
+import 'package:minio/minio.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:minio/minio.dart';
-import 'package:minio/src/minio_stream.dart';
 import 'package:openci_server/settings/storage_settings.dart';
 import 'package:openci_server/storage.dart';
 import 'package:test/test.dart';
@@ -32,7 +32,7 @@ void main() {
       when(
         mockMinio.bucketExists('test-bucket'),
       ).thenAnswer((_) async => false);
-      when(mockMinio.makeBucket('test-bucket')).thenAnswer((_) async => null);
+      when(mockMinio.makeBucket('test-bucket')).thenAnswer((_) async {});
 
       await storage.initialize();
 

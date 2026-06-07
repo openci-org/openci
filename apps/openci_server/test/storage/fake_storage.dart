@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:openci_server/storage.dart';
 
 class FakeStorageManager implements StorageManager {

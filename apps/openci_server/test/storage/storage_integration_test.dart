@@ -28,18 +28,8 @@ void main() {
     test(
       'Full lifecycle: verify, initialize, upload, download, and presigned url',
       () async {
-        final healthy = await storage.verifyConnection();
-        if (!healthy) {
-          print(
-            'Skipping StorageManager integration test: SeaweedFS (S3) is not reachable.',
-          );
-          return;
-        }
-
-        // 1. Initialize bucket
         await storage.initialize();
 
-        // 2. Upload object
         final testFileName =
             'integration_test_${DateTime.now().millisecondsSinceEpoch}.txt';
         final testContent = 'Hello, this is integration test content!';
@@ -52,7 +42,6 @@ void main() {
           size: testContent.length,
         );
 
-        // 3. Download object
         final downloadStream = await storage.downloadObject(testFileName);
         final downloadBytes = await downloadStream
             .expand((chunk) => chunk)
@@ -60,11 +49,9 @@ void main() {
         final downloadedText = utf8.decode(downloadBytes);
         expect(downloadedText, equals(testContent));
 
-        // 4. Presigned URL test
         final presignedUrl = await storage.getPresignedUrl(testFileName);
         expect(presignedUrl, contains(testFileName));
 
-        // Adjust endpoint if running outside the container network
         final resolvedUrl = presignedUrl.replaceAll(
           'seaweedfs:8000',
           'localhost:18000',
