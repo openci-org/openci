@@ -46,11 +46,13 @@ class _BufferGroup {
   _BufferGroup({required this.buildJobId, required this.runId});
 }
 
+ApiClient? _apiClient;
 final _bufferGroups = <String, _BufferGroup>{};
 final _activeWrites = <Future<void>>[];
 
-// TODO(Someone): Remove this method.
-void setLoggerApiClient(ApiClient apiClient) {}
+void setLoggerApiClient(ApiClient apiClient) {
+  _apiClient = apiClient;
+}
 
 _BufferGroup _getBufferGroup(String buildJobId, String runId) {
   final key = '$buildJobId:$runId';
@@ -72,32 +74,63 @@ Future<void> _sendLogsWithRetry(
   String runId,
   List<LogEntry> logs,
 ) async {
+  final payloadLogs = logs.map((e) => e.toJson()).toList();
+
+  // 1. openci_server への送信
   final serverUrl =
       Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
   final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
-  final payloadLogs = logs.map((e) => e.toJson()).toList();
   final body = jsonEncode({'logs': payloadLogs});
 
-  for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-    try {
-      final response = await _httpClient.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: body,
-      );
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return;
+  Future<void> sendToServer() async {
+    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+      try {
+        final response = await _httpClient.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: body,
+        );
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return;
+        }
+        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
+      } catch (e) {
+        if (attempt == _maxWriteAttempts) {
+          _log.warning('[BuildLog] Failed to send logs to server: $e');
+          return;
+        }
+        final delay = _initialRetryDelay * (1 << (attempt - 1));
+        await Future.delayed(delay);
       }
-      throw HttpException('HTTP ${response.statusCode}: ${response.body}');
-    } catch (e) {
-      if (attempt == _maxWriteAttempts) {
-        _log.warning('[BuildLog] Failed to send logs to server: $e');
-        return;
-      }
-      final delay = _initialRetryDelay * (1 << (attempt - 1));
-      await Future.delayed(delay);
     }
   }
+
+  // 2. Firebase Cloud Functions (Firestore) への送信
+  Future<void> sendToFirebase() async {
+    final client = _apiClient;
+    if (client == null) return;
+
+    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+      try {
+        await client.appendBuildLogs(
+          buildJobId: buildJobId,
+          runId: runId,
+          logs: payloadLogs,
+        );
+        return;
+      } catch (e) {
+        if (attempt == _maxWriteAttempts) {
+          _log.warning('[BuildLog] Failed to send logs to Firebase: $e');
+          return;
+        }
+        final delay = _initialRetryDelay * (1 << (attempt - 1));
+        await Future.delayed(delay);
+      }
+    }
+  }
+
+  // 両方の送信を並行して実行
+  await Future.wait([sendToServer(), sendToFirebase()]);
 }
 
 void _triggerFlush(_BufferGroup group) {

@@ -16,7 +16,7 @@ class LogStreamManager {
     _buffers.putIfAbsent(runId, () => []);
     _streams.putIfAbsent(
       runId,
-      () => StreamController<String>.broadcast(sync: true),
+      () => StreamController<String>.broadcast(),
     );
   }
 
