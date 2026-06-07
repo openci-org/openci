@@ -166,17 +166,36 @@ Future<void> finalizeBuildLog(String buildJobId, String runId) async {
       Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
   final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/complete');
 
-  try {
-    final response = await _httpClient
-        .post(url)
-        .timeout(const Duration(seconds: 10));
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      _log.warning(
-        'Failed to send complete signal: ${response.statusCode} ${response.body}',
-      );
+  const maxAttempts = 3;
+  var delay = const Duration(milliseconds: 500);
+
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      final response = await _httpClient
+          .post(url)
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      }
+      
+      final errorMsg = 'HTTP ${response.statusCode}: ${response.body}';
+      if (attempt == maxAttempts) {
+        _log.warning('[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final error: $errorMsg');
+      } else {
+        _log.warning('[BuildLog] Attempt $attempt failed to send complete signal: $errorMsg. Retrying in ${delay.inMilliseconds}ms...');
+      }
+    } catch (e) {
+      if (attempt == maxAttempts) {
+        _log.warning('[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final exception: $e');
+      } else {
+        _log.warning('[BuildLog] Attempt $attempt failed to send complete signal with exception: $e. Retrying in ${delay.inMilliseconds}ms...');
+      }
     }
-  } catch (e) {
-    _log.warning('Error sending complete signal to server: $e');
+
+    if (attempt < maxAttempts) {
+      await Future.delayed(delay);
+      delay *= 2;
+    }
   }
 }
 
