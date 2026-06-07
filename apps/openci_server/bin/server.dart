@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:openci_server/db.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
-import 'package:openci_server/settings.dart';
+import 'package:openci_server/settings/database_settings.dart';
+import 'package:openci_server/settings/server_settings.dart';
+import 'package:openci_server/settings/storage_settings.dart';
+import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 void main(List<String> args) async {
@@ -32,7 +35,26 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final handler = applyMiddleware(getRouter(db));
+  StorageSettings storageSettings;
+  try {
+    storageSettings = loadStorageSettings();
+  } catch (e) {
+    stderr.writeln('Error loading storage settings: $e');
+    await db.close();
+    exit(1);
+  }
+
+  StorageManager storage;
+  try {
+    storage = StorageManager(storageSettings);
+    await storage.initialize();
+  } catch (e) {
+    stderr.writeln('Failed to initialize storage connection: $e');
+    await db.close();
+    exit(1);
+  }
+
+  final handler = applyMiddleware(getRouter(db, storage));
 
   HttpServer server;
   try {
