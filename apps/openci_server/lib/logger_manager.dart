@@ -35,7 +35,9 @@ class LogStreamManager {
   }
 
   List<String> getBuffer(String runId) {
-    return _buffers[runId] ?? [];
+    final buffer = _buffers[runId];
+    if (buffer == null) return const [];
+    return List.unmodifiable(buffer);
   }
 
   bool hasSession(String runId) {

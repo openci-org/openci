@@ -77,5 +77,25 @@ void main() {
 
       manager.finalizeSession(runId, storage);
     });
+
+    test('getBuffer returns an unmodifiable list', () {
+      final runId =
+          'test-unmodifiable-${DateTime.now().millisecondsSinceEpoch}';
+      manager.initSession(runId);
+      manager.appendLog(runId, 'Log line');
+
+      final buffer = manager.getBuffer(runId);
+      expect(buffer, equals(['Log line']));
+
+      // リストを変更しようとすると UnsupportedError が発生することを確認
+      expect(() => buffer.add('Mutated log line'), throwsUnsupportedError);
+      expect(() => buffer.clear(), throwsUnsupportedError);
+
+      // 内部バッファが書き換わっていないことを検証
+      final intactBuffer = manager.getBuffer(runId);
+      expect(intactBuffer, equals(['Log line']));
+
+      manager.finalizeSession(runId, storage);
+    });
   });
 }
