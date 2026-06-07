@@ -7,18 +7,22 @@ import 'package:openci_server/router.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
+import '../storage/fake_storage.dart';
+
 void main() {
   group('Server Integration Tests', () {
     late HttpServer server;
     late int port;
     late DatabaseManager db;
+    late FakeStorageManager storage;
 
     setUpAll(() async {
       db = DatabaseManager(
         'postgres://postgres:password@localhost:5432/openci_test',
       );
+      storage = FakeStorageManager();
       const emptyPort = 0;
-      final handler = applyMiddleware(getRouter(db));
+      final handler = applyMiddleware(getRouter(db, storage));
       server = await shelf_io.serve(
         handler,
         InternetAddress.loopbackIPv4,
