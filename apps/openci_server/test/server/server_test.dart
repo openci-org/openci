@@ -80,10 +80,10 @@ void main() {
     });
 
     test(
-      'GET /test-upload uploads artifact and returns presigned url',
+      'POST /test-upload uploads artifact and returns presigned url',
       () async {
         final request = Request(
-          'GET',
+          'POST',
           Uri.parse('$localHost/test-upload'),
         );
         final response = await handler(request);
@@ -92,6 +92,28 @@ void main() {
         final body = await response.readAsString();
         expect(body, contains('"success":true'));
         expect(body, contains('downloadUrl'));
+      },
+    );
+
+    test(
+      'POST /test-upload returns 403 forbidden in production environment',
+      () async {
+        final prodHandler = applyMiddleware(
+          getRouter(db, storage, environment: {'APP_ENV': 'production'}),
+        );
+        final request = Request(
+          'POST',
+          Uri.parse('$localHost/test-upload'),
+        );
+        final response = await prodHandler(request);
+
+        expect(response.statusCode, equals(403));
+        final body = await response.readAsString();
+        expect(body, contains('"success":false'));
+        expect(
+          body,
+          contains('Test upload is disabled in production environment.'),
+        );
       },
     );
   });

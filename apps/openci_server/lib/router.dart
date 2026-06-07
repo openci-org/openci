@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:openci_server/db.dart';
@@ -6,8 +7,14 @@ import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
-Router getRouter(DatabaseManager db, StorageManager storage) {
+Router getRouter(
+  DatabaseManager db,
+  StorageManager storage, {
+  Map<String, String>? environment,
+}) {
   final router = Router();
+  final env = environment ?? Platform.environment;
+  final appEnv = env['APP_ENV'] ?? 'development';
 
   router.get('/', (Request request) {
     return Response.ok(
@@ -45,7 +52,17 @@ Router getRouter(DatabaseManager db, StorageManager storage) {
     );
   });
 
-  router.get('/test-upload', (Request request) async {
+  router.post('/test-upload', (Request request) async {
+    if (appEnv == 'production') {
+      return Response.forbidden(
+        jsonEncode({
+          'success': false,
+          'error': 'Test upload is disabled in production environment.',
+        }),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
     try {
       final testFileName = 'test_${DateTime.now().millisecondsSinceEpoch}.txt';
       final testContent =
