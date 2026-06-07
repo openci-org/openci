@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:minio/minio.dart';
 import 'package:openci_server/settings/storage_settings.dart';
+import 'package:retry/retry.dart';
 
 class StorageManager {
   final Minio _client;
@@ -20,10 +22,18 @@ class StorageManager {
       _defaultBucket = settings.bucket;
 
   Future<void> initialize() async {
-    final exists = await _client.bucketExists(_defaultBucket);
-    if (!exists) {
-      await _client.makeBucket(_defaultBucket);
-    }
+    await retry(
+      () async {
+        final exists = await _client.bucketExists(_defaultBucket);
+        if (!exists) {
+          await _client.makeBucket(_defaultBucket);
+        }
+      },
+      maxAttempts: 15,
+      delayFactor: const Duration(seconds: 2),
+      maxDelay: const Duration(seconds: 2),
+      onRetry: (e) => stdout.writeln('Waiting for storage to be ready... Error: $e'),
+    );
   }
 
   Future<void> uploadObject(
