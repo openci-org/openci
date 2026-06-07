@@ -45,28 +45,26 @@ class LogStreamManager {
   }
 
   Future<void> finalizeSession(String runId, StorageManager storage) async {
-    final buffer = _buffers[runId];
-    if (buffer != null && buffer.isNotEmpty) {
-      final logText = '${buffer.join('\n')}\n';
-      final bytes = Uint8List.fromList(utf8.encode(logText));
-      final stream = Stream.value(bytes);
+    try {
+      final buffer = _buffers[runId];
+      if (buffer != null && buffer.isNotEmpty) {
+        final logText = '${buffer.join('\n')}\n';
+        final bytes = Uint8List.fromList(utf8.encode(logText));
+        final stream = Stream.value(bytes);
 
-      try {
         await storage.uploadObject(
           'logs/$runId.log',
           stream,
           size: bytes.length,
         );
-      } catch (_) {
-        rethrow;
       }
+    } finally {
+      final controller = _streams[runId];
+      if (controller != null) {
+        await controller.close();
+      }
+      _streams.remove(runId);
+      _buffers.remove(runId);
     }
-
-    final controller = _streams[runId];
-    if (controller != null) {
-      await controller.close();
-    }
-    _streams.remove(runId);
-    _buffers.remove(runId);
   }
 }

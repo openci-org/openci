@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:openci_server/logger_manager.dart';
 import 'package:test/test.dart';
@@ -67,7 +68,7 @@ void main() {
       await manager.finalizeSession(runId, storage);
     });
 
-    test('Auto session initialization on append (Failsafe)', () {
+    test('Auto session initialization on append (Failsafe)', () async {
       final runId = 'test-failsafe-${DateTime.now().millisecondsSinceEpoch}';
 
       manager.appendLog(runId, 'Auto initialized log');
@@ -75,10 +76,10 @@ void main() {
       expect(manager.hasSession(runId), isTrue);
       expect(manager.getBuffer(runId), equals(['Auto initialized log']));
 
-      manager.finalizeSession(runId, storage);
+      await manager.finalizeSession(runId, storage);
     });
 
-    test('getBuffer returns an unmodifiable list', () {
+    test('getBuffer returns an unmodifiable list', () async {
       final runId =
           'test-unmodifiable-${DateTime.now().millisecondsSinceEpoch}';
       manager.initSession(runId);
@@ -87,15 +88,45 @@ void main() {
       final buffer = manager.getBuffer(runId);
       expect(buffer, equals(['Log line']));
 
-      // リストを変更しようとすると UnsupportedError が発生することを確認
       expect(() => buffer.add('Mutated log line'), throwsUnsupportedError);
       expect(() => buffer.clear(), throwsUnsupportedError);
 
-      // 内部バッファが書き換わっていないことを検証
       final intactBuffer = manager.getBuffer(runId);
       expect(intactBuffer, equals(['Log line']));
 
-      manager.finalizeSession(runId, storage);
+      await manager.finalizeSession(runId, storage);
     });
+
+    test(
+      'finalizeSession cleans up memory even when uploadObject throws',
+      () async {
+        final runId =
+            'test-upload-fail-${DateTime.now().millisecondsSinceEpoch}';
+        manager.initSession(runId);
+        manager.appendLog(runId, 'Log line 1');
+
+        final failingStorage = FailingStorageManager();
+
+        await expectLater(
+          manager.finalizeSession(runId, failingStorage),
+          throwsA(isA<Exception>()),
+        );
+
+        expect(manager.hasSession(runId), isFalse);
+        expect(manager.getBuffer(runId), isEmpty);
+      },
+    );
   });
+}
+
+class FailingStorageManager extends FakeStorageManager {
+  @override
+  Future<void> uploadObject(
+    String objectName,
+    Stream<Uint8List> data, {
+    int? size,
+    String? bucket,
+  }) async {
+    throw Exception('Upload failed');
+  }
 }
