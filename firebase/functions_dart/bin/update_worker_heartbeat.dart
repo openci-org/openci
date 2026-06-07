@@ -3,7 +3,10 @@ import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'worker_api_common.dart';
 
-Future<Response> updateWorkerHeartbeat(Request request, Firebase firebase) async {
+Future<Response> updateWorkerHeartbeat(
+  Request request,
+  Firebase firebase,
+) async {
   return handleRequest(request, (body) async {
     final workerId = body['workerId'] as String?;
     if (workerId == null) {
@@ -17,7 +20,7 @@ Future<Response> updateWorkerHeartbeat(Request request, Firebase firebase) async
     await firestore.runTransaction((tx) async {
       final snap = await tx.get(ref);
       final isCreate = !snap.exists;
-      
+
       final String createdAt;
       if (isCreate) {
         createdAt = nowIso;
@@ -52,7 +55,7 @@ Future<Response> updateWorkerHeartbeat(Request request, Firebase firebase) async
     });
 
     return jsonResponse({
-      'workerHeartbeat_upsert': {'id': workerId}
+      'workerHeartbeat_upsert': {'id': workerId},
     });
   });
 }

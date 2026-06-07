@@ -29,11 +29,19 @@ Future<void> main(List<String> arguments) async {
     final config = await parseWorkerConfig(arguments);
     if (config == null) return;
 
-    final authManager = AuthManager(email: config.email, password: config.password);
-    final apiClient = ApiClient(authManager: authManager, projectId: config.projectId);
+    final authManager = AuthManager(
+      email: config.email,
+      password: config.password,
+    );
+    final apiClient = ApiClient(
+      authManager: authManager,
+      projectId: config.projectId,
+    );
 
     final localPart = config.email.split('@').first;
-    final workerId = localPart.contains('+') ? localPart.split('+').last : localPart;
+    final workerId = localPart.contains('+')
+        ? localPart.split('+').last
+        : localPart;
     _log.info('Worker started. Worker ID: $workerId (v$version)');
     _log.info(
       'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (AVF)'}',
@@ -50,10 +58,7 @@ Future<void> main(List<String> arguments) async {
       await cleanupOrphanedVms(workerId);
     }
 
-    await pollForJobs(
-      apiClient: apiClient,
-      workerId: workerId,
-    );
+    await pollForJobs(apiClient: apiClient, workerId: workerId);
   } on FormatException catch (e) {
     _log.severe(e.message);
   } catch (e, s) {

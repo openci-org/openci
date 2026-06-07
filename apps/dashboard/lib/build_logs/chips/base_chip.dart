@@ -36,7 +36,9 @@ class BaseChip extends StatelessWidget {
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onTap,
-        mouseCursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        mouseCursor: onTap != null
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
         hoverColor: foregroundColor.withValues(alpha: 0.08),
         splashColor: foregroundColor.withValues(alpha: 0.12),
         highlightColor: foregroundColor.withValues(alpha: 0.04),

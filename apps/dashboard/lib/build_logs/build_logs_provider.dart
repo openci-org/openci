@@ -38,8 +38,11 @@ class BuildLogs extends _$BuildLogs {
       return const [];
     }
 
-    final buildStatus = buildJobStatusFromFirestore(buildJobDoc.data()?['status']);
-    final isRunning = buildStatus == BuildJobStatus.IN_PROGRESS ||
+    final buildStatus = buildJobStatusFromFirestore(
+      buildJobDoc.data()?['status'],
+    );
+    final isRunning =
+        buildStatus == BuildJobStatus.IN_PROGRESS ||
         buildStatus == BuildJobStatus.QUEUED ||
         buildStatus == BuildJobStatus.WAITING;
 

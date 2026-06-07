@@ -1,0 +1,22 @@
+name: Dart Format CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (monorepo)
+        run: flutter pub get
+
+      - name: Verify formatting (monorepo)
+        run: dart format --output=none --set-exit-if-changed .

@@ -10,7 +10,10 @@ Future<Response> isJobCancelled(Request request, Firebase firebase) async {
     }
 
     final firestore = firebase.adminApp.firestore();
-    final doc = await firestore.collection(buildJobsCollection).doc(buildJobId).get();
+    final doc = await firestore
+        .collection(buildJobsCollection)
+        .doc(buildJobId)
+        .get();
 
     if (!doc.exists) {
       return jsonResponse({'cancelled': false});

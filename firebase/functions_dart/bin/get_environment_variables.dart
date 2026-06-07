@@ -3,7 +3,10 @@ import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'worker_api_common.dart';
 
-Future<Response> getEnvironmentVariables(Request request, Firebase firebase) async {
+Future<Response> getEnvironmentVariables(
+  Request request,
+  Firebase firebase,
+) async {
   return handleRequest(request, (body) async {
     final teamId = body['teamId'] as String?;
     if (teamId == null) {

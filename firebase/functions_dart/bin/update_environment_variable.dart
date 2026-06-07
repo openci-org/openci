@@ -3,7 +3,10 @@ import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'worker_api_common.dart';
 
-Future<Response> updateEnvironmentVariable(Request request, Firebase firebase) async {
+Future<Response> updateEnvironmentVariable(
+  Request request,
+  Firebase firebase,
+) async {
   return handleRequest(request, (body) async {
     final id = body['id'] as String?;
     final value = body['value'] as String?;
@@ -21,7 +24,7 @@ Future<Response> updateEnvironmentVariable(Request request, Firebase firebase) a
     });
 
     return jsonResponse({
-      'environmentVariable_update': {'id': id}
+      'environmentVariable_update': {'id': id},
     });
   });
 }

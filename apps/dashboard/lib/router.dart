@@ -318,7 +318,8 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
               );
             }
 
-            if (MediaQuery.sizeOf(context).width >= buildLogsSplitViewBreakpoint) {
+            if (MediaQuery.sizeOf(context).width >=
+                buildLogsSplitViewBreakpoint) {
               return Scaffold(
                 appBar: AppBar(
                   title: const Text('CI/CDログ'),

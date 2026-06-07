@@ -415,7 +415,8 @@ class DownloadIpswCommand extends Command<void> {
       'concurrency',
       abbr: 'c',
       defaultsTo: '1',
-      help: 'Number of concurrent chunk downloads (recommend 1 to avoid Apple CDN blocking)',
+      help:
+          'Number of concurrent chunk downloads (recommend 1 to avoid Apple CDN blocking)',
     );
   }
 

@@ -8,13 +8,20 @@ Future<Response> updateCheckRun(Request request, Firebase firebase) async {
     final conclusion = body['conclusion'] as String?;
 
     if (buildJob == null || runStatus == null) {
-      return jsonResponse({'error': 'buildJob and runStatus are required'}, status: 400);
+      return jsonResponse({
+        'error': 'buildJob and runStatus are required',
+      }, status: 400);
     }
 
     // Pass `firebase` so updateCheckRunInternal can pull checkRunId from
     // Firestore and mint a fresh installation token (the worker's BuildJob
     // model does not carry checkRunId/installationToken).
-    await updateCheckRunInternal(buildJob, runStatus, conclusion, firebase: firebase);
+    await updateCheckRunInternal(
+      buildJob,
+      runStatus,
+      conclusion,
+      firebase: firebase,
+    );
     return jsonResponse({'success': true});
   });
 }

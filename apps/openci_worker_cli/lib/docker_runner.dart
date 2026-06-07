@@ -95,9 +95,7 @@ Future<void> writeFileToContainer(
   String content,
 ) async {
   // Write to a temp file, then docker cp
-  final tmpFile = File(
-    '/tmp/openci-tmp-${const Uuid().v4()}',
-  );
+  final tmpFile = File('/tmp/openci-tmp-${const Uuid().v4()}');
   await tmpFile.writeAsString(content);
   try {
     await copyToContainer(name, tmpFile.path, remotePath);
@@ -270,18 +268,10 @@ Future<void> pruneStaleContainers(
     ).where((name) => name.isNotEmpty && name != current).toList();
 
     for (final container in containers) {
-      await logInfo(
-        buildJobId,
-        runId,
-        'Removing stale container: $container',
-      );
+      await logInfo(buildJobId, runId, 'Removing stale container: $container');
       await stopAndRemoveContainer(container);
     }
   } catch (e) {
-    await logWarning(
-      buildJobId,
-      runId,
-      'Error pruning stale containers: $e',
-    );
+    await logWarning(buildJobId, runId, 'Error pruning stale containers: $e');
   }
 }

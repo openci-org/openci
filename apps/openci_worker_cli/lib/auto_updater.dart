@@ -79,7 +79,9 @@ Future<String?> _fetchLatestVersion() async {
   );
 
   if (response.statusCode != 200) {
-    _log.warning('Failed to fetch version from pub.dev: ${response.statusCode}');
+    _log.warning(
+      'Failed to fetch version from pub.dev: ${response.statusCode}',
+    );
     return null;
   }
 

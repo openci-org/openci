@@ -60,7 +60,8 @@ class AppleVirtualization {
       macAddress = _generateRandomMacAddress();
       configData['macAddress'] = macAddress;
       try {
-        configFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(configData));
+        configFile.writeAsStringSync(
+            const JsonEncoder.withIndent('  ').convert(configData));
       } catch (_) {}
     }
 
@@ -149,20 +150,30 @@ class AppleVirtualization {
 
     // 2. Try to fallback to pub-cache dynamic scanning (AOT/global run)
     // Find the latest version of avf_dart in pub-cache.
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final home =
+        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home != null) {
       final pubCacheDir = Directory('$home/.pub-cache/hosted/pub.dev');
       if (pubCacheDir.existsSync()) {
         final matches = pubCacheDir
             .listSync()
             .whereType<Directory>()
-            .where((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last.startsWith('avf_dart-'))
+            .where((d) => d.uri.pathSegments
+                .where((s) => s.isNotEmpty)
+                .last
+                .startsWith('avf_dart-'))
             .toList();
 
         // Sort packages by version descending
         matches.sort((a, b) {
-          final aVer = a.uri.pathSegments.where((s) => s.isNotEmpty).last.replaceFirst('avf_dart-', '');
-          final bVer = b.uri.pathSegments.where((s) => s.isNotEmpty).last.replaceFirst('avf_dart-', '');
+          final aVer = a.uri.pathSegments
+              .where((s) => s.isNotEmpty)
+              .last
+              .replaceFirst('avf_dart-', '');
+          final bVer = b.uri.pathSegments
+              .where((s) => s.isNotEmpty)
+              .last
+              .replaceFirst('avf_dart-', '');
           return _compareVersions(bVer, aVer); // Descending (latest first)
         });
 

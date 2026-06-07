@@ -83,7 +83,10 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                                       context.showSnackBarMessage(
                                         teamT.selectedSuccess,
                                       );
-                                      Navigator.of(context, rootNavigator: true).pop();
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop();
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       context.showSnackBarMessage(e.toString());
@@ -385,8 +388,12 @@ class _TeamActionItem extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      hoverColor: onTap == null ? Colors.transparent : AppColors.of(context).borderSubtle,
-      splashColor: onTap == null ? Colors.transparent : AppColors.of(context).borderSubtle,
+      hoverColor: onTap == null
+          ? Colors.transparent
+          : AppColors.of(context).borderSubtle,
+      splashColor: onTap == null
+          ? Colors.transparent
+          : AppColors.of(context).borderSubtle,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
         child: Column(

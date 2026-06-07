@@ -139,8 +139,6 @@ class VirtualMachineManager {
         await diskFile.copy('$targetDir/disk.img');
         await nvramFile.copy('$targetDir/nvram.bin');
       }
-
-
     } catch (e) {
       if (showLogs) {
         print('Failed to clone VM assets: $e');
@@ -148,8 +146,6 @@ class VirtualMachineManager {
       rethrow;
     }
   }
-
-
 
   /// Deletes the VM directory with the given [name] under VM directory.
   static Future<void> delete(

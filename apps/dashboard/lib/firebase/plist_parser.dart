@@ -73,8 +73,7 @@ SelfHostedConfig parseJsonConfig(String content) {
     final apiKeys = client['api_key'] as List<dynamic>? ?? [];
     final appId = clientInfo['mobilesdk_app_id'] as String? ?? '';
     final apiKey = apiKeys.isNotEmpty
-        ? (apiKeys[0] as Map<String, dynamic>)['current_key'] as String? ??
-              ''
+        ? (apiKeys[0] as Map<String, dynamic>)['current_key'] as String? ?? ''
         : '';
     final projectId = projectInfo['project_id'] as String? ?? '';
     final storageBucket = projectInfo['storage_bucket'] as String? ?? '';
@@ -100,7 +99,9 @@ SelfHostedConfig parseJsonConfig(String content) {
     );
   }
 
-  throw const FormatException('未対応の形式です。Web用のFirebase設定(JSON)、Android用のgoogle-services.json、あるいはiOS用のGoogleService-Info.plistを選択してください。');
+  throw const FormatException(
+    '未対応の形式です。Web用のFirebase設定(JSON)、Android用のgoogle-services.json、あるいはiOS用のGoogleService-Info.plistを選択してください。',
+  );
 }
 
 /// Parses a GoogleService-Info.plist (XML) and extracts Firebase config values
@@ -158,8 +159,7 @@ SelfHostedConfig parsePlist(String plistContent) {
 /// `<array>`, and nested `<dict>` values.
 Map<String, Object> _parseDictElement(XmlElement dict) {
   final result = <String, Object>{};
-  final children =
-      dict.children.whereType<XmlElement>().toList();
+  final children = dict.children.whereType<XmlElement>().toList();
 
   for (var i = 0; i < children.length - 1; i++) {
     final child = children[i];

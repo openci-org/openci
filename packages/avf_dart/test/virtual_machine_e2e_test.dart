@@ -5,7 +5,8 @@ import 'package:test/test.dart';
 
 void main() {
   group('VirtualMachine E2E & Integration Tests (macOS Only)', () {
-    test('fetchLatestIpswUrl returns a valid macOS restore image URI', () async {
+    test('fetchLatestIpswUrl returns a valid macOS restore image URI',
+        () async {
       final url = await AppleVirtualization.fetchLatestIpswUrl();
       expect(url, isNotNull);
       expect(url.scheme, anyOf(equals('http'), equals('https')));

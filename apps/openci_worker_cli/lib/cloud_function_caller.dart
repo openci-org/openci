@@ -21,11 +21,14 @@ class ApiClient {
   });
 
   String _resolveUrl(String functionName) {
-    final isEmulator = Platform.environment['FUNCTIONS_EMULATOR'] == 'true' ||
+    final isEmulator =
+        Platform.environment['FUNCTIONS_EMULATOR'] == 'true' ||
         Platform.environment['FIRESTORE_EMULATOR_HOST'] != null;
 
     if (isEmulator) {
-      final emulatorHost = Platform.environment['FIREBASE_FUNCTIONS_EMULATOR_HOST'] ?? '127.0.0.1:5001';
+      final emulatorHost =
+          Platform.environment['FIREBASE_FUNCTIONS_EMULATOR_HOST'] ??
+          '127.0.0.1:5001';
       return 'http://$emulatorHost/$projectId/asia-northeast1/$functionName';
     } else {
       final resolvedNumber = projectNumber ?? defaultProjectNumbers[projectId];
@@ -69,9 +72,9 @@ class ApiClient {
 
   /// Claims the next queued build job for this platform.
   Future<BuildJob?> claimNextJob(String? customPattern) async {
-    final runsOnPattern = customPattern ??
-        (Platform.isLinux ? '%ubuntu%' : '%macos%');
-    
+    final runsOnPattern =
+        customPattern ?? (Platform.isLinux ? '%ubuntu%' : '%macos%');
+
     final response = await callApi('claim-next-job', {
       'runsOnPattern': runsOnPattern,
     });
@@ -84,10 +87,7 @@ class ApiClient {
 
   /// Creates a build run record in Firestore.
   Future<void> createRun(String buildJobId, String runId) async {
-    await callApi('create-build-run', {
-      'buildJobId': buildJobId,
-      'id': runId,
-    });
+    await callApi('create-build-run', {'buildJobId': buildJobId, 'id': runId});
   }
 
   /// Appends multiple build logs.
@@ -105,10 +105,7 @@ class ApiClient {
 
   /// Completes a build job.
   Future<void> completeJob(String id, String status) async {
-    await callApi('complete-build-job', {
-      'id': id,
-      'status': status,
-    });
+    await callApi('complete-build-job', {'id': id, 'status': status});
   }
 
   /// Updates a build run's status.
@@ -140,7 +137,9 @@ class ApiClient {
   }
 
   /// Retrieves environment variables associated with the team.
-  Future<List<Map<String, dynamic>>> getEnvironmentVariables(String teamId) async {
+  Future<List<Map<String, dynamic>>> getEnvironmentVariables(
+    String teamId,
+  ) async {
     final response = await callApi('get-environment-variables', {
       'teamId': teamId,
     });
@@ -151,17 +150,12 @@ class ApiClient {
 
   /// Increments or updates environment variable value.
   Future<void> updateEnvironmentVariable(String id, String value) async {
-    await callApi('update-environment-variable', {
-      'id': id,
-      'value': value,
-    });
+    await callApi('update-environment-variable', {'id': id, 'value': value});
   }
 
   /// Retrieves secrets associated with the team.
   Future<List<Map<String, dynamic>>> getSecrets(String teamId) async {
-    final response = await callApi('get-secrets', {
-      'teamId': teamId,
-    });
+    final response = await callApi('get-secrets', {'teamId': teamId});
     final list = response['secrets'] as List<dynamic>?;
     if (list == null) return [];
     return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
@@ -181,7 +175,10 @@ class ApiClient {
   }
 
   /// Handles Build Job status changes (notifications, etc).
-  Future<void> handleBuildJobStatusChange(BuildJob buildJob, String status) async {
+  Future<void> handleBuildJobStatusChange(
+    BuildJob buildJob,
+    String status,
+  ) async {
     await callApi('handle-build-job-status-change', {
       'buildJob': buildJob.toJson(),
       'status': status,
@@ -189,7 +186,9 @@ class ApiClient {
   }
 
   /// Resolves the Installation Access Token via Firebase Functions.
-  Future<Map<String, dynamic>> resolveInstallationToken(String buildJobId) async {
+  Future<Map<String, dynamic>> resolveInstallationToken(
+    String buildJobId,
+  ) async {
     return await callApi('resolve-installation-token', {
       'buildJobId': buildJobId,
     });

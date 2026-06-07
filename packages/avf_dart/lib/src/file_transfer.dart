@@ -160,7 +160,8 @@ Future<void> downloadFile({
           }
 
           int requestStart = start + downloaded;
-          request.headers.add(HttpHeaders.rangeHeader, 'bytes=$requestStart-$end');
+          request.headers
+              .add(HttpHeaders.rangeHeader, 'bytes=$requestStart-$end');
           final response = await request.close();
 
           if (response.statusCode != HttpStatus.partialContent) {
@@ -176,7 +177,8 @@ Future<void> downloadFile({
             final stream = response.timeout(
               const Duration(seconds: 30),
               onTimeout: (sink) {
-                sink.addError(TimeoutException('Response timed out while waiting for data on connection $i'));
+                sink.addError(TimeoutException(
+                    'Response timed out while waiting for data on connection $i'));
                 sink.close();
               },
             );
@@ -288,7 +290,8 @@ Future<void> downloadFileFallback({
     final stream = response.timeout(
       const Duration(seconds: 30),
       onTimeout: (sink) {
-        sink.addError(TimeoutException('Response timed out while waiting for data'));
+        sink.addError(
+            TimeoutException('Response timed out while waiting for data'));
         sink.close();
       },
     );

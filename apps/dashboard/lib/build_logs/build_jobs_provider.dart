@@ -8,9 +8,7 @@ export 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-
 part 'build_jobs_provider.g.dart';
-
 
 const _buildJobsHistoryLimit = 100;
 
@@ -254,7 +252,9 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
           userAsync.whenData((user) {
             if (user.selectedTeamId != job.teamId) {
               Future.microtask(() {
-                ref.read(userProvider.notifier).updateSelectedTeamId(job.teamId!);
+                ref
+                    .read(userProvider.notifier)
+                    .updateSelectedTeamId(job.teamId!);
               });
             }
           });
@@ -266,9 +266,6 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
         return null;
       });
 }
-
-
-
 
 @riverpod
 Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {

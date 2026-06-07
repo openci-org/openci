@@ -34,7 +34,8 @@ ArgParser get argParser {
     ..addFlag(
       'supervised',
       negatable: false,
-      help: 'Run in supervised mode. The process will manage a child worker '
+      help:
+          'Run in supervised mode. The process will manage a child worker '
           'and handle auto-updates and crash recovery.',
     );
 }

@@ -9,7 +9,9 @@ Future<Response> appendBuildLogs(Request request, Firebase firebase) async {
     final logs = body['logs'] as List<dynamic>?;
 
     if (buildJobId == null || runId == null || logs == null) {
-      return jsonResponse({'error': 'buildJobId, runId, and logs are required'}, status: 400);
+      return jsonResponse({
+        'error': 'buildJobId, runId, and logs are required',
+      }, status: 400);
     }
 
     final firestore = firebase.adminApp.firestore();

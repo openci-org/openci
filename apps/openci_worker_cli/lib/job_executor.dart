@@ -19,7 +19,11 @@ class RuntimeWorkflowRewriteResult {
   final String content;
   final bool rewritten;
   final String? reason;
-  RuntimeWorkflowRewriteResult({required this.content, required this.rewritten, this.reason});
+  RuntimeWorkflowRewriteResult({
+    required this.content,
+    required this.rewritten,
+    this.reason,
+  });
 }
 
 RuntimeWorkflowRewriteResult rewriteWorkflowForSingleOpenCiJob(
@@ -29,27 +33,47 @@ RuntimeWorkflowRewriteResult rewriteWorkflowForSingleOpenCiJob(
   Map<String, dynamic>? matrix,
 ) {
   if (jobKey == null || jobKey.isEmpty) {
-    return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'missing-job-key');
+    return RuntimeWorkflowRewriteResult(
+      content: workflowContent,
+      rewritten: false,
+      reason: 'missing-job-key',
+    );
   }
   final hasMatrix = matrix != null && matrix.isNotEmpty;
   if (needs.isEmpty && !hasMatrix) {
-    return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'no-needs-and-no-matrix');
+    return RuntimeWorkflowRewriteResult(
+      content: workflowContent,
+      rewritten: false,
+      reason: 'no-needs-and-no-matrix',
+    );
   }
 
   try {
     final doc = loadYaml(workflowContent);
     if (doc is! YamlMap) {
-      return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'parse-error');
+      return RuntimeWorkflowRewriteResult(
+        content: workflowContent,
+        rewritten: false,
+        reason: 'parse-error',
+      );
     }
-    
+
     final jobs = doc['jobs'];
     if (jobs is! YamlMap) {
-      return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'jobs-not-map');
+      return RuntimeWorkflowRewriteResult(
+        content: workflowContent,
+        rewritten: false,
+        reason: 'jobs-not-map',
+      );
     }
-    
+
     final job = jobs[jobKey];
     if (job is! YamlMap) {
-      return RuntimeWorkflowRewriteResult(content: workflowContent, rewritten: false, reason: 'job-not-found');
+      return RuntimeWorkflowRewriteResult(
+        content: workflowContent,
+        rewritten: false,
+        reason: 'job-not-found',
+      );
     }
 
     final editor = YamlEditor(workflowContent);
@@ -58,13 +82,21 @@ RuntimeWorkflowRewriteResult rewriteWorkflowForSingleOpenCiJob(
     if (hasMatrix) {
       final strategy = job['strategy'];
       if (strategy is YamlMap) {
-        editor.update(['jobs', jobKey, 'strategy', 'matrix'], {'include': [matrix]});
+        editor.update(
+          ['jobs', jobKey, 'strategy', 'matrix'],
+          {
+            'include': [matrix],
+          },
+        );
       } else {
-        editor.update(['jobs', jobKey, 'strategy'], {
-          'matrix': {
-            'include': [matrix]
-          }
-        });
+        editor.update(
+          ['jobs', jobKey, 'strategy'],
+          {
+            'matrix': {
+              'include': [matrix],
+            },
+          },
+        );
       }
       rewritten = true;
     }
@@ -101,10 +133,13 @@ Future<String> fetchWorkflowContent({
   final apiBase = githubApiBaseUrl != null && githubApiBaseUrl.isNotEmpty
       ? githubApiBaseUrl.replaceAll(RegExp(r'/+$'), '')
       : 'https://api.github.com';
-      
+
   final ref = commitSha ?? branch;
-  final query = ref != null && ref.isNotEmpty ? '?ref=${Uri.encodeComponent(ref)}' : '';
-  final url = '$apiBase/repos/$owner/$repo/contents/.openci/$workflowFileName$query';
+  final query = ref != null && ref.isNotEmpty
+      ? '?ref=${Uri.encodeComponent(ref)}'
+      : '';
+  final url =
+      '$apiBase/repos/$owner/$repo/contents/.openci/$workflowFileName$query';
 
   final response = await http.get(
     Uri.parse(url),
@@ -117,7 +152,9 @@ Future<String> fetchWorkflowContent({
   );
 
   if (response.statusCode != 200) {
-    throw HttpException('Failed to fetch workflow content: ${response.statusCode} ${response.body}');
+    throw HttpException(
+      'Failed to fetch workflow content: ${response.statusCode} ${response.body}',
+    );
   }
 
   final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -138,10 +175,16 @@ Future<String> fetchWorkflowContent({
 Set<String> extractSecretNames(String content) {
   final secretNames = <String>{};
   final regex = RegExp(
-    r'secrets(?:\.([a-zA-Z0-9_-]+)|\[\s*(?:"([^"]+)"|' "'" '([^' "'" ']+)' "'" ')\s*\])',
+    r'secrets(?:\.([a-zA-Z0-9_-]+)|\[\s*(?:"([^"]+)"|'
+    "'"
+    '([^'
+    "'"
+    ']+)'
+    "'"
+    ')\s*\])',
     caseSensitive: false,
   );
-  
+
   for (final match in regex.allMatches(content)) {
     final name = match.group(1) ?? match.group(2) ?? match.group(3);
     if (name != null && name.isNotEmpty) {
@@ -174,7 +217,11 @@ Future<bool> processJob(
   try {
     await cleanupOrphanedVms(workerId);
   } catch (e) {
-    await logWarning(buildJobId, runId, 'Failed to run VM cleanup before job: $e');
+    await logWarning(
+      buildJobId,
+      runId,
+      'Failed to run VM cleanup before job: $e',
+    );
   }
 
   await logInfo(
@@ -189,7 +236,11 @@ Future<bool> processJob(
     final tokenResp = await apiClient.resolveInstallationToken(buildJobId);
     token = tokenResp['token'] as String;
   } catch (e) {
-    await logError(buildJobId, runId, 'Failed to resolve GitHub App Installation Token: $e');
+    await logError(
+      buildJobId,
+      runId,
+      'Failed to resolve GitHub App Installation Token: $e',
+    );
     await apiClient.updateRunStatus(
       buildJobId: buildJobId,
       runId: runId,
@@ -197,7 +248,11 @@ Future<bool> processJob(
       conclusion: 'failure',
     );
     await apiClient.completeJob(buildJobId, 'FAILURE');
-    await apiClient.updateCheckRun(buildJob, 'completed', conclusion: 'failure');
+    await apiClient.updateCheckRun(
+      buildJob,
+      'completed',
+      conclusion: 'failure',
+    );
     await apiClient.handleBuildJobStatusChange(buildJob, 'FAILURE');
     return true;
   }
@@ -210,13 +265,13 @@ Future<bool> processJob(
   VirtualMachine? vm;
 
   Future<void> execCommand(String command) => execVmCommand(
-        vmName: vmName,
-        command: command,
-        buildJobId: buildJobId,
-        runId: runId,
-        token: token,
-        ipAddress: vm?.ipAddress,
-      );
+    vmName: vmName,
+    command: command,
+    buildJobId: buildJobId,
+    runId: runId,
+    token: token,
+    ipAddress: vm?.ipAddress,
+  );
 
   Future<bool> isCancelled() async {
     try {
@@ -254,7 +309,8 @@ Future<bool> processJob(
     final githubHost = buildJob.githubBaseUrl != null
         ? Uri.parse(buildJob.githubBaseUrl!).host
         : 'github.com';
-    final cloneUrl = 'https://x-access-token:$token@$githubHost/$owner/$repo.git';
+    final cloneUrl =
+        'https://x-access-token:$token@$githubHost/$owner/$repo.git';
 
     await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
 
@@ -384,13 +440,17 @@ Future<bool> processJob(
         conclusion: 'success',
       );
       await apiClient.completeJob(buildJobId, 'SUCCESS');
-      
+
       final completedJob = buildJob.copyWith(
         status: BuildJobStatus.SUCCESS,
         latestRunId: runId,
         completedAt: DateTime.now(),
       );
-      await apiClient.updateCheckRun(completedJob, 'completed', conclusion: 'success');
+      await apiClient.updateCheckRun(
+        completedJob,
+        'completed',
+        conclusion: 'success',
+      );
       await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
     } catch (actError) {
       await logWarning(buildJobId, runId, 'Act build failed: $actError');
@@ -407,7 +467,11 @@ Future<bool> processJob(
         latestRunId: runId,
         completedAt: DateTime.now(),
       );
-      await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+      await apiClient.updateCheckRun(
+        failedJob,
+        'completed',
+        conclusion: 'failure',
+      );
       await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
       return true;
     }
@@ -431,7 +495,11 @@ Future<bool> processJob(
       latestRunId: runId,
       completedAt: DateTime.now(),
     );
-    await apiClient.updateCheckRun(failedJob, 'completed', conclusion: 'failure');
+    await apiClient.updateCheckRun(
+      failedJob,
+      'completed',
+      conclusion: 'failure',
+    );
     await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
@@ -455,8 +523,8 @@ Future<Map<String, String>> buildEnvVars({
   final tagName = buildJob.tagName;
   final tagVersion = tagName != null && tagName.isNotEmpty
       ? (tagName.startsWith('v') || tagName.startsWith('V')
-          ? tagName.substring(1)
-          : tagName)
+            ? tagName.substring(1)
+            : tagName)
       : null;
 
   final teamId = buildJob.teamId;
@@ -481,7 +549,10 @@ Future<Map<String, String>> buildEnvVars({
         final numValue = int.tryParse(value);
         if (numValue != null) {
           final nextVal = '${numValue + 1}';
-          await apiClient.updateEnvironmentVariable(envVarData['id'] as String, nextVal);
+          await apiClient.updateEnvironmentVariable(
+            envVarData['id'] as String,
+            nextVal,
+          );
           await logInfo(
             buildJobId,
             runId,
@@ -569,9 +640,7 @@ Future<Map<String, String>> buildSecretVars({
   required String runId,
   required BuildJob buildJob,
 }) async {
-  final secrets = <String, String>{
-    'GITHUB_TOKEN': token,
-  };
+  final secrets = <String, String>{'GITHUB_TOKEN': token};
 
   final teamId = buildJob.teamId;
   if (teamId == null) return secrets;
@@ -641,19 +710,11 @@ Future<Map<String, String>> buildSecretVars({
         secrets[name] = value;
       }
     } catch (e) {
-      await logWarning(
-        buildJobId,
-        runId,
-        'Failed to load secret "$name": $e',
-      );
+      await logWarning(buildJobId, runId, 'Failed to load secret "$name": $e');
     }
   }
 
-  await logInfo(
-    buildJobId,
-    runId,
-    'Loaded ${targetSecrets.length} secret(s)',
-  );
+  await logInfo(buildJobId, runId, 'Loaded ${targetSecrets.length} secret(s)');
 
   return secrets;
 }

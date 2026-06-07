@@ -22,8 +22,8 @@ Future<void> runSupervised(List<String> arguments) async {
   // Detect if running via pub global (Platform.resolvedExecutable points to
   // the dart binary, not a compiled AOT executable).
   final resolvedExe = Platform.resolvedExecutable;
-  final isRunningViaPubGlobal = resolvedExe.endsWith('/dart') ||
-      resolvedExe.endsWith(r'\dart.exe');
+  final isRunningViaPubGlobal =
+      resolvedExe.endsWith('/dart') || resolvedExe.endsWith(r'\dart.exe');
 
   while (true) {
     _log.info('Starting worker process...');
@@ -79,11 +79,13 @@ Future<void> runSupervised(List<String> arguments) async {
 
 /// Locates the AOT-compiled binary installed via `dart install`.
 String? _findInstalledAotBinary() {
-  final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+  final home =
+      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
   if (home == null) return null;
 
   if (Platform.isMacOS) {
-    final path = '$home/Library/Application Support/Dart/install/bin/openci_worker';
+    final path =
+        '$home/Library/Application Support/Dart/install/bin/openci_worker';
     if (File(path).existsSync()) return path;
   } else if (Platform.isLinux) {
     final xdgStateHome = Platform.environment['XDG_STATE_HOME'];
@@ -106,4 +108,3 @@ String? _findInstalledAotBinary() {
   }
   return null;
 }
-
