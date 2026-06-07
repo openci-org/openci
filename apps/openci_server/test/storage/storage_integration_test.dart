@@ -26,7 +26,6 @@ void main() {
       storage = StorageManager(settings);
 
       try {
-        // 短いタイムアウト等で事前に疎通確認を試みる
         isStorageReachable = await storage.verifyConnection();
       } catch (_) {
         isStorageReachable = false;
