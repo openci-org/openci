@@ -30,6 +30,7 @@ jobs:
         with:
           channel: "stable"
           cache: true
+          dart-version: "3.11.5"
 
       - name: Install dependencies (Workspace root)
         run: flutter pub get
