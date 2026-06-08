@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.37
+
+- Fix: Add a 10-second timeout to the POST request in `sendToServer` within `build_job_logger.dart` to prevent indefinite hangs and match `finalizeBuildLog` timeout duration.
+
 ## 0.10.36
 
 - Fix: Change `pruneStaleVms` log output from build log (logInfo/logWarning) to local logger (_log) to prevent errors when trying to write logs after `finalizeBuildLog` has been called.

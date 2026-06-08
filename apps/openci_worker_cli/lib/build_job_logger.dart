@@ -85,11 +85,13 @@ Future<void> _sendLogsWithRetry(
   Future<void> sendToServer() async {
     for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
       try {
-        final response = await _httpClient.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: body,
-        );
+        final response = await _httpClient
+            .post(
+              url,
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
         if (response.statusCode >= 200 && response.statusCode < 300) {
           return;
         }
