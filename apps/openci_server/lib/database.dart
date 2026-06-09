@@ -3,12 +3,13 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift_postgres/drift_postgres.dart';
 import 'package:openci_server/build_job/build_job.dart';
+import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [BuildJobs, BuildJobLogs])
+@DriftDatabase(tables: [BuildJobs, BuildJobLogs], daos: [BuildJobDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -31,29 +32,6 @@ class AppDatabase extends _$AppDatabase {
       },
     );
   }
-
-  Future<void> insertBuildJob(DriftBuildJob job) => into(buildJobs).insert(job);
-
-  Future<DriftBuildJob?> getBuildJob(String id) =>
-      (select(buildJobs)..where((t) => t.id.equals(id))).getSingleOrNull();
-
-  Future<void> updateBuildJob(DriftBuildJob job) =>
-      update(buildJobs).replace(job);
-
-  Future<void> insertBuildJobLog(String runId, String content) =>
-      into(buildJobLogs).insert(
-        BuildJobLogsCompanion.insert(
-          runId: runId,
-          logContent: content,
-          createdAt: DateTime.now().toUtc(),
-        ),
-      );
-
-  Future<List<DriftBuildJobLog>> getBuildJobLogs(String runId) =>
-      (select(buildJobLogs)
-            ..where((t) => t.runId.equals(runId))
-            ..orderBy([(t) => OrderingTerm.asc(t.id)]))
-          .get();
 
   static QueryExecutor _openConnection() {
     final databaseUrl = loadDatabaseUrl();

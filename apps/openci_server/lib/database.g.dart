@@ -2264,6 +2264,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $BuildJobsTable buildJobs = $BuildJobsTable(this);
   late final $BuildJobLogsTable buildJobLogs = $BuildJobLogsTable(this);
+  late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

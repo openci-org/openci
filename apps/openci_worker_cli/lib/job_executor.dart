@@ -503,7 +503,7 @@ Future<bool> processJob(
     await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
-    await finalizeBuildLog(buildJobId, runId);
+    await flushRemainingLogs(runId: runId);
     await stopVm(vm);
     await deleteVm(vmName);
     await pruneStaleVms(buildJobId, runId, workerId: workerId);
