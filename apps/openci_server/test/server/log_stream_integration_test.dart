@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:openci_server/db.dart';
 import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
@@ -17,16 +16,12 @@ void main() {
   group('LogStreamManager and WebSocket API Tests', () {
     late LogStreamManager manager;
     late FakeStorageManager storage;
-    late DatabaseManager db;
     late HttpServer server;
     late int port;
 
     setUpAll(() async {
       manager = LogStreamManager();
       storage = FakeStorageManager();
-      db = DatabaseManager(
-        'postgres://postgres:password@localhost:5432/openci_test',
-      );
 
       final handler = applyMiddleware(getRouter(storage));
       server = await shelf_io.serve(handler, 'localhost', 0);
@@ -35,7 +30,6 @@ void main() {
 
     tearDownAll(() async {
       await server.close(force: true);
-      await db.close();
     });
 
     test('LogStreamManager buffers and streams logs correctly', () async {
