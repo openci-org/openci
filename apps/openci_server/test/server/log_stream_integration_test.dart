@@ -28,7 +28,7 @@ void main() {
         'postgres://postgres:password@localhost:5432/openci_test',
       );
 
-      final handler = applyMiddleware(getRouter(db, storage));
+      final handler = applyMiddleware(getRouter(storage));
       server = await shelf_io.serve(handler, 'localhost', 0);
       port = server.port;
     });

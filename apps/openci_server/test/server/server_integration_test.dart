@@ -22,7 +22,7 @@ void main() {
       );
       storage = FakeStorageManager();
       const emptyPort = 0;
-      final handler = applyMiddleware(getRouter(db, storage));
+      final handler = applyMiddleware(getRouter(storage));
       server = await shelf_io.serve(
         handler,
         InternetAddress.loopbackIPv4,

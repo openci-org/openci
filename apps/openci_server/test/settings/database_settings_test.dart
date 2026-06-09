@@ -1,4 +1,4 @@
-import 'package:openci_server/settings/database_settings.dart';
+import 'package:openci_server/database.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -12,16 +12,11 @@ void main() {
       expect(url, equals('postgres://test-db:5432/test'));
     });
 
-    test('throws StateError in production if DATABASE_URL is missing', () {
+    test('throws StateError if DATABASE_URL is missing', () {
       expect(
-        () => loadDatabaseUrl(environment: {'APP_ENV': 'production'}),
+        () => loadDatabaseUrl(environment: {}),
         throwsStateError,
       );
-    });
-
-    test('falls back to local development URL in non-production', () {
-      final url = loadDatabaseUrl(environment: {'APP_ENV': 'development'});
-      expect(url, equals('postgres://postgres:password@localhost:5432/openci'));
     });
   });
 }

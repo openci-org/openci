@@ -21,7 +21,7 @@ void main() {
 
     setUp(() {
       storage = FakeStorageManager();
-      handler = applyMiddleware(getRouter(db, storage));
+      handler = applyMiddleware(getRouter(storage));
     });
 
     tearDownAll(() async {
@@ -99,7 +99,7 @@ void main() {
       'POST /test-upload returns 403 forbidden in production environment',
       () async {
         final prodHandler = applyMiddleware(
-          getRouter(db, storage, environment: {'APP_ENV': 'production'}),
+          getRouter(storage, environment: {'APP_ENV': 'production'}),
         );
         final request = Request(
           'POST',

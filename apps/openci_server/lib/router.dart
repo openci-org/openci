@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:openci_server/db.dart';
 import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf.dart';
@@ -12,7 +11,6 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 Router getRouter(
-  DatabaseManager db,
   StorageManager storage, {
   Map<String, String>? environment,
 }) {
@@ -24,35 +22,6 @@ Router getRouter(
     return Response.ok(
       'OpenCI Server (Shelf) is running!\n',
       headers: {'content-type': 'text/plain'},
-    );
-  });
-
-  router.get('/health', (Request request) async {
-    bool dbHealthy;
-    try {
-      dbHealthy = await db.verifyConnection();
-    } catch (_) {
-      dbHealthy = false;
-    }
-
-    bool storageHealthy;
-    try {
-      storageHealthy = await storage.verifyConnection();
-    } catch (_) {
-      storageHealthy = false;
-    }
-
-    final status = (dbHealthy && storageHealthy) ? 'ok' : 'error';
-    final responseBody = {
-      'status': status,
-      'database': dbHealthy ? 'connected' : 'disconnected',
-      'storage': storageHealthy ? 'connected' : 'disconnected',
-    };
-
-    return Response(
-      (dbHealthy && storageHealthy) ? 200 : 500,
-      body: jsonEncode(responseBody),
-      headers: {'content-type': 'application/json'},
     );
   });
 
