@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:drift/native.dart';
+import 'package:openci_server/database.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -13,11 +15,13 @@ void main() {
     late HttpServer server;
     late int port;
     late FakeStorageManager storage;
+    late AppDatabase db;
 
     setUpAll(() async {
       storage = FakeStorageManager();
+      db = AppDatabase(NativeDatabase.memory());
       const emptyPort = 0;
-      final handler = applyMiddleware(getRouter(storage));
+      final handler = applyMiddleware(getRouter(storage, db: db));
       server = await shelf_io.serve(
         handler,
         InternetAddress.loopbackIPv4,
@@ -28,6 +32,7 @@ void main() {
 
     tearDownAll(() async {
       await server.close(force: true);
+      await db.close();
     });
 
     test('GET / returns 200 via actual HTTP request', () async {

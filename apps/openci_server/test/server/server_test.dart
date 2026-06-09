@@ -1,3 +1,5 @@
+import 'package:drift/native.dart';
+import 'package:openci_server/database.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf.dart';
@@ -9,11 +11,17 @@ void main() {
   group('Server API Tests', () {
     late Handler handler;
     late FakeStorageManager storage;
+    late AppDatabase db;
     const localHost = "http://localhost";
 
     setUp(() {
       storage = FakeStorageManager();
-      handler = applyMiddleware(getRouter(storage));
+      db = AppDatabase(NativeDatabase.memory());
+      handler = applyMiddleware(getRouter(storage, db: db));
+    });
+
+    tearDown(() async {
+      await db.close();
     });
 
     test('GET / returns 200 and welcome message', () async {
@@ -57,7 +65,7 @@ void main() {
       'POST /test-upload returns 403 forbidden in production environment',
       () async {
         final prodHandler = applyMiddleware(
-          getRouter(storage, environment: {'APP_ENV': 'production'}),
+          getRouter(storage, db: db, environment: {'APP_ENV': 'production'}),
         );
         final request = Request(
           'POST',

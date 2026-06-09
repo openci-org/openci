@@ -78,10 +78,8 @@ class BuildJobs extends Table {
 
 @DataClassName('DriftBuildJobLog')
 class BuildJobLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
   TextColumn get runId => text()();
   TextColumn get logContent => text()();
   DateTimeColumn get createdAt => dateTime()();
-
-  @override
-  Set<Column> get primaryKey => {runId};
 }

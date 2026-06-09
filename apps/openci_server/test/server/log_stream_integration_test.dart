@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_server/database.dart';
 import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
@@ -16,27 +18,28 @@ void main() {
   group('LogStreamManager and WebSocket API Tests', () {
     late LogStreamManager manager;
     late FakeStorageManager storage;
+    late AppDatabase db;
     late HttpServer server;
     late int port;
 
     setUpAll(() async {
       manager = LogStreamManager();
       storage = FakeStorageManager();
+      db = AppDatabase(NativeDatabase.memory());
 
-      final handler = applyMiddleware(getRouter(storage));
+      final handler = applyMiddleware(getRouter(storage, db: db));
       server = await shelf_io.serve(handler, 'localhost', 0);
       port = server.port;
     });
 
     tearDownAll(() async {
       await server.close(force: true);
+      await db.close();
     });
 
-    test('LogStreamManager buffers and streams logs correctly', () async {
+    test('LogStreamManager streams logs correctly', () async {
       final runId = 'test-run-${DateTime.now().millisecondsSinceEpoch}';
       manager.initSession(runId);
-
-      expect(manager.hasSession(runId), isTrue);
 
       final logs = <String>[];
       final stream = manager.getStream(runId);
@@ -48,17 +51,9 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       expect(logs, equals(['Log line 1', 'Log line 2']));
-      expect(manager.getBuffer(runId), equals(['Log line 1', 'Log line 2']));
 
       await subscription?.cancel();
-      await manager.finalizeSession(runId, storage);
-
-      expect(manager.hasSession(runId), isFalse);
-
-      final savedData = await storage.downloadObject('logs/$runId.log');
-      final savedBytes = await savedData.expand((c) => c).toList();
-      final savedText = utf8.decode(savedBytes);
-      expect(savedText, equals('Log line 1\nLog line 2\n'));
+      await manager.finalizeSession(runId);
     });
 
     test(
@@ -125,12 +120,13 @@ void main() {
         await client.post(completeUrl);
 
         await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(manager.hasSession(runId), isFalse);
 
-        final savedData = await storage.downloadObject('logs/$runId.log');
-        final savedBytes = await savedData.expand((c) => c).toList();
-        final savedText = utf8.decode(savedBytes);
-        expect(savedText, contains('Real-time log 3'));
+        // DBにすべてのログレコードが正しく書き込まれていることを確認
+        final dbLogs = await db.getBuildJobLogs(runId);
+        final combinedLogText = dbLogs.map((l) => l.logContent).join('');
+        expect(combinedLogText, contains('Pre-existing log 1'));
+        expect(combinedLogText, contains('Pre-existing log 2'));
+        expect(combinedLogText, contains('Real-time log 3'));
 
         await subscription.cancel();
         client.close();

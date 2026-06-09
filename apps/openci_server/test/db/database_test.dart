@@ -44,19 +44,18 @@ void main() {
     expect(retrievedJob.owner, 'openci-org');
     expect(retrievedJob.status, BuildJobStatus.QUEUED);
 
-    final log = DriftBuildJobLog(
-      runId: 'test-run-456',
-      logContent:
-          'Initializing build environment...\nRunning pub get...\nSuccess!',
-      createdAt: now,
+    await db.insertBuildJobLog(
+      'test-run-456',
+      'Initializing build environment...\n',
+    );
+    await db.insertBuildJobLog(
+      'test-run-456',
+      'Running pub get...\nSuccess!',
     );
 
-    await db.into(db.buildJobLogs).insert(log);
-
-    final retrievedLog = await (db.select(
-      db.buildJobLogs,
-    )..where((t) => t.runId.equals('test-run-456'))).getSingle();
-
-    expect(retrievedLog.logContent, contains('Success!'));
+    final retrievedLogs = await db.getBuildJobLogs('test-run-456');
+    expect(retrievedLogs, hasLength(2));
+    expect(retrievedLogs[0].logContent, contains('Initializing'));
+    expect(retrievedLogs[1].logContent, contains('Success!'));
   });
 }

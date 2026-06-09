@@ -45,7 +45,7 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final handler = applyMiddleware(getRouter(storage));
+  final handler = applyMiddleware(getRouter(storage, db: db));
 
   HttpServer server;
   try {
