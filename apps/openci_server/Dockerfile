@@ -12,7 +12,7 @@ RUN sed -i '/resolution: workspace/d' pubspec.yaml && \
     sed -i 's/openci_shared: \^1.0.1/openci_shared:\n    path: ..\/..\/packages\/openci_shared/g' pubspec.yaml
 
 RUN dart pub get
-RUN dart compile exe bin/server.dart -o bin/server
+RUN dart build bin/server.dart -o bin/server
 
 FROM debian:bookworm-slim
 
