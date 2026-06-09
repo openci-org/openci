@@ -1964,6 +1964,19 @@ class $BuildJobLogsTable extends BuildJobLogs
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $BuildJobLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
   static const VerificationMeta _runIdMeta = const VerificationMeta('runId');
   @override
   late final GeneratedColumn<String> runId = GeneratedColumn<String>(
@@ -1996,7 +2009,7 @@ class $BuildJobLogsTable extends BuildJobLogs
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [runId, logContent, createdAt];
+  List<GeneratedColumn> get $columns => [id, runId, logContent, createdAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2009,6 +2022,9 @@ class $BuildJobLogsTable extends BuildJobLogs
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
     if (data.containsKey('run_id')) {
       context.handle(
         _runIdMeta,
@@ -2037,11 +2053,15 @@ class $BuildJobLogsTable extends BuildJobLogs
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {runId};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
   DriftBuildJobLog map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return DriftBuildJobLog(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
       runId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}run_id'],
@@ -2065,10 +2085,12 @@ class $BuildJobLogsTable extends BuildJobLogs
 
 class DriftBuildJobLog extends DataClass
     implements Insertable<DriftBuildJobLog> {
+  final int id;
   final String runId;
   final String logContent;
   final DateTime createdAt;
   const DriftBuildJobLog({
+    required this.id,
     required this.runId,
     required this.logContent,
     required this.createdAt,
@@ -2076,6 +2098,7 @@ class DriftBuildJobLog extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
     map['run_id'] = Variable<String>(runId);
     map['log_content'] = Variable<String>(logContent);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -2084,6 +2107,7 @@ class DriftBuildJobLog extends DataClass
 
   BuildJobLogsCompanion toCompanion(bool nullToAbsent) {
     return BuildJobLogsCompanion(
+      id: Value(id),
       runId: Value(runId),
       logContent: Value(logContent),
       createdAt: Value(createdAt),
@@ -2096,6 +2120,7 @@ class DriftBuildJobLog extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return DriftBuildJobLog(
+      id: serializer.fromJson<int>(json['id']),
       runId: serializer.fromJson<String>(json['runId']),
       logContent: serializer.fromJson<String>(json['logContent']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2105,6 +2130,7 @@ class DriftBuildJobLog extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
       'runId': serializer.toJson<String>(runId),
       'logContent': serializer.toJson<String>(logContent),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2112,16 +2138,19 @@ class DriftBuildJobLog extends DataClass
   }
 
   DriftBuildJobLog copyWith({
+    int? id,
     String? runId,
     String? logContent,
     DateTime? createdAt,
   }) => DriftBuildJobLog(
+    id: id ?? this.id,
     runId: runId ?? this.runId,
     logContent: logContent ?? this.logContent,
     createdAt: createdAt ?? this.createdAt,
   );
   DriftBuildJobLog copyWithCompanion(BuildJobLogsCompanion data) {
     return DriftBuildJobLog(
+      id: data.id.present ? data.id.value : this.id,
       runId: data.runId.present ? data.runId.value : this.runId,
       logContent: data.logContent.present
           ? data.logContent.value
@@ -2133,6 +2162,7 @@ class DriftBuildJobLog extends DataClass
   @override
   String toString() {
     return (StringBuffer('DriftBuildJobLog(')
+          ..write('id: $id, ')
           ..write('runId: $runId, ')
           ..write('logContent: $logContent, ')
           ..write('createdAt: $createdAt')
@@ -2141,66 +2171,70 @@ class DriftBuildJobLog extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(runId, logContent, createdAt);
+  int get hashCode => Object.hash(id, runId, logContent, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DriftBuildJobLog &&
+          other.id == this.id &&
           other.runId == this.runId &&
           other.logContent == this.logContent &&
           other.createdAt == this.createdAt);
 }
 
 class BuildJobLogsCompanion extends UpdateCompanion<DriftBuildJobLog> {
+  final Value<int> id;
   final Value<String> runId;
   final Value<String> logContent;
   final Value<DateTime> createdAt;
-  final Value<int> rowid;
   const BuildJobLogsCompanion({
+    this.id = const Value.absent(),
     this.runId = const Value.absent(),
     this.logContent = const Value.absent(),
     this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
   });
   BuildJobLogsCompanion.insert({
+    this.id = const Value.absent(),
     required String runId,
     required String logContent,
     required DateTime createdAt,
-    this.rowid = const Value.absent(),
   }) : runId = Value(runId),
        logContent = Value(logContent),
        createdAt = Value(createdAt);
   static Insertable<DriftBuildJobLog> custom({
+    Expression<int>? id,
     Expression<String>? runId,
     Expression<String>? logContent,
     Expression<DateTime>? createdAt,
-    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (id != null) 'id': id,
       if (runId != null) 'run_id': runId,
       if (logContent != null) 'log_content': logContent,
       if (createdAt != null) 'created_at': createdAt,
-      if (rowid != null) 'rowid': rowid,
     });
   }
 
   BuildJobLogsCompanion copyWith({
+    Value<int>? id,
     Value<String>? runId,
     Value<String>? logContent,
     Value<DateTime>? createdAt,
-    Value<int>? rowid,
   }) {
     return BuildJobLogsCompanion(
+      id: id ?? this.id,
       runId: runId ?? this.runId,
       logContent: logContent ?? this.logContent,
       createdAt: createdAt ?? this.createdAt,
-      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
     if (runId.present) {
       map['run_id'] = Variable<String>(runId.value);
     }
@@ -2210,19 +2244,16 @@ class BuildJobLogsCompanion extends UpdateCompanion<DriftBuildJobLog> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('BuildJobLogsCompanion(')
+          ..write('id: $id, ')
           ..write('runId: $runId, ')
           ..write('logContent: $logContent, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('rowid: $rowid')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -3055,17 +3086,17 @@ typedef $$BuildJobsTableProcessedTableManager =
     >;
 typedef $$BuildJobLogsTableCreateCompanionBuilder =
     BuildJobLogsCompanion Function({
+      Value<int> id,
       required String runId,
       required String logContent,
       required DateTime createdAt,
-      Value<int> rowid,
     });
 typedef $$BuildJobLogsTableUpdateCompanionBuilder =
     BuildJobLogsCompanion Function({
+      Value<int> id,
       Value<String> runId,
       Value<String> logContent,
       Value<DateTime> createdAt,
-      Value<int> rowid,
     });
 
 class $$BuildJobLogsTableFilterComposer
@@ -3077,6 +3108,11 @@ class $$BuildJobLogsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get runId => $composableBuilder(
     column: $table.runId,
     builder: (column) => ColumnFilters(column),
@@ -3102,6 +3138,11 @@ class $$BuildJobLogsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get runId => $composableBuilder(
     column: $table.runId,
     builder: (column) => ColumnOrderings(column),
@@ -3127,6 +3168,9 @@ class $$BuildJobLogsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
   GeneratedColumn<String> get runId =>
       $composableBuilder(column: $table.runId, builder: (column) => column);
 
@@ -3170,27 +3214,27 @@ class $$BuildJobLogsTableTableManager
               $$BuildJobLogsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<int> id = const Value.absent(),
                 Value<String> runId = const Value.absent(),
                 Value<String> logContent = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
               }) => BuildJobLogsCompanion(
+                id: id,
                 runId: runId,
                 logContent: logContent,
                 createdAt: createdAt,
-                rowid: rowid,
               ),
           createCompanionCallback:
               ({
+                Value<int> id = const Value.absent(),
                 required String runId,
                 required String logContent,
                 required DateTime createdAt,
-                Value<int> rowid = const Value.absent(),
               }) => BuildJobLogsCompanion.insert(
+                id: id,
                 runId: runId,
                 logContent: logContent,
                 createdAt: createdAt,
-                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

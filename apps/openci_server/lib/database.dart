@@ -32,6 +32,29 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> insertBuildJob(DriftBuildJob job) => into(buildJobs).insert(job);
+
+  Future<DriftBuildJob?> getBuildJob(String id) =>
+      (select(buildJobs)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateBuildJob(DriftBuildJob job) =>
+      update(buildJobs).replace(job);
+
+  Future<void> insertBuildJobLog(String runId, String content) =>
+      into(buildJobLogs).insert(
+        BuildJobLogsCompanion.insert(
+          runId: runId,
+          logContent: content,
+          createdAt: DateTime.now().toUtc(),
+        ),
+      );
+
+  Future<List<DriftBuildJobLog>> getBuildJobLogs(String runId) =>
+      (select(buildJobLogs)
+            ..where((t) => t.runId.equals(runId))
+            ..orderBy([(t) => OrderingTerm.asc(t.id)]))
+          .get();
+
   static QueryExecutor _openConnection() {
     final databaseUrl = loadDatabaseUrl();
     return PgDatabase.opened(
