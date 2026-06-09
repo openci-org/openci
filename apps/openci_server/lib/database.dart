@@ -31,7 +31,6 @@ class AppDatabase extends _$AppDatabase {
       },
     );
   }
-
   Future<void> insertBuildJob(DriftBuildJob job) => into(buildJobs).insert(job);
 
   Future<DriftBuildJob?> getBuildJob(String id) =>
