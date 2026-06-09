@@ -301,7 +301,7 @@ Future<bool> processDockerJob(
     await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
-    await finalizeBuildLog(buildJobId, runId);
+    await flushRemainingLogs(runId: runId);
     try {
       await stopAndRemoveContainer(name);
     } catch (e) {

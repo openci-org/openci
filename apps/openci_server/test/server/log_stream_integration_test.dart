@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
-import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -15,15 +14,13 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../storage/fake_storage.dart';
 
 void main() {
-  group('LogStreamManager and WebSocket API Tests', () {
-    late LogStreamManager manager;
+  group('WebSocket API Tests', () {
     late FakeStorageManager storage;
     late AppDatabase db;
     late HttpServer server;
     late int port;
 
     setUpAll(() async {
-      manager = LogStreamManager();
       storage = FakeStorageManager();
       db = AppDatabase(NativeDatabase.memory());
 
@@ -37,32 +34,30 @@ void main() {
       await db.close();
     });
 
-    test('LogStreamManager streams logs correctly', () async {
-      final runId = 'test-run-${DateTime.now().millisecondsSinceEpoch}';
-      manager.initSession(runId);
-
-      final logs = <String>[];
-      final stream = manager.getStream(runId);
-      final subscription = stream?.listen((msg) => logs.add(msg));
-
-      manager.appendLog(runId, 'Log line 1');
-      manager.appendLog(runId, 'Log line 2');
-
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-
-      expect(logs, equals(['Log line 1', 'Log line 2']));
-
-      await subscription?.cancel();
-      await manager.finalizeSession(runId);
-    });
-
     test(
       'WebSocket stream endpoint works and relays logs in real-time',
       () async {
         final runId = 'test-run-ws-${DateTime.now().millisecondsSinceEpoch}';
-        final buildJobId = 'test-job-ws';
+        final buildJobId =
+            'test-job-ws-${DateTime.now().millisecondsSinceEpoch}';
 
         final client = http.Client();
+
+        final buildsUrl = Uri.parse('http://localhost:$port/builds');
+        await client.post(
+          buildsUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'id': buildJobId,
+            'status': 'IN_PROGRESS',
+            'owner': 'test-owner',
+            'repo': 'test-repo',
+            'workflowName': 'test-workflow',
+            'createdAt': DateTime.now().toUtc().toIso8601String(),
+            'updatedAt': DateTime.now().toUtc().toIso8601String(),
+          }),
+        );
+
         final logsUrl = Uri.parse(
           'http://localhost:$port/builds/$buildJobId/runs/$runId/logs',
         );
@@ -84,9 +79,17 @@ void main() {
         final channel = WebSocketChannel.connect(wsUrl);
 
         final receivedLogs = <String>[];
-        final subscription = channel.stream.listen((msg) {
-          receivedLogs.add(msg as String);
-        });
+        final wsClosed = Completer<void>();
+        final subscription = channel.stream.listen(
+          (msg) {
+            receivedLogs.add(msg as String);
+          },
+          onDone: () {
+            if (!wsClosed.isCompleted) {
+              wsClosed.complete();
+            }
+          },
+        );
 
         await Future<void>.delayed(const Duration(milliseconds: 50));
         expect(
@@ -114,15 +117,16 @@ void main() {
           ]),
         );
 
-        final completeUrl = Uri.parse(
-          'http://localhost:$port/builds/$buildJobId/runs/$runId/complete',
+        final patchUrl = Uri.parse('http://localhost:$port/builds/$buildJobId');
+        await client.patch(
+          patchUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'status': 'SUCCESS'}),
         );
-        await client.post(completeUrl);
 
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await wsClosed.future.timeout(const Duration(seconds: 2));
 
-        // DBにすべてのログレコードが正しく書き込まれていることを確認
-        final dbLogs = await db.getBuildJobLogs(runId);
+        final dbLogs = await db.buildJobDao.getBuildJobLogs(runId);
         final combinedLogText = dbLogs.map((l) => l.logContent).join('');
         expect(combinedLogText, contains('Pre-existing log 1'));
         expect(combinedLogText, contains('Pre-existing log 2'));

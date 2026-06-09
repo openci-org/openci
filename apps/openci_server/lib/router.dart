@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:openci_server/database.dart';
-import 'package:openci_server/log_stream_manager.dart';
 import 'package:openci_server/storage.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:shelf/shelf.dart';
@@ -73,7 +72,6 @@ Router getRouter(
     }
   });
 
-  // POST /builds - ジョブの新規登録
   router.post('/builds', (Request request) async {
     try {
       final payload =
@@ -117,7 +115,7 @@ Router getRouter(
         completedAt: job.completedAt,
       );
 
-      await db.insertBuildJob(driftJob);
+      await db.buildJobDao.insertBuildJob(driftJob);
 
       return Response.ok(
         jsonEncode({'success': true, 'id': job.id}),
@@ -135,13 +133,12 @@ Router getRouter(
     }
   });
 
-  // GET /builds/<buildJobId> - ジョブ情報の取得
   router.get('/builds/<buildJobId>', (
     Request request,
     String buildJobId,
   ) async {
     try {
-      final driftJob = await db.getBuildJob(buildJobId);
+      final driftJob = await db.buildJobDao.getBuildJob(buildJobId);
       if (driftJob == null) {
         return Response.notFound(
           jsonEncode({'success': false, 'error': 'Build job not found'}),
@@ -203,7 +200,6 @@ Router getRouter(
     }
   });
 
-  // PATCH /builds/<buildJobId> - ジョブの部分更新
   router.patch('/builds/<buildJobId>', (
     Request request,
     String buildJobId,
@@ -211,7 +207,7 @@ Router getRouter(
     try {
       final payload =
           jsonDecode(await request.readAsString()) as Map<String, dynamic>;
-      final driftJob = await db.getBuildJob(buildJobId);
+      final driftJob = await db.buildJobDao.getBuildJob(buildJobId);
       if (driftJob == null) {
         return Response.notFound(
           jsonEncode({'success': false, 'error': 'Build job not found'}),
@@ -341,7 +337,7 @@ Router getRouter(
         completedAt: updatedJob.completedAt,
       );
 
-      await db.updateBuildJob(updatedDriftJob);
+      await db.buildJobDao.updateBuildJob(updatedDriftJob);
 
       return Response.ok(
         jsonEncode({'success': true}),
@@ -359,14 +355,13 @@ Router getRouter(
     }
   });
 
-  // GET /builds/<buildJobId>/runs/<runId>/logs - データベースから結合したログテキストの取得
   router.get('/builds/<buildJobId>/runs/<runId>/logs', (
     Request request,
     String buildJobId,
     String runId,
   ) async {
     try {
-      final logs = await db.getBuildJobLogs(runId);
+      final logs = await db.buildJobDao.getBuildJobLogs(runId);
       final logText = logs.map((l) => l.logContent).join('');
       return Response.ok(
         logText,
@@ -384,7 +379,6 @@ Router getRouter(
     }
   });
 
-  // POST /builds/<buildJobId>/runs/<runId>/logs - ログの都度受信・DB保存
   router.post('/builds/<buildJobId>/runs/<runId>/logs', (
     Request request,
     String buildJobId,
@@ -401,14 +395,12 @@ Router getRouter(
           final message = log['message'] as String?;
           if (message != null) {
             logBuffer.write('$message\n');
-            // WebSocketでのリアルタイム中継配信用にアペンド
-            LogStreamManager().appendLog(runId, message);
           }
         }
       }
 
       if (logBuffer.isNotEmpty) {
-        await db.insertBuildJobLog(runId, logBuffer.toString());
+        await db.buildJobDao.insertBuildJobLog(runId, logBuffer.toString());
       }
 
       return Response.ok(
@@ -427,7 +419,6 @@ Router getRouter(
     }
   });
 
-  // GET /builds/<buildJobId>/runs/<runId>/logs/stream - WebSocketによるストリーミング配信
   router.get('/builds/<buildJobId>/runs/<runId>/logs/stream', (
     Request request,
     String buildJobId,
@@ -437,72 +428,74 @@ Router getRouter(
       WebSocketChannel webSocket,
       String? protocol,
     ) async {
-      final manager = LogStreamManager();
-      manager.initSession(runId);
+      int sentCount = 0;
+      StreamSubscription<List<DriftBuildJobLog>>? logsSubscription;
+      StreamSubscription<DriftBuildJob?>? jobSubscription;
 
-      // 初期バッファとして、これまでにDBに保存されているログをクライアントに送信
-      try {
-        final existingLogs = await db.getBuildJobLogs(runId);
-        for (final logRecord in existingLogs) {
-          final lines = logRecord.logContent.split('\n');
-          for (final line in lines) {
-            if (line.isNotEmpty) {
-              webSocket.sink.add(line);
-            }
-          }
-        }
-      } catch (e) {
-        stderr.writeln('Error loading initial logs from DB for streaming: $e');
+      void closeAll() {
+        logsSubscription?.cancel();
+        jobSubscription?.cancel();
+        webSocket.sink.close();
       }
 
-      final stream = manager.getStream(runId);
-      StreamSubscription<String>? subscription;
-      if (stream != null) {
-        subscription = stream.listen(
-          (message) {
-            webSocket.sink.add(message);
-          },
-          onError: (err) {
-            webSocket.sink.close();
-          },
-          onDone: () {
-            webSocket.sink.close();
-          },
-        );
-      }
+      logsSubscription = db.buildJobDao
+          .watchBuildJobLogs(runId)
+          .listen(
+            (logs) {
+              if (logs.length > sentCount) {
+                for (var i = sentCount; i < logs.length; i++) {
+                  final logRecord = logs[i];
+                  final lines = logRecord.logContent.split('\n');
+                  for (final line in lines) {
+                    if (line.isNotEmpty) {
+                      webSocket.sink.add(line);
+                    }
+                  }
+                }
+                sentCount = logs.length;
+              }
+            },
+            onError: (err) {
+              stderr.writeln('Error in logs stream for run $runId: $err');
+              closeAll();
+            },
+            onDone: () {
+              closeAll();
+            },
+          );
+
+      jobSubscription = db.buildJobDao
+          .watchBuildJob(buildJobId)
+          .listen(
+            (job) {
+              if (job != null) {
+                final status = job.status;
+                if (status == BuildJobStatus.SUCCESS ||
+                    status == BuildJobStatus.FAILURE ||
+                    status == BuildJobStatus.CANCELLED ||
+                    status == BuildJobStatus.SKIPPED ||
+                    status == BuildJobStatus.TIMED_OUT) {
+                  closeAll();
+                }
+              }
+            },
+            onError: (err) {
+              stderr.writeln('Error watching build job $buildJobId: $err');
+              closeAll();
+            },
+            onDone: () {
+              closeAll();
+            },
+          );
 
       webSocket.stream.listen(
         null,
         onDone: () {
-          subscription?.cancel();
+          logsSubscription?.cancel();
+          jobSubscription?.cancel();
         },
       );
     })(request);
-  });
-
-  // POST /builds/<buildJobId>/runs/<runId>/complete - ビルド完了処理（ストリームのクローズ）
-  router.post('/builds/<buildJobId>/runs/<runId>/complete', (
-    Request request,
-    String buildJobId,
-    String runId,
-  ) async {
-    try {
-      await LogStreamManager().finalizeSession(runId);
-
-      return Response.ok(
-        jsonEncode({'success': true}),
-        headers: {'content-type': 'application/json'},
-      );
-    } catch (e, s) {
-      stderr.writeln('Failed to finalize log session for run $runId: $e\n$s');
-      return Response.internalServerError(
-        body: jsonEncode({
-          'success': false,
-          'error': 'Internal server error',
-        }),
-        headers: {'content-type': 'application/json'},
-      );
-    }
   });
 
   return router;

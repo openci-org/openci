@@ -44,16 +44,16 @@ void main() {
     expect(retrievedJob.owner, 'openci-org');
     expect(retrievedJob.status, BuildJobStatus.QUEUED);
 
-    await db.insertBuildJobLog(
+    await db.buildJobDao.insertBuildJobLog(
       'test-run-456',
       'Initializing build environment...\n',
     );
-    await db.insertBuildJobLog(
+    await db.buildJobDao.insertBuildJobLog(
       'test-run-456',
       'Running pub get...\nSuccess!',
     );
 
-    final retrievedLogs = await db.getBuildJobLogs('test-run-456');
+    final retrievedLogs = await db.buildJobDao.getBuildJobLogs('test-run-456');
     expect(retrievedLogs, hasLength(2));
     expect(retrievedLogs[0].logContent, contains('Initializing'));
     expect(retrievedLogs[1].logContent, contains('Success!'));
