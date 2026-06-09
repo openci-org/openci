@@ -1,10 +1,11 @@
 import 'dart:async';
+
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
 import 'package:openci_worker_cli/job_executor.dart';
-import 'package:openci_worker_cli/logger.dart';
+import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
@@ -300,13 +301,12 @@ Future<bool> processDockerJob(
     await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
-    await flushRemainingLogs();
+    await finalizeBuildLog(buildJobId, runId);
     try {
       await stopAndRemoveContainer(name);
     } catch (e) {
       await logWarning(buildJobId, runId, 'Error removing container: $e');
     }
-    await flushRemainingLogs();
     await pruneStaleContainers(buildJobId, runId, workerId: workerId);
   }
 

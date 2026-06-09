@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-import 'package:uuid/uuid.dart';
+
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart' as dart_logging;
+import 'package:uuid/uuid.dart';
+
 import 'cloud_function_caller.dart';
 
 final _log = dart_logging.Logger('BuildLog');
@@ -63,38 +67,72 @@ const _flushInterval = Duration(seconds: 1);
 const _maxWriteAttempts = 5;
 const _initialRetryDelay = Duration(milliseconds: 500);
 
+final http.Client _httpClient = http.Client();
+
 Future<void> _sendLogsWithRetry(
   String buildJobId,
   String runId,
   List<LogEntry> logs,
 ) async {
-  final client = _apiClient;
-  if (client == null) {
-    _log.warning(
-      'ApiClient not configured for logging. Logs will be discarded.',
-    );
-    return;
-  }
-
   final payloadLogs = logs.map((e) => e.toJson()).toList();
 
-  for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-    try {
-      await client.appendBuildLogs(
-        buildJobId: buildJobId,
-        runId: runId,
-        logs: payloadLogs,
-      );
-      return;
-    } catch (e) {
-      if (attempt == _maxWriteAttempts) {
-        _log.warning('[BuildLog] Failed to send bulk logs: $e');
-        return;
+  // 1. openci_server への送信
+  final serverUrl =
+      Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
+  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
+  final body = jsonEncode({'logs': payloadLogs});
+
+  Future<void> sendToServer() async {
+    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+      try {
+        final response = await _httpClient
+            .post(
+              url,
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return;
+        }
+        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
+      } catch (e) {
+        if (attempt == _maxWriteAttempts) {
+          _log.warning('[BuildLog] Failed to send logs to server: $e');
+          return;
+        }
+        final delay = _initialRetryDelay * (1 << (attempt - 1));
+        await Future.delayed(delay);
       }
-      final delay = _initialRetryDelay * (1 << (attempt - 1));
-      await Future.delayed(delay);
     }
   }
+
+  // 2. Firebase Cloud Functions (Firestore) への送信
+  Future<void> sendToFirebase() async {
+    final client = _apiClient;
+    if (client == null) return;
+
+    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+      try {
+        await client.appendBuildLogs(
+          buildJobId: buildJobId,
+          runId: runId,
+          logs: payloadLogs,
+        );
+        return;
+      } catch (e) {
+        if (attempt == _maxWriteAttempts) {
+          _log.warning('[BuildLog] Failed to send logs to Firebase: $e');
+          return;
+        }
+        final delay = _initialRetryDelay * (1 << (attempt - 1));
+        await Future.delayed(delay);
+      }
+    }
+  }
+
+  // 両方の送信を並行して実行
+  await Future.wait([sendToServer(), sendToFirebase()]);
 }
 
 void _triggerFlush(_BufferGroup group) {
@@ -142,13 +180,65 @@ Future<void> writeBuildLog(
   }
 }
 
-Future<void> flushRemainingLogs() async {
-  for (final group in _bufferGroups.values) {
-    _triggerFlush(group);
+Future<void> flushRemainingLogs({String? runId}) async {
+  for (final key in _bufferGroups.keys.toList()) {
+    final group = _bufferGroups[key]!;
+    if (runId == null || group.runId == runId) {
+      _triggerFlush(group);
+      _bufferGroups.remove(key);
+    }
   }
 
   while (_activeWrites.isNotEmpty) {
     await Future.wait(_activeWrites);
+  }
+}
+
+Future<void> finalizeBuildLog(String buildJobId, String runId) async {
+  await flushRemainingLogs(runId: runId);
+
+  final serverUrl =
+      Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
+  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/complete');
+
+  const maxAttempts = 3;
+  var delay = const Duration(milliseconds: 500);
+
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      final response = await _httpClient
+          .post(url)
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      }
+
+      final errorMsg = 'HTTP ${response.statusCode}: ${response.body}';
+      if (attempt == maxAttempts) {
+        _log.warning(
+          '[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final error: $errorMsg',
+        );
+      } else {
+        _log.warning(
+          '[BuildLog] Attempt $attempt failed to send complete signal: $errorMsg. Retrying in ${delay.inMilliseconds}ms...',
+        );
+      }
+    } catch (e) {
+      if (attempt == maxAttempts) {
+        _log.warning(
+          '[BuildLog] Failed to send complete signal after $maxAttempts attempts. Final exception: $e',
+        );
+      } else {
+        _log.warning(
+          '[BuildLog] Attempt $attempt failed to send complete signal with exception: $e. Retrying in ${delay.inMilliseconds}ms...',
+        );
+      }
+    }
+
+    if (attempt < maxAttempts) {
+      await Future.delayed(delay);
+      delay *= 2;
+    }
   }
 }
 

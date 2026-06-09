@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avf_dart/avf_dart.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
-import 'package:openci_worker_cli/logger.dart';
+import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:openci_worker_cli/vm.dart';
-import 'package:avf_dart/avf_dart.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
@@ -181,7 +181,7 @@ Set<String> extractSecretNames(String content) {
     "'"
     ']+)'
     "'"
-    ')\s*\])',
+    ')s*])',
     caseSensitive: false,
   );
 
@@ -503,10 +503,9 @@ Future<bool> processJob(
     await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
-    await flushRemainingLogs();
+    await finalizeBuildLog(buildJobId, runId);
     await stopVm(vm);
     await deleteVm(vmName);
-    await flushRemainingLogs();
     await pruneStaleVms(buildJobId, runId, workerId: workerId);
   }
 
@@ -533,8 +532,8 @@ Future<Map<String, String>> buildEnvVars({
     'LANG': 'en_US.UTF-8',
     'OPENCI_PROJECT_ID': projectId,
     if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
-    if (tagVersion != null) 'OPENCI_TAG_VERSION': tagVersion,
-    if (teamId != null) 'OPENCI_TEAM_ID': teamId,
+    'OPENCI_TAG_VERSION': ?tagVersion,
+    'OPENCI_TEAM_ID': ?teamId,
   };
 
   if (teamId != null) {
