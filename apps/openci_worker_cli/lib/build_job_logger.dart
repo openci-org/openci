@@ -194,8 +194,6 @@ Future<void> flushRemainingLogs({String? runId}) async {
   }
 }
 
-
-
 Future<void> logInfo(String buildJobId, String runId, String message) async {
   _log.info(message);
   await writeBuildLog(buildJobId, runId, LogLevel.info, message);
