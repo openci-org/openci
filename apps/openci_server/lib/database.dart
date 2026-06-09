@@ -2,23 +2,35 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift_postgres/drift_postgres.dart';
+import 'package:openci_server/build_job/build_job.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
 part 'database.g.dart';
 
-class TodoItems extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get title => text().withLength(min: 6, max: 32)();
-  TextColumn get content => text().named('body')();
-  DateTimeColumn get createdAt => dateTime().nullable()();
-}
-
-@DriftDatabase(tables: [TodoItems])
+@DriftDatabase(tables: [BuildJobs, BuildJobLogs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.createTable(buildJobs);
+        }
+        if (from < 3) {
+          await m.createTable(buildJobLogs);
+        }
+      },
+    );
+  }
 
   static QueryExecutor _openConnection() {
     final databaseUrl = loadDatabaseUrl();
