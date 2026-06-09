@@ -9,7 +9,13 @@ import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 void main(List<String> args) async {
-  final db = AppDatabase();
+  AppDatabase db;
+  try {
+    db = AppDatabase();
+  } catch (e) {
+    stderr.writeln('Failed to initialize database connection: $e');
+    exit(1);
+  }
 
   ({InternetAddress ip, int port}) serverSettings;
   try {
