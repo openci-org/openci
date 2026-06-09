@@ -234,14 +234,28 @@ class BuildJobRouter {
         WebSocketChannel webSocket,
         String? protocol,
       ) async {
+        final job = await db.buildJobDao.getBuildJob(buildJobId);
+        if (job != null && _isTerminalStatus(job.status)) {
+          final logs = await db.buildJobDao.getBuildJobLogs(runId);
+          for (final log in logs) {
+            for (final line in log.logContent.split('\n')) {
+              if (line.isNotEmpty) {
+                webSocket.sink.add(line);
+              }
+            }
+          }
+          await webSocket.sink.close();
+          return;
+        }
+
         int sentCount = 0;
         StreamSubscription<List<DriftBuildJobLog>>? logsSubscription;
         StreamSubscription<DriftBuildJob?>? jobSubscription;
 
         void closeAll() {
-          logsSubscription?.cancel();
-          jobSubscription?.cancel();
-          webSocket.sink.close();
+          unawaited(logsSubscription?.cancel());
+          unawaited(jobSubscription?.cancel());
+          unawaited(webSocket.sink.close());
         }
 
         logsSubscription = db.buildJobDao
@@ -305,5 +319,13 @@ class BuildJobRouter {
     });
 
     return router;
+  }
+
+  bool _isTerminalStatus(BuildJobStatus status) {
+    return status == BuildJobStatus.SUCCESS ||
+        status == BuildJobStatus.FAILURE ||
+        status == BuildJobStatus.CANCELLED ||
+        status == BuildJobStatus.SKIPPED ||
+        status == BuildJobStatus.TIMED_OUT;
   }
 }
