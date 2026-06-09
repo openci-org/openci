@@ -60,26 +60,21 @@ void main() {
 
       await dao.insertBuildJob(job);
 
-      final states = <BuildJobStatus>[];
-      final subscription = dao.watchBuildJob('test-job-watch').listen((j) {
-        if (j != null) {
-          states.add(j.status);
-        }
-      });
-
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(states, equals([BuildJobStatus.WAITING]));
+      final statesFuture = dao
+          .watchBuildJob('test-job-watch')
+          .where((j) => j != null)
+          .map((j) => j!.status)
+          .take(2)
+          .toList();
 
       final updated = job.copyWith(status: BuildJobStatus.IN_PROGRESS);
       await dao.updateBuildJob(updated);
 
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final states = await statesFuture;
       expect(
         states,
         equals([BuildJobStatus.WAITING, BuildJobStatus.IN_PROGRESS]),
       );
-
-      await subscription.cancel();
     });
 
     test('Log Operations and Ordering', () async {

@@ -1,0 +1,86 @@
+import 'package:openci_server/database.dart';
+import 'package:openci_shared/openci_shared.dart';
+
+extension DriftBuildJobMapper on DriftBuildJob {
+  BuildJob toShared() {
+    return BuildJob(
+      id: id,
+      status: status,
+      owner: owner,
+      repo: repo,
+      workflowName: workflowName,
+      teamId: teamId,
+      workflowId: workflowId,
+      workflowFileName: workflowFileName,
+      commitSha: commitSha,
+      pullRequestNumber: pullRequestNumber,
+      runCount: runCount,
+      latestRunId: latestRunId,
+      tagName: tagName,
+      branch: branch,
+      jobKey: jobKey,
+      workflowJobKey: workflowJobKey,
+      matrix: matrix,
+      matrixLabel: matrixLabel,
+      workflowRunId: workflowRunId,
+      needs: needs,
+      failureSummary: failureSummary,
+      failureSummaryModel: failureSummaryModel,
+      failureSummaryStatus: failureSummaryStatus,
+      failureSummaryDurationMs: failureSummaryDurationMs,
+      provisionedUdids: provisionedUdids,
+      ipaUrl: ipaUrl,
+      hasIpa: hasIpa,
+      bundleId: bundleId,
+      ipaVersion: ipaVersion,
+      appName: appName,
+      githubBaseUrl: githubBaseUrl,
+      githubApiBaseUrl: githubApiBaseUrl,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      completedAt: completedAt,
+    );
+  }
+}
+
+extension BuildJobMapper on BuildJob {
+  DriftBuildJob toDrift() {
+    return DriftBuildJob(
+      id: id,
+      status: status,
+      owner: owner,
+      repo: repo,
+      workflowName: workflowName,
+      teamId: teamId,
+      workflowId: workflowId,
+      workflowFileName: workflowFileName,
+      commitSha: commitSha,
+      pullRequestNumber: pullRequestNumber,
+      runCount: runCount,
+      latestRunId: latestRunId,
+      tagName: tagName,
+      branch: branch,
+      jobKey: jobKey,
+      workflowJobKey: workflowJobKey,
+      matrix: matrix,
+      matrixLabel: matrixLabel,
+      workflowRunId: workflowRunId,
+      needs: needs,
+      failureSummary: failureSummary,
+      failureSummaryModel: failureSummaryModel,
+      failureSummaryStatus: failureSummaryStatus,
+      failureSummaryDurationMs: failureSummaryDurationMs,
+      provisionedUdids: provisionedUdids,
+      ipaUrl: ipaUrl,
+      hasIpa: hasIpa,
+      bundleId: bundleId,
+      ipaVersion: ipaVersion,
+      appName: appName,
+      githubBaseUrl: githubBaseUrl,
+      githubApiBaseUrl: githubApiBaseUrl,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      completedAt: completedAt,
+    );
+  }
+}
