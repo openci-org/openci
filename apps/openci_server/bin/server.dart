@@ -1,26 +1,17 @@
 import 'dart:io';
 
-import 'package:openci_server/db.dart';
+import 'package:openci_server/database.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
-import 'package:openci_server/settings/database_settings.dart';
 import 'package:openci_server/settings/server_settings.dart';
 import 'package:openci_server/settings/storage_settings.dart';
 import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 void main(List<String> args) async {
-  String databaseUrl;
+  AppDatabase db;
   try {
-    databaseUrl = loadDatabaseUrl();
-  } catch (e) {
-    stderr.writeln('Error loading database settings: $e');
-    exit(1);
-  }
-
-  DatabaseManager db;
-  try {
-    db = DatabaseManager(databaseUrl);
+    db = AppDatabase();
   } catch (e) {
     stderr.writeln('Failed to initialize database connection: $e');
     exit(1);
@@ -54,7 +45,7 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final handler = applyMiddleware(getRouter(db, storage));
+  final handler = applyMiddleware(getRouter(storage));
 
   HttpServer server;
   try {

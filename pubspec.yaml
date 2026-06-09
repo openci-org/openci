@@ -19,4 +19,9 @@ workspace:
   - packages/pubspec_version_hook
 
 dependency_overrides:
-  analyzer: 9.0.0
+  analyzer: 10.0.0
+  dart_style: 3.1.7
+
+
+
+

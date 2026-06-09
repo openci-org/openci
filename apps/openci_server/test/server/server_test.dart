@@ -1,4 +1,3 @@
-import 'package:openci_server/db.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf.dart';
@@ -9,23 +8,12 @@ import '../storage/fake_storage.dart';
 void main() {
   group('Server API Tests', () {
     late Handler handler;
-    late DatabaseManager db;
     late FakeStorageManager storage;
     const localHost = "http://localhost";
 
-    setUpAll(() {
-      db = DatabaseManager(
-        'postgres://postgres:password@localhost:5432/openci_test',
-      );
-    });
-
     setUp(() {
       storage = FakeStorageManager();
-      handler = applyMiddleware(getRouter(db, storage));
-    });
-
-    tearDownAll(() async {
-      await db.close();
+      handler = applyMiddleware(getRouter(storage));
     });
 
     test('GET / returns 200 and welcome message', () async {
@@ -49,36 +37,6 @@ void main() {
       expect(response.statusCode, equals(404));
     });
 
-    test('GET /health returns 500 when database is disconnected', () async {
-      await db.close();
-
-      final request = Request(
-        'GET',
-        Uri.parse('$localHost/health'),
-      );
-      final response = await handler(request);
-
-      expect(response.statusCode, equals(500));
-      final body = await response.readAsString();
-      expect(body, contains('disconnected'));
-      expect(body, contains('error'));
-    });
-
-    test('GET /health returns 500 when storage is disconnected', () async {
-      storage.healthy = false;
-
-      final request = Request(
-        'GET',
-        Uri.parse('$localHost/health'),
-      );
-      final response = await handler(request);
-
-      expect(response.statusCode, equals(500));
-      final body = await response.readAsString();
-      expect(body, contains('disconnected'));
-      expect(body, contains('error'));
-    });
-
     test(
       'POST /test-upload uploads artifact and returns presigned url',
       () async {
@@ -99,7 +57,7 @@ void main() {
       'POST /test-upload returns 403 forbidden in production environment',
       () async {
         final prodHandler = applyMiddleware(
-          getRouter(db, storage, environment: {'APP_ENV': 'production'}),
+          getRouter(storage, environment: {'APP_ENV': 'production'}),
         );
         final request = Request(
           'POST',

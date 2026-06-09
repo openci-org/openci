@@ -12,7 +12,7 @@ RUN sed -i '/resolution: workspace/d' pubspec.yaml && \
     sed -i 's/openci_shared: \^1.0.1/openci_shared:\n    path: ..\/..\/packages\/openci_shared/g' pubspec.yaml
 
 RUN dart pub get
-RUN dart compile exe bin/server.dart -o bin/server
+RUN dart build cli -o build
 
 FROM debian:bookworm-slim
 
@@ -21,7 +21,7 @@ RUN groupadd -g 10001 appgroup && \
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /app/apps/openci_server/bin/server /app/server
+COPY --from=build --chown=appuser:appgroup /app/apps/openci_server/build/bundle /app/server
 
 USER appuser
 
@@ -30,4 +30,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["/app/server"]
+CMD ["/app/server/bin/server"]

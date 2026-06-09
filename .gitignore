@@ -5,14 +5,13 @@ node_modules/
 *.tsbuildinfo
 .DS_Store
 
-.vercel
 .env*.local
 !apps/web/.env.local
 
 # Build artifacts
 *.tar.gz
-apps/openci_vm_cli/openci-vm
 
 # Worker configuration secrets
 worker_credentials.json
 create_workers.js
+.env

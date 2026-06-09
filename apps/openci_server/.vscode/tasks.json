@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build_runner watch",
+      "type": "shell",
+      "command": "dart run build_runner watch",
+      "problemMatcher": []
+    }
+  ]
+}
