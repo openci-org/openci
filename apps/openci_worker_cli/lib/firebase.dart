@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
 final _log = Logger('AuthManager');
 
 class AuthManager {
-  static const String _apiKey = 'AIzaSyCJj_DPhFXk0RtAUmxp-jHuJ0a85-WlTDs';
-
+  final String apiKey;
   final String email;
   final String password;
 
@@ -15,7 +15,11 @@ class AuthManager {
   String? _refreshToken;
   DateTime? _tokenExpiry;
 
-  AuthManager({required this.email, required this.password});
+  AuthManager({
+    required this.apiKey,
+    required this.email,
+    required this.password,
+  });
 
   /// Signs in to Firebase Auth using Email & Password.
   Future<void> signIn() async {
@@ -35,7 +39,7 @@ class AuthManager {
     }
 
     final url =
-        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$_apiKey';
+        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey';
 
     final response = await http.post(
       Uri.parse(url),
@@ -87,7 +91,7 @@ class AuthManager {
 
   Future<void> _refreshTokenValue() async {
     _log.info('Refreshing Firebase Auth ID token...');
-    final url = 'https://securetoken.googleapis.com/v1/token?key=$_apiKey';
+    final url = 'https://securetoken.googleapis.com/v1/token?key=$apiKey';
 
     final response = await http.post(
       Uri.parse(url),

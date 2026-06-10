@@ -30,6 +30,7 @@ Future<void> main(List<String> arguments) async {
     if (config == null) return;
 
     final authManager = AuthManager(
+      apiKey: config.apiKey,
       email: config.email,
       password: config.password,
     );

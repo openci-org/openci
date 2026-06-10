@@ -8,7 +8,12 @@ import 'package:sentry/sentry.dart';
 
 final _log = Logger('Config');
 
-typedef WorkerConfig = ({String email, String password, String projectId});
+typedef WorkerConfig = ({
+  String email,
+  String password,
+  String projectId,
+  String apiKey,
+});
 
 Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
   final results = argParser.parse(arguments);
@@ -55,6 +60,13 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
       Platform.environment['OPENCI_PROJECT_ID'] ??
       'openci-b1b91';
 
+  final apiKey = results['api-key'] as String?;
+  if (apiKey == null || apiKey.isEmpty) {
+    _log.severe('--api-key option is required.');
+    printArgsUsage();
+    return null;
+  }
+
   final sentryDsn =
       (results['sentry-dsn'] as String?) ?? Platform.environment['SENTRY_DSN'];
   if (sentryDsn != null && sentryDsn.isNotEmpty) {
@@ -64,5 +76,10 @@ Future<WorkerConfig?> parseWorkerConfig(List<String> arguments) async {
     });
   }
 
-  return (email: email, password: password, projectId: projectId);
+  return (
+    email: email,
+    password: password,
+    projectId: projectId,
+    apiKey: apiKey,
+  );
 }
