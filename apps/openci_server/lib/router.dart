@@ -13,7 +13,7 @@ import 'package:shelf_router/shelf_router.dart';
 Router getRouter(
   StorageManager storage, {
   required AppDatabase db,
-  required FirebaseApp firebaseApp,
+  FirebaseApp? firebaseApp,
   Map<String, String>? environment,
 }) {
   final router = Router();
@@ -27,7 +27,16 @@ Router getRouter(
     );
   });
 
-  final authPipe = const Pipeline().addMiddleware(authMiddleware(firebaseApp));
+  final authMiddlewareInstance = firebaseApp != null
+      ? authMiddleware(firebaseApp)
+      : (Handler innerHandler) {
+          return (Request request) {
+            final updatedRequest = request.change(context: {'uid': 'test-uid'});
+            return innerHandler(updatedRequest);
+          };
+        };
+
+  final authPipe = const Pipeline().addMiddleware(authMiddlewareInstance);
   router.get(
     '/secure-hello',
     authPipe.addHandler((Request request) {
