@@ -15,22 +15,6 @@ ArgParser get argParser {
       negatable: false,
       help: 'Update to the latest version.',
     )
-    ..addOption(
-      'email',
-      abbr: 'e',
-      help: 'The Firebase Auth email for this worker.',
-    )
-    ..addOption(
-      'password',
-      abbr: 'p',
-      help: 'The Firebase Auth password for this worker.',
-    )
-    ..addOption(
-      'project-id',
-      help: 'The Firebase project ID (defaults to openci-b1b91).',
-      defaultsTo: 'openci-b1b91',
-    )
-    ..addOption('sentry-dsn', help: 'Sentry DSN for error reporting.')
     ..addFlag(
       'supervised',
       negatable: false,
