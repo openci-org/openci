@@ -30,10 +30,7 @@ ArgParser get argParser {
       help: 'The Firebase project ID (defaults to openci-b1b91).',
       defaultsTo: 'openci-b1b91',
     )
-    ..addOption(
-      'api-key',
-      help: 'The Firebase Web API key.',
-    )
+    ..addOption('api-key', help: 'The Firebase Web API key.')
     ..addOption('sentry-dsn', help: 'Sentry DSN for error reporting.')
     ..addFlag(
       'supervised',
