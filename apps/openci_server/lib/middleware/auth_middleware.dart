@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:shelf/shelf.dart';
 
@@ -27,9 +29,10 @@ Middleware authMiddleware(FirebaseApp app) {
         final updatedRequest = request.change(context: {'uid': uid});
         return innerHandler(updatedRequest);
       } catch (e) {
+        stderr.writeln('Token verification failed: $e');
         return Response(
           401,
-          body: 'Unauthorized: Token verification failed ($e)',
+          body: 'Unauthorized: Token verification failed',
           headers: {'content-type': 'text/plain'},
         );
       }
