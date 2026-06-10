@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:openci_worker_cli/constants.dart';
 
 final _log = Logger('AuthManager');
 
@@ -38,8 +39,7 @@ class AuthManager {
       return;
     }
 
-    final url =
-        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey';
+    final url = '$firebaseSignInUrl?key=$apiKey';
 
     final response = await http.post(
       Uri.parse(url),
@@ -91,7 +91,7 @@ class AuthManager {
 
   Future<void> _refreshTokenValue() async {
     _log.info('Refreshing Firebase Auth ID token...');
-    final url = 'https://securetoken.googleapis.com/v1/token?key=$apiKey';
+    final url = '$firebaseTokenRefreshUrl?key=$apiKey';
 
     final response = await http.post(
       Uri.parse(url),
