@@ -18,11 +18,14 @@ Middleware authMiddleware(FirebaseApp app) {
       final token = authHeader.substring(7);
 
       try {
-        final decodedToken = await auth.verifyIdToken(token, checkRevoked: true);
+        final decodedToken = await auth.verifyIdToken(
+          token,
+          checkRevoked: true,
+        );
         final uid = decodedToken.uid;
 
         final updatedRequest = request.change(context: {'uid': uid});
-        return await innerHandler(updatedRequest);
+        return innerHandler(updatedRequest);
       } catch (e) {
         return Response(
           401,
