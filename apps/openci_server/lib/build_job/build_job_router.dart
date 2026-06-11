@@ -232,6 +232,17 @@ class BuildJobRouter {
       StreamSubscription<List<DriftBuildJobLog>>? logsSubscription;
       StreamSubscription<DriftBuildJob?>? jobSubscription;
 
+      bool isCleanedUp = false;
+      Future<void> cleanup() async {
+        if (isCleanedUp) return;
+        isCleanedUp = true;
+        await logsSubscription?.cancel();
+        await jobSubscription?.cancel();
+        if (!controller.isClosed) {
+          await controller.close();
+        }
+      }
+
       controller.onListen = () {
         int lastSentId = 0;
 
@@ -249,26 +260,28 @@ class BuildJobRouter {
                       'content': log.logContent,
                       'createdAt': log.createdAt.toUtc().toIso8601String(),
                     });
-                    controller.add(utf8.encode('data: $data\n\n'));
+                    if (!controller.isClosed) {
+                      controller.add(utf8.encode('data: $data\n\n'));
+                    }
                   }
                   lastSentId = newLogs.last.id;
                 }
               },
-              onError: (Object error, StackTrace stackTrace) {
+              onError: (Object error, StackTrace stackTrace) async {
                 stderr.writeln(
                   'Error in logs stream for run $runId: $error\n$stackTrace',
                 );
                 if (!controller.isClosed) {
                   controller.addError(error, stackTrace);
-                  controller.close();
                 }
+                await cleanup();
               },
             );
 
         jobSubscription = db.buildJobDao
             .watchBuildJob(buildJobId)
             .listen(
-              (job) {
+              (job) async {
                 if (job != null) {
                   final status = job.status;
                   if (status == BuildJobStatus.SUCCESS ||
@@ -276,7 +289,10 @@ class BuildJobRouter {
                       status == BuildJobStatus.CANCELLED ||
                       status == BuildJobStatus.SKIPPED ||
                       status == BuildJobStatus.TIMED_OUT) {
-                    controller.add(utf8.encode('event: done\ndata: {}\n\n'));
+                    if (!controller.isClosed) {
+                      controller.add(utf8.encode('event: done\ndata: {}\n\n'));
+                    }
+                    await cleanup();
                   }
                 }
               },
@@ -289,8 +305,7 @@ class BuildJobRouter {
       };
 
       controller.onCancel = () async {
-        await logsSubscription?.cancel();
-        await jobSubscription?.cancel();
+        await cleanup();
       };
 
       return Response.ok(
