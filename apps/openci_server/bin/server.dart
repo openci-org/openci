@@ -57,6 +57,7 @@ void main(List<String> args) async {
 
   final handler = applyMiddleware(
     getRouter(storage, db: db, firebaseApp: firebaseApp),
+    firebaseApp: firebaseApp,
   );
 
   HttpServer server;
