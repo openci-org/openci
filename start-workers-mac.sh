@@ -69,13 +69,22 @@ if (activeCreds.length === 0) {
   process.exit(1);
 }
 
+const projectId = process.env.OPENCI_PROJECT_ID;
+const apiKey = process.env.OPENCI_API_KEY;
+const serverUrl = process.env.OPENCI_SERVER_URL;
+
+if (!projectId || !apiKey || !serverUrl) {
+  console.error('Error: OPENCI_PROJECT_ID, OPENCI_API_KEY, and OPENCI_SERVER_URL environment variables must be set.');
+  process.exit(1);
+}
+
 activeCreds.forEach((cred, index) => {
   const email = cred.email;
   const password = cred.password;
   
   // dart install でビルドされた AOT バイナリを直接実行
   const binaryPath = '/Users/admin/Library/Application Support/Dart/install/bin/openci_worker';
-  const cmd = \`OPENCI_PROJECT_ID=\"openci-b1b91\" OPENCI_API_KEY=\"AIzaSyCvYYkNYRMsTzlei8rWRO0WTkT_YRq9LIs\" OPENCI_SERVER_URL=\"https://api.openci.org\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" '\${binaryPath}' --supervised\`;
+  const cmd = \`OPENCI_PROJECT_ID=\"\${projectId}\" OPENCI_API_KEY=\"\${apiKey}\" OPENCI_SERVER_URL=\"\${serverUrl}\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" '\${binaryPath}' --supervised\`;
   
   if (index === 0) {
     execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);
@@ -85,6 +94,7 @@ activeCreds.forEach((cred, index) => {
   }
   console.log(\`✅ Launched worker \${cred.workerId} (\${email}) in tmux\`);
 });
+
 "
 
 if [ $? -ne 0 ]; then
