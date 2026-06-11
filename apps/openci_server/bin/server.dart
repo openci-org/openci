@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/middleware.dart';
 import 'package:openci_server/router.dart';
@@ -45,7 +46,18 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final handler = applyMiddleware(getRouter(storage, db: db));
+  FirebaseApp firebaseApp;
+  try {
+    firebaseApp = FirebaseApp.initializeApp();
+  } catch (e) {
+    stderr.writeln('Failed to initialize Firebase App: $e');
+    await db.close();
+    exit(1);
+  }
+
+  final handler = applyMiddleware(
+    getRouter(storage, db: db, firebaseApp: firebaseApp),
+  );
 
   HttpServer server;
   try {
