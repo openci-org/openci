@@ -28,6 +28,12 @@ Middleware authMiddleware(FirebaseApp app) {
 
   return (Handler innerHandler) {
     return (Request request) async {
+      if (request.url.path == '' ||
+          request.url.path == '/' ||
+          request.requestedUri.path == '/') {
+        return innerHandler(request);
+      }
+
       final authHeader = request.headers['Authorization'];
       if (authHeader == null || !authHeader.startsWith('Bearer ')) {
         return Response(
