@@ -76,11 +76,20 @@ Future<void> _sendLogsWithRetry(
 ) async {
   final payloadLogs = logs.map((e) => e.toJson()).toList();
 
-  // 1. openci_server への送信
   final serverUrl =
       Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
   final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
   final body = jsonEncode({'logs': payloadLogs});
+
+  final client = _apiClient;
+  String? idToken;
+  if (client != null) {
+    try {
+      idToken = await client.authManager.getIdToken();
+    } catch (e) {
+      _log.warning('[BuildLog] Failed to get ID token: $e');
+    }
+  }
 
   Future<void> sendToServer() async {
     for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
@@ -88,7 +97,10 @@ Future<void> _sendLogsWithRetry(
         final response = await _httpClient
             .post(
               url,
-              headers: {'Content-Type': 'application/json'},
+              headers: {
+                'Content-Type': 'application/json',
+                if (idToken != null) 'Authorization': 'Bearer $idToken',
+              },
               body: body,
             )
             .timeout(const Duration(seconds: 10));
