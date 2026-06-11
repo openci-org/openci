@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -220,6 +221,86 @@ class BuildJobRouter {
           headers: {'content-type': 'application/json'},
         );
       }
+    });
+
+    router.get('/<buildJobId>/runs/<runId>/logs/stream', (
+      Request request,
+      String buildJobId,
+      String runId,
+    ) async {
+      final controller = StreamController<List<int>>();
+      StreamSubscription<List<DriftBuildJobLog>>? logsSubscription;
+      StreamSubscription<DriftBuildJob?>? jobSubscription;
+
+      controller.onListen = () {
+        int lastSentId = 0;
+
+        logsSubscription = db.buildJobDao
+            .watchBuildJobLogs(runId)
+            .listen(
+              (logs) {
+                final newLogs = logs
+                    .where((log) => log.id > lastSentId)
+                    .toList();
+                if (newLogs.isNotEmpty) {
+                  for (final log in newLogs) {
+                    final data = jsonEncode({
+                      'id': log.id,
+                      'content': log.logContent,
+                      'createdAt': log.createdAt.toUtc().toIso8601String(),
+                    });
+                    controller.add(utf8.encode('data: $data\n\n'));
+                  }
+                  lastSentId = newLogs.last.id;
+                }
+              },
+              onError: (Object error, StackTrace stackTrace) {
+                stderr.writeln(
+                  'Error in logs stream for run $runId: $error\n$stackTrace',
+                );
+                if (!controller.isClosed) {
+                  controller.addError(error, stackTrace);
+                  controller.close();
+                }
+              },
+            );
+
+        jobSubscription = db.buildJobDao
+            .watchBuildJob(buildJobId)
+            .listen(
+              (job) {
+                if (job != null) {
+                  final status = job.status;
+                  if (status == BuildJobStatus.SUCCESS ||
+                      status == BuildJobStatus.FAILURE ||
+                      status == BuildJobStatus.CANCELLED ||
+                      status == BuildJobStatus.SKIPPED ||
+                      status == BuildJobStatus.TIMED_OUT) {
+                    controller.add(utf8.encode('event: done\ndata: {}\n\n'));
+                  }
+                }
+              },
+              onError: (Object error, StackTrace stackTrace) {
+                stderr.writeln(
+                  'Error in job status watch: $error\n$stackTrace',
+                );
+              },
+            );
+      };
+
+      controller.onCancel = () async {
+        await logsSubscription?.cancel();
+        await jobSubscription?.cancel();
+      };
+
+      return Response.ok(
+        controller.stream,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      );
     });
 
     return router;
