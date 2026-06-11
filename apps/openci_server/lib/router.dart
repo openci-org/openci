@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/build_job/build_job_router.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware/auth_middleware.dart';
 import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
@@ -27,25 +26,15 @@ Router getRouter(
     );
   });
 
-  final authMiddlewareInstance = firebaseApp != null
-      ? authMiddleware(firebaseApp)
-      : (Handler innerHandler) {
-          return (Request request) {
-            final updatedRequest = request.change(context: {'uid': 'test-uid'});
-            return innerHandler(updatedRequest);
-          };
-        };
-
-  final authPipe = const Pipeline().addMiddleware(authMiddlewareInstance);
   router.get(
     '/secure-hello',
-    authPipe.addHandler((Request request) {
+    (Request request) {
       final uid = request.context['uid'] as String?;
       return Response.ok(
         jsonEncode({'success': true, 'uid': uid}),
         headers: {'content-type': 'application/json'},
       );
-    }),
+    },
   );
 
   router.post('/test-upload', (Request request) async {
