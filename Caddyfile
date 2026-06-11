@@ -1,3 +1,3 @@
-api.openci.org {
+api.openci.org, localhost {
     reverse_proxy server:8080
 }
