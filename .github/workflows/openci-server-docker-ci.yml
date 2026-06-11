@@ -31,6 +31,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create dummy Firebase Service Account for CI
+        run: |
+          echo '{
+            "type": "service_account",
+            "project_id": "openci-dummy",
+            "private_key_id": "dummy-key-id",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC3......\n-----END PRIVATE KEY-----\n",
+            "client_email": "dummy@openci-dummy.iam.gserviceaccount.com"
+          }' > firebase-service-account.json
+
       - name: Start services with Docker Compose
         run: docker compose up --build -d
 

@@ -15,3 +15,4 @@ node_modules/
 worker_credentials.json
 create_workers.js
 .env
+firebase-service-account.json
