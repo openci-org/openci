@@ -71,7 +71,7 @@ platformCreds.forEach((cred, index) => {
     }
   }
 
-  const cmd = \`'\${binaryPath}' --supervised --email \"\${email}\" --password \"\${password}\"\`;
+  const cmd = \`OPENCI_PROJECT_ID=\"openci-b1b91\" OPENCI_API_KEY=\"AIzaSyCvYYkNYRMsTzlei8rWRO0WTkT_YRq9LIs\" OPENCI_SERVER_URL=\"https://api.openci.org\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" '\${binaryPath}' --supervised\`;
 
   if (index === 0) {
     execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);

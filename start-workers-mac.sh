@@ -1,12 +1,13 @@
 #!/bin/bash
 
-SCRIPT_VERSION="3.1.0"
+SCRIPT_VERSION="3.2.0"
 PLATFORM="mac"
 
 # Homebrew と Dart へのパスを通す
 export PATH="/opt/homebrew/bin:/Users/admin/.local/node/current/bin:$PATH"
 
 CREDENTIALS_FILE="./worker_credentials.json"
+SESSION_NAME="openci-workers"
 BIN_PATH="dart"
 
 if [ ! -f "$CREDENTIALS_FILE" ]; then
@@ -19,9 +20,13 @@ if ! command -v "$BIN_PATH" &> /dev/null; then
   exit 1
 fi
 
-# 起動前に最新の openci_worker_cli をインストール
-echo "Installing latest openci_worker_cli..."
-dart install openci_worker_cli --overwrite
+if ! command -v tmux &> /dev/null; then
+  echo "Error: tmux is not installed. Install it with: brew install tmux"
+  exit 1
+fi
+
+# 既存の同名 tmux セッションをキル
+tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 
 MACHINE_INDEX=1
 for i in "$@"; do
@@ -40,6 +45,7 @@ const fs = require('fs');
 const execSync = require('child_process').execSync;
 const platform = '$PLATFORM';
 const binPath = '$BIN_PATH';
+const sessionName = '$SESSION_NAME';
 const machineIndex = parseInt('$MACHINE_INDEX', 10);
 
 const creds = JSON.parse(fs.readFileSync('$CREDENTIALS_FILE', 'utf8'));
@@ -63,17 +69,21 @@ if (activeCreds.length === 0) {
   process.exit(1);
 }
 
-activeCreds.forEach((cred) => {
+activeCreds.forEach((cred, index) => {
   const email = cred.email;
   const password = cred.password;
-  const logFile = \`/Users/admin/openci-worker-\${cred.workerId}.log\`;
   
   // dart install でビルドされた AOT バイナリを直接実行
   const binaryPath = '/Users/admin/Library/Application Support/Dart/install/bin/openci_worker';
-  const cmd = \`nohup '\${binaryPath}' --supervised --email \"\${email}\" --password \"\${password}\" > \${logFile} 2>&1 &\`;
+  const cmd = \`OPENCI_PROJECT_ID=\"openci-b1b91\" OPENCI_API_KEY=\"AIzaSyCvYYkNYRMsTzlei8rWRO0WTkT_YRq9LIs\" OPENCI_SERVER_URL=\"https://api.openci.org\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" '\${binaryPath}' --supervised\`;
   
-  execSync(cmd);
-  console.log(\`✅ Launched worker \${cred.workerId} (\${email}) in background (log: \${logFile})\`);
+  if (index === 0) {
+    execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);
+  } else {
+    execSync(\`tmux split-window -t \${sessionName} \"\${cmd}\"\`);
+    execSync(\`tmux select-layout -t \${sessionName} tiled\`);
+  }
+  console.log(\`✅ Launched worker \${cred.workerId} (\${email}) in tmux\`);
 });
 "
 
@@ -82,4 +92,10 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "Workers successfully started in background."
+# tmux セッションにアタッチ
+if [ -n "$TMUX" ]; then
+  tmux switch-client -t "$SESSION_NAME"
+else
+  tmux attach-session -t "$SESSION_NAME"
+fi
+
