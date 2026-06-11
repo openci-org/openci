@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,8 +6,6 @@ import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:shelf_web_socket/shelf_web_socket.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 class BuildJobRouter {
   final AppDatabase db;
@@ -225,107 +222,6 @@ class BuildJobRouter {
       }
     });
 
-    router.get('/<buildJobId>/runs/<runId>/logs/stream', (
-      Request request,
-      String buildJobId,
-      String runId,
-    ) async {
-      return webSocketHandler((
-        WebSocketChannel webSocket,
-        String? protocol,
-      ) async {
-        final job = await db.buildJobDao.getBuildJob(buildJobId);
-        if (job != null && _isTerminalStatus(job.status)) {
-          final logs = await db.buildJobDao.getBuildJobLogs(runId);
-          for (final log in logs) {
-            for (final line in log.logContent.split('\n')) {
-              if (line.isNotEmpty) {
-                webSocket.sink.add(line);
-              }
-            }
-          }
-          await webSocket.sink.close();
-          return;
-        }
-
-        int sentCount = 0;
-        StreamSubscription<List<DriftBuildJobLog>>? logsSubscription;
-        StreamSubscription<DriftBuildJob?>? jobSubscription;
-
-        void closeAll() {
-          unawaited(logsSubscription?.cancel());
-          unawaited(jobSubscription?.cancel());
-          unawaited(webSocket.sink.close());
-        }
-
-        logsSubscription = db.buildJobDao
-            .watchBuildJobLogs(runId)
-            .listen(
-              (logs) {
-                if (logs.length > sentCount) {
-                  for (var i = sentCount; i < logs.length; i++) {
-                    final logRecord = logs[i];
-                    final lines = logRecord.logContent.split('\n');
-                    for (final line in lines) {
-                      if (line.isNotEmpty) {
-                        webSocket.sink.add(line);
-                      }
-                    }
-                  }
-                  sentCount = logs.length;
-                }
-              },
-              onError: (err) {
-                stderr.writeln('Error in logs stream for run $runId: $err');
-                closeAll();
-              },
-              onDone: () {
-                closeAll();
-              },
-            );
-
-        jobSubscription = db.buildJobDao
-            .watchBuildJob(buildJobId)
-            .listen(
-              (job) {
-                if (job != null) {
-                  final status = job.status;
-                  if (status == BuildJobStatus.SUCCESS ||
-                      status == BuildJobStatus.FAILURE ||
-                      status == BuildJobStatus.CANCELLED ||
-                      status == BuildJobStatus.SKIPPED ||
-                      status == BuildJobStatus.TIMED_OUT) {
-                    closeAll();
-                  }
-                }
-              },
-              onError: (err) {
-                stderr.writeln('Error watching build job $buildJobId: $err');
-                closeAll();
-              },
-              onDone: () {
-                closeAll();
-              },
-            );
-
-        webSocket.stream.listen(
-          null,
-          onDone: () {
-            logsSubscription?.cancel();
-            jobSubscription?.cancel();
-          },
-        );
-      })(request);
-    });
-
     return router;
-  }
-
-  bool _isTerminalStatus(BuildJobStatus status) {
-    return status == BuildJobStatus.SUCCESS ||
-        status == BuildJobStatus.FAILURE ||
-        status == BuildJobStatus.CANCELLED ||
-        status == BuildJobStatus.SKIPPED ||
-        status == BuildJobStatus.TIMED_OUT;
   }
 }
