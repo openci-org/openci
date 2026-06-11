@@ -26,17 +26,6 @@ Router getRouter(
     );
   });
 
-  router.get(
-    '/secure-hello',
-    (Request request) {
-      final uid = request.context['uid'] as String?;
-      return Response.ok(
-        jsonEncode({'success': true, 'uid': uid}),
-        headers: {'content-type': 'application/json'},
-      );
-    },
-  );
-
   router.post('/test-upload', (Request request) async {
     if (appEnv == 'production') {
       return Response.forbidden(
