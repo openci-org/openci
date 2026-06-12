@@ -1,6 +1,6 @@
 name: openci_worker_cli
 description: OpenCI Worker CLI - A CI/CD worker for OpenCI
-version: 0.10.37
+version: 0.10.38
 repository: https://github.com/openci-org/openci
 
 false_secrets:

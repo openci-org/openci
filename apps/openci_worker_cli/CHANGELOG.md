@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.38
+
+- Fix: Retrieve Firebase ID Token from `ApiClient`'s `AuthManager` and pass it in the `Authorization` header when sending build logs to `openci_server` to resolve the `401 Unauthorized` errors.
+
 ## 0.10.37
 
 - Fix: Add a 10-second timeout to the POST request in `sendToServer` within `build_job_logger.dart` to prevent indefinite hangs and match `finalizeBuildLog` timeout duration.
