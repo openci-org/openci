@@ -61,7 +61,7 @@ func getLatestLeaseTime(forMac mac: String) -> UInt32 {
 func getIPAddress(forMac mac: String, newerThanLeaseTime: UInt32 = 0) -> String? {
     let leasePath = "/var/db/dhcpd_leases"
     guard let content = try? String(contentsOfFile: leasePath) else {
-        fputs("Debug Error: Failed to read \(leasePath) from avf_helper\n", stderr)
+        fputs("Debug Warning: Failed to read \(leasePath) from avf_helper\n", stderr)
         fflush(stderr)
         return nil
     }
