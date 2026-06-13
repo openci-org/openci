@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/build_logs/build_logs_provider.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'build_job_logs_provider.g.dart';
@@ -55,7 +55,8 @@ class BuildJobLogs extends _$BuildJobLogs {
     List<BuildLog> logs,
   ) async {
     try {
-      final isRunning = buildStatus == BuildJobStatus.IN_PROGRESS ||
+      final isRunning =
+          buildStatus == BuildJobStatus.IN_PROGRESS ||
           buildStatus == BuildJobStatus.QUEUED ||
           buildStatus == BuildJobStatus.WAITING;
 
@@ -105,7 +106,8 @@ class BuildJobLogs extends _$BuildJobLogs {
       );
 
       debugPrint(
-          'SSE/HTTP: Static logs response status: ${response.statusCode}');
+        'SSE/HTTP: Static logs response status: ${response.statusCode}',
+      );
 
       if (response.statusCode != 200) {
         if (!controller.isClosed) {
