@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware.dart';
+import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:shelf/shelf.dart';

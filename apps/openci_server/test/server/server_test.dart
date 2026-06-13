@@ -1,6 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware.dart';
+import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
