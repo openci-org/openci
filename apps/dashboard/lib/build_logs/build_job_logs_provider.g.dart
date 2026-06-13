@@ -16,7 +16,7 @@ final class BuildJobLogsProvider
     extends $StreamNotifierProvider<BuildJobLogs, List<BuildLog>> {
   BuildJobLogsProvider._({
     required BuildJobLogsFamily super.from,
-    required (String, String) super.argument,
+    required (String, String, BuildJobStatus) super.argument,
   }) : super(
          retry: null,
          name: r'buildJobLogsProvider',
@@ -50,7 +50,7 @@ final class BuildJobLogsProvider
   }
 }
 
-String _$buildJobLogsHash() => r'4d853b49e2a8bdf0ae7009025aa9e73ab9089baa';
+String _$buildJobLogsHash() => r'7e0753ceb0a24ca9b5df5cfaf514279fdb3a9759';
 
 final class BuildJobLogsFamily extends $Family
     with
@@ -59,7 +59,7 @@ final class BuildJobLogsFamily extends $Family
           AsyncValue<List<BuildLog>>,
           List<BuildLog>,
           Stream<List<BuildLog>>,
-          (String, String)
+          (String, String, BuildJobStatus)
         > {
   BuildJobLogsFamily._()
     : super(
@@ -70,19 +70,30 @@ final class BuildJobLogsFamily extends $Family
         isAutoDispose: true,
       );
 
-  BuildJobLogsProvider call(String buildJobId, String runId) =>
-      BuildJobLogsProvider._(argument: (buildJobId, runId), from: this);
+  BuildJobLogsProvider call(
+    String buildJobId,
+    String runId,
+    BuildJobStatus buildStatus,
+  ) => BuildJobLogsProvider._(
+    argument: (buildJobId, runId, buildStatus),
+    from: this,
+  );
 
   @override
   String toString() => r'buildJobLogsProvider';
 }
 
 abstract class _$BuildJobLogs extends $StreamNotifier<List<BuildLog>> {
-  late final _$args = ref.$arg as (String, String);
+  late final _$args = ref.$arg as (String, String, BuildJobStatus);
   String get buildJobId => _$args.$1;
   String get runId => _$args.$2;
+  BuildJobStatus get buildStatus => _$args.$3;
 
-  Stream<List<BuildLog>> build(String buildJobId, String runId);
+  Stream<List<BuildLog>> build(
+    String buildJobId,
+    String runId,
+    BuildJobStatus buildStatus,
+  );
   @$mustCallSuper
   @override
   void runBuild() {
@@ -95,6 +106,6 @@ abstract class _$BuildJobLogs extends $StreamNotifier<List<BuildLog>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, () => build(_$args.$1, _$args.$2));
+    element.handleCreate(ref, () => build(_$args.$1, _$args.$2, _$args.$3));
   }
 }

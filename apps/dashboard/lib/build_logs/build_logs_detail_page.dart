@@ -1644,7 +1644,7 @@ class _DetailLogsView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final logsAsync = ref.watch(buildJobLogsProvider(buildJobId, runId));
+    final logsAsync = ref.watch(buildJobLogsProvider(buildJobId, runId, buildStatus));
     final detailT = t.buildLogs.detail;
     final scrollController = useScrollController();
     final showScrollToBottom = useState(false);
