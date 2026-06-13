@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.26
+
+- Fix: Prevent VM boot premature termination caused by temporary missing DHCP leases file during startup. Changed the error prefix to "Debug Warning:" in NetworkUtils.swift to prevent the Dart-side VM monitoring logic from misidentifying it as a fatal error and immediately terminating the process.
+
 ## 0.1.24
 
 - Fix: Ensure all completion callback operations in `runInstall` are dispatched onto the main thread queue. This fixes the thread-safety assertion crash (exit code -5 / SIGTRAP) when instantiating `VZVirtualMachine` inside a background-thread callback context.

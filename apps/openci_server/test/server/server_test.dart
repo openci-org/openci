@@ -1,6 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware.dart';
+import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
@@ -33,6 +33,30 @@ void main() {
         await response.readAsString(),
         contains('OpenCI Server (Shelf) is running!'),
       );
+    });
+
+    test('OPTIONS / returns 200 and CORS headers', () async {
+      final request = Request('OPTIONS', Uri.parse('$localHost/'));
+      final response = await handler(request);
+
+      expect(response.statusCode, equals(200));
+      expect(response.headers['Access-Control-Allow-Origin'], equals('*'));
+      expect(
+        response.headers['Access-Control-Allow-Methods'],
+        contains('GET'),
+      );
+      expect(
+        response.headers['Access-Control-Allow-Headers'],
+        contains('Authorization'),
+      );
+    });
+
+    test('GET / response includes CORS headers', () async {
+      final request = Request('GET', Uri.parse('$localHost/'));
+      final response = await handler(request);
+
+      expect(response.statusCode, equals(200));
+      expect(response.headers['Access-Control-Allow-Origin'], equals('*'));
     });
 
     test('GET /invalid-path returns 404', () async {

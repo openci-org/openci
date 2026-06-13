@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.39
+
+- Fix: Bump avf_dart to 0.1.26 to resolve the issue where the worker immediately terminates the VM boot sequence on encountering a temporary missing DHCP leases file during startup.
+
 ## 0.10.38
 
 - Fix: Retrieve Firebase ID Token from `ApiClient`'s `AuthManager` and pass it in the `Authorization` header when sending build logs to `openci_server` to resolve the `401 Unauthorized` errors.

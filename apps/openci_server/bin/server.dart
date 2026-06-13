@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware.dart';
+import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/router.dart';
 import 'package:openci_server/settings/server_settings.dart';
 import 'package:openci_server/settings/storage_settings.dart';
