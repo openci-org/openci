@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
-import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
-export 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
+
+export 'package:openci_shared/openci_shared.dart';
 
 part 'build_jobs_provider.g.dart';
 
@@ -236,7 +237,7 @@ class OtaBuildJobs extends _$OtaBuildJobs {
 
 @riverpod
 Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
-  final authState = ref.watch(authProvider);
+  final authState = ref.watch(authStateChangesProvider);
   if (authState.value == null) {
     return Stream.value(null);
   }

@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/macos_updater_initializer.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/notifications/notification_settings_page.dart';
@@ -172,7 +171,6 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     await logoutRevenueCat();
     await FirebaseAuth.instance.signOut();
     ref.invalidate(notificationServiceProvider);
-    ref.invalidate(authProvider);
     if (!context.mounted) return;
     context.showSnackBarMessage(settingsT.logoutSuccess);
   } catch (e, s) {
