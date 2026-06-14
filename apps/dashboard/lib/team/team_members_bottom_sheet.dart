@@ -58,7 +58,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(teamMembersProvider);
-    final currentUid = ref.watch(authProvider).value?.uid;
+    final currentUid = ref.watch(currentUserIdProvider);
     final teamT = t.team;
 
     return membersAsync.when(

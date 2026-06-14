@@ -2,20 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
+import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
-import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -289,8 +288,6 @@ class AuthPage extends HookConsumerWidget {
                                                               .text,
                                                     );
                                                 TextInput.finishAutofillContext();
-                                                ref.invalidate(authProvider);
-                                                // Process pending invitations (fire-and-forget)
                                                 _processInvitations();
                                               } catch (e) {
                                                 if (!context.mounted) {
@@ -373,7 +370,6 @@ class AuthPage extends HookConsumerWidget {
                                                   SetOptions(merge: true),
                                                 );
                                                 await batch.commit();
-                                                ref.invalidate(authProvider);
                                                 _processInvitations();
                                               } catch (e) {
                                                 if (!context.mounted) {

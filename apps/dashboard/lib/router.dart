@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
-import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/settings/settings_page.dart';
@@ -204,7 +204,7 @@ class WorkspaceRoutePage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
+    final authState = ref.watch(authStateChangesProvider);
     final user = authState.asData?.value;
     final configAsync = ref.watch(selfHostedConfigProvider);
     final configReadyForData = configAsync.maybeWhen(
@@ -254,7 +254,7 @@ class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
+    final authState = ref.watch(authStateChangesProvider);
 
     return authState.when(
       loading: () => const Scaffold(
@@ -291,7 +291,7 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
+    final authState = ref.watch(authStateChangesProvider);
 
     return authState.when(
       loading: () => const Scaffold(

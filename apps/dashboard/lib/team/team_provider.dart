@@ -64,11 +64,7 @@ class TeamList extends _$TeamList {
   }
 
   Future<List<Team>> fetchTeamList() async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     final snapshot = await firestore
         .collection(teamsCollection)
         .where('members', arrayContains: currentUserId)
@@ -77,8 +73,7 @@ class TeamList extends _$TeamList {
   }
 
   Stream<List<Team>> watchTeamList() {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
+    final currentUserId = ref.watch(currentUserIdProvider);
     if (currentUserId == null) return Stream.value([]);
     return firestore
         .collection(teamsCollection)
@@ -88,8 +83,7 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> createTeam(String teamName) async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
+    final currentUserId = ref.watch(currentUserIdProvider);
     if (currentUserId == null) {
       throw Exception('User is not authenticated');
     }
@@ -109,7 +103,7 @@ class TeamList extends _$TeamList {
       firestore.collection(usersCollection).doc(currentUserId),
       {
         'id': currentUserId,
-        'email': auth.value?.email ?? '',
+        'email': ref.watch(currentUserEmailProvider),
         'selectedTeamId': teamId,
         'updatedAt': timestamp,
       },

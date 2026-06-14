@@ -59,14 +59,10 @@ class User extends _$User {
   }
 
   Future<OpenCIUser> fetchUser() async {
-    final auth = ref.read(authProvider);
-    final currentUser = auth.value;
-    if (currentUser == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     var snapshot = await firestore
         .collection(usersCollection)
-        .doc(currentUser.uid)
+        .doc(currentUserId)
         .get();
     final data = snapshot.data();
     final selectedTeamId = data?['selectedTeamId'] as String?;
@@ -74,14 +70,14 @@ class User extends _$User {
       await _ensureDefaultUserProfile();
       snapshot = await firestore
           .collection(usersCollection)
-          .doc(currentUser.uid)
+          .doc(currentUserId)
           .get();
     }
     return _openCIUserFromSnapshot(snapshot);
   }
 
   Stream<OpenCIUser> watchUser() {
-    final currentUserId = ref.read(authProvider).value?.uid;
+    final currentUserId = ref.watch(currentUserIdProvider);
     if (currentUserId == null) return const Stream.empty();
     return firestore
         .collection(usersCollection)
@@ -91,11 +87,7 @@ class User extends _$User {
   }
 
   Future<void> updateSelectedTeamId(String teamId) async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     await firestore.collection(usersCollection).doc(currentUserId).set({
       'id': currentUserId,
       'selectedTeamId': teamId,
@@ -108,11 +100,7 @@ class User extends _$User {
   Future<void> updateNotificationPreference(
     NotificationPreference preference,
   ) async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     await firestore.collection(usersCollection).doc(currentUserId).set({
       'id': currentUserId,
       'notificationPreference': preference.name,
@@ -121,11 +109,7 @@ class User extends _$User {
   }
 
   Future<void> addFcmToken(String token) async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     await firestore.collection(usersCollection).doc(currentUserId).set({
       'id': currentUserId,
       'fcmTokens': FieldValue.arrayUnion([token]),
@@ -137,11 +121,7 @@ class User extends _$User {
     required String repository,
     required String defaultBranch,
   }) async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     final canonicalRepository = canonicalRepositoryFullName(repository);
     await firestore.collection(usersCollection).doc(currentUserId).set({
       'id': currentUserId,
@@ -152,11 +132,7 @@ class User extends _$User {
   }
 
   Future<void> updateSelectedBranch(String branch) async {
-    final auth = ref.read(authProvider);
-    final currentUserId = auth.value?.uid;
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
-    }
+    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
     await firestore.collection(usersCollection).doc(currentUserId).set({
       'id': currentUserId,
       'selectedBranch': branch,
