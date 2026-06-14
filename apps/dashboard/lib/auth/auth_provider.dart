@@ -20,10 +20,9 @@ String? currentUserId(Ref ref) =>
 
 @riverpod
 String nonNullCurrentUserId(Ref ref) {
-  final auth = ref.watch(firebaseAuthProvider);
-  final user = auth.currentUser;
-  if (user == null) {
-    throw Exception('User is not authenticated');
+  final id = ref.watch(currentUserIdProvider);
+  if (id == null) {
+    throw StateError('User is not authenticated');
   }
-  return user.uid;
+  return id;
 }
