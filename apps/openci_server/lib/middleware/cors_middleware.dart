@@ -54,7 +54,7 @@ Middleware corsMiddleware({Map<String, String>? environment}) {
 
       final response = await innerHandler(request);
       return response.change(
-        headers: corsHeaders,
+        headers: {...response.headers, ...corsHeaders},
       );
     };
   };
