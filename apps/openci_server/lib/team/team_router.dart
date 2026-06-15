@@ -179,6 +179,53 @@ class TeamRouter {
       }
     });
 
+    router.delete('/<teamId>', (Request request, String teamId) async {
+      final uid = request.context['uid'] as String?;
+      if (uid == null) {
+        return Response.forbidden(
+          jsonEncode({'success': false, 'error': 'Unauthorized'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
+      try {
+        final isMember = await db.teamDao.isTeamMember(uid, teamId);
+        if (!isMember) {
+          return Response.forbidden(
+            jsonEncode({'success': false, 'error': 'Forbidden'}),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+
+        final currentDriftTeam = await (db.select(
+          db.teams,
+        )..where((t) => t.id.equals(teamId))).getSingleOrNull();
+
+        if (currentDriftTeam == null) {
+          return Response.notFound(
+            jsonEncode({'success': false, 'error': 'Team not found'}),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+
+        await db.teamDao.deleteTeam(teamId);
+
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'content-type': 'application/json'},
+        );
+      } catch (e, s) {
+        stderr.writeln('Failed to delete team $teamId: $e\n$s');
+        return Response.internalServerError(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Internal server error',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+    });
+
     return router;
   }
 }
