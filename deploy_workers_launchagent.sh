@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e
+echo "ERROR: deploy_workers_launchagent.sh is deprecated and no longer supported."
+echo "Please use ./start-workers-mac.sh instead."
+exit 1
+
 
 # Deploys the OpenCI worker(s) as per-user LaunchAgents inside the admin GUI
 # (Aqua) session on each Mac worker host. Runs TWO workers per host.
