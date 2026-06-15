@@ -4,7 +4,11 @@ import 'package:openci_server/middleware/cors_middleware.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
-Handler applyMiddleware(Router router, {FirebaseApp? firebaseApp}) {
+Handler applyMiddleware(
+  Router router, {
+  FirebaseApp? firebaseApp,
+  Map<String, String>? environment,
+}) {
   final Middleware authMiddlewareInstance;
   if (firebaseApp == null) {
     authMiddlewareInstance = (Handler innerHandler) {
@@ -18,7 +22,7 @@ Handler applyMiddleware(Router router, {FirebaseApp? firebaseApp}) {
   }
 
   return const Pipeline()
-      .addMiddleware(corsMiddleware())
+      .addMiddleware(corsMiddleware(environment: environment))
       .addMiddleware(logRequests())
       .addMiddleware(authMiddlewareInstance)
       .addHandler(router.call);
