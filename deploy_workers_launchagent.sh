@@ -1,8 +1,10 @@
 #!/bin/bash
-echo "ERROR: deploy_workers_launchagent.sh is deprecated and no longer supported."
-echo "Please use ./start-workers-mac.sh instead."
-exit 1
+set -e
 
+if [ -z "$OPENCI_PROJECT_ID" ] || [ -z "$OPENCI_API_KEY" ] || [ -z "$OPENCI_SERVER_URL" ]; then
+  echo "Error: OPENCI_PROJECT_ID, OPENCI_API_KEY, and OPENCI_SERVER_URL environment variables must be set."
+  exit 1
+fi
 
 # Deploys the OpenCI worker(s) as per-user LaunchAgents inside the admin GUI
 # (Aqua) session on each Mac worker host. Runs TWO workers per host.
@@ -44,7 +46,7 @@ cred_field() {
   python3 -c "import json,sys; d=json.load(open('$CREDENTIALS_FILE')); print(next(c['$2'] for c in d if c['workerId']=='$1'))"
 }
 
-SSH_OPTS=(-o PubkeyAuthentication=no -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+SSH_OPTS=(-o PubkeyAuthentication=no -o IdentitiesOnly=yes -i /dev/null -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
 
 remote() { sshpass -p admin ssh "${SSH_OPTS[@]}" "admin@$1" "$2"; }
 
@@ -82,7 +84,7 @@ install_agent() {
   # Write to a temp file WITHOUT sudo first (so the heredoc is the only thing on
   # stdin), then `sudo cp` it into place. Never combine `sudo -S` (reads the
   # password from stdin) with a heredoc on the same command.
-  remote "$host" "cat > /tmp/${label}.plist <<'PLIST'
+  remote "$host" "cat > /tmp/${label}.plist <<PLIST
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
 <plist version=\"1.0\">
@@ -93,15 +95,21 @@ install_agent() {
   <array>
     <string>/Users/admin/Library/Application Support/Dart/install/bin/openci_worker</string>
     <string>--supervised</string>
-    <string>--email</string>
-    <string>${email}</string>
-    <string>--password</string>
-    <string>${pass}</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
     <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>OPENCI_EMAIL</key>
+    <string>${email}</string>
+    <key>OPENCI_PASSWORD</key>
+    <string>${pass}</string>
+    <key>OPENCI_PROJECT_ID</key>
+    <string>${OPENCI_PROJECT_ID}</string>
+    <key>OPENCI_API_KEY</key>
+    <string>${OPENCI_API_KEY}</string>
+    <key>OPENCI_SERVER_URL</key>
+    <string>${OPENCI_SERVER_URL}</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
