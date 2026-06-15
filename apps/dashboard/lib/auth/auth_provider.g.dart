@@ -238,4 +238,4 @@ final class FirebaseIdTokenProvider
   }
 }
 
-String _$firebaseIdTokenHash() => r'739eab8278acd3a0eb25d10dfa4fb563b912166f';
+String _$firebaseIdTokenHash() => r'80c18000e6e73fbeff832f7328305b6596b3940a';
