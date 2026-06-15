@@ -2259,17 +2259,850 @@ class BuildJobLogsCompanion extends UpdateCompanion<DriftBuildJobLog> {
   }
 }
 
+class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TeamsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _githubBaseUrlMeta = const VerificationMeta(
+    'githubBaseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> githubBaseUrl = GeneratedColumn<String>(
+    'github_base_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _githubApiBaseUrlMeta = const VerificationMeta(
+    'githubApiBaseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> githubApiBaseUrl = GeneratedColumn<String>(
+    'github_api_base_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>, String>
+  installationIds = GeneratedColumn<String>(
+    'installation_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<List<int>>($TeamsTable.$converterinstallationIds);
+  static const VerificationMeta _aiEnabledMeta = const VerificationMeta(
+    'aiEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> aiEnabled = GeneratedColumn<bool>(
+    'ai_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _runNumberMeta = const VerificationMeta(
+    'runNumber',
+  );
+  @override
+  late final GeneratedColumn<int> runNumber = GeneratedColumn<int>(
+    'run_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    githubBaseUrl,
+    githubApiBaseUrl,
+    installationIds,
+    aiEnabled,
+    runNumber,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'teams';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftTeam> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('github_base_url')) {
+      context.handle(
+        _githubBaseUrlMeta,
+        githubBaseUrl.isAcceptableOrUnknown(
+          data['github_base_url']!,
+          _githubBaseUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('github_api_base_url')) {
+      context.handle(
+        _githubApiBaseUrlMeta,
+        githubApiBaseUrl.isAcceptableOrUnknown(
+          data['github_api_base_url']!,
+          _githubApiBaseUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ai_enabled')) {
+      context.handle(
+        _aiEnabledMeta,
+        aiEnabled.isAcceptableOrUnknown(data['ai_enabled']!, _aiEnabledMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_aiEnabledMeta);
+    }
+    if (data.containsKey('run_number')) {
+      context.handle(
+        _runNumberMeta,
+        runNumber.isAcceptableOrUnknown(data['run_number']!, _runNumberMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftTeam map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftTeam(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      githubBaseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}github_base_url'],
+      ),
+      githubApiBaseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}github_api_base_url'],
+      ),
+      installationIds: $TeamsTable.$converterinstallationIds.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}installation_ids'],
+        )!,
+      ),
+      aiEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}ai_enabled'],
+      )!,
+      runNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}run_number'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TeamsTable createAlias(String alias) {
+    return $TeamsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<List<int>, String> $converterinstallationIds =
+      const IntListConverter();
+}
+
+class DriftTeam extends DataClass implements Insertable<DriftTeam> {
+  final String id;
+  final String name;
+  final String? githubBaseUrl;
+  final String? githubApiBaseUrl;
+  final List<int> installationIds;
+  final bool aiEnabled;
+  final int runNumber;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DriftTeam({
+    required this.id,
+    required this.name,
+    this.githubBaseUrl,
+    this.githubApiBaseUrl,
+    required this.installationIds,
+    required this.aiEnabled,
+    required this.runNumber,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || githubBaseUrl != null) {
+      map['github_base_url'] = Variable<String>(githubBaseUrl);
+    }
+    if (!nullToAbsent || githubApiBaseUrl != null) {
+      map['github_api_base_url'] = Variable<String>(githubApiBaseUrl);
+    }
+    {
+      map['installation_ids'] = Variable<String>(
+        $TeamsTable.$converterinstallationIds.toSql(installationIds),
+      );
+    }
+    map['ai_enabled'] = Variable<bool>(aiEnabled);
+    map['run_number'] = Variable<int>(runNumber);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  TeamsCompanion toCompanion(bool nullToAbsent) {
+    return TeamsCompanion(
+      id: Value(id),
+      name: Value(name),
+      githubBaseUrl: githubBaseUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(githubBaseUrl),
+      githubApiBaseUrl: githubApiBaseUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(githubApiBaseUrl),
+      installationIds: Value(installationIds),
+      aiEnabled: Value(aiEnabled),
+      runNumber: Value(runNumber),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftTeam.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftTeam(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
+      githubApiBaseUrl: serializer.fromJson<String?>(json['githubApiBaseUrl']),
+      installationIds: serializer.fromJson<List<int>>(json['installationIds']),
+      aiEnabled: serializer.fromJson<bool>(json['aiEnabled']),
+      runNumber: serializer.fromJson<int>(json['runNumber']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
+      'githubApiBaseUrl': serializer.toJson<String?>(githubApiBaseUrl),
+      'installationIds': serializer.toJson<List<int>>(installationIds),
+      'aiEnabled': serializer.toJson<bool>(aiEnabled),
+      'runNumber': serializer.toJson<int>(runNumber),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftTeam copyWith({
+    String? id,
+    String? name,
+    Value<String?> githubBaseUrl = const Value.absent(),
+    Value<String?> githubApiBaseUrl = const Value.absent(),
+    List<int>? installationIds,
+    bool? aiEnabled,
+    int? runNumber,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DriftTeam(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    githubBaseUrl: githubBaseUrl.present
+        ? githubBaseUrl.value
+        : this.githubBaseUrl,
+    githubApiBaseUrl: githubApiBaseUrl.present
+        ? githubApiBaseUrl.value
+        : this.githubApiBaseUrl,
+    installationIds: installationIds ?? this.installationIds,
+    aiEnabled: aiEnabled ?? this.aiEnabled,
+    runNumber: runNumber ?? this.runNumber,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftTeam copyWithCompanion(TeamsCompanion data) {
+    return DriftTeam(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      githubBaseUrl: data.githubBaseUrl.present
+          ? data.githubBaseUrl.value
+          : this.githubBaseUrl,
+      githubApiBaseUrl: data.githubApiBaseUrl.present
+          ? data.githubApiBaseUrl.value
+          : this.githubApiBaseUrl,
+      installationIds: data.installationIds.present
+          ? data.installationIds.value
+          : this.installationIds,
+      aiEnabled: data.aiEnabled.present ? data.aiEnabled.value : this.aiEnabled,
+      runNumber: data.runNumber.present ? data.runNumber.value : this.runNumber,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftTeam(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('githubBaseUrl: $githubBaseUrl, ')
+          ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
+          ..write('installationIds: $installationIds, ')
+          ..write('aiEnabled: $aiEnabled, ')
+          ..write('runNumber: $runNumber, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    githubBaseUrl,
+    githubApiBaseUrl,
+    installationIds,
+    aiEnabled,
+    runNumber,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftTeam &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.githubBaseUrl == this.githubBaseUrl &&
+          other.githubApiBaseUrl == this.githubApiBaseUrl &&
+          other.installationIds == this.installationIds &&
+          other.aiEnabled == this.aiEnabled &&
+          other.runNumber == this.runNumber &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TeamsCompanion extends UpdateCompanion<DriftTeam> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> githubBaseUrl;
+  final Value<String?> githubApiBaseUrl;
+  final Value<List<int>> installationIds;
+  final Value<bool> aiEnabled;
+  final Value<int> runNumber;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const TeamsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.githubBaseUrl = const Value.absent(),
+    this.githubApiBaseUrl = const Value.absent(),
+    this.installationIds = const Value.absent(),
+    this.aiEnabled = const Value.absent(),
+    this.runNumber = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TeamsCompanion.insert({
+    required String id,
+    required String name,
+    this.githubBaseUrl = const Value.absent(),
+    this.githubApiBaseUrl = const Value.absent(),
+    required List<int> installationIds,
+    required bool aiEnabled,
+    this.runNumber = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       installationIds = Value(installationIds),
+       aiEnabled = Value(aiEnabled),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DriftTeam> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? githubBaseUrl,
+    Expression<String>? githubApiBaseUrl,
+    Expression<String>? installationIds,
+    Expression<bool>? aiEnabled,
+    Expression<int>? runNumber,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
+      if (githubApiBaseUrl != null) 'github_api_base_url': githubApiBaseUrl,
+      if (installationIds != null) 'installation_ids': installationIds,
+      if (aiEnabled != null) 'ai_enabled': aiEnabled,
+      if (runNumber != null) 'run_number': runNumber,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TeamsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? githubBaseUrl,
+    Value<String?>? githubApiBaseUrl,
+    Value<List<int>>? installationIds,
+    Value<bool>? aiEnabled,
+    Value<int>? runNumber,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TeamsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
+      githubApiBaseUrl: githubApiBaseUrl ?? this.githubApiBaseUrl,
+      installationIds: installationIds ?? this.installationIds,
+      aiEnabled: aiEnabled ?? this.aiEnabled,
+      runNumber: runNumber ?? this.runNumber,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (githubBaseUrl.present) {
+      map['github_base_url'] = Variable<String>(githubBaseUrl.value);
+    }
+    if (githubApiBaseUrl.present) {
+      map['github_api_base_url'] = Variable<String>(githubApiBaseUrl.value);
+    }
+    if (installationIds.present) {
+      map['installation_ids'] = Variable<String>(
+        $TeamsTable.$converterinstallationIds.toSql(installationIds.value),
+      );
+    }
+    if (aiEnabled.present) {
+      map['ai_enabled'] = Variable<bool>(aiEnabled.value);
+    }
+    if (runNumber.present) {
+      map['run_number'] = Variable<int>(runNumber.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TeamsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('githubBaseUrl: $githubBaseUrl, ')
+          ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
+          ..write('installationIds: $installationIds, ')
+          ..write('aiEnabled: $aiEnabled, ')
+          ..write('runNumber: $runNumber, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TeamMembersTable extends TeamMembers
+    with TableInfo<$TeamMembersTable, DriftTeamMember> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TeamMembersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, teamId, userId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'team_members';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftTeamMember> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {teamId, userId},
+  ];
+  @override
+  DriftTeamMember map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftTeamMember(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+    );
+  }
+
+  @override
+  $TeamMembersTable createAlias(String alias) {
+    return $TeamMembersTable(attachedDatabase, alias);
+  }
+}
+
+class DriftTeamMember extends DataClass implements Insertable<DriftTeamMember> {
+  final int id;
+  final String teamId;
+  final String userId;
+  const DriftTeamMember({
+    required this.id,
+    required this.teamId,
+    required this.userId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['team_id'] = Variable<String>(teamId);
+    map['user_id'] = Variable<String>(userId);
+    return map;
+  }
+
+  TeamMembersCompanion toCompanion(bool nullToAbsent) {
+    return TeamMembersCompanion(
+      id: Value(id),
+      teamId: Value(teamId),
+      userId: Value(userId),
+    );
+  }
+
+  factory DriftTeamMember.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftTeamMember(
+      id: serializer.fromJson<int>(json['id']),
+      teamId: serializer.fromJson<String>(json['teamId']),
+      userId: serializer.fromJson<String>(json['userId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'teamId': serializer.toJson<String>(teamId),
+      'userId': serializer.toJson<String>(userId),
+    };
+  }
+
+  DriftTeamMember copyWith({int? id, String? teamId, String? userId}) =>
+      DriftTeamMember(
+        id: id ?? this.id,
+        teamId: teamId ?? this.teamId,
+        userId: userId ?? this.userId,
+      );
+  DriftTeamMember copyWithCompanion(TeamMembersCompanion data) {
+    return DriftTeamMember(
+      id: data.id.present ? data.id.value : this.id,
+      teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftTeamMember(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('userId: $userId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, teamId, userId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftTeamMember &&
+          other.id == this.id &&
+          other.teamId == this.teamId &&
+          other.userId == this.userId);
+}
+
+class TeamMembersCompanion extends UpdateCompanion<DriftTeamMember> {
+  final Value<int> id;
+  final Value<String> teamId;
+  final Value<String> userId;
+  const TeamMembersCompanion({
+    this.id = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.userId = const Value.absent(),
+  });
+  TeamMembersCompanion.insert({
+    this.id = const Value.absent(),
+    required String teamId,
+    required String userId,
+  }) : teamId = Value(teamId),
+       userId = Value(userId);
+  static Insertable<DriftTeamMember> custom({
+    Expression<int>? id,
+    Expression<String>? teamId,
+    Expression<String>? userId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (teamId != null) 'team_id': teamId,
+      if (userId != null) 'user_id': userId,
+    });
+  }
+
+  TeamMembersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? teamId,
+    Value<String>? userId,
+  }) {
+    return TeamMembersCompanion(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      userId: userId ?? this.userId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TeamMembersCompanion(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('userId: $userId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $BuildJobsTable buildJobs = $BuildJobsTable(this);
   late final $BuildJobLogsTable buildJobLogs = $BuildJobLogsTable(this);
+  late final $TeamsTable teams = $TeamsTable(this);
+  late final $TeamMembersTable teamMembers = $TeamMembersTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
+  late final TeamDao teamDao = TeamDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [buildJobs, buildJobLogs];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    buildJobs,
+    buildJobLogs,
+    teams,
+    teamMembers,
+  ];
 }
 
 typedef $$BuildJobsTableCreateCompanionBuilder =
@@ -3262,6 +4095,436 @@ typedef $$BuildJobLogsTableProcessedTableManager =
       DriftBuildJobLog,
       PrefetchHooks Function()
     >;
+typedef $$TeamsTableCreateCompanionBuilder =
+    TeamsCompanion Function({
+      required String id,
+      required String name,
+      Value<String?> githubBaseUrl,
+      Value<String?> githubApiBaseUrl,
+      required List<int> installationIds,
+      required bool aiEnabled,
+      Value<int> runNumber,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TeamsTableUpdateCompanionBuilder =
+    TeamsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> githubBaseUrl,
+      Value<String?> githubApiBaseUrl,
+      Value<List<int>> installationIds,
+      Value<bool> aiEnabled,
+      Value<int> runNumber,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
+  $$TeamsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get githubBaseUrl => $composableBuilder(
+    column: $table.githubBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get githubApiBaseUrl => $composableBuilder(
+    column: $table.githubApiBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<int>, List<int>, String>
+  get installationIds => $composableBuilder(
+    column: $table.installationIds,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get aiEnabled => $composableBuilder(
+    column: $table.aiEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get runNumber => $composableBuilder(
+    column: $table.runNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TeamsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TeamsTable> {
+  $$TeamsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get githubBaseUrl => $composableBuilder(
+    column: $table.githubBaseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get githubApiBaseUrl => $composableBuilder(
+    column: $table.githubApiBaseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get installationIds => $composableBuilder(
+    column: $table.installationIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get aiEnabled => $composableBuilder(
+    column: $table.aiEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get runNumber => $composableBuilder(
+    column: $table.runNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TeamsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TeamsTable> {
+  $$TeamsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get githubBaseUrl => $composableBuilder(
+    column: $table.githubBaseUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get githubApiBaseUrl => $composableBuilder(
+    column: $table.githubApiBaseUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<List<int>, String> get installationIds =>
+      $composableBuilder(
+        column: $table.installationIds,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<bool> get aiEnabled =>
+      $composableBuilder(column: $table.aiEnabled, builder: (column) => column);
+
+  GeneratedColumn<int> get runNumber =>
+      $composableBuilder(column: $table.runNumber, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TeamsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TeamsTable,
+          DriftTeam,
+          $$TeamsTableFilterComposer,
+          $$TeamsTableOrderingComposer,
+          $$TeamsTableAnnotationComposer,
+          $$TeamsTableCreateCompanionBuilder,
+          $$TeamsTableUpdateCompanionBuilder,
+          (DriftTeam, BaseReferences<_$AppDatabase, $TeamsTable, DriftTeam>),
+          DriftTeam,
+          PrefetchHooks Function()
+        > {
+  $$TeamsTableTableManager(_$AppDatabase db, $TeamsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TeamsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TeamsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TeamsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> githubBaseUrl = const Value.absent(),
+                Value<String?> githubApiBaseUrl = const Value.absent(),
+                Value<List<int>> installationIds = const Value.absent(),
+                Value<bool> aiEnabled = const Value.absent(),
+                Value<int> runNumber = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TeamsCompanion(
+                id: id,
+                name: name,
+                githubBaseUrl: githubBaseUrl,
+                githubApiBaseUrl: githubApiBaseUrl,
+                installationIds: installationIds,
+                aiEnabled: aiEnabled,
+                runNumber: runNumber,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String?> githubBaseUrl = const Value.absent(),
+                Value<String?> githubApiBaseUrl = const Value.absent(),
+                required List<int> installationIds,
+                required bool aiEnabled,
+                Value<int> runNumber = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TeamsCompanion.insert(
+                id: id,
+                name: name,
+                githubBaseUrl: githubBaseUrl,
+                githubApiBaseUrl: githubApiBaseUrl,
+                installationIds: installationIds,
+                aiEnabled: aiEnabled,
+                runNumber: runNumber,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TeamsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TeamsTable,
+      DriftTeam,
+      $$TeamsTableFilterComposer,
+      $$TeamsTableOrderingComposer,
+      $$TeamsTableAnnotationComposer,
+      $$TeamsTableCreateCompanionBuilder,
+      $$TeamsTableUpdateCompanionBuilder,
+      (DriftTeam, BaseReferences<_$AppDatabase, $TeamsTable, DriftTeam>),
+      DriftTeam,
+      PrefetchHooks Function()
+    >;
+typedef $$TeamMembersTableCreateCompanionBuilder =
+    TeamMembersCompanion Function({
+      Value<int> id,
+      required String teamId,
+      required String userId,
+    });
+typedef $$TeamMembersTableUpdateCompanionBuilder =
+    TeamMembersCompanion Function({
+      Value<int> id,
+      Value<String> teamId,
+      Value<String> userId,
+    });
+
+class $$TeamMembersTableFilterComposer
+    extends Composer<_$AppDatabase, $TeamMembersTable> {
+  $$TeamMembersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get teamId => $composableBuilder(
+    column: $table.teamId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TeamMembersTableOrderingComposer
+    extends Composer<_$AppDatabase, $TeamMembersTable> {
+  $$TeamMembersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get teamId => $composableBuilder(
+    column: $table.teamId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TeamMembersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TeamMembersTable> {
+  $$TeamMembersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get teamId =>
+      $composableBuilder(column: $table.teamId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+}
+
+class $$TeamMembersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TeamMembersTable,
+          DriftTeamMember,
+          $$TeamMembersTableFilterComposer,
+          $$TeamMembersTableOrderingComposer,
+          $$TeamMembersTableAnnotationComposer,
+          $$TeamMembersTableCreateCompanionBuilder,
+          $$TeamMembersTableUpdateCompanionBuilder,
+          (
+            DriftTeamMember,
+            BaseReferences<_$AppDatabase, $TeamMembersTable, DriftTeamMember>,
+          ),
+          DriftTeamMember,
+          PrefetchHooks Function()
+        > {
+  $$TeamMembersTableTableManager(_$AppDatabase db, $TeamMembersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TeamMembersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TeamMembersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TeamMembersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> teamId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+              }) =>
+                  TeamMembersCompanion(id: id, teamId: teamId, userId: userId),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String teamId,
+                required String userId,
+              }) => TeamMembersCompanion.insert(
+                id: id,
+                teamId: teamId,
+                userId: userId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TeamMembersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TeamMembersTable,
+      DriftTeamMember,
+      $$TeamMembersTableFilterComposer,
+      $$TeamMembersTableOrderingComposer,
+      $$TeamMembersTableAnnotationComposer,
+      $$TeamMembersTableCreateCompanionBuilder,
+      $$TeamMembersTableUpdateCompanionBuilder,
+      (
+        DriftTeamMember,
+        BaseReferences<_$AppDatabase, $TeamMembersTable, DriftTeamMember>,
+      ),
+      DriftTeamMember,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3270,4 +4533,8 @@ class $AppDatabaseManager {
       $$BuildJobsTableTableManager(_db, _db.buildJobs);
   $$BuildJobLogsTableTableManager get buildJobLogs =>
       $$BuildJobLogsTableTableManager(_db, _db.buildJobLogs);
+  $$TeamsTableTableManager get teams =>
+      $$TeamsTableTableManager(_db, _db.teams);
+  $$TeamMembersTableTableManager get teamMembers =>
+      $$TeamMembersTableTableManager(_db, _db.teamMembers);
 }
