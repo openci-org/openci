@@ -27,12 +27,14 @@ Future<List<BuildLog>> buildJobLogs(
     throw Exception('Unauthorized: No user is currently signed in');
   }
 
-  final response = await http.get(
-    url,
-    headers: {
-      'Authorization': 'Bearer $token',
-    },
-  );
+  final response = await http
+      .get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      )
+      .timeout(const Duration(seconds: 10));
 
   if (response.statusCode != 200) {
     throw Exception('Failed to fetch logs: ${response.statusCode}');
