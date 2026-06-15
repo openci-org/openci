@@ -1,18 +1,16 @@
 name: dashboard
 description: "OpenCI Dashboard App(iOS/macOS/Web)"
-
 publish_to: "none"
-
 version: 1.8.0+1
-
 environment:
   flutter: ^3.41.6
   sdk: 3.11.5
-
 resolution: workspace
 
 dependencies:
   app_links: ^7.0.0
+  app_minimizer_plus:
+    path: ../../packages/app_minimizer_plus
   cloud_firestore: ^6.3.0
   cloud_functions: ^6.2.0
   cupertino_icons: ^1.0.9
@@ -37,15 +35,14 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
   json_annotation: ^4.11.0
-  material_symbols_icons: ^4.2928.1
   macos_updater:
     path: ../../packages/macos_updater
+  material_symbols_icons: ^4.2928.1
   openci_shared:
     path: ../../packages/openci_shared
-  app_minimizer_plus:
-    path: ../../packages/app_minimizer_plus
   package_info_plus: ^10.1.0
   purchases_flutter: ^10.0.2
+  qr: ^3.0.2
   re_editor: ^0.8.0
   re_highlight: ^0.0.3
   riverpod_annotation: ^4.0.2
@@ -58,7 +55,6 @@ dependencies:
   wolt_modal_sheet: ^0.11.0
   xml: ^6.6.1
   yaml: ^3.1.3
-  qr: ^3.0.2
 
 dev_dependencies:
   build_runner: ^2.15.0
@@ -76,7 +72,7 @@ flutter:
   uses-material-design: true
 
 sentry:
+  org: openci-inc
+  project: flutter
   upload_debug_symbols: true
   upload_source_maps: true
-  project: flutter
-  org: openci-inc
