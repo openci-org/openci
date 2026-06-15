@@ -38,6 +38,6 @@ class TeamMembers extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {teamId, userId}
-      ];
+    {teamId, userId},
+  ];
 }
