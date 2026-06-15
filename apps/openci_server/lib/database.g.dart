@@ -2860,6 +2860,9 @@ class $TeamMembersTable extends TeamMembers
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES teams (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
@@ -3103,6 +3106,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     teams,
     teamMembers,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'teams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('team_members', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$BuildJobsTableCreateCompanionBuilder =
@@ -4122,6 +4135,29 @@ typedef $$TeamsTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$TeamsTableReferences
+    extends BaseReferences<_$AppDatabase, $TeamsTable, DriftTeam> {
+  $$TeamsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TeamMembersTable, List<DriftTeamMember>>
+  _teamMembersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.teamMembers,
+    aliasName: $_aliasNameGenerator(db.teams.id, db.teamMembers.teamId),
+  );
+
+  $$TeamMembersTableProcessedTableManager get teamMembersRefs {
+    final manager = $$TeamMembersTableTableManager(
+      $_db,
+      $_db.teamMembers,
+    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_teamMembersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
   $$TeamsTableFilterComposer({
     required super.$db,
@@ -4175,6 +4211,31 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> teamMembersRefs(
+    Expression<bool> Function($$TeamMembersTableFilterComposer f) f,
+  ) {
+    final $$TeamMembersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.teamMembers,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamMembersTableFilterComposer(
+            $db: $db,
+            $table: $db.teamMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TeamsTableOrderingComposer
@@ -4274,6 +4335,31 @@ class $$TeamsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> teamMembersRefs<T extends Object>(
+    Expression<T> Function($$TeamMembersTableAnnotationComposer a) f,
+  ) {
+    final $$TeamMembersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.teamMembers,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamMembersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teamMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TeamsTableTableManager
@@ -4287,9 +4373,9 @@ class $$TeamsTableTableManager
           $$TeamsTableAnnotationComposer,
           $$TeamsTableCreateCompanionBuilder,
           $$TeamsTableUpdateCompanionBuilder,
-          (DriftTeam, BaseReferences<_$AppDatabase, $TeamsTable, DriftTeam>),
+          (DriftTeam, $$TeamsTableReferences),
           DriftTeam,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool teamMembersRefs})
         > {
   $$TeamsTableTableManager(_$AppDatabase db, $TeamsTable table)
     : super(
@@ -4351,9 +4437,37 @@ class $$TeamsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$TeamsTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({teamMembersRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (teamMembersRefs) db.teamMembers],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (teamMembersRefs)
+                    await $_getPrefetchedData<
+                      DriftTeam,
+                      $TeamsTable,
+                      DriftTeamMember
+                    >(
+                      currentTable: table,
+                      referencedTable: $$TeamsTableReferences
+                          ._teamMembersRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$TeamsTableReferences(db, table, p0).teamMembersRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.teamId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -4368,9 +4482,9 @@ typedef $$TeamsTableProcessedTableManager =
       $$TeamsTableAnnotationComposer,
       $$TeamsTableCreateCompanionBuilder,
       $$TeamsTableUpdateCompanionBuilder,
-      (DriftTeam, BaseReferences<_$AppDatabase, $TeamsTable, DriftTeam>),
+      (DriftTeam, $$TeamsTableReferences),
       DriftTeam,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool teamMembersRefs})
     >;
 typedef $$TeamMembersTableCreateCompanionBuilder =
     TeamMembersCompanion Function({
@@ -4384,6 +4498,29 @@ typedef $$TeamMembersTableUpdateCompanionBuilder =
       Value<String> teamId,
       Value<String> userId,
     });
+
+final class $$TeamMembersTableReferences
+    extends BaseReferences<_$AppDatabase, $TeamMembersTable, DriftTeamMember> {
+  $$TeamMembersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TeamsTable _teamIdTable(_$AppDatabase db) => db.teams.createAlias(
+    $_aliasNameGenerator(db.teamMembers.teamId, db.teams.id),
+  );
+
+  $$TeamsTableProcessedTableManager get teamId {
+    final $_column = $_itemColumn<String>('team_id')!;
+
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
 
 class $$TeamMembersTableFilterComposer
     extends Composer<_$AppDatabase, $TeamMembersTable> {
@@ -4399,15 +4536,33 @@ class $$TeamMembersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get teamId => $composableBuilder(
-    column: $table.teamId,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get userId => $composableBuilder(
     column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$TeamsTableFilterComposer get teamId {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TeamMembersTableOrderingComposer
@@ -4424,15 +4579,33 @@ class $$TeamMembersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get teamId => $composableBuilder(
-    column: $table.teamId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get userId => $composableBuilder(
     column: $table.userId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$TeamsTableOrderingComposer get teamId {
+    final $$TeamsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableOrderingComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TeamMembersTableAnnotationComposer
@@ -4447,11 +4620,31 @@ class $$TeamMembersTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get teamId =>
-      $composableBuilder(column: $table.teamId, builder: (column) => column);
-
   GeneratedColumn<String> get userId =>
       $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  $$TeamsTableAnnotationComposer get teamId {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TeamMembersTableTableManager
@@ -4465,12 +4658,9 @@ class $$TeamMembersTableTableManager
           $$TeamMembersTableAnnotationComposer,
           $$TeamMembersTableCreateCompanionBuilder,
           $$TeamMembersTableUpdateCompanionBuilder,
-          (
-            DriftTeamMember,
-            BaseReferences<_$AppDatabase, $TeamMembersTable, DriftTeamMember>,
-          ),
+          (DriftTeamMember, $$TeamMembersTableReferences),
           DriftTeamMember,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool teamId})
         > {
   $$TeamMembersTableTableManager(_$AppDatabase db, $TeamMembersTable table)
     : super(
@@ -4501,9 +4691,54 @@ class $$TeamMembersTableTableManager
                 userId: userId,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TeamMembersTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({teamId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (teamId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.teamId,
+                                referencedTable: $$TeamMembersTableReferences
+                                    ._teamIdTable(db),
+                                referencedColumn: $$TeamMembersTableReferences
+                                    ._teamIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -4518,12 +4753,9 @@ typedef $$TeamMembersTableProcessedTableManager =
       $$TeamMembersTableAnnotationComposer,
       $$TeamMembersTableCreateCompanionBuilder,
       $$TeamMembersTableUpdateCompanionBuilder,
-      (
-        DriftTeamMember,
-        BaseReferences<_$AppDatabase, $TeamMembersTable, DriftTeamMember>,
-      ),
+      (DriftTeamMember, $$TeamMembersTableReferences),
       DriftTeamMember,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool teamId})
     >;
 
 class $AppDatabaseManager {

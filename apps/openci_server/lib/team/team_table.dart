@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 class IntListConverter extends TypeConverter<List<int>, String> {
@@ -33,7 +34,8 @@ class Teams extends Table {
 @DataClassName('DriftTeamMember')
 class TeamMembers extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get teamId => text()();
+  TextColumn get teamId =>
+      text().references(Teams, #id, onDelete: KeyAction.cascade)();
   TextColumn get userId => text()();
 
   @override
