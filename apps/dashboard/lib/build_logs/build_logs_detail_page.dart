@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/build_logs/build_job_logs_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_provider.dart';
 import 'package:dashboard/build_logs/cicd_fix_provider.dart';
@@ -1643,7 +1644,9 @@ class _DetailLogsView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final logsAsync = ref.watch(buildLogsProvider(buildJobId, runId));
+    final logsAsync = ref.watch(
+      buildJobLogsProvider(buildJobId, runId, buildStatus),
+    );
     final detailT = t.buildLogs.detail;
     final scrollController = useScrollController();
     final showScrollToBottom = useState(false);
@@ -1659,15 +1662,6 @@ class _DetailLogsView extends HookConsumerWidget {
         final nearBottom = (maxScroll - currentScroll) <= 200;
         showScrollToBottom.value = !nearBottom;
         isNearBottom.value = nearBottom;
-
-        if (nearBottom) {
-          final notifier = ref.read(
-            buildLogsProvider(buildJobId, runId).notifier,
-          );
-          if (notifier.hasMore && !notifier.isLoadingMore) {
-            notifier.loadMore();
-          }
-        }
       }
 
       scrollController.addListener(listener);

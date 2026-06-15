@@ -26,3 +26,7 @@ String nonNullCurrentUserId(Ref ref) {
   }
   return id;
 }
+
+@riverpod
+Future<String?>? firebaseIdToken(Ref ref) =>
+    ref.watch(authStateChangesProvider).value?.getIdToken();
