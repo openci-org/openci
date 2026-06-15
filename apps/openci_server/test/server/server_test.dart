@@ -36,11 +36,22 @@ void main() {
     });
 
     test('OPTIONS / returns 200 and CORS headers', () async {
-      final request = Request('OPTIONS', Uri.parse('$localHost/'));
+      final request = Request(
+        'OPTIONS',
+        Uri.parse('$localHost/'),
+        headers: {'Origin': 'http://localhost'},
+      );
       final response = await handler(request);
 
       expect(response.statusCode, equals(200));
-      expect(response.headers['Access-Control-Allow-Origin'], equals('*'));
+      expect(
+        response.headers['Access-Control-Allow-Origin'],
+        equals('http://localhost'),
+      );
+      expect(
+        response.headers['Access-Control-Allow-Credentials'],
+        equals('true'),
+      );
       expect(
         response.headers['Access-Control-Allow-Methods'],
         contains('GET'),
@@ -51,12 +62,85 @@ void main() {
       );
     });
 
-    test('GET / response includes CORS headers', () async {
-      final request = Request('GET', Uri.parse('$localHost/'));
+    test('GET / response includes CORS headers for localhost', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('$localHost/'),
+        headers: {'Origin': 'http://localhost'},
+      );
       final response = await handler(request);
 
       expect(response.statusCode, equals(200));
-      expect(response.headers['Access-Control-Allow-Origin'], equals('*'));
+      expect(
+        response.headers['Access-Control-Allow-Origin'],
+        equals('http://localhost'),
+      );
+      expect(
+        response.headers['Access-Control-Allow-Credentials'],
+        equals('true'),
+      );
+    });
+
+    test(
+      'GET / response includes CORS headers for official dashboard',
+      () async {
+        final request = Request(
+          'GET',
+          Uri.parse('$localHost/'),
+          headers: {'Origin': 'https://dashboard.openci.org'},
+        );
+        final response = await handler(request);
+
+        expect(response.statusCode, equals(200));
+        expect(
+          response.headers['Access-Control-Allow-Origin'],
+          equals('https://dashboard.openci.org'),
+        );
+        expect(
+          response.headers['Access-Control-Allow-Credentials'],
+          equals('true'),
+        );
+      },
+    );
+
+    test(
+      'GET / with unauthorized Origin does not return CORS headers',
+      () async {
+        final request = Request(
+          'GET',
+          Uri.parse('$localHost/'),
+          headers: {'Origin': 'http://evil.com'},
+        );
+        final response = await handler(request);
+
+        expect(response.statusCode, equals(200));
+        expect(response.headers['Access-Control-Allow-Origin'], isNull);
+        expect(response.headers['Access-Control-Allow-Credentials'], isNull);
+      },
+    );
+
+    test('GET / with custom allowed origin from environment', () async {
+      final customHandler = applyMiddleware(
+        getRouter(storage, db: db),
+        environment: {'ALLOWED_ORIGINS': 'https://my-custom-dashboard.com'},
+      );
+
+      final request = Request(
+        'GET',
+        Uri.parse('$localHost/'),
+        headers: {'Origin': 'https://my-custom-dashboard.com'},
+      );
+      final response = await customHandler(request);
+
+      expect(response.statusCode, equals(200));
+      expect(
+        response.headers['Access-Control-Allow-Origin'],
+        equals('https://my-custom-dashboard.com'),
+      );
+      expect(
+        response.headers['Access-Control-Allow-Credentials'],
+        equals('true'),
+      );
     });
 
     test('GET /invalid-path returns 404', () async {
