@@ -173,15 +173,26 @@ class TeamRouter {
         );
       }
 
-      // 型検証とバリデーション
-      if (payload.containsKey('name') && payload['name'] is! String) {
-        return Response.badRequest(
-          body: jsonEncode({
-            'success': false,
-            'error': 'name must be a string',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
+      if (payload.containsKey('name')) {
+        final val = payload['name'];
+        if (val is! String) {
+          return Response.badRequest(
+            body: jsonEncode({
+              'success': false,
+              'error': 'name must be a string',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (val.trim().isEmpty) {
+          return Response.badRequest(
+            body: jsonEncode({
+              'success': false,
+              'error': 'name cannot be empty',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
       }
       if (payload.containsKey('githubBaseUrl') &&
           payload['githubBaseUrl'] != null &&
