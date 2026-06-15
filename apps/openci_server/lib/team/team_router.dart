@@ -63,18 +63,40 @@ class TeamRouter {
         );
       }
 
+      final Map<String, dynamic> payload;
       try {
-        final payload =
-            jsonDecode(await request.readAsString()) as Map<String, dynamic>;
-        final teamName = payload['name'] as String?;
-
-        if (teamName == null || teamName.trim().isEmpty) {
-          return Response.badRequest(
-            body: jsonEncode({'success': false, 'error': 'name is required'}),
-            headers: {'content-type': 'application/json'},
-          );
+        final body = await request.readAsString();
+        final decoded = jsonDecode(body);
+        if (decoded is! Map<String, dynamic>) {
+          throw const FormatException('Body must be a JSON object');
         }
+        payload = decoded;
+      } catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({'success': false, 'error': 'Invalid JSON: $e'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
 
+      if (payload.containsKey('name') && payload['name'] is! String) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'name must be a string',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      final teamName = payload['name'] as String?;
+
+      if (teamName == null || teamName.trim().isEmpty) {
+        return Response.badRequest(
+          body: jsonEncode({'success': false, 'error': 'name is required'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
+      try {
         final teamId = const Uuid().v4();
         final now = DateTime.now().toUtc();
 
@@ -125,10 +147,87 @@ class TeamRouter {
             headers: {'content-type': 'application/json'},
           );
         }
+      } catch (e, s) {
+        stderr.writeln('Failed to check membership for team $teamId: $e\n$s');
+        return Response.internalServerError(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Internal server error',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
 
-        final payload =
-            jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+      final Map<String, dynamic> payload;
+      try {
+        final body = await request.readAsString();
+        final decoded = jsonDecode(body);
+        if (decoded is! Map<String, dynamic>) {
+          throw const FormatException('Body must be a JSON object');
+        }
+        payload = decoded;
+      } catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({'success': false, 'error': 'Invalid JSON: $e'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
 
+      // 型検証とバリデーション
+      if (payload.containsKey('name') && payload['name'] is! String) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'name must be a string',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      if (payload.containsKey('githubBaseUrl') &&
+          payload['githubBaseUrl'] != null &&
+          payload['githubBaseUrl'] is! String) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'githubBaseUrl must be a string or null',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      if (payload.containsKey('githubApiBaseUrl') &&
+          payload['githubApiBaseUrl'] != null &&
+          payload['githubApiBaseUrl'] is! String) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'githubApiBaseUrl must be a string or null',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      if (payload.containsKey('installationIds')) {
+        final val = payload['installationIds'];
+        if (val is! List || !val.every((element) => element is int)) {
+          return Response.badRequest(
+            body: jsonEncode({
+              'success': false,
+              'error': 'installationIds must be a list of integers',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+      }
+      if (payload.containsKey('aiEnabled') && payload['aiEnabled'] is! bool) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'aiEnabled must be a boolean',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
+      try {
         final currentDriftTeam = await (db.select(
           db.teams,
         )..where((t) => t.id.equals(teamId))).getSingleOrNull();
