@@ -117,7 +117,7 @@ abstract class _$BuildLogs extends $AsyncNotifier<List<BuildLog>> {
   FutureOr<List<BuildLog>> build(String buildJobId, String runId);
   @$mustCallSuper
   @override
-  WhenComplete runBuild() {
+  void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<BuildLog>>, List<BuildLog>>;
     final element =
         ref.element
@@ -127,6 +127,6 @@ abstract class _$BuildLogs extends $AsyncNotifier<List<BuildLog>> {
               Object?,
               Object?
             >;
-    return element.handleCreate(ref, () => build(_$args.$1, _$args.$2));
+    element.handleCreate(ref, () => build(_$args.$1, _$args.$2));
   }
 }

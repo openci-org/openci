@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/settings/storage_settings.dart';
 import 'package:openci_server/storage.dart';
 import 'package:test/test.dart';
 
@@ -15,13 +14,7 @@ void main() {
     bool isStorageReachable = false;
 
     setUpAll(() async {
-      final env = Map<String, String>.from(Platform.environment)
-        ..putIfAbsent('DATABASE_URL', () => 'postgres://localhost:5432/openci')
-        ..putIfAbsent(
-          'SECRET_ENCRYPTION_KEY',
-          () => 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
-        );
-      final baseSettings = EnvironmentValue.load(environment: env).storage;
+      final baseSettings = loadStorageSettings();
       final settings = StorageSettings(
         endPoint: baseSettings.endPoint,
         port: baseSettings.port,

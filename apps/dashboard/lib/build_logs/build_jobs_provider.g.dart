@@ -39,7 +39,7 @@ abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
   @$mustCallSuper
   @override
-  WhenComplete runBuild() {
+  void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<BuildJob>>, List<BuildJob>>;
     final element =
         ref.element
@@ -49,7 +49,7 @@ abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
               Object?,
               Object?
             >;
-    return element.handleCreate(ref, build);
+    element.handleCreate(ref, build);
   }
 }
 
@@ -83,7 +83,7 @@ abstract class _$OtaBuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
   @$mustCallSuper
   @override
-  WhenComplete runBuild() {
+  void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<BuildJob>>, List<BuildJob>>;
     final element =
         ref.element
@@ -93,7 +93,7 @@ abstract class _$OtaBuildJobs extends $StreamNotifier<List<BuildJob>> {
               Object?,
               Object?
             >;
-    return element.handleCreate(ref, build);
+    element.handleCreate(ref, build);
   }
 }
 

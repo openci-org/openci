@@ -3,11 +3,9 @@ import 'dart:convert';
 
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/router.dart';
-import 'package:openci_server/storage.dart';
 import 'package:openci_shared/openci_shared.dart';
-import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
@@ -23,22 +21,7 @@ void main() {
     setUp(() {
       storage = FakeStorageManager();
       db = AppDatabase(NativeDatabase.memory());
-      final envValue = EnvironmentValue.load(
-        environment: {
-          'DATABASE_URL': 'postgres://localhost:5432/test',
-          'SECRET_ENCRYPTION_KEY':
-              'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
-        },
-      );
-      final container = ProviderContainer(
-        overrides: [
-          environmentValueProvider.overrideWithValue(envValue),
-          databaseProvider.overrideWithValue(db),
-          storageProvider.overrideWithValue(storage),
-          firebaseAppProvider.overrideWithValue(null),
-        ],
-      );
-      handler = container.read(handlerProvider);
+      handler = applyMiddleware(getRouter(storage, db: db));
     });
 
     tearDown(() async {

@@ -17,10 +17,7 @@ workspace:
   - packages/macos_updater
   - packages/openci_shared
   - packages/pubspec_version_hook
+
 dependency_overrides:
   analyzer: 10.0.1
   dart_style: 3.1.7
-  riverpod_analyzer_utils: 1.0.0-dev.9
-
-
-

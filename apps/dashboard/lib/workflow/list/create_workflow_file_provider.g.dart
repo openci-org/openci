@@ -49,7 +49,7 @@ abstract class _$CreateWorkflowFileNotifier
   AsyncValue<void> build();
   @$mustCallSuper
   @override
-  WhenComplete runBuild() {
+  void runBuild() {
     final ref = this.ref as $Ref<AsyncValue<void>, AsyncValue<void>>;
     final element =
         ref.element
@@ -59,6 +59,6 @@ abstract class _$CreateWorkflowFileNotifier
               Object?,
               Object?
             >;
-    return element.handleCreate(ref, build);
+    element.handleCreate(ref, build);
   }
 }

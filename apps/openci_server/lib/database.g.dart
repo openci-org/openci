@@ -3506,377 +3506,6 @@ class TeamMembersCompanion extends UpdateCompanion<DriftTeamMember> {
   }
 }
 
-class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $SecretsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
-  @override
-  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
-    'team_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES teams (id)',
-    ),
-  );
-  static const VerificationMeta _encryptedValueMeta = const VerificationMeta(
-    'encryptedValue',
-  );
-  @override
-  late final GeneratedColumn<String> encryptedValue = GeneratedColumn<String>(
-    'encrypted_value',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    name,
-    teamId,
-    encryptedValue,
-    createdAt,
-    updatedAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'secrets';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<DriftSecret> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('team_id')) {
-      context.handle(
-        _teamIdMeta,
-        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_teamIdMeta);
-    }
-    if (data.containsKey('encrypted_value')) {
-      context.handle(
-        _encryptedValueMeta,
-        encryptedValue.isAcceptableOrUnknown(
-          data['encrypted_value']!,
-          _encryptedValueMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_encryptedValueMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {teamId, name};
-  @override
-  DriftSecret map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return DriftSecret(
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      teamId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}team_id'],
-      )!,
-      encryptedValue: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}encrypted_value'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-    );
-  }
-
-  @override
-  $SecretsTable createAlias(String alias) {
-    return $SecretsTable(attachedDatabase, alias);
-  }
-}
-
-class DriftSecret extends DataClass implements Insertable<DriftSecret> {
-  final String name;
-  final String teamId;
-  final String encryptedValue;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  const DriftSecret({
-    required this.name,
-    required this.teamId,
-    required this.encryptedValue,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['name'] = Variable<String>(name);
-    map['team_id'] = Variable<String>(teamId);
-    map['encrypted_value'] = Variable<String>(encryptedValue);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    return map;
-  }
-
-  SecretsCompanion toCompanion(bool nullToAbsent) {
-    return SecretsCompanion(
-      name: Value(name),
-      teamId: Value(teamId),
-      encryptedValue: Value(encryptedValue),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-    );
-  }
-
-  factory DriftSecret.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return DriftSecret(
-      name: serializer.fromJson<String>(json['name']),
-      teamId: serializer.fromJson<String>(json['teamId']),
-      encryptedValue: serializer.fromJson<String>(json['encryptedValue']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'name': serializer.toJson<String>(name),
-      'teamId': serializer.toJson<String>(teamId),
-      'encryptedValue': serializer.toJson<String>(encryptedValue),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-    };
-  }
-
-  DriftSecret copyWith({
-    String? name,
-    String? teamId,
-    String? encryptedValue,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) => DriftSecret(
-    name: name ?? this.name,
-    teamId: teamId ?? this.teamId,
-    encryptedValue: encryptedValue ?? this.encryptedValue,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
-  DriftSecret copyWithCompanion(SecretsCompanion data) {
-    return DriftSecret(
-      name: data.name.present ? data.name.value : this.name,
-      teamId: data.teamId.present ? data.teamId.value : this.teamId,
-      encryptedValue: data.encryptedValue.present
-          ? data.encryptedValue.value
-          : this.encryptedValue,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('DriftSecret(')
-          ..write('name: $name, ')
-          ..write('teamId: $teamId, ')
-          ..write('encryptedValue: $encryptedValue, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(name, teamId, encryptedValue, createdAt, updatedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is DriftSecret &&
-          other.name == this.name &&
-          other.teamId == this.teamId &&
-          other.encryptedValue == this.encryptedValue &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
-}
-
-class SecretsCompanion extends UpdateCompanion<DriftSecret> {
-  final Value<String> name;
-  final Value<String> teamId;
-  final Value<String> encryptedValue;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<int> rowid;
-  const SecretsCompanion({
-    this.name = const Value.absent(),
-    this.teamId = const Value.absent(),
-    this.encryptedValue = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  SecretsCompanion.insert({
-    required String name,
-    required String teamId,
-    required String encryptedValue,
-    required DateTime createdAt,
-    required DateTime updatedAt,
-    this.rowid = const Value.absent(),
-  }) : name = Value(name),
-       teamId = Value(teamId),
-       encryptedValue = Value(encryptedValue),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
-  static Insertable<DriftSecret> custom({
-    Expression<String>? name,
-    Expression<String>? teamId,
-    Expression<String>? encryptedValue,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (name != null) 'name': name,
-      if (teamId != null) 'team_id': teamId,
-      if (encryptedValue != null) 'encrypted_value': encryptedValue,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  SecretsCompanion copyWith({
-    Value<String>? name,
-    Value<String>? teamId,
-    Value<String>? encryptedValue,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
-    return SecretsCompanion(
-      name: name ?? this.name,
-      teamId: teamId ?? this.teamId,
-      encryptedValue: encryptedValue ?? this.encryptedValue,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (teamId.present) {
-      map['team_id'] = Variable<String>(teamId.value);
-    }
-    if (encryptedValue.present) {
-      map['encrypted_value'] = Variable<String>(encryptedValue.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SecretsCompanion(')
-          ..write('name: $name, ')
-          ..write('teamId: $teamId, ')
-          ..write('encryptedValue: $encryptedValue, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3885,7 +3514,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BuildRunsTable buildRuns = $BuildRunsTable(this);
   late final $TeamsTable teams = $TeamsTable(this);
   late final $TeamMembersTable teamMembers = $TeamMembersTable(this);
-  late final $SecretsTable secrets = $SecretsTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -3899,7 +3527,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     buildRuns,
     teams,
     teamMembers,
-    secrets,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5399,24 +5026,6 @@ final class $$TeamsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
-
-  static MultiTypedResultKey<$SecretsTable, List<DriftSecret>>
-  _secretsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.secrets,
-    aliasName: $_aliasNameGenerator(db.teams.id, db.secrets.teamId),
-  );
-
-  $$SecretsTableProcessedTableManager get secretsRefs {
-    final manager = $$SecretsTableTableManager(
-      $_db,
-      $_db.secrets,
-    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_secretsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
 }
 
 class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
@@ -5489,31 +5098,6 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
           }) => $$TeamMembersTableFilterComposer(
             $db: $db,
             $table: $db.teamMembers,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> secretsRefs(
-    Expression<bool> Function($$SecretsTableFilterComposer f) f,
-  ) {
-    final $$SecretsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.secrets,
-      getReferencedColumn: (t) => t.teamId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SecretsTableFilterComposer(
-            $db: $db,
-            $table: $db.secrets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5646,31 +5230,6 @@ class $$TeamsTableAnnotationComposer
     );
     return f(composer);
   }
-
-  Expression<T> secretsRefs<T extends Object>(
-    Expression<T> Function($$SecretsTableAnnotationComposer a) f,
-  ) {
-    final $$SecretsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.secrets,
-      getReferencedColumn: (t) => t.teamId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$SecretsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.secrets,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$TeamsTableTableManager
@@ -5686,7 +5245,7 @@ class $$TeamsTableTableManager
           $$TeamsTableUpdateCompanionBuilder,
           (DriftTeam, $$TeamsTableReferences),
           DriftTeam,
-          PrefetchHooks Function({bool teamMembersRefs, bool secretsRefs})
+          PrefetchHooks Function({bool teamMembersRefs})
         > {
   $$TeamsTableTableManager(_$AppDatabase db, $TeamsTable table)
     : super(
@@ -5753,59 +5312,32 @@ class $$TeamsTableTableManager
                     (e.readTable(table), $$TeamsTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({teamMembersRefs = false, secretsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (teamMembersRefs) db.teamMembers,
-                    if (secretsRefs) db.secrets,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (teamMembersRefs)
-                        await $_getPrefetchedData<
-                          DriftTeam,
-                          $TeamsTable,
-                          DriftTeamMember
-                        >(
-                          currentTable: table,
-                          referencedTable: $$TeamsTableReferences
-                              ._teamMembersRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$TeamsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).teamMembersRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.teamId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (secretsRefs)
-                        await $_getPrefetchedData<
-                          DriftTeam,
-                          $TeamsTable,
-                          DriftSecret
-                        >(
-                          currentTable: table,
-                          referencedTable: $$TeamsTableReferences
-                              ._secretsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$TeamsTableReferences(db, table, p0).secretsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.teamId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
+          prefetchHooksCallback: ({teamMembersRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (teamMembersRefs) db.teamMembers],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (teamMembersRefs)
+                    await $_getPrefetchedData<
+                      DriftTeam,
+                      $TeamsTable,
+                      DriftTeamMember
+                    >(
+                      currentTable: table,
+                      referencedTable: $$TeamsTableReferences
+                          ._teamMembersRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$TeamsTableReferences(db, table, p0).teamMembersRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.teamId == item.id),
+                      typedResults: items,
+                    ),
+                ];
               },
+            );
+          },
         ),
       );
 }
@@ -5822,7 +5354,7 @@ typedef $$TeamsTableProcessedTableManager =
       $$TeamsTableUpdateCompanionBuilder,
       (DriftTeam, $$TeamsTableReferences),
       DriftTeam,
-      PrefetchHooks Function({bool teamMembersRefs, bool secretsRefs})
+      PrefetchHooks Function({bool teamMembersRefs})
     >;
 typedef $$TeamMembersTableCreateCompanionBuilder =
     TeamMembersCompanion Function({
@@ -6095,326 +5627,6 @@ typedef $$TeamMembersTableProcessedTableManager =
       DriftTeamMember,
       PrefetchHooks Function({bool teamId})
     >;
-typedef $$SecretsTableCreateCompanionBuilder =
-    SecretsCompanion Function({
-      required String name,
-      required String teamId,
-      required String encryptedValue,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<int> rowid,
-    });
-typedef $$SecretsTableUpdateCompanionBuilder =
-    SecretsCompanion Function({
-      Value<String> name,
-      Value<String> teamId,
-      Value<String> encryptedValue,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
-
-final class $$SecretsTableReferences
-    extends BaseReferences<_$AppDatabase, $SecretsTable, DriftSecret> {
-  $$SecretsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $TeamsTable _teamIdTable(_$AppDatabase db) => db.teams.createAlias(
-    $_aliasNameGenerator(db.secrets.teamId, db.teams.id),
-  );
-
-  $$TeamsTableProcessedTableManager get teamId {
-    final $_column = $_itemColumn<String>('team_id')!;
-
-    final manager = $$TeamsTableTableManager(
-      $_db,
-      $_db.teams,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$SecretsTableFilterComposer
-    extends Composer<_$AppDatabase, $SecretsTable> {
-  $$SecretsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get encryptedValue => $composableBuilder(
-    column: $table.encryptedValue,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$TeamsTableFilterComposer get teamId {
-    final $$TeamsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.teamId,
-      referencedTable: $db.teams,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TeamsTableFilterComposer(
-            $db: $db,
-            $table: $db.teams,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$SecretsTableOrderingComposer
-    extends Composer<_$AppDatabase, $SecretsTable> {
-  $$SecretsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get encryptedValue => $composableBuilder(
-    column: $table.encryptedValue,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$TeamsTableOrderingComposer get teamId {
-    final $$TeamsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.teamId,
-      referencedTable: $db.teams,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TeamsTableOrderingComposer(
-            $db: $db,
-            $table: $db.teams,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$SecretsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $SecretsTable> {
-  $$SecretsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get encryptedValue => $composableBuilder(
-    column: $table.encryptedValue,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  $$TeamsTableAnnotationComposer get teamId {
-    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.teamId,
-      referencedTable: $db.teams,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TeamsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.teams,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$SecretsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $SecretsTable,
-          DriftSecret,
-          $$SecretsTableFilterComposer,
-          $$SecretsTableOrderingComposer,
-          $$SecretsTableAnnotationComposer,
-          $$SecretsTableCreateCompanionBuilder,
-          $$SecretsTableUpdateCompanionBuilder,
-          (DriftSecret, $$SecretsTableReferences),
-          DriftSecret,
-          PrefetchHooks Function({bool teamId})
-        > {
-  $$SecretsTableTableManager(_$AppDatabase db, $SecretsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$SecretsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$SecretsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$SecretsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> name = const Value.absent(),
-                Value<String> teamId = const Value.absent(),
-                Value<String> encryptedValue = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SecretsCompanion(
-                name: name,
-                teamId: teamId,
-                encryptedValue: encryptedValue,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String name,
-                required String teamId,
-                required String encryptedValue,
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<int> rowid = const Value.absent(),
-              }) => SecretsCompanion.insert(
-                name: name,
-                teamId: teamId,
-                encryptedValue: encryptedValue,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$SecretsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({teamId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (teamId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.teamId,
-                                referencedTable: $$SecretsTableReferences
-                                    ._teamIdTable(db),
-                                referencedColumn: $$SecretsTableReferences
-                                    ._teamIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$SecretsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $SecretsTable,
-      DriftSecret,
-      $$SecretsTableFilterComposer,
-      $$SecretsTableOrderingComposer,
-      $$SecretsTableAnnotationComposer,
-      $$SecretsTableCreateCompanionBuilder,
-      $$SecretsTableUpdateCompanionBuilder,
-      (DriftSecret, $$SecretsTableReferences),
-      DriftSecret,
-      PrefetchHooks Function({bool teamId})
-    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6429,6 +5641,4 @@ class $AppDatabaseManager {
       $$TeamsTableTableManager(_db, _db.teams);
   $$TeamMembersTableTableManager get teamMembers =>
       $$TeamMembersTableTableManager(_db, _db.teamMembers);
-  $$SecretsTableTableManager get secrets =>
-      $$SecretsTableTableManager(_db, _db.secrets);
 }

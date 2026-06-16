@@ -2,14 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:minio/minio.dart';
-import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/settings/storage_settings.dart';
 import 'package:retry/retry.dart';
-import 'package:riverpod/riverpod.dart';
-
-final storageProvider = Provider<StorageManager>((ref) {
-  final envValue = ref.watch(environmentValueProvider);
-  return StorageManager(envValue.storage);
-});
 
 class StorageManager {
   final Minio _client;
