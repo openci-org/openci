@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/router.dart';
 import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/router.dart';
 import 'package:openci_server/storage.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
@@ -39,7 +39,7 @@ void main() {
         ],
       );
       handler = container.read(handlerProvider);
-      
+
       // Insert dummy team and team member for validation
       await db
           .into(db.teams)
@@ -163,30 +163,33 @@ void main() {
       expect(response.statusCode, equals(403)); // Forbidden
     });
 
-    test('POST /teams/<teamId>/secrets returns 409 when secret name is duplicated', () async {
-      final request1 = Request(
-        'POST',
-        Uri.parse('$localHost/teams/$teamId/secrets'),
-        body: jsonEncode({'name': 'DUPLICATE_KEY', 'value': 'first-value'}),
-      );
-      final response1 = await handler(request1);
-      expect(response1.statusCode, equals(200));
+    test(
+      'POST /teams/<teamId>/secrets returns 409 when secret name is duplicated',
+      () async {
+        final request1 = Request(
+          'POST',
+          Uri.parse('$localHost/teams/$teamId/secrets'),
+          body: jsonEncode({'name': 'DUPLICATE_KEY', 'value': 'first-value'}),
+        );
+        final response1 = await handler(request1);
+        expect(response1.statusCode, equals(200));
 
-      final request2 = Request(
-        'POST',
-        Uri.parse('$localHost/teams/$teamId/secrets'),
-        body: jsonEncode({'name': 'DUPLICATE_KEY', 'value': 'second-value'}),
-      );
-      final response2 = await handler(request2);
-      expect(response2.statusCode, equals(409));
+        final request2 = Request(
+          'POST',
+          Uri.parse('$localHost/teams/$teamId/secrets'),
+          body: jsonEncode({'name': 'DUPLICATE_KEY', 'value': 'second-value'}),
+        );
+        final response2 = await handler(request2);
+        expect(response2.statusCode, equals(409));
 
-      final body =
-          jsonDecode(await response2.readAsString()) as Map<String, dynamic>;
-      expect(body['success'], isFalse);
-      expect(
-        body['error'],
-        equals('a secret with this name already exists in the team'),
-      );
-    });
+        final body =
+            jsonDecode(await response2.readAsString()) as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(
+          body['error'],
+          equals('a secret with this name already exists in the team'),
+        );
+      },
+    );
   });
 }
