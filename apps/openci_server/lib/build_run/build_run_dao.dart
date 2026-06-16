@@ -11,7 +11,7 @@ class BuildRunDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> insertBuildRun(DriftBuildRun run) => into(buildRuns).insert(run);
 
-  Future<void> updateBuildRun(DriftBuildRun run) =>
+  Future<bool> updateBuildRun(DriftBuildRun run) =>
       update(buildRuns).replace(run);
 
   Future<DriftBuildRun?> getBuildRun(String runId) =>

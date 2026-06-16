@@ -121,6 +121,15 @@ class BuildJobRouter {
             headers: {'content-type': 'application/json'},
           );
         }
+        if (driftRun.buildJobId != buildJobId) {
+          return Response.notFound(
+            jsonEncode({
+              'success': false,
+              'error': 'Build run not found for the specified build job',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
 
         final updatedRun = driftRun.copyWith(
           status: status,
@@ -176,6 +185,15 @@ class BuildJobRouter {
         if (driftRun == null) {
           return Response.notFound(
             jsonEncode({'success': false, 'error': 'Build run not found'}),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (driftRun.buildJobId != buildJobId) {
+          return Response.notFound(
+            jsonEncode({
+              'success': false,
+              'error': 'Build run not found for the specified build job',
+            }),
             headers: {'content-type': 'application/json'},
           );
         }
