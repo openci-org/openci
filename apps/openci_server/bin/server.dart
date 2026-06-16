@@ -9,7 +9,7 @@ import 'package:openci_server/settings/storage_settings.dart';
 import 'package:openci_server/storage.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
-void main(List<String> args) async {
+Future<void> main() async {
   AppDatabase db;
   try {
     db = AppDatabase();
