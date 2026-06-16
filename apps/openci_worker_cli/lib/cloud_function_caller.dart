@@ -13,12 +13,16 @@ class ApiClient {
   final AuthManager authManager;
   final String projectId;
   final String? projectNumber;
+  final String? serverUrl;
+  final http.Client _client;
 
   ApiClient({
     required this.authManager,
     required this.projectId,
     this.projectNumber,
-  });
+    this.serverUrl,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   String _resolveUrl(String functionName) {
     final isEmulator =
@@ -41,6 +45,12 @@ class ApiClient {
     }
   }
 
+  String _resolveServerUrl() {
+    return serverUrl ??
+        Platform.environment['OPENCI_SERVER_URL'] ??
+        'http://localhost:8080';
+  }
+
   Future<Map<String, dynamic>> callApi(
     String functionName,
     Map<String, dynamic> payload,
@@ -48,7 +58,7 @@ class ApiClient {
     final url = _resolveUrl(functionName);
     final idToken = await authManager.getIdToken();
 
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse(url),
       headers: {
         'Content-Type': 'application/json',
@@ -125,7 +135,8 @@ class ApiClient {
 
   /// Sends worker heartbeat signal to monitor worker status.
   Future<void> updateWorkerHeartbeat(Map<String, dynamic> heartbeat) async {
-    await callApi('update-worker-heartbeat', heartbeat);
+    // Heartbeat reporting to Cloud Functions is disabled.
+    return;
   }
 
   /// Checks if a job has been cancelled in Firestore.
@@ -155,8 +166,25 @@ class ApiClient {
 
   /// Retrieves secrets associated with the team.
   Future<List<Map<String, dynamic>>> getSecrets(String teamId) async {
-    final response = await callApi('get-secrets', {'teamId': teamId});
-    final list = response['secrets'] as List<dynamic>?;
+    final serverUrl = _resolveServerUrl();
+    final url = '$serverUrl/teams/$teamId/secrets';
+    final idToken = await authManager.getIdToken();
+
+    final response = await _client.get(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $idToken',
+      },
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HttpException(
+        'Failed to get secrets from openci_server: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final list = jsonDecode(response.body) as List<dynamic>?;
     if (list == null) return [];
     return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
@@ -194,12 +222,27 @@ class ApiClient {
     });
   }
 
-  /// Fetches a Secret Value via Firebase Functions.
+  /// Fetches a Secret Value from openci_server.
   Future<String> getSecretValue(String teamId, String name) async {
-    final response = await callApi('get-secret-value', {
-      'teamId': teamId,
-      'name': name,
-    });
-    return response['value'] as String? ?? '';
+    final serverUrl = _resolveServerUrl();
+    final url = '$serverUrl/teams/$teamId/secrets/$name/value';
+    final idToken = await authManager.getIdToken();
+
+    final response = await _client.get(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $idToken',
+      },
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HttpException(
+        'Failed to get secret value from openci_server: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['value'] as String? ?? '';
   }
 }

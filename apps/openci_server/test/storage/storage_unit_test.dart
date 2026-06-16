@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:minio/minio.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:openci_server/settings/storage_settings.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
 import 'package:openci_server/storage.dart';
 import 'package:test/test.dart';
 

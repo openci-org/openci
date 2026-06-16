@@ -1,10 +1,12 @@
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
 import 'package:drift/native.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware/apply_middleware.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
 import 'package:openci_server/router.dart';
+import 'package:openci_server/storage.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
@@ -21,7 +23,22 @@ void main() {
       storage = FakeStorageManager();
       db = AppDatabase(NativeDatabase.memory());
       const emptyPort = 0;
-      final handler = applyMiddleware(getRouter(storage, db: db));
+      final envValue = EnvironmentValue.load(
+        environment: {
+          'DATABASE_URL': 'postgres://localhost:5432/test',
+          'SECRET_ENCRYPTION_KEY':
+              'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          environmentValueProvider.overrideWithValue(envValue),
+          databaseProvider.overrideWithValue(db),
+          storageProvider.overrideWithValue(storage),
+          firebaseAppProvider.overrideWithValue(null),
+        ],
+      );
+      final handler = container.read(handlerProvider);
       server = await shelf_io.serve(
         handler,
         InternetAddress.loopbackIPv4,

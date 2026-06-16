@@ -1,75 +1,50 @@
 import 'dart:io';
 
-import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
-import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware/apply_middleware.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
 import 'package:openci_server/router.dart';
-import 'package:openci_server/settings/server_settings.dart';
-import 'package:openci_server/settings/storage_settings.dart';
 import 'package:openci_server/storage.dart';
+import 'package:riverpod/riverpod.dart';
+import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
-void main(List<String> args) async {
-  AppDatabase db;
+Future<void> main() async {
+  final container = ProviderContainer();
+
+  final EnvironmentValue envValue;
   try {
-    db = AppDatabase();
+    envValue = container.read(environmentValueProvider);
   } catch (e) {
-    stderr.writeln('Failed to initialize database connection: $e');
+    stderr.writeln('Error loading environment values: $e');
     exit(1);
   }
 
-  ({InternetAddress ip, int port}) serverSettings;
   try {
-    serverSettings = loadServerSettings();
-  } catch (e) {
-    stderr.writeln('Error loading server settings: $e');
-    await db.close();
-    exit(1);
-  }
-
-  StorageSettings storageSettings;
-  try {
-    storageSettings = loadStorageSettings();
-  } catch (e) {
-    stderr.writeln('Error loading storage settings: $e');
-    await db.close();
-    exit(1);
-  }
-
-  StorageManager storage;
-  try {
-    storage = StorageManager(storageSettings);
-    await storage.initialize();
+    await container.read(storageProvider).initialize();
   } catch (e) {
     stderr.writeln('Failed to initialize storage connection: $e');
-    await db.close();
+    container.dispose();
     exit(1);
   }
 
-  FirebaseApp firebaseApp;
+  final Handler handler;
   try {
-    firebaseApp = FirebaseApp.initializeApp();
+    handler = container.read(handlerProvider);
   } catch (e) {
-    stderr.writeln('Failed to initialize Firebase App: $e');
-    await db.close();
+    stderr.writeln('Failed to build request handler: $e');
+    container.dispose();
     exit(1);
   }
-
-  final handler = applyMiddleware(
-    getRouter(storage, db: db, firebaseApp: firebaseApp),
-    firebaseApp: firebaseApp,
-  );
 
   HttpServer server;
   try {
     server = await shelf_io.serve(
       handler,
-      serverSettings.ip,
-      serverSettings.port,
+      envValue.host,
+      envValue.port,
     );
   } catch (e) {
     stderr.writeln('Failed to start server: $e');
-    await db.close();
+    container.dispose();
     exit(1);
   }
   stdout.writeln(

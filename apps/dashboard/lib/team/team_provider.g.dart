@@ -38,7 +38,7 @@ abstract class _$TeamState extends $StreamNotifier<Team> {
   Stream<Team> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<Team>, Team>;
     final element =
         ref.element
@@ -48,7 +48,7 @@ abstract class _$TeamState extends $StreamNotifier<Team> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }
 
@@ -82,7 +82,7 @@ abstract class _$TeamList extends $StreamNotifier<List<Team>> {
   Stream<List<Team>> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<Team>>, List<Team>>;
     final element =
         ref.element
@@ -92,6 +92,6 @@ abstract class _$TeamList extends $StreamNotifier<List<Team>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

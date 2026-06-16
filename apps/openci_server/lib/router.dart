@@ -1,22 +1,17 @@
-import 'dart:io';
-
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/build_job/build_job_router.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/storage.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/team/team_router.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
-Router getRouter(
-  StorageManager storage, {
-  required AppDatabase db,
-  FirebaseApp? firebaseApp,
-  Map<String, String>? environment,
-}) {
+final routerProvider = Provider<Router>((ref) {
   final router = Router();
-  final env = environment ?? Platform.environment;
-  final appEnv = env['APP_ENV'] ?? 'development';
+  final db = ref.read(databaseProvider);
+  final envValue = ref.read(environmentValueProvider);
 
   router.get('/', (Request request) {
     return Response.ok(
@@ -29,14 +24,27 @@ Router getRouter(
     '/builds',
     BuildJobRouter(
       db: db,
-      appEnv: appEnv,
+      appEnv: envValue.appEnv,
     ).router.call,
   );
 
   router.mount(
     '/teams',
-    TeamRouter(db: db).router.call,
+    ref.read(teamRouterProvider).router.call,
   );
 
   return router;
-}
+});
+
+final firebaseAppProvider = Provider<FirebaseApp?>((ref) {
+  return FirebaseApp.initializeApp();
+});
+
+final handlerProvider = Provider<Handler>((ref) {
+  final firebaseApp = ref.watch(firebaseAppProvider);
+  final router = ref.watch(routerProvider);
+  return applyMiddleware(
+    router,
+    firebaseApp: firebaseApp,
+  );
+});
