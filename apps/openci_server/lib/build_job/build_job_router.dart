@@ -61,6 +61,22 @@ class BuildJobRouter {
           jsonEncode({'success': true}),
           headers: {'content-type': 'application/json'},
         );
+      } on FormatException catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid JSON format: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      } on TypeError catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid payload structure: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
       } catch (e, s) {
         stderr.writeln(
           'Failed to create build run for job $buildJobId: $e\n$s',
@@ -110,6 +126,22 @@ class BuildJobRouter {
 
         return Response.ok(
           jsonEncode({'success': true}),
+          headers: {'content-type': 'application/json'},
+        );
+      } on FormatException catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid JSON format: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      } on TypeError catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid payload structure: $e',
+          }),
           headers: {'content-type': 'application/json'},
         );
       } catch (e, s) {
@@ -174,6 +206,22 @@ class BuildJobRouter {
 
         return Response.ok(
           jsonEncode({'success': true, 'id': job.id}),
+          headers: {'content-type': 'application/json'},
+        );
+      } on FormatException catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid JSON format: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      } on TypeError catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid payload structure: $e',
+          }),
           headers: {'content-type': 'application/json'},
         );
       } catch (e, s) {
@@ -290,6 +338,22 @@ class BuildJobRouter {
           jsonEncode({'success': true}),
           headers: {'content-type': 'application/json'},
         );
+      } on FormatException catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid JSON format: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      } on TypeError catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid payload structure: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
       } catch (e, s) {
         stderr.writeln('Failed to patch build job $buildJobId: $e\n$s');
         return Response.internalServerError(
@@ -352,6 +416,22 @@ class BuildJobRouter {
 
         return Response.ok(
           jsonEncode({'success': true}),
+          headers: {'content-type': 'application/json'},
+        );
+      } on FormatException catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid JSON format: $e',
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      } on TypeError catch (e) {
+        return Response.badRequest(
+          body: jsonEncode({
+            'success': false,
+            'error': 'Invalid payload structure: $e',
+          }),
           headers: {'content-type': 'application/json'},
         );
       } catch (e, s) {
