@@ -2259,6 +2259,425 @@ class BuildJobLogsCompanion extends UpdateCompanion<DriftBuildJobLog> {
   }
 }
 
+class $BuildRunsTable extends BuildRuns
+    with TableInfo<$BuildRunsTable, DriftBuildRun> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BuildRunsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _buildJobIdMeta = const VerificationMeta(
+    'buildJobId',
+  );
+  @override
+  late final GeneratedColumn<String> buildJobId = GeneratedColumn<String>(
+    'build_job_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES build_jobs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _conclusionMeta = const VerificationMeta(
+    'conclusion',
+  );
+  @override
+  late final GeneratedColumn<String> conclusion = GeneratedColumn<String>(
+    'conclusion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    buildJobId,
+    status,
+    conclusion,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'build_runs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftBuildRun> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('build_job_id')) {
+      context.handle(
+        _buildJobIdMeta,
+        buildJobId.isAcceptableOrUnknown(
+          data['build_job_id']!,
+          _buildJobIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_buildJobIdMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('conclusion')) {
+      context.handle(
+        _conclusionMeta,
+        conclusion.isAcceptableOrUnknown(data['conclusion']!, _conclusionMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftBuildRun map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftBuildRun(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      buildJobId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}build_job_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      conclusion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conclusion'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BuildRunsTable createAlias(String alias) {
+    return $BuildRunsTable(attachedDatabase, alias);
+  }
+}
+
+class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
+  final String id;
+  final String buildJobId;
+  final String status;
+  final String? conclusion;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DriftBuildRun({
+    required this.id,
+    required this.buildJobId,
+    required this.status,
+    this.conclusion,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['build_job_id'] = Variable<String>(buildJobId);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || conclusion != null) {
+      map['conclusion'] = Variable<String>(conclusion);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BuildRunsCompanion toCompanion(bool nullToAbsent) {
+    return BuildRunsCompanion(
+      id: Value(id),
+      buildJobId: Value(buildJobId),
+      status: Value(status),
+      conclusion: conclusion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conclusion),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftBuildRun.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftBuildRun(
+      id: serializer.fromJson<String>(json['id']),
+      buildJobId: serializer.fromJson<String>(json['buildJobId']),
+      status: serializer.fromJson<String>(json['status']),
+      conclusion: serializer.fromJson<String?>(json['conclusion']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'buildJobId': serializer.toJson<String>(buildJobId),
+      'status': serializer.toJson<String>(status),
+      'conclusion': serializer.toJson<String?>(conclusion),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftBuildRun copyWith({
+    String? id,
+    String? buildJobId,
+    String? status,
+    Value<String?> conclusion = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DriftBuildRun(
+    id: id ?? this.id,
+    buildJobId: buildJobId ?? this.buildJobId,
+    status: status ?? this.status,
+    conclusion: conclusion.present ? conclusion.value : this.conclusion,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftBuildRun copyWithCompanion(BuildRunsCompanion data) {
+    return DriftBuildRun(
+      id: data.id.present ? data.id.value : this.id,
+      buildJobId: data.buildJobId.present
+          ? data.buildJobId.value
+          : this.buildJobId,
+      status: data.status.present ? data.status.value : this.status,
+      conclusion: data.conclusion.present
+          ? data.conclusion.value
+          : this.conclusion,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftBuildRun(')
+          ..write('id: $id, ')
+          ..write('buildJobId: $buildJobId, ')
+          ..write('status: $status, ')
+          ..write('conclusion: $conclusion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, buildJobId, status, conclusion, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftBuildRun &&
+          other.id == this.id &&
+          other.buildJobId == this.buildJobId &&
+          other.status == this.status &&
+          other.conclusion == this.conclusion &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
+  final Value<String> id;
+  final Value<String> buildJobId;
+  final Value<String> status;
+  final Value<String?> conclusion;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const BuildRunsCompanion({
+    this.id = const Value.absent(),
+    this.buildJobId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.conclusion = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BuildRunsCompanion.insert({
+    required String id,
+    required String buildJobId,
+    required String status,
+    this.conclusion = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       buildJobId = Value(buildJobId),
+       status = Value(status),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DriftBuildRun> custom({
+    Expression<String>? id,
+    Expression<String>? buildJobId,
+    Expression<String>? status,
+    Expression<String>? conclusion,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (buildJobId != null) 'build_job_id': buildJobId,
+      if (status != null) 'status': status,
+      if (conclusion != null) 'conclusion': conclusion,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BuildRunsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? buildJobId,
+    Value<String>? status,
+    Value<String?>? conclusion,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return BuildRunsCompanion(
+      id: id ?? this.id,
+      buildJobId: buildJobId ?? this.buildJobId,
+      status: status ?? this.status,
+      conclusion: conclusion ?? this.conclusion,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (buildJobId.present) {
+      map['build_job_id'] = Variable<String>(buildJobId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (conclusion.present) {
+      map['conclusion'] = Variable<String>(conclusion.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BuildRunsCompanion(')
+          ..write('id: $id, ')
+          ..write('buildJobId: $buildJobId, ')
+          ..write('status: $status, ')
+          ..write('conclusion: $conclusion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3092,9 +3511,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $BuildJobsTable buildJobs = $BuildJobsTable(this);
   late final $BuildJobLogsTable buildJobLogs = $BuildJobLogsTable(this);
+  late final $BuildRunsTable buildRuns = $BuildRunsTable(this);
   late final $TeamsTable teams = $TeamsTable(this);
   late final $TeamMembersTable teamMembers = $TeamMembersTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
+  late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -3103,11 +3524,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     buildJobs,
     buildJobLogs,
+    buildRuns,
     teams,
     teamMembers,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'build_jobs',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('build_runs', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'teams',
@@ -3196,6 +3625,29 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<DateTime?> completedAt,
       Value<int> rowid,
     });
+
+final class $$BuildJobsTableReferences
+    extends BaseReferences<_$AppDatabase, $BuildJobsTable, DriftBuildJob> {
+  $$BuildJobsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$BuildRunsTable, List<DriftBuildRun>>
+  _buildRunsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.buildRuns,
+    aliasName: $_aliasNameGenerator(db.buildJobs.id, db.buildRuns.buildJobId),
+  );
+
+  $$BuildRunsTableProcessedTableManager get buildRunsRefs {
+    final manager = $$BuildRunsTableTableManager(
+      $_db,
+      $_db.buildRuns,
+    ).filter((f) => f.buildJobId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_buildRunsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$BuildJobsTableFilterComposer
     extends Composer<_$AppDatabase, $BuildJobsTable> {
@@ -3388,6 +3840,31 @@ class $$BuildJobsTableFilterComposer
     column: $table.completedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> buildRunsRefs(
+    Expression<bool> Function($$BuildRunsTableFilterComposer f) f,
+  ) {
+    final $$BuildRunsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buildRuns,
+      getReferencedColumn: (t) => t.buildJobId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildRunsTableFilterComposer(
+            $db: $db,
+            $table: $db.buildRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BuildJobsTableOrderingComposer
@@ -3723,6 +4200,31 @@ class $$BuildJobsTableAnnotationComposer
     column: $table.completedAt,
     builder: (column) => column,
   );
+
+  Expression<T> buildRunsRefs<T extends Object>(
+    Expression<T> Function($$BuildRunsTableAnnotationComposer a) f,
+  ) {
+    final $$BuildRunsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buildRuns,
+      getReferencedColumn: (t) => t.buildJobId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildRunsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.buildRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BuildJobsTableTableManager
@@ -3736,12 +4238,9 @@ class $$BuildJobsTableTableManager
           $$BuildJobsTableAnnotationComposer,
           $$BuildJobsTableCreateCompanionBuilder,
           $$BuildJobsTableUpdateCompanionBuilder,
-          (
-            DriftBuildJob,
-            BaseReferences<_$AppDatabase, $BuildJobsTable, DriftBuildJob>,
-          ),
+          (DriftBuildJob, $$BuildJobsTableReferences),
           DriftBuildJob,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool buildRunsRefs})
         > {
   $$BuildJobsTableTableManager(_$AppDatabase db, $BuildJobsTable table)
     : super(
@@ -3907,9 +4406,43 @@ class $$BuildJobsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BuildJobsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({buildRunsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (buildRunsRefs) db.buildRuns],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (buildRunsRefs)
+                    await $_getPrefetchedData<
+                      DriftBuildJob,
+                      $BuildJobsTable,
+                      DriftBuildRun
+                    >(
+                      currentTable: table,
+                      referencedTable: $$BuildJobsTableReferences
+                          ._buildRunsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$BuildJobsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).buildRunsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.buildJobId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -3924,12 +4457,9 @@ typedef $$BuildJobsTableProcessedTableManager =
       $$BuildJobsTableAnnotationComposer,
       $$BuildJobsTableCreateCompanionBuilder,
       $$BuildJobsTableUpdateCompanionBuilder,
-      (
-        DriftBuildJob,
-        BaseReferences<_$AppDatabase, $BuildJobsTable, DriftBuildJob>,
-      ),
+      (DriftBuildJob, $$BuildJobsTableReferences),
       DriftBuildJob,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool buildRunsRefs})
     >;
 typedef $$BuildJobLogsTableCreateCompanionBuilder =
     BuildJobLogsCompanion Function({
@@ -4107,6 +4637,346 @@ typedef $$BuildJobLogsTableProcessedTableManager =
       ),
       DriftBuildJobLog,
       PrefetchHooks Function()
+    >;
+typedef $$BuildRunsTableCreateCompanionBuilder =
+    BuildRunsCompanion Function({
+      required String id,
+      required String buildJobId,
+      required String status,
+      Value<String?> conclusion,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BuildRunsTableUpdateCompanionBuilder =
+    BuildRunsCompanion Function({
+      Value<String> id,
+      Value<String> buildJobId,
+      Value<String> status,
+      Value<String?> conclusion,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$BuildRunsTableReferences
+    extends BaseReferences<_$AppDatabase, $BuildRunsTable, DriftBuildRun> {
+  $$BuildRunsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BuildJobsTable _buildJobIdTable(_$AppDatabase db) =>
+      db.buildJobs.createAlias(
+        $_aliasNameGenerator(db.buildRuns.buildJobId, db.buildJobs.id),
+      );
+
+  $$BuildJobsTableProcessedTableManager get buildJobId {
+    final $_column = $_itemColumn<String>('build_job_id')!;
+
+    final manager = $$BuildJobsTableTableManager(
+      $_db,
+      $_db.buildJobs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_buildJobIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BuildRunsTableFilterComposer
+    extends Composer<_$AppDatabase, $BuildRunsTable> {
+  $$BuildRunsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conclusion => $composableBuilder(
+    column: $table.conclusion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BuildJobsTableFilterComposer get buildJobId {
+    final $$BuildJobsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.buildJobId,
+      referencedTable: $db.buildJobs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildJobsTableFilterComposer(
+            $db: $db,
+            $table: $db.buildJobs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildRunsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BuildRunsTable> {
+  $$BuildRunsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conclusion => $composableBuilder(
+    column: $table.conclusion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BuildJobsTableOrderingComposer get buildJobId {
+    final $$BuildJobsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.buildJobId,
+      referencedTable: $db.buildJobs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildJobsTableOrderingComposer(
+            $db: $db,
+            $table: $db.buildJobs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildRunsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BuildRunsTable> {
+  $$BuildRunsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get conclusion => $composableBuilder(
+    column: $table.conclusion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$BuildJobsTableAnnotationComposer get buildJobId {
+    final $$BuildJobsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.buildJobId,
+      referencedTable: $db.buildJobs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildJobsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.buildJobs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildRunsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BuildRunsTable,
+          DriftBuildRun,
+          $$BuildRunsTableFilterComposer,
+          $$BuildRunsTableOrderingComposer,
+          $$BuildRunsTableAnnotationComposer,
+          $$BuildRunsTableCreateCompanionBuilder,
+          $$BuildRunsTableUpdateCompanionBuilder,
+          (DriftBuildRun, $$BuildRunsTableReferences),
+          DriftBuildRun,
+          PrefetchHooks Function({bool buildJobId})
+        > {
+  $$BuildRunsTableTableManager(_$AppDatabase db, $BuildRunsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BuildRunsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BuildRunsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BuildRunsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> buildJobId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> conclusion = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BuildRunsCompanion(
+                id: id,
+                buildJobId: buildJobId,
+                status: status,
+                conclusion: conclusion,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String buildJobId,
+                required String status,
+                Value<String?> conclusion = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BuildRunsCompanion.insert(
+                id: id,
+                buildJobId: buildJobId,
+                status: status,
+                conclusion: conclusion,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BuildRunsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({buildJobId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (buildJobId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.buildJobId,
+                                referencedTable: $$BuildRunsTableReferences
+                                    ._buildJobIdTable(db),
+                                referencedColumn: $$BuildRunsTableReferences
+                                    ._buildJobIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BuildRunsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BuildRunsTable,
+      DriftBuildRun,
+      $$BuildRunsTableFilterComposer,
+      $$BuildRunsTableOrderingComposer,
+      $$BuildRunsTableAnnotationComposer,
+      $$BuildRunsTableCreateCompanionBuilder,
+      $$BuildRunsTableUpdateCompanionBuilder,
+      (DriftBuildRun, $$BuildRunsTableReferences),
+      DriftBuildRun,
+      PrefetchHooks Function({bool buildJobId})
     >;
 typedef $$TeamsTableCreateCompanionBuilder =
     TeamsCompanion Function({
@@ -4765,6 +5635,8 @@ class $AppDatabaseManager {
       $$BuildJobsTableTableManager(_db, _db.buildJobs);
   $$BuildJobLogsTableTableManager get buildJobLogs =>
       $$BuildJobLogsTableTableManager(_db, _db.buildJobLogs);
+  $$BuildRunsTableTableManager get buildRuns =>
+      $$BuildRunsTableTableManager(_db, _db.buildRuns);
   $$TeamsTableTableManager get teams =>
       $$TeamsTableTableManager(_db, _db.teams);
   $$TeamMembersTableTableManager get teamMembers =>
