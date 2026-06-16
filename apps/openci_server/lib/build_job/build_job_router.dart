@@ -45,17 +45,23 @@ class BuildJobRouter {
           updatedAt: now,
         );
 
-        await db.buildRunDao.insertBuildRun(driftRun);
-
         final driftJob = await db.buildJobDao.getBuildJob(buildJobId);
-        if (driftJob != null) {
+        if (driftJob == null) {
+          return Response.notFound(
+            jsonEncode({'success': false, 'error': 'Build job not found'}),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+
+        await db.transaction(() async {
+          await db.buildRunDao.insertBuildRun(driftRun);
           final updatedJob = driftJob.copyWith(
             latestRunId: Value(runId),
             runCount: Value((driftJob.runCount ?? 0) + 1),
             updatedAt: now,
           );
           await db.buildJobDao.updateBuildJob(updatedJob);
-        }
+        });
 
         return Response.ok(
           jsonEncode({'success': true}),
