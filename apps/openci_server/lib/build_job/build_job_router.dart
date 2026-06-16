@@ -114,7 +114,7 @@ class BuildJobRouter {
         }
         final conclusion = payload['conclusion'] as String?;
 
-        final driftRun = await db.buildRunDao.getBuildRun(runId);
+        final driftRun = await db.buildRunDao.getBuildRun(buildJobId, runId);
         if (driftRun == null) {
           return Response.notFound(
             jsonEncode({'success': false, 'error': 'Build run not found'}),
@@ -181,7 +181,7 @@ class BuildJobRouter {
       String runId,
     ) async {
       try {
-        final driftRun = await db.buildRunDao.getBuildRun(runId);
+        final driftRun = await db.buildRunDao.getBuildRun(buildJobId, runId);
         if (driftRun == null) {
           return Response.notFound(
             jsonEncode({'success': false, 'error': 'Build run not found'}),

@@ -14,8 +14,11 @@ class BuildRunDao extends DatabaseAccessor<AppDatabase>
   Future<bool> updateBuildRun(DriftBuildRun run) =>
       update(buildRuns).replace(run);
 
-  Future<DriftBuildRun?> getBuildRun(String runId) =>
-      (select(buildRuns)..where((t) => t.id.equals(runId))).getSingleOrNull();
+  Future<DriftBuildRun?> getBuildRun(String buildJobId, String runId) =>
+      (select(buildRuns)..where(
+            (t) => t.id.equals(runId) & t.buildJobId.equals(buildJobId),
+          ))
+          .getSingleOrNull();
 
   Future<List<DriftBuildRun>> getBuildRuns(String buildJobId) =>
       (select(buildRuns)
