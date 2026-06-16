@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:openci_server/secret/encryption_service.dart';
 import 'package:test/test.dart';
 
@@ -23,7 +25,7 @@ void main() {
       const originalText = 'Hello, OpenCI Secret World! 🚀';
 
       final encrypted = await service.encrypt(originalText);
-      expect(encrypted, contains(':'));
+      expect(encrypted.split(':').length, equals(3));
       expect(encrypted, isNot(equals(originalText)));
 
       final decrypted = await service.decrypt(encrypted);
@@ -57,5 +59,33 @@ void main() {
         throwsA(anything),
       );
     });
+
+    test(
+      'Tampering with ciphertext or MAC tag causes decryption to fail (AES-GCM integrity)',
+      () async {
+        final service = EncryptionService(validKey);
+        const originalText = 'Authenticated Secret';
+        final encrypted = await service.encrypt(originalText);
+
+        final parts = encrypted.split(':');
+        final iv = parts[0];
+        final cipherText = parts[1];
+        final mac = parts[2];
+
+        // 1. Tamper ciphertext
+        final tamperedCipherTextBytes = base64.decode(cipherText);
+        tamperedCipherTextBytes[0] = tamperedCipherTextBytes[0] ^ 0xFF;
+        final tamperedCipherText = base64.encode(tamperedCipherTextBytes);
+        final tamperedEncrypted1 = '$iv:$tamperedCipherText:$mac';
+        expect(() => service.decrypt(tamperedEncrypted1), throwsA(anything));
+
+        // 2. Tamper MAC (authentication tag)
+        final tamperedMacBytes = base64.decode(mac);
+        tamperedMacBytes[0] = tamperedMacBytes[0] ^ 0xFF;
+        final tamperedMac = base64.encode(tamperedMacBytes);
+        final tamperedEncrypted2 = '$iv:$cipherText:$tamperedMac';
+        expect(() => service.decrypt(tamperedEncrypted2), throwsA(anything));
+      },
+    );
   });
 }

@@ -15,11 +15,11 @@ final encryptionServiceProvider = Provider<EncryptionService>((ref) {
 
 class EncryptionService {
   final SecretKey _secretKey;
-  final AesCbc _algorithm;
+  final AesGcm _algorithm;
 
   EncryptionService(String base64Key)
     : _secretKey = SecretKey(base64.decode(base64Key.trim())),
-      _algorithm = AesCbc.with256bits(macAlgorithm: MacAlgorithm.empty) {
+      _algorithm = AesGcm.with256bits() {
     final keyBytes = base64.decode(base64Key.trim());
     if (keyBytes.length != 32) {
       throw ArgumentError(
@@ -38,25 +38,27 @@ class EncryptionService {
 
     final ivBase64 = base64.encode(secretBox.nonce);
     final cipherTextBase64 = base64.encode(secretBox.cipherText);
+    final macBase64 = base64.encode(secretBox.mac.bytes);
 
-    return '$ivBase64:$cipherTextBase64';
+    return '$ivBase64:$cipherTextBase64:$macBase64';
   }
 
   Future<String> decrypt(String encryptedString) async {
     final parts = encryptedString.split(':');
-    if (parts.length != 2) {
+    if (parts.length != 3) {
       throw ArgumentError(
-        'Invalid encrypted format. Expected "iv:ciphertext".',
+        'Invalid encrypted format. Expected "iv:ciphertext:mac".',
       );
     }
 
     final iv = base64.decode(parts[0]);
     final cipherText = base64.decode(parts[1]);
+    final macBytes = base64.decode(parts[2]);
 
     final secretBox = SecretBox(
       cipherText,
       nonce: iv,
-      mac: Mac.empty,
+      mac: Mac(macBytes),
     );
 
     final clearBytes = await _algorithm.decrypt(
