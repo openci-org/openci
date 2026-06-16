@@ -30,17 +30,20 @@ void main() {
       expect(decrypted, equals(originalText));
     });
 
-    test('Encrypting same text twice results in different ciphertexts (due to random IV)', () async {
-      final service = EncryptionService(validKey);
-      const plainText = 'Stable text';
+    test(
+      'Encrypting same text twice results in different ciphertexts (due to random IV)',
+      () async {
+        final service = EncryptionService(validKey);
+        const plainText = 'Stable text';
 
-      final encrypted1 = await service.encrypt(plainText);
-      final encrypted2 = await service.encrypt(plainText);
+        final encrypted1 = await service.encrypt(plainText);
+        final encrypted2 = await service.encrypt(plainText);
 
-      expect(encrypted1, isNot(equals(encrypted2)));
-      expect(await service.decrypt(encrypted1), equals(plainText));
-      expect(await service.decrypt(encrypted2), equals(plainText));
-    });
+        expect(encrypted1, isNot(equals(encrypted2)));
+        expect(await service.decrypt(encrypted1), equals(plainText));
+        expect(await service.decrypt(encrypted2), equals(plainText));
+      },
+    );
 
     test('Decrypting with a different key fails', () async {
       final service1 = EncryptionService(validKey);

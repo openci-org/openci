@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/middleware/apply_middleware.dart';
@@ -14,7 +15,8 @@ void main() {
     late AppDatabase db;
     const localHost = "http://localhost";
     const teamId = 'test-team-id';
-    const userId = 'test-uid'; // Matched with test-uid from mock authMiddleware in apply_middleware.dart
+    const userId =
+        'test-uid'; // Matched with test-uid from mock authMiddleware in apply_middleware.dart
 
     setUp(() async {
       db = AppDatabase(NativeDatabase.memory());
@@ -23,13 +25,16 @@ void main() {
           FakeStorageManager(),
           db: db,
           environment: {
-            'SECRET_ENCRYPTION_KEY': 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
+            'SECRET_ENCRYPTION_KEY':
+                'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
           },
         ),
       );
 
       // Insert dummy team and team member for validation
-      await db.into(db.teams).insert(
+      await db
+          .into(db.teams)
+          .insert(
             DriftTeam(
               id: teamId,
               name: 'Test Team',
@@ -43,7 +48,9 @@ void main() {
             ),
           );
 
-      await db.into(db.teamMembers).insert(
+      await db
+          .into(db.teamMembers)
+          .insert(
             TeamMembersCompanion.insert(
               teamId: teamId,
               userId: userId,
@@ -65,15 +72,21 @@ void main() {
       final response = await handler(request);
       expect(response.statusCode, equals(200));
 
-      final body = jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+      final body =
+          jsonDecode(await response.readAsString()) as Map<String, dynamic>;
       expect(body['success'], isTrue);
       expect(body['id'], isNotNull);
 
       // Verify it is encrypted in DB
-      final dbSecret = await (db.select(db.secrets)..where((t) => t.id.equals(body['id'] as String))).getSingle();
+      final dbSecret = await (db.select(
+        db.secrets,
+      )..where((t) => t.id.equals(body['id'] as String))).getSingle();
       expect(dbSecret.name, equals('SSH_KEY'));
       expect(dbSecret.encryptedValue, isNot(contains('my-super-secret-key')));
-      expect(dbSecret.encryptedValue, contains(':')); // check iv:ciphertext format
+      expect(
+        dbSecret.encryptedValue,
+        contains(':'),
+      ); // check iv:ciphertext format
     });
 
     test('GET /teams/<teamId>/secrets lists secrets metadata only', () async {
@@ -86,37 +99,53 @@ void main() {
       await handler(createReq);
 
       // 2. List secrets
-      final listReq = Request('GET', Uri.parse('$localHost/teams/$teamId/secrets'));
+      final listReq = Request(
+        'GET',
+        Uri.parse('$localHost/teams/$teamId/secrets'),
+      );
       final response = await handler(listReq);
       expect(response.statusCode, equals(200));
 
       final list = jsonDecode(await response.readAsString()) as List<dynamic>;
       expect(list.length, equals(1));
       expect(list[0]['name'], equals('API_KEY'));
-      expect(list[0]['encryptedValue'], isNull); // Values should be hidden in list
+      expect(
+        list[0]['encryptedValue'],
+        isNull,
+      ); // Values should be hidden in list
     });
 
-    test('GET /teams/<teamId>/secrets/<name>/value decrypts value correctly', () async {
-      // 1. Create a secret
-      final createReq = Request(
-        'POST',
-        Uri.parse('$localHost/teams/$teamId/secrets'),
-        body: jsonEncode({'name': 'DB_PASSWORD', 'value': 'postgres123'}),
-      );
-      await handler(createReq);
+    test(
+      'GET /teams/<teamId>/secrets/<name>/value decrypts value correctly',
+      () async {
+        // 1. Create a secret
+        final createReq = Request(
+          'POST',
+          Uri.parse('$localHost/teams/$teamId/secrets'),
+          body: jsonEncode({'name': 'DB_PASSWORD', 'value': 'postgres123'}),
+        );
+        await handler(createReq);
 
-      // 2. Get decrypted value
-      final valReq = Request('GET', Uri.parse('$localHost/teams/$teamId/secrets/DB_PASSWORD/value'));
-      final response = await handler(valReq);
-      expect(response.statusCode, equals(200));
+        // 2. Get decrypted value
+        final valReq = Request(
+          'GET',
+          Uri.parse('$localHost/teams/$teamId/secrets/DB_PASSWORD/value'),
+        );
+        final response = await handler(valReq);
+        expect(response.statusCode, equals(200));
 
-      final body = jsonDecode(await response.readAsString()) as Map<String, dynamic>;
-      expect(body['success'], isTrue);
-      expect(body['value'], equals('postgres123'));
-    });
+        final body =
+            jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+        expect(body['value'], equals('postgres123'));
+      },
+    );
 
     test('GET /teams/<teamId>/secrets fails for non-team member', () async {
-      final listReq = Request('GET', Uri.parse('$localHost/teams/non-existent-team/secrets'));
+      final listReq = Request(
+        'GET',
+        Uri.parse('$localHost/teams/non-existent-team/secrets'),
+      );
       final response = await handler(listReq);
       expect(response.statusCode, equals(403)); // Forbidden
     });
