@@ -59,7 +59,7 @@ abstract class _$SecretManager extends $StreamNotifier<List<Secret>> {
   Stream<List<Secret>> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<Secret>>, List<Secret>>;
     final element =
         ref.element
@@ -69,6 +69,6 @@ abstract class _$SecretManager extends $StreamNotifier<List<Secret>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

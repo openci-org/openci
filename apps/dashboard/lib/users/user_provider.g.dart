@@ -94,7 +94,7 @@ abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<OpenCIUser>, OpenCIUser>;
     final element =
         ref.element
@@ -104,6 +104,6 @@ abstract class _$User extends $StreamNotifier<OpenCIUser> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

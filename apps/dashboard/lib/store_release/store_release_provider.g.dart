@@ -44,7 +44,7 @@ abstract class _$IsAscConfigured extends $StreamNotifier<bool> {
   Stream<bool> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<bool>, bool>;
     final element =
         ref.element
@@ -54,7 +54,7 @@ abstract class _$IsAscConfigured extends $StreamNotifier<bool> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }
 
@@ -94,7 +94,7 @@ abstract class _$AscApps extends $AsyncNotifier<List<AscApp>> {
   FutureOr<List<AscApp>> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<AscApp>>, List<AscApp>>;
     final element =
         ref.element
@@ -104,7 +104,7 @@ abstract class _$AscApps extends $AsyncNotifier<List<AscApp>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }
 
@@ -193,7 +193,7 @@ abstract class _$AscBuilds extends $AsyncNotifier<List<AscBuild>> {
   FutureOr<List<AscBuild>> build(String appId);
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<List<AscBuild>>, List<AscBuild>>;
     final element =
         ref.element
@@ -203,7 +203,7 @@ abstract class _$AscBuilds extends $AsyncNotifier<List<AscBuild>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, () => build(_$args));
+    return element.handleCreate(ref, () => build(_$args));
   }
 }
 
@@ -244,7 +244,7 @@ abstract class _$SubmitToTestFlight extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<void>, void>;
     final element =
         ref.element
@@ -254,7 +254,7 @@ abstract class _$SubmitToTestFlight extends $AsyncNotifier<void> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }
 
@@ -294,7 +294,7 @@ abstract class _$SubmitForReview extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<void>, void>;
     final element =
         ref.element
@@ -304,7 +304,7 @@ abstract class _$SubmitForReview extends $AsyncNotifier<void> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }
 
@@ -345,7 +345,7 @@ abstract class _$SetupAscCredentials extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<AsyncValue<void>, void>;
     final element =
         ref.element
@@ -355,6 +355,6 @@ abstract class _$SetupAscCredentials extends $AsyncNotifier<void> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

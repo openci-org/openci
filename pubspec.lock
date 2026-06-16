@@ -1374,13 +1374,13 @@ packages:
     source: hosted
     version: "3.3.2"
   riverpod_analyzer_utils:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: riverpod_analyzer_utils
-      sha256: "3e275138862ccc22ed61444a1f9a840f753094c367f28f4123f50289cd204d68"
+      sha256: e55bc08c084a424e1bbdc303fe8ea75daafe4269b68fd0e0f6f1678413715b66
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0-dev.10"
+    version: "1.0.0-dev.9"
   riverpod_annotation:
     dependency: transitive
     description:
