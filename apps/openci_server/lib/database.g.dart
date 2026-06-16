@@ -3529,7 +3529,7 @@ class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES teams (id)',
+      'REFERENCES teams (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _encryptedValueMeta = const VerificationMeta(
@@ -3806,6 +3806,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('team_members', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'teams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('secrets', kind: UpdateKind.delete)],
     ),
   ]);
 }
