@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/middleware/apply_middleware.dart';
 import 'package:openci_server/router.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/storage.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
@@ -21,17 +23,23 @@ void main() {
 
     setUp(() async {
       db = AppDatabase(NativeDatabase.memory());
-      handler = applyMiddleware(
-        getRouter(
-          FakeStorageManager(),
-          db: db,
-          environment: {
-            'SECRET_ENCRYPTION_KEY':
-                'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
-          },
-        ),
+      final envValue = EnvironmentValue.load(
+        environment: {
+          'DATABASE_URL': 'postgres://localhost:5432/test',
+          'SECRET_ENCRYPTION_KEY':
+              'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
+        },
       );
-
+      final container = ProviderContainer(
+        overrides: [
+          environmentValueProvider.overrideWithValue(envValue),
+          databaseProvider.overrideWithValue(db),
+          storageProvider.overrideWithValue(FakeStorageManager()),
+          firebaseAppProvider.overrideWithValue(null),
+        ],
+      );
+      handler = container.read(handlerProvider);
+      
       // Insert dummy team and team member for validation
       await db
           .into(db.teams)
@@ -79,9 +87,13 @@ void main() {
       expect(body['name'], equals('SSH_KEY'));
 
       // Verify it is encrypted in DB
-      final dbSecret = await (db.select(
-        db.secrets,
-      )..where((t) => t.name.equals('SSH_KEY') & t.teamId.equals(teamId))).getSingle();
+      final dbSecret =
+          await (db.select(
+                db.secrets,
+              )..where(
+                (t) => t.name.equals('SSH_KEY') & t.teamId.equals(teamId),
+              ))
+              .getSingle();
       expect(dbSecret.name, equals('SSH_KEY'));
       expect(dbSecret.encryptedValue, isNot(contains('my-super-secret-key')));
       expect(

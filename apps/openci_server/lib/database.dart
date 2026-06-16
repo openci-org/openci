@@ -6,20 +6,32 @@ import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_server/build_run/build_run_dao.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
+import 'package:riverpod/riverpod.dart';
 
 part 'database.g.dart';
+
+final databaseProvider = Provider<AppDatabase>((ref) {
+  final envValue = ref.watch(environmentValueProvider);
+  final db = AppDatabase(null, envValue.databaseUrl);
+  ref.onDispose(() async {
+    await db.close();
+  });
+  return db;
+});
 
 @DriftDatabase(
   tables: [BuildJobs, BuildJobLogs, BuildRuns, Teams, TeamMembers, Secrets],
   daos: [BuildJobDao, BuildRunDao, TeamDao],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+  AppDatabase([QueryExecutor? executor, String? databaseUrl])
+    : super(executor ?? _openConnection(databaseUrl));
 
   @override
   int get schemaVersion => 6;
@@ -51,10 +63,10 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  static QueryExecutor _openConnection() {
-    final databaseUrl = loadDatabaseUrl();
+  static QueryExecutor _openConnection(String? databaseUrl) {
+    final url = databaseUrl ?? loadDatabaseUrl();
     return PgDatabase.opened(
-      pg.Pool.withUrl(databaseUrl),
+      pg.Pool.withUrl(url),
     );
   }
 }

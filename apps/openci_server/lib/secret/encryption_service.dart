@@ -1,6 +1,17 @@
 import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:riverpod/riverpod.dart';
+
+final encryptionServiceProvider = Provider<EncryptionService>((ref) {
+  final env = ref.watch(environmentValueProvider);
+  final key = env.secretEncryptionKey;
+  if (key.trim().isEmpty) {
+    throw StateError('SECRET_ENCRYPTION_KEY is missing or empty.');
+  }
+  return EncryptionService(key);
+});
 
 class EncryptionService {
   final SecretKey _secretKey;

@@ -4,25 +4,22 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/encryption_service.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+final secretRouterProvider = Provider<SecretRouter>((ref) {
+  return SecretRouter(ref);
+});
+
 class SecretRouter {
-  final AppDatabase db;
-  final String? _encryptionKey;
+  final Ref _ref;
 
-  SecretRouter({required this.db, String? encryptionKey})
-    : _encryptionKey = encryptionKey;
+  SecretRouter(this._ref);
 
-  String _getEncryptionKey() {
-    final key = _encryptionKey ?? Platform.environment['SECRET_ENCRYPTION_KEY'];
-    if (key == null || key.trim().isEmpty) {
-      throw StateError(
-        'SECRET_ENCRYPTION_KEY environment variable is missing.',
-      );
-    }
-    return key;
-  }
+  AppDatabase get db => _ref.read(databaseProvider);
+  EncryptionService get _encryptionService =>
+      _ref.read(encryptionServiceProvider);
 
   Response _forbiddenResponse(String error) {
     return Response.forbidden(
@@ -106,7 +103,7 @@ class SecretRouter {
           );
         }
 
-        final encrypter = EncryptionService(_getEncryptionKey());
+        final encrypter = _encryptionService;
         final encryptedValue = await encrypter.encrypt(value);
         final now = DateTime.now().toUtc();
 
@@ -189,7 +186,7 @@ class SecretRouter {
         var updatedSecret = existingSecret.copyWith(updatedAt: now);
 
         if (value != null && value.isNotEmpty) {
-          final encrypter = EncryptionService(_getEncryptionKey());
+          final encrypter = _encryptionService;
           final encryptedValue = await encrypter.encrypt(value);
           updatedSecret = updatedSecret.copyWith(
             encryptedValue: encryptedValue,
@@ -261,7 +258,7 @@ class SecretRouter {
           );
         }
 
-        final encrypter = EncryptionService(_getEncryptionKey());
+        final encrypter = _encryptionService;
         final decryptedValue = await encrypter.decrypt(secret.encryptedValue);
 
         return Response.ok(

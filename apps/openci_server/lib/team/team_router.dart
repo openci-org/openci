@@ -5,23 +5,29 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/secret_router.dart';
 import 'package:openci_server/team/team_mapper.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:uuid/uuid.dart';
 
-class TeamRouter {
-  final AppDatabase db;
-  final String? _encryptionKey;
+final teamRouterProvider = Provider<TeamRouter>((ref) {
+  return TeamRouter(ref);
+});
 
-  TeamRouter({required this.db, String? encryptionKey})
-    : _encryptionKey = encryptionKey;
+class TeamRouter {
+  final Ref _ref;
+
+  TeamRouter(this._ref);
+
+  AppDatabase get db => _ref.read(databaseProvider);
 
   Router get router {
     final router = Router();
+    final secretRouter = _ref.read(secretRouterProvider);
 
     router.mount(
       '/',
-      SecretRouter(db: db, encryptionKey: _encryptionKey).router.call,
+      secretRouter.router.call,
     );
 
     router.get('/', (Request request) async {
