@@ -3,7 +3,6 @@ import 'package:openci_server/team/team_table.dart';
 
 @DataClassName('DriftSecret')
 class Secrets extends Table {
-  TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get teamId => text().references(Teams, #id)();
   TextColumn get encryptedValue => text()();
@@ -11,5 +10,5 @@ class Secrets extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
-  Set<Column> get primaryKey => {id};
+  Set<Column> get primaryKey => {teamId, name};
 }

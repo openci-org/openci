@@ -3511,15 +3511,6 @@ class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $SecretsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -3576,7 +3567,6 @@ class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
   );
   @override
   List<GeneratedColumn> get $columns => [
-    id,
     name,
     teamId,
     encryptedValue,
@@ -3595,11 +3585,6 @@ class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -3647,15 +3632,11 @@ class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {teamId, name};
   @override
   DriftSecret map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return DriftSecret(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -3686,14 +3667,12 @@ class $SecretsTable extends Secrets with TableInfo<$SecretsTable, DriftSecret> {
 }
 
 class DriftSecret extends DataClass implements Insertable<DriftSecret> {
-  final String id;
   final String name;
   final String teamId;
   final String encryptedValue;
   final DateTime createdAt;
   final DateTime updatedAt;
   const DriftSecret({
-    required this.id,
     required this.name,
     required this.teamId,
     required this.encryptedValue,
@@ -3703,7 +3682,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['team_id'] = Variable<String>(teamId);
     map['encrypted_value'] = Variable<String>(encryptedValue);
@@ -3714,7 +3692,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
 
   SecretsCompanion toCompanion(bool nullToAbsent) {
     return SecretsCompanion(
-      id: Value(id),
       name: Value(name),
       teamId: Value(teamId),
       encryptedValue: Value(encryptedValue),
@@ -3729,7 +3706,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return DriftSecret(
-      id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       teamId: serializer.fromJson<String>(json['teamId']),
       encryptedValue: serializer.fromJson<String>(json['encryptedValue']),
@@ -3741,7 +3717,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'teamId': serializer.toJson<String>(teamId),
       'encryptedValue': serializer.toJson<String>(encryptedValue),
@@ -3751,14 +3726,12 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
   }
 
   DriftSecret copyWith({
-    String? id,
     String? name,
     String? teamId,
     String? encryptedValue,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => DriftSecret(
-    id: id ?? this.id,
     name: name ?? this.name,
     teamId: teamId ?? this.teamId,
     encryptedValue: encryptedValue ?? this.encryptedValue,
@@ -3767,7 +3740,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
   );
   DriftSecret copyWithCompanion(SecretsCompanion data) {
     return DriftSecret(
-      id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       teamId: data.teamId.present ? data.teamId.value : this.teamId,
       encryptedValue: data.encryptedValue.present
@@ -3781,7 +3753,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
   @override
   String toString() {
     return (StringBuffer('DriftSecret(')
-          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('teamId: $teamId, ')
           ..write('encryptedValue: $encryptedValue, ')
@@ -3793,12 +3764,11 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
 
   @override
   int get hashCode =>
-      Object.hash(id, name, teamId, encryptedValue, createdAt, updatedAt);
+      Object.hash(name, teamId, encryptedValue, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DriftSecret &&
-          other.id == this.id &&
           other.name == this.name &&
           other.teamId == this.teamId &&
           other.encryptedValue == this.encryptedValue &&
@@ -3807,7 +3777,6 @@ class DriftSecret extends DataClass implements Insertable<DriftSecret> {
 }
 
 class SecretsCompanion extends UpdateCompanion<DriftSecret> {
-  final Value<String> id;
   final Value<String> name;
   final Value<String> teamId;
   final Value<String> encryptedValue;
@@ -3815,7 +3784,6 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const SecretsCompanion({
-    this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.teamId = const Value.absent(),
     this.encryptedValue = const Value.absent(),
@@ -3824,21 +3792,18 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
     this.rowid = const Value.absent(),
   });
   SecretsCompanion.insert({
-    required String id,
     required String name,
     required String teamId,
     required String encryptedValue,
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       name = Value(name),
+  }) : name = Value(name),
        teamId = Value(teamId),
        encryptedValue = Value(encryptedValue),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<DriftSecret> custom({
-    Expression<String>? id,
     Expression<String>? name,
     Expression<String>? teamId,
     Expression<String>? encryptedValue,
@@ -3847,7 +3812,6 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (teamId != null) 'team_id': teamId,
       if (encryptedValue != null) 'encrypted_value': encryptedValue,
@@ -3858,7 +3822,6 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
   }
 
   SecretsCompanion copyWith({
-    Value<String>? id,
     Value<String>? name,
     Value<String>? teamId,
     Value<String>? encryptedValue,
@@ -3867,7 +3830,6 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
     Value<int>? rowid,
   }) {
     return SecretsCompanion(
-      id: id ?? this.id,
       name: name ?? this.name,
       teamId: teamId ?? this.teamId,
       encryptedValue: encryptedValue ?? this.encryptedValue,
@@ -3880,9 +3842,6 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -3907,7 +3866,6 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
   @override
   String toString() {
     return (StringBuffer('SecretsCompanion(')
-          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('teamId: $teamId, ')
           ..write('encryptedValue: $encryptedValue, ')
@@ -6139,7 +6097,6 @@ typedef $$TeamMembersTableProcessedTableManager =
     >;
 typedef $$SecretsTableCreateCompanionBuilder =
     SecretsCompanion Function({
-      required String id,
       required String name,
       required String teamId,
       required String encryptedValue,
@@ -6149,7 +6106,6 @@ typedef $$SecretsTableCreateCompanionBuilder =
     });
 typedef $$SecretsTableUpdateCompanionBuilder =
     SecretsCompanion Function({
-      Value<String> id,
       Value<String> name,
       Value<String> teamId,
       Value<String> encryptedValue,
@@ -6190,11 +6146,6 @@ class $$SecretsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnFilters(column),
@@ -6248,11 +6199,6 @@ class $$SecretsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -6306,9 +6252,6 @@ class $$SecretsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
@@ -6375,7 +6318,6 @@ class $$SecretsTableTableManager
               $$SecretsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> teamId = const Value.absent(),
                 Value<String> encryptedValue = const Value.absent(),
@@ -6383,7 +6325,6 @@ class $$SecretsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SecretsCompanion(
-                id: id,
                 name: name,
                 teamId: teamId,
                 encryptedValue: encryptedValue,
@@ -6393,7 +6334,6 @@ class $$SecretsTableTableManager
               ),
           createCompanionCallback:
               ({
-                required String id,
                 required String name,
                 required String teamId,
                 required String encryptedValue,
@@ -6401,7 +6341,6 @@ class $$SecretsTableTableManager
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => SecretsCompanion.insert(
-                id: id,
                 name: name,
                 teamId: teamId,
                 encryptedValue: encryptedValue,

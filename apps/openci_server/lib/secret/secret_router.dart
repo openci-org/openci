@@ -6,7 +6,6 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/encryption_service.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:uuid/uuid.dart';
 
 class SecretRouter {
   final AppDatabase db;
@@ -25,28 +24,27 @@ class SecretRouter {
     return key;
   }
 
+  Response _forbiddenResponse(String error) {
+    return Response.forbidden(
+      jsonEncode({'success': false, 'error': error}),
+      headers: {'content-type': 'application/json'},
+    );
+  }
+
   Router get router {
     final router = Router();
 
+    // 1. GET /<teamId>/secrets (List secrets metadata)
     router.get('/<teamId>/secrets', (Request request, String teamId) async {
       final uid = request.context['uid'] as String?;
       if (uid == null) {
-        return Response.forbidden(
-          jsonEncode({'success': false, 'error': 'Unauthorized'}),
-          headers: {'content-type': 'application/json'},
-        );
+        return _forbiddenResponse('Unauthorized');
       }
 
       try {
         final isMember = await db.teamDao.isTeamMember(uid, teamId);
         if (!isMember) {
-          return Response.forbidden(
-            jsonEncode({
-              'success': false,
-              'error': 'Forbidden: Not a member of this team',
-            }),
-            headers: {'content-type': 'application/json'},
-          );
+          return _forbiddenResponse('Forbidden: Not a member of this team');
         }
 
         final teamSecrets = await (db.select(
@@ -56,7 +54,6 @@ class SecretRouter {
         final result = teamSecrets
             .map(
               (s) => {
-                'id': s.id,
                 'name': s.name,
                 'teamId': s.teamId,
                 'createdAt': s.createdAt.toUtc().toIso8601String(),
@@ -81,25 +78,17 @@ class SecretRouter {
       }
     });
 
+    // 2. POST /<teamId>/secrets (Create encrypted secret)
     router.post('/<teamId>/secrets', (Request request, String teamId) async {
       final uid = request.context['uid'] as String?;
       if (uid == null) {
-        return Response.forbidden(
-          jsonEncode({'success': false, 'error': 'Unauthorized'}),
-          headers: {'content-type': 'application/json'},
-        );
+        return _forbiddenResponse('Unauthorized');
       }
 
       try {
         final isMember = await db.teamDao.isTeamMember(uid, teamId);
         if (!isMember) {
-          return Response.forbidden(
-            jsonEncode({
-              'success': false,
-              'error': 'Forbidden: Not a member of this team',
-            }),
-            headers: {'content-type': 'application/json'},
-          );
+          return _forbiddenResponse('Forbidden: Not a member of this team');
         }
 
         final payload =
@@ -121,9 +110,7 @@ class SecretRouter {
         final encryptedValue = await encrypter.encrypt(value);
         final now = DateTime.now().toUtc();
 
-        final secretId = const Uuid().v4();
         final driftSecret = DriftSecret(
-          id: secretId,
           name: name,
           teamId: teamId,
           encryptedValue: encryptedValue,
@@ -134,7 +121,7 @@ class SecretRouter {
         await db.into(db.secrets).insert(driftSecret);
 
         return Response.ok(
-          jsonEncode({'success': true, 'id': secretId}),
+          jsonEncode({'success': true, 'name': name}),
           headers: {'content-type': 'application/json'},
         );
       } on FormatException catch (e) {
@@ -165,39 +152,30 @@ class SecretRouter {
       }
     });
 
-    router.patch('/<teamId>/secrets/<id>', (
+    // 3. PATCH /<teamId>/secrets/<name> (Update encrypted secret value)
+    router.patch('/<teamId>/secrets/<name>', (
       Request request,
       String teamId,
-      String id,
+      String name,
     ) async {
       final uid = request.context['uid'] as String?;
       if (uid == null) {
-        return Response.forbidden(
-          jsonEncode({'success': false, 'error': 'Unauthorized'}),
-          headers: {'content-type': 'application/json'},
-        );
+        return _forbiddenResponse('Unauthorized');
       }
 
       try {
         final isMember = await db.teamDao.isTeamMember(uid, teamId);
         if (!isMember) {
-          return Response.forbidden(
-            jsonEncode({
-              'success': false,
-              'error': 'Forbidden: Not a member of this team',
-            }),
-            headers: {'content-type': 'application/json'},
-          );
+          return _forbiddenResponse('Forbidden: Not a member of this team');
         }
 
         final payload =
             jsonDecode(await request.readAsString()) as Map<String, dynamic>;
-        final name = payload['name'] as String?;
         final value = payload['value'] as String?;
 
         final existingSecret =
             await (db.select(db.secrets)
-                  ..where((t) => t.id.equals(id) & t.teamId.equals(teamId)))
+                  ..where((t) => t.name.equals(name) & t.teamId.equals(teamId)))
                 .getSingleOrNull();
 
         if (existingSecret == null) {
@@ -210,9 +188,6 @@ class SecretRouter {
         final now = DateTime.now().toUtc();
         var updatedSecret = existingSecret.copyWith(updatedAt: now);
 
-        if (name != null && name.isNotEmpty) {
-          updatedSecret = updatedSecret.copyWith(name: name);
-        }
         if (value != null && value.isNotEmpty) {
           final encrypter = EncryptionService(_getEncryptionKey());
           final encryptedValue = await encrypter.encrypt(value);
@@ -244,7 +219,9 @@ class SecretRouter {
           headers: {'content-type': 'application/json'},
         );
       } catch (e, s) {
-        stderr.writeln('Failed to update secret $id for team $teamId: $e\n$s');
+        stderr.writeln(
+          'Failed to update secret $name for team $teamId: $e\n$s',
+        );
         return Response.internalServerError(
           body: jsonEncode({
             'success': false,
@@ -263,22 +240,13 @@ class SecretRouter {
     ) async {
       final uid = request.context['uid'] as String?;
       if (uid == null) {
-        return Response.forbidden(
-          jsonEncode({'success': false, 'error': 'Unauthorized'}),
-          headers: {'content-type': 'application/json'},
-        );
+        return _forbiddenResponse('Unauthorized');
       }
 
       try {
         final isMember = await db.teamDao.isTeamMember(uid, teamId);
         if (!isMember) {
-          return Response.forbidden(
-            jsonEncode({
-              'success': false,
-              'error': 'Forbidden: Not a member of this team',
-            }),
-            headers: {'content-type': 'application/json'},
-          );
+          return _forbiddenResponse('Forbidden: Not a member of this team');
         }
 
         final secret =

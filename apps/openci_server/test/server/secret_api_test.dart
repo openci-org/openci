@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/middleware/apply_middleware.dart';
@@ -75,12 +76,12 @@ void main() {
       final body =
           jsonDecode(await response.readAsString()) as Map<String, dynamic>;
       expect(body['success'], isTrue);
-      expect(body['id'], isNotNull);
+      expect(body['name'], equals('SSH_KEY'));
 
       // Verify it is encrypted in DB
       final dbSecret = await (db.select(
         db.secrets,
-      )..where((t) => t.id.equals(body['id'] as String))).getSingle();
+      )..where((t) => t.name.equals('SSH_KEY') & t.teamId.equals(teamId))).getSingle();
       expect(dbSecret.name, equals('SSH_KEY'));
       expect(dbSecret.encryptedValue, isNot(contains('my-super-secret-key')));
       expect(
