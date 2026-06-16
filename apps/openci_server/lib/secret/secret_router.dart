@@ -4,9 +4,11 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/encryption_service.dart';
+import 'package:postgres/postgres.dart' as pg;
 import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 final secretRouterProvider = Provider<SecretRouter>((ref) {
   return SecretRouter(ref);
@@ -137,6 +139,55 @@ class SecretRouter {
           }),
           headers: {'content-type': 'application/json'},
         );
+      } on SqliteException catch (e) {
+        if (e.resultCode == 19 || e.extendedResultCode == 2067) {
+          return Response(
+            409,
+            body: jsonEncode({
+              'success': false,
+              'error': 'a secret with this name already exists in the team',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        rethrow;
+      } on pg.ServerException catch (e) {
+        if (e.code == '23505') {
+          return Response(
+            409,
+            body: jsonEncode({
+              'success': false,
+              'error': 'a secret with this name already exists in the team',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        rethrow;
+      } on DriftWrappedException catch (e) {
+        final original = e.cause;
+        if (original is SqliteException &&
+            (original.resultCode == 19 ||
+                original.extendedResultCode == 2067)) {
+          return Response(
+            409,
+            body: jsonEncode({
+              'success': false,
+              'error': 'a secret with this name already exists in the team',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (original is pg.ServerException && original.code == '23505') {
+          return Response(
+            409,
+            body: jsonEncode({
+              'success': false,
+              'error': 'a secret with this name already exists in the team',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        rethrow;
       } catch (e, s) {
         stderr.writeln('Failed to create secret for team $teamId: $e\n$s');
         return Response.internalServerError(

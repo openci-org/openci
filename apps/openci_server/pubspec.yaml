@@ -20,6 +20,7 @@ dependencies:
   riverpod_annotation: ^4.0.3
   shelf: ^1.4.1
   shelf_router: ^1.1.4
+  sqlite3: ^3.0.0
   uuid: ^4.5.3
 
 dev_dependencies:
