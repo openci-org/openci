@@ -124,7 +124,9 @@ class BuildJobRouter {
 
         final updatedRun = driftRun.copyWith(
           status: status,
-          conclusion: Value(conclusion),
+          conclusion: payload.containsKey('conclusion')
+              ? Value(conclusion)
+              : const Value.absent(),
           updatedAt: DateTime.now().toUtc(),
         );
 
