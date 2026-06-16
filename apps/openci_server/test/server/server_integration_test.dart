@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
-import 'package:openci_server/router.dart';
 import 'package:openci_server/environment_value/environment_value.dart';
+import 'package:openci_server/router.dart';
 import 'package:openci_server/storage.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -26,7 +26,8 @@ void main() {
       final envValue = EnvironmentValue.load(
         environment: {
           'DATABASE_URL': 'postgres://localhost:5432/test',
-          'SECRET_ENCRYPTION_KEY': 'some_secret_key_here_1234567890',
+          'SECRET_ENCRYPTION_KEY':
+              'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
         },
       );
       final container = ProviderContainer(

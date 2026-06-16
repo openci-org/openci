@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:riverpod/riverpod.dart';
@@ -63,6 +64,19 @@ class EnvironmentValue {
     if (encryptionKey == null || encryptionKey.trim().isEmpty) {
       throw StateError(
         'SECRET_ENCRYPTION_KEY environment variable is missing.',
+      );
+    }
+    try {
+      final decoded = base64.decode(encryptionKey.trim());
+      if (decoded.length != 32) {
+        throw StateError(
+          'SECRET_ENCRYPTION_KEY must be a 32-byte Base64 encoded string. Got ${decoded.length} bytes.',
+        );
+      }
+    } catch (e) {
+      if (e is StateError) rethrow;
+      throw StateError(
+        'SECRET_ENCRYPTION_KEY must be a valid Base64 encoded string: $e',
       );
     }
 

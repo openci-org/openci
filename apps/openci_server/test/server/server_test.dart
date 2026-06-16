@@ -23,7 +23,8 @@ void main() {
       final envValue = EnvironmentValue.load(
         environment: {
           'DATABASE_URL': 'postgres://localhost:5432/test',
-          'SECRET_ENCRYPTION_KEY': 'some_secret_key_here_1234567890',
+          'SECRET_ENCRYPTION_KEY':
+              'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
         },
       );
       final container = ProviderContainer(
@@ -140,7 +141,8 @@ void main() {
       final envValue = EnvironmentValue.load(
         environment: {
           'DATABASE_URL': 'postgres://localhost:5432/test',
-          'SECRET_ENCRYPTION_KEY': 'some_secret_key_here_1234567890',
+          'SECRET_ENCRYPTION_KEY':
+              'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
         },
       );
       final container = ProviderContainer(

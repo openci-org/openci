@@ -7,7 +7,7 @@ void main() {
   group('EnvironmentValue.load Tests', () {
     final baseEnv = {
       'DATABASE_URL': 'postgres://test-db:5432/test',
-      'SECRET_ENCRYPTION_KEY': 'some_secret_key_here_1234567890',
+      'SECRET_ENCRYPTION_KEY': 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
     };
 
     test('successfully loads with base env', () {
@@ -15,7 +15,7 @@ void main() {
       expect(config.databaseUrl, equals('postgres://test-db:5432/test'));
       expect(
         config.secretEncryptionKey,
-        equals('some_secret_key_here_1234567890'),
+        equals('AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8='),
       );
       expect(config.host, equals(InternetAddress.loopbackIPv4));
       expect(config.port, equals(8080));
@@ -32,6 +32,24 @@ void main() {
         ..remove('SECRET_ENCRYPTION_KEY');
       expect(() => EnvironmentValue.load(environment: env), throwsStateError);
     });
+
+    test(
+      'throws StateError if SECRET_ENCRYPTION_KEY is not a valid Base64 string',
+      () {
+        final env = Map<String, String>.from(baseEnv)
+          ..['SECRET_ENCRYPTION_KEY'] = 'not-base64-encoded-value!';
+        expect(() => EnvironmentValue.load(environment: env), throwsStateError);
+      },
+    );
+
+    test(
+      'throws StateError if SECRET_ENCRYPTION_KEY is not 32 bytes after decoding',
+      () {
+        final env = Map<String, String>.from(baseEnv)
+          ..['SECRET_ENCRYPTION_KEY'] = 'AAECAwQFBgcICQoLDA0ODw==';
+        expect(() => EnvironmentValue.load(environment: env), throwsStateError);
+      },
+    );
 
     test('parses HOST and PORT correctly', () {
       final env = {

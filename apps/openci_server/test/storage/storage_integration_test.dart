@@ -19,7 +19,7 @@ void main() {
         ..putIfAbsent('DATABASE_URL', () => 'postgres://localhost:5432/openci')
         ..putIfAbsent(
           'SECRET_ENCRYPTION_KEY',
-          () => 'dummy_secret_key_1234567890',
+          () => 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
         );
       final baseSettings = EnvironmentValue.load(environment: env).storage;
       final settings = StorageSettings(
