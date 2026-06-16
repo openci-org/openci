@@ -19,8 +19,8 @@ part 'database.g.dart';
 final databaseProvider = Provider<AppDatabase>((ref) {
   final envValue = ref.watch(environmentValueProvider);
   final db = AppDatabase(null, envValue.databaseUrl);
-  ref.onDispose(() async {
-    await db.close();
+  ref.onDispose(() {
+    db.close();
   });
   return db;
 });
