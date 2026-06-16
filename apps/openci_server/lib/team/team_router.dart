@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:openci_server/database.dart';
+import 'package:openci_server/secret/secret_router.dart';
 import 'package:openci_server/team/team_mapper.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:shelf/shelf.dart';
@@ -10,11 +11,18 @@ import 'package:uuid/uuid.dart';
 
 class TeamRouter {
   final AppDatabase db;
+  final String? _encryptionKey;
 
-  TeamRouter({required this.db});
+  TeamRouter({required this.db, String? encryptionKey})
+    : _encryptionKey = encryptionKey;
 
   Router get router {
     final router = Router();
+
+    router.mount(
+      '/',
+      SecretRouter(db: db, encryptionKey: _encryptionKey).router.call,
+    );
 
     router.get('/', (Request request) async {
       final uid = request.context['uid'] as String?;

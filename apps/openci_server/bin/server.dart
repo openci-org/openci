@@ -27,6 +27,15 @@ void main(List<String> args) async {
     exit(1);
   }
 
+  final encryptionKey = Platform.environment['SECRET_ENCRYPTION_KEY'];
+  if (encryptionKey == null || encryptionKey.trim().isEmpty) {
+    stderr.writeln(
+      'Error: SECRET_ENCRYPTION_KEY environment variable is missing.',
+    );
+    await db.close();
+    exit(1);
+  }
+
   StorageSettings storageSettings;
   try {
     storageSettings = loadStorageSettings();

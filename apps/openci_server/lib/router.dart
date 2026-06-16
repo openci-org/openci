@@ -35,7 +35,10 @@ Router getRouter(
 
   router.mount(
     '/teams',
-    TeamRouter(db: db).router.call,
+    TeamRouter(
+      db: db,
+      encryptionKey: env['SECRET_ENCRYPTION_KEY'],
+    ).router.call,
   );
 
   return router;
