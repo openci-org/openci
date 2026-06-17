@@ -12,7 +12,15 @@ RUN sed -i '/resolution: workspace/d' pubspec.yaml && \
     sed -i 's/openci_shared: \^1.0.1/openci_shared:\n    path: ..\/..\/packages\/openci_shared/g' pubspec.yaml
 
 RUN dart pub get
-RUN dart build cli -o build
+RUN dart run build_runner build
+
+RUN dart pub global activate dart_frog_cli
+RUN dart pub global run dart_frog_cli:dart_frog build
+
+WORKDIR /app/apps/openci_server/build
+RUN dart pub get --offline
+RUN dart build cli -o /app/apps/openci_server/build_out
+
 
 FROM debian:bookworm-slim
 
@@ -21,7 +29,7 @@ RUN groupadd -g 10001 appgroup && \
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /app/apps/openci_server/build/bundle /app/server
+COPY --from=build --chown=appuser:appgroup /app/apps/openci_server/build_out/bundle /app/server
 
 USER appuser
 
