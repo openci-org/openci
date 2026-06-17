@@ -18,7 +18,8 @@ RUN dart pub global activate dart_frog_cli
 RUN dart pub global run dart_frog_cli:dart_frog build
 
 WORKDIR /app/apps/openci_server/build
-RUN dart pub get --offline
+RUN dart pub get
+
 RUN dart build cli -o /app/apps/openci_server/build_out
 
 
