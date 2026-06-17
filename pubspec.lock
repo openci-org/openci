@@ -353,6 +353,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  dart_frog:
+    dependency: transitive
+    description:
+      name: dart_frog
+      sha256: "4ab2323ad74f935f5f76cb2de7e699d0319245e8029753878b0ddc35984f9cfe"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.6"
+  dart_frog_test:
+    dependency: transitive
+    description:
+      name: dart_frog_test
+      sha256: "950c86712f55874eb8103f5e8b83fb8bd9d073a7aeed8cd4612c945e569c77f8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.2"
   dart_jsonwebtoken:
     dependency: transitive
     description:
@@ -829,6 +845,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.1"
+  hotreloader:
+    dependency: transitive
+    description:
+      name: hotreloader
+      sha256: "66871df468fc24eee81f1a0a7cb98acc104716f9b7376d355437b48d633c4ebf"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.4.0"
   http:
     dependency: transitive
     description:
@@ -1045,6 +1069,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.6.4"
+  mocktail:
+    dependency: transitive
+    description:
+      name: mocktail
+      sha256: "5e1bf53cc7baa8062a33b84424deb61513858ea05c601b8509e683815b5914aa"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.5"
   native_toolchain_c:
     dependency: transitive
     description:
@@ -1477,6 +1509,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.2"
+  shelf_hotreload:
+    dependency: transitive
+    description:
+      name: shelf_hotreload
+      sha256: "449f68ce2d087a030c2bfbb40e6925c63fac3dcb502a67388a7139ce72102e7a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   shelf_packages_handler:
     dependency: transitive
     description:

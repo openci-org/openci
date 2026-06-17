@@ -5,7 +5,6 @@ import 'package:openci_server/build_job/build_job_router.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/storage.dart';
 import 'package:openci_server/team/team_router.dart';
-import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
 Router getRouter(
@@ -17,13 +16,6 @@ Router getRouter(
   final router = Router();
   final env = environment ?? Platform.environment;
   final appEnv = env['APP_ENV'] ?? 'development';
-
-  router.get('/', (Request request) {
-    return Response.ok(
-      'OpenCI Server (Shelf) is running!\n',
-      headers: {'content-type': 'text/plain'},
-    );
-  });
 
   router.mount(
     '/builds',
