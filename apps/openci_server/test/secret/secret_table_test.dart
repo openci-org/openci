@@ -32,6 +32,7 @@ void main() {
       expect(json['encryptedValue'], equals('[REDACTED]'));
       expect(json['name'], equals('MY_SECRET'));
       expect(json['teamId'], equals('team_1'));
+      expect(json.toString(), isNot(contains('super_secret_raw_value')));
     });
   });
 }
