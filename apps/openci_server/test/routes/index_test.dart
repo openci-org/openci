@@ -5,7 +5,7 @@ import '../../routes/index.dart' as route;
 
 void main() {
   group('GET /', () {
-    test('responds with a 200 and "OpenCIサーバーへようこそ!".', () {
+    test('responds with a 200 and "OpenCI Server (Shelf) is running!".', () {
       final context = TestRequestContext(
         path: '/',
       );
@@ -14,7 +14,7 @@ void main() {
       expect(response.statusCode, equals(200));
       expect(
         response.body(),
-        completion(equals('OpenCIサーバーへようこそ!')),
+        completion(equals('OpenCI Server (Shelf) is running!')),
       );
     });
   });
