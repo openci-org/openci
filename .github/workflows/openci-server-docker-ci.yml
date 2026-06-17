@@ -52,7 +52,7 @@ jobs:
           for i in {1..30}; do
             RESPONSE=$(curl -s http://localhost/ || true)
             echo "Attempt $i: Server Response: $RESPONSE"
-            if [[ "$RESPONSE" == *"OpenCI Server (Shelf) is running!"* ]]; then
+            if [[ "$RESPONSE" == *"OpenCI Server is running!"* ]]; then
               echo "Verification successful!"
               exit 0
             fi
