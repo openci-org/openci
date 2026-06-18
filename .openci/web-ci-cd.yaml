@@ -87,7 +87,7 @@ jobs:
           channel_id="${channel_id:-preview-${OPENCI_RUN_NUMBER:-local}}"
 
           deploy_output="$(firebase hosting:channel:deploy "$channel_id" \
-            --only openci-b1b91 \
+            --only hosting:openci-b1b91 \
             --expires 3h \
             --project openci-b1b91 \
             --json \
