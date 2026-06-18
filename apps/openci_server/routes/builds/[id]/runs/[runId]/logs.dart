@@ -55,6 +55,14 @@ Future<Response> _get(
       );
     }
 
+    final driftRun = await db.buildRunDao.getBuildRun(id, runId);
+    if (driftRun == null) {
+      return Response.json(
+        statusCode: HttpStatus.notFound,
+        body: {'success': false, 'error': 'Build run not found'},
+      );
+    }
+
     final logs = await db.buildJobDao.getBuildJobLogs(runId);
     final logText = logs.map((l) => l.logContent).join('');
 
