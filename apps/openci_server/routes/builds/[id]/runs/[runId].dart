@@ -20,17 +20,16 @@ Future<Response> _get(
   String id,
   String runId,
 ) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
   try {
+    final db = context.read<AppDatabase>();
+    final uid = context.read<String?>();
+
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
+    }
     final driftJob = await db.buildJobDao.getBuildJob(id);
     if (driftJob == null) {
       return Response.json(

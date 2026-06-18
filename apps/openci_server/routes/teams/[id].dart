@@ -14,16 +14,15 @@ FutureOr<Response> onRequest(RequestContext context, String id) {
 }
 
 Future<Response> _patch(RequestContext context, String id) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
   try {
+    final db = context.read<AppDatabase>();
+    final uid = context.read<String?>();
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
+    }
     final isMember = await db.teamDao.isTeamMember(uid, id);
     if (!isMember) {
       return Response.json(
@@ -31,102 +30,91 @@ Future<Response> _patch(RequestContext context, String id) async {
         body: {'success': false, 'error': 'Forbidden'},
       );
     }
-  } catch (e, s) {
-    stderr.writeln('Failed to check membership for team $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
-  }
 
-  final Map<String, dynamic> payload;
-  try {
-    final body = await context.request.body();
-    final decoded = jsonDecode(body);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Body must be a JSON object');
+    final Map<String, dynamic> payload;
+    try {
+      final body = await context.request.body();
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Body must be a JSON object');
+      }
+      payload = decoded;
+    } catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid JSON: $e'},
+      );
     }
-    payload = decoded;
-  } catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {'success': false, 'error': 'Invalid JSON: $e'},
-    );
-  }
 
-  if (payload.containsKey('name')) {
-    final val = payload['name'];
-    if (val is! String) {
+    if (payload.containsKey('name')) {
+      final val = payload['name'];
+      if (val is! String) {
+        return Response.json(
+          statusCode: HttpStatus.badRequest,
+          body: {
+            'success': false,
+            'error': 'name must be a string',
+          },
+        );
+      }
+      if (val.trim().isEmpty) {
+        return Response.json(
+          statusCode: HttpStatus.badRequest,
+          body: {
+            'success': false,
+            'error': 'name cannot be empty',
+          },
+        );
+      }
+    }
+
+    if (payload.containsKey('githubBaseUrl') &&
+        payload['githubBaseUrl'] != null &&
+        payload['githubBaseUrl'] is! String) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {
           'success': false,
-          'error': 'name must be a string',
+          'error': 'githubBaseUrl must be a string or null',
         },
       );
     }
-    if (val.trim().isEmpty) {
+
+    if (payload.containsKey('githubApiBaseUrl') &&
+        payload['githubApiBaseUrl'] != null &&
+        payload['githubApiBaseUrl'] is! String) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {
           'success': false,
-          'error': 'name cannot be empty',
+          'error': 'githubApiBaseUrl must be a string or null',
         },
       );
     }
-  }
 
-  if (payload.containsKey('githubBaseUrl') &&
-      payload['githubBaseUrl'] != null &&
-      payload['githubBaseUrl'] is! String) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'githubBaseUrl must be a string or null',
-      },
-    );
-  }
+    if (payload.containsKey('installationIds')) {
+      final val = payload['installationIds'];
+      if (val is! List || !val.every((element) => element is int)) {
+        return Response.json(
+          statusCode: HttpStatus.badRequest,
+          body: {
+            'success': false,
+            'error': 'installationIds must be a list of integers',
+          },
+        );
+      }
+    }
 
-  if (payload.containsKey('githubApiBaseUrl') &&
-      payload['githubApiBaseUrl'] != null &&
-      payload['githubApiBaseUrl'] is! String) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'githubApiBaseUrl must be a string or null',
-      },
-    );
-  }
-
-  if (payload.containsKey('installationIds')) {
-    final val = payload['installationIds'];
-    if (val is! List || !val.every((element) => element is int)) {
+    if (payload.containsKey('aiEnabled') && payload['aiEnabled'] is! bool) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {
           'success': false,
-          'error': 'installationIds must be a list of integers',
+          'error': 'aiEnabled must be a boolean',
         },
       );
     }
-  }
 
-  if (payload.containsKey('aiEnabled') && payload['aiEnabled'] is! bool) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'aiEnabled must be a boolean',
-      },
-    );
-  }
-
-  try {
     final currentDriftTeam = await (db.select(
       db.teams,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -179,16 +167,15 @@ Future<Response> _patch(RequestContext context, String id) async {
 }
 
 Future<Response> _delete(RequestContext context, String id) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
   try {
+    final db = context.read<AppDatabase>();
+    final uid = context.read<String?>();
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
+    }
     final isMember = await db.teamDao.isTeamMember(uid, id);
     if (!isMember) {
       return Response.json(

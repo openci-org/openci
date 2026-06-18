@@ -16,17 +16,16 @@ FutureOr<Response> onRequest(RequestContext context, String id) {
 }
 
 Future<Response> _get(RequestContext context, String id) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
   try {
+    final db = context.read<AppDatabase>();
+    final uid = context.read<String?>();
+
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
+    }
     final driftJob = await db.buildJobDao.getBuildJob(id);
     if (driftJob == null) {
       return Response.json(
@@ -66,32 +65,32 @@ Future<Response> _get(RequestContext context, String id) async {
 }
 
 Future<Response> _patch(RequestContext context, String id) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
-  final Map<String, dynamic> payload;
   try {
-    final body = await context.request.body();
-    final decoded = jsonDecode(body);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Body must be a JSON object');
+    final db = context.read<AppDatabase>();
+    final uid = context.read<String?>();
+
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
     }
-    payload = decoded;
-  } catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {'success': false, 'error': 'Invalid JSON: $e'},
-    );
-  }
 
-  try {
+    final Map<String, dynamic> payload;
+    try {
+      final body = await context.request.body();
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Body must be a JSON object');
+      }
+      payload = decoded;
+    } catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid JSON: $e'},
+      );
+    }
+
     final driftJob = await db.buildJobDao.getBuildJob(id);
     if (driftJob == null) {
       return Response.json(
