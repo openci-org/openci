@@ -116,6 +116,7 @@ jobs:
             --expires 3h \
             --project openci-b1b91 \
             --json \
+            --debug \
             --non-interactive 2>&1)"
           status=$?
           set -e
