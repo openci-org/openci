@@ -86,13 +86,21 @@ jobs:
             | sed -E 's/^-+//; s/-+$//')"
           channel_id="${channel_id:-preview-${OPENCI_RUN_NUMBER:-local}}"
 
+          set +e
           deploy_output="$(firebase hosting:channel:deploy "$channel_id" \
             --only hosting:openci-b1b91 \
             --expires 3h \
             --project openci-b1b91 \
             --json \
-            --non-interactive)"
-          printf '%s\n' "$deploy_output"
+            --non-interactive 2>&1)"
+          status=$?
+          set -e
+
+          printf 'Firebase output:\n%s\n' "$deploy_output"
+
+          if [ $status -ne 0 ]; then
+            exit $status
+          fi
 
           preview_urls="$(printf '%s' "$deploy_output" | python3 -c '
           import json
