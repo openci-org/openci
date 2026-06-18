@@ -298,6 +298,67 @@ void main() {
     );
 
     test(
+      'responds with 409 Conflict when runId already exists (unique constraint violation)',
+      () async {
+        final now = _getNormalizedNow();
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final job = DriftBuildJob(
+          id: 'job-xyz',
+          status: BuildJobStatus.QUEUED,
+          owner: 'owner',
+          repo: 'repo',
+          workflowName: 'workflow',
+          teamId: 'team-xyz',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await db.buildJobDao.insertBuildJob(job);
+
+        // First run creation
+        final context1 = TestRequestContext(
+          path: '/builds/job-xyz/runs',
+          method: HttpMethod.post,
+          body: '{"id": "run-duplicate"}',
+        );
+        context1.provide<AppDatabase>(db);
+        context1.provide<String?>('user-123');
+
+        final response1 = await route.onRequest(context1.context, 'job-xyz');
+        expect(response1.statusCode, equals(HttpStatus.ok));
+
+        // Second run creation with the same runId
+        final context2 = TestRequestContext(
+          path: '/builds/job-xyz/runs',
+          method: HttpMethod.post,
+          body: '{"id": "run-duplicate"}',
+        );
+        context2.provide<AppDatabase>(db);
+        context2.provide<String?>('user-123');
+
+        final response2 = await route.onRequest(context2.context, 'job-xyz');
+        expect(response2.statusCode, equals(HttpStatus.conflict));
+
+        final body2 = await response2.json() as Map<String, dynamic>;
+        expect(body2['success'], isFalse);
+        expect(body2['error'], equals('Run ID already exists'));
+      },
+    );
+
+    test(
       'responds with 500 Internal Server Error when transaction/database fails',
       () async {
         final mockDb = MockAppDatabase();

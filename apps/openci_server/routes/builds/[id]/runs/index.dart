@@ -99,6 +99,22 @@ Future<Response> _post(RequestContext context, String id) async {
       },
     );
   } catch (e, s) {
+    final errStr = e.toString();
+    final isUniqueViolation =
+        errStr.contains('UNIQUE constraint failed') ||
+        errStr.contains('duplicate key value violates unique constraint') ||
+        errStr.contains('23505');
+
+    if (isUniqueViolation) {
+      return Response.json(
+        statusCode: HttpStatus.conflict,
+        body: {
+          'success': false,
+          'error': 'Run ID already exists',
+        },
+      );
+    }
+
     stderr.writeln('Failed to create build run for job $id: $e\n$s');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
