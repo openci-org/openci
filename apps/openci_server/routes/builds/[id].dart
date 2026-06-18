@@ -175,6 +175,22 @@ Future<Response> _patch(RequestContext context, String id) async {
         'error': 'Invalid payload structure: $e',
       },
     );
+  } on ArgumentError catch (e) {
+    return Response.json(
+      statusCode: HttpStatus.badRequest,
+      body: {
+        'success': false,
+        'error': 'Invalid status: $e',
+      },
+    );
+  } on FormatException catch (e) {
+    return Response.json(
+      statusCode: HttpStatus.badRequest,
+      body: {
+        'success': false,
+        'error': 'Invalid date format: $e',
+      },
+    );
   } catch (e, s) {
     stderr.writeln('Failed to patch build job $id: $e\n$s');
     return Response.json(

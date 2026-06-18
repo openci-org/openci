@@ -543,6 +543,106 @@ void main() {
     );
 
     test(
+      'responds with 400 Bad Request when status is invalid (ArgumentError)',
+      () async {
+        final now = _getNormalizedNow();
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final job = DriftBuildJob(
+          id: 'job-xyz',
+          status: BuildJobStatus.QUEUED,
+          owner: 'owner',
+          repo: 'repo',
+          workflowName: 'workflow',
+          teamId: 'team-xyz',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await db.buildJobDao.insertBuildJob(job);
+
+        final context = TestRequestContext(
+          path: '/builds/job-xyz',
+          method: HttpMethod.patch,
+          body: '{"status": "INVALID_STATUS"}',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context, 'job-xyz');
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Invalid status'));
+      },
+    );
+
+    test(
+      'responds with 400 Bad Request when completedAt is invalid date format (FormatException)',
+      () async {
+        final now = _getNormalizedNow();
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final job = DriftBuildJob(
+          id: 'job-xyz',
+          status: BuildJobStatus.QUEUED,
+          owner: 'owner',
+          repo: 'repo',
+          workflowName: 'workflow',
+          teamId: 'team-xyz',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await db.buildJobDao.insertBuildJob(job);
+
+        final context = TestRequestContext(
+          path: '/builds/job-xyz',
+          method: HttpMethod.patch,
+          body: '{"completedAt": "invalid-date-string"}',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context, 'job-xyz');
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Invalid date format'));
+      },
+    );
+
+    test(
       'responds with 500 Internal Server Error when database fails',
       () async {
         final mockDb = MockAppDatabase();
