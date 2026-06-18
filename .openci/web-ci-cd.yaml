@@ -110,36 +110,15 @@ jobs:
             | sed -E 's/^-+//; s/-+$//')"
           channel_id="${channel_id:-preview-${OPENCI_RUN_NUMBER:-local}}"
 
-          set +e
-          deploy_output="$(firebase hosting:channel:deploy "$channel_id" \
+          firebase hosting:channel:deploy "$channel_id" \
             --only hosting:openci-b1b91 \
             --expires 3h \
             --project openci-b1b91 \
-            --json \
             --debug \
-            --non-interactive 2>&1)"
-          status=$?
-          set -e
+            --non-interactive
 
-          printf 'Firebase output:\n%s\n' "$deploy_output"
-
-          if [ $status -ne 0 ]; then
-            exit $status
-          fi
-
-          preview_urls="$(printf '%s' "$deploy_output" | python3 -c '
-          import json
-          import sys
-
-          data = json.load(sys.stdin)
-          result = data.get("result") or {}
-          urls = [
-              value.get("url")
-              for value in result.values()
-              if isinstance(value, dict) and value.get("url")
-          ]
-          print("\n".join(urls))
-          ')"
+          # 一時的に以下を無力化してデバッグログに集中
+          preview_urls=""
           if [ -n "$preview_urls" ]; then
             {
               echo "Firebase Hosting preview:"
