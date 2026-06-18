@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
-import 'package:drift/drift.dart';
 import 'package:openci_server/database.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -83,12 +82,11 @@ Future<Response> _post(RequestContext context, String id) async {
 
     await db.transaction(() async {
       await db.buildRunDao.insertBuildRun(driftRun);
-      final updatedJob = driftJob.copyWith(
-        latestRunId: Value(runId),
-        runCount: Value((driftJob.runCount ?? 0) + 1),
+      await db.buildJobDao.incrementRunCount(
+        id: id,
+        latestRunId: runId,
         updatedAt: now,
       );
-      await db.buildJobDao.updateBuildJob(updatedJob);
     });
 
     return Response.json(body: {'success': true});

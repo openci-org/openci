@@ -20,6 +20,22 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
   Future<void> updateBuildJob(DriftBuildJob job) =>
       update(buildJobs).replace(job);
 
+  Future<void> incrementRunCount({
+    required String id,
+    required String latestRunId,
+    required DateTime updatedAt,
+  }) {
+    return (update(buildJobs)..where((t) => t.id.equals(id))).write(
+      BuildJobsCompanion.custom(
+        runCount:
+            coalesce([buildJobs.runCount, const Constant(0)]) +
+            const Constant(1),
+        latestRunId: Constant(latestRunId),
+        updatedAt: Constant(updatedAt),
+      ),
+    );
+  }
+
   Future<void> insertBuildJobLog(String runId, String content) =>
       into(buildJobLogs).insert(
         BuildJobLogsCompanion.insert(
