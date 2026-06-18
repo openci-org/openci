@@ -76,6 +76,23 @@ jobs:
           service_account_file="$(mktemp)"
           trap 'rm -f "$service_account_file"' EXIT
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
+          
+          # JSONの正当性を確認し、Base64エンコードされている場合は自動デコードする
+          if ! python3 -c "import json; json.load(open('$service_account_file'))" 2>/dev/null; then
+            echo "Credentials file is not valid JSON. Attempting Base64 decode..."
+            if base64 -d "$service_account_file" > "${service_account_file}.decoded" 2>/dev/null; then
+              if python3 -c "import json; json.load(open('${service_account_file}.decoded'))" 2>/dev/null; then
+                echo "Successfully decoded credentials as Base64 JSON!"
+                mv "${service_account_file}.decoded" "$service_account_file"
+              else
+                echo "Decoded file is still not valid JSON."
+                rm -f "${service_account_file}.decoded"
+              fi
+            else
+              echo "Failed to Base64 decode credentials."
+            fi
+          fi
+
           export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
 
           raw_channel_id="pr${RELEASE_PR_NUMBER:-${OPENCI_RUN_NUMBER:-preview}}-${RELEASE_HEAD_REF:-preview}"
