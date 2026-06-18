@@ -1,0 +1,314 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dart_frog/dart_frog.dart';
+import 'package:dart_frog_test/dart_frog_test.dart';
+import 'package:drift/native.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:openci_server/build_job/build_job_dao.dart';
+import 'package:openci_server/database.dart';
+import 'package:openci_server/team/team_dao.dart';
+import 'package:openci_shared/openci_shared.dart';
+import 'package:test/test.dart';
+
+import '../../../routes/builds/index.dart' as route;
+
+class MockAppDatabase extends Mock implements AppDatabase {}
+
+class MockBuildJobDao extends Mock implements BuildJobDao {}
+
+class MockTeamDao extends Mock implements TeamDao {}
+
+void main() {
+  late AppDatabase db;
+
+  setUpAll(() {
+    registerFallbackValue(
+      DriftBuildJob(
+        id: '',
+        status: BuildJobStatus.QUEUED,
+        owner: '',
+        repo: '',
+        workflowName: '',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  });
+
+  setUp(() {
+    db = AppDatabase(NativeDatabase.memory());
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  group('POST /builds', () {
+    test(
+      'responds with 403 Forbidden (Unauthorized) when uid is null',
+      () async {
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>(null);
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Unauthorized'));
+      },
+    );
+
+    test(
+      'responds with 400 Bad Request when body is invalid JSON',
+      () async {
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: 'not-a-json',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Invalid JSON'));
+      },
+    );
+
+    test(
+      'responds with 400 Bad Request when body is not a JSON object',
+      () async {
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: '"just a string"',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Body must be a JSON object'));
+      },
+    );
+
+    test(
+      'responds with 400 Bad Request when payload structure is invalid (missing required fields)',
+      () async {
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: '{"invalid": "field"}',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Invalid payload structure'));
+      },
+    );
+
+    test(
+      'responds with 403 Forbidden when build job teamId is null',
+      () async {
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'teamId': null,
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Forbidden'));
+      },
+    );
+
+    test(
+      'responds with 403 Forbidden when user is not a member of the team',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-abc');
+
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'teamId': 'team-xyz',
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Forbidden'));
+      },
+    );
+
+    test(
+      'responds with 200 OK and inserts build job when user is a member of the team',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'teamId': 'team-xyz',
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.ok));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+        expect(body['id'], equals('job-123'));
+
+        final inserted = await db.buildJobDao.getBuildJob('job-123');
+        expect(inserted, isNotNull);
+        expect(inserted!.id, equals('job-123'));
+        expect(inserted.teamId, equals('team-xyz'));
+      },
+    );
+
+    test(
+      'responds with 500 Internal Server Error when database fails',
+      () async {
+        final mockDb = MockAppDatabase();
+        final mockBuildJobDao = MockBuildJobDao();
+
+        when(() => mockDb.buildJobDao).thenReturn(mockBuildJobDao);
+        when(
+          () => mockBuildJobDao.insertBuildJob(any()),
+        ).thenThrow(Exception('Database failure'));
+
+        final mockTeamDao = MockTeamDao();
+        when(() => mockDb.teamDao).thenReturn(mockTeamDao);
+        when(
+          () => mockTeamDao.isTeamMember('user-123', 'team-xyz'),
+        ).thenAnswer((_) async => true);
+
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'teamId': 'team-xyz',
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+        );
+
+        context.provide<AppDatabase>(mockDb);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Internal server error'));
+      },
+    );
+  });
+}
