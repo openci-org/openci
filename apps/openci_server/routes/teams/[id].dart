@@ -8,6 +8,7 @@ import 'package:openci_server/database.dart';
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
     HttpMethod.patch => _patch(context, id),
+    HttpMethod.delete => _delete(context, id),
     _ => Response(statusCode: HttpStatus.methodNotAllowed),
   };
 }
@@ -167,6 +168,53 @@ Future<Response> _patch(RequestContext context, String id) async {
     );
   } catch (e, s) {
     stderr.writeln('Failed to update team $id: $e\n$s');
+    return Response.json(
+      statusCode: HttpStatus.internalServerError,
+      body: {
+        'success': false,
+        'error': 'Internal server error',
+      },
+    );
+  }
+}
+
+Future<Response> _delete(RequestContext context, String id) async {
+  final db = context.read<AppDatabase>();
+  final uid = context.read<String?>();
+  if (uid == null) {
+    return Response.json(
+      statusCode: HttpStatus.forbidden,
+      body: {'success': false, 'error': 'Unauthorized'},
+    );
+  }
+
+  try {
+    final isMember = await db.teamDao.isTeamMember(uid, id);
+    if (!isMember) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
+    final currentDriftTeam = await (db.select(
+      db.teams,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+
+    if (currentDriftTeam == null) {
+      return Response.json(
+        statusCode: HttpStatus.notFound,
+        body: {'success': false, 'error': 'Team not found'},
+      );
+    }
+
+    await db.teamDao.deleteTeam(id);
+
+    return Response.json(
+      body: {'success': true},
+    );
+  } catch (e, s) {
+    stderr.writeln('Failed to delete team $id: $e\n$s');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
       body: {
