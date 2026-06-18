@@ -44,7 +44,7 @@ void main() {
 
   group('GET /teams', () {
     test(
-      'responds with 403 Forbidden when unauthorized (uid is null)',
+      'responds with 401 Unauthorized when unauthorized (uid is null)',
       () async {
         final context = TestRequestContext(
           path: '/teams',
@@ -56,11 +56,11 @@ void main() {
 
         final response = await route.onRequest(context.context);
 
-        expect(response.statusCode, equals(HttpStatus.forbidden));
+        expect(response.statusCode, equals(HttpStatus.unauthorized));
 
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
-        expect(body['error'], equals('Unauthorized'));
+        expect(body['error'], equals('Authentication required'));
       },
     );
 
@@ -164,7 +164,7 @@ void main() {
 
   group('POST /teams', () {
     test(
-      'responds with 403 Forbidden when unauthorized (uid is null)',
+      'responds with 401 Unauthorized when unauthorized (uid is null)',
       () async {
         final context = TestRequestContext(
           path: '/teams',
@@ -177,11 +177,11 @@ void main() {
 
         final response = await route.onRequest(context.context);
 
-        expect(response.statusCode, equals(HttpStatus.forbidden));
+        expect(response.statusCode, equals(HttpStatus.unauthorized));
 
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
-        expect(body['error'], equals('Unauthorized'));
+        expect(body['error'], equals('Authentication required'));
       },
     );
 

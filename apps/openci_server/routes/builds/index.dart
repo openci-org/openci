@@ -21,8 +21,8 @@ Future<Response> _post(RequestContext context) async {
 
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
 

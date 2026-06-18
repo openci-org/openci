@@ -23,8 +23,8 @@ Future<Response> _get(RequestContext context) async {
     uid = context.read<String?>();
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
     final driftTeams = await db.teamDao.getTeamsForUser(uid);
@@ -60,8 +60,8 @@ Future<Response> _post(RequestContext context) async {
     final uid = context.read<String?>();
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
 
