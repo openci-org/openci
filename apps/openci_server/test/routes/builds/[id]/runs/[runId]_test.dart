@@ -58,7 +58,7 @@ void main() {
 
   group('GET /builds/<id>/runs/<runId>', () {
     test(
-      'responds with 403 Forbidden (Unauthorized) when uid is null',
+      'responds with 401 Unauthorized (Authentication required) when uid is null',
       () async {
         final context = TestRequestContext(
           path: '/builds/job-123/runs/run-456',
@@ -74,11 +74,11 @@ void main() {
           'run-456',
         );
 
-        expect(response.statusCode, equals(HttpStatus.forbidden));
+        expect(response.statusCode, equals(HttpStatus.unauthorized));
 
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
-        expect(body['error'], equals('Unauthorized'));
+        expect(body['error'], equals('Authentication required'));
       },
     );
 
@@ -362,7 +362,7 @@ void main() {
 
   group('PATCH /builds/<id>/runs/<runId>', () {
     test(
-      'responds with 403 Forbidden (Unauthorized) when uid is null',
+      'responds with 401 Unauthorized (Authentication required) when uid is null',
       () async {
         final context = TestRequestContext(
           path: '/builds/job-123/runs/run-456',
@@ -379,11 +379,11 @@ void main() {
           'run-456',
         );
 
-        expect(response.statusCode, equals(HttpStatus.forbidden));
+        expect(response.statusCode, equals(HttpStatus.unauthorized));
 
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
-        expect(body['error'], equals('Unauthorized'));
+        expect(body['error'], equals('Authentication required'));
       },
     );
 

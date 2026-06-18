@@ -19,8 +19,8 @@ Future<Response> _patch(RequestContext context, String id) async {
     final uid = context.read<String?>();
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
     final isMember = await db.teamDao.isTeamMember(uid, id);
@@ -172,8 +172,8 @@ Future<Response> _delete(RequestContext context, String id) async {
     final uid = context.read<String?>();
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
     final isMember = await db.teamDao.isTeamMember(uid, id);

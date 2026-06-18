@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/drift.dart';
-import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:shelf/shelf.dart';
@@ -20,125 +18,6 @@ class BuildJobRouter {
 
   Router get router {
     final router = Router();
-
-    router.patch('/<buildJobId>/runs/<runId>', (
-      Request request,
-      String buildJobId,
-      String runId,
-    ) async {
-      try {
-        final payload =
-            jsonDecode(await request.readAsString()) as Map<String, dynamic>;
-        final status = payload['status'] as String?;
-        if (status == null || status.isEmpty) {
-          return Response.badRequest(
-            body: jsonEncode({'success': false, 'error': 'status is required'}),
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        final conclusion = payload['conclusion'] as String?;
-
-        final driftRun = await db.buildRunDao.getBuildRun(buildJobId, runId);
-        if (driftRun == null) {
-          return Response.notFound(
-            jsonEncode({'success': false, 'error': 'Build run not found'}),
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        if (driftRun.buildJobId != buildJobId) {
-          return Response.notFound(
-            jsonEncode({
-              'success': false,
-              'error': 'Build run not found for the specified build job',
-            }),
-            headers: {'content-type': 'application/json'},
-          );
-        }
-
-        final updatedRun = driftRun.copyWith(
-          status: status,
-          conclusion: payload.containsKey('conclusion')
-              ? Value(conclusion)
-              : const Value.absent(),
-          updatedAt: DateTime.now().toUtc(),
-        );
-
-        await db.buildRunDao.updateBuildRun(updatedRun);
-
-        return Response.ok(
-          jsonEncode({'success': true}),
-          headers: {'content-type': 'application/json'},
-        );
-      } on FormatException catch (e) {
-        return Response.badRequest(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Invalid JSON format: $e',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      } on TypeError catch (e) {
-        return Response.badRequest(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Invalid payload structure: $e',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      } catch (e, s) {
-        stderr.writeln(
-          'Failed to update build run status for run $runId: $e\n$s',
-        );
-        return Response.internalServerError(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Internal server error',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      }
-    });
-
-    router.post('/', (Request request) async {
-      try {
-        final payload =
-            jsonDecode(await request.readAsString()) as Map<String, dynamic>;
-        final job = BuildJob.fromJson(payload);
-        final driftJob = job.toDrift();
-
-        await db.buildJobDao.insertBuildJob(driftJob);
-
-        return Response.ok(
-          jsonEncode({'success': true, 'id': job.id}),
-          headers: {'content-type': 'application/json'},
-        );
-      } on FormatException catch (e) {
-        return Response.badRequest(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Invalid JSON format: $e',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      } on TypeError catch (e) {
-        return Response.badRequest(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Invalid payload structure: $e',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      } catch (e, s) {
-        stderr.writeln('Failed to insert build job: $e\n$s');
-        return Response.internalServerError(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Internal server error',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      }
-    });
 
     router.get('/<buildJobId>/runs/<runId>/logs', (
       Request request,

@@ -29,8 +29,8 @@ Future<Response> _get(
 
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
     final driftJob = await db.buildJobDao.getBuildJob(id);
@@ -98,8 +98,8 @@ Future<Response> _patch(
 
     if (uid == null) {
       return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Unauthorized'},
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
 
