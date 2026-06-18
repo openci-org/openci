@@ -7,9 +7,73 @@ import 'package:openci_server/database.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
+    HttpMethod.get => _get(context, id),
     HttpMethod.post => _post(context, id),
     _ => Response(statusCode: HttpStatus.methodNotAllowed),
   };
+}
+
+Future<Response> _get(RequestContext context, String id) async {
+  final db = context.read<AppDatabase>();
+  final uid = context.read<String?>();
+
+  if (uid == null) {
+    return Response.json(
+      statusCode: HttpStatus.forbidden,
+      body: {'success': false, 'error': 'Unauthorized'},
+    );
+  }
+
+  try {
+    final driftJob = await db.buildJobDao.getBuildJob(id);
+    if (driftJob == null) {
+      return Response.json(
+        statusCode: HttpStatus.notFound,
+        body: {'success': false, 'error': 'Build job not found'},
+      );
+    }
+
+    final teamId = driftJob.teamId;
+    if (teamId == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
+    final isMember = await db.teamDao.isTeamMember(uid, teamId);
+    if (!isMember) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
+    final runs = await db.buildRunDao.getBuildRuns(id);
+    final responseBody = runs
+        .map(
+          (run) => {
+            'id': run.id,
+            'buildJobId': run.buildJobId,
+            'status': run.status,
+            'conclusion': run.conclusion,
+            'createdAt': run.createdAt.toUtc().toIso8601String(),
+            'updatedAt': run.updatedAt.toUtc().toIso8601String(),
+          },
+        )
+        .toList();
+
+    return Response.json(body: responseBody);
+  } catch (e, s) {
+    stderr.writeln('Failed to get build runs for job $id: $e\n$s');
+    return Response.json(
+      statusCode: HttpStatus.internalServerError,
+      body: {
+        'success': false,
+        'error': 'Internal server error',
+      },
+    );
+  }
 }
 
 Future<Response> _post(RequestContext context, String id) async {
