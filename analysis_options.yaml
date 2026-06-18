@@ -1,4 +1,6 @@
 analyzer:
+  errors:
+    file_names: ignore
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
