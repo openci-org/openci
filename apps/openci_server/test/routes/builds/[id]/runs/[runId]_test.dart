@@ -5,7 +5,9 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
+import 'package:openci_server/build_run/build_run_dao.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
@@ -14,6 +16,10 @@ import '../../../../../routes/builds/[id]/runs/[runId].dart' as route;
 class MockAppDatabase extends Mock implements AppDatabase {}
 
 class MockBuildJobDao extends Mock implements BuildJobDao {}
+
+class MockBuildRunDao extends Mock implements BuildRunDao {}
+
+class MockTeamDao extends Mock implements TeamDao {}
 
 DateTime _getNormalizedNow() {
   final now = DateTime.now().toUtc();
@@ -29,6 +35,18 @@ DateTime _getNormalizedNow() {
 
 void main() {
   late AppDatabase db;
+
+  setUpAll(() {
+    registerFallbackValue(
+      DriftBuildRun(
+        id: 'dummy',
+        buildJobId: 'dummy',
+        status: 'dummy',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+  });
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
@@ -809,6 +827,75 @@ void main() {
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
         expect(body['error'], equals('Internal server error'));
+      },
+    );
+
+    test(
+      'responds with 500 Internal Server Error when updateBuildRun returns false',
+      () async {
+        final mockDb = MockAppDatabase();
+        final mockBuildJobDao = MockBuildJobDao();
+        final mockBuildRunDao = MockBuildRunDao();
+        final mockTeamDao = MockTeamDao();
+
+        final now = _getNormalizedNow();
+        final job = DriftBuildJob(
+          id: 'job-123',
+          status: BuildJobStatus.QUEUED,
+          owner: 'owner',
+          repo: 'repo',
+          workflowName: 'workflow',
+          teamId: 'team-xyz',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        final run = DriftBuildRun(
+          id: 'run-456',
+          buildJobId: 'job-123',
+          status: 'in_progress',
+          conclusion: null,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        when(() => mockDb.buildJobDao).thenReturn(mockBuildJobDao);
+        when(() => mockDb.buildRunDao).thenReturn(mockBuildRunDao);
+        when(() => mockDb.teamDao).thenReturn(mockTeamDao);
+
+        when(
+          () => mockBuildJobDao.getBuildJob('job-123'),
+        ).thenAnswer((_) async => job);
+        when(
+          () => mockTeamDao.isTeamMember('user-123', 'team-xyz'),
+        ).thenAnswer((_) async => true);
+        when(
+          () => mockBuildRunDao.getBuildRun('job-123', 'run-456'),
+        ).thenAnswer((_) async => run);
+        when(
+          () => mockBuildRunDao.updateBuildRun(any()),
+        ).thenAnswer((_) async => false);
+
+        final context = TestRequestContext(
+          path: '/builds/job-123/runs/run-456',
+          method: HttpMethod.patch,
+          body: '{"status": "success"}',
+        );
+
+        context.provide<AppDatabase>(mockDb);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(
+          context.context,
+          'job-123',
+          'run-456',
+        );
+
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Failed to update build run'));
       },
     );
   });

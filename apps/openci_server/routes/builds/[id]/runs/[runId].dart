@@ -187,7 +187,16 @@ Future<Response> _patch(
       updatedAt: DateTime.now().toUtc(),
     );
 
-    await db.buildRunDao.updateBuildRun(updatedRun);
+    final success = await db.buildRunDao.updateBuildRun(updatedRun);
+    if (!success) {
+      return Response.json(
+        statusCode: HttpStatus.internalServerError,
+        body: {
+          'success': false,
+          'error': 'Failed to update build run',
+        },
+      );
+    }
 
     return Response.json(body: {'success': true});
   } catch (e, s) {
