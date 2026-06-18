@@ -460,4 +460,156 @@ void main() {
       },
     );
   });
+
+  group('DELETE /teams/<id>', () {
+    test(
+      'responds with 403 Forbidden when unauthorized (uid is null)',
+      () async {
+        final context = TestRequestContext(
+          path: '/teams/team-123',
+          method: HttpMethod.delete,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>(null);
+
+        final response = await route.onRequest(context.context, 'team-123');
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Unauthorized'));
+      },
+    );
+
+    test(
+      'responds with 403 Forbidden when user is not a member of the team',
+      () async {
+        final context = TestRequestContext(
+          path: '/teams/team-123',
+          method: HttpMethod.delete,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('stranger-user');
+
+        final response = await route.onRequest(context.context, 'team-123');
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Forbidden'));
+      },
+    );
+
+    test(
+      'responds with 404 Not Found when team does not exist in DB',
+      () async {
+        await db
+            .into(db.teamMembers)
+            .insert(
+              TeamMembersCompanion.insert(
+                teamId: 'team-non-existent',
+                userId: 'user-1',
+              ),
+            );
+
+        final context = TestRequestContext(
+          path: '/teams/team-non-existent',
+          method: HttpMethod.delete,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-1');
+
+        final response = await route.onRequest(
+          context.context,
+          'team-non-existent',
+        );
+
+        expect(response.statusCode, equals(HttpStatus.notFound));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Team not found'));
+      },
+    );
+
+    test(
+      'responds with 200 OK and deletes team and member from database',
+      () async {
+        final now = DateTime.now().toUtc();
+        final team = DriftTeam(
+          id: 'team-123',
+          name: 'Delete Me Team',
+          installationIds: const [],
+          aiEnabled: true,
+          runNumber: 1,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await db.teamDao.createTeamAndMember(team, 'user-1');
+
+        final context = TestRequestContext(
+          path: '/teams/team-123',
+          method: HttpMethod.delete,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-1');
+
+        final response = await route.onRequest(context.context, 'team-123');
+
+        expect(response.statusCode, equals(HttpStatus.ok));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+
+        final deletedTeam = await (db.select(
+          db.teams,
+        )..where((t) => t.id.equals('team-123'))).getSingleOrNull();
+        expect(deletedTeam, isNull);
+
+        final members = await (db.select(
+          db.teamMembers,
+        )..where((m) => m.teamId.equals('team-123'))).get();
+        expect(members, isEmpty);
+      },
+    );
+
+    test(
+      'responds with 500 Internal Server Error when database fails on select',
+      () async {
+        final mockDb = MockAppDatabase();
+        final mockTeamDao = MockTeamDao();
+
+        when(() => mockDb.teamDao).thenReturn(mockTeamDao);
+        when(
+          () => mockTeamDao.isTeamMember(any(), any()),
+        ).thenAnswer((_) async => true);
+
+        when(
+          () => mockDb.select(mockDb.teams),
+        ).thenThrow(Exception('Select failed'));
+
+        final context = TestRequestContext(
+          path: '/teams/team-123',
+          method: HttpMethod.delete,
+        );
+
+        context.provide<AppDatabase>(mockDb);
+        context.provide<String?>('user-1');
+
+        final response = await route.onRequest(context.context, 'team-123');
+
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Internal server error'));
+      },
+    );
+  });
 }
