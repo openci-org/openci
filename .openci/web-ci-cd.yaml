@@ -93,6 +93,18 @@ jobs:
             fi
           fi
 
+          # サービスアカウントJSONのキー項目を安全に出力する（値は出さず、キー構造のみ確認）
+          python3 -c "
+import json
+try:
+    data = json.load(open('$service_account_file'))
+    print('Service account JSON keys:', list(data.keys()))
+    if 'project_id' in data:
+        print('Project ID in credentials:', data['project_id'])
+except Exception as e:
+    print('Failed to analyze JSON keys:', e)
+"
+
           export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
 
           raw_channel_id="pr${RELEASE_PR_NUMBER:-${OPENCI_RUN_NUMBER:-preview}}-${RELEASE_HEAD_REF:-preview}"
