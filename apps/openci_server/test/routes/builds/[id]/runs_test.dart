@@ -387,5 +387,57 @@ void main() {
         expect(body['error'], equals('Internal server error'));
       },
     );
+
+    test(
+      'responds with 400 Bad Request when run id is not a string (invalid payload structure)',
+      () async {
+        final context = TestRequestContext(
+          path: '/builds/job-123/runs',
+          method: HttpMethod.post,
+          body: '{"id": 123}',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context, 'job-123');
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Invalid payload structure'));
+      },
+    );
+
+    test(
+      'responds with 500 Internal Server Error when transaction/database throws a TypeError',
+      () async {
+        final mockDb = MockAppDatabase();
+        final mockBuildJobDao = MockBuildJobDao();
+
+        when(() => mockDb.buildJobDao).thenReturn(mockBuildJobDao);
+        when(
+          () => mockBuildJobDao.getBuildJob(any()),
+        ).thenThrow(TypeError());
+
+        final context = TestRequestContext(
+          path: '/builds/job-123/runs',
+          method: HttpMethod.post,
+          body: '{"id": "run-456"}',
+        );
+
+        context.provide<AppDatabase>(mockDb);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context, 'job-123');
+
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Internal server error'));
+      },
+    );
   });
 }

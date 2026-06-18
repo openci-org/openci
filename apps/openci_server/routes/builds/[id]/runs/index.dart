@@ -38,8 +38,27 @@ Future<Response> _post(RequestContext context, String id) async {
     );
   }
 
-  final runId = payload['id'] as String?;
-  if (runId == null || runId.isEmpty) {
+  final String runId;
+  try {
+    final rawId = payload['id'];
+    if (rawId == null) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'id is required'},
+      );
+    }
+    runId = rawId as String;
+  } on TypeError catch (e) {
+    return Response.json(
+      statusCode: HttpStatus.badRequest,
+      body: {
+        'success': false,
+        'error': 'Invalid payload structure: $e',
+      },
+    );
+  }
+
+  if (runId.isEmpty) {
     return Response.json(
       statusCode: HttpStatus.badRequest,
       body: {'success': false, 'error': 'id is required'},
@@ -90,14 +109,6 @@ Future<Response> _post(RequestContext context, String id) async {
     });
 
     return Response.json(body: {'success': true});
-  } on TypeError catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'Invalid payload structure: $e',
-      },
-    );
   } catch (e, s) {
     final errStr = e.toString();
     final isUniqueViolation =
