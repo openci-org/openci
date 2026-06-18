@@ -19,30 +19,6 @@ class BuildJobRouter {
   Router get router {
     final router = Router();
 
-    router.get('/<buildJobId>/runs/<runId>/logs', (
-      Request request,
-      String buildJobId,
-      String runId,
-    ) async {
-      try {
-        final logs = await db.buildJobDao.getBuildJobLogs(runId);
-        final logText = logs.map((l) => l.logContent).join('');
-        return Response.ok(
-          logText,
-          headers: {'content-type': 'text/plain; charset=utf-8'},
-        );
-      } catch (e, s) {
-        stderr.writeln('Failed to read logs for run $runId: $e\n$s');
-        return Response.internalServerError(
-          body: jsonEncode({
-            'success': false,
-            'error': 'Internal server error',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      }
-    });
-
     router.post('/<buildJobId>/runs/<runId>/logs', (
       Request request,
       String buildJobId,
