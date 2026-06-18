@@ -113,5 +113,60 @@ void main() {
 
       await subscription.cancel();
     });
+
+    test(
+      'incrementRunCount updates runCount and latestRunId successfully',
+      () async {
+        final nowRaw = DateTime.now().toUtc();
+        final now = DateTime.utc(
+          nowRaw.year,
+          nowRaw.month,
+          nowRaw.day,
+          nowRaw.hour,
+          nowRaw.minute,
+          nowRaw.second,
+        );
+        final job = DriftBuildJob(
+          id: 'test-job-increment',
+          status: BuildJobStatus.QUEUED,
+          owner: 'openci-org',
+          repo: 'openci',
+          workflowName: 'CI',
+          runCount: 2,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await dao.insertBuildJob(job);
+
+        final updatedTime = now.add(const Duration(seconds: 10));
+        await dao.incrementRunCount(
+          id: 'test-job-increment',
+          latestRunId: 'run-777',
+          updatedAt: updatedTime,
+        );
+
+        final retrieved = await dao.getBuildJob('test-job-increment');
+        expect(retrieved, isNotNull);
+        expect(retrieved!.runCount, equals(3));
+        expect(retrieved.latestRunId, equals('run-777'));
+        expect(retrieved.updatedAt.toUtc(), equals(updatedTime.toUtc()));
+      },
+    );
+
+    test(
+      'incrementRunCount throws StateError when build job does not exist',
+      () async {
+        final now = DateTime.now().toUtc();
+        expect(
+          () => dao.incrementRunCount(
+            id: 'non-existent-job',
+            latestRunId: 'run-888',
+            updatedAt: now,
+          ),
+          throwsA(isA<StateError>()),
+        );
+      },
+    );
   });
 }

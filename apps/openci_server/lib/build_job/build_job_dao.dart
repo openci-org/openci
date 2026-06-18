@@ -24,16 +24,23 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
     required String id,
     required String latestRunId,
     required DateTime updatedAt,
-  }) {
-    return (update(buildJobs)..where((t) => t.id.equals(id))).write(
-      BuildJobsCompanion.custom(
-        runCount:
-            coalesce([buildJobs.runCount, const Constant(0)]) +
-            const Constant(1),
-        latestRunId: Constant(latestRunId),
-        updatedAt: Constant(updatedAt),
-      ),
-    );
+  }) async {
+    final count = await (update(buildJobs)..where((t) => t.id.equals(id)))
+        .write(
+          BuildJobsCompanion.custom(
+            runCount:
+                coalesce([buildJobs.runCount, const Constant(0)]) +
+                const Constant(1),
+            latestRunId: Constant(latestRunId),
+            updatedAt: Constant(updatedAt),
+          ),
+        );
+    if (count != 1) {
+      throw StateError(
+        'Failed to increment run count for build job $id: '
+        'expected 1 row to be updated, but updated $count.',
+      );
+    }
   }
 
   Future<void> insertBuildJobLog(String runId, String content) =>
