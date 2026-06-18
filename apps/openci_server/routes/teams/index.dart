@@ -89,8 +89,9 @@ Future<Response> _post(RequestContext context) async {
     );
   }
   final teamName = payload['name'] as String?;
+  final trimmedTeamName = teamName?.trim();
 
-  if (teamName == null || teamName.trim().isEmpty) {
+  if (trimmedTeamName == null || trimmedTeamName.isEmpty) {
     return Response.json(
       statusCode: HttpStatus.badRequest,
       body: {'success': false, 'error': 'name is required'},
@@ -103,7 +104,7 @@ Future<Response> _post(RequestContext context) async {
 
     final driftTeam = DriftTeam(
       id: teamId,
-      name: teamName,
+      name: trimmedTeamName,
       githubBaseUrl: null,
       githubApiBaseUrl: null,
       installationIds: const [],
