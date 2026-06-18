@@ -145,7 +145,7 @@ Future<Response> _post(
     } catch (e) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
-        body: {'success': false, 'error': 'Invalid JSON: $e'},
+        body: {'success': false, 'error': 'Invalid JSON'},
       );
     }
 
