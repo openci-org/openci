@@ -17,16 +17,16 @@ FutureOr<Response> onRequest(RequestContext context) {
 }
 
 Future<Response> _get(RequestContext context) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
+  String? uid;
   try {
+    final db = context.read<AppDatabase>();
+    uid = context.read<String?>();
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
+    }
     final driftTeams = await db.teamDao.getTeamsForUser(uid);
     final teams = <Team>[];
 
@@ -55,50 +55,50 @@ Future<Response> _get(RequestContext context) async {
 }
 
 Future<Response> _post(RequestContext context) async {
-  final db = context.read<AppDatabase>();
-  final uid = context.read<String?>();
-  if (uid == null) {
-    return Response.json(
-      statusCode: HttpStatus.forbidden,
-      body: {'success': false, 'error': 'Unauthorized'},
-    );
-  }
-
-  final Map<String, dynamic> payload;
   try {
-    final body = await context.request.body();
-    final decoded = jsonDecode(body);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Body must be a JSON object');
+    final db = context.read<AppDatabase>();
+    final uid = context.read<String?>();
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Unauthorized'},
+      );
     }
-    payload = decoded;
-  } catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {'success': false, 'error': 'Invalid JSON: $e'},
-    );
-  }
 
-  if (payload.containsKey('name') && payload['name'] is! String) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'name must be a string',
-      },
-    );
-  }
-  final teamName = payload['name'] as String?;
-  final trimmedTeamName = teamName?.trim();
+    final Map<String, dynamic> payload;
+    try {
+      final body = await context.request.body();
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Body must be a JSON object');
+      }
+      payload = decoded;
+    } catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid JSON: $e'},
+      );
+    }
 
-  if (trimmedTeamName == null || trimmedTeamName.isEmpty) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {'success': false, 'error': 'name is required'},
-    );
-  }
+    if (payload.containsKey('name') && payload['name'] is! String) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'name must be a string',
+        },
+      );
+    }
+    final teamName = payload['name'] as String?;
+    final trimmedTeamName = teamName?.trim();
 
-  try {
+    if (trimmedTeamName == null || trimmedTeamName.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'name is required'},
+      );
+    }
+
     final teamId = const Uuid().v4();
     final now = DateTime.now().toUtc();
 
