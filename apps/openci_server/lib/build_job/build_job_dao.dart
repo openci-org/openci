@@ -20,6 +20,29 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
   Future<void> updateBuildJob(DriftBuildJob job) =>
       update(buildJobs).replace(job);
 
+  Future<void> incrementRunCount({
+    required String id,
+    required String latestRunId,
+    required DateTime updatedAt,
+  }) async {
+    final count = await (update(buildJobs)..where((t) => t.id.equals(id)))
+        .write(
+          BuildJobsCompanion.custom(
+            runCount:
+                coalesce([buildJobs.runCount, const Constant(0)]) +
+                const Constant(1),
+            latestRunId: Constant(latestRunId),
+            updatedAt: Constant(updatedAt),
+          ),
+        );
+    if (count != 1) {
+      throw StateError(
+        'Failed to increment run count for build job $id: '
+        'expected 1 row to be updated, but updated $count.',
+      );
+    }
+  }
+
   Future<void> insertBuildJobLog(String runId, String content) =>
       into(buildJobLogs).insert(
         BuildJobLogsCompanion.insert(
