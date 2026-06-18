@@ -39,7 +39,7 @@ void main() {
       final response = await http.get(Uri.parse('http://localhost:$port/'));
 
       expect(response.statusCode, equals(200));
-      expect(response.body, contains('OpenCI Server (Shelf) is running!'));
+      expect(response.body, contains('OpenCI Server is running!'));
     });
 
     test('GET /invalid-path returns 404 via actual HTTP request', () async {

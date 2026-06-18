@@ -31,7 +31,7 @@ void main() {
       expect(response.statusCode, equals(200));
       expect(
         await response.readAsString(),
-        contains('OpenCI Server (Shelf) is running!'),
+        contains('OpenCI Server is running!'),
       );
     });
 
