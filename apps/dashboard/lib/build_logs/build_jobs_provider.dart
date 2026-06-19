@@ -1,9 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -23,26 +26,51 @@ class BuildJobs extends _$BuildJobs {
       return;
     }
 
-    final query = firestore
-        .collection(buildJobsCollection)
-        .where('teamId', isEqualTo: teamId)
-        .orderBy('createdAt', descending: true)
-        .limit(_buildJobsHistoryLimit);
+    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
+    if (serverUrl.isEmpty) {
+      throw UnimplementedError('OPENCI_SERVER_URL is not set');
+    }
 
-    final initialResult = await query.get();
-    final initialJobs = _sortedBuildJobs(
-      initialResult.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
-    );
-    yield initialJobs;
+    yield await _fetchBuildJobs(serverUrl, teamId);
 
-    yield* query.snapshots().map(
-      (result) {
-        final jobs = _sortedBuildJobs(
-          result.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
-        );
-        return jobs;
-      },
-    );
+    yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+      return _fetchBuildJobs(serverUrl, teamId);
+    });
+  }
+
+  Future<List<BuildJob>> _fetchBuildJobs(
+    String serverUrl,
+    String teamId,
+  ) async {
+    try {
+      final url = Uri.parse(
+        '$serverUrl/builds?teamId=$teamId&limit=$_buildJobsHistoryLimit',
+      );
+      final token = await ref.watch(firebaseIdTokenProvider.future);
+      if (token == null) return const [];
+
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) return const [];
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final items = data['buildJobs'] as List<dynamic>;
+      return items
+          .map(
+            (item) => BuildJob.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+    } catch (e, s) {
+      debugPrint('Error fetching build jobs: $e\n$s');
+      return const [];
+    }
   }
 
   Future<void> retryBuildJob(String buildJobId) async {
@@ -211,159 +239,133 @@ class OtaBuildJobs extends _$OtaBuildJobs {
       return;
     }
 
-    final query = firestore
-        .collection(buildJobsCollection)
-        .where('teamId', isEqualTo: teamId)
-        .where('hasIpa', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .limit(100);
+    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
+    if (serverUrl.isEmpty) {
+      throw UnimplementedError('OPENCI_SERVER_URL is not set');
+    }
 
-    final initialResult = await query.get();
-    final initialJobs = _sortedBuildJobs(
-      initialResult.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
-    );
-    yield initialJobs;
+    yield await _fetchOtaBuildJobs(serverUrl, teamId);
 
-    yield* query.snapshots().map(
-      (result) {
-        final jobs = _sortedBuildJobs(
-          result.docs.map((doc) => _buildJobFromData(doc.id, doc.data())),
-        );
-        return jobs;
-      },
-    );
+    yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+      return _fetchOtaBuildJobs(serverUrl, teamId);
+    });
+  }
+
+  Future<List<BuildJob>> _fetchOtaBuildJobs(
+    String serverUrl,
+    String teamId,
+  ) async {
+    try {
+      final url = Uri.parse(
+        '$serverUrl/builds?teamId=$teamId&hasIpa=true&limit=100',
+      );
+      final token = await ref.watch(firebaseIdTokenProvider.future);
+      if (token == null) return const [];
+
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) return const [];
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final items = data['buildJobs'] as List<dynamic>;
+      return items
+          .map(
+            (item) => BuildJob.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+    } catch (e, s) {
+      debugPrint('Error fetching ota build jobs: $e\n$s');
+      return const [];
+    }
   }
 }
 
 @riverpod
-Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) {
+Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
   final authState = ref.watch(authStateChangesProvider);
   if (authState.value == null) {
-    return Stream.value(null);
+    yield null;
+    return;
   }
 
-  return firestore
-      .collection(buildJobsCollection)
-      .doc(buildJobId)
-      .snapshots()
-      .map((snapshot) {
-        final job = _buildJobFromSnapshot(snapshot);
-        if (job != null && job.teamId != null) {
-          final userAsync = ref.read(userProvider);
-          userAsync.whenData((user) {
-            if (user.selectedTeamId != job.teamId) {
-              Future.microtask(() {
-                ref
-                    .read(userProvider.notifier)
-                    .updateSelectedTeamId(job.teamId!);
-              });
-            }
-          });
-        }
-        return job;
-      })
-      .handleError((error) {
-        debugPrint('Error loading build job in buildJobById: $error');
-        return null;
-      });
+  const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
+  if (serverUrl.isEmpty) {
+    throw UnimplementedError('OPENCI_SERVER_URL is not set');
+  }
+
+  Future<BuildJob?> fetchJob() async {
+    try {
+      final url = Uri.parse('$serverUrl/builds/$buildJobId');
+      final token = await ref.watch(firebaseIdTokenProvider.future);
+      if (token == null) return null;
+
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) return null;
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final job = BuildJob.fromJson(data);
+      if (job.teamId != null) {
+        final userAsync = ref.read(userProvider);
+        userAsync.whenData((user) {
+          if (user.selectedTeamId != job.teamId) {
+            Future.microtask(() {
+              ref.read(userProvider.notifier).updateSelectedTeamId(job.teamId!);
+            });
+          }
+        });
+      }
+      return job;
+    } catch (e, s) {
+      debugPrint('Error fetching build job by id: $e\n$s');
+      return null;
+    }
+  }
+
+  yield await fetchJob();
+
+  yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+    return fetchJob();
+  });
 }
 
 @riverpod
-Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) {
-  final runId = buildJob.latestRunId;
-  if (runId == null) {
-    return Stream.value(_durationFromBuildJob(buildJob));
+Stream<Duration?> runDuration(Ref ref, BuildJob buildJob) async* {
+  Duration? calculate() {
+    final completedAt = buildJob.completedAt;
+    if (completedAt != null) {
+      return _positiveDuration(buildJob.createdAt, completedAt);
+    }
+    if (buildJob.status == BuildJobStatus.IN_PROGRESS ||
+        buildJob.status == BuildJobStatus.QUEUED) {
+      return _positiveDuration(buildJob.createdAt, DateTime.now().toUtc());
+    }
+    return null;
   }
 
-  return firestore
-      .collection(buildJobsCollection)
-      .doc(buildJob.id)
-      .collection('runs')
-      .doc(runId)
-      .snapshots()
-      .map((snapshot) {
-        final data = snapshot.data();
-        final runStartedAt = _nullableDateTimeFromFirestore(data?['createdAt']);
-        final runUpdatedAt = _nullableDateTimeFromFirestore(data?['updatedAt']);
-        final runCompleted =
-            data?['status'] == 'completed' || data?['conclusion'] != null;
-        final runCompletedAt = runCompleted ? runUpdatedAt : null;
-        final completedAt = runCompletedAt ?? buildJob.completedAt;
-        if (runStartedAt != null && completedAt != null) {
-          return _positiveDuration(runStartedAt, completedAt);
-        }
-        return _durationFromBuildJob(buildJob);
-      });
-}
+  yield calculate();
 
-DateTime? _nullableDateTimeFromFirestore(Object? value) {
-  if (value == null) return null;
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
-  return null;
-}
-
-Duration? _durationFromBuildJob(BuildJob buildJob) {
-  final completedAt = buildJob.completedAt;
-  if (completedAt == null) return null;
-  return _positiveDuration(buildJob.createdAt, completedAt);
+  if (buildJob.completedAt == null) {
+    yield* Stream.periodic(const Duration(seconds: 1)).map((_) => calculate());
+  }
 }
 
 Duration? _positiveDuration(DateTime startedAt, DateTime completedAt) {
   final duration = completedAt.difference(startedAt);
   if (duration.isNegative || duration.inSeconds == 0) return null;
   return duration;
-}
-
-BuildJob? _buildJobFromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
-  final data = doc.data();
-  if (data == null) return null;
-  return _buildJobFromData(doc.id, data);
-}
-
-BuildJob _buildJobFromData(String id, Map<String, dynamic> job) {
-  return BuildJob(
-    id: id,
-    status: buildJobStatusFromFirestore(job['status']),
-    owner: job['owner'] as String? ?? '',
-    repo: job['repo'] as String? ?? '',
-    workflowName: job['workflowName'] as String,
-    teamId: job['teamId'] as String?,
-    workflowId: job['workflowId'] as String?,
-    workflowFileName: job['workflowFileName'] as String?,
-    commitSha: job['commitSha'] as String?,
-    pullRequestNumber: job['pullRequestNumber'] as int?,
-    runCount: job['runCount'] as int?,
-    latestRunId: job['latestRunId'] as String?,
-    tagName: job['tagName'] as String?,
-    branch: job['branch'] as String?,
-    jobKey: job['jobKey'] as String?,
-    workflowJobKey: job['workflowJobKey'] as String?,
-    matrix: (job['matrix'] as Map?)?.cast<String, Object?>(),
-    matrixLabel: job['matrixLabel'] as String?,
-    workflowRunId: job['workflowRunId'] as String?,
-    needs: (job['needs'] as List?)?.whereType<String>().toList(),
-    failureSummary: job['failureSummary'] as String?,
-    failureSummaryModel: job['failureSummaryModel'] as String?,
-    failureSummaryStatus: job['failureSummaryStatus'] as String?,
-    failureSummaryDurationMs: job['failureSummaryDurationMs'] as int?,
-    provisionedUdids: (job['provisionedUdids'] as List?)
-        ?.whereType<String>()
-        .toList(),
-    ipaUrl: job['ipaUrl'] as String?,
-    hasIpa: job['hasIpa'] as bool?,
-    bundleId: job['bundleId'] as String?,
-    ipaVersion: job['ipaVersion'] as String?,
-    appName: job['appName'] as String?,
-    createdAt: dateTimeFromFirestore(job['createdAt']),
-    updatedAt: dateTimeFromFirestore(job['updatedAt']),
-    completedAt: job['completedAt'] == null
-        ? null
-        : dateTimeFromFirestore(job['completedAt']),
-  );
-}
-
-List<BuildJob> _sortedBuildJobs(Iterable<BuildJob> jobs) {
-  return jobs.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }
