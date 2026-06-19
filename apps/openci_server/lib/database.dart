@@ -47,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
         if (from < 6) {
           await m.createTable(secrets);
         }
-        if (from < 7) {
+        if (from >= 2 && from < 7) {
           await m.addColumn(buildJobs, buildJobs.installationId);
           await m.addColumn(buildJobs, buildJobs.checkRunId);
         }
