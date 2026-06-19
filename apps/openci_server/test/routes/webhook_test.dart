@@ -312,6 +312,7 @@ jobs:
           headers: {
             'x-hub-signature-256': signature,
             'x-github-event': 'pull_request',
+            'x-github-delivery': 'test-delivery-id-123',
           },
         );
 
@@ -431,6 +432,7 @@ jobs:
           headers: {
             'x-hub-signature-256': signature,
             'x-github-event': 'push',
+            'x-github-delivery': 'test-delivery-id-456',
           },
         );
 
@@ -465,6 +467,151 @@ jobs:
           deploy.needs,
           containsAll(['build[target=ios]', 'build[target=android]']),
         );
+      },
+    );
+
+    test(
+      'returns early when webhook delivery has already been processed',
+      () async {
+        final prBody = jsonEncode({
+          'action': 'opened',
+          'number': 42,
+          'pull_request': {
+            'number': 42,
+            'id': 999,
+            'head': {
+              'sha': 'commit-sha-123',
+              'ref': 'feature-branch',
+            },
+            'base': {
+              'ref': 'main',
+            },
+          },
+          'repository': {
+            'id': 12345,
+            'name': 'openci-repo',
+            'owner': {
+              'id': 12345,
+              'login': 'openci-owner',
+              'avatar_url': 'https://github.com/avatar',
+              'html_url': 'https://github.com/openci-owner',
+            },
+          },
+          'installation': {
+            'id': 98765,
+          },
+        });
+
+        final mockClient = MockClient((request) async {
+          if (request.url.path.contains('/access_tokens')) {
+            return http.Response(
+              jsonEncode({
+                'token': 'mock-access-token-999',
+                'expires_at': '2026-06-19T20:00:00Z',
+              }),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/contents/.openci')) {
+            return http.Response(
+              jsonEncode([
+                {
+                  'name': 'build.yaml',
+                  'path': '.openci/build.yaml',
+                  'type': 'file',
+                },
+              ]),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/contents/.openci/build.yaml')) {
+            return http.Response(
+              '''
+name: CI Build
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello"
+''',
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/check-runs')) {
+            return http.Response(
+              jsonEncode({
+                'id': 54321,
+              }),
+              201,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+
+        final signature = computeSignature(prBody, testSecret);
+
+        // First call - should process successfully
+        final context1 = TestRequestContext(
+          path: '/webhook',
+          method: HttpMethod.post,
+          body: prBody,
+          headers: {
+            'x-hub-signature-256': signature,
+            'x-github-event': 'pull_request',
+            'x-github-delivery': 'test-delivery-id-789',
+          },
+        );
+
+        context1.provide<Map<String, String>>({
+          'GITHUB_WEBHOOK_SECRET': testSecret,
+          'GITHUB_APP_ID': '12345',
+          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+        });
+        context1.provide<AppDatabase>(db);
+        context1.provide<http.Client>(mockClient);
+
+        final response1 = await route.onRequest(context1.context);
+        expect(response1.statusCode, equals(HttpStatus.ok));
+        final resBody1 = await response1.json() as Map<String, dynamic>;
+        expect(resBody1['success'], isTrue);
+        expect(resBody1['message'], contains('Webhook processed'));
+
+        final jobs = await db.select(db.buildJobs).get();
+        expect(jobs, hasLength(1));
+
+        // Second call with same delivery ID - should return early without duplicating jobs
+        final context2 = TestRequestContext(
+          path: '/webhook',
+          method: HttpMethod.post,
+          body: prBody,
+          headers: {
+            'x-hub-signature-256': signature,
+            'x-github-event': 'pull_request',
+            'x-github-delivery': 'test-delivery-id-789',
+          },
+        );
+
+        context2.provide<Map<String, String>>({
+          'GITHUB_WEBHOOK_SECRET': testSecret,
+          'GITHUB_APP_ID': '12345',
+          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+        });
+        context2.provide<AppDatabase>(db);
+        context2.provide<http.Client>(mockClient);
+
+        final response2 = await route.onRequest(context2.context);
+        expect(response2.statusCode, equals(HttpStatus.ok));
+        final resBody2 = await response2.json() as Map<String, dynamic>;
+        expect(resBody2['success'], isTrue);
+        expect(resBody2['message'], contains('already processed'));
+
+        // DB job count should still be 1 (no duplicate creation)
+        final jobsAfter = await db.select(db.buildJobs).get();
+        expect(jobsAfter, hasLength(1));
       },
     );
   });

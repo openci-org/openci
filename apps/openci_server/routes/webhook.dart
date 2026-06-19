@@ -53,6 +53,27 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
 
+  final deliveryId = context.request.headers['x-github-delivery'];
+  if (deliveryId == null || deliveryId.isEmpty) {
+    return Response.json(
+      statusCode: HttpStatus.badRequest,
+      body: {'success': false, 'error': 'Missing x-github-delivery header'},
+    );
+  }
+
+  final db = context.read<AppDatabase>();
+  final exists = await (db.select(
+    db.processedWebhooks,
+  )..where((t) => t.deliveryId.equals(deliveryId))).getSingleOrNull();
+  if (exists != null) {
+    return Response.json(
+      body: {
+        'success': true,
+        'message': 'Webhook delivery already processed',
+      },
+    );
+  }
+
   final Map<String, dynamic> payload;
   try {
     payload = jsonDecode(rawBody) as Map<String, dynamic>;
@@ -82,7 +103,6 @@ Future<Response> onRequest(RequestContext context) async {
   }
   final installationId = installation['id'] as int;
 
-  final db = context.read<AppDatabase>();
   final team = await db.teamDao.getTeamByInstallationId(installationId);
   if (team == null) {
     stderr.writeln('Warning: No team found for installationId $installationId');
@@ -473,6 +493,16 @@ Future<Response> onRequest(RequestContext context) async {
         ),
       );
     }
+
+    // Mark delivery as processed in DB
+    await db
+        .into(db.processedWebhooks)
+        .insert(
+          ProcessedWebhooksCompanion.insert(
+            deliveryId: deliveryId,
+            processedAt: DateTime.now().toUtc(),
+          ),
+        );
 
     return Response.json(
       body: {
