@@ -8,6 +8,7 @@ environment:
 resolution: workspace
 
 dependencies:
+  crypto: ^3.0.3
   dart_frog: ^1.2.6
   drift: ^2.33.0
   drift_postgres: ^1.3.1
