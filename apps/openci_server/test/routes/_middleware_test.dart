@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:firebase_admin_sdk/auth.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
-import 'package:firebase_admin_sdk/src/auth.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
