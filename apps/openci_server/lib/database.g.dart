@@ -337,6 +337,28 @@ class $BuildJobsTable extends BuildJobs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _installationIdMeta = const VerificationMeta(
+    'installationId',
+  );
+  @override
+  late final GeneratedColumn<String> installationId = GeneratedColumn<String>(
+    'installation_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _checkRunIdMeta = const VerificationMeta(
+    'checkRunId',
+  );
+  @override
+  late final GeneratedColumn<String> checkRunId = GeneratedColumn<String>(
+    'check_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -404,6 +426,8 @@ class $BuildJobsTable extends BuildJobs
     appName,
     githubBaseUrl,
     githubApiBaseUrl,
+    installationId,
+    checkRunId,
     createdAt,
     updatedAt,
     completedAt,
@@ -632,6 +656,24 @@ class $BuildJobsTable extends BuildJobs
         ),
       );
     }
+    if (data.containsKey('installation_id')) {
+      context.handle(
+        _installationIdMeta,
+        installationId.isAcceptableOrUnknown(
+          data['installation_id']!,
+          _installationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('check_run_id')) {
+      context.handle(
+        _checkRunIdMeta,
+        checkRunId.isAcceptableOrUnknown(
+          data['check_run_id']!,
+          _checkRunIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -802,6 +844,14 @@ class $BuildJobsTable extends BuildJobs
         DriftSqlType.string,
         data['${effectivePrefix}github_api_base_url'],
       ),
+      installationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}installation_id'],
+      ),
+      checkRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}check_run_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -871,6 +921,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? appName;
   final String? githubBaseUrl;
   final String? githubApiBaseUrl;
+  final String? installationId;
+  final String? checkRunId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? completedAt;
@@ -907,6 +959,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.appName,
     this.githubBaseUrl,
     this.githubApiBaseUrl,
+    this.installationId,
+    this.checkRunId,
     required this.createdAt,
     required this.updatedAt,
     this.completedAt,
@@ -1012,6 +1066,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     if (!nullToAbsent || githubApiBaseUrl != null) {
       map['github_api_base_url'] = Variable<String>(githubApiBaseUrl);
     }
+    if (!nullToAbsent || installationId != null) {
+      map['installation_id'] = Variable<String>(installationId);
+    }
+    if (!nullToAbsent || checkRunId != null) {
+      map['check_run_id'] = Variable<String>(checkRunId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || completedAt != null) {
@@ -1108,6 +1168,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubApiBaseUrl: githubApiBaseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(githubApiBaseUrl),
+      installationId: installationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(installationId),
+      checkRunId: checkRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(checkRunId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       completedAt: completedAt == null && nullToAbsent
@@ -1164,6 +1230,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       appName: serializer.fromJson<String?>(json['appName']),
       githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
       githubApiBaseUrl: serializer.fromJson<String?>(json['githubApiBaseUrl']),
+      installationId: serializer.fromJson<String?>(json['installationId']),
+      checkRunId: serializer.fromJson<String?>(json['checkRunId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
@@ -1209,6 +1277,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'appName': serializer.toJson<String?>(appName),
       'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
       'githubApiBaseUrl': serializer.toJson<String?>(githubApiBaseUrl),
+      'installationId': serializer.toJson<String?>(installationId),
+      'checkRunId': serializer.toJson<String?>(checkRunId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
@@ -1248,6 +1318,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> appName = const Value.absent(),
     Value<String?> githubBaseUrl = const Value.absent(),
     Value<String?> githubApiBaseUrl = const Value.absent(),
+    Value<String?> installationId = const Value.absent(),
+    Value<String?> checkRunId = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> completedAt = const Value.absent(),
@@ -1306,6 +1378,10 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     githubApiBaseUrl: githubApiBaseUrl.present
         ? githubApiBaseUrl.value
         : this.githubApiBaseUrl,
+    installationId: installationId.present
+        ? installationId.value
+        : this.installationId,
+    checkRunId: checkRunId.present ? checkRunId.value : this.checkRunId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
@@ -1376,6 +1452,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubApiBaseUrl: data.githubApiBaseUrl.present
           ? data.githubApiBaseUrl.value
           : this.githubApiBaseUrl,
+      installationId: data.installationId.present
+          ? data.installationId.value
+          : this.installationId,
+      checkRunId: data.checkRunId.present
+          ? data.checkRunId.value
+          : this.checkRunId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       completedAt: data.completedAt.present
@@ -1419,6 +1501,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
           ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
+          ..write('installationId: $installationId, ')
+          ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('completedAt: $completedAt')
@@ -1460,6 +1544,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     appName,
     githubBaseUrl,
     githubApiBaseUrl,
+    installationId,
+    checkRunId,
     createdAt,
     updatedAt,
     completedAt,
@@ -1500,6 +1586,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.appName == this.appName &&
           other.githubBaseUrl == this.githubBaseUrl &&
           other.githubApiBaseUrl == this.githubApiBaseUrl &&
+          other.installationId == this.installationId &&
+          other.checkRunId == this.checkRunId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.completedAt == this.completedAt);
@@ -1538,6 +1626,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> appName;
   final Value<String?> githubBaseUrl;
   final Value<String?> githubApiBaseUrl;
+  final Value<String?> installationId;
+  final Value<String?> checkRunId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> completedAt;
@@ -1575,6 +1665,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
     this.githubApiBaseUrl = const Value.absent(),
+    this.installationId = const Value.absent(),
+    this.checkRunId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
@@ -1613,6 +1705,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
     this.githubApiBaseUrl = const Value.absent(),
+    this.installationId = const Value.absent(),
+    this.checkRunId = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.completedAt = const Value.absent(),
@@ -1657,6 +1751,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? appName,
     Expression<String>? githubBaseUrl,
     Expression<String>? githubApiBaseUrl,
+    Expression<String>? installationId,
+    Expression<String>? checkRunId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? completedAt,
@@ -1698,6 +1794,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (appName != null) 'app_name': appName,
       if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
       if (githubApiBaseUrl != null) 'github_api_base_url': githubApiBaseUrl,
+      if (installationId != null) 'installation_id': installationId,
+      if (checkRunId != null) 'check_run_id': checkRunId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (completedAt != null) 'completed_at': completedAt,
@@ -1738,6 +1836,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? appName,
     Value<String?>? githubBaseUrl,
     Value<String?>? githubApiBaseUrl,
+    Value<String?>? installationId,
+    Value<String?>? checkRunId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? completedAt,
@@ -1777,6 +1877,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       appName: appName ?? this.appName,
       githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
       githubApiBaseUrl: githubApiBaseUrl ?? this.githubApiBaseUrl,
+      installationId: installationId ?? this.installationId,
+      checkRunId: checkRunId ?? this.checkRunId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       completedAt: completedAt ?? this.completedAt,
@@ -1899,6 +2001,12 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     if (githubApiBaseUrl.present) {
       map['github_api_base_url'] = Variable<String>(githubApiBaseUrl.value);
     }
+    if (installationId.present) {
+      map['installation_id'] = Variable<String>(installationId.value);
+    }
+    if (checkRunId.present) {
+      map['check_run_id'] = Variable<String>(checkRunId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1949,6 +2057,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
           ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
+          ..write('installationId: $installationId, ')
+          ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('completedAt: $completedAt, ')
@@ -3851,6 +3961,8 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> appName,
       Value<String?> githubBaseUrl,
       Value<String?> githubApiBaseUrl,
+      Value<String?> installationId,
+      Value<String?> checkRunId,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> completedAt,
@@ -3890,6 +4002,8 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> appName,
       Value<String?> githubBaseUrl,
       Value<String?> githubApiBaseUrl,
+      Value<String?> installationId,
+      Value<String?> checkRunId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> completedAt,
@@ -4093,6 +4207,16 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get githubApiBaseUrl => $composableBuilder(
     column: $table.githubApiBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4306,6 +4430,16 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4460,6 +4594,16 @@ class $$BuildJobsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4557,6 +4701,8 @@ class $$BuildJobsTableTableManager
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
                 Value<String?> githubApiBaseUrl = const Value.absent(),
+                Value<String?> installationId = const Value.absent(),
+                Value<String?> checkRunId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
@@ -4594,6 +4740,8 @@ class $$BuildJobsTableTableManager
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
                 githubApiBaseUrl: githubApiBaseUrl,
+                installationId: installationId,
+                checkRunId: checkRunId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 completedAt: completedAt,
@@ -4633,6 +4781,8 @@ class $$BuildJobsTableTableManager
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
                 Value<String?> githubApiBaseUrl = const Value.absent(),
+                Value<String?> installationId = const Value.absent(),
+                Value<String?> checkRunId = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> completedAt = const Value.absent(),
@@ -4670,6 +4820,8 @@ class $$BuildJobsTableTableManager
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
                 githubApiBaseUrl: githubApiBaseUrl,
+                installationId: installationId,
+                checkRunId: checkRunId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 completedAt: completedAt,

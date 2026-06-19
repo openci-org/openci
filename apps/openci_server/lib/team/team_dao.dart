@@ -44,4 +44,14 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
       await (delete(teams)..where((t) => t.id.equals(teamId))).go();
     });
   }
+
+  Future<DriftTeam?> getTeamByInstallationId(int installationId) async {
+    final allTeams = await select(teams).get();
+    for (final team in allTeams) {
+      if (team.installationIds.contains(installationId)) {
+        return team;
+      }
+    }
+    return null;
+  }
 }

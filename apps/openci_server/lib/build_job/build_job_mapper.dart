@@ -44,7 +44,10 @@ extension DriftBuildJobMapper on DriftBuildJob {
 }
 
 extension BuildJobMapper on BuildJob {
-  DriftBuildJob toDrift() {
+  DriftBuildJob toDrift({
+    String? installationId,
+    String? checkRunId,
+  }) {
     return DriftBuildJob(
       id: id,
       status: status,
@@ -78,6 +81,8 @@ extension BuildJobMapper on BuildJob {
       appName: appName,
       githubBaseUrl: githubBaseUrl,
       githubApiBaseUrl: githubApiBaseUrl,
+      installationId: installationId,
+      checkRunId: checkRunId,
       createdAt: createdAt,
       updatedAt: updatedAt,
       completedAt: completedAt,
