@@ -141,4 +141,52 @@ void main() {
       expect(body['message'], equals('Signature verified'));
     });
   });
+
+  group('constantTimeCompare', () {
+    test('returns true for identical lists', () {
+      expect(
+        route.constantTimeCompare([1, 2, 3], [1, 2, 3]),
+        isTrue,
+      );
+    });
+
+    test('returns false for lists of different lengths', () {
+      expect(
+        route.constantTimeCompare([1, 2, 3], [1, 2]),
+        isFalse,
+      );
+      expect(
+        route.constantTimeCompare([1, 2], [1, 2, 3]),
+        isFalse,
+      );
+    });
+
+    test('returns false for lists with different values at the beginning', () {
+      expect(
+        route.constantTimeCompare([9, 2, 3], [1, 2, 3]),
+        isFalse,
+      );
+    });
+
+    test('returns false for lists with different values in the middle', () {
+      expect(
+        route.constantTimeCompare([1, 9, 3], [1, 2, 3]),
+        isFalse,
+      );
+    });
+
+    test('returns false for lists with different values at the end', () {
+      expect(
+        route.constantTimeCompare([1, 2, 9], [1, 2, 3]),
+        isFalse,
+      );
+    });
+
+    test('returns true for empty lists', () {
+      expect(
+        route.constantTimeCompare([], []),
+        isTrue,
+      );
+    });
+  });
 }

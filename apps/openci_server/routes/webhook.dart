@@ -41,7 +41,10 @@ Future<Response> onRequest(RequestContext context) async {
   final digest = hmacSha256.convert(rawBodyBytes);
   final computedSignature = digest.toString();
 
-  if (computedSignature != expectedSignature) {
+  final computedSignatureBytes = utf8.encode(computedSignature);
+  final expectedSignatureBytes = utf8.encode(expectedSignature);
+
+  if (!constantTimeCompare(computedSignatureBytes, expectedSignatureBytes)) {
     return Response.json(
       statusCode: HttpStatus.unauthorized,
       body: {'success': false, 'error': 'Signature mismatch'},
@@ -51,4 +54,16 @@ Future<Response> onRequest(RequestContext context) async {
   return Response.json(
     body: {'success': true, 'message': 'Signature verified'},
   );
+}
+
+bool constantTimeCompare(List<int> a, List<int> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+
+  var result = 0;
+  for (var i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result == 0;
 }
