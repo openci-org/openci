@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:github/hooks.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
@@ -41,18 +42,11 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   final rawBody = await context.request.body();
-  final rawBodyBytes = utf8.encode(rawBody);
-  final expectedSignature = signatureHeader.substring(7);
-
-  final key = utf8.encode(secret);
-  final hmacSha256 = Hmac(sha256, key);
-  final digest = hmacSha256.convert(rawBodyBytes);
-  final computedSignature = digest.toString();
-
-  final computedSignatureBytes = utf8.encode(computedSignature);
-  final expectedSignatureBytes = utf8.encode(expectedSignature);
-
-  if (!constantTimeCompare(computedSignatureBytes, expectedSignatureBytes)) {
+  if (!verifyWebhookSignature(
+    rawBody: rawBody,
+    signatureHeader: signatureHeader,
+    secret: secret,
+  )) {
     return Response.json(
       statusCode: HttpStatus.unauthorized,
       body: {'success': false, 'error': 'Signature mismatch'},
@@ -183,14 +177,24 @@ Future<Response> onRequest(RequestContext context) async {
   final String triggerType;
 
   if (eventType == 'pull_request') {
-    final pr = payload['pull_request'] as Map<String, dynamic>;
-    final repoMap = payload['repository'] as Map<String, dynamic>;
-    owner = repoMap['owner']['login'] as String;
-    repo = repoMap['name'] as String;
-    commitSha = pr['head']['sha'] as String;
-    branch = pr['head']['ref'] as String;
-    triggerBranch = pr['base']['ref'] as String;
-    pullRequestNumber = pr['number'] as int;
+    final event = PullRequestEvent.fromJson(payload);
+    final pr = event.pullRequest;
+    final repoMap = event.repository;
+    if (pr == null || repoMap == null) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Missing pull_request or repository data',
+        },
+      );
+    }
+    owner = repoMap.owner?.login ?? '';
+    repo = repoMap.name;
+    commitSha = pr.head?.sha ?? '';
+    branch = pr.head?.ref ?? '';
+    triggerBranch = pr.base?.ref;
+    pullRequestNumber = event.number;
     triggerType = 'pull_request';
   } else {
     // push event
@@ -267,105 +271,21 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
 
-  final extractedJobs = <ExtractedJob>[];
-  for (final file in yamlFiles) {
-    final path = file['path'] as String;
-    final name = file['name'] as String;
+  final fetchedFiles = await fetchWorkflowFiles(
+    yamlFiles: yamlFiles,
+    githubApiBaseUrl: githubApiBaseUrl,
+    owner: owner,
+    repo: repo,
+    commitSha: commitSha,
+    installationToken: installationToken,
+    httpClient: httpClient,
+  );
 
-    final fileUrl =
-        '$githubApiBaseUrl/repos/$owner/$repo/contents/$path?ref=$commitSha';
-    final fileResponse = await httpClient.get(
-      Uri.parse(fileUrl),
-      headers: {
-        'Authorization': 'token $installationToken',
-        'Accept': 'application/vnd.github.raw+json',
-        'User-Agent': 'OpenCI-Server',
-      },
-    );
-
-    if (fileResponse.statusCode >= 300) {
-      stderr.writeln(
-        'Warning: Failed to fetch file $path: ${fileResponse.statusCode}',
-      );
-      continue;
-    }
-
-    final fileContent = fileResponse.body;
-    try {
-      final parsed = loadYaml(fileContent);
-      if (parsed is! Map) {
-        stderr.writeln('Warning: YAML at $path is not an object');
-        continue;
-      }
-
-      final workflowName = parsed['name'] is String
-          ? parsed['name'] as String
-          : name.replaceAll(RegExp(r'\.(yaml|yml)$'), '');
-      if (!matchesTrigger(parsed, triggerType, triggerBranch)) {
-        continue;
-      }
-
-      final jobs = parsed['jobs'];
-      if (jobs is! Map) {
-        stderr.writeln(
-          'Warning: Workflow $name does not contain a valid jobs object',
-        );
-        continue;
-      }
-
-      for (final jobEntry in jobs.entries) {
-        final jobId = jobEntry.key.toString();
-        final spec = jobEntry.value;
-        if (spec is! Map) {
-          stderr.writeln('Warning: Job $jobId is not an object');
-          continue;
-        }
-
-        final matrixCells = expandMatrix(spec);
-        if (matrixCells != null) {
-          for (
-            var matrixIndex = 0;
-            matrixIndex < matrixCells.length;
-            matrixIndex++
-          ) {
-            final matrix = matrixCells[matrixIndex];
-            final expandedJobId = matrixInstanceKey(jobId, matrix);
-            final resolvedSpec =
-                resolveMatrixExpressions(spec, matrix) as Map<dynamic, dynamic>;
-
-            extractedJobs.add(
-              ExtractedJob(
-                workflowFileName: name,
-                workflowName: workflowName,
-                jobId: expandedJobId,
-                workflowJobKey: jobId,
-                spec: resolvedSpec,
-                matrix: matrix,
-                matrixLabel: matrixLabel(matrix),
-                matrixIndex: matrixIndex,
-                matrixGroupKey: '$name:$jobId',
-                matrixFailFast:
-                    (spec['strategy'] as Map?)?['fail-fast'] != false,
-              ),
-            );
-          }
-        } else {
-          extractedJobs.add(
-            ExtractedJob(
-              workflowFileName: name,
-              workflowName: workflowName,
-              jobId: jobId,
-              workflowJobKey: null,
-              spec: spec,
-            ),
-          );
-        }
-      }
-    } catch (e, s) {
-      stderr.writeln('Error parsing YAML at $path: $e\n$s');
-      continue;
-    }
-  }
+  final extractedJobs = parseWorkflowJobs(
+    files: fetchedFiles,
+    triggerType: triggerType,
+    triggerBranch: triggerBranch,
+  );
 
   if (extractedJobs.isEmpty) {
     return Response.json(
@@ -532,6 +452,168 @@ bool constantTimeCompare(List<int> a, List<int> b) {
     result |= a[i] ^ b[i];
   }
   return result == 0;
+}
+
+bool verifyWebhookSignature({
+  required String rawBody,
+  required String signatureHeader,
+  required String secret,
+}) {
+  if (!signatureHeader.startsWith('sha256=')) {
+    return false;
+  }
+  final expectedSignature = signatureHeader.substring(7);
+  final rawBodyBytes = utf8.encode(rawBody);
+
+  final key = utf8.encode(secret);
+  final hmacSha256 = Hmac(sha256, key);
+  final digest = hmacSha256.convert(rawBodyBytes);
+  final computedSignature = digest.toString();
+
+  final computedSignatureBytes = utf8.encode(computedSignature);
+  final expectedSignatureBytes = utf8.encode(expectedSignature);
+
+  return constantTimeCompare(computedSignatureBytes, expectedSignatureBytes);
+}
+
+class FetchedWorkflowFile {
+  final String name;
+  final String path;
+  final String content;
+
+  FetchedWorkflowFile({
+    required this.name,
+    required this.path,
+    required this.content,
+  });
+}
+
+Future<List<FetchedWorkflowFile>> fetchWorkflowFiles({
+  required List<Map<dynamic, dynamic>> yamlFiles,
+  required String githubApiBaseUrl,
+  required String owner,
+  required String repo,
+  required String commitSha,
+  required String installationToken,
+  required http.Client httpClient,
+}) async {
+  final fetched = <FetchedWorkflowFile>[];
+  for (final file in yamlFiles) {
+    final path = file['path'] as String;
+    final name = file['name'] as String;
+
+    final fileUrl =
+        '$githubApiBaseUrl/repos/$owner/$repo/contents/$path?ref=$commitSha';
+    final fileResponse = await httpClient.get(
+      Uri.parse(fileUrl),
+      headers: {
+        'Authorization': 'token $installationToken',
+        'Accept': 'application/vnd.github.raw+json',
+        'User-Agent': 'OpenCI-Server',
+      },
+    );
+
+    if (fileResponse.statusCode >= 300) {
+      stderr.writeln(
+        'Warning: Failed to fetch file $path: ${fileResponse.statusCode}',
+      );
+      continue;
+    }
+
+    fetched.add(
+      FetchedWorkflowFile(
+        name: name,
+        path: path,
+        content: fileResponse.body,
+      ),
+    );
+  }
+  return fetched;
+}
+
+List<ExtractedJob> parseWorkflowJobs({
+  required List<FetchedWorkflowFile> files,
+  required String triggerType,
+  required String? triggerBranch,
+}) {
+  final extractedJobs = <ExtractedJob>[];
+  for (final file in files) {
+    try {
+      final parsed = loadYaml(file.content);
+      if (parsed is! Map) {
+        stderr.writeln('Warning: YAML at ${file.path} is not an object');
+        continue;
+      }
+
+      final workflowName = parsed['name'] is String
+          ? parsed['name'] as String
+          : file.name.replaceAll(RegExp(r'\.(yaml|yml)$'), '');
+      if (!matchesTrigger(parsed, triggerType, triggerBranch)) {
+        continue;
+      }
+
+      final jobs = parsed['jobs'];
+      if (jobs is! Map) {
+        stderr.writeln(
+          'Warning: Workflow ${file.name} does not contain a valid jobs object',
+        );
+        continue;
+      }
+
+      for (final jobEntry in jobs.entries) {
+        final jobId = jobEntry.key.toString();
+        final spec = jobEntry.value;
+        if (spec is! Map) {
+          stderr.writeln('Warning: Job $jobId is not an object');
+          continue;
+        }
+
+        final matrixCells = expandMatrix(spec);
+        if (matrixCells != null) {
+          for (
+            var matrixIndex = 0;
+            matrixIndex < matrixCells.length;
+            matrixIndex++
+          ) {
+            final matrix = matrixCells[matrixIndex];
+            final expandedJobId = matrixInstanceKey(jobId, matrix);
+            final resolvedSpec =
+                resolveMatrixExpressions(spec, matrix) as Map<dynamic, dynamic>;
+
+            extractedJobs.add(
+              ExtractedJob(
+                workflowFileName: file.name,
+                workflowName: workflowName,
+                jobId: expandedJobId,
+                workflowJobKey: jobId,
+                spec: resolvedSpec,
+                matrix: matrix,
+                matrixLabel: matrixLabel(matrix),
+                matrixIndex: matrixIndex,
+                matrixGroupKey: '${file.name}:$jobId',
+                matrixFailFast:
+                    (spec['strategy'] as Map?)?['fail-fast'] != false,
+              ),
+            );
+          }
+        } else {
+          extractedJobs.add(
+            ExtractedJob(
+              workflowFileName: file.name,
+              workflowName: workflowName,
+              jobId: jobId,
+              workflowJobKey: null,
+              spec: spec,
+            ),
+          );
+        }
+      }
+    } catch (e, s) {
+      stderr.writeln('Error parsing YAML at ${file.path}: $e\n$s');
+      continue;
+    }
+  }
+  return extractedJobs;
 }
 
 // Extracted Job DTO

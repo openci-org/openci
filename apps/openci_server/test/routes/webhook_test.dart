@@ -231,6 +231,7 @@ void main() {
           'number': 42,
           'pull_request': {
             'number': 42,
+            'id': 999,
             'head': {
               'sha': 'commit-sha-123',
               'ref': 'feature-branch',
@@ -240,9 +241,13 @@ void main() {
             },
           },
           'repository': {
+            'id': 12345,
             'name': 'openci-repo',
             'owner': {
+              'id': 12345,
               'login': 'openci-owner',
+              'avatar_url': 'https://github.com/avatar',
+              'html_url': 'https://github.com/openci-owner',
             },
           },
           'installation': {

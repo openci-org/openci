@@ -23,6 +23,7 @@ dependencies:
   shelf_router: ^1.1.4
   uuid: ^4.5.3
   yaml: ^3.1.2
+  github: ^9.25.1
 
 dev_dependencies:
   build_runner: ^2.15.0
