@@ -12,24 +12,29 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
 
   Future<DriftBuildJob?> claimNextJob(String runsOnPattern) async {
     return db.transaction(() async {
-      final String sql;
-      final List<dynamic> args;
+      final String runsOnCondition;
       if (runsOnPattern.toLowerCase().contains('macos')) {
-        sql =
-            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (LOWER(runs_on) LIKE \$1) ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
-        args = ['%macos%'];
+        runsOnCondition = "LOWER(runs_on) LIKE '%macos%'";
       } else {
-        sql =
-            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (LOWER(runs_on) LIKE \$1 OR runs_on IS NULL OR runs_on = \'\') ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
-        args = ['%ubuntu%'];
+        runsOnCondition =
+            "LOWER(runs_on) LIKE '%ubuntu%' OR runs_on IS NULL OR runs_on = ''";
       }
 
-      final results = await db.executor.runSelect(sql, args);
+      final sql =
+          '''
+        SELECT * FROM build_jobs 
+        WHERE status = 'QUEUED' AND ($runsOnCondition) 
+        ORDER BY created_at ASC 
+        LIMIT 1 
+        FOR UPDATE SKIP LOCKED
+      ''';
+
+      final results = await db.customSelect(sql).get();
 
       if (results.isEmpty) return null;
 
       final row = results.first;
-      final job = buildJobs.map(row);
+      final job = buildJobs.map(row.data);
 
       final updated = job.copyWith(
         status: BuildJobStatus.IN_PROGRESS,

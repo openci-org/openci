@@ -40,12 +40,22 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
+    final env = Platform.environment;
+    final allowedUidsStr = env['ALLOWED_WORKER_UIDS'] ?? '';
+    final allowedUids = allowedUidsStr
+        .split(',')
+        .map((u) => u.trim())
+        .where((u) => u.isNotEmpty)
+        .toSet();
+
+    if (!allowedUids.contains(uid)) {
+      final isMember = await db.teamDao.isTeamMember(uid, teamId);
+      if (!isMember) {
+        return Response.json(
+          statusCode: HttpStatus.forbidden,
+          body: {'success': false, 'error': 'Forbidden'},
+        );
+      }
     }
 
     final runs = await db.buildRunDao.getBuildRuns(id);
@@ -145,12 +155,22 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
+    final env = Platform.environment;
+    final allowedUidsStr = env['ALLOWED_WORKER_UIDS'] ?? '';
+    final allowedUids = allowedUidsStr
+        .split(',')
+        .map((u) => u.trim())
+        .where((u) => u.isNotEmpty)
+        .toSet();
+
+    if (!allowedUids.contains(uid)) {
+      final isMember = await db.teamDao.isTeamMember(uid, teamId);
+      if (!isMember) {
+        return Response.json(
+          statusCode: HttpStatus.forbidden,
+          body: {'success': false, 'error': 'Forbidden'},
+        );
+      }
     }
 
     final now = DateTime.now().toUtc();
