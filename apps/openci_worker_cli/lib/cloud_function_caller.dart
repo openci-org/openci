@@ -267,6 +267,25 @@ class ApiClient {
     String runStatus, {
     String? conclusion,
   }) async {
+    if (serverUrl != null && serverUrl!.isNotEmpty) {
+      final url = Uri.parse('$serverUrl/builds/${buildJob.id}/check-run');
+      final idToken = await authManager.getIdToken();
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({'runStatus': runStatus, 'conclusion': ?conclusion}),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      }
+      throw HttpException(
+        'Failed to update check run on server: ${response.statusCode} ${response.body}',
+      );
+    }
+
     await callApi('update-check-run', {
       'buildJob': buildJob.toJson(),
       'runStatus': runStatus,
@@ -279,6 +298,25 @@ class ApiClient {
     BuildJob buildJob,
     String status,
   ) async {
+    if (serverUrl != null && serverUrl!.isNotEmpty) {
+      final url = Uri.parse('$serverUrl/builds/${buildJob.id}/status-change');
+      final idToken = await authManager.getIdToken();
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({'status': status}),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      }
+      throw HttpException(
+        'Failed to process status change on server: ${response.statusCode} ${response.body}',
+      );
+    }
+
     await callApi('handle-build-job-status-change', {
       'buildJob': buildJob.toJson(),
       'status': status,
