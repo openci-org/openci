@@ -311,4 +311,241 @@ void main() {
       },
     );
   });
+
+  group('GET /builds', () {
+    test('responds with 401 Unauthorized when uid is null', () async {
+      final context = TestRequestContext(
+        path: '/builds?teamId=team-xyz',
+        method: HttpMethod.get,
+      );
+
+      context.provide<AppDatabase>(db);
+      context.provide<String?>(null);
+
+      final response = await route.onRequest(context.context);
+
+      expect(response.statusCode, equals(HttpStatus.unauthorized));
+    });
+
+    test(
+      'responds with 400 Bad Request when teamId parameter is missing',
+      () async {
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.get,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Missing teamId parameter'));
+      },
+    );
+
+    test(
+      'responds with 403 Forbidden when user is not a member of the team',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-abc');
+
+        final context = TestRequestContext(
+          path: '/builds?teamId=team-xyz',
+          method: HttpMethod.get,
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+      },
+    );
+
+    test('responds with 200 OK and returns build jobs for the team', () async {
+      final team = DriftTeam(
+        id: 'team-xyz',
+        name: 'Team XYZ',
+        githubBaseUrl: null,
+        githubApiBaseUrl: null,
+        installationIds: const [],
+        runNumber: 1,
+        aiEnabled: true,
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
+      );
+
+      await db.teamDao.createTeamAndMember(team, 'user-123');
+
+      final now = DateTime.now().toUtc();
+      final job1 = DriftBuildJob(
+        id: 'job-1',
+        status: BuildJobStatus.QUEUED,
+        owner: 'owner',
+        repo: 'repo',
+        workflowName: 'workflow',
+        teamId: 'team-xyz',
+        hasIpa: false,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final job2 = DriftBuildJob(
+        id: 'job-2',
+        status: BuildJobStatus.SUCCESS,
+        owner: 'owner',
+        repo: 'repo',
+        workflowName: 'workflow',
+        teamId: 'team-xyz',
+        hasIpa: true,
+        createdAt: now.add(const Duration(seconds: 1)),
+        updatedAt: now.add(const Duration(seconds: 1)),
+      );
+      final jobOther = DriftBuildJob(
+        id: 'job-other',
+        status: BuildJobStatus.QUEUED,
+        owner: 'owner',
+        repo: 'repo',
+        workflowName: 'workflow',
+        teamId: 'team-other',
+        hasIpa: false,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await db.buildJobDao.insertBuildJob(job1);
+      await db.buildJobDao.insertBuildJob(job2);
+      await db.buildJobDao.insertBuildJob(jobOther);
+
+      // Query all jobs for team-xyz
+      final contextAll = TestRequestContext(
+        path: '/builds?teamId=team-xyz',
+        method: HttpMethod.get,
+      );
+      contextAll.provide<AppDatabase>(db);
+      contextAll.provide<String?>('user-123');
+
+      final responseAll = await route.onRequest(contextAll.context);
+      expect(responseAll.statusCode, equals(HttpStatus.ok));
+      final bodyAll = await responseAll.json() as Map<String, dynamic>;
+      expect(bodyAll['success'], isTrue);
+      final listAll = bodyAll['buildJobs'] as List<dynamic>;
+      expect(listAll, hasLength(2));
+      expect(
+        listAll[0]['id'],
+        equals('job-2'),
+      ); // ordered descending by createdAt
+      expect(listAll[1]['id'], equals('job-1'));
+
+      // Query jobs with hasIpa=true
+      final contextIpa = TestRequestContext(
+        path: '/builds?teamId=team-xyz&hasIpa=true',
+        method: HttpMethod.get,
+      );
+      contextIpa.provide<AppDatabase>(db);
+      contextIpa.provide<String?>('user-123');
+
+      final responseIpa = await route.onRequest(contextIpa.context);
+      expect(responseIpa.statusCode, equals(HttpStatus.ok));
+      final bodyIpa = await responseIpa.json() as Map<String, dynamic>;
+      final listIpa = bodyIpa['buildJobs'] as List<dynamic>;
+      expect(listIpa, hasLength(1));
+      expect(listIpa[0]['id'], equals('job-2'));
+    });
+
+    test('responds with 400 Bad Request when hasIpa parameter is invalid', () async {
+      final team = DriftTeam(
+        id: 'team-xyz',
+        name: 'Team XYZ',
+        githubBaseUrl: null,
+        githubApiBaseUrl: null,
+        installationIds: const [],
+        runNumber: 1,
+        aiEnabled: true,
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
+      );
+
+      await db.teamDao.createTeamAndMember(team, 'user-123');
+
+      final context = TestRequestContext(
+        path: '/builds?teamId=team-xyz&hasIpa=invalid',
+        method: HttpMethod.get,
+      );
+      context.provide<AppDatabase>(db);
+      context.provide<String?>('user-123');
+
+      final response = await route.onRequest(context.context);
+      expect(response.statusCode, equals(HttpStatus.badRequest));
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['success'], isFalse);
+      expect(body['error'], contains('Invalid hasIpa parameter'));
+    });
+
+    test('responds with 400 Bad Request when limit parameter is invalid', () async {
+      final team = DriftTeam(
+        id: 'team-xyz',
+        name: 'Team XYZ',
+        githubBaseUrl: null,
+        githubApiBaseUrl: null,
+        installationIds: const [],
+        runNumber: 1,
+        aiEnabled: true,
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
+      );
+
+      await db.teamDao.createTeamAndMember(team, 'user-123');
+
+      // Test with non-integer limit
+      final contextInvalidString = TestRequestContext(
+        path: '/builds?teamId=team-xyz&limit=abc',
+        method: HttpMethod.get,
+      );
+      contextInvalidString.provide<AppDatabase>(db);
+      contextInvalidString.provide<String?>('user-123');
+
+      final responseInvalidString = await route.onRequest(contextInvalidString.context);
+      expect(responseInvalidString.statusCode, equals(HttpStatus.badRequest));
+      final bodyInvalidString = await responseInvalidString.json() as Map<String, dynamic>;
+      expect(bodyInvalidString['error'], contains('Invalid limit parameter'));
+
+      // Test with limit < 1
+      final contextZero = TestRequestContext(
+        path: '/builds?teamId=team-xyz&limit=0',
+        method: HttpMethod.get,
+      );
+      contextZero.provide<AppDatabase>(db);
+      contextZero.provide<String?>('user-123');
+
+      final responseZero = await route.onRequest(contextZero.context);
+      expect(responseZero.statusCode, equals(HttpStatus.badRequest));
+
+      // Test with limit > 200
+      final contextTooLarge = TestRequestContext(
+        path: '/builds?teamId=team-xyz&limit=201',
+        method: HttpMethod.get,
+      );
+      contextTooLarge.provide<AppDatabase>(db);
+      contextTooLarge.provide<String?>('user-123');
+
+      final responseTooLarge = await route.onRequest(contextTooLarge.context);
+      expect(responseTooLarge.statusCode, equals(HttpStatus.badRequest));
+    });
+  });
 }
