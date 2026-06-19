@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.40
+
+- Feature: Support connecting directly to `openci_server` (via `OPENCI_SERVER_URL`) for claiming jobs, resolving installation tokens, and managing run/job statuses.
+
 ## 0.10.39
 
 - Fix: Bump avf_dart to 0.1.26 to resolve the issue where the worker immediately terminates the VM boot sequence on encountering a temporary missing DHCP leases file during startup.

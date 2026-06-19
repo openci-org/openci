@@ -49,6 +49,7 @@ abstract class BuildJob with _$BuildJob {
     String? matrixLabel,
     String? workflowRunId,
     List<String>? needs,
+    String? runsOn,
     String? failureSummary,
     String? failureSummaryModel,
     String? failureSummaryStatus,
