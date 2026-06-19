@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_shared/openci_shared.dart';
 
 part 'build_job_dao.g.dart';
 
@@ -8,6 +9,42 @@ part 'build_job_dao.g.dart';
 class BuildJobDao extends DatabaseAccessor<AppDatabase>
     with _$BuildJobDaoMixin {
   BuildJobDao(super.attachedDatabase);
+
+  Future<DriftBuildJob?> claimNextJob(String runsOnPattern) async {
+    return db.transaction(() async {
+      final String sql;
+      final List<Variable> vars;
+      if (runsOnPattern.toLowerCase().contains('macos')) {
+        sql =
+            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (runs_on ILIKE ?) ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
+        vars = [Variable<String>('%macos%')];
+      } else {
+        sql =
+            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (runs_on ILIKE ? OR runs_on IS NULL OR runs_on = \'\') ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
+        vars = [Variable<String>('%ubuntu%')];
+      }
+
+      final results = await db
+          .customSelect(
+            sql,
+            variables: vars,
+          )
+          .get();
+
+      if (results.isEmpty) return null;
+
+      final row = results.first;
+      final job = buildJobs.map(row.data);
+
+      final updated = job.copyWith(
+        status: BuildJobStatus.IN_PROGRESS,
+        updatedAt: DateTime.now().toUtc(),
+      );
+      await updateBuildJob(updated);
+
+      return updated;
+    });
+  }
 
   Future<void> insertBuildJob(DriftBuildJob job) => into(buildJobs).insert(job);
 

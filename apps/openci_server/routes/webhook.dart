@@ -480,6 +480,7 @@ Future<Response> onRequest(RequestContext context) async {
         matrixLabel: job.matrixLabel,
         workflowRunId: workflowRunId,
         needs: needs.isEmpty ? null : needs,
+        runsOn: job.spec['runs-on']?.toString(),
         githubBaseUrl: githubBaseUrl,
         githubApiBaseUrl: githubApiBaseUrl,
         createdAt: DateTime.now().toUtc(),

@@ -211,6 +211,15 @@ class $BuildJobsTable extends BuildJobs
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       ).withConverter<List<String>?>($BuildJobsTable.$converterneedsn);
+  static const VerificationMeta _runsOnMeta = const VerificationMeta('runsOn');
+  @override
+  late final GeneratedColumn<String> runsOn = GeneratedColumn<String>(
+    'runs_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _failureSummaryMeta = const VerificationMeta(
     'failureSummary',
   );
@@ -414,6 +423,7 @@ class $BuildJobsTable extends BuildJobs
     matrixLabel,
     workflowRunId,
     needs,
+    runsOn,
     failureSummary,
     failureSummaryModel,
     failureSummaryStatus,
@@ -570,6 +580,12 @@ class $BuildJobsTable extends BuildJobs
           data['workflow_run_id']!,
           _workflowRunIdMeta,
         ),
+      );
+    }
+    if (data.containsKey('runs_on')) {
+      context.handle(
+        _runsOnMeta,
+        runsOn.isAcceptableOrUnknown(data['runs_on']!, _runsOnMeta),
       );
     }
     if (data.containsKey('failure_summary')) {
@@ -794,6 +810,10 @@ class $BuildJobsTable extends BuildJobs
           data['${effectivePrefix}needs'],
         ),
       ),
+      runsOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}runs_on'],
+      ),
       failureSummary: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}failure_summary'],
@@ -909,6 +929,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? matrixLabel;
   final String? workflowRunId;
   final List<String>? needs;
+  final String? runsOn;
   final String? failureSummary;
   final String? failureSummaryModel;
   final String? failureSummaryStatus;
@@ -947,6 +968,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.matrixLabel,
     this.workflowRunId,
     this.needs,
+    this.runsOn,
     this.failureSummary,
     this.failureSummaryModel,
     this.failureSummaryStatus,
@@ -1025,6 +1047,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       map['needs'] = Variable<String>(
         $BuildJobsTable.$converterneedsn.toSql(needs),
       );
+    }
+    if (!nullToAbsent || runsOn != null) {
+      map['runs_on'] = Variable<String>(runsOn);
     }
     if (!nullToAbsent || failureSummary != null) {
       map['failure_summary'] = Variable<String>(failureSummary);
@@ -1132,6 +1157,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       needs: needs == null && nullToAbsent
           ? const Value.absent()
           : Value(needs),
+      runsOn: runsOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(runsOn),
       failureSummary: failureSummary == null && nullToAbsent
           ? const Value.absent()
           : Value(failureSummary),
@@ -1210,6 +1238,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       matrixLabel: serializer.fromJson<String?>(json['matrixLabel']),
       workflowRunId: serializer.fromJson<String?>(json['workflowRunId']),
       needs: serializer.fromJson<List<String>?>(json['needs']),
+      runsOn: serializer.fromJson<String?>(json['runsOn']),
       failureSummary: serializer.fromJson<String?>(json['failureSummary']),
       failureSummaryModel: serializer.fromJson<String?>(
         json['failureSummaryModel'],
@@ -1263,6 +1292,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'matrixLabel': serializer.toJson<String?>(matrixLabel),
       'workflowRunId': serializer.toJson<String?>(workflowRunId),
       'needs': serializer.toJson<List<String>?>(needs),
+      'runsOn': serializer.toJson<String?>(runsOn),
       'failureSummary': serializer.toJson<String?>(failureSummary),
       'failureSummaryModel': serializer.toJson<String?>(failureSummaryModel),
       'failureSummaryStatus': serializer.toJson<String?>(failureSummaryStatus),
@@ -1306,6 +1336,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> matrixLabel = const Value.absent(),
     Value<String?> workflowRunId = const Value.absent(),
     Value<List<String>?> needs = const Value.absent(),
+    Value<String?> runsOn = const Value.absent(),
     Value<String?> failureSummary = const Value.absent(),
     Value<String?> failureSummaryModel = const Value.absent(),
     Value<String?> failureSummaryStatus = const Value.absent(),
@@ -1352,6 +1383,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
         ? workflowRunId.value
         : this.workflowRunId,
     needs: needs.present ? needs.value : this.needs,
+    runsOn: runsOn.present ? runsOn.value : this.runsOn,
     failureSummary: failureSummary.present
         ? failureSummary.value
         : this.failureSummary,
@@ -1424,6 +1456,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ? data.workflowRunId.value
           : this.workflowRunId,
       needs: data.needs.present ? data.needs.value : this.needs,
+      runsOn: data.runsOn.present ? data.runsOn.value : this.runsOn,
       failureSummary: data.failureSummary.present
           ? data.failureSummary.value
           : this.failureSummary,
@@ -1489,6 +1522,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('matrixLabel: $matrixLabel, ')
           ..write('workflowRunId: $workflowRunId, ')
           ..write('needs: $needs, ')
+          ..write('runsOn: $runsOn, ')
           ..write('failureSummary: $failureSummary, ')
           ..write('failureSummaryModel: $failureSummaryModel, ')
           ..write('failureSummaryStatus: $failureSummaryStatus, ')
@@ -1532,6 +1566,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     matrixLabel,
     workflowRunId,
     needs,
+    runsOn,
     failureSummary,
     failureSummaryModel,
     failureSummaryStatus,
@@ -1574,6 +1609,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.matrixLabel == this.matrixLabel &&
           other.workflowRunId == this.workflowRunId &&
           other.needs == this.needs &&
+          other.runsOn == this.runsOn &&
           other.failureSummary == this.failureSummary &&
           other.failureSummaryModel == this.failureSummaryModel &&
           other.failureSummaryStatus == this.failureSummaryStatus &&
@@ -1614,6 +1650,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> matrixLabel;
   final Value<String?> workflowRunId;
   final Value<List<String>?> needs;
+  final Value<String?> runsOn;
   final Value<String?> failureSummary;
   final Value<String?> failureSummaryModel;
   final Value<String?> failureSummaryStatus;
@@ -1653,6 +1690,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.matrixLabel = const Value.absent(),
     this.workflowRunId = const Value.absent(),
     this.needs = const Value.absent(),
+    this.runsOn = const Value.absent(),
     this.failureSummary = const Value.absent(),
     this.failureSummaryModel = const Value.absent(),
     this.failureSummaryStatus = const Value.absent(),
@@ -1693,6 +1731,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.matrixLabel = const Value.absent(),
     this.workflowRunId = const Value.absent(),
     this.needs = const Value.absent(),
+    this.runsOn = const Value.absent(),
     this.failureSummary = const Value.absent(),
     this.failureSummaryModel = const Value.absent(),
     this.failureSummaryStatus = const Value.absent(),
@@ -1739,6 +1778,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? matrixLabel,
     Expression<String>? workflowRunId,
     Expression<String>? needs,
+    Expression<String>? runsOn,
     Expression<String>? failureSummary,
     Expression<String>? failureSummaryModel,
     Expression<String>? failureSummaryStatus,
@@ -1779,6 +1819,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (matrixLabel != null) 'matrix_label': matrixLabel,
       if (workflowRunId != null) 'workflow_run_id': workflowRunId,
       if (needs != null) 'needs': needs,
+      if (runsOn != null) 'runs_on': runsOn,
       if (failureSummary != null) 'failure_summary': failureSummary,
       if (failureSummaryModel != null)
         'failure_summary_model': failureSummaryModel,
@@ -1824,6 +1865,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? matrixLabel,
     Value<String?>? workflowRunId,
     Value<List<String>?>? needs,
+    Value<String?>? runsOn,
     Value<String?>? failureSummary,
     Value<String?>? failureSummaryModel,
     Value<String?>? failureSummaryStatus,
@@ -1864,6 +1906,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       matrixLabel: matrixLabel ?? this.matrixLabel,
       workflowRunId: workflowRunId ?? this.workflowRunId,
       needs: needs ?? this.needs,
+      runsOn: runsOn ?? this.runsOn,
       failureSummary: failureSummary ?? this.failureSummary,
       failureSummaryModel: failureSummaryModel ?? this.failureSummaryModel,
       failureSummaryStatus: failureSummaryStatus ?? this.failureSummaryStatus,
@@ -1955,6 +1998,9 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
         $BuildJobsTable.$converterneedsn.toSql(needs.value),
       );
     }
+    if (runsOn.present) {
+      map['runs_on'] = Variable<String>(runsOn.value);
+    }
     if (failureSummary.present) {
       map['failure_summary'] = Variable<String>(failureSummary.value);
     }
@@ -2045,6 +2091,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('matrixLabel: $matrixLabel, ')
           ..write('workflowRunId: $workflowRunId, ')
           ..write('needs: $needs, ')
+          ..write('runsOn: $runsOn, ')
           ..write('failureSummary: $failureSummary, ')
           ..write('failureSummaryModel: $failureSummaryModel, ')
           ..write('failureSummaryStatus: $failureSummaryStatus, ')
@@ -4182,6 +4229,7 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> matrixLabel,
       Value<String?> workflowRunId,
       Value<List<String>?> needs,
+      Value<String?> runsOn,
       Value<String?> failureSummary,
       Value<String?> failureSummaryModel,
       Value<String?> failureSummaryStatus,
@@ -4223,6 +4271,7 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> matrixLabel,
       Value<String?> workflowRunId,
       Value<List<String>?> needs,
+      Value<String?> runsOn,
       Value<String?> failureSummary,
       Value<String?> failureSummaryModel,
       Value<String?> failureSummaryStatus,
@@ -4380,6 +4429,11 @@ class $$BuildJobsTableFilterComposer
   get needs => $composableBuilder(
     column: $table.needs,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get runsOn => $composableBuilder(
+    column: $table.runsOn,
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<String> get failureSummary => $composableBuilder(
@@ -4603,6 +4657,11 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get runsOn => $composableBuilder(
+    column: $table.runsOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get failureSummary => $composableBuilder(
     column: $table.failureSummary,
     builder: (column) => ColumnOrderings(column),
@@ -4774,6 +4833,9 @@ class $$BuildJobsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<List<String>?, String> get needs =>
       $composableBuilder(column: $table.needs, builder: (column) => column);
 
+  GeneratedColumn<String> get runsOn =>
+      $composableBuilder(column: $table.runsOn, builder: (column) => column);
+
   GeneratedColumn<String> get failureSummary => $composableBuilder(
     column: $table.failureSummary,
     builder: (column) => column,
@@ -4922,6 +4984,7 @@ class $$BuildJobsTableTableManager
                 Value<String?> matrixLabel = const Value.absent(),
                 Value<String?> workflowRunId = const Value.absent(),
                 Value<List<String>?> needs = const Value.absent(),
+                Value<String?> runsOn = const Value.absent(),
                 Value<String?> failureSummary = const Value.absent(),
                 Value<String?> failureSummaryModel = const Value.absent(),
                 Value<String?> failureSummaryStatus = const Value.absent(),
@@ -4961,6 +5024,7 @@ class $$BuildJobsTableTableManager
                 matrixLabel: matrixLabel,
                 workflowRunId: workflowRunId,
                 needs: needs,
+                runsOn: runsOn,
                 failureSummary: failureSummary,
                 failureSummaryModel: failureSummaryModel,
                 failureSummaryStatus: failureSummaryStatus,
@@ -5002,6 +5066,7 @@ class $$BuildJobsTableTableManager
                 Value<String?> matrixLabel = const Value.absent(),
                 Value<String?> workflowRunId = const Value.absent(),
                 Value<List<String>?> needs = const Value.absent(),
+                Value<String?> runsOn = const Value.absent(),
                 Value<String?> failureSummary = const Value.absent(),
                 Value<String?> failureSummaryModel = const Value.absent(),
                 Value<String?> failureSummaryStatus = const Value.absent(),
@@ -5041,6 +5106,7 @@ class $$BuildJobsTableTableManager
                 matrixLabel: matrixLabel,
                 workflowRunId: workflowRunId,
                 needs: needs,
+                runsOn: runsOn,
                 failureSummary: failureSummary,
                 failureSummaryModel: failureSummaryModel,
                 failureSummaryStatus: failureSummaryStatus,
