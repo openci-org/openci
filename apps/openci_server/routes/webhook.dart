@@ -144,15 +144,29 @@ Future<Response> onRequest(RequestContext context) async {
   try {
     final tokenUrl =
         '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
-    final tokenResponse = await httpClient.post(
-      Uri.parse(tokenUrl),
-      headers: {
-        'Authorization': 'Bearer $jwtToken',
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'OpenCI-Server',
-      },
-    );
+    final http.Response tokenResponse;
+    try {
+      tokenResponse = await httpClient
+          .post(
+            Uri.parse(tokenUrl),
+            headers: {
+              'Authorization': 'Bearer $jwtToken',
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'OpenCI-Server',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      stderr.writeln('Error: Access token request timed out or failed: $e');
+      return Response.json(
+        statusCode: HttpStatus.gatewayTimeout,
+        body: {
+          'success': false,
+          'error': 'GitHub API request timed out',
+        },
+      );
+    }
 
     if (tokenResponse.statusCode >= 300) {
       stderr.writeln(
@@ -224,14 +238,28 @@ Future<Response> onRequest(RequestContext context) async {
     // Fetch YAML files from .openci directory
     final contentsUrl =
         '$githubApiBaseUrl/repos/$owner/$repo/contents/.openci?ref=$commitSha';
-    final contentsResponse = await httpClient.get(
-      Uri.parse(contentsUrl),
-      headers: {
-        'Authorization': 'token $installationToken',
-        'Accept': 'application/vnd.github+json',
-        'User-Agent': 'OpenCI-Server',
-      },
-    );
+    final http.Response contentsResponse;
+    try {
+      contentsResponse = await httpClient
+          .get(
+            Uri.parse(contentsUrl),
+            headers: {
+              'Authorization': 'token $installationToken',
+              'Accept': 'application/vnd.github+json',
+              'User-Agent': 'OpenCI-Server',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      stderr.writeln('Error: Fetch contents request timed out or failed: $e');
+      return Response.json(
+        statusCode: HttpStatus.gatewayTimeout,
+        body: {
+          'success': false,
+          'error': 'GitHub API request timed out',
+        },
+      );
+    }
 
     if (contentsResponse.statusCode == 404) {
       return Response.json(
@@ -358,23 +386,39 @@ Future<Response> onRequest(RequestContext context) async {
           : job.workflowName;
 
       final checkRunUrl = '$githubApiBaseUrl/repos/$owner/$repo/check-runs';
-      final checkRunResponse = await httpClient.post(
-        Uri.parse(checkRunUrl),
-        headers: {
-          'Authorization': 'token $installationToken',
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'User-Agent': 'OpenCI-Server',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'name': checkRunName,
-          'head_sha': commitSha,
-          'status': 'queued',
-          'started_at': DateTime.now().toUtc().toIso8601String(),
-          'details_url': 'https://dashboard.openci.org/runs/$documentId',
-        }),
-      );
+      final http.Response checkRunResponse;
+      try {
+        checkRunResponse = await httpClient
+            .post(
+              Uri.parse(checkRunUrl),
+              headers: {
+                'Authorization': 'token $installationToken',
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'User-Agent': 'OpenCI-Server',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({
+                'name': checkRunName,
+                'head_sha': commitSha,
+                'status': 'queued',
+                'started_at': DateTime.now().toUtc().toIso8601String(),
+                'details_url': 'https://dashboard.openci.org/runs/$documentId',
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
+      } catch (e) {
+        stderr.writeln(
+          'Error: Create check run request timed out or failed: $e',
+        );
+        return Response.json(
+          statusCode: HttpStatus.gatewayTimeout,
+          body: {
+            'success': false,
+            'error': 'GitHub API request timed out',
+          },
+        );
+      }
 
       if (checkRunResponse.statusCode >= 300) {
         stderr.writeln(
@@ -518,14 +562,24 @@ Future<List<FetchedWorkflowFile>> fetchWorkflowFiles({
 
     final fileUrl =
         '$githubApiBaseUrl/repos/$owner/$repo/contents/$path?ref=$commitSha';
-    final fileResponse = await httpClient.get(
-      Uri.parse(fileUrl),
-      headers: {
-        'Authorization': 'token $installationToken',
-        'Accept': 'application/vnd.github.raw+json',
-        'User-Agent': 'OpenCI-Server',
-      },
-    );
+    final http.Response fileResponse;
+    try {
+      fileResponse = await httpClient
+          .get(
+            Uri.parse(fileUrl),
+            headers: {
+              'Authorization': 'token $installationToken',
+              'Accept': 'application/vnd.github.raw+json',
+              'User-Agent': 'OpenCI-Server',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      stderr.writeln(
+        'Warning: Failed to fetch file $path due to timeout or error: $e',
+      );
+      continue;
+    }
 
     if (fileResponse.statusCode >= 300) {
       stderr.writeln(
