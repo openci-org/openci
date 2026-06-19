@@ -33,7 +33,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'3a94a99bb0980e53fba156e3e44284917b7ae13c';
+String _$buildJobsHash() => r'800e66539f2d96f85d8c0a32f554ddde55132a07';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
@@ -77,7 +77,7 @@ final class OtaBuildJobsProvider
   OtaBuildJobs create() => OtaBuildJobs();
 }
 
-String _$otaBuildJobsHash() => r'a4b96a45c137b4616ceb764e3c0ade5590f93b76';
+String _$otaBuildJobsHash() => r'a57525e69d2400ee46f0c886a829ba8e547db116';
 
 abstract class _$OtaBuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
@@ -147,7 +147,7 @@ final class BuildJobByIdProvider
   }
 }
 
-String _$buildJobByIdHash() => r'a71c253c6271cfd89cb7ed98c56900e66b954b41';
+String _$buildJobByIdHash() => r'c1ce631e86c3f1e31b0b54f95492f262ee3b3302';
 
 final class BuildJobByIdFamily extends $Family
     with $FunctionalFamilyOverride<Stream<BuildJob?>, String> {
@@ -217,7 +217,7 @@ final class RunDurationProvider
   }
 }
 
-String _$runDurationHash() => r'1fe2804ef7376e6eec2a3a4ef20d17d6251c8af0';
+String _$runDurationHash() => r'ba337f70f379080b9c8bf5ccce034a8fa48bcfc2';
 
 final class RunDurationFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Duration?>, BuildJob> {
