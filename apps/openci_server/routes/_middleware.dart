@@ -5,14 +5,7 @@ import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
 
 final _db = AppDatabase();
-final FirebaseApp? _firebaseApp = () {
-  try {
-    return FirebaseApp.initializeApp();
-  } catch (e) {
-    stderr.writeln('FirebaseApp initialization skipped / failed: $e');
-    return null;
-  }
-}();
+final FirebaseApp _firebaseApp = FirebaseApp.initializeApp();
 
 Handler middleware(Handler handler) {
   return handler
@@ -26,15 +19,18 @@ Middleware databaseProvider(AppDatabase db) {
   return provider<AppDatabase>((context) => db);
 }
 
-Middleware authProvider(FirebaseApp? firebaseApp) {
+Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
   return (handler) {
     return (context) async {
       if (context.request.uri.path == '/') {
         return handler(context.provide<String?>(() => null));
       }
 
-      if (firebaseApp == null) {
+      if (firebaseApp == null && allowTestUid) {
         return handler(context.provide<String?>(() => 'test-uid'));
+      }
+      if (firebaseApp == null) {
+        return handler(context.provide<String?>(() => null));
       }
 
       final authHeader = context.request.headers['Authorization'];

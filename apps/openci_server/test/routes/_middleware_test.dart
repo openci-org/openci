@@ -116,29 +116,59 @@ void main() {
       when(() => mockContext.provide<String?>(any())).thenReturn(mockContext);
     });
 
-    test('provides test-uid when firebaseApp is null', () async {
-      final middleware = authProvider(null);
+    test(
+      'provides test-uid when firebaseApp is null and allowTestUid is true',
+      () async {
+        final middleware = authProvider(null, allowTestUid: true);
 
-      when(
-        () => mockRequest.uri,
-      ).thenReturn(Uri.parse('http://localhost/teams'));
+        when(
+          () => mockRequest.uri,
+        ).thenReturn(Uri.parse('http://localhost/teams'));
 
-      var handlerCalled = false;
-      final handler = middleware((context) {
-        handlerCalled = true;
-        return Response();
-      });
+        var handlerCalled = false;
+        final handler = middleware((context) {
+          handlerCalled = true;
+          return Response();
+        });
 
-      await handler(mockContext);
-      expect(handlerCalled, isTrue);
+        await handler(mockContext);
+        expect(handlerCalled, isTrue);
 
-      final captured =
-          verify(
-                () => mockContext.provide<String?>(captureAny()),
-              ).captured.single
-              as String? Function();
-      expect(captured(), equals('test-uid'));
-    });
+        final captured =
+            verify(
+                  () => mockContext.provide<String?>(captureAny()),
+                ).captured.single
+                as String? Function();
+        expect(captured(), equals('test-uid'));
+      },
+    );
+
+    test(
+      'provides null when firebaseApp is null and allowTestUid is false',
+      () async {
+        final middleware = authProvider(null, allowTestUid: false);
+
+        when(
+          () => mockRequest.uri,
+        ).thenReturn(Uri.parse('http://localhost/teams'));
+
+        var handlerCalled = false;
+        final handler = middleware((context) {
+          handlerCalled = true;
+          return Response();
+        });
+
+        await handler(mockContext);
+        expect(handlerCalled, isTrue);
+
+        final captured =
+            verify(
+                  () => mockContext.provide<String?>(captureAny()),
+                ).captured.single
+                as String? Function();
+        expect(captured(), isNull);
+      },
+    );
 
     test('provides null when path is root (/)', () async {
       final middleware = authProvider(null);
