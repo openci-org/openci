@@ -41,7 +41,19 @@ jobs:
             "client_email": "dummy@openci-dummy.iam.gserviceaccount.com"
           }' > firebase-service-account.json
 
+      - name: Create dummy GitHub Private Key for CI
+        run: |
+          echo "-----BEGIN PRIVATE KEY-----
+          MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBANiAAR187atVXowj
+          f+vCsYaoXkXkaxt1TPYiEa6r8NY1no2sQUa1X281FhNdYFlsCjAot4OBgGKe6GHx
+          R/qL2ifaSReCAf8DpqDi6SMMOjg+Owrya44E0Ld/SEVHyDy8PnLTmI2ijydhptjK
+          slf33subsequentlines
+          -----END PRIVATE KEY-----" > github-private-key.pem
+
       - name: Start services with Docker Compose
+        env:
+          GITHUB_WEBHOOK_SECRET: dummy_secret
+          GITHUB_APP_ID: 12345
         run: docker compose up --build -d
 
       - name: Wait for server to start
