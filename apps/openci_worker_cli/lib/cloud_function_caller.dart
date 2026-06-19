@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
@@ -188,10 +189,7 @@ class ApiClient {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
         },
-        body: jsonEncode({
-          'status': status,
-          if (conclusion != null) 'conclusion': conclusion,
-        }),
+        body: jsonEncode({'status': status, 'conclusion': ?conclusion}),
       );
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return;
@@ -205,7 +203,7 @@ class ApiClient {
       'buildJobId': buildJobId,
       'runId': runId,
       'status': status,
-      if (conclusion != null) 'conclusion': conclusion,
+      'conclusion': ?conclusion,
     });
   }
 
@@ -221,9 +219,7 @@ class ApiClient {
       final idToken = await authManager.getIdToken();
       final response = await http.get(
         url,
-        headers: {
-          'Authorization': 'Bearer $idToken',
-        },
+        headers: {'Authorization': 'Bearer $idToken'},
       );
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final job = jsonDecode(response.body) as Map<String, dynamic>;
@@ -274,7 +270,7 @@ class ApiClient {
     await callApi('update-check-run', {
       'buildJob': buildJob.toJson(),
       'runStatus': runStatus,
-      if (conclusion != null) 'conclusion': conclusion,
+      'conclusion': ?conclusion,
     });
   }
 
@@ -298,9 +294,7 @@ class ApiClient {
       final idToken = await authManager.getIdToken();
       final response = await http.get(
         url,
-        headers: {
-          'Authorization': 'Bearer $idToken',
-        },
+        headers: {'Authorization': 'Bearer $idToken'},
       );
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(response.body) as Map<String, dynamic>;
