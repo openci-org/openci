@@ -45,10 +45,30 @@ Future<Response> _get(RequestContext context) async {
     }
 
     final hasIpaParam = queryParams['hasIpa'];
-    final bool? hasIpa = hasIpaParam == null ? null : hasIpaParam == 'true';
+    bool? hasIpa;
+    if (hasIpaParam != null) {
+      if (hasIpaParam == 'true') {
+        hasIpa = true;
+      } else if (hasIpaParam == 'false') {
+        hasIpa = false;
+      } else {
+        return Response.json(
+          statusCode: HttpStatus.badRequest,
+          body: {'success': false, 'error': 'Invalid hasIpa parameter'},
+        );
+      }
+    }
 
     final limitParam = queryParams['limit'];
-    final limit = limitParam != null ? int.tryParse(limitParam) ?? 100 : 100;
+    const maxLimit = 200;
+    final parsedLimit = limitParam == null ? 100 : int.tryParse(limitParam);
+    if (parsedLimit == null || parsedLimit < 1 || parsedLimit > maxLimit) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid limit parameter'},
+      );
+    }
+    final limit = parsedLimit;
 
     final driftJobs = await db.buildJobDao.getBuildJobsForTeam(
       teamId: teamId,
