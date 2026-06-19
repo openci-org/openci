@@ -337,6 +337,28 @@ class $BuildJobsTable extends BuildJobs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _installationIdMeta = const VerificationMeta(
+    'installationId',
+  );
+  @override
+  late final GeneratedColumn<String> installationId = GeneratedColumn<String>(
+    'installation_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _checkRunIdMeta = const VerificationMeta(
+    'checkRunId',
+  );
+  @override
+  late final GeneratedColumn<String> checkRunId = GeneratedColumn<String>(
+    'check_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -404,6 +426,8 @@ class $BuildJobsTable extends BuildJobs
     appName,
     githubBaseUrl,
     githubApiBaseUrl,
+    installationId,
+    checkRunId,
     createdAt,
     updatedAt,
     completedAt,
@@ -632,6 +656,24 @@ class $BuildJobsTable extends BuildJobs
         ),
       );
     }
+    if (data.containsKey('installation_id')) {
+      context.handle(
+        _installationIdMeta,
+        installationId.isAcceptableOrUnknown(
+          data['installation_id']!,
+          _installationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('check_run_id')) {
+      context.handle(
+        _checkRunIdMeta,
+        checkRunId.isAcceptableOrUnknown(
+          data['check_run_id']!,
+          _checkRunIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -802,6 +844,14 @@ class $BuildJobsTable extends BuildJobs
         DriftSqlType.string,
         data['${effectivePrefix}github_api_base_url'],
       ),
+      installationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}installation_id'],
+      ),
+      checkRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}check_run_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -871,6 +921,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? appName;
   final String? githubBaseUrl;
   final String? githubApiBaseUrl;
+  final String? installationId;
+  final String? checkRunId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? completedAt;
@@ -907,6 +959,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.appName,
     this.githubBaseUrl,
     this.githubApiBaseUrl,
+    this.installationId,
+    this.checkRunId,
     required this.createdAt,
     required this.updatedAt,
     this.completedAt,
@@ -1012,6 +1066,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     if (!nullToAbsent || githubApiBaseUrl != null) {
       map['github_api_base_url'] = Variable<String>(githubApiBaseUrl);
     }
+    if (!nullToAbsent || installationId != null) {
+      map['installation_id'] = Variable<String>(installationId);
+    }
+    if (!nullToAbsent || checkRunId != null) {
+      map['check_run_id'] = Variable<String>(checkRunId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || completedAt != null) {
@@ -1108,6 +1168,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubApiBaseUrl: githubApiBaseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(githubApiBaseUrl),
+      installationId: installationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(installationId),
+      checkRunId: checkRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(checkRunId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       completedAt: completedAt == null && nullToAbsent
@@ -1164,6 +1230,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       appName: serializer.fromJson<String?>(json['appName']),
       githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
       githubApiBaseUrl: serializer.fromJson<String?>(json['githubApiBaseUrl']),
+      installationId: serializer.fromJson<String?>(json['installationId']),
+      checkRunId: serializer.fromJson<String?>(json['checkRunId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
@@ -1209,6 +1277,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'appName': serializer.toJson<String?>(appName),
       'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
       'githubApiBaseUrl': serializer.toJson<String?>(githubApiBaseUrl),
+      'installationId': serializer.toJson<String?>(installationId),
+      'checkRunId': serializer.toJson<String?>(checkRunId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
@@ -1248,6 +1318,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> appName = const Value.absent(),
     Value<String?> githubBaseUrl = const Value.absent(),
     Value<String?> githubApiBaseUrl = const Value.absent(),
+    Value<String?> installationId = const Value.absent(),
+    Value<String?> checkRunId = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> completedAt = const Value.absent(),
@@ -1306,6 +1378,10 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     githubApiBaseUrl: githubApiBaseUrl.present
         ? githubApiBaseUrl.value
         : this.githubApiBaseUrl,
+    installationId: installationId.present
+        ? installationId.value
+        : this.installationId,
+    checkRunId: checkRunId.present ? checkRunId.value : this.checkRunId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
@@ -1376,6 +1452,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubApiBaseUrl: data.githubApiBaseUrl.present
           ? data.githubApiBaseUrl.value
           : this.githubApiBaseUrl,
+      installationId: data.installationId.present
+          ? data.installationId.value
+          : this.installationId,
+      checkRunId: data.checkRunId.present
+          ? data.checkRunId.value
+          : this.checkRunId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       completedAt: data.completedAt.present
@@ -1419,6 +1501,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
           ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
+          ..write('installationId: $installationId, ')
+          ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('completedAt: $completedAt')
@@ -1460,6 +1544,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     appName,
     githubBaseUrl,
     githubApiBaseUrl,
+    installationId,
+    checkRunId,
     createdAt,
     updatedAt,
     completedAt,
@@ -1500,6 +1586,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.appName == this.appName &&
           other.githubBaseUrl == this.githubBaseUrl &&
           other.githubApiBaseUrl == this.githubApiBaseUrl &&
+          other.installationId == this.installationId &&
+          other.checkRunId == this.checkRunId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.completedAt == this.completedAt);
@@ -1538,6 +1626,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> appName;
   final Value<String?> githubBaseUrl;
   final Value<String?> githubApiBaseUrl;
+  final Value<String?> installationId;
+  final Value<String?> checkRunId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> completedAt;
@@ -1575,6 +1665,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
     this.githubApiBaseUrl = const Value.absent(),
+    this.installationId = const Value.absent(),
+    this.checkRunId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
@@ -1613,6 +1705,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
     this.githubApiBaseUrl = const Value.absent(),
+    this.installationId = const Value.absent(),
+    this.checkRunId = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.completedAt = const Value.absent(),
@@ -1657,6 +1751,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? appName,
     Expression<String>? githubBaseUrl,
     Expression<String>? githubApiBaseUrl,
+    Expression<String>? installationId,
+    Expression<String>? checkRunId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? completedAt,
@@ -1698,6 +1794,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (appName != null) 'app_name': appName,
       if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
       if (githubApiBaseUrl != null) 'github_api_base_url': githubApiBaseUrl,
+      if (installationId != null) 'installation_id': installationId,
+      if (checkRunId != null) 'check_run_id': checkRunId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (completedAt != null) 'completed_at': completedAt,
@@ -1738,6 +1836,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? appName,
     Value<String?>? githubBaseUrl,
     Value<String?>? githubApiBaseUrl,
+    Value<String?>? installationId,
+    Value<String?>? checkRunId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? completedAt,
@@ -1777,6 +1877,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       appName: appName ?? this.appName,
       githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
       githubApiBaseUrl: githubApiBaseUrl ?? this.githubApiBaseUrl,
+      installationId: installationId ?? this.installationId,
+      checkRunId: checkRunId ?? this.checkRunId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       completedAt: completedAt ?? this.completedAt,
@@ -1899,6 +2001,12 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     if (githubApiBaseUrl.present) {
       map['github_api_base_url'] = Variable<String>(githubApiBaseUrl.value);
     }
+    if (installationId.present) {
+      map['installation_id'] = Variable<String>(installationId.value);
+    }
+    if (checkRunId.present) {
+      map['check_run_id'] = Variable<String>(checkRunId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1949,6 +2057,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
           ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
+          ..write('installationId: $installationId, ')
+          ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('completedAt: $completedAt, ')
@@ -3767,6 +3877,236 @@ class SecretsCompanion extends UpdateCompanion<DriftSecret> {
   }
 }
 
+class $ProcessedWebhooksTable extends ProcessedWebhooks
+    with TableInfo<$ProcessedWebhooksTable, DriftProcessedWebhook> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProcessedWebhooksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _deliveryIdMeta = const VerificationMeta(
+    'deliveryId',
+  );
+  @override
+  late final GeneratedColumn<String> deliveryId = GeneratedColumn<String>(
+    'delivery_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _processedAtMeta = const VerificationMeta(
+    'processedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> processedAt = GeneratedColumn<DateTime>(
+    'processed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [deliveryId, processedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'processed_webhooks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftProcessedWebhook> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('delivery_id')) {
+      context.handle(
+        _deliveryIdMeta,
+        deliveryId.isAcceptableOrUnknown(data['delivery_id']!, _deliveryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deliveryIdMeta);
+    }
+    if (data.containsKey('processed_at')) {
+      context.handle(
+        _processedAtMeta,
+        processedAt.isAcceptableOrUnknown(
+          data['processed_at']!,
+          _processedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_processedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {deliveryId};
+  @override
+  DriftProcessedWebhook map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftProcessedWebhook(
+      deliveryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivery_id'],
+      )!,
+      processedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}processed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProcessedWebhooksTable createAlias(String alias) {
+    return $ProcessedWebhooksTable(attachedDatabase, alias);
+  }
+}
+
+class DriftProcessedWebhook extends DataClass
+    implements Insertable<DriftProcessedWebhook> {
+  final String deliveryId;
+  final DateTime processedAt;
+  const DriftProcessedWebhook({
+    required this.deliveryId,
+    required this.processedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['delivery_id'] = Variable<String>(deliveryId);
+    map['processed_at'] = Variable<DateTime>(processedAt);
+    return map;
+  }
+
+  ProcessedWebhooksCompanion toCompanion(bool nullToAbsent) {
+    return ProcessedWebhooksCompanion(
+      deliveryId: Value(deliveryId),
+      processedAt: Value(processedAt),
+    );
+  }
+
+  factory DriftProcessedWebhook.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftProcessedWebhook(
+      deliveryId: serializer.fromJson<String>(json['deliveryId']),
+      processedAt: serializer.fromJson<DateTime>(json['processedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'deliveryId': serializer.toJson<String>(deliveryId),
+      'processedAt': serializer.toJson<DateTime>(processedAt),
+    };
+  }
+
+  DriftProcessedWebhook copyWith({String? deliveryId, DateTime? processedAt}) =>
+      DriftProcessedWebhook(
+        deliveryId: deliveryId ?? this.deliveryId,
+        processedAt: processedAt ?? this.processedAt,
+      );
+  DriftProcessedWebhook copyWithCompanion(ProcessedWebhooksCompanion data) {
+    return DriftProcessedWebhook(
+      deliveryId: data.deliveryId.present
+          ? data.deliveryId.value
+          : this.deliveryId,
+      processedAt: data.processedAt.present
+          ? data.processedAt.value
+          : this.processedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftProcessedWebhook(')
+          ..write('deliveryId: $deliveryId, ')
+          ..write('processedAt: $processedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(deliveryId, processedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftProcessedWebhook &&
+          other.deliveryId == this.deliveryId &&
+          other.processedAt == this.processedAt);
+}
+
+class ProcessedWebhooksCompanion
+    extends UpdateCompanion<DriftProcessedWebhook> {
+  final Value<String> deliveryId;
+  final Value<DateTime> processedAt;
+  final Value<int> rowid;
+  const ProcessedWebhooksCompanion({
+    this.deliveryId = const Value.absent(),
+    this.processedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProcessedWebhooksCompanion.insert({
+    required String deliveryId,
+    required DateTime processedAt,
+    this.rowid = const Value.absent(),
+  }) : deliveryId = Value(deliveryId),
+       processedAt = Value(processedAt);
+  static Insertable<DriftProcessedWebhook> custom({
+    Expression<String>? deliveryId,
+    Expression<DateTime>? processedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (deliveryId != null) 'delivery_id': deliveryId,
+      if (processedAt != null) 'processed_at': processedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProcessedWebhooksCompanion copyWith({
+    Value<String>? deliveryId,
+    Value<DateTime>? processedAt,
+    Value<int>? rowid,
+  }) {
+    return ProcessedWebhooksCompanion(
+      deliveryId: deliveryId ?? this.deliveryId,
+      processedAt: processedAt ?? this.processedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (deliveryId.present) {
+      map['delivery_id'] = Variable<String>(deliveryId.value);
+    }
+    if (processedAt.present) {
+      map['processed_at'] = Variable<DateTime>(processedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProcessedWebhooksCompanion(')
+          ..write('deliveryId: $deliveryId, ')
+          ..write('processedAt: $processedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3776,6 +4116,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TeamsTable teams = $TeamsTable(this);
   late final $TeamMembersTable teamMembers = $TeamMembersTable(this);
   late final $SecretsTable secrets = $SecretsTable(this);
+  late final $ProcessedWebhooksTable processedWebhooks =
+      $ProcessedWebhooksTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -3790,6 +4132,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     teams,
     teamMembers,
     secrets,
+    processedWebhooks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3851,6 +4194,8 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> appName,
       Value<String?> githubBaseUrl,
       Value<String?> githubApiBaseUrl,
+      Value<String?> installationId,
+      Value<String?> checkRunId,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> completedAt,
@@ -3890,6 +4235,8 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> appName,
       Value<String?> githubBaseUrl,
       Value<String?> githubApiBaseUrl,
+      Value<String?> installationId,
+      Value<String?> checkRunId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> completedAt,
@@ -4093,6 +4440,16 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get githubApiBaseUrl => $composableBuilder(
     column: $table.githubApiBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4306,6 +4663,16 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4460,6 +4827,16 @@ class $$BuildJobsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4557,6 +4934,8 @@ class $$BuildJobsTableTableManager
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
                 Value<String?> githubApiBaseUrl = const Value.absent(),
+                Value<String?> installationId = const Value.absent(),
+                Value<String?> checkRunId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
@@ -4594,6 +4973,8 @@ class $$BuildJobsTableTableManager
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
                 githubApiBaseUrl: githubApiBaseUrl,
+                installationId: installationId,
+                checkRunId: checkRunId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 completedAt: completedAt,
@@ -4633,6 +5014,8 @@ class $$BuildJobsTableTableManager
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
                 Value<String?> githubApiBaseUrl = const Value.absent(),
+                Value<String?> installationId = const Value.absent(),
+                Value<String?> checkRunId = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> completedAt = const Value.absent(),
@@ -4670,6 +5053,8 @@ class $$BuildJobsTableTableManager
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
                 githubApiBaseUrl: githubApiBaseUrl,
+                installationId: installationId,
+                checkRunId: checkRunId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 completedAt: completedAt,
@@ -6312,6 +6697,166 @@ typedef $$SecretsTableProcessedTableManager =
       DriftSecret,
       PrefetchHooks Function({bool teamId})
     >;
+typedef $$ProcessedWebhooksTableCreateCompanionBuilder =
+    ProcessedWebhooksCompanion Function({
+      required String deliveryId,
+      required DateTime processedAt,
+      Value<int> rowid,
+    });
+typedef $$ProcessedWebhooksTableUpdateCompanionBuilder =
+    ProcessedWebhooksCompanion Function({
+      Value<String> deliveryId,
+      Value<DateTime> processedAt,
+      Value<int> rowid,
+    });
+
+class $$ProcessedWebhooksTableFilterComposer
+    extends Composer<_$AppDatabase, $ProcessedWebhooksTable> {
+  $$ProcessedWebhooksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get deliveryId => $composableBuilder(
+    column: $table.deliveryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get processedAt => $composableBuilder(
+    column: $table.processedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProcessedWebhooksTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProcessedWebhooksTable> {
+  $$ProcessedWebhooksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get deliveryId => $composableBuilder(
+    column: $table.deliveryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get processedAt => $composableBuilder(
+    column: $table.processedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProcessedWebhooksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProcessedWebhooksTable> {
+  $$ProcessedWebhooksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get deliveryId => $composableBuilder(
+    column: $table.deliveryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get processedAt => $composableBuilder(
+    column: $table.processedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ProcessedWebhooksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProcessedWebhooksTable,
+          DriftProcessedWebhook,
+          $$ProcessedWebhooksTableFilterComposer,
+          $$ProcessedWebhooksTableOrderingComposer,
+          $$ProcessedWebhooksTableAnnotationComposer,
+          $$ProcessedWebhooksTableCreateCompanionBuilder,
+          $$ProcessedWebhooksTableUpdateCompanionBuilder,
+          (
+            DriftProcessedWebhook,
+            BaseReferences<
+              _$AppDatabase,
+              $ProcessedWebhooksTable,
+              DriftProcessedWebhook
+            >,
+          ),
+          DriftProcessedWebhook,
+          PrefetchHooks Function()
+        > {
+  $$ProcessedWebhooksTableTableManager(
+    _$AppDatabase db,
+    $ProcessedWebhooksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProcessedWebhooksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProcessedWebhooksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProcessedWebhooksTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> deliveryId = const Value.absent(),
+                Value<DateTime> processedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProcessedWebhooksCompanion(
+                deliveryId: deliveryId,
+                processedAt: processedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String deliveryId,
+                required DateTime processedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ProcessedWebhooksCompanion.insert(
+                deliveryId: deliveryId,
+                processedAt: processedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProcessedWebhooksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProcessedWebhooksTable,
+      DriftProcessedWebhook,
+      $$ProcessedWebhooksTableFilterComposer,
+      $$ProcessedWebhooksTableOrderingComposer,
+      $$ProcessedWebhooksTableAnnotationComposer,
+      $$ProcessedWebhooksTableCreateCompanionBuilder,
+      $$ProcessedWebhooksTableUpdateCompanionBuilder,
+      (
+        DriftProcessedWebhook,
+        BaseReferences<
+          _$AppDatabase,
+          $ProcessedWebhooksTable,
+          DriftProcessedWebhook
+        >,
+      ),
+      DriftProcessedWebhook,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6328,4 +6873,6 @@ class $AppDatabaseManager {
       $$TeamMembersTableTableManager(_db, _db.teamMembers);
   $$SecretsTableTableManager get secrets =>
       $$SecretsTableTableManager(_db, _db.secrets);
+  $$ProcessedWebhooksTableTableManager get processedWebhooks =>
+      $$ProcessedWebhooksTableTableManager(_db, _db.processedWebhooks);
 }

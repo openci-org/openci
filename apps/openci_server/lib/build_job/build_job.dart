@@ -68,6 +68,9 @@ class BuildJobs extends Table {
   TextColumn get githubBaseUrl => text().nullable()();
   TextColumn get githubApiBaseUrl => text().nullable()();
 
+  TextColumn get installationId => text().nullable()();
+  TextColumn get checkRunId => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
