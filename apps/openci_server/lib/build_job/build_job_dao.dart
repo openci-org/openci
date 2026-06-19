@@ -13,28 +13,23 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
   Future<DriftBuildJob?> claimNextJob(String runsOnPattern) async {
     return db.transaction(() async {
       final String sql;
-      final List<Variable> vars;
+      final List<dynamic> args;
       if (runsOnPattern.toLowerCase().contains('macos')) {
         sql =
-            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (runs_on ILIKE ?) ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
-        vars = [Variable<String>('%macos%')];
+            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (LOWER(runs_on) LIKE \$1) ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
+        args = ['%macos%'];
       } else {
         sql =
-            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (runs_on ILIKE ? OR runs_on IS NULL OR runs_on = \'\') ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
-        vars = [Variable<String>('%ubuntu%')];
+            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (LOWER(runs_on) LIKE \$1 OR runs_on IS NULL OR runs_on = \'\') ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
+        args = ['%ubuntu%'];
       }
 
-      final results = await db
-          .customSelect(
-            sql,
-            variables: vars,
-          )
-          .get();
+      final results = await db.executor.runSelect(sql, args);
 
       if (results.isEmpty) return null;
 
       final row = results.first;
-      final job = buildJobs.map(row.data);
+      final job = buildJobs.map(row);
 
       final updated = job.copyWith(
         status: BuildJobStatus.IN_PROGRESS,
