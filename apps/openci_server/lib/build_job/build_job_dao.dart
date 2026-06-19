@@ -14,6 +14,23 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
   Future<DriftBuildJob?> getBuildJob(String id) =>
       (select(buildJobs)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  Future<List<DriftBuildJob>> getBuildJobsForTeam({
+    required String teamId,
+    bool? hasIpa,
+    int limit = 100,
+  }) {
+    final query = select(buildJobs)
+      ..where((t) => t.teamId.equals(teamId))
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+      ..limit(limit);
+
+    if (hasIpa != null) {
+      query.where((t) => t.hasIpa.equals(hasIpa));
+    }
+
+    return query.get();
+  }
+
   Stream<DriftBuildJob?> watchBuildJob(String id) =>
       (select(buildJobs)..where((t) => t.id.equals(id))).watchSingleOrNull();
 
