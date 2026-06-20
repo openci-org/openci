@@ -20,7 +20,7 @@ extension RequestContextJsonExtension on RequestContext {
         throw const FormatException('Body must be a JSON object');
       }
       return decoded;
-    } catch (e) {
+    } on FormatException catch (e) {
       throw BadRequestException('Invalid JSON format: $e');
     }
   }
