@@ -4154,6 +4154,572 @@ class ProcessedWebhooksCompanion
   }
 }
 
+class $WebhookTasksTable extends WebhookTasks
+    with TableInfo<$WebhookTasksTable, DriftWebhookTask> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WebhookTasksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deliveryIdMeta = const VerificationMeta(
+    'deliveryId',
+  );
+  @override
+  late final GeneratedColumn<String> deliveryId = GeneratedColumn<String>(
+    'delivery_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _retryCountMeta = const VerificationMeta(
+    'retryCount',
+  );
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+    'retry_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _errorMessageMeta = const VerificationMeta(
+    'errorMessage',
+  );
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+    'error_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    deliveryId,
+    eventType,
+    payload,
+    status,
+    retryCount,
+    errorMessage,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'webhook_tasks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftWebhookTask> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('delivery_id')) {
+      context.handle(
+        _deliveryIdMeta,
+        deliveryId.isAcceptableOrUnknown(data['delivery_id']!, _deliveryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deliveryIdMeta);
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTypeMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+        _retryCountMeta,
+        retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
+      );
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+        _errorMessageMeta,
+        errorMessage.isAcceptableOrUnknown(
+          data['error_message']!,
+          _errorMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftWebhookTask map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftWebhookTask(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      deliveryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivery_id'],
+      )!,
+      eventType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_type'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      retryCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retry_count'],
+      )!,
+      errorMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_message'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WebhookTasksTable createAlias(String alias) {
+    return $WebhookTasksTable(attachedDatabase, alias);
+  }
+}
+
+class DriftWebhookTask extends DataClass
+    implements Insertable<DriftWebhookTask> {
+  final String id;
+  final String deliveryId;
+  final String eventType;
+  final String payload;
+  final String status;
+  final int retryCount;
+  final String? errorMessage;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DriftWebhookTask({
+    required this.id,
+    required this.deliveryId,
+    required this.eventType,
+    required this.payload,
+    required this.status,
+    required this.retryCount,
+    this.errorMessage,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['delivery_id'] = Variable<String>(deliveryId);
+    map['event_type'] = Variable<String>(eventType);
+    map['payload'] = Variable<String>(payload);
+    map['status'] = Variable<String>(status);
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  WebhookTasksCompanion toCompanion(bool nullToAbsent) {
+    return WebhookTasksCompanion(
+      id: Value(id),
+      deliveryId: Value(deliveryId),
+      eventType: Value(eventType),
+      payload: Value(payload),
+      status: Value(status),
+      retryCount: Value(retryCount),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftWebhookTask.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftWebhookTask(
+      id: serializer.fromJson<String>(json['id']),
+      deliveryId: serializer.fromJson<String>(json['deliveryId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      payload: serializer.fromJson<String>(json['payload']),
+      status: serializer.fromJson<String>(json['status']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'deliveryId': serializer.toJson<String>(deliveryId),
+      'eventType': serializer.toJson<String>(eventType),
+      'payload': serializer.toJson<String>(payload),
+      'status': serializer.toJson<String>(status),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftWebhookTask copyWith({
+    String? id,
+    String? deliveryId,
+    String? eventType,
+    String? payload,
+    String? status,
+    int? retryCount,
+    Value<String?> errorMessage = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DriftWebhookTask(
+    id: id ?? this.id,
+    deliveryId: deliveryId ?? this.deliveryId,
+    eventType: eventType ?? this.eventType,
+    payload: payload ?? this.payload,
+    status: status ?? this.status,
+    retryCount: retryCount ?? this.retryCount,
+    errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftWebhookTask copyWithCompanion(WebhookTasksCompanion data) {
+    return DriftWebhookTask(
+      id: data.id.present ? data.id.value : this.id,
+      deliveryId: data.deliveryId.present
+          ? data.deliveryId.value
+          : this.deliveryId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      status: data.status.present ? data.status.value : this.status,
+      retryCount: data.retryCount.present
+          ? data.retryCount.value
+          : this.retryCount,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftWebhookTask(')
+          ..write('id: $id, ')
+          ..write('deliveryId: $deliveryId, ')
+          ..write('eventType: $eventType, ')
+          ..write('payload: $payload, ')
+          ..write('status: $status, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    deliveryId,
+    eventType,
+    payload,
+    status,
+    retryCount,
+    errorMessage,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftWebhookTask &&
+          other.id == this.id &&
+          other.deliveryId == this.deliveryId &&
+          other.eventType == this.eventType &&
+          other.payload == this.payload &&
+          other.status == this.status &&
+          other.retryCount == this.retryCount &&
+          other.errorMessage == this.errorMessage &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
+  final Value<String> id;
+  final Value<String> deliveryId;
+  final Value<String> eventType;
+  final Value<String> payload;
+  final Value<String> status;
+  final Value<int> retryCount;
+  final Value<String?> errorMessage;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const WebhookTasksCompanion({
+    this.id = const Value.absent(),
+    this.deliveryId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.status = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WebhookTasksCompanion.insert({
+    required String id,
+    required String deliveryId,
+    required String eventType,
+    required String payload,
+    this.status = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       deliveryId = Value(deliveryId),
+       eventType = Value(eventType),
+       payload = Value(payload),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DriftWebhookTask> custom({
+    Expression<String>? id,
+    Expression<String>? deliveryId,
+    Expression<String>? eventType,
+    Expression<String>? payload,
+    Expression<String>? status,
+    Expression<int>? retryCount,
+    Expression<String>? errorMessage,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (deliveryId != null) 'delivery_id': deliveryId,
+      if (eventType != null) 'event_type': eventType,
+      if (payload != null) 'payload': payload,
+      if (status != null) 'status': status,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (errorMessage != null) 'error_message': errorMessage,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WebhookTasksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? deliveryId,
+    Value<String>? eventType,
+    Value<String>? payload,
+    Value<String>? status,
+    Value<int>? retryCount,
+    Value<String?>? errorMessage,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return WebhookTasksCompanion(
+      id: id ?? this.id,
+      deliveryId: deliveryId ?? this.deliveryId,
+      eventType: eventType ?? this.eventType,
+      payload: payload ?? this.payload,
+      status: status ?? this.status,
+      retryCount: retryCount ?? this.retryCount,
+      errorMessage: errorMessage ?? this.errorMessage,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (deliveryId.present) {
+      map['delivery_id'] = Variable<String>(deliveryId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WebhookTasksCompanion(')
+          ..write('id: $id, ')
+          ..write('deliveryId: $deliveryId, ')
+          ..write('eventType: $eventType, ')
+          ..write('payload: $payload, ')
+          ..write('status: $status, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4165,9 +4731,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SecretsTable secrets = $SecretsTable(this);
   late final $ProcessedWebhooksTable processedWebhooks =
       $ProcessedWebhooksTable(this);
+  late final $WebhookTasksTable webhookTasks = $WebhookTasksTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
+  late final WebhookTaskDao webhookTaskDao = WebhookTaskDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4180,6 +4750,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     teamMembers,
     secrets,
     processedWebhooks,
+    webhookTasks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6923,6 +7494,288 @@ typedef $$ProcessedWebhooksTableProcessedTableManager =
       DriftProcessedWebhook,
       PrefetchHooks Function()
     >;
+typedef $$WebhookTasksTableCreateCompanionBuilder =
+    WebhookTasksCompanion Function({
+      required String id,
+      required String deliveryId,
+      required String eventType,
+      required String payload,
+      Value<String> status,
+      Value<int> retryCount,
+      Value<String?> errorMessage,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$WebhookTasksTableUpdateCompanionBuilder =
+    WebhookTasksCompanion Function({
+      Value<String> id,
+      Value<String> deliveryId,
+      Value<String> eventType,
+      Value<String> payload,
+      Value<String> status,
+      Value<int> retryCount,
+      Value<String?> errorMessage,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$WebhookTasksTableFilterComposer
+    extends Composer<_$AppDatabase, $WebhookTasksTable> {
+  $$WebhookTasksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deliveryId => $composableBuilder(
+    column: $table.deliveryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WebhookTasksTableOrderingComposer
+    extends Composer<_$AppDatabase, $WebhookTasksTable> {
+  $$WebhookTasksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deliveryId => $composableBuilder(
+    column: $table.deliveryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WebhookTasksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WebhookTasksTable> {
+  $$WebhookTasksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get deliveryId => $composableBuilder(
+    column: $table.deliveryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$WebhookTasksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WebhookTasksTable,
+          DriftWebhookTask,
+          $$WebhookTasksTableFilterComposer,
+          $$WebhookTasksTableOrderingComposer,
+          $$WebhookTasksTableAnnotationComposer,
+          $$WebhookTasksTableCreateCompanionBuilder,
+          $$WebhookTasksTableUpdateCompanionBuilder,
+          (
+            DriftWebhookTask,
+            BaseReferences<_$AppDatabase, $WebhookTasksTable, DriftWebhookTask>,
+          ),
+          DriftWebhookTask,
+          PrefetchHooks Function()
+        > {
+  $$WebhookTasksTableTableManager(_$AppDatabase db, $WebhookTasksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WebhookTasksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WebhookTasksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WebhookTasksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> deliveryId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WebhookTasksCompanion(
+                id: id,
+                deliveryId: deliveryId,
+                eventType: eventType,
+                payload: payload,
+                status: status,
+                retryCount: retryCount,
+                errorMessage: errorMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String deliveryId,
+                required String eventType,
+                required String payload,
+                Value<String> status = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => WebhookTasksCompanion.insert(
+                id: id,
+                deliveryId: deliveryId,
+                eventType: eventType,
+                payload: payload,
+                status: status,
+                retryCount: retryCount,
+                errorMessage: errorMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WebhookTasksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WebhookTasksTable,
+      DriftWebhookTask,
+      $$WebhookTasksTableFilterComposer,
+      $$WebhookTasksTableOrderingComposer,
+      $$WebhookTasksTableAnnotationComposer,
+      $$WebhookTasksTableCreateCompanionBuilder,
+      $$WebhookTasksTableUpdateCompanionBuilder,
+      (
+        DriftWebhookTask,
+        BaseReferences<_$AppDatabase, $WebhookTasksTable, DriftWebhookTask>,
+      ),
+      DriftWebhookTask,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6941,4 +7794,6 @@ class $AppDatabaseManager {
       $$SecretsTableTableManager(_db, _db.secrets);
   $$ProcessedWebhooksTableTableManager get processedWebhooks =>
       $$ProcessedWebhooksTableTableManager(_db, _db.processedWebhooks);
+  $$WebhookTasksTableTableManager get webhookTasks =>
+      $$WebhookTasksTableTableManager(_db, _db.webhookTasks);
 }

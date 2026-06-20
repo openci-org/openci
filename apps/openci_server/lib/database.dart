@@ -10,6 +10,8 @@ import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
+import 'package:openci_server/webhook_task/webhook_task_dao.dart';
+import 'package:openci_server/webhook_task/webhook_task_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
@@ -24,14 +26,15 @@ part 'database.g.dart';
     TeamMembers,
     Secrets,
     ProcessedWebhooks,
+    WebhookTasks,
   ],
-  daos: [BuildJobDao, BuildRunDao, TeamDao],
+  daos: [BuildJobDao, BuildRunDao, TeamDao, WebhookTaskDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -65,6 +68,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 9) {
           await m.addColumn(buildJobs, buildJobs.runsOn);
+        }
+        if (from < 10) {
+          await m.createTable(webhookTasks);
         }
       },
     );
