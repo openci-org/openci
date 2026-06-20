@@ -192,6 +192,12 @@ Future<Response> onRequest(RequestContext context) async {
       final String triggerType;
 
       if (eventType == 'pull_request') {
+        final action = payload['action'] as String?;
+        if (action != 'opened' &&
+            action != 'synchronize' &&
+            action != 'reopened') {
+          return;
+        }
         final event = PullRequestEvent.fromJson(payload);
         final pr = event.pullRequest;
         final repoMap = event.repository;
