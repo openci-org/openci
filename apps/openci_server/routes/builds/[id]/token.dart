@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/github/github_helper.dart';
+import 'package:openci_server/github/github_service.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
@@ -66,7 +66,7 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
-    final token = await getInstallationToken(
+    final token = await GitHubService.getInstallationToken(
       installationIdStr: installationIdStr,
       githubApiBaseUrlStr: driftJob.githubApiBaseUrl,
     );

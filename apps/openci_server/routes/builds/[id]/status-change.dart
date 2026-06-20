@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:openci_server/database.dart';
-import 'package:openci_server/github/github_helper.dart';
+import 'package:openci_server/github/github_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -117,7 +117,7 @@ Future<Response> _post(RequestContext context, String id) async {
 
         if (updated.checkRunId != null && updated.installationId != null) {
           try {
-            await updateGitHubCheckRun(
+            await GitHubService.updateGitHubCheckRun(
               owner: updated.owner,
               repo: updated.repo,
               checkRunIdStr: updated.checkRunId!,
@@ -166,7 +166,7 @@ Future<Response> _post(RequestContext context, String id) async {
 
           if (updated.checkRunId != null && updated.installationId != null) {
             try {
-              await updateGitHubCheckRun(
+              await GitHubService.updateGitHubCheckRun(
                 owner: updated.owner,
                 repo: updated.repo,
                 checkRunIdStr: updated.checkRunId!,
