@@ -46,11 +46,13 @@ class GitHubService {
     final appId = env['GITHUB_APP_ID'];
     final privateKeyPath = env['GITHUB_PRIVATE_KEY_PATH'];
 
-    if (appId == null ||
-        appId.isEmpty ||
-        privateKeyPath == null ||
-        privateKeyPath.isEmpty) {
-      throw StateError('GitHub App credentials not configured');
+    if (appId == null || appId.isEmpty) {
+      throw StateError('GITHUB_APP_ID environment variable is not configured');
+    }
+    if (privateKeyPath == null || privateKeyPath.isEmpty) {
+      throw StateError(
+        'GITHUB_PRIVATE_KEY_PATH environment variable is not configured',
+      );
     }
 
     final privateKeyFile = File(privateKeyPath);
