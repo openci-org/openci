@@ -26,7 +26,7 @@ if ! command -v tmux &> /dev/null; then
 fi
 
 # 既存の同名 tmux セッションをキル
-tmux kill-session -t "$SESSION_NAME" 2>/dev/null
+/opt/homebrew/bin/tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 
 MACHINE_INDEX=1
 for i in "$@"; do
@@ -87,10 +87,11 @@ activeCreds.forEach((cred, index) => {
   const cmd = \`OPENCI_PROJECT_ID=\"\${projectId}\" OPENCI_API_KEY=\"\${apiKey}\" OPENCI_SERVER_URL=\"\${serverUrl}\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" '\${binaryPath}' --supervised\`;
   
   if (index === 0) {
-    execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);
+    execSync(\`/opt/homebrew/bin/tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);
+    execSync('sleep 1');
   } else {
-    execSync(\`tmux split-window -t \${sessionName} \"\${cmd}\"\`);
-    execSync(\`tmux select-layout -t \${sessionName} tiled\`);
+    execSync(\`/opt/homebrew/bin/tmux split-window -t \${sessionName} \"\${cmd}\"\`);
+    execSync(\`/opt/homebrew/bin/tmux select-layout -t \${sessionName} tiled\`);
   }
   console.log(\`✅ Launched worker \${cred.workerId} (\${email}) in tmux\`);
 });
