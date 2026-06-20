@@ -28,7 +28,6 @@ service cloud.firestore {
                     'runNumber',
                     'aiEnabled',
                     'githubBaseUrl',
-                    'githubApiBaseUrl',
                     'createdAt',
                     'updatedAt'
                 ])
@@ -45,7 +44,6 @@ service cloud.firestore {
                 && (!('runNumber' in data) || data.runNumber is int)
                 && data.aiEnabled is bool
                 && isOptionalString(data.githubBaseUrl, 500)
-                && isOptionalString(data.githubApiBaseUrl, 500)
                 && data.createdAt is timestamp
                 && data.updatedAt is timestamp;
         }
@@ -418,7 +416,6 @@ service cloud.firestore {
                     'name',
                     'aiEnabled',
                     'githubBaseUrl',
-                    'githubApiBaseUrl',
                     'installationIds',
                     'updatedAt'
                 ])

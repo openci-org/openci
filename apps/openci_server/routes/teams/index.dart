@@ -101,7 +101,6 @@ Future<Response> _post(RequestContext context) async {
       id: teamId,
       name: trimmedTeamName,
       githubBaseUrl: null,
-      githubApiBaseUrl: null,
       installationIds: const [],
       aiEnabled: true,
       runNumber: 1,

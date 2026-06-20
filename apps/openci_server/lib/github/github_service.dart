@@ -18,33 +18,13 @@ class GitHubService {
     );
   }
 
-  static String normalizeBaseUrl(String? apiBaseUrl) {
-    if (apiBaseUrl == null || apiBaseUrl.isEmpty) {
-      return 'https://api.github.com';
-    }
-    final normalized = apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-
-    if (normalized == 'https://api.github.com' ||
-        normalized == 'https://github.com') {
-      return 'https://api.github.com';
-    }
-
-    if (normalized.endsWith('/api/v3')) return normalized;
-    try {
-      final uri = Uri.parse(normalized);
-      return '${uri.scheme}://${uri.host}/api/v3';
-    } catch (_) {
-      return 'https://api.github.com';
-    }
-  }
-
   static Future<String> getInstallationToken({
     required String installationIdStr,
-    required String? githubApiBaseUrlStr,
   }) async {
     final env = Platform.environment;
     final appId = env['GITHUB_APP_ID'];
     final privateKeyPath = env['GITHUB_PRIVATE_KEY_PATH'];
+    final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
 
     if (appId == null || appId.isEmpty) {
       throw StateError('GITHUB_APP_ID environment variable is not configured');
@@ -52,6 +32,11 @@ class GitHubService {
     if (privateKeyPath == null || privateKeyPath.isEmpty) {
       throw StateError(
         'GITHUB_PRIVATE_KEY_PATH environment variable is not configured',
+      );
+    }
+    if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
+      throw StateError(
+        'GITHUB_API_BASE_URL environment variable is not configured',
       );
     }
 
@@ -62,7 +47,7 @@ class GitHubService {
     final privateKeyPem = privateKeyFile.readAsStringSync();
 
     final jwtToken = generateJwt(appId, privateKeyPem);
-    final githubApiBaseUrl = normalizeBaseUrl(githubApiBaseUrlStr);
+    final githubApiBaseUrl = githubApiBaseUrlStr;
     final tokenUrl =
         '$githubApiBaseUrl/app/installations/$installationIdStr/access_tokens';
 
@@ -91,22 +76,28 @@ class GitHubService {
     required String repo,
     required String checkRunIdStr,
     required String installationIdStr,
-    required String? githubApiBaseUrlStr,
     required String runStatus,
     String? conclusion,
   }) async {
     final token = await getInstallationToken(
       installationIdStr: installationIdStr,
-      githubApiBaseUrlStr: githubApiBaseUrlStr,
     );
 
-    final githubApiBaseUrl = normalizeBaseUrl(githubApiBaseUrlStr);
+    final env = Platform.environment;
+    final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
+    if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
+      throw StateError(
+        'GITHUB_API_BASE_URL environment variable is not configured',
+      );
+    }
+
+    final githubApiBaseUrl = githubApiBaseUrlStr;
     final checkRunUrl =
         '$githubApiBaseUrl/repos/$owner/$repo/check-runs/$checkRunIdStr';
 
     final patchBody = <String, dynamic>{
       'status': runStatus,
-      'conclusion': ?conclusion,
+      'conclusion': conclusion,
       if (runStatus == 'completed')
         'completed_at': DateTime.now().toUtc().toIso8601String(),
     };

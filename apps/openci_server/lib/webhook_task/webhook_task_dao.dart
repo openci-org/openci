@@ -11,12 +11,15 @@ class WebhookTaskDao extends DatabaseAccessor<AppDatabase>
 
   Future<DriftWebhookTask?> claimNextWebhookTask() async {
     return db.transaction(() async {
-      const sql = '''
+      final isPostgres =
+          db.attachedDatabase.executor.dialect == SqlDialect.postgres;
+      final sql =
+          '''
         SELECT * FROM webhook_tasks
         WHERE status = 'pending'
         ORDER BY created_at ASC
         LIMIT 1
-        FOR UPDATE SKIP LOCKED
+        ${isPostgres ? 'FOR UPDATE SKIP LOCKED' : ''}
       ''';
       final results = await db.customSelect(sql).get();
       if (results.isEmpty) return null;

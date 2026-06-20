@@ -34,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -71,6 +71,14 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 10) {
           await m.createTable(webhookTasks);
+        }
+        if (from < 11) {
+          await m.database.customStatement(
+            'ALTER TABLE build_jobs DROP COLUMN IF EXISTS github_api_base_url;',
+          );
+          await m.database.customStatement(
+            'ALTER TABLE teams DROP COLUMN IF EXISTS github_api_base_url;',
+          );
         }
       },
     );

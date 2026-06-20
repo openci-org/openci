@@ -75,18 +75,6 @@ Future<Response> _patch(RequestContext context, String id) async {
       );
     }
 
-    if (payload.containsKey('githubApiBaseUrl') &&
-        payload['githubApiBaseUrl'] != null &&
-        payload['githubApiBaseUrl'] is! String) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'githubApiBaseUrl must be a string or null',
-        },
-      );
-    }
-
     if (payload.containsKey('installationIds')) {
       final val = payload['installationIds'];
       if (val is! List || !val.every((element) => element is int)) {
@@ -130,9 +118,6 @@ Future<Response> _patch(RequestContext context, String id) async {
       githubBaseUrl: payload.containsKey('githubBaseUrl')
           ? payload['githubBaseUrl'] as String?
           : currentDriftTeam.githubBaseUrl,
-      githubApiBaseUrl: payload.containsKey('githubApiBaseUrl')
-          ? payload['githubApiBaseUrl'] as String?
-          : currentDriftTeam.githubApiBaseUrl,
       installationIds: payload.containsKey('installationIds')
           ? (payload['installationIds'] as List<dynamic>).cast<int>()
           : currentDriftTeam.installationIds,

@@ -26,7 +26,6 @@ Future<Response> _get(RequestContext context, String id) async {
 
     final token = await GitHubService.getInstallationToken(
       installationIdStr: installationIdStr,
-      githubApiBaseUrlStr: driftJob.githubApiBaseUrl,
     );
 
     return Response.json(body: {'token': token});

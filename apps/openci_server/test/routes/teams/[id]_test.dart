@@ -22,7 +22,6 @@ void main() {
         id: 'dummy',
         name: 'dummy',
         githubBaseUrl: null,
-        githubApiBaseUrl: null,
         installationIds: const [],
         aiEnabled: true,
         runNumber: 1,
@@ -377,7 +376,6 @@ void main() {
           id: 'team-123',
           name: 'Original Team',
           githubBaseUrl: 'https://github.com/original',
-          githubApiBaseUrl: 'https://api.github.com/original',
           installationIds: const [111],
           aiEnabled: true,
           runNumber: 5,
@@ -392,7 +390,6 @@ void main() {
           body: jsonEncode({
             'name': '   Trimmed Updated Name   ',
             'githubBaseUrl': 'https://github.com/updated',
-            'githubApiBaseUrl': null,
             'installationIds': [222, 333],
             'aiEnabled': false,
           }),
@@ -414,7 +411,6 @@ void main() {
 
         expect(updatedTeam.name, equals('Trimmed Updated Name'));
         expect(updatedTeam.githubBaseUrl, equals('https://github.com/updated'));
-        expect(updatedTeam.githubApiBaseUrl, isNull);
         expect(updatedTeam.installationIds, equals([222, 333]));
         expect(updatedTeam.aiEnabled, isFalse);
         expect(updatedTeam.runNumber, equals(5));

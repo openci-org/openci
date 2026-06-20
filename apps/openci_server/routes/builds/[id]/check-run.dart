@@ -58,7 +58,6 @@ Future<Response> _post(RequestContext context, String id) async {
       repo: driftJob.repo,
       checkRunIdStr: checkRunIdStr,
       installationIdStr: installationIdStr,
-      githubApiBaseUrlStr: driftJob.githubApiBaseUrl,
       runStatus: runStatus,
       conclusion: conclusion,
     );

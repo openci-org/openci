@@ -22,7 +22,6 @@ void main() {
         id: 'dummy',
         name: 'dummy',
         githubBaseUrl: null,
-        githubApiBaseUrl: null,
         installationIds: const [],
         aiEnabled: true,
         runNumber: 1,
