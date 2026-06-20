@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.42
+
+- Fix: Prevent `PathExistsException` (errno = 17) during auto-update by pre-deleting the existing execution symlink/binary before running `dart install`.
+- Fix: Prevent child worker processes from becoming orphaned zombies by forwarding SIGTERM and SIGINT signals from the supervisor to the child process.
+
 ## 0.10.41
 
 - bump version to 0.10.41

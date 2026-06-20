@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
@@ -58,7 +59,24 @@ Future<void> runSupervised(List<String> arguments) async {
       mode: ProcessStartMode.inheritStdio,
     );
 
+    // Forward system signals (SIGTERM / SIGINT) to child process to ensure graceful shutdown
+    // and prevent child process from becoming a zombie when supervisor is terminated.
+    StreamSubscription? sigtermSub;
+    StreamSubscription? sigintSub;
+    if (!Platform.isWindows) {
+      sigtermSub = ProcessSignal.sigterm.watch().listen((sig) {
+        _log.info('Supervisor received SIGTERM. Forwarding to child process...');
+        process.kill(ProcessSignal.sigterm);
+      });
+      sigintSub = ProcessSignal.sigint.watch().listen((sig) {
+        _log.info('Supervisor received SIGINT. Forwarding to child process...');
+        process.kill(ProcessSignal.sigint);
+      });
+    }
+
     final exitCode = await process.exitCode;
+    await sigtermSub?.cancel();
+    await sigintSub?.cancel();
 
     switch (exitCode) {
       case 0:
