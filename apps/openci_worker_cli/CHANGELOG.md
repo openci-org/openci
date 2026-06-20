@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.41
+
+- bump version to 0.10.41
+
 ## 0.10.40
 
 - Feature: Support connecting directly to `openci_server` (via `OPENCI_SERVER_URL`) for claiming jobs, resolving installation tokens, and managing run/job statuses.
@@ -18,7 +22,7 @@
 
 ## 0.10.36
 
-- Fix: Change `pruneStaleVms` log output from build log (logInfo/logWarning) to local logger (_log) to prevent errors when trying to write logs after `finalizeBuildLog` has been called.
+- Fix: Change `pruneStaleVms` log output from build log (logInfo/logWarning) to local logger (\_log) to prevent errors when trying to write logs after `finalizeBuildLog` has been called.
 
 ## 0.10.35
 
