@@ -17,49 +17,7 @@ FutureOr<Response> onRequest(RequestContext context, String id) {
 
 Future<Response> _get(RequestContext context, String id) async {
   try {
-    final db = context.read<AppDatabase>();
-    final uid = context.read<String?>();
-
-    if (uid == null) {
-      return Response.json(
-        statusCode: HttpStatus.unauthorized,
-        body: {'success': false, 'error': 'Authentication required'},
-      );
-    }
-    final driftJob = await db.buildJobDao.getBuildJob(id);
-    if (driftJob == null) {
-      return Response.json(
-        statusCode: HttpStatus.notFound,
-        body: {'success': false, 'error': 'Build job not found'},
-      );
-    }
-
-    final teamId = driftJob.teamId;
-    if (teamId == null) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
-    }
-
-    final env = Platform.environment;
-    final allowedUidsStr = env['ALLOWED_WORKER_UIDS'] ?? '';
-    final allowedUids = allowedUidsStr
-        .split(',')
-        .map((u) => u.trim())
-        .where((u) => u.isNotEmpty)
-        .toSet();
-
-    if (!allowedUids.contains(uid)) {
-      final isMember = await db.teamDao.isTeamMember(uid, teamId);
-      if (!isMember) {
-        return Response.json(
-          statusCode: HttpStatus.forbidden,
-          body: {'success': false, 'error': 'Forbidden'},
-        );
-      }
-    }
-
+    final driftJob = context.read<DriftBuildJob>();
     final job = driftJob.toShared();
     return Response.json(body: job.toJson());
   } catch (e, s) {
@@ -77,14 +35,7 @@ Future<Response> _get(RequestContext context, String id) async {
 Future<Response> _patch(RequestContext context, String id) async {
   try {
     final db = context.read<AppDatabase>();
-    final uid = context.read<String?>();
-
-    if (uid == null) {
-      return Response.json(
-        statusCode: HttpStatus.unauthorized,
-        body: {'success': false, 'error': 'Authentication required'},
-      );
-    }
+    final driftJob = context.read<DriftBuildJob>();
 
     final Map<String, dynamic> payload;
     try {
@@ -99,40 +50,6 @@ Future<Response> _patch(RequestContext context, String id) async {
         statusCode: HttpStatus.badRequest,
         body: {'success': false, 'error': 'Invalid JSON: $e'},
       );
-    }
-
-    final driftJob = await db.buildJobDao.getBuildJob(id);
-    if (driftJob == null) {
-      return Response.json(
-        statusCode: HttpStatus.notFound,
-        body: {'success': false, 'error': 'Build job not found'},
-      );
-    }
-
-    final teamId = driftJob.teamId;
-    if (teamId == null) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
-    }
-
-    final env = Platform.environment;
-    final allowedUidsStr = env['ALLOWED_WORKER_UIDS'] ?? '';
-    final allowedUids = allowedUidsStr
-        .split(',')
-        .map((u) => u.trim())
-        .where((u) => u.isNotEmpty)
-        .toSet();
-
-    if (!allowedUids.contains(uid)) {
-      final isMember = await db.teamDao.isTeamMember(uid, teamId);
-      if (!isMember) {
-        return Response.json(
-          statusCode: HttpStatus.forbidden,
-          body: {'success': false, 'error': 'Forbidden'},
-        );
-      }
     }
 
     final job = driftJob.toShared();
