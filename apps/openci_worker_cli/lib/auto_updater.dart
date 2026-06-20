@@ -56,6 +56,48 @@ bool _isNewerVersion(String remote, String current) {
 Future<bool> _installUpdate(String latestVersion) async {
   _log.info('Installing update via dart install...');
 
+  try {
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    if (home != null) {
+      String? binaryPath;
+      if (Platform.isMacOS) {
+        binaryPath = '$home/Library/Application Support/Dart/install/bin/openci_worker';
+      } else if (Platform.isLinux) {
+        final xdgStateHome = Platform.environment['XDG_STATE_HOME'];
+        final statePath = (xdgStateHome != null && xdgStateHome.isNotEmpty)
+            ? '$xdgStateHome/Dart/install/bin/openci_worker'
+            : '$home/.local/state/Dart/install/bin/openci_worker';
+
+        final xdgDataHome = Platform.environment['XDG_DATA_HOME'];
+        final sharePath = (xdgDataHome != null && xdgDataHome.isNotEmpty)
+            ? '$xdgDataHome/Dart/install/bin/openci_worker'
+            : '$home/.local/share/Dart/install/bin/openci_worker';
+
+        if (FileSystemEntity.typeSync(statePath) != FileSystemEntityType.notFound) {
+          binaryPath = statePath;
+        } else if (FileSystemEntity.typeSync(sharePath) != FileSystemEntityType.notFound) {
+          binaryPath = sharePath;
+        } else {
+          binaryPath = statePath;
+        }
+      }
+
+      if (binaryPath != null) {
+        final fileType = FileSystemEntity.typeSync(binaryPath);
+        if (fileType != FileSystemEntityType.notFound) {
+          _log.info('Deleting existing link/binary at $binaryPath to avoid PathExistsException');
+          if (fileType == FileSystemEntityType.link) {
+            Link(binaryPath).deleteSync();
+          } else {
+            File(binaryPath).deleteSync();
+          }
+        }
+      }
+    }
+  } catch (e) {
+    _log.warning('Failed to pre-delete existing link/binary: $e');
+  }
+
   final result = await Process.run('dart', [
     'install',
     'openci_worker_cli',
