@@ -3,8 +3,13 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/webhook_task/webhook_task_worker.dart';
 
-final _db = AppDatabase();
+final _db = () {
+  final db = AppDatabase();
+  startWebhookTaskWorker(db);
+  return db;
+}();
 final FirebaseApp _firebaseApp = FirebaseApp.initializeApp();
 
 Handler middleware(Handler handler) {
