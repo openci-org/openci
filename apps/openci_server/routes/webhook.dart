@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -74,448 +75,393 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
 
-  final Map<String, dynamic> payload;
-  try {
-    payload = jsonDecode(rawBody) as Map<String, dynamic>;
-  } catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {'success': false, 'error': 'Invalid JSON body'},
-    );
-  }
+  await db
+      .into(db.processedWebhooks)
+      .insert(
+        ProcessedWebhooksCompanion.insert(
+          deliveryId: deliveryId,
+          processedAt: DateTime.now().toUtc(),
+        ),
+      );
 
-  final eventType = context.request.headers['x-github-event'];
-  if (eventType != 'pull_request' && eventType != 'push') {
-    return Response.json(
-      body: {'success': true, 'message': 'Event ignored'},
-    );
-  }
-
-  final installation = payload['installation'] as Map<String, dynamic>?;
-  if (installation == null || installation['id'] == null) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'Missing installation ID in webhook payload',
-      },
-    );
-  }
-  final installationId = installation['id'] as int;
-
-  final team = await db.teamDao.getTeamByInstallationId(installationId);
-  if (team == null) {
-    stderr.writeln('Warning: No team found for installationId $installationId');
-    return Response.json(
-      body: {
-        'success': true,
-        'message': 'No registered team found for this installation',
-      },
-    );
-  }
-
-  final appId = env['GITHUB_APP_ID'];
-  final privateKeyPath = env['GITHUB_PRIVATE_KEY_PATH'];
-  if (appId == null ||
-      appId.isEmpty ||
-      privateKeyPath == null ||
-      privateKeyPath.isEmpty) {
-    stderr.writeln(
-      'Error: GITHUB_APP_ID or GITHUB_PRIVATE_KEY_PATH is not configured.',
-    );
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Server integration configuration error',
-      },
-    );
-  }
-
-  final privateKeyFile = File(privateKeyPath);
-  if (!privateKeyFile.existsSync()) {
-    stderr.writeln(
-      'Error: GITHUB_PRIVATE_KEY_PATH file does not exist: $privateKeyPath',
-    );
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Server integration private key not found',
-      },
-    );
-  }
-  final privateKeyPem = privateKeyFile.readAsStringSync();
-
-  final jwtToken = generateGitHubAppJwt(appId, privateKeyPem);
-
-  final githubApiBaseUrl = normalizeGitHubApiBaseUrl(team.githubApiBaseUrl);
-  final githubBaseUrl = team.githubBaseUrl ?? 'https://github.com';
-
-  http.Client httpClient;
-  var isSelfGeneratedClient = false;
-  try {
-    httpClient = context.read<http.Client>();
-  } catch (_) {
-    httpClient = http.Client();
-    isSelfGeneratedClient = true;
-  }
-
-  try {
-    final tokenUrl =
-        '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
-    final http.Response tokenResponse;
+  // We process the rest of the webhook asynchronously to avoid GitHub timeouts (10s)
+  unawaited(() async {
+    http.Client? httpClient;
+    var isSelfGeneratedClient = false;
     try {
-      tokenResponse = await httpClient
-          .post(
-            Uri.parse(tokenUrl),
-            headers: {
-              'Authorization': 'Bearer $jwtToken',
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-              'User-Agent': 'OpenCI-Server',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
-    } catch (e) {
-      stderr.writeln('Error: Access token request timed out or failed: $e');
-      return Response.json(
-        statusCode: HttpStatus.gatewayTimeout,
-        body: {
-          'success': false,
-          'error': 'GitHub API request timed out',
-        },
-      );
-    }
-
-    if (tokenResponse.statusCode >= 300) {
-      stderr.writeln(
-        'Error: Failed to retrieve installation token: ${tokenResponse.statusCode} ${tokenResponse.body}',
-      );
-      return Response.json(
-        statusCode: HttpStatus.internalServerError,
-        body: {
-          'success': false,
-          'error': 'Failed to retrieve installation token',
-        },
-      );
-    }
-
-    final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
-    final installationToken = tokenData['token'] as String;
-
-    // Extract git event metadata
-    final String owner;
-    final String repo;
-    final String commitSha;
-    final String branch;
-    final String? triggerBranch;
-    final int? pullRequestNumber;
-    final String triggerType;
-
-    if (eventType == 'pull_request') {
-      final event = PullRequestEvent.fromJson(payload);
-      final pr = event.pullRequest;
-      final repoMap = event.repository;
-      if (pr == null || repoMap == null) {
-        return Response.json(
-          statusCode: HttpStatus.badRequest,
-          body: {
-            'success': false,
-            'error': 'Missing pull_request or repository data',
-          },
-        );
-      }
-      owner = repoMap.owner?.login ?? '';
-      repo = repoMap.name;
-      commitSha = pr.head?.sha ?? '';
-      branch = pr.head?.ref ?? '';
-      triggerBranch = pr.base?.ref;
-      pullRequestNumber = event.number;
-      triggerType = 'pull_request';
-    } else {
-      // push event
-      if (payload['deleted'] == true) {
-        return Response.json(
-          body: {'success': true, 'message': 'Skipped push deletion event'},
-        );
-      }
-      final repoMap = payload['repository'] as Map<String, dynamic>;
-      owner = repoMap['owner']['login'] as String;
-      repo = repoMap['name'] as String;
-      commitSha = (payload['head_commit']?['id'] ?? payload['after']) as String;
-      final ref = payload['ref'] as String;
-      if (ref.startsWith('refs/heads/')) {
-        branch = ref.substring(11);
-      } else {
-        branch = ref;
-      }
-      triggerBranch = branch;
-      pullRequestNumber = null;
-      triggerType = 'push';
-    }
-
-    // Fetch YAML files from .openci directory
-    final contentsUrl =
-        '$githubApiBaseUrl/repos/$owner/$repo/contents/.openci?ref=$commitSha';
-    final http.Response contentsResponse;
-    try {
-      contentsResponse = await httpClient
-          .get(
-            Uri.parse(contentsUrl),
-            headers: {
-              'Authorization': 'token $installationToken',
-              'Accept': 'application/vnd.github+json',
-              'User-Agent': 'OpenCI-Server',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
-    } catch (e) {
-      stderr.writeln('Error: Fetch contents request timed out or failed: $e');
-      return Response.json(
-        statusCode: HttpStatus.gatewayTimeout,
-        body: {
-          'success': false,
-          'error': 'GitHub API request timed out',
-        },
-      );
-    }
-
-    if (contentsResponse.statusCode == 404) {
-      return Response.json(
-        body: {'success': true, 'message': 'No .openci folder found'},
-      );
-    }
-
-    if (contentsResponse.statusCode >= 300) {
-      stderr.writeln(
-        'Error: Failed to fetch contents: ${contentsResponse.statusCode} ${contentsResponse.body}',
-      );
-      return Response.json(
-        statusCode: HttpStatus.internalServerError,
-        body: {
-          'success': false,
-          'error': 'Failed to fetch repository contents',
-        },
-      );
-    }
-
-    final contentsList = jsonDecode(contentsResponse.body);
-    if (contentsList is! List) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {'success': false, 'error': '.openci is not a directory'},
-      );
-    }
-
-    final yamlFiles = contentsList
-        .where(
-          (item) =>
-              item is Map &&
-              item['type'] == 'file' &&
-              (item['name'].toString().endsWith('.yaml') ||
-                  item['name'].toString().endsWith('.yml')),
-        )
-        .cast<Map<dynamic, dynamic>>()
-        .toList();
-
-    if (yamlFiles.isEmpty) {
-      return Response.json(
-        body: {'success': true, 'message': 'No yaml files found in .openci'},
-      );
-    }
-
-    final fetchedFiles = await fetchWorkflowFiles(
-      yamlFiles: yamlFiles,
-      githubApiBaseUrl: githubApiBaseUrl,
-      owner: owner,
-      repo: repo,
-      commitSha: commitSha,
-      installationToken: installationToken,
-      httpClient: httpClient,
-    );
-
-    final extractedJobs = parseWorkflowJobs(
-      files: fetchedFiles,
-      triggerType: triggerType,
-      triggerBranch: triggerBranch,
-    );
-
-    if (extractedJobs.isEmpty) {
-      return Response.json(
-        body: {'success': true, 'message': 'No jobs matched triggers'},
-      );
-    }
-
-    // Count jobs per workflow
-    final jobCountsByWorkflow = <String, int>{};
-    for (final job in extractedJobs) {
-      jobCountsByWorkflow[job.workflowName] =
-          (jobCountsByWorkflow[job.workflowName] ?? 0) + 1;
-    }
-
-    final workflowRunIds = <String, String>{};
-    final jobDocumentIdsByWorkflow = <String, Map<String, String>>{};
-    final jobInstanceKeysBySourceKeyByWorkflow =
-        <String, Map<String, List<String>>>{};
-
-    for (final job in extractedJobs) {
-      final wName = job.workflowFileName;
-      if (!workflowRunIds.containsKey(wName)) {
-        workflowRunIds[wName] = const Uuid().v4();
-      }
-
-      final jobDocumentIds = jobDocumentIdsByWorkflow[wName] ??= {};
-      jobDocumentIds[job.jobId] = const Uuid().v4();
-
-      final sourceKey = job.workflowJobKey ?? job.jobId;
-      final jobInstanceKeysBySourceKey =
-          jobInstanceKeysBySourceKeyByWorkflow[wName] ??= {};
-      (jobInstanceKeysBySourceKey[sourceKey] ??= []).add(job.jobId);
-    }
-
-    for (final job in extractedJobs) {
-      final wName = job.workflowFileName;
-      final documentId = jobDocumentIdsByWorkflow[wName]![job.jobId]!;
-      final workflowRunId = workflowRunIds[wName]!;
-
-      final jobInstanceKeysBySourceKey =
-          jobInstanceKeysBySourceKeyByWorkflow[wName]!;
-
-      // Resolve needs and status
-      final spec = job.spec;
-      final rawNeeds = spec['needs'];
-      final List<String> rawNeedKeys;
-      if (rawNeeds is List) {
-        rawNeedKeys = rawNeeds.map((e) => e.toString()).toList();
-      } else if (rawNeeds is String) {
-        rawNeedKeys = [rawNeeds];
-      } else {
-        rawNeedKeys = [];
-      }
-
-      final needs = rawNeedKeys
-          .flatMap((need) => jobInstanceKeysBySourceKey[need] ?? [need])
-          .toList();
-      final hasNeeds = needs.isNotEmpty;
-      final status = hasNeeds ? BuildJobStatus.WAITING : BuildJobStatus.QUEUED;
-
-      // Create Check Run on GitHub
-      final checkRunName = (jobCountsByWorkflow[job.workflowName] ?? 0) > 1
-          ? '${job.workflowName} / ${job.workflowJobKey ?? job.jobId}${job.matrixLabel != null ? " (${job.matrixLabel})" : ""}'
-          : job.workflowName;
-
-      final checkRunUrl = '$githubApiBaseUrl/repos/$owner/$repo/check-runs';
-      final http.Response checkRunResponse;
+      final Map<String, dynamic> payload;
       try {
-        checkRunResponse = await httpClient
+        payload = jsonDecode(rawBody) as Map<String, dynamic>;
+      } catch (e) {
+        stderr.writeln('Background webhook error: Invalid JSON body');
+        return;
+      }
+
+      final eventType = context.request.headers['x-github-event'];
+      if (eventType != 'pull_request' && eventType != 'push') {
+        return;
+      }
+
+      final installation = payload['installation'] as Map<String, dynamic>?;
+      if (installation == null || installation['id'] == null) {
+        stderr.writeln('Background webhook error: Missing installation ID');
+        return;
+      }
+      final installationId = installation['id'] as int;
+
+      final team = await db.teamDao.getTeamByInstallationId(installationId);
+      if (team == null) {
+        stderr.writeln(
+          'Background webhook warning: No team found for installationId $installationId',
+        );
+        return;
+      }
+
+      final appId = env['GITHUB_APP_ID'];
+      final privateKeyPath = env['GITHUB_PRIVATE_KEY_PATH'];
+      if (appId == null ||
+          appId.isEmpty ||
+          privateKeyPath == null ||
+          privateKeyPath.isEmpty) {
+        stderr.writeln(
+          'Background webhook error: GITHUB_APP_ID or GITHUB_PRIVATE_KEY_PATH is not configured.',
+        );
+        return;
+      }
+
+      final privateKeyFile = File(privateKeyPath);
+      if (!privateKeyFile.existsSync()) {
+        stderr.writeln(
+          'Background webhook error: GITHUB_PRIVATE_KEY_PATH file does not exist: $privateKeyPath',
+        );
+        return;
+      }
+      final privateKeyPem = privateKeyFile.readAsStringSync();
+
+      final jwtToken = generateGitHubAppJwt(appId, privateKeyPem);
+
+      final githubApiBaseUrl = normalizeGitHubApiBaseUrl(team.githubApiBaseUrl);
+      final githubBaseUrl = team.githubBaseUrl ?? 'https://github.com';
+
+      try {
+        httpClient = context.read<http.Client>();
+      } catch (_) {
+        httpClient = http.Client();
+        isSelfGeneratedClient = true;
+      }
+
+      final tokenUrl =
+          '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
+      final http.Response tokenResponse;
+      try {
+        tokenResponse = await httpClient
             .post(
-              Uri.parse(checkRunUrl),
+              Uri.parse(tokenUrl),
               headers: {
-                'Authorization': 'token $installationToken',
+                'Authorization': 'Bearer $jwtToken',
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
                 'User-Agent': 'OpenCI-Server',
-                'Content-Type': 'application/json',
               },
-              body: jsonEncode({
-                'name': checkRunName,
-                'head_sha': commitSha,
-                'status': 'queued',
-                'started_at': DateTime.now().toUtc().toIso8601String(),
-                'details_url': 'https://dashboard.openci.org/runs/$documentId',
-              }),
             )
             .timeout(const Duration(seconds: 15));
       } catch (e) {
         stderr.writeln(
-          'Error: Create check run request timed out or failed: $e',
+          'Background webhook error: Access token request timed out or failed: $e',
         );
-        return Response.json(
-          statusCode: HttpStatus.gatewayTimeout,
-          body: {
-            'success': false,
-            'error': 'GitHub API request timed out',
-          },
-        );
+        return;
       }
 
-      if (checkRunResponse.statusCode >= 300) {
+      if (tokenResponse.statusCode >= 300) {
         stderr.writeln(
-          'Error: Failed to create check run: ${checkRunResponse.statusCode} ${checkRunResponse.body}',
+          'Background webhook error: Failed to retrieve installation token: ${tokenResponse.statusCode} ${tokenResponse.body}',
         );
-        return Response.json(
-          statusCode: HttpStatus.internalServerError,
-          body: {
-            'success': false,
-            'error': 'Failed to create GitHub check run',
-          },
-        );
+        return;
       }
 
-      final checkRunData =
-          jsonDecode(checkRunResponse.body) as Map<String, dynamic>;
-      final checkRunId = checkRunData['id'].toString();
+      final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
+      final installationToken = tokenData['token'] as String;
 
-      // Map Matrix to String map
-      final matrixMap = job.matrix?.map((k, v) => MapEntry(k, v));
+      // Extract git event metadata
+      final String owner;
+      final String repo;
+      final String commitSha;
+      final String branch;
+      final String? triggerBranch;
+      final int? pullRequestNumber;
+      final String triggerType;
 
-      // Save BuildJob in DB
-      final buildJob = BuildJob(
-        id: documentId,
-        status: status,
+      if (eventType == 'pull_request') {
+        final action = payload['action'] as String?;
+        if (action != 'opened' &&
+            action != 'synchronize' &&
+            action != 'reopened') {
+          return;
+        }
+        final event = PullRequestEvent.fromJson(payload);
+        final pr = event.pullRequest;
+        final repoMap = event.repository;
+        if (pr == null || repoMap == null) {
+          stderr.writeln(
+            'Background webhook error: Missing pull_request or repository data',
+          );
+          return;
+        }
+        owner = repoMap.owner?.login ?? '';
+        repo = repoMap.name;
+        commitSha = pr.head?.sha ?? '';
+        branch = pr.head?.ref ?? '';
+        triggerBranch = pr.base?.ref;
+        pullRequestNumber = event.number;
+        triggerType = 'pull_request';
+      } else {
+        // push event
+        if (payload['deleted'] == true) {
+          return;
+        }
+        final repoMap = payload['repository'] as Map<String, dynamic>;
+        owner = repoMap['owner']['login'] as String;
+        repo = repoMap['name'] as String;
+        commitSha =
+            (payload['head_commit']?['id'] ?? payload['after']) as String;
+        final ref = payload['ref'] as String;
+        if (ref.startsWith('refs/heads/')) {
+          branch = ref.substring(11);
+        } else {
+          branch = ref;
+        }
+        triggerBranch = branch;
+        pullRequestNumber = null;
+        triggerType = 'push';
+      }
+
+      // Fetch YAML files from .openci directory
+      final contentsUrl =
+          '$githubApiBaseUrl/repos/$owner/$repo/contents/.openci?ref=$commitSha';
+      final http.Response contentsResponse;
+      try {
+        contentsResponse = await httpClient
+            .get(
+              Uri.parse(contentsUrl),
+              headers: {
+                'Authorization': 'token $installationToken',
+                'Accept': 'application/vnd.github+json',
+                'User-Agent': 'OpenCI-Server',
+              },
+            )
+            .timeout(const Duration(seconds: 15));
+      } catch (e) {
+        stderr.writeln(
+          'Background webhook error: Fetch contents request timed out or failed: $e',
+        );
+        return;
+      }
+
+      if (contentsResponse.statusCode == 404) {
+        return;
+      }
+
+      if (contentsResponse.statusCode >= 300) {
+        stderr.writeln(
+          'Background webhook error: Failed to fetch contents: ${contentsResponse.statusCode} ${contentsResponse.body}',
+        );
+        return;
+      }
+
+      final contentsList = jsonDecode(contentsResponse.body);
+      if (contentsList is! List) {
+        stderr.writeln('Background webhook error: .openci is not a directory');
+        return;
+      }
+
+      final yamlFiles = contentsList
+          .where(
+            (item) =>
+                item is Map &&
+                item['type'] == 'file' &&
+                (item['name'].toString().endsWith('.yaml') ||
+                    item['name'].toString().endsWith('.yml')),
+          )
+          .cast<Map<dynamic, dynamic>>()
+          .toList();
+
+      if (yamlFiles.isEmpty) {
+        return;
+      }
+
+      final fetchedFiles = await fetchWorkflowFiles(
+        yamlFiles: yamlFiles,
+        githubApiBaseUrl: githubApiBaseUrl,
         owner: owner,
         repo: repo,
-        workflowName: job.workflowName,
-        teamId: team.id,
-        workflowFileName: job.workflowFileName,
         commitSha: commitSha,
-        pullRequestNumber: pullRequestNumber,
-        runCount: 0,
-        tagName: null,
-        branch: branch,
-        jobKey: job.jobId,
-        workflowJobKey: job.workflowJobKey,
-        matrix: matrixMap,
-        matrixLabel: job.matrixLabel,
-        workflowRunId: workflowRunId,
-        needs: needs.isEmpty ? null : needs,
-        runsOn: job.spec['runs-on']?.toString(),
-        githubBaseUrl: githubBaseUrl,
-        githubApiBaseUrl: githubApiBaseUrl,
-        createdAt: DateTime.now().toUtc(),
-        updatedAt: DateTime.now().toUtc(),
+        installationToken: installationToken,
+        httpClient: httpClient,
       );
 
-      await db.buildJobDao.insertBuildJob(
-        buildJob.toDrift(
-          installationId: installationId.toString(),
-          checkRunId: checkRunId,
-        ),
+      final extractedJobs = parseWorkflowJobs(
+        files: fetchedFiles,
+        triggerType: triggerType,
+        triggerBranch: triggerBranch,
       );
-    }
 
-    // Mark delivery as processed in DB
-    await db
-        .into(db.processedWebhooks)
-        .insert(
-          ProcessedWebhooksCompanion.insert(
-            deliveryId: deliveryId,
-            processedAt: DateTime.now().toUtc(),
-          ),
+      if (extractedJobs.isEmpty) {
+        return;
+      }
+
+      // Count jobs per workflow
+      final jobCountsByWorkflow = <String, int>{};
+      for (final job in extractedJobs) {
+        jobCountsByWorkflow[job.workflowName] =
+            (jobCountsByWorkflow[job.workflowName] ?? 0) + 1;
+      }
+
+      final workflowRunIds = <String, String>{};
+      final jobDocumentIdsByWorkflow = <String, Map<String, String>>{};
+      final jobInstanceKeysBySourceKeyByWorkflow =
+          <String, Map<String, List<String>>>{};
+
+      for (final job in extractedJobs) {
+        final wName = job.workflowFileName;
+        if (!workflowRunIds.containsKey(wName)) {
+          workflowRunIds[wName] = const Uuid().v4();
+        }
+
+        final jobDocumentIds = jobDocumentIdsByWorkflow[wName] ??= {};
+        jobDocumentIds[job.jobId] = const Uuid().v4();
+
+        final sourceKey = job.workflowJobKey ?? job.jobId;
+        final jobInstanceKeysBySourceKey =
+            jobInstanceKeysBySourceKeyByWorkflow[wName] ??= {};
+        (jobInstanceKeysBySourceKey[sourceKey] ??= []).add(job.jobId);
+      }
+
+      for (final job in extractedJobs) {
+        final wName = job.workflowFileName;
+        final documentId = jobDocumentIdsByWorkflow[wName]![job.jobId]!;
+        final workflowRunId = workflowRunIds[wName]!;
+
+        final jobInstanceKeysBySourceKey =
+            jobInstanceKeysBySourceKeyByWorkflow[wName]!;
+
+        // Resolve needs and status
+        final spec = job.spec;
+        final rawNeeds = spec['needs'];
+        final List<String> rawNeedKeys;
+        if (rawNeeds is List) {
+          rawNeedKeys = rawNeeds.map((e) => e.toString()).toList();
+        } else if (rawNeeds is String) {
+          rawNeedKeys = [rawNeeds];
+        } else {
+          rawNeedKeys = [];
+        }
+
+        final needs = rawNeedKeys
+            .flatMap((need) => jobInstanceKeysBySourceKey[need] ?? [need])
+            .toList();
+        final hasNeeds = needs.isNotEmpty;
+        final status = hasNeeds
+            ? BuildJobStatus.WAITING
+            : BuildJobStatus.QUEUED;
+
+        // Create Check Run on GitHub
+        final checkRunName = (jobCountsByWorkflow[job.workflowName] ?? 0) > 1
+            ? '${job.workflowName} / ${job.workflowJobKey ?? job.jobId}${job.matrixLabel != null ? " (${job.matrixLabel})" : ""}'
+            : job.workflowName;
+
+        final checkRunUrl = '$githubApiBaseUrl/repos/$owner/$repo/check-runs';
+        final http.Response checkRunResponse;
+        try {
+          checkRunResponse = await httpClient
+              .post(
+                Uri.parse(checkRunUrl),
+                headers: {
+                  'Authorization': 'token $installationToken',
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'User-Agent': 'OpenCI-Server',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({
+                  'name': checkRunName,
+                  'head_sha': commitSha,
+                  'status': 'queued',
+                  'started_at': DateTime.now().toUtc().toIso8601String(),
+                  'details_url':
+                      'https://dashboard.openci.org/runs/$documentId',
+                }),
+              )
+              .timeout(const Duration(seconds: 15));
+        } catch (e) {
+          stderr.writeln(
+            'Background webhook error: Create check run request timed out or failed: $e',
+          );
+          continue;
+        }
+
+        if (checkRunResponse.statusCode >= 300) {
+          stderr.writeln(
+            'Background webhook error: Failed to create check run: ${checkRunResponse.statusCode} ${checkRunResponse.body}',
+          );
+          continue;
+        }
+
+        final checkRunData =
+            jsonDecode(checkRunResponse.body) as Map<String, dynamic>;
+        final checkRunId = checkRunData['id'].toString();
+
+        // Map Matrix to String map
+        final matrixMap = job.matrix?.map((k, v) => MapEntry(k, v));
+
+        // Save BuildJob in DB
+        final buildJob = BuildJob(
+          id: documentId,
+          status: status,
+          owner: owner,
+          repo: repo,
+          workflowName: job.workflowName,
+          teamId: team.id,
+          workflowFileName: job.workflowFileName,
+          commitSha: commitSha,
+          pullRequestNumber: pullRequestNumber,
+          runCount: 0,
+          tagName: null,
+          branch: branch,
+          jobKey: job.jobId,
+          workflowJobKey: job.workflowJobKey,
+          matrix: matrixMap,
+          matrixLabel: job.matrixLabel,
+          workflowRunId: workflowRunId,
+          needs: needs.isEmpty ? null : needs,
+          runsOn: job.spec['runs-on']?.toString(),
+          githubBaseUrl: githubBaseUrl,
+          githubApiBaseUrl: githubApiBaseUrl,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
         );
 
-    return Response.json(
-      body: {
-        'success': true,
-        'message': 'Webhook processed and build jobs created.',
-      },
-    );
-  } finally {
-    if (isSelfGeneratedClient) {
-      httpClient.close();
+        await db.buildJobDao.insertBuildJob(
+          buildJob.toDrift(
+            installationId: installationId.toString(),
+            checkRunId: checkRunId,
+          ),
+        );
+      }
+    } catch (e, s) {
+      stderr.writeln('Background webhook error: $e\n$s');
+    } finally {
+      if (isSelfGeneratedClient && httpClient != null) {
+        httpClient.close();
+      }
     }
-  }
+  }());
+
+  return Response.json(
+    body: {
+      'success': true,
+      'message': 'Webhook received and processing started in background.',
+    },
+  );
 }
 
 String generateGitHubAppJwt(String appId, String privateKeyPem) {
