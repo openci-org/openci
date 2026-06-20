@@ -57,11 +57,13 @@ Future<bool> _installUpdate(String latestVersion) async {
   _log.info('Installing update via dart install...');
 
   try {
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final home =
+        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home != null) {
       String? binaryPath;
       if (Platform.isMacOS) {
-        binaryPath = '$home/Library/Application Support/Dart/install/bin/openci_worker';
+        binaryPath =
+            '$home/Library/Application Support/Dart/install/bin/openci_worker';
       } else if (Platform.isLinux) {
         final xdgStateHome = Platform.environment['XDG_STATE_HOME'];
         final statePath = (xdgStateHome != null && xdgStateHome.isNotEmpty)
@@ -73,9 +75,11 @@ Future<bool> _installUpdate(String latestVersion) async {
             ? '$xdgDataHome/Dart/install/bin/openci_worker'
             : '$home/.local/share/Dart/install/bin/openci_worker';
 
-        if (FileSystemEntity.typeSync(statePath) != FileSystemEntityType.notFound) {
+        if (FileSystemEntity.typeSync(statePath) !=
+            FileSystemEntityType.notFound) {
           binaryPath = statePath;
-        } else if (FileSystemEntity.typeSync(sharePath) != FileSystemEntityType.notFound) {
+        } else if (FileSystemEntity.typeSync(sharePath) !=
+            FileSystemEntityType.notFound) {
           binaryPath = sharePath;
         } else {
           binaryPath = statePath;
@@ -85,7 +89,9 @@ Future<bool> _installUpdate(String latestVersion) async {
       if (binaryPath != null) {
         final fileType = FileSystemEntity.typeSync(binaryPath);
         if (fileType != FileSystemEntityType.notFound) {
-          _log.info('Deleting existing link/binary at $binaryPath to avoid PathExistsException');
+          _log.info(
+            'Deleting existing link/binary at $binaryPath to avoid PathExistsException',
+          );
           if (fileType == FileSystemEntityType.link) {
             Link(binaryPath).deleteSync();
           } else {

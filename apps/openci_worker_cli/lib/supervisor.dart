@@ -65,7 +65,9 @@ Future<void> runSupervised(List<String> arguments) async {
     StreamSubscription? sigintSub;
     if (!Platform.isWindows) {
       sigtermSub = ProcessSignal.sigterm.watch().listen((sig) {
-        _log.info('Supervisor received SIGTERM. Forwarding to child process...');
+        _log.info(
+          'Supervisor received SIGTERM. Forwarding to child process...',
+        );
         process.kill(ProcessSignal.sigterm);
       });
       sigintSub = ProcessSignal.sigint.watch().listen((sig) {
