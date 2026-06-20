@@ -11,8 +11,10 @@ class WebhookTaskDao extends DatabaseAccessor<AppDatabase>
 
   Future<DriftWebhookTask?> claimNextWebhookTask() async {
     return db.transaction(() async {
-      final isPostgres = db.attachedDatabase.executor.dialect == SqlDialect.postgres;
-      final sql = '''
+      final isPostgres =
+          db.attachedDatabase.executor.dialect == SqlDialect.postgres;
+      final sql =
+          '''
         SELECT * FROM webhook_tasks
         WHERE status = 'pending'
         ORDER BY created_at ASC

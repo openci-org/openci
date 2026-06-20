@@ -69,7 +69,7 @@ Future<void> processWebhookTask(
 
     final jwtToken = generateGitHubAppJwt(appId, privateKeyPem);
 
-    final githubApiBaseUrl = normalizeGitHubApiBaseUrl(githubApiBaseUrlStr);
+    final githubApiBaseUrl = githubApiBaseUrlStr;
     final githubBaseUrl = team.githubBaseUrl ?? 'https://github.com';
 
     if (client != null) {
@@ -716,26 +716,6 @@ bool matchesTrigger(
   return false;
 }
 
-String normalizeGitHubApiBaseUrl(String? apiBaseUrl) {
-  if (apiBaseUrl == null || apiBaseUrl.isEmpty) return 'https://api.github.com';
-  final normalized = apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-  if (normalized == 'https://api.github.com' ||
-      normalized == 'https://github.com' ||
-      normalized == 'https://api.github.com/graphql') {
-    return 'https://api.github.com';
-  }
-  if (normalized.endsWith('/api/v3')) return normalized;
-  try {
-    final uri = Uri.parse(normalized);
-    if (normalized.endsWith('/api/graphql') ||
-        normalized.endsWith('/graphql')) {
-      return '${uri.scheme}://${uri.host}/api/v3';
-    }
-    return '${uri.scheme}://${uri.host}/api/v3';
-  } catch (_) {
-    return 'https://api.github.com';
-  }
-}
 
 extension FlatMap<T> on Iterable<T> {
   Iterable<R> flatMap<R>(Iterable<R> Function(T) f) => expand(f);

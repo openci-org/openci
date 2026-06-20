@@ -18,23 +18,6 @@ class GitHubService {
     );
   }
 
-  static String normalizeBaseUrl(String apiBaseUrl) {
-    final normalized = apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-
-    if (normalized == 'https://api.github.com' ||
-        normalized == 'https://github.com') {
-      return 'https://api.github.com';
-    }
-
-    if (normalized.endsWith('/api/v3')) return normalized;
-    try {
-      final uri = Uri.parse(normalized);
-      return '${uri.scheme}://${uri.host}/api/v3';
-    } catch (_) {
-      throw StateError('Invalid GITHUB_API_BASE_URL format: $apiBaseUrl');
-    }
-  }
-
   static Future<String> getInstallationToken({
     required String installationIdStr,
   }) async {
@@ -64,7 +47,7 @@ class GitHubService {
     final privateKeyPem = privateKeyFile.readAsStringSync();
 
     final jwtToken = generateJwt(appId, privateKeyPem);
-    final githubApiBaseUrl = normalizeBaseUrl(githubApiBaseUrlStr);
+    final githubApiBaseUrl = githubApiBaseUrlStr;
     final tokenUrl =
         '$githubApiBaseUrl/app/installations/$installationIdStr/access_tokens';
 
@@ -108,7 +91,7 @@ class GitHubService {
       );
     }
 
-    final githubApiBaseUrl = normalizeBaseUrl(githubApiBaseUrlStr);
+    final githubApiBaseUrl = githubApiBaseUrlStr;
     final checkRunUrl =
         '$githubApiBaseUrl/repos/$owner/$repo/check-runs/$checkRunIdStr';
 

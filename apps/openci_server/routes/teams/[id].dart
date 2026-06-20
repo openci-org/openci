@@ -75,8 +75,6 @@ Future<Response> _patch(RequestContext context, String id) async {
       );
     }
 
-
-
     if (payload.containsKey('installationIds')) {
       final val = payload['installationIds'];
       if (val is! List || !val.every((element) => element is int)) {
