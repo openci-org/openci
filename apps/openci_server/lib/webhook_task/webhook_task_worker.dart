@@ -39,7 +39,10 @@ void startWebhookTaskWorker(AppDatabase db) {
     _triggerWorker(db);
   });
 
-  _triggerWorker(db);
+  // Wait 500ms for global database instantiation and server booting to complete
+  Future.delayed(const Duration(milliseconds: 500), () {
+    _triggerWorker(db);
+  });
 }
 
 void _triggerWorker(AppDatabase db) {
