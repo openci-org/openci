@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(RequestContext context) {
@@ -104,16 +104,11 @@ Future<Response> _post(RequestContext context) async {
 
     final Map<String, dynamic> payload;
     try {
-      final body = await context.request.body();
-      final decoded = jsonDecode(body);
-      if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('Body must be a JSON object');
-      }
-      payload = decoded;
-    } catch (e) {
+      payload = await context.jsonBody();
+    } on BadRequestException catch (e) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
-        body: {'success': false, 'error': 'Invalid JSON format: $e'},
+        body: {'success': false, 'error': e.message},
       );
     }
 
