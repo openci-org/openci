@@ -94,7 +94,10 @@ Future<Response> _patch(RequestContext context, String id) async {
           : job.completedAt,
     );
 
-    final updatedDriftJob = updatedJob.toDrift();
+    final updatedDriftJob = updatedJob.toDrift(
+      installationId: driftJob.installationId,
+      checkRunId: driftJob.checkRunId,
+    );
     await db.buildJobDao.updateBuildJob(updatedDriftJob);
 
     return Response.json(body: {'success': true});
