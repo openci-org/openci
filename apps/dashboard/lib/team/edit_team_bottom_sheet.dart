@@ -15,7 +15,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
     final teamListStream = ref.watch(teamListProvider);
     final teamNameController = useTextEditingController();
     final githubBaseUrlController = useTextEditingController();
-    final githubApiBaseUrlController = useTextEditingController();
     final installationIdsController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final selectedTeamId = useState<String?>(null);
@@ -59,8 +58,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                         selectedTeamId.value = team.id;
                         teamNameController.text = team.name;
                         githubBaseUrlController.text = team.githubBaseUrl ?? '';
-                        githubApiBaseUrlController.text =
-                            team.githubApiBaseUrl ?? '';
                         installationIdsController.text = team.installationIds
                             .map((id) => id.toString())
                             .join(', ');
@@ -199,12 +196,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 _EnterpriseTextField(
-                  controller: githubApiBaseUrlController,
-                  label: 'GitHub API Base URL',
-                  hintText: 'https://github.ibm.com/api/v3',
-                ),
-                const SizedBox(height: 8),
-                _EnterpriseTextField(
                   controller: installationIdsController,
                   label: 'Installation IDs',
                   hintText: '123456, 789012',
@@ -246,8 +237,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                   .updateGitHubSettings(
                                     teamId: selectedTeamId.value!,
                                     githubBaseUrl: githubBaseUrlController.text,
-                                    githubApiBaseUrl:
-                                        githubApiBaseUrlController.text,
                                     installationIds: _parseInstallationIds(
                                       installationIdsController.text,
                                     ),

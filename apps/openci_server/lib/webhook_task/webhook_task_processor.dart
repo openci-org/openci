@@ -10,8 +10,19 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';
 
-Future<void> processWebhookTask(AppDatabase db, DriftWebhookTask task) async {
-  final env = Platform.environment;
+Future<void> processWebhookTask(
+  AppDatabase db,
+  DriftWebhookTask task, {
+  Map<String, String>? environment,
+  http.Client? client,
+}) async {
+  final env = environment ?? Platform.environment;
+  final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
+  if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
+    throw StateError(
+      'Background task error: GITHUB_API_BASE_URL environment variable is not configured.',
+    );
+  }
 
   http.Client? httpClient;
   var isSelfGeneratedClient = false;
@@ -58,11 +69,16 @@ Future<void> processWebhookTask(AppDatabase db, DriftWebhookTask task) async {
 
     final jwtToken = generateGitHubAppJwt(appId, privateKeyPem);
 
-    final githubApiBaseUrl = normalizeGitHubApiBaseUrl(team.githubApiBaseUrl);
+    final githubApiBaseUrl = normalizeGitHubApiBaseUrl(githubApiBaseUrlStr);
     final githubBaseUrl = team.githubBaseUrl ?? 'https://github.com';
 
-    httpClient = http.Client();
-    isSelfGeneratedClient = true;
+    if (client != null) {
+      httpClient = client;
+      isSelfGeneratedClient = false;
+    } else {
+      httpClient = http.Client();
+      isSelfGeneratedClient = true;
+    }
 
     final tokenUrl =
         '$githubApiBaseUrl/app/installations/$installationId/access_tokens';
@@ -334,7 +350,6 @@ Future<void> processWebhookTask(AppDatabase db, DriftWebhookTask task) async {
         needs: needs.isEmpty ? null : needs,
         runsOn: job.spec['runs-on']?.toString(),
         githubBaseUrl: githubBaseUrl,
-        githubApiBaseUrl: githubApiBaseUrl,
         createdAt: DateTime.now().toUtc(),
         updatedAt: DateTime.now().toUtc(),
       );

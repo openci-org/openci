@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../../routes/webhook.dart' as route;
+import 'package:openci_server/webhook_task/webhook_task_processor.dart';
 
 const testRsaPrivateKey = '''
 -----BEGIN PRIVATE KEY-----
@@ -320,6 +321,7 @@ jobs:
           'GITHUB_WEBHOOK_SECRET': testSecret,
           'GITHUB_APP_ID': '12345',
           'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
         });
 
         context.provide<AppDatabase>(db);
@@ -330,6 +332,21 @@ jobs:
         expect(response.statusCode, equals(HttpStatus.ok));
         final resBody = await response.json() as Map<String, dynamic>;
         expect(resBody['success'], isTrue);
+        expect(resBody['message'], equals('Webhook received and queued.'));
+
+        final task = await db.webhookTaskDao.claimNextWebhookTask();
+        expect(task, isNotNull);
+        await processWebhookTask(
+          db,
+          task!,
+          environment: {
+            'GITHUB_WEBHOOK_SECRET': testSecret,
+            'GITHUB_APP_ID': '12345',
+            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+            'GITHUB_API_BASE_URL': 'https://api.github.com',
+          },
+          client: mockClient,
+        );
 
         final jobs = await db.select(db.buildJobs).get();
         expect(jobs, hasLength(1));
@@ -440,6 +457,7 @@ jobs:
           'GITHUB_WEBHOOK_SECRET': testSecret,
           'GITHUB_APP_ID': '12345',
           'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
         });
 
         context.provide<AppDatabase>(db);
@@ -448,6 +466,23 @@ jobs:
         final response = await route.onRequest(context.context);
 
         expect(response.statusCode, equals(HttpStatus.ok));
+        final resBody = await response.json() as Map<String, dynamic>;
+        expect(resBody['success'], isTrue);
+        expect(resBody['message'], equals('Webhook received and queued.'));
+
+        final task = await db.webhookTaskDao.claimNextWebhookTask();
+        expect(task, isNotNull);
+        await processWebhookTask(
+          db,
+          task!,
+          environment: {
+            'GITHUB_WEBHOOK_SECRET': testSecret,
+            'GITHUB_APP_ID': '12345',
+            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+            'GITHUB_API_BASE_URL': 'https://api.github.com',
+          },
+          client: mockClient,
+        );
 
         final jobs = await db.select(db.buildJobs).get();
         expect(jobs, hasLength(3));
@@ -570,6 +605,7 @@ jobs:
           'GITHUB_WEBHOOK_SECRET': testSecret,
           'GITHUB_APP_ID': '12345',
           'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
         });
         context1.provide<AppDatabase>(db);
         context1.provide<http.Client>(mockClient);
@@ -578,7 +614,21 @@ jobs:
         expect(response1.statusCode, equals(HttpStatus.ok));
         final resBody1 = await response1.json() as Map<String, dynamic>;
         expect(resBody1['success'], isTrue);
-        expect(resBody1['message'], contains('Webhook processed'));
+        expect(resBody1['message'], equals('Webhook received and queued.'));
+
+        final task = await db.webhookTaskDao.claimNextWebhookTask();
+        expect(task, isNotNull);
+        await processWebhookTask(
+          db,
+          task!,
+          environment: {
+            'GITHUB_WEBHOOK_SECRET': testSecret,
+            'GITHUB_APP_ID': '12345',
+            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+            'GITHUB_API_BASE_URL': 'https://api.github.com',
+          },
+          client: mockClient,
+        );
 
         final jobs = await db.select(db.buildJobs).get();
         expect(jobs, hasLength(1));
@@ -599,6 +649,7 @@ jobs:
           'GITHUB_WEBHOOK_SECRET': testSecret,
           'GITHUB_APP_ID': '12345',
           'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
         });
         context2.provide<AppDatabase>(db);
         context2.provide<http.Client>(mockClient);

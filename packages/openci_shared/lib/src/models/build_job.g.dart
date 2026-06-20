@@ -41,7 +41,6 @@ _BuildJob _$BuildJobFromJson(Map<String, dynamic> json) => _BuildJob(
   ipaVersion: json['ipaVersion'] as String?,
   appName: json['appName'] as String?,
   githubBaseUrl: json['githubBaseUrl'] as String?,
-  githubApiBaseUrl: json['githubApiBaseUrl'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
   completedAt: _$JsonConverterFromJson<Object, DateTime>(
@@ -83,7 +82,6 @@ Map<String, dynamic> _$BuildJobToJson(_BuildJob instance) => <String, dynamic>{
   'ipaVersion': instance.ipaVersion,
   'appName': instance.appName,
   'githubBaseUrl': instance.githubBaseUrl,
-  'githubApiBaseUrl': instance.githubApiBaseUrl,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
   'completedAt': _$JsonConverterToJson<Object, DateTime>(

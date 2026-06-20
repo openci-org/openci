@@ -15,7 +15,6 @@ abstract class Team with _$Team {
     @Default(1) int runNumber,
     @Default(true) bool aiEnabled,
     String? githubBaseUrl,
-    String? githubApiBaseUrl,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Team;

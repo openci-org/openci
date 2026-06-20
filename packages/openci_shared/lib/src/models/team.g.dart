@@ -18,7 +18,6 @@ _Team _$TeamFromJson(Map<String, dynamic> json) => _Team(
   runNumber: (json['runNumber'] as num?)?.toInt() ?? 1,
   aiEnabled: json['aiEnabled'] as bool? ?? true,
   githubBaseUrl: json['githubBaseUrl'] as String?,
-  githubApiBaseUrl: json['githubApiBaseUrl'] as String?,
   createdAt: const DateTimeConverter().fromJson(json['createdAt'] as Object),
   updatedAt: const DateTimeConverter().fromJson(json['updatedAt'] as Object),
 );
@@ -31,7 +30,6 @@ Map<String, dynamic> _$TeamToJson(_Team instance) => <String, dynamic>{
   'runNumber': instance.runNumber,
   'aiEnabled': instance.aiEnabled,
   'githubBaseUrl': instance.githubBaseUrl,
-  'githubApiBaseUrl': instance.githubApiBaseUrl,
   'createdAt': const DateTimeConverter().toJson(instance.createdAt),
   'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
 };

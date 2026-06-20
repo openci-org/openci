@@ -67,7 +67,6 @@ class BuildJobs extends Table {
   TextColumn get ipaVersion => text().nullable()();
   TextColumn get appName => text().nullable()();
   TextColumn get githubBaseUrl => text().nullable()();
-  TextColumn get githubApiBaseUrl => text().nullable()();
 
   TextColumn get installationId => text().nullable()();
   TextColumn get checkRunId => text().nullable()();

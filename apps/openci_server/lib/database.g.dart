@@ -335,17 +335,6 @@ class $BuildJobsTable extends BuildJobs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _githubApiBaseUrlMeta = const VerificationMeta(
-    'githubApiBaseUrl',
-  );
-  @override
-  late final GeneratedColumn<String> githubApiBaseUrl = GeneratedColumn<String>(
-    'github_api_base_url',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _installationIdMeta = const VerificationMeta(
     'installationId',
   );
@@ -435,7 +424,6 @@ class $BuildJobsTable extends BuildJobs
     ipaVersion,
     appName,
     githubBaseUrl,
-    githubApiBaseUrl,
     installationId,
     checkRunId,
     createdAt,
@@ -663,15 +651,6 @@ class $BuildJobsTable extends BuildJobs
         ),
       );
     }
-    if (data.containsKey('github_api_base_url')) {
-      context.handle(
-        _githubApiBaseUrlMeta,
-        githubApiBaseUrl.isAcceptableOrUnknown(
-          data['github_api_base_url']!,
-          _githubApiBaseUrlMeta,
-        ),
-      );
-    }
     if (data.containsKey('installation_id')) {
       context.handle(
         _installationIdMeta,
@@ -860,10 +839,6 @@ class $BuildJobsTable extends BuildJobs
         DriftSqlType.string,
         data['${effectivePrefix}github_base_url'],
       ),
-      githubApiBaseUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}github_api_base_url'],
-      ),
       installationId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}installation_id'],
@@ -941,7 +916,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? ipaVersion;
   final String? appName;
   final String? githubBaseUrl;
-  final String? githubApiBaseUrl;
   final String? installationId;
   final String? checkRunId;
   final DateTime createdAt;
@@ -980,7 +954,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.ipaVersion,
     this.appName,
     this.githubBaseUrl,
-    this.githubApiBaseUrl,
     this.installationId,
     this.checkRunId,
     required this.createdAt,
@@ -1088,9 +1061,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     if (!nullToAbsent || githubBaseUrl != null) {
       map['github_base_url'] = Variable<String>(githubBaseUrl);
     }
-    if (!nullToAbsent || githubApiBaseUrl != null) {
-      map['github_api_base_url'] = Variable<String>(githubApiBaseUrl);
-    }
     if (!nullToAbsent || installationId != null) {
       map['installation_id'] = Variable<String>(installationId);
     }
@@ -1193,9 +1163,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubBaseUrl: githubBaseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(githubBaseUrl),
-      githubApiBaseUrl: githubApiBaseUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(githubApiBaseUrl),
       installationId: installationId == null && nullToAbsent
           ? const Value.absent()
           : Value(installationId),
@@ -1258,7 +1225,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       ipaVersion: serializer.fromJson<String?>(json['ipaVersion']),
       appName: serializer.fromJson<String?>(json['appName']),
       githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
-      githubApiBaseUrl: serializer.fromJson<String?>(json['githubApiBaseUrl']),
       installationId: serializer.fromJson<String?>(json['installationId']),
       checkRunId: serializer.fromJson<String?>(json['checkRunId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -1306,7 +1272,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'ipaVersion': serializer.toJson<String?>(ipaVersion),
       'appName': serializer.toJson<String?>(appName),
       'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
-      'githubApiBaseUrl': serializer.toJson<String?>(githubApiBaseUrl),
       'installationId': serializer.toJson<String?>(installationId),
       'checkRunId': serializer.toJson<String?>(checkRunId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -1348,7 +1313,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> ipaVersion = const Value.absent(),
     Value<String?> appName = const Value.absent(),
     Value<String?> githubBaseUrl = const Value.absent(),
-    Value<String?> githubApiBaseUrl = const Value.absent(),
     Value<String?> installationId = const Value.absent(),
     Value<String?> checkRunId = const Value.absent(),
     DateTime? createdAt,
@@ -1407,9 +1371,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     githubBaseUrl: githubBaseUrl.present
         ? githubBaseUrl.value
         : this.githubBaseUrl,
-    githubApiBaseUrl: githubApiBaseUrl.present
-        ? githubApiBaseUrl.value
-        : this.githubApiBaseUrl,
     installationId: installationId.present
         ? installationId.value
         : this.installationId,
@@ -1482,9 +1443,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubBaseUrl: data.githubBaseUrl.present
           ? data.githubBaseUrl.value
           : this.githubBaseUrl,
-      githubApiBaseUrl: data.githubApiBaseUrl.present
-          ? data.githubApiBaseUrl.value
-          : this.githubApiBaseUrl,
       installationId: data.installationId.present
           ? data.installationId.value
           : this.installationId,
@@ -1534,7 +1492,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('ipaVersion: $ipaVersion, ')
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
-          ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
           ..write('installationId: $installationId, ')
           ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
@@ -1578,7 +1535,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     ipaVersion,
     appName,
     githubBaseUrl,
-    githubApiBaseUrl,
     installationId,
     checkRunId,
     createdAt,
@@ -1621,7 +1577,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.ipaVersion == this.ipaVersion &&
           other.appName == this.appName &&
           other.githubBaseUrl == this.githubBaseUrl &&
-          other.githubApiBaseUrl == this.githubApiBaseUrl &&
           other.installationId == this.installationId &&
           other.checkRunId == this.checkRunId &&
           other.createdAt == this.createdAt &&
@@ -1662,7 +1617,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> ipaVersion;
   final Value<String?> appName;
   final Value<String?> githubBaseUrl;
-  final Value<String?> githubApiBaseUrl;
   final Value<String?> installationId;
   final Value<String?> checkRunId;
   final Value<DateTime> createdAt;
@@ -1702,7 +1656,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.ipaVersion = const Value.absent(),
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
-    this.githubApiBaseUrl = const Value.absent(),
     this.installationId = const Value.absent(),
     this.checkRunId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1743,7 +1696,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.ipaVersion = const Value.absent(),
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
-    this.githubApiBaseUrl = const Value.absent(),
     this.installationId = const Value.absent(),
     this.checkRunId = const Value.absent(),
     required DateTime createdAt,
@@ -1790,7 +1742,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? ipaVersion,
     Expression<String>? appName,
     Expression<String>? githubBaseUrl,
-    Expression<String>? githubApiBaseUrl,
     Expression<String>? installationId,
     Expression<String>? checkRunId,
     Expression<DateTime>? createdAt,
@@ -1834,7 +1785,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (ipaVersion != null) 'ipa_version': ipaVersion,
       if (appName != null) 'app_name': appName,
       if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
-      if (githubApiBaseUrl != null) 'github_api_base_url': githubApiBaseUrl,
       if (installationId != null) 'installation_id': installationId,
       if (checkRunId != null) 'check_run_id': checkRunId,
       if (createdAt != null) 'created_at': createdAt,
@@ -1877,7 +1827,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? ipaVersion,
     Value<String?>? appName,
     Value<String?>? githubBaseUrl,
-    Value<String?>? githubApiBaseUrl,
     Value<String?>? installationId,
     Value<String?>? checkRunId,
     Value<DateTime>? createdAt,
@@ -1919,7 +1868,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       ipaVersion: ipaVersion ?? this.ipaVersion,
       appName: appName ?? this.appName,
       githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
-      githubApiBaseUrl: githubApiBaseUrl ?? this.githubApiBaseUrl,
       installationId: installationId ?? this.installationId,
       checkRunId: checkRunId ?? this.checkRunId,
       createdAt: createdAt ?? this.createdAt,
@@ -2044,9 +1992,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     if (githubBaseUrl.present) {
       map['github_base_url'] = Variable<String>(githubBaseUrl.value);
     }
-    if (githubApiBaseUrl.present) {
-      map['github_api_base_url'] = Variable<String>(githubApiBaseUrl.value);
-    }
     if (installationId.present) {
       map['installation_id'] = Variable<String>(installationId.value);
     }
@@ -2103,7 +2048,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('ipaVersion: $ipaVersion, ')
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
-          ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
           ..write('installationId: $installationId, ')
           ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
@@ -2869,17 +2813,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _githubApiBaseUrlMeta = const VerificationMeta(
-    'githubApiBaseUrl',
-  );
-  @override
-  late final GeneratedColumn<String> githubApiBaseUrl = GeneratedColumn<String>(
-    'github_api_base_url',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   @override
   late final GeneratedColumnWithTypeConverter<List<int>, String>
   installationIds = GeneratedColumn<String>(
@@ -2939,7 +2872,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
     id,
     name,
     githubBaseUrl,
-    githubApiBaseUrl,
     installationIds,
     aiEnabled,
     runNumber,
@@ -2977,15 +2909,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
         githubBaseUrl.isAcceptableOrUnknown(
           data['github_base_url']!,
           _githubBaseUrlMeta,
-        ),
-      );
-    }
-    if (data.containsKey('github_api_base_url')) {
-      context.handle(
-        _githubApiBaseUrlMeta,
-        githubApiBaseUrl.isAcceptableOrUnknown(
-          data['github_api_base_url']!,
-          _githubApiBaseUrlMeta,
         ),
       );
     }
@@ -3040,10 +2963,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
         DriftSqlType.string,
         data['${effectivePrefix}github_base_url'],
       ),
-      githubApiBaseUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}github_api_base_url'],
-      ),
       installationIds: $TeamsTable.$converterinstallationIds.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -3082,7 +3001,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
   final String id;
   final String name;
   final String? githubBaseUrl;
-  final String? githubApiBaseUrl;
   final List<int> installationIds;
   final bool aiEnabled;
   final int runNumber;
@@ -3092,7 +3010,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     required this.id,
     required this.name,
     this.githubBaseUrl,
-    this.githubApiBaseUrl,
     required this.installationIds,
     required this.aiEnabled,
     required this.runNumber,
@@ -3106,9 +3023,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || githubBaseUrl != null) {
       map['github_base_url'] = Variable<String>(githubBaseUrl);
-    }
-    if (!nullToAbsent || githubApiBaseUrl != null) {
-      map['github_api_base_url'] = Variable<String>(githubApiBaseUrl);
     }
     {
       map['installation_ids'] = Variable<String>(
@@ -3129,9 +3043,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
       githubBaseUrl: githubBaseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(githubBaseUrl),
-      githubApiBaseUrl: githubApiBaseUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(githubApiBaseUrl),
       installationIds: Value(installationIds),
       aiEnabled: Value(aiEnabled),
       runNumber: Value(runNumber),
@@ -3149,7 +3060,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
-      githubApiBaseUrl: serializer.fromJson<String?>(json['githubApiBaseUrl']),
       installationIds: serializer.fromJson<List<int>>(json['installationIds']),
       aiEnabled: serializer.fromJson<bool>(json['aiEnabled']),
       runNumber: serializer.fromJson<int>(json['runNumber']),
@@ -3164,7 +3074,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
-      'githubApiBaseUrl': serializer.toJson<String?>(githubApiBaseUrl),
       'installationIds': serializer.toJson<List<int>>(installationIds),
       'aiEnabled': serializer.toJson<bool>(aiEnabled),
       'runNumber': serializer.toJson<int>(runNumber),
@@ -3177,7 +3086,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     String? id,
     String? name,
     Value<String?> githubBaseUrl = const Value.absent(),
-    Value<String?> githubApiBaseUrl = const Value.absent(),
     List<int>? installationIds,
     bool? aiEnabled,
     int? runNumber,
@@ -3189,9 +3097,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     githubBaseUrl: githubBaseUrl.present
         ? githubBaseUrl.value
         : this.githubBaseUrl,
-    githubApiBaseUrl: githubApiBaseUrl.present
-        ? githubApiBaseUrl.value
-        : this.githubApiBaseUrl,
     installationIds: installationIds ?? this.installationIds,
     aiEnabled: aiEnabled ?? this.aiEnabled,
     runNumber: runNumber ?? this.runNumber,
@@ -3205,9 +3110,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
       githubBaseUrl: data.githubBaseUrl.present
           ? data.githubBaseUrl.value
           : this.githubBaseUrl,
-      githubApiBaseUrl: data.githubApiBaseUrl.present
-          ? data.githubApiBaseUrl.value
-          : this.githubApiBaseUrl,
       installationIds: data.installationIds.present
           ? data.installationIds.value
           : this.installationIds,
@@ -3224,7 +3126,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
-          ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
           ..write('installationIds: $installationIds, ')
           ..write('aiEnabled: $aiEnabled, ')
           ..write('runNumber: $runNumber, ')
@@ -3239,7 +3140,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     id,
     name,
     githubBaseUrl,
-    githubApiBaseUrl,
     installationIds,
     aiEnabled,
     runNumber,
@@ -3253,7 +3153,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
           other.id == this.id &&
           other.name == this.name &&
           other.githubBaseUrl == this.githubBaseUrl &&
-          other.githubApiBaseUrl == this.githubApiBaseUrl &&
           other.installationIds == this.installationIds &&
           other.aiEnabled == this.aiEnabled &&
           other.runNumber == this.runNumber &&
@@ -3265,7 +3164,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
   final Value<String> id;
   final Value<String> name;
   final Value<String?> githubBaseUrl;
-  final Value<String?> githubApiBaseUrl;
   final Value<List<int>> installationIds;
   final Value<bool> aiEnabled;
   final Value<int> runNumber;
@@ -3276,7 +3174,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
-    this.githubApiBaseUrl = const Value.absent(),
     this.installationIds = const Value.absent(),
     this.aiEnabled = const Value.absent(),
     this.runNumber = const Value.absent(),
@@ -3288,7 +3185,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     required String id,
     required String name,
     this.githubBaseUrl = const Value.absent(),
-    this.githubApiBaseUrl = const Value.absent(),
     required List<int> installationIds,
     required bool aiEnabled,
     this.runNumber = const Value.absent(),
@@ -3305,7 +3201,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? githubBaseUrl,
-    Expression<String>? githubApiBaseUrl,
     Expression<String>? installationIds,
     Expression<bool>? aiEnabled,
     Expression<int>? runNumber,
@@ -3317,7 +3212,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
-      if (githubApiBaseUrl != null) 'github_api_base_url': githubApiBaseUrl,
       if (installationIds != null) 'installation_ids': installationIds,
       if (aiEnabled != null) 'ai_enabled': aiEnabled,
       if (runNumber != null) 'run_number': runNumber,
@@ -3331,7 +3225,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     Value<String>? id,
     Value<String>? name,
     Value<String?>? githubBaseUrl,
-    Value<String?>? githubApiBaseUrl,
     Value<List<int>>? installationIds,
     Value<bool>? aiEnabled,
     Value<int>? runNumber,
@@ -3343,7 +3236,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
       id: id ?? this.id,
       name: name ?? this.name,
       githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
-      githubApiBaseUrl: githubApiBaseUrl ?? this.githubApiBaseUrl,
       installationIds: installationIds ?? this.installationIds,
       aiEnabled: aiEnabled ?? this.aiEnabled,
       runNumber: runNumber ?? this.runNumber,
@@ -3364,9 +3256,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     }
     if (githubBaseUrl.present) {
       map['github_base_url'] = Variable<String>(githubBaseUrl.value);
-    }
-    if (githubApiBaseUrl.present) {
-      map['github_api_base_url'] = Variable<String>(githubApiBaseUrl.value);
     }
     if (installationIds.present) {
       map['installation_ids'] = Variable<String>(
@@ -3397,7 +3286,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
-          ..write('githubApiBaseUrl: $githubApiBaseUrl, ')
           ..write('installationIds: $installationIds, ')
           ..write('aiEnabled: $aiEnabled, ')
           ..write('runNumber: $runNumber, ')
@@ -4812,7 +4700,6 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> ipaVersion,
       Value<String?> appName,
       Value<String?> githubBaseUrl,
-      Value<String?> githubApiBaseUrl,
       Value<String?> installationId,
       Value<String?> checkRunId,
       required DateTime createdAt,
@@ -4854,7 +4741,6 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> ipaVersion,
       Value<String?> appName,
       Value<String?> githubBaseUrl,
-      Value<String?> githubApiBaseUrl,
       Value<String?> installationId,
       Value<String?> checkRunId,
       Value<DateTime> createdAt,
@@ -5060,11 +4946,6 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get githubBaseUrl => $composableBuilder(
     column: $table.githubBaseUrl,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get githubApiBaseUrl => $composableBuilder(
-    column: $table.githubApiBaseUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5288,11 +5169,6 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get githubApiBaseUrl => $composableBuilder(
-    column: $table.githubApiBaseUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get installationId => $composableBuilder(
     column: $table.installationId,
     builder: (column) => ColumnOrderings(column),
@@ -5455,11 +5331,6 @@ class $$BuildJobsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get githubApiBaseUrl => $composableBuilder(
-    column: $table.githubApiBaseUrl,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get installationId => $composableBuilder(
     column: $table.installationId,
     builder: (column) => column,
@@ -5567,7 +5438,6 @@ class $$BuildJobsTableTableManager
                 Value<String?> ipaVersion = const Value.absent(),
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
-                Value<String?> githubApiBaseUrl = const Value.absent(),
                 Value<String?> installationId = const Value.absent(),
                 Value<String?> checkRunId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -5607,7 +5477,6 @@ class $$BuildJobsTableTableManager
                 ipaVersion: ipaVersion,
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
-                githubApiBaseUrl: githubApiBaseUrl,
                 installationId: installationId,
                 checkRunId: checkRunId,
                 createdAt: createdAt,
@@ -5649,7 +5518,6 @@ class $$BuildJobsTableTableManager
                 Value<String?> ipaVersion = const Value.absent(),
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
-                Value<String?> githubApiBaseUrl = const Value.absent(),
                 Value<String?> installationId = const Value.absent(),
                 Value<String?> checkRunId = const Value.absent(),
                 required DateTime createdAt,
@@ -5689,7 +5557,6 @@ class $$BuildJobsTableTableManager
                 ipaVersion: ipaVersion,
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
-                githubApiBaseUrl: githubApiBaseUrl,
                 installationId: installationId,
                 checkRunId: checkRunId,
                 createdAt: createdAt,
@@ -6275,7 +6142,6 @@ typedef $$TeamsTableCreateCompanionBuilder =
       required String id,
       required String name,
       Value<String?> githubBaseUrl,
-      Value<String?> githubApiBaseUrl,
       required List<int> installationIds,
       required bool aiEnabled,
       Value<int> runNumber,
@@ -6288,7 +6154,6 @@ typedef $$TeamsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String?> githubBaseUrl,
-      Value<String?> githubApiBaseUrl,
       Value<List<int>> installationIds,
       Value<bool> aiEnabled,
       Value<int> runNumber,
@@ -6358,11 +6223,6 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
 
   ColumnFilters<String> get githubBaseUrl => $composableBuilder(
     column: $table.githubBaseUrl,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get githubApiBaseUrl => $composableBuilder(
-    column: $table.githubApiBaseUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6467,11 +6327,6 @@ class $$TeamsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get githubApiBaseUrl => $composableBuilder(
-    column: $table.githubApiBaseUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get installationIds => $composableBuilder(
     column: $table.installationIds,
     builder: (column) => ColumnOrderings(column),
@@ -6515,11 +6370,6 @@ class $$TeamsTableAnnotationComposer
 
   GeneratedColumn<String> get githubBaseUrl => $composableBuilder(
     column: $table.githubBaseUrl,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get githubApiBaseUrl => $composableBuilder(
-    column: $table.githubApiBaseUrl,
     builder: (column) => column,
   );
 
@@ -6623,7 +6473,6 @@ class $$TeamsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
-                Value<String?> githubApiBaseUrl = const Value.absent(),
                 Value<List<int>> installationIds = const Value.absent(),
                 Value<bool> aiEnabled = const Value.absent(),
                 Value<int> runNumber = const Value.absent(),
@@ -6634,7 +6483,6 @@ class $$TeamsTableTableManager
                 id: id,
                 name: name,
                 githubBaseUrl: githubBaseUrl,
-                githubApiBaseUrl: githubApiBaseUrl,
                 installationIds: installationIds,
                 aiEnabled: aiEnabled,
                 runNumber: runNumber,
@@ -6647,7 +6495,6 @@ class $$TeamsTableTableManager
                 required String id,
                 required String name,
                 Value<String?> githubBaseUrl = const Value.absent(),
-                Value<String?> githubApiBaseUrl = const Value.absent(),
                 required List<int> installationIds,
                 required bool aiEnabled,
                 Value<int> runNumber = const Value.absent(),
@@ -6658,7 +6505,6 @@ class $$TeamsTableTableManager
                 id: id,
                 name: name,
                 githubBaseUrl: githubBaseUrl,
-                githubApiBaseUrl: githubApiBaseUrl,
                 installationIds: installationIds,
                 aiEnabled: aiEnabled,
                 runNumber: runNumber,

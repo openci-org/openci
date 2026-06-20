@@ -61,7 +61,6 @@ abstract class BuildJob with _$BuildJob {
     String? ipaVersion,
     String? appName,
     String? githubBaseUrl,
-    String? githubApiBaseUrl,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
     @DateTimeConverter() DateTime? completedAt,

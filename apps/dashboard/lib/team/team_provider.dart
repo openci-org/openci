@@ -129,12 +129,10 @@ class TeamList extends _$TeamList {
   Future<void> updateGitHubSettings({
     required String teamId,
     String? githubBaseUrl,
-    String? githubApiBaseUrl,
     required List<int> installationIds,
   }) async {
     await firestore.collection(teamsCollection).doc(teamId).update({
       'githubBaseUrl': _emptyToNull(githubBaseUrl),
-      'githubApiBaseUrl': _emptyToNull(githubApiBaseUrl),
       'installationIds': installationIds,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -165,7 +163,6 @@ List<Team> _teamsFromDocs(
           const [],
       aiEnabled: data['aiEnabled'] as bool? ?? true,
       githubBaseUrl: data['githubBaseUrl'] as String?,
-      githubApiBaseUrl: data['githubApiBaseUrl'] as String?,
       createdAt: dateTimeFromFirestore(data['createdAt']),
       updatedAt: dateTimeFromFirestore(data['updatedAt']),
     );

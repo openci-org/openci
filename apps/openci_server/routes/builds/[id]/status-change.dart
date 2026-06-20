@@ -76,7 +76,6 @@ Future<Response> _post(RequestContext context, String id) async {
               repo: updated.repo,
               checkRunIdStr: updated.checkRunId!,
               installationIdStr: updated.installationId!,
-              githubApiBaseUrlStr: updated.githubApiBaseUrl,
               runStatus: 'completed',
               conclusion: 'cancelled',
             );
@@ -125,7 +124,6 @@ Future<Response> _post(RequestContext context, String id) async {
                 repo: updated.repo,
                 checkRunIdStr: updated.checkRunId!,
                 installationIdStr: updated.installationId!,
-                githubApiBaseUrlStr: updated.githubApiBaseUrl,
                 runStatus: 'completed',
                 conclusion: 'skipped',
               );

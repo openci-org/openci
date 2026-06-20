@@ -20,7 +20,6 @@ class Teams extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get githubBaseUrl => text().nullable()();
-  TextColumn get githubApiBaseUrl => text().nullable()();
   TextColumn get installationIds => text().map(const IntListConverter())();
   BoolColumn get aiEnabled => boolean()();
   IntColumn get runNumber => integer().withDefault(const Constant(1))();
