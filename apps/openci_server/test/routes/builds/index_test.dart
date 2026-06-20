@@ -468,84 +468,93 @@ void main() {
       expect(listIpa[0]['id'], equals('job-2'));
     });
 
-    test('responds with 400 Bad Request when hasIpa parameter is invalid', () async {
-      final team = DriftTeam(
-        id: 'team-xyz',
-        name: 'Team XYZ',
-        githubBaseUrl: null,
-        githubApiBaseUrl: null,
-        installationIds: const [],
-        runNumber: 1,
-        aiEnabled: true,
-        createdAt: DateTime.now().toUtc(),
-        updatedAt: DateTime.now().toUtc(),
-      );
+    test(
+      'responds with 400 Bad Request when hasIpa parameter is invalid',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
 
-      await db.teamDao.createTeamAndMember(team, 'user-123');
+        await db.teamDao.createTeamAndMember(team, 'user-123');
 
-      final context = TestRequestContext(
-        path: '/builds?teamId=team-xyz&hasIpa=invalid',
-        method: HttpMethod.get,
-      );
-      context.provide<AppDatabase>(db);
-      context.provide<String?>('user-123');
+        final context = TestRequestContext(
+          path: '/builds?teamId=team-xyz&hasIpa=invalid',
+          method: HttpMethod.get,
+        );
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
 
-      final response = await route.onRequest(context.context);
-      expect(response.statusCode, equals(HttpStatus.badRequest));
-      final body = await response.json() as Map<String, dynamic>;
-      expect(body['success'], isFalse);
-      expect(body['error'], contains('Invalid hasIpa parameter'));
-    });
+        final response = await route.onRequest(context.context);
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('Invalid hasIpa parameter'));
+      },
+    );
 
-    test('responds with 400 Bad Request when limit parameter is invalid', () async {
-      final team = DriftTeam(
-        id: 'team-xyz',
-        name: 'Team XYZ',
-        githubBaseUrl: null,
-        githubApiBaseUrl: null,
-        installationIds: const [],
-        runNumber: 1,
-        aiEnabled: true,
-        createdAt: DateTime.now().toUtc(),
-        updatedAt: DateTime.now().toUtc(),
-      );
+    test(
+      'responds with 400 Bad Request when limit parameter is invalid',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          githubApiBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
 
-      await db.teamDao.createTeamAndMember(team, 'user-123');
+        await db.teamDao.createTeamAndMember(team, 'user-123');
 
-      // Test with non-integer limit
-      final contextInvalidString = TestRequestContext(
-        path: '/builds?teamId=team-xyz&limit=abc',
-        method: HttpMethod.get,
-      );
-      contextInvalidString.provide<AppDatabase>(db);
-      contextInvalidString.provide<String?>('user-123');
+        // Test with non-integer limit
+        final contextInvalidString = TestRequestContext(
+          path: '/builds?teamId=team-xyz&limit=abc',
+          method: HttpMethod.get,
+        );
+        contextInvalidString.provide<AppDatabase>(db);
+        contextInvalidString.provide<String?>('user-123');
 
-      final responseInvalidString = await route.onRequest(contextInvalidString.context);
-      expect(responseInvalidString.statusCode, equals(HttpStatus.badRequest));
-      final bodyInvalidString = await responseInvalidString.json() as Map<String, dynamic>;
-      expect(bodyInvalidString['error'], contains('Invalid limit parameter'));
+        final responseInvalidString = await route.onRequest(
+          contextInvalidString.context,
+        );
+        expect(responseInvalidString.statusCode, equals(HttpStatus.badRequest));
+        final bodyInvalidString =
+            await responseInvalidString.json() as Map<String, dynamic>;
+        expect(bodyInvalidString['error'], contains('Invalid limit parameter'));
 
-      // Test with limit < 1
-      final contextZero = TestRequestContext(
-        path: '/builds?teamId=team-xyz&limit=0',
-        method: HttpMethod.get,
-      );
-      contextZero.provide<AppDatabase>(db);
-      contextZero.provide<String?>('user-123');
+        // Test with limit < 1
+        final contextZero = TestRequestContext(
+          path: '/builds?teamId=team-xyz&limit=0',
+          method: HttpMethod.get,
+        );
+        contextZero.provide<AppDatabase>(db);
+        contextZero.provide<String?>('user-123');
 
-      final responseZero = await route.onRequest(contextZero.context);
-      expect(responseZero.statusCode, equals(HttpStatus.badRequest));
+        final responseZero = await route.onRequest(contextZero.context);
+        expect(responseZero.statusCode, equals(HttpStatus.badRequest));
 
-      // Test with limit > 200
-      final contextTooLarge = TestRequestContext(
-        path: '/builds?teamId=team-xyz&limit=201',
-        method: HttpMethod.get,
-      );
-      contextTooLarge.provide<AppDatabase>(db);
-      contextTooLarge.provide<String?>('user-123');
+        // Test with limit > 200
+        final contextTooLarge = TestRequestContext(
+          path: '/builds?teamId=team-xyz&limit=201',
+          method: HttpMethod.get,
+        );
+        contextTooLarge.provide<AppDatabase>(db);
+        contextTooLarge.provide<String?>('user-123');
 
-      final responseTooLarge = await route.onRequest(contextTooLarge.context);
-      expect(responseTooLarge.statusCode, equals(HttpStatus.badRequest));
-    });
+        final responseTooLarge = await route.onRequest(contextTooLarge.context);
+        expect(responseTooLarge.statusCode, equals(HttpStatus.badRequest));
+      },
+    );
   });
 }

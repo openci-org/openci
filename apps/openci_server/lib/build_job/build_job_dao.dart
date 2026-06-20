@@ -12,24 +12,24 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
 
   Future<DriftBuildJob?> claimNextJob(String runsOnPattern) async {
     return db.transaction(() async {
-      final String sql;
-      final List<Variable> vars;
+      final String runsOnCondition;
       if (runsOnPattern.toLowerCase().contains('macos')) {
-        sql =
-            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (runs_on ILIKE ?) ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
-        vars = [Variable<String>('%macos%')];
+        runsOnCondition = "LOWER(runs_on) LIKE '%macos%'";
       } else {
-        sql =
-            'SELECT * FROM build_jobs WHERE status = \'QUEUED\' AND (runs_on ILIKE ? OR runs_on IS NULL OR runs_on = \'\') ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED';
-        vars = [Variable<String>('%ubuntu%')];
+        runsOnCondition =
+            "LOWER(runs_on) LIKE '%ubuntu%' OR runs_on IS NULL OR runs_on = ''";
       }
 
-      final results = await db
-          .customSelect(
-            sql,
-            variables: vars,
-          )
-          .get();
+      final sql =
+          '''
+        SELECT * FROM build_jobs 
+        WHERE status = 'QUEUED' AND ($runsOnCondition) 
+        ORDER BY created_at ASC 
+        LIMIT 1 
+        FOR UPDATE SKIP LOCKED
+      ''';
+
+      final results = await db.customSelect(sql).get();
 
       if (results.isEmpty) return null;
 

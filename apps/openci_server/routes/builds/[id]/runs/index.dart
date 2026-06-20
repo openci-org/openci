@@ -16,38 +16,6 @@ FutureOr<Response> onRequest(RequestContext context, String id) {
 Future<Response> _get(RequestContext context, String id) async {
   try {
     final db = context.read<AppDatabase>();
-    final uid = context.read<String?>();
-
-    if (uid == null) {
-      return Response.json(
-        statusCode: HttpStatus.unauthorized,
-        body: {'success': false, 'error': 'Authentication required'},
-      );
-    }
-    final driftJob = await db.buildJobDao.getBuildJob(id);
-    if (driftJob == null) {
-      return Response.json(
-        statusCode: HttpStatus.notFound,
-        body: {'success': false, 'error': 'Build job not found'},
-      );
-    }
-
-    final teamId = driftJob.teamId;
-    if (teamId == null) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
-    }
-
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
-    }
-
     final runs = await db.buildRunDao.getBuildRuns(id);
     final responseBody = runs
         .map(
@@ -78,14 +46,6 @@ Future<Response> _get(RequestContext context, String id) async {
 Future<Response> _post(RequestContext context, String id) async {
   try {
     final db = context.read<AppDatabase>();
-    final uid = context.read<String?>();
-
-    if (uid == null) {
-      return Response.json(
-        statusCode: HttpStatus.unauthorized,
-        body: {'success': false, 'error': 'Authentication required'},
-      );
-    }
 
     final Map<String, dynamic> payload;
     try {
@@ -126,30 +86,6 @@ Future<Response> _post(RequestContext context, String id) async {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'success': false, 'error': 'id is required'},
-      );
-    }
-
-    final driftJob = await db.buildJobDao.getBuildJob(id);
-    if (driftJob == null) {
-      return Response.json(
-        statusCode: HttpStatus.notFound,
-        body: {'success': false, 'error': 'Build job not found'},
-      );
-    }
-
-    final teamId = driftJob.teamId;
-    if (teamId == null) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
-    }
-
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
       );
     }
 
