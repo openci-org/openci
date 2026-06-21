@@ -53,14 +53,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          service_account_tmp="$(mktemp)"
-          service_account_file="${service_account_tmp}.json"
-          trap 'rm -f "$service_account_tmp" "$service_account_file"' EXIT
+          service_account_file="$(mktemp)"
+          trap 'rm -f "$service_account_file"' EXIT
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
           export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
-          unset FIREBASE_SERVICE_ACCOUNT
 
-          npx -y firebase-tools@latest deploy \
-            --only hosting:openci-b1b91 \
+          firebase deploy \
+            --only hosting \
             --project openci-b1b91 \
             --non-interactive
