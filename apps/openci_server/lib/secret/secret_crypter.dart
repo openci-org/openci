@@ -6,10 +6,20 @@ class SecretCrypter {
   final List<int> _keyBytes;
   final _algorithm = AesGcm.with256bits();
 
-  SecretCrypter(String base64Key) : _keyBytes = base64.decode(base64Key) {
-    if (_keyBytes.length != 32) {
+  SecretCrypter(String base64Key) : _keyBytes = _decodeKey(base64Key);
+
+  static List<int> _decodeKey(String base64Key) {
+    try {
+      final decoded = base64.decode(base64Key);
+      if (decoded.length != 32) {
+        throw ArgumentError(
+          'Encryption key must be exactly 32 bytes (256 bits) after base64 decoding.',
+        );
+      }
+      return decoded;
+    } on FormatException catch (e) {
       throw ArgumentError(
-        'Encryption key must be exactly 32 bytes (256 bits) after base64 decoding.',
+        'Invalid base64 format for encryption key: $e',
       );
     }
   }

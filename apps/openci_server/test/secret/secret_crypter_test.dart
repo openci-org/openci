@@ -12,6 +12,13 @@ void main() {
       expect(() => SecretCrypter(invalidKey), throwsArgumentError);
     });
 
+    test('Constructor throws ArgumentError for invalid base64 format', () {
+      expect(
+        () => SecretCrypter('invalid_base64_chars_!@#'),
+        throwsArgumentError,
+      );
+    });
+
     test('Encrypt and decrypt a simple string', () async {
       final crypter = SecretCrypter(validKey);
       const plaintext = 'hello world';
