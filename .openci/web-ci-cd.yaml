@@ -55,7 +55,15 @@ jobs:
 
           service_account_file="$(mktemp)"
           trap 'rm -f "$service_account_file"' EXIT
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
+          node -e '
+            try {
+              const parsed = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+              require("fs").writeFileSync(process.argv[1], JSON.stringify(parsed));
+            } catch (e) {
+              console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", e);
+              process.exit(1);
+            }
+          ' "$service_account_file"
           export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
 
           firebase deploy \
