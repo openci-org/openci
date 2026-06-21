@@ -7,6 +7,7 @@ import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_server/build_run/build_run_dao.dart';
 import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
+import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
@@ -28,7 +29,7 @@ part 'database.g.dart';
     ProcessedWebhooks,
     WebhookTasks,
   ],
-  daos: [BuildJobDao, BuildRunDao, TeamDao, WebhookTaskDao],
+  daos: [BuildJobDao, BuildRunDao, TeamDao, WebhookTaskDao, SecretDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
