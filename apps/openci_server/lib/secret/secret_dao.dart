@@ -19,7 +19,16 @@ class SecretDao extends DatabaseAccessor<AppDatabase> with _$SecretDaoMixin {
   }
 
   Future<void> insertOrUpdateSecret(DriftSecret secret) {
-    return into(secrets).insertOnConflictUpdate(secret);
+    return into(secrets).insert(
+      secret,
+      onConflict: DoUpdate(
+        (old) => SecretsCompanion(
+          encryptedValue: Value(secret.encryptedValue),
+          updatedAt: Value(secret.updatedAt),
+        ),
+        target: [secrets.teamId, secrets.name],
+      ),
+    );
   }
 
   Future<int> deleteSecret(String teamId, String name) {
