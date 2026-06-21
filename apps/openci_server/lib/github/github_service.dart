@@ -20,8 +20,10 @@ class GitHubService {
 
   static Future<String> getInstallationToken({
     required String installationIdStr,
+    Map<String, String>? environment,
+    http.Client? client,
   }) async {
-    final env = Platform.environment;
+    final env = environment ?? Platform.environment;
     final appId = env['GITHUB_APP_ID'];
     final privateKeyPath = env['GITHUB_PRIVATE_KEY_PATH'];
     final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
@@ -51,15 +53,16 @@ class GitHubService {
     final tokenUrl =
         '$githubApiBaseUrl/app/installations/$installationIdStr/access_tokens';
 
-    final response = await http.post(
-      Uri.parse(tokenUrl),
-      headers: {
-        'Authorization': 'Bearer $jwtToken',
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'OpenCI-Server',
-      },
-    );
+    final headers = {
+      'Authorization': 'Bearer $jwtToken',
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'OpenCI-Server',
+    };
+
+    final response = client != null
+        ? await client.post(Uri.parse(tokenUrl), headers: headers)
+        : await http.post(Uri.parse(tokenUrl), headers: headers);
 
     if (response.statusCode >= 300) {
       throw HttpException(
@@ -78,12 +81,16 @@ class GitHubService {
     required String installationIdStr,
     required String runStatus,
     String? conclusion,
+    Map<String, String>? environment,
+    http.Client? client,
   }) async {
     final token = await getInstallationToken(
       installationIdStr: installationIdStr,
+      environment: environment,
+      client: client,
     );
 
-    final env = Platform.environment;
+    final env = environment ?? Platform.environment;
     final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
     if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
       throw StateError(
@@ -102,17 +109,25 @@ class GitHubService {
         'completed_at': DateTime.now().toUtc().toIso8601String(),
     };
 
-    final patchResponse = await http.patch(
-      Uri.parse(checkRunUrl),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'OpenCI-Server',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(patchBody),
-    );
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'OpenCI-Server',
+      'Content-Type': 'application/json',
+    };
+
+    final patchResponse = client != null
+        ? await client.patch(
+            Uri.parse(checkRunUrl),
+            headers: headers,
+            body: jsonEncode(patchBody),
+          )
+        : await http.patch(
+            Uri.parse(checkRunUrl),
+            headers: headers,
+            body: jsonEncode(patchBody),
+          );
 
     if (patchResponse.statusCode >= 300) {
       throw HttpException(
