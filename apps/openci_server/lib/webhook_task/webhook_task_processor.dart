@@ -716,7 +716,6 @@ bool matchesTrigger(
   return false;
 }
 
-
 extension FlatMap<T> on Iterable<T> {
   Iterable<R> flatMap<R>(Iterable<R> Function(T) f) => expand(f);
 }
