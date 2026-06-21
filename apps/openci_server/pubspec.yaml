@@ -9,6 +9,7 @@ resolution: workspace
 
 dependencies:
   crypto: ^3.0.3
+  cryptography: ^2.9.0
   dart_jsonwebtoken: ^3.2.0
   dart_frog: ^1.2.6
   drift: ^2.33.0
