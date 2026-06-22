@@ -4,6 +4,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/webhook_task/webhook_task_worker.dart';
+import 'package:sentry/sentry.dart';
 
 final _db = () {
   final db = AppDatabase();
@@ -12,12 +13,47 @@ final _db = () {
 }();
 final FirebaseApp _firebaseApp = FirebaseApp.initializeApp();
 
+bool _sentryInitialized = false;
+
+void _initSentry() {
+  if (_sentryInitialized) return;
+  final sentryDsn = Platform.environment['SENTRY_DSN'];
+  if (sentryDsn != null && sentryDsn.isNotEmpty) {
+    Sentry.init((options) {
+      options.dsn = sentryDsn;
+      options.tracesSampleRate = 1.0;
+      options.sendDefaultPii = true;
+    });
+    _sentryInitialized = true;
+  }
+}
+
 Handler middleware(Handler handler) {
   return handler
+      .use(sentryMiddleware())
       .use(databaseProvider(_db))
       .use(authProvider(_firebaseApp))
       .use(corsMiddleware())
       .use(requestLogger());
+}
+
+Middleware sentryMiddleware() {
+  return (handler) {
+    return (context) async {
+      try {
+        _initSentry();
+        return await handler(context);
+      } catch (exception, stackTrace) {
+        if (_sentryInitialized) {
+          await Sentry.captureException(
+            exception,
+            stackTrace: stackTrace,
+          );
+        }
+        rethrow;
+      }
+    };
+  };
 }
 
 Middleware databaseProvider(AppDatabase db) {
